@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_GetItemMasterMappingParts   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterMappingParts.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_GetItemMasterMappingParts]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Get ItemMaster Mapping Parts Data.
@@ -10,10 +14,11 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    04-NOV-2025		Divyesh Kathiriya	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_GetItemMasterMappingParts] @MappingItemMasterId=96984
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetItemMasterMappingParts]
+CREATE     PROCEDURE [DBO].[USP_GetItemMasterMappingParts]
 @MappingItemMasterId BIGINT
 AS
 BEGIN
@@ -26,7 +31,7 @@ BEGIN
 			[alt].[MappingItemMasterId] AS [Value]
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] AS alt WITH(NOLOCK)
 		INNER JOIN [DBO].[ItemMaster] AS im1 WITH(NOLOCK) ON [alt].[MappingItemMasterId] = [im1].[ItemMasterId]
-		WHERE [alt].[MappingItemMasterId] = @MappingItemMasterId;		  		 	   			   	  
+		WHERE [alt].[MappingItemMasterId] = @MappingItemMasterId AND ISNULL(im1.IsNonStock,0) = 0 ;		  		 	   			   	  
 	
 	END TRY 
 	BEGIN CATCH

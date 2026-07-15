@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_CreateVendorRFQPO   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_CreateVendorRFQPO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_CreateVendorRFQPO]           
  ** Author:  Devendra Shekh
  ** Description: This stored Procedure is used to Create the Vendor RFQ PO
@@ -12,6 +16,7 @@
  ** --   --------			---------			--------------------------------          
     1   16-Sept-2025		Devendra Shekh		 Created
 	2   08-Dec-2025         Moin Bloch           Added Default Company Address For VRFQ
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 declare @p4 dbo.VendorRFQPOPartType
 insert into @p4 values(1,5416,2,96978,N'New',1,2400)
@@ -21,7 +26,7 @@ set @p5=2190
 exec dbo.usp_CreateVendorRFQPO @SourceBy=N'ILS',@MarketplaceRef=N'9159021',@QuoteWithinDays=3,@tbl_VendorRFQPOPartType=@p4,@VendorRFQPurchaseOrderId=@p5 output
 select @p5    
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPO]
+CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQPO]
 @SourceBy VARCHAR(50) = NULL,
 @MarketplaceRef VARCHAR(50) = NULL,
 @QuoteWithinDays INT = NULL,
@@ -236,7 +241,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON (TRIM(TMP.[Condition]) = TRIM(CD.[Code]) OR TRIM(TMP.[Condition]) = TRIM(CD.[Description])) AND TMP.[MasterCompanyId] = CD.[MasterCompanyId]
 
 		-- Table Type Result Insert
-		INSERT INTO @tbl_VendorRFQPurchaseOrderPartType (
+		 WHERE ISNULL(IM.IsNonStock,0) = 0
+INSERT INTO @tbl_VendorRFQPurchaseOrderPartType (
 			[VendorRFQPurchaseOrderId], [ItemMasterId], [PartNumber], [PartDescription], [StockType], [ManufacturerId], [Manufacturer], [PriorityId], [Priority], [NeedByDate], [PromisedDate], [ConditionId], [Condition],
 			[QuantityOrdered], [UnitCost], [ExtendedCost], [WorkOrderId], [WorkOrderNo], [SubWorkOrderId], [SubWorkOrderNo], [SalesOrderId], [SalesOrderNo], [ManagementStructureId], [Level1], [Level2], [Level3], [Level4], 
 			[Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [UOMId], [UnitOfMeasure], [TraceableTo], [TraceableToName], [TraceableToType], [TagTypeId], [TaggedByType],

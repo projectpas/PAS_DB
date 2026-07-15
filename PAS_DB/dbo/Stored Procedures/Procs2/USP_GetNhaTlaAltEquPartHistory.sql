@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetNhaTlaAltEquPartHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetNhaTlaAltEquPartHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetNhaTlaAltEquPartHistory]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to GetNhaTlaAltEquPartHistory List
@@ -13,10 +17,11 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	exec [dbo].[USP_GetNhaTlaAltEquPartHistory]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetNhaTlaAltEquPartHistory]
+CREATE     PROCEDURE [dbo].[USP_GetNhaTlaAltEquPartHistory]
    @ItemMappingId BIGINT = NULL,
    @EmployeeId BIGINT = NULL,
    @Opr INT = NULL
@@ -74,7 +79,8 @@ BEGIN
 			LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON alt.CustomerId = cust.CustomerId
 		WHERE alt.ItemMappingId = @ItemMappingId
       
-	END
+	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0
+		 END
 	IF (@Opr = 2)
 	BEGIN
 		SELECT AD.[AttachmentDetailId]

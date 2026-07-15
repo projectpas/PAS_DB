@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPNTileWorkOrderQuoteList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTileWorkOrderQuoteList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetPNTileWorkOrderQuoteList]             
  ** Author:   
  ** Description: This stored procedure is used Get PN Tile Work Order Quote List
@@ -16,8 +20,9 @@
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
     1    27/02/2026   Bhargav Saliya       PN-15581: Added New Fields [QuoteAmount],[Qty],[Notes]
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
+CREATE   PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -100,7 +105,7 @@ BEGIN
 				  AND WOQ.IsActive = 1				  
 				  AND WPN.ItemMasterId = @ItemMasterId	
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

@@ -16,6 +16,7 @@
  ** --   --------     -------   --------------------------------              
     1    09/01/2023   Vishal Suthar  Created  
 	2    06-12-2023   Shrey Chandegara Updated For Nonstock 
+	3    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
 EXEC [GetStocklineIdsForReceivingPO] 2174  
 **************************************************************/    
@@ -34,7 +35,7 @@ BEGIN
   SELECT STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(100))  
         FROM DBO.Stockline Stk WITH (NOLOCK)  
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
-        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0      
+        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 0      
         FOR XML PATH('')), 1, 1, '') StocklineIds,   
    STUFF((SELECT ',' + CAST(Stk.AssetInventoryId AS VARCHAR(100))  
         FROM DBO.AssetInventory Stk WITH (NOLOCK)  

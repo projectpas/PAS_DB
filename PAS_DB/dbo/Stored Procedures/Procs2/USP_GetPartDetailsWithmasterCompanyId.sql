@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPartDetailsWithmasterCompanyId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPartDetailsWithmasterCompanyId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_GetPartDetailsWithmasterCompanyI       
  ** Author:		 Nakul Chandigra
  ** Description: This stored procedure retrieves part details for the Add Multiple Part search in a PO, filtered by MasterCompanyId.
@@ -10,11 +14,12 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	-------------------         
 	1	02-12-2025           Nakul Chandigra     Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [USP_GetPartDetailsWithId] 'Part9,part,199999,test',1 
 	EXEC [USP_GetPartDetailsWithId] 'a',1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetPartDetailsWithmasterCompanyId]
+CREATE      PROCEDURE [dbo].[USP_GetPartDetailsWithmasterCompanyId]
 @PartsList VARCHAR(MAX),
 @MasterCompanyId BIGINT 
 AS
@@ -96,7 +101,8 @@ BEGIN
 		LEFT JOIN [DBO].[Priority] P WITH(NOLOCK) ON IM.PriorityId = P.PriorityId
 		WHERE IM.PartNumber = @PartNo AND  IM.IsActive =1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId
 	
-		IF NOT EXISTS(SELECT 1 FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.PartNumber = @PartNo AND IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId)
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 IF NOT EXISTS(SELECT 1 FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.PartNumber = @PartNo AND IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 )
         BEGIN
             INSERT INTO #tmpPartsNotFound (PartNumber)
             VALUES (@PartNo);

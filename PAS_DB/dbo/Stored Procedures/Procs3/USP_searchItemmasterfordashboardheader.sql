@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_searchItemmasterfordashboardheader   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_searchItemmasterfordashboardheader.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_searchItemmasterfordashboardheader]       
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To Search Itemmaster For Dashboardheader
@@ -10,8 +14,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	27-11-2025           Nakul Chandigra     Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_searchItemmasterfordashboardheader] 
+CREATE      PROCEDURE [dbo].[USP_searchItemmasterfordashboardheader] 
 @ItemMasterId BIGINT,
 @ConditionId BIGINT  
 AS
@@ -26,7 +31,8 @@ BEGIN
 		imst.ItemGroup
 	FROM [dbo].[ItemMasterPurchaseSale] imp WITH (NOLOCK)
 	LEFT JOIN [dbo].[ItemMaster] imst ON imp.ItemMasterId = imst.ItemMasterId
-	WHERE imp.ItemMasterId = @ItemMasterId AND imp.ConditionId = @ConditionId
+	 AND ISNULL(imst.IsNonStock,0) = 0
+	 WHERE imp.ItemMasterId = @ItemMasterId AND imp.ConditionId = @ConditionId
 
     END TRY
 	BEGIN CATCH    

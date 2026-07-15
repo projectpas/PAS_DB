@@ -1,4 +1,4 @@
-﻿
+
 /***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
@@ -16,6 +16,8 @@
 	10   07/11/2024              RAJESH GAMI						Latet generated PO/RFQ on the top (Generated in last 10 mins)
 	11   26/11/2024              RAJESH GAMI						Set by default SORT BY OrderNo
 	12   12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -170,9 +172,9 @@ BEGIN
 				IM_ITM.PartDescription,				
 				Cond.[Description],	
 				WOM.ConditionCodeId,				
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
 				0,
 				'',
 				NULL,
@@ -207,7 +209,7 @@ BEGIN
 			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 												
 		   WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
-		   AND Cond.Code != @ARConditionCode
+		   AND Cond.Code != @ARConditionCode  AND ISNULL(IM_ITM.IsNonStock,0) = 0 AND ISNULL(IM_WOP.IsNonStock,0) = 0
 		   ORDER BY PO.CreatedDate DESC
 		   --2
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -224,9 +226,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)),
 				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
 				0,
 				'',
 				NULL,
@@ -254,7 +256,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON	WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId	
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -265,7 +268,7 @@ BEGIN
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
 					  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 					  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
-					  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
+					  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode AND ISNULL(IM_WOP.IsNonStock,0) = 0
 			  ORDER BY WOM.CreatedDate DESC;
 			--3
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -282,9 +285,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 				0,
 				'', 
 				NULL,
@@ -311,14 +314,15 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID			
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId		
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
 					INNER JOIN [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
 					INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) on POP.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND PO.IsFromBulkPO = 1
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  
-			  AND Cond.Code != @ARConditionCode
+			  AND Cond.Code != @ARConditionCode AND ISNULL(IM_WOP.IsNonStock,0) = 0
 			  ORDER BY PO.CreatedDate DESC
 			--4
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -335,9 +339,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
 				0,
 				'',
 				NULL,
@@ -364,14 +368,15 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
 					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId AND WOM.POId = Pop.PurchaseOrderId
 					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0 
-			   AND Cond.Code != @ARConditionCode
+			   AND Cond.Code != @ARConditionCode  AND ISNULL(IM_WOP.IsNonStock,0) = 0
 			  ORDER BY PO.CreatedDate DESC
 			
 			--5
@@ -389,9 +394,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)),
 				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
 	            0,
 				'',
 				NULL,
@@ -419,7 +424,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID	
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -430,7 +436,7 @@ BEGIN
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
 			  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 			  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
-			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
+			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode AND ISNULL(IM_WOP.IsNonStock,0) = 0
 			 ORDER BY WOM.CreatedDate DESC;
 			--6
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -447,9 +453,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 	            0,
 				'',
 				NULL,
@@ -476,7 +482,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId	
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -862,7 +869,7 @@ BEGIN
 			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
 					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
 					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
-					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId WHERE ISNULL(Stk.IsNonStock,0) = 0
 					ORDER BY Stk.[CreatedDate] DESC					
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
@@ -871,7 +878,7 @@ BEGIN
 			FROM (SELECT TOP 1 Vend.VendorName,Vend.VendorCode, temp.VendorName AS POVendorName,temp.VendorCode AS POVendorCode ,temp.IsFromBulkPO,Stk.[ItemMasterId],Stk.[ConditionId]
 				FROM DBO.Stockline Stk WITH (NOLOCK) 
 				LEFT JOIN [dbo].[Vendor] Vend WITH (NOLOCK) ON Stk.VendorId = Vend.VendorId				
-				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
+				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId WHERE ISNULL(Stk.IsNonStock,0) = 0				
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
 			UPDATE #TEMPBulkPORecords SET OrderNo = 0 WHERE CreatedDate >= @PreferedTime AND ISNULL(PurchaseOrderId,0) > 0
@@ -994,9 +1001,9 @@ BEGIN
 				IM_ITM.PartDescription,				
 				Cond.[Description],	
 				WOM.ConditionCodeId,				
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
 				0,
 				'',
 				NULL,
@@ -1049,9 +1056,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)),
 				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
 				0,
 				'',
 				NULL,
@@ -1079,7 +1086,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON	WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -1111,9 +1119,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 				0,
 				'', 
 				NULL,
@@ -1140,7 +1148,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID			
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -1168,9 +1177,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
 				0,
 				'',
 				NULL,
@@ -1197,7 +1206,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId	
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -1223,9 +1233,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)),
 				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
-				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
 	            0,
 				'',
 				NULL,
@@ -1253,7 +1263,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID	
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId	
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -1283,9 +1294,9 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
 				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
-				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
+				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND ISNULL(Stk.IsNonStock,0) = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 	            0,
 				'',
 				NULL,
@@ -1312,7 +1323,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
 					LEFT JOIN  [dbo].[ItemMaster] IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
-					LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
+					 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IM_PS WITH (NOLOCK) ON IM_PS.ItemMasterId = WOM.ItemMasterId AND IM_PS.ConditionId = WOM.ConditionCodeId
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
@@ -1706,7 +1718,7 @@ BEGIN
 			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
 					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
 					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
-					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId WHERE ISNULL(Stk.IsNonStock,0) = 0
 					ORDER BY Stk.[CreatedDate] DESC					
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
@@ -1715,7 +1727,7 @@ BEGIN
 			FROM (SELECT TOP 1 Vend.VendorName,Vend.VendorCode, temp.VendorName AS POVendorName,temp.VendorCode AS POVendorCode ,temp.IsFromBulkPO,Stk.[ItemMasterId],Stk.[ConditionId]
 				FROM DBO.Stockline Stk WITH (NOLOCK) 
 				LEFT JOIN [dbo].[Vendor] Vend WITH (NOLOCK) ON Stk.VendorId = Vend.VendorId				
-				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
+				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId WHERE ISNULL(Stk.IsNonStock,0) = 0				
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
 			UPDATE #TEMPBulkPORecords SET OrderNo = 0 WHERE CreatedDate >= @PreferedTime AND ISNULL(PurchaseOrderId,0) > 0

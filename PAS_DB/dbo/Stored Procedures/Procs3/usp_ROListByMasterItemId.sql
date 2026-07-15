@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_ROListByMasterItemId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_ROListByMasterItemId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to RO List By MasterItemId List
@@ -13,9 +17,10 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    05-05-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
-CREATE   PROCEDURE dbo.[usp_ROListByMasterItemId]
+CREATE     PROCEDURE dbo.[usp_ROListByMasterItemId]
     @ItemMasterId BIGINT
 AS
 BEGIN
@@ -30,7 +35,8 @@ BEGIN
 				FROM [dbo].RepairOrder RO WITH(NOLOCK)
 				INNER JOIN [dbo].RepairOrderPart ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 				LEFT JOIN [dbo].ItemMaster ITM WITH(NOLOCK) ON ROP.ItemMasterId = ITM.ItemMasterId AND ITM.ItemMasterId = @ItemMasterId
-				LEFT JOIN [dbo].AssetInventory ASI WITH(NOLOCK) ON ROP.ItemMasterId = ASI.AssetRecordId AND ASI.AssetRecordId = @ItemMasterId
+				 AND ISNULL(ITM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].AssetInventory ASI WITH(NOLOCK) ON ROP.ItemMasterId = ASI.AssetRecordId AND ASI.AssetRecordId = @ItemMasterId
 				WHERE RO.IsDeleted = 0 
         END TRY    
 

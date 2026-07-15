@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetWOShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetWOShippingParentList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetWOShippingParentList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Shipping List    
@@ -20,9 +21,11 @@
 	3    07/16/2024   Devendra Shekh Added Case For Status
 	4    07/28/2025   Moin Bloch     Added Condition For Enforce Mpn Pick Ticket Confirmation
   	5    05/JUNE/2026 Rajesh Gami	 Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]        
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [sp_GetWOShippingParentList] 19769, 39
 **************************************************************/
-CREATE     Procedure [dbo].[sp_GetWOShippingParentList]
+CREATE   PROCEDURE [dbo].[sp_GetWOShippingParentList]
 @WorkOrderId  bigint,
 @WorkOrderPartId bigint
 AS
@@ -60,7 +63,8 @@ BEGIN
 					LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 					INNER JOIN DBO.WOPickTicket wopt  WITH(NOLOCK) ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
-					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+					 AND ISNULL(imt.IsNonStock,0) = 0
+					 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					LEFT JOIN DBO.CustomerDomensticShipping CDSD WITH(NOLOCK) ON CDSD.CustomerId = wo.CustomerId and CDSD.IsPrimary=1
 					LEFT JOIN DBO.CustomerDomensticShippingShipVia cds WITH(NOLOCK) ON CDSD.CustomerDomensticShippingId = cds.CustomerDomensticShippingId and cds.IsPrimary=1					
 					LEFT JOIN DBO.WorkOrderShippingItem wosi  WITH(NOLOCK) ON wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId

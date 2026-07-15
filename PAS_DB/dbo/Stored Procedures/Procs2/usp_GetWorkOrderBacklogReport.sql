@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usp_GetWorkOrderBacklogReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderBacklogReport.sql) =====
+
 /*************************************************************           
  ** File:   [usp_GetWorkOrderBacklogReport]           
  ** Author:   Swetha  
@@ -18,10 +19,12 @@
     1					Swetha		Created
 	2	        		Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderBacklogReport] @stage varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderBacklogReport] @stage varchar(40) = NULL,
 @description varchar(40) = NULL,
 @Fromdate datetime = NULL,
 @Todate datetime = NULL,
@@ -129,8 +132,9 @@ BEGIN
           ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.itemmasterid
-        LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
+          ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
         LEFT JOIN DBO.Employee E WITH (NOLOCK)
           ON WOPN.TechnicianId = E.EmployeeId
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)

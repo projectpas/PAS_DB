@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderQuoteTable   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderQuoteTable.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 
 /*************************************************************           
  ** File:   [UpdateWorkOrderTeardownColumnsWithId]           
@@ -19,11 +23,12 @@
  ** --   --------     -------		--------------------------------          
     1    03/16/2021    Subhash Saliya Created
 	2	 01/20/2024	   Moin Bloch	  Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	     
 --EXEC [UpdateWorkOrderQuoteTable] 'WorkOrderQuoteMaterial', 284
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateWorkOrderQuoteTable]
+CREATE   PROCEDURE [dbo].[UpdateWorkOrderQuoteTable]
     @TableName varchar(100),
 	@TableprimaryId bigint
 AS
@@ -70,7 +75,8 @@ BEGIN
 							 INNER JOIN dbo.Provision PO WITH(NOLOCK) ON PO.ProvisionId = WOQM.ProvisionId
 							 LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = WOQM.MarkupPercentageId 
 						 WHERE WOQM.WorkOrderQuoteMaterialId = @TableprimaryId
-				 END
+				  AND ISNULL(Im.IsNonStock,0) = 0
+						  END
 				 ELSE IF(LOWER(@TableName) ='workorderquotelabor')
 				 BEGIN
 

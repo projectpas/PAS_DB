@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿-- ===== PROCEDURE: [dbo].[USP_SaveWorkOrederMaterialsROHistory]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_SaveWorkOrederMaterialsROHistory.sql) =====
+/*************************************************************               
  ** File:  [USP_InsertWorkOrederMaterialsROHistory]     
  ** Author:  HEMANT SALIYA
  ** Description: This stored procedure is used to save [WorkOrederMaterialsROHistory].    
@@ -12,6 +13,7 @@
  ** --   --------     -------		--------------------------------              
     1    24-Mar-2026  HEMANT SALIYA		Created    
     2    24-Mar-2026  Bhargav Saliya	Modified    
+    3    09/July/2026  RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_SaveWorkOrederMaterialsROHistory]
@@ -51,7 +53,7 @@ BEGIN
 		FROM [dbo].[RepairOrderPart] RP WITH(NOLOCK) 
 			JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
 			JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = RP.StockLineId
-		WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND RP.WorkOrderId = @WorkOrderId AND RP.WorkOrderMaterialsId = @WorkOrderMaterialsId
+		WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND RP.WorkOrderId = @WorkOrderId AND RP.WorkOrderMaterialsId = @WorkOrderMaterialsId AND ISNULL(SL.IsNonStock,0) = 0
 
         SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS WOMROHistorId;
 

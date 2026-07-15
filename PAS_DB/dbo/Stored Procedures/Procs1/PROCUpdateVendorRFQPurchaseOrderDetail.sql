@@ -1,5 +1,16 @@
-﻿--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
-CREATE PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.PROCUpdateVendorRFQPurchaseOrderDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/PROCUpdateVendorRFQPurchaseOrderDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
+--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE   PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
 @VendorRFQPurchaseOrderId  bigint
 AS
 BEGIN
@@ -119,7 +130,7 @@ BEGIN
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
-		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId; 
+		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId AND ISNULL(IM.IsNonStock,0) = 0 ; 
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	
 

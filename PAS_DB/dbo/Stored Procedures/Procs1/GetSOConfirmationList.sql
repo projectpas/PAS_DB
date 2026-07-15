@@ -1,4 +1,4 @@
-﻿/*************************************************************                 
+/*************************************************************                 
  ** File:   [GetSOConfirmationList]                 
  ** Author:   Ayushi Patel        
  ** Description: Get Data for Sales Order Confirmation listing      
@@ -17,6 +17,8 @@
     01  06/08/2024		Ayushi Patel    Created      
 	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
@@ -104,7 +106,7 @@ BEGIN
 		LEFT JOIN SalesOrderApproval soc ON part.SalesOrderPartId = soc.SalesOrderPartId
 		INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON part.SalesOrderId = so.SalesOrderId
 		LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-		LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+		LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 		INNER JOIN dbo.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 		LEFT JOIN dbo.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
@@ -118,7 +120,7 @@ BEGIN
         part.IsDeleted = 0 
         AND part.MasterCompanyId = @masterCompanyId
 
-		   	 ), ResultCount AS(SELECT COUNT(SalesOrderId) AS totalItems FROM Result)
+		   	  AND ISNULL(itemMaster.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(SalesOrderId) AS totalItems FROM Result)
 			
 			
 			SELECT * INTO #TempResult FROM  Result r
@@ -226,9 +228,10 @@ BEGIN
         LEFT JOIN SalesOrderApproval soc ON part.SalesOrderPartId = soc.SalesOrderPartId
         INNER JOIN SalesOrder so ON part.SalesOrderId = so.SalesOrderId
         LEFT JOIN Customer cust ON so.CustomerId = cust.CustomerId
-        LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
+        LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
         LEFT JOIN ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
-        LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
+         AND ISNULL(itemMaster.IsNonStock,0) = 0
+         LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
         LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

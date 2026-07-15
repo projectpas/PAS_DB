@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotSummaryByLotId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotSummaryByLotId.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_GetLotSummaryByLotId]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot summary by lot id
@@ -12,10 +13,11 @@
  ** --   --------     -------		---------------------------     
     1    05/05/2023   Rajesh Gami     Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	3    09/July/2026	 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE   PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN
@@ -95,7 +97,7 @@ BEGIN
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId
 					   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.PurchaseOrderFreight PF WITH(NOLOCK) WHERE PF.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
-							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
+							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0) AND ISNULL(sl.IsNonStock,0) = 0
 				 )
 
 				Select * INTO #tempTableLT FROM Lot_CTE Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer
@@ -131,7 +133,7 @@ BEGIN
 					DBO.LOT lot WITH(NOLOCK) 
 					INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId
-					Where  lot.LotId = @LotId
+					Where  lot.LotId = @LotId AND ISNULL(sl.IsNonStock,0) = 0
 				)
 				Select * INTO #tempTableLTAdj FROM Lot_Adjust Group by StockLineId,Adjustment
 				Select @AdjustmentAmount = ISNULL(SUM(ISNULL(Adjustment,0)),0) from #tempTableLTAdj

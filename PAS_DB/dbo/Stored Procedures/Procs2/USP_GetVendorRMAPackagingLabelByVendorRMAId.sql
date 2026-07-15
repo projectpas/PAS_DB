@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPackagingLabelByVendorRMAId.sql) =====
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPackagingLabelByVendorRMAId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMAPackagingLabel By VendorRMAId pdf
@@ -13,6 +14,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
+    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
@@ -66,7 +68,7 @@ BEGIN
 				LEFT JOIN [dbo].AllShipVia posv WITH(NOLOCK) ON posv.ReferenceId = soq.VendorRMAId AND posv.ModuleId = @ModuleId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipItems spi WITH(NOLOCK) ON sopkt.RMAPickTicketId = spi.RMAPickTicketId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipHeader spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
-				LEFT JOIN [dbo].StockLine qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+				LEFT JOIN [dbo].StockLine qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 				LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 				LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 				WHERE sopkt.VendorRMAId = @VendorRMAId

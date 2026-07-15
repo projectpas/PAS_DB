@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_VendorRMA_GetPickTicketApproveList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_VendorRMA_GetPickTicketApproveList.sql) =====
+/*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketApproveList]           
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to retrieve pickticket listing data for Vendor RMA
@@ -16,10 +17,12 @@
  ** --   --------     -------		--------------------------------          
 	1    06/19/2023   Amit Ghediya  Created
 	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketApproveList] 36
 **************************************************************/
-CREATE   Procedure [dbo].[sp_VendorRMA_GetPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
 	@VendorRMAId  bigint
 AS
 BEGIN
@@ -33,7 +36,7 @@ BEGIN
 		(SELECT TOP 1 Qty FROM VendorRMADetail WITH(NOLOCK) Where VendorRMADetailId = sop.VendorRMADetailId AND ItemMasterId = sop.ItemMasterId) AS Qty,
 		'' AS SerialNumber, 
 		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
-		AND sll.ItemMasterId = sop.ItemMasterId Where sp.VendorRMAId = @VendorRMAId) AS QuantityAvailable,
+		AND sll.ItemMasterId = sop.ItemMasterId Where sp.VendorRMAId = @VendorRMAId AND ISNULL(sll.IsNonStock,0) = 0) AS QuantityAvailable,
 		sop.RMANum AS RMANumber
 		,(SELECT SUM(SP.QtyToShip) FROM DBO.RMAPickTicket SP WITH(NOLOCK)
 		INNER JOIN VendorRMA S_O WITH(NOLOCK) ON S_O.VendorRMAId = SP.VendorRMAId
@@ -65,7 +68,7 @@ BEGIN
 
 		from dbo.VendorRMADetail sop WITH(NOLOCK)
 		INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
 		--LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = sop.SalesOrderQuoteId
 		LEFT JOIN RMAPickTicket sopt WITH(NOLOCK) on sopt.VendorRMAId = sop.VendorRMAId
@@ -73,7 +76,8 @@ BEGIN
 		--INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Vendor cr WITH(NOLOCK) on cr.VendorId = so.VendorId
 		where sop.VendorRMAId=@VendorRMAId AND ((sopt.RMAPickTicketId IS NULL) OR sopt.RMAPickTicketId IS NOT NULL)
-		group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
 		sop.RMANum,sop.ItemMasterId,
 		sl.ConditionId, cr.[VendorName],cr.VendorCode, sl.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

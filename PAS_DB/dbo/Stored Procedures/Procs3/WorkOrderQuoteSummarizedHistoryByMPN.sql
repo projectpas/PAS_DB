@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderQuoteSummarizedHistoryByMPN   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderQuoteSummarizedHistoryByMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Quote Summarized History By MPN.    
@@ -17,10 +21,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXEC [WorkOrderQuoteSummarizedHistoryByMPN] 129,0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
+CREATE     PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
 	@ItemMasterId BIGINT,
 	@IsTwelveMonth BIT = 1
 AS
@@ -94,7 +99,8 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = WOQ.CurrencyId						
 					WHERE IM.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WOQ.createdDate, GETDATE()) < @Month 
 
-					IF((SELECT COUNT(1) FROM #tmpWorkOrderCostDetails) > 0)
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 IF((SELECT COUNT(1) FROM #tmpWorkOrderCostDetails) > 0)
 					BEGIN
 						;WITH CTE AS(
 							SELECT	SUM(ISNULL(WOC.Revenue, 0))/ COUNT(DISTINCT WorkOrderId) AS CalAvgRevenue,

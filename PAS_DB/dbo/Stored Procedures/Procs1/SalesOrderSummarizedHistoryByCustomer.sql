@@ -15,6 +15,8 @@
  ** --   --------		-------			--------------------------------          
     1    07/13/2021		Vishal Suthar	Created
     2	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXEC [SalesOrderSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
@@ -74,11 +76,11 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.Customer Cust WITH (NOLOCK) ON Cust.CustomerId = SO.CustomerId
 						LEFT JOIN dbo.MasterSalesOrderStatus St WITH (NOLOCK) ON St.Id = SO.StatusId
-						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId
+						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 						LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 						LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 						LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month)
+					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month AND ISNULL(IM.IsNonStock,0) = 0 )
 
 					SELECT CustomerName, CustomerId, SalesOrderId, Condition, CustApproved, CurrencyName, SalesOrderNumber, SalesOrderQuoteNumber,
 					VersionNumber, SODate, StatusName, Revenue AS Revenue,DirectCost AS DirectCost, (Revenue - DirectCost) AS Margin,

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetKitByItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetKitByItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_GetKitByItemMaster]          
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To Get Kit By ItemMasterId 
@@ -10,8 +14,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 27-10-2025         Nakul Chandigra     Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetKitByItemMaster]
+CREATE      PROCEDURE [dbo].[USP_GetKitByItemMaster]
 @ItemMasterId BIGINT
 AS
 BEGIN
@@ -36,7 +41,8 @@ BEGIN
 		ISNULL(wos.WorkScopeCode, '') AS WorkScopeName
 	FROM [dbo].[KitMaster] kIM WITH (NOLOCK)
 	LEFT JOIN [dbo].[ItemMaster] imst WITH (NOLOCK) ON kIM.ItemMasterId = imst.ItemMasterId
-	LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON kIM.WorkScopeId = wos.WorkScopeId
+	 AND ISNULL(imst.IsNonStock,0) = 0
+	 LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON kIM.WorkScopeId = wos.WorkScopeId
 	WHERE kIM.ItemMasterid = @ItemMasterid;
 
 	END TRY

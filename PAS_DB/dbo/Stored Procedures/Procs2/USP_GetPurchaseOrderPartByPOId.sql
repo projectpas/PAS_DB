@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPurchaseOrderPartByPOId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartByPOId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 -- =============================================
 -- Author:		<Rajesh Gami>
 -- Create date: <18-Oct-2024>
@@ -15,10 +19,11 @@
    3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
    4    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
    5	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
-CREATE       PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
+CREATE         PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
 @PurchaseOrderId bigint,
 @WorkOrderPartNoId bigint NULL =0,
 @SubWorkOrderMaterialsId bigint NULL = 0
@@ -551,7 +556,7 @@ BEGIN
 								SalesOrderQuoteId,
 								SalesOrderQuoteNumber,AircraftRegistryNumber,IsFromAircraft,AircraftInstalledPartDetailsId,ACTailNum
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,
@@ -662,7 +667,7 @@ BEGIN
 								POPartSplitAddress1,
 								POPartSplitUserTypeId,POPartSplitUserType,POPartSplitUserId,POPartSplitUser,POPartSplitSiteId,POPartSplitSiteName,POPartSplitCountryName
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,
@@ -766,7 +771,8 @@ BEGIN
 						0 DiscountPerUnit,
 						IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId					
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+						 END
 	--------------- END : Work Order Materials ----------------
 
     --------------- START : Sub Work Order Materials ----------------
@@ -836,7 +842,8 @@ BEGIN
 							IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId		
 					
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+							 END
 	--------------- END : Sub Work Order Materials ----------------
 				
 				SELECT * FROM #mainReturnTable ORDER BY PurchaseOrderPartRecordId;

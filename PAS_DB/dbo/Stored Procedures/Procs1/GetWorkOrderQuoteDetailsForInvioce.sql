@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQuoteDetailsForInvioce   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQuoteDetailsForInvioce.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [GetWorkOrderQuoteDetailsForInvioce]           
  ** Author:   Hemant Saliya
@@ -20,11 +24,12 @@
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 02/23/2024	  Moin Bloch     Added WorkOrderId,CustomerId Fields For Tax Info
 	4    05/01/2025   Hemant Saliya  Updated for Handle Falt Billing Amount
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [GetWorkOrderQuoteDetailsForInvioce] 3566, 3596
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
+CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
 	@workflowWorkorderId BIGINT,
 	@WorkOrderPartNoId BIGINT
 AS
@@ -79,7 +84,8 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuote WOQ WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId
 				LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId
-				WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND WQD.WOPartNoId = @WorkOrderPartNoId AND WQD.IsVersionIncrease = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND WQD.WOPartNoId = @WorkOrderPartNoId AND WQD.IsVersionIncrease = 0
 			END
 		COMMIT  TRANSACTION
 

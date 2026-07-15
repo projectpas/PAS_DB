@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionForSubWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionForSubWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -20,9 +24,10 @@
 	5	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	6	 13/01/2025  Devendra Shekh Modify (StockLine GL selection Changes)
 	7	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
 @DistributionMasterId BIGINT = NULL,
 @ReferenceId BIGINT = NULL,
 @ReferencePartId BIGINT = NULL,
@@ -162,7 +167,8 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SWO.ItemMasterId = ITM.ItemMasterId			  
 			  WHERE SWO.[SubWorkOrderId] = @ReferenceId AND SWO.[SubWOPartNoId] = @partId
 			  
-			IF(UPPER(@DistributionCode) = UPPER('WOMATERIALGRIDTAB'))
+			 AND ISNULL(ITM.IsNonStock,0) = 0
+			   IF(UPPER(@DistributionCode) = UPPER('WOMATERIALGRIDTAB'))
 			BEGIN
 				SELECT @LastMSLevel = [LastMSLevel],
 					   @AllMSlevels = [AllMSlevels],
@@ -715,7 +721,7 @@ BEGIN
 						   @PiecePN = ITM.[partnumber]
 					 FROM [dbo].[SubWorkOrderMaterialStockLine] SMS WITH(NOLOCK)
 					 INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SMS.[ItemMasterId] = ITM.[ItemMasterId]				 
-					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId;				
+					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId AND ISNULL(ITM.IsNonStock,0) = 0 ;				
 				 				 				 
 					SELECT TOP 1 @DistributionSetupId = [ID],
 				             @DistributionName = [Name],

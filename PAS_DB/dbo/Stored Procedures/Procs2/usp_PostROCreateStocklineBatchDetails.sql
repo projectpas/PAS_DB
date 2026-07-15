@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -28,6 +28,9 @@
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
 	19	 08/07/2026	  Moin Bloch       Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	20   08/07/2026   Abhishek Jirawla Including RO Num in Batch details
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -395,7 +398,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -412,11 +415,13 @@ BEGIN
 										  SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -428,12 +433,12 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 										SELECT @GlStocklineId = ROP.StockLineId -- For PARTS StocklineId.
 										FROM [dbo].[RepairOrderPart] ROP WITH(NOLOCK)					 
@@ -442,7 +447,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @GlStocklineId;
+										WHERE SL.[StockLineId] = @GlStocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -561,12 +566,14 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
@@ -841,7 +848,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -858,11 +865,13 @@ BEGIN
 										  --SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -874,7 +883,7 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										----GET STOCKLINE GLACCOUNT.
 										--SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
@@ -888,7 +897,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId, @finishedGoodsGLAccId = SL.FinishedGoodsGLAccId, @cogs_WorkOrderGLAccId = SL.COGS_WorkOrderGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -909,14 +918,19 @@ BEGIN
 											
 
 											-----Goods Received Not Invoiced (GRNI)--------
-											DECLARE @lastQtyCon INT, @lastQtyDam INT;
-											SELECT TOP 1 @lastQtyCon = QtyConsumed, @lastQtyDam = QtyDamagedLost FROM dbo.PiecePartReconciliation WITH(NOLOCK)
+											DECLARE @lastQtyCon INT, @lastQtyDam INT, @ConsumeRepairOrderId BIGINT, @ConsumeRepairOrderNum varchar(50)='';
+											SELECT TOP 1 @lastQtyCon = QtyConsumed, @lastQtyDam = QtyDamagedLost, @ConsumeRepairOrderId = ConsumedRepairOrderId 
+											FROM dbo.PiecePartReconciliation WITH(NOLOCK)
 											WHERE StocklineId = @StocklineId
 											ORDER BY PiecePartReconciliationId DESC
 
+											SELECT TOP 1 @ConsumeRepairOrderNum = RepairOrderNumber 
+											FROM dbo.RepairOrder WITH(NOLOCK)
+											WHERE RepairOrderId = @ConsumeRepairOrderId
+
 											IF @lastQtyCon > 0 AND @IsBypassAccounting = 0
 											BEGIN
-												SET @Amount = (@lastQtyCon * @Amount);
+												SET @Amount = (ISNULL(@lastQtyCon, 0) * ISNULL(@Amount, 0));
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -925,7 +939,7 @@ BEGIN
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -936,7 +950,7 @@ BEGIN
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
-												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
 
@@ -964,7 +978,7 @@ BEGIN
 													CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 												 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -976,7 +990,7 @@ BEGIN
 													(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 													[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 												VALUES
-													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum, @StocklineId,
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -1004,7 +1018,7 @@ BEGIN
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1015,7 +1029,7 @@ BEGIN
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
-												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
 											END
@@ -1044,7 +1058,7 @@ BEGIN
 													CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 												 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1055,7 +1069,7 @@ BEGIN
 													(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 													[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 												VALUES
-													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -1090,12 +1104,14 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)

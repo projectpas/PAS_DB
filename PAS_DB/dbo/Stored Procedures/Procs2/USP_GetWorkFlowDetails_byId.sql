@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkFlowDetails_byId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkFlowDetails_byId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetWorkFlowDetails_byId]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get the WorkFlow Details
@@ -14,10 +18,11 @@
 	4	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
 	5	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
 	6    03-JUN-2026        Amit Ghediya            Added AC Template releted Fields MaintenanceClassId [PN-16668]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
+CREATE     PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
  @WorkflowId BIGINT = NULL,  
  @EmployeeId BIGINT	= NULL
 AS
@@ -63,7 +68,8 @@ BEGIN
 				TMP.AircraftRegistryNumber = ARH.[AircraftRegistryNumber]
 			FROM #tmpWorkFLow TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON TMP.CustomerId = CU.CustomerId
 			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON TMP.CurrencyId = CY.CurrencyId
 			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
@@ -90,7 +96,7 @@ BEGIN
 					[COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName], [FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName],
 					[COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName], [COGS_ExchSalesOrderGLAccName], [QuickBooksReferenceId], [IsUpdated], [LastSyncDate],
 					[SyncToken], [WorkOrderFormTypeId] 
-			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFItemMasterId;
+			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			
 			-- Getting WorkScope Details
 			SELECT	[WorkScopeId], [WorkScopeCode], [Description], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [WorkScopeCodeNew], [ConditionId]
@@ -151,7 +157,8 @@ BEGIN
 								END
 			FROM #tmpWorkflowExclusion TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON TMP.ConditionId = CD.ConditionId
 
 			-- Getting WorkflowExpertiseList Details
@@ -184,7 +191,8 @@ BEGIN
 								END
 			FROM #tmpWorkflowMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
 			LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON TMP.UnitOfMeasureId = UM.UnitOfMeasureId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON TMP.ConditionCodeId = CD.ConditionId
 			LEFT JOIN [dbo].[Provision] PV WITH(NOLOCK) ON TMP.ProvisionId = PV.ProvisionId
@@ -200,7 +208,8 @@ BEGIN
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 
 			-- Getting WorkflowPublications Details
-			SELECT	[WorkflowPublicationsId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsDeleted], [PublicationId], [PublicationDescription], [PublicationType], [Sequence], [Source], [AircraftManufacturer], [Model], [Location], [Revision], [RevisionDate], [VerifiedBy], [VerifiedDate], [Status],
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 SELECT	[WorkflowPublicationsId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsDeleted], [PublicationId], [PublicationDescription], [PublicationType], [Sequence], [Source], [AircraftManufacturer], [Model], [Location], [Revision], [RevisionDate], [VerifiedBy], [VerifiedDate], [Status],
 					[Image], [TaskId], [WorkflowId], [MasterCompanyId], [Order], [IsActive], [Memo], [WFParentId], [IsVersionIncrease], @PublicationTypeName AS [PublicationTypeName], @ModelName AS [ModelName], @ManufacturerName AS [AircraftManufacturerName], @PublicationId AS [PublicationName]
 			INTO #tmpWorkflowPublications FROM [dbo].[WorkflowPublications] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]
 			

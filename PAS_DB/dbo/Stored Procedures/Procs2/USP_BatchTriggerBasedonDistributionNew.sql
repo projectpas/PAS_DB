@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionNew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionNew.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionNew]
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -15,10 +19,11 @@
  ** --   --------     -------		 --------------------------------          
     1    06/06/2025   Moin Bloch      Created
 	2    16/04/2026   Hemanat Saliya  Handle for if user generate $0 then no need to make accounting Entry
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_BatchTriggerBasedonDistributionNew 3
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionNew]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionNew]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,
@@ -180,7 +185,8 @@ BEGIN
 			  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 			 WHERE ItemMasterId=@ItemmasterId 
 
-	        SELECT @LastMSLevel=LastMSLevel,
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+			  SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@partId
@@ -244,7 +250,7 @@ BEGIN
 				 						        
 				SELECT @PiecePN = partnumber 
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
-				 WHERE [ItemMasterId]=@PieceItemmasterId;
+				 WHERE [ItemMasterId]=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				 
 				SELECT top 1 @DistributionSetupId=ID,
 				             @DistributionName=Name,

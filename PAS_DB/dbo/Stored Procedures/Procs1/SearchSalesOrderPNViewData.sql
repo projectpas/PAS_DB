@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchSalesOrderPNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchSalesOrderPNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [SearchSalesOrderPNViewData]
  ** Author:  
  ** Description: This stored procedure is used display sales order list
@@ -20,8 +24,9 @@
 	7    19-11-2025  RAJESH GAMI		Added SO Amount
 	10   20-11-2025  Rajesh Gami		Correct the SO Amount
 	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
+CREATE     PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
 	@PageNumber int,  
 	@PageSize int,  
 	@SortColumn varchar(50)=null,  
@@ -138,7 +143,8 @@ BEGIN
     LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId = SP.SalesOrderPartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-    LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+     AND ISNULL(IM.IsNonStock,0) = 0
+     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
     LEFT JOIN DBO.Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId
     LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId

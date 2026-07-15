@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetManufacturerByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetManufacturerByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
 ** File:   [GetManufacturerByItemMasterId]
 ** Author:   Vishal Suthar
 ** Description: This procedre is used to get manufacturer by part id
@@ -10,10 +14,11 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   10/31/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC [dbo].[GetManufacturerByItemMasterId] 96877
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetManufacturerByItemMasterId]
+CREATE     PROCEDURE [dbo].[GetManufacturerByItemMasterId]
     @ItemMasterId INT
 AS
 BEGIN
@@ -25,7 +30,7 @@ BEGIN
 			imcls.Name AS [label]
 		FROM DBO.Manufacturer imcls WITH (NOLOCK)
 		INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON imcls.ManufacturerId = im.ManufacturerId
-		WHERE imcls.IsDeleted = 0 AND im.ItemMasterId = @ItemMasterId;
+		WHERE imcls.IsDeleted = 0 AND im.ItemMasterId = @ItemMasterId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 	END TRY
 	BEGIN CATCH

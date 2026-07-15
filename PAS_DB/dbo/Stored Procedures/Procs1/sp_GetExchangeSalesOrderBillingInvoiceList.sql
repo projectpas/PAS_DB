@@ -1,5 +1,14 @@
-﻿-- EXEC [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList] 223
-CREATE Procedure [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]
+﻿-- ===== PROCEDURE: [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetExchangeSalesOrderBillingInvoiceList.sql) =====
+-- EXEC [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList] 223
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE   PROCEDURE [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN
@@ -21,7 +30,8 @@ BEGIN
 				INNER JOIN DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) on sos.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 				INNER JOIN DBO.ExchangeSalesOrderShippingItem sosi WITH (NOLOCK) on sos.ExchangeSalesOrderShippingId = sosi.ExchangeSalesOrderShippingId AND sosi.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN DBO.ExchangeSalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.ExchangeSalesOrderId = sos.ExchangeSalesOrderId
 				LEFT JOIN DBO.ExchangeSalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							AND sobii.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId AND sobii.NoofPieces = sosi.QtyShipped

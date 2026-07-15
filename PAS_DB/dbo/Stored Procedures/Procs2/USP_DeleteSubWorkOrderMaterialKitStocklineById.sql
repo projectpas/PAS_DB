@@ -1,4 +1,8 @@
-﻿-- =============================================
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_DeleteSubWorkOrderMaterialKitStocklineById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteSubWorkOrderMaterialKitStocklineById.sql)
+-- ---------------------------------------------------------------------------------------------------
+-- =============================================
 -- Author:		RAJESH GAMI	
 -- Create date: 28 Mar 2025
 -- Description:	This stored procedure is used to Detete kit Stockline (Sub Work Order)
@@ -11,9 +15,10 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    28 Mar 2025   RAJESH GAMI			CREATED
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 
-CREATE     PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
+CREATE       PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
 (
 	@SubWorkOrderMaterialsKitId BIGINT = NULL,
 	@StocklineId BIGINT = NULL,
@@ -53,7 +58,7 @@ BEGIN
 		FROM [dbo].SubWorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
-		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId;
+		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		SELECT @BodyTemplate = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE UPPER(TemplateCode) = 'DELETEKITPART';
 		

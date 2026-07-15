@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterDataForDropDown   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterDataForDropDown.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_GetItemMasterDataForDropDown]       
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used for get Data of ItemMasterDataForDropDown
@@ -10,8 +14,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 26-09-2025			Nakul Chandigra		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
+CREATE      PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
 @MasterCompanyId BIGINT,
 @type VARCHAR (256)
 AS
@@ -32,7 +37,7 @@ BEGIN
                 WHEN (SELECT COUNT(im2.ItemMasterId) 
                       FROM [DBO].ItemMaster im2 WITH(NOLOCK)
                       WHERE im2.PartNumber = im.PartNumber 
-                        AND im2.MasterCompanyId = @MasterCompanyId) > 1
+                        AND im2.MasterCompanyId = @MasterCompanyId AND ISNULL(im2.IsNonStock,0) = 0 ) > 1
                 THEN im.PartNumber + ' - ' + im.ManufacturerName
                 ELSE im.PartNumber
             END AS label,
@@ -42,7 +47,8 @@ BEGIN
           AND im.IsActive = 1
           AND im.IsDeleted = 0
           AND im.ItemTypeId = 1 
-    END
+     AND ISNULL(im.IsNonStock,0) = 0
+           END
     ELSE
     BEGIN
         SELECT DISTINCT

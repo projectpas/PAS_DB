@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usp_GetMultipleRFQbyId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetMultipleRFQbyId.sql) =====
+
 /*************************************************************             
  ** File:   [usp_GetMultipleRFQbyId]             
  ** Author:   Devendra Shekh    
@@ -16,8 +17,10 @@
  ** 5       03-Oct-2025     Devendra Shekh			Added [IsCustomerStock] for Stk
  
 EXECUTE [dbo].[usp_GetMultipleRFQbyId] '880'
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
+CREATE   PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
 @CustomerRfqId VARCHAR(MAX) = NULL
 AS
 BEGIN
@@ -78,13 +81,14 @@ SET NOCOUNT ON
 				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
 				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 				WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-				GROUP BY RIM.partnumber, RIM.MasterCompanyId
+				 AND ISNULL(RIM.IsNonStock,0) = 0
+				 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 			),	
 			StkResult AS (
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			)
 			INSERT INTO #tmpCustomerRfqPartMapping

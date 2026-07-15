@@ -1,4 +1,8 @@
-﻿-- ==================================================
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.GetPNTileQuickQuoteHistoryList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTileQuickQuoteHistoryList.sql)
+-- ---------------------------------------------------------------------------------------------------
+-- ==================================================
 -- Author:		Ekta Chandegra
 -- Description:	Get Search Data for Quick Quote History List
 
@@ -9,10 +13,11 @@
  ** --   --------					 -------						-------------------------------            
     1   08-AUG-2024				  Ekta Chandegra					Created
 	2   15-AUG-2024				  Ekta Chandegra					Retrieve CustomerId And CurrencyCode
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
 
 -- ==================================================
-CREATE   PROCEDURE [DBO].[GetPNTileQuickQuoteHistoryList]
+CREATE     PROCEDURE [DBO].[GetPNTileQuickQuoteHistoryList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -91,7 +96,8 @@ BEGIN
 			FROM [DBO].[SpeedQuote] SOQ WITH (NOLOCK)
 			LEFT JOIN [DBO].[SpeedQuotePart] SOQP WITH (NOLOCK) ON SOQP.SpeedQuoteId = SOQ.SpeedQuoteId
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
-			LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
 			LEFT JOIN [DBO].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = SOQP.ConditionId
 			LEFT JOIN [DBO].[Status] St WITH (NOLOCK) ON St.SatusId = SOQP.StatusId 
 			WHERE SOQ.MasterCompanyId = @MasterCompanyId 

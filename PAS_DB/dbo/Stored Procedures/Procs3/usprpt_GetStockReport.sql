@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetNonStockReport]
  ** Author:   
  ** Description: Get Data for Stock Report
@@ -16,6 +17,8 @@
 	3    22-JULY-2025     Moin Bloch        added Some New Fields
 	4    23-JULY-2025     Moin Bloch        modified Currency
 	5    06-Aug-2025      Sahdev Saliya     Added New Fields(TagType,TaggedBy,TagDate)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
@@ -111,7 +114,7 @@ BEGIN TRY
    INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
     LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
    LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId   
-   LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
+    AND ISNULL(im.IsNonStock,0) = 0 LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
    LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
    LEFT OUTER JOIN [dbo].PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
    LEFT OUTER JOIN [dbo].PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
@@ -142,7 +145,7 @@ BEGIN TRY
     AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-    AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))     
+    AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(stl.IsNonStock,0) = 0     
    END    
        
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
@@ -222,7 +225,7 @@ BEGIN TRY
      INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
 	  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
 	 LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId  
-	 LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
+	  AND ISNULL(im.IsNonStock,0) = 0 LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
 	 LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
 	 LEFT OUTER JOIN [dbo].[PurchaseOrder] pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
 	 LEFT OUTER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
@@ -253,7 +256,7 @@ BEGIN TRY
      AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
      AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
      AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-     AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))   
+     AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(stl.IsNonStock,0) = 0   
    )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
 				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto, tagtype, taggedbyname, tagdate,

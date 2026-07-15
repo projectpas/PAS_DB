@@ -15,6 +15,7 @@
  ** --   --------		-------			--------------------------------            
     1    01/02/2025		EKTA CHANDEGRA	 Created  
     2    07-07-2025     Moin Bloch       Changed Old To New Billing Table
+    3    09/July/2026     RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec dbo.GetSalesOrderProformaInvoicingPdfData @sobillingInvoicingId=11201
 
@@ -131,7 +132,7 @@ BEGIN
 				LEFT JOIN [dbo].[Countries] cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 				LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
 				LEFT JOIN [dbo].[CreditTerms] ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-				LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId
+				LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[BillingInvoicingItems] bii WITH(NOLOCK) ON bi.BillingInvoicingId = bii.BillingInvoicingId
 				LEFT JOIN [dbo].[SalesOrderShipping] shippingInfo WITH(NOLOCK) ON bii.ShippingId = shippingInfo.SalesOrderShippingId AND shippingInfo.SalesOrderId = @SalesOrderId
 				LEFT JOIN [dbo].[ShippingVia] shipInfoVia WITH(NOLOCK) ON shippingInfo.ShipviaId = shipInfoVia.ShippingViaId

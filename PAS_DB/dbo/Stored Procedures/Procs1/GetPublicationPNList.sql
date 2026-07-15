@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPublicationPNList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPublicationPNList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetPublicationPNList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Publication List    
@@ -23,10 +27,11 @@
 	6    16/10/2025   Bhargav Saliya   Added case for VerifiedBy
 	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
 	8    13/11/2025   Bhargav Saliya   Get Notes From the mapping Table
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetPublicationPNList]	
+CREATE     PROCEDURE [dbo].[GetPublicationPNList]	
 @PageNumber int=NULL,
 @PageSize int=NULL,
 @SortColumn varchar(50)=null,
@@ -164,7 +169,8 @@ BEGIN
 				  LEFT JOIN [dbo].[PublicationType] pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
 				  LEFT JOIN [dbo].[PublicationItemMasterMapping] pum WITH (NOLOCK) ON p.PublicationRecordId = pum.PublicationRecordId and isnull(pum.IsDeleted,0)=0
 				  LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON pum.ItemMasterId = im.ItemMasterId
-				  LEFT JOIN [dbo].[ItemMasterATAMapping] ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
+				   AND ISNULL(im.IsNonStock,0) = 0
+				   LEFT JOIN [dbo].[ItemMasterATAMapping] ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
 				  LEFT JOIN [dbo].[Employee] e WITH (NOLOCK) ON p.VerifiedBy = e.EmployeeId
 				  LEFT JOIN [dbo].[Location] loc WITH (NOLOCK) ON p.LocationId = loc.LocationId
 				  LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON p.PublishedById = pemp.ModuleId 

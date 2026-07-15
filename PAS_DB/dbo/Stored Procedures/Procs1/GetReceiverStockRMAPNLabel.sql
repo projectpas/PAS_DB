@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetReceiverStockRMAPNLabel]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA STOCKLINE Details
@@ -12,6 +12,8 @@
  ** --   --------     -------		---------------------------     
     1    07/06/2023   Moin Bloch     Created
     2    24 Jan 2025  Bhargav Saliya  Change The DataType DATE To DATETIME for UTC Conversation
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC GetReceiverStockRMAPNLabel 113,1,1,1,''
 *******************************************************************************/
@@ -29,7 +31,8 @@ BEGIN
 			SELECT SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME) AS [ReceivedDate] FROM [dbo].[Stockline] SL WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = SL.[ItemMasterId]
 			WHERE [VendorRMAId] = @VendorRMAId AND [IsParent] = 1
-			GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+			 GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME)
 		END
 		IF(@IsParent = '0')
 		BEGIN
@@ -64,7 +67,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] BN WITH(NOLOCK) ON BN.BinId = SL.BinId
 			LEFT JOIN  [dbo].[Shelf] SF WITH(NOLOCK) ON SF.ShelfId = SL.ShelfId
 			LEFT JOIN  [dbo].[Location] LC WITH(NOLOCK) ON LC.LocationId = SL.LocationId
-			WHERE SL.[VendorRMAId] = @VendorRMAId AND SL.[ReceiverNumber] = @ReceiverNumber AND SL.[IsParent] = 1;			
+			WHERE SL.[VendorRMAId] = @VendorRMAId AND SL.[ReceiverNumber] = @ReceiverNumber AND SL.[IsParent] = 1 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;			
 		END	
 	END TRY    
 	BEGIN CATCH      

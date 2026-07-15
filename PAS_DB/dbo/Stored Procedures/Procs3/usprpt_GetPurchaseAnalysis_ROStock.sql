@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetPurchaseAnalysis_ROStock]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPurchaseAnalysis_ROStock.sql) =====
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_ROStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Repaired Stock]
@@ -17,9 +18,11 @@
     1    20-AUG-2024     Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price
 	3	 22/06/2026		 Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
+CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -165,7 +168,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0 ) as a
 		
 		SELECT * INTO #TempPOAnalysisFinal FROM
 		 (SELECT 

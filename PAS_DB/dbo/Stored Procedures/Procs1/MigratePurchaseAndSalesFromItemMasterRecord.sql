@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigratePurchaseAndSalesFromItemMasterRecord   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigratePurchaseAndSalesFromItemMasterRecord.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigratePurchaseAndSalesFromItemMasterRecord]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Item Master Records
@@ -15,6 +19,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    24/02/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -28,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigratePurchaseAndSalesFromItemMasterRecord @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=20,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigratePurchaseAndSalesFromItemMasterRecord]
+CREATE     PROCEDURE [dbo].[MigratePurchaseAndSalesFromItemMasterRecord]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -144,7 +149,8 @@ BEGIN
 		INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId  
 		ON CSTL.StockLineId = STL.StockLineId
 
-		INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
+		 WHERE ISNULL(IM.IsNonStock,0) = 0
+INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
 		SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
 		FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId  
 		WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @FromMasterComanyID AND CP.IsActive = 1 AND CP.IsDeleted = 0;

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetExchangeQuoteParts]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuoteParts.sql) =====
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteParts]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_GetExchangeQuoteParts
@@ -13,6 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    09/16/2025  EKTA CHANDEGRA    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	     
 exec [dbo].[USP_GetExchangeQuoteParts] @ExchangeQuoteId=152
 ************************************************************************/ 
@@ -64,10 +67,10 @@ BEGIN
 		FROM [dbo].[ExchangeQuotePart] part WITH(NOLOCK)
 			 INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
 			 INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
-			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		WHERE part.ExchangeQuoteId = @ExchangeQuoteId
-		  AND ISNULL(part.IsDeleted,0) = 0;
+		  AND ISNULL(part.IsDeleted,0) = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		-- Child collection: ExchangeQuoteScheduleBilling
 		SELECT sb.*

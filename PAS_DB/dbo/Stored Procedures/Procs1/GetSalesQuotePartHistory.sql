@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [GetSalesQuotePartHistory]               
  ** Author:   SHREY CHANDEGARA    
  ** Description:         
@@ -13,6 +13,8 @@
  ** PR   Date         Author   Change Description                
  ** --   --------     -------   --------------------------------              
     1    13/11/2024    SHREY CHANDEGARA  Created    
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
          
  EXECUTE GetSalesQuotePartHistory 958  
 **************************************************************/     
@@ -82,11 +84,12 @@ BEGIN
 		FROM [dbo].[SalesOrderQuotePartV1Audit] part WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuoteAudit] soq WITH(NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
 			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1Audit] soqs WITH(NOLOCK) ON soqs.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON soqs.StockLineId = qs.StockLineId
+			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON soqs.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc WITH(NOLOCK) ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc WITH(NOLOCK) ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-			LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId	

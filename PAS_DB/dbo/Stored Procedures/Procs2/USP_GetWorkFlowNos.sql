@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkFlowNos   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkFlowNos.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetWorkFlowNos]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get the WorkFlowNumbers
@@ -9,10 +13,11 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    12-May-2025		Devendra Shekh			Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [USP_GetWorkFlowNos] 3, 10, 1, 101, 23
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkFlowNos]
+CREATE     PROCEDURE [dbo].[USP_GetWorkFlowNos]
  @PartId BIGINT = NULL,  
  @WorkScopeId BIGINT = NULL,
  @MasterCompanyId BIGINT = NULL,
@@ -48,7 +53,8 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
-				UNION
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION
 
 				SELECT DISTINCT
 					WorkFlowNo = wf.[WorkOrderNumber] + '_' + wf.[Version],
@@ -67,7 +73,8 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
-			END
+			 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 			ELSE
 			BEGIN
 				 SELECT DISTINCT
@@ -91,7 +98,8 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
-				UNION
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION
 
 				SELECT DISTINCT
 					WorkFlowNo = wf.[WorkOrderNumber] + '_' + wf.[Version],
@@ -110,7 +118,8 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
-			END
+			 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 
 		END TRY    
 		BEGIN CATCH      

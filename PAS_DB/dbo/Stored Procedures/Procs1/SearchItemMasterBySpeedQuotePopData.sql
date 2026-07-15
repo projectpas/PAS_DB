@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[SearchItemMasterBySpeedQuotePopData]        
  ** Author		:   Deep Patel
  ** Description	:	Get Item Master Details for speed quote popup.
@@ -7,9 +7,17 @@
 
  1    19-may-2021		Deep Patel				Created
  2    05-08-2025		Moin Bloch	            Modified Get [ConditionId] From OVERHAULED,REPAIRED if [Code] 'OVERHAUL' and 'REPAIR' is not available
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [dbo].[SearchItemMasterBySpeedQuotePopData] 7,1
 **************************************************************/ 
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+****************************************************************************************************************************************/
 CREATE    PROCEDURE [dbo].[SearchItemMasterBySpeedQuotePopData]
 @ItemMasterIdlist VARCHAR(max) = '0',
 @mastercompanyid int
@@ -65,8 +73,8 @@ BEGIN
 					,c.Code
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M WITH (NOLOCK) INNER JOIN ItemMaster I WITH (NOLOCK) ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					)
+					AND ISNULL(I.IsNonStock,0) = 0
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER' --'PMA&DER'
@@ -89,7 +97,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId IN (SELECT [ConditionId] FROM [dbo].[Condition] WITH(NOLOCK) WHERE [MasterCompanyId]=@mastercompanyid)
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -99,7 +107,8 @@ BEGIN
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 					AND c.ConditionId IN(@OHCondition, @REPCondition, @BCCondition)
-				GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

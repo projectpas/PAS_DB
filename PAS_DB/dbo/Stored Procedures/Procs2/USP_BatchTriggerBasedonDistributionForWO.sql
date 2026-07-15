@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForWO]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used for BatchTrigger Based on Distribution For WO
@@ -23,6 +23,7 @@
 	12   30/03/2026     Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
 	13   03/04/2026     HEMANT SALIYA       Resolved Batch details entry missing while Auto Post is true
 	14	 19/06/2026		Moin Bloch   		Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
@@ -232,7 +233,8 @@ BEGIN
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 				 WHERE ItemMasterId=@ItemmasterId 
 
-				SELECT @LastMSLevel=LastMSLevel,
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				  SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 				  WHERE ReferenceID=@partId
@@ -301,7 +303,7 @@ BEGIN
 				 						        
 					SELECT @PiecePN = partnumber 
 					  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
-					 WHERE [ItemMasterId]=@PieceItemmasterId;
+					 WHERE [ItemMasterId]=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 					SELECT TOP 1 @DistributionSetupId=[ID],
 								 @DistributionName=[Name],

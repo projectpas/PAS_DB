@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerForInternalWOBasedonDistribution]
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used to Accounting entry for Internal WO With JE
@@ -24,6 +24,8 @@
 	13  30-03-2026      Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
 	14	 19/06/2026		Moin Bloch   		Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
 (
@@ -246,7 +248,8 @@ BEGIN
 				[dbo].[ItemMaster] WITH(NOLOCK) 
 				WHERE ItemMasterId=@ItemmasterId 
 
-				SELECT @LastMSLevel=LastMSLevel,
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 				  WHERE ReferenceID=@partId

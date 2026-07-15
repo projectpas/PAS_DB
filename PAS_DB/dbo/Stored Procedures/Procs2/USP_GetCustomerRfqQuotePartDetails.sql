@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCustomerRfqQuotePartDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerRfqQuotePartDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetCustomerRfqQuotePartDetails]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used USP_GetCustomerRfqQuotePartDetails
@@ -12,10 +16,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    20/02/2023  Amit Ghediya    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC USP_GetCustomerRfqQuotePartDetails '1211318-006',1,1,'ARKWIN'
 ************************************************************************/
-CREATE        PROCEDURE [dbo].[USP_GetCustomerRfqQuotePartDetails] 
+CREATE          PROCEDURE [dbo].[USP_GetCustomerRfqQuotePartDetails] 
 @PartNumber VARCHAR(50),
 @LegalEntityId BIGINT,
 @MasterCompanyId INT,
@@ -45,7 +50,7 @@ BEGIN
 				 IsNull(iM.turnTimeBenchTest,0) AS turnTimeBenchTest,
 				 IsNull(iM.turnTimeMfg,0) AS turnTimeMfg
 		 FROM ItemMaster iM WITH (NOLOCK)
-		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId; --'A3125442000';
+		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId AND ISNULL(iM.IsNonStock,0) = 0 ; --'A3125442000';
 		 
 		 ---------------Get Max/Min/AVG Value for OverHaul form Stockline table ----
 		 SELECT @OverHaulMaxSalePrice = MAX(UnitCost),
@@ -61,7 +66,7 @@ BEGIN
 		 INNER JOIN ItemMaster im ON wopn.ItemMasterId = im.ItemMasterId
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
-		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1;		 
+		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1 AND ISNULL(im.IsNonStock,0) = 0 ;		 
 
 		 SELECT @OverHaulTotalDays = SUM(wotat.Days)--,@OverHaulCount = Count(*)
 			FROM WorkOrderPartNumber wopn
@@ -70,7 +75,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId
-		 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 		 IF(@OverHaulTotalDays > @OverHaulCount)
 		 BEGIN
 			SET @OverHaulAvgTat = @OverHaulTotalDays / @OverHaulCount;
@@ -87,7 +93,7 @@ BEGIN
 				IsNull(iMS.SP_CalSPByPP_UnitSalePrice, 0.00)
 		 FROM ItemMaster iM WITH (NOLOCK)
 		 LEFT JOIN ItemMasterPurchaseSale iMS WITH (NOLOCK) ON im.ItemMasterId = iMS.ItemMasterId AND iMS.ConditionId = @OverHaulCondId
-		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId);
+		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId AND ISNULL(iM.IsNonStock,0) = 0 );
 
 		 ---------------Get Max/Min/AVG Value for Repair form Stockline table ----
 		 SELECT @RepairMaxSalePrice = MAX(UnitCost),
@@ -105,7 +111,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1
-		 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 
 		 SELECT @RepairTotalDays = SUM(wotat.Days)--,@RepairCount = Count(*)
 			FROM WorkOrderPartNumber wopn
@@ -113,7 +120,7 @@ BEGIN
 		 INNER JOIN ItemMaster im ON wopn.ItemMasterId = im.ItemMasterId
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
-		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId;
+		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId AND ISNULL(im.IsNonStock,0) = 0 ;
 		 
 		 IF(@RepairTotalDays > @RepairCount)
 		 BEGIN
@@ -131,7 +138,7 @@ BEGIN
 				IsNull(iMS.SP_CalSPByPP_UnitSalePrice, 0.00)
 		 FROM ItemMaster iM WITH (NOLOCK)
 		 LEFT JOIN ItemMasterPurchaseSale iMS WITH (NOLOCK) ON im.ItemMasterId = iMS.ItemMasterId AND iMS.ConditionId = @RepairCondId
-		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId);
+		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId AND ISNULL(iM.IsNonStock,0) = 0 );
 
 		  ---------------Get Max/Min/AVG Value for BenchCheck form Stockline table ----
 		 SELECT @BenchMaxSalePrice = MAX(UnitCost),
@@ -148,7 +155,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1
-		 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 
 		 SELECT @BenchTotalDays = SUM(wotat.Days)--,@BenchCount = Count(*)
 			FROM WorkOrderPartNumber wopn
@@ -156,7 +164,7 @@ BEGIN
 		 INNER JOIN ItemMaster im ON wopn.ItemMasterId = im.ItemMasterId
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
-		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId;
+		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId AND ISNULL(im.IsNonStock,0) = 0 ;
 		
 		 IF(@BenchTotalDays > @BenchCount)
 		 BEGIN
@@ -174,7 +182,7 @@ BEGIN
 				IsNull(iMS.SP_CalSPByPP_UnitSalePrice, 0.00)
 		 FROM ItemMaster iM WITH (NOLOCK)
 		 LEFT JOIN ItemMasterPurchaseSale iMS WITH (NOLOCK) ON im.ItemMasterId = iMS.ItemMasterId AND iMS.ConditionId = @BenchCheckCondId
-		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId);
+		 WHERE iM.partnumber= @PartNumber AND iM.ManufacturerId = @ManufactureId AND ISNULL(iM.IsNonStock,0) = 0 );
 
 		 SELECT IsNull(@OverHaulSalePrice, 0.00) AS OverHaulSalePrice, IsNull(@OverHaulMaxSalePrice,0.00) AS OverHaulMaxSalePrice, IsNull(@OverHaulMinSalePrice,0.00) AS OverHaulMinSalePrice,IsNull(@OverHaulAvgSalePrice,0.00) AS  OverHaulAvgSalePrice,
 		 IsNull(@RepairSalePrice,0.00) AS RepairSalePrice, IsNull(@RepairMaxSalePrice,0.00) AS RepairMaxSalePrice, IsNull(@RepairMinSalePrice,0.00) AS RepairMinSalePrice, IsNull(@RepairAvgSalePrice,0.00) AS RepairAvgSalePrice,

@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOOperatingMetricReport_MostQuotedPart   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOOperatingMetricReport_MostQuotedPart.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_MostQuotedPart]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most Quoted SO
@@ -15,8 +19,9 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    01-Sep-2025  Rajesh Gami   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostQuotedPart] 
+CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostQuotedPart] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -142,7 +147,8 @@ BEGIN
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SOQ.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId  
 		  
-		  WHERE 
+		   AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE 
 				ISNULL(SOQ.IsDeleted,0) = 0 AND	SOQ.CustomerId=ISNULL(@customerid,SOQ.CustomerId)  AND SOQP.ItemMasterId = ISNULL(@itemMasterId,SOQP.ItemMasterId) 
 					AND ( @sourceByName IS NULL OR (@sourceByName = 'PAS'  AND ISNULL(NULLIF(LTRIM(RTRIM(SOQ.SourceBy)), ''), 'PAS') = 'PAS') OR (@sourceByName <> 'PAS' AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy)))
 					AND	SOQ.SalesOrderQuoteId=ISNULL(@quoteId,SOQ.SalesOrderQuoteId) 

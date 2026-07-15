@@ -17,10 +17,11 @@
 ** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
 ** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
-** 8    08/07/2026	 Amit Ghediya  		  Allow to get aircraft data not engine data
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************/
-CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
+CREATE   PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
     @PageNumber         INT           = 1,
     @PageSize           INT           = 10,
@@ -131,7 +132,7 @@ BEGIN
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK)
                 ON AMP.MtcCategoryId = mtc.MtcCategoryId
             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK)
-                ON STK.StockLineId = ARH.StockLineId
+                ON STK.StockLineId = ARH.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN (
                 SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],
                        ROW_NUMBER() OVER (PARTITION BY WOP.[ProgramId] ORDER BY WO.[WorkOrderId] DESC) AS rn
@@ -226,7 +227,7 @@ BEGIN
             LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
             INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
             INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
-            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN (
                 SELECT WOP.AircraftInstalledPartDetailsId, WO.WorkOrderId, WO.WorkOrderNum,
                        ROW_NUMBER() OVER (PARTITION BY WOP.AircraftInstalledPartDetailsId ORDER BY WO.WorkOrderId DESC) AS rn
@@ -240,8 +241,8 @@ BEGIN
                 INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
-            WHERE AIPD.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 1
-        ),
+            WHERE AIPD.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
+         AND ISNULL(IM.IsNonStock,0) = 0 ),
         Filtered AS
         (
             SELECT * FROM Combined

@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsPublicationByItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsPublicationByItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
@@ -15,11 +19,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/05/2020   Hemant Saliya Initial Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsPublicationByItemMaster] '',20,'100',245,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsPublicationByItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsPublicationByItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
@@ -49,7 +54,8 @@ AS
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = pim.ItemMasterId
 					WHERE (pb.IsActive = 1 AND ISNULL(pb.IsDeleted, 0) = 0 AND pb.MasterCompanyId = @MasterCompanyId AND pim.ItemMasterId = @ItemMasterId
 					AND (pb.PublicationId LIKE @StartWith + '%' OR pb.PublicationId  LIKE '%' + @StartWith + '%'))    
-			   UNION     
+			    AND ISNULL(im.IsNonStock,0) = 0
+					 UNION     
 					SELECT 
 						pb.PublicationId AS Value, 
 						pb.PublicationRecordId AS Label,

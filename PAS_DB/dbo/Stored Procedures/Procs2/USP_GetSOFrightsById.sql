@@ -1,4 +1,8 @@
-﻿/*************************************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSOFrightsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSOFrightsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************************************
  ** File:   [USP_GetSOFrightsById]           
  ** Author:   Shrey Chandegara
  ** Description: This stored procedure is used get SO Freight By SOId    
@@ -10,10 +14,11 @@
  ** PR   Date         Author  				Change Description            
  ** --   --------     -------				--------------------------------          
     1    31-03-2025   Shrey Chandegara		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_GetSOFrightsById 760,0  
 **************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetSOFrightsById]
+CREATE     PROCEDURE [dbo].[USP_GetSOFrightsById]
 @SalesOrderId BIGINT,
 @IsDeleted BIT
 
@@ -65,7 +70,8 @@ BEGIN
 		LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON sf.CurrencyId = cur.CurrencyId
 		LEFT JOIN [dbo].[SalesOrderPartV1] part WITH(NOLOCK) ON sf.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-		WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
 
 	END TRY
 	BEGIN CATCH

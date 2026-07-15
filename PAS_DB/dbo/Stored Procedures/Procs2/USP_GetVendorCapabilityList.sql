@@ -1,4 +1,8 @@
-﻿/*************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetVendorCapabilityList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorCapabilityList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
 ** File:    [USP_GetVendorCapabilityList]
 ** Author:   Ayushi Patel
 ** Description: Get Vendor CapabilityList
@@ -13,8 +17,9 @@
 ** 2    05-12-2025   Moin Bloch   Added EmployeeName
 
 -- EXEC USP_GetVendorCapabilityList 4797
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetVendorCapabilityList]
+CREATE     PROCEDURE [dbo].[USP_GetVendorCapabilityList]
     @VendorId BIGINT = 0,
     @Status VARCHAR(10) = 'all'
 AS
@@ -63,7 +68,8 @@ BEGIN
         FROM [dbo].[VendorCapability] vc WITH (NOLOCK)
         INNER JOIN [dbo].[Vendor] v WITH (NOLOCK) ON vc.VendorId = v.VendorId
          LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-         LEFT JOIN [dbo].[Manufacturer] man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+          AND ISNULL(im.IsNonStock,0) = 0
+          LEFT JOIN [dbo].[Manufacturer] man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
          LEFT JOIN [dbo].[CapabilityType] vcat WITH (NOLOCK) ON CONVERT(INT, vc.CapabilityTypeId) = vcat.CapabilityTypeId
 		 LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON vc.EmployeeId = E.EmployeeId
         WHERE (@VendorId = 0 OR vc.VendorId = @VendorId)

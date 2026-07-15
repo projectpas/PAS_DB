@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigrateWOHeaderRecords   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigrateWOHeaderRecords.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigrateWOHeaderRecords]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Work Order Header Records
@@ -16,6 +20,7 @@
  ** --   --------     -------			-----------------------
     1    12/28/2023   Vishal Suthar		Created
     2    17/02/2025   Moin Bloch        Updated (Added Publication CMMIds)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 declare @p5 int
 set @p5=NULL
@@ -28,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigrateWOHeaderRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateWOHeaderRecords]
+CREATE     PROCEDURE [dbo].[MigrateWOHeaderRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -204,7 +209,7 @@ BEGIN
 				@TurnTimeOverhaulHours = [TurnTimeOverhaulHours],@TurnTimeRepairHours = [TurnTimeRepairHours],@turnTimeBenchTest = turnTimeBenchTest,
 				@IsSerialized = IM.isSerialized
 			FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc)
-			AND IM.MasterCompanyId = @FromMasterComanyID;
+			AND IM.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			DECLARE @DefaultSiteId BIGINT;
 			DECLARE @ManagementStructureTypeId BIGINT = 0;

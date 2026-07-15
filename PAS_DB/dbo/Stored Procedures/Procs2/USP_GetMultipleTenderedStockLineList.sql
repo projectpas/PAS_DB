@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetMultipleTenderedStockLineList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetMultipleTenderedStockLineList.sql) =====
+/*************************************************************           
  ** File:   [USP_GetMultipleTenderedStockLineList]           
  ** Author:    Moin Bloch
  ** Description:  get  Multiple Tendered StockLine List
@@ -10,6 +11,8 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				-------------------
 	1    18/09/2024		Moin Bloch  	     CREATED
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4385,3908,1
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4394,3917,1
@@ -188,7 +191,8 @@ BEGIN
 		 AND (ISNULL(CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,0) - ISNULL(tmpWOM.[TotalQuantityRepaired], 0) > 0)
 							
 		---- Adding WorkOrder Material Kit Data ----
-		INSERT INTO #MultipleTenderedStkListData ([WorkOrderMaterialsId],[ItemMasterId],[PartNumber],[PartDescription],[StockLineId],[StockLineNumber],
+		 AND ISNULL(ITM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
+		 INSERT INTO #MultipleTenderedStkListData ([WorkOrderMaterialsId],[ItemMasterId],[PartNumber],[PartDescription],[StockLineId],[StockLineNumber],
 				[ControlNumber],[IdNumber],[ConditionId],[Condition],[QuantityRequested],[QuantityTendered],[QuantityOrder],[IsSerialized],
 				[SerialNumber],[UnitOfMeasureId],[UOM],[ProvisionId],[Provision],[WorkOrderId],[WorkOrderNum],[ManufacturerId],[Manufacturer],
 				[SiteId],[Site],[WareHouseId],[WareHouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[IsKitType], 
@@ -229,7 +233,8 @@ BEGIN
 		 AND WOMS.[IsDeleted] = 0
 		 AND (ISNULL(CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,0) - ISNULL(tmpWOMKit.TotalQuantityRepaired, 0) > 0)
 		 		 	
-		SELECT  [WorkOrderMaterialsId],[ItemMasterId],[PartNumber],[PartDescription],[StockLineId],[StockLineNumber],
+		 AND ISNULL(ITM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
+		  SELECT  [WorkOrderMaterialsId],[ItemMasterId],[PartNumber],[PartDescription],[StockLineId],[StockLineNumber],
 				[ControlNumber],[IdNumber],[ConditionId],[Condition],[QuantityRequested],[QuantityTendered],[QuantityOrder],[IsSerialized],
 				[SerialNumber],[UnitOfMeasureId],[UOM],[ProvisionId],[Provision],[WorkOrderId],[WorkOrderNum],[ManufacturerId],[Manufacturer],
 				[SiteId],[Site],[WareHouseId],[WareHouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ManagementStructureId],

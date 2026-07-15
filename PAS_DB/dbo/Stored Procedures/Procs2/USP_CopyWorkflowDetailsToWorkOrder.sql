@@ -1,4 +1,8 @@
-﻿/*************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CopyWorkflowDetailsToWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CopyWorkflowDetailsToWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
  ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
  ** Author: HEMANT SALIYA
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -25,12 +29,13 @@
 	9	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
 	10   12-Feb-2026  Amit Ghediya      Added New Field Provision (PN-15390)
 	11   12-Feb-2026  HEMANT SALIYA		Handle NUll issue fro Copy Material Extended cost.
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
 	@WorkOrderId BIGINT = 0,
 	@WorkflowId BIGINT = 0,
 	@WorkOrderPartNumberId BIGINT = 0,
@@ -610,7 +615,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -620,7 +626,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -631,7 +638,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -763,17 +771,17 @@ SET NOCOUNT ON;
 
 								IF (@IsDER = 1 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1))
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 0 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 1 AND @IsPMA = 0)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 

@@ -30,6 +30,7 @@
 	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
 	15	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
 	16    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810]
+	15	 09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -209,7 +210,7 @@ BEGIN
 				FROM #tmpReceivingRoviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
-					WHERE stk.RepairOrderId = TMP.RepairOrderId) 
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0) 
 				AS result
 
 			UPDATE TMP1
@@ -383,7 +384,7 @@ BEGIN
 				FROM #tmpReceivingPnviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
-					WHERE stk.RepairOrderId = TMP.RepairOrderId 
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0 
 					) AS result
 
 			UPDATE TMP1

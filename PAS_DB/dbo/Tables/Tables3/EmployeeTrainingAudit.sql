@@ -33,6 +33,7 @@
     [CategoryType]            VARCHAR (50)    NULL,
     [CurrencyId]              BIGINT          NULL,
     [CurrencyCode]            VARCHAR (200)   NULL,
+    [StartDate]               DATETIME2 (7)   NULL,
     CONSTRAINT [PK_EmployeeTrainingAudit] PRIMARY KEY CLUSTERED ([EmployeeTrainingAuditId] ASC)
 );
 

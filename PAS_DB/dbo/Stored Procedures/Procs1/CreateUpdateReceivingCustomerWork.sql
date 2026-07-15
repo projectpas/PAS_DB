@@ -1,4 +1,8 @@
-﻿--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.CreateUpdateReceivingCustomerWork   (source: PAS_DB/dbo/Stored Procedures/Procs1/CreateUpdateReceivingCustomerWork.sql)
+-- ---------------------------------------------------------------------------------------------------
+--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
 
 /*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
@@ -23,10 +27,11 @@
 	8	 13-FEB-2026   BHARGAV SALIYA  		Added [CustReqCertTypeId], [CustReqCertType] fields IN update ReceivingCustomerWork table
 	9	 24-FEB-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @IsRepairManagement [bit] NULL,
@@ -281,14 +286,14 @@ BEGIN
 					   @RevicedPNId = [RevisedPartId],	
 					   @GlAccountId = [GlAccountId],
 					   @IsTimeLife = [IsTimeLife]
-				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT 
 					   @GlAccountId = im.[GlAccountId],
 					   @GlAccountName = gl.[AccountName]
 				  FROM [dbo].[ItemMaster] AS im WITH(NOLOCK) 
 					INNER JOIN [dbo].[GLAccount] AS gl ON gl.GLAccountId = im.GLAccountId
-				 WHERE [ItemMasterId] = @ItemMasterId;
+				 WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
                 SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 
@@ -441,7 +446,8 @@ BEGIN
                        
 					/* PN Manufacturer Combination Stockline logic */
 
-					DELETE FROM #tmpCodePrefixes;
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
+DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
 					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] FROM dbo.CodePrefixes CP WITH (NOLOCK)
@@ -491,7 +497,8 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					GROUP BY iM.ItemMasterId
+					 AND ISNULL(iM.IsNonStock,0) = 0
+					 GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   
 						   ,[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber]	                       

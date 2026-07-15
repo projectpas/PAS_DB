@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStocklineList_ByLocation]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetStocklineList_ByLocation.sql) =====
+/*************************************************************               
  ** File:   [USP_GetStocklineList_ByLocation]               
  ** Author:   Sumit Kumar
  ** Description: Stored procedure to get stockline list filtered by exact Location, Shelf, or Bin label value
@@ -10,9 +11,10 @@
  ** PR   Date        Author          Change Description
  ** --   --------    -------         --------------------------------
  ** 1    17/06/2026  Sumit Kumar     Created get stockline list filtered by exact Location, Shelf, or Bin label value
+ 2    09/July/2026  RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  **************************************************************/
  
-CREATE PROCEDURE [dbo].[USP_GetStocklineList_ByLocation]
+CREATE   PROCEDURE [dbo].[USP_GetStocklineList_ByLocation]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50) = NULL,        
@@ -160,7 +162,7 @@ BEGIN
                AND (@Location IS NULL OR @Location = '' OR stl.Location = @Location)
                AND (@Shelf IS NULL OR @Shelf = '' OR stl.Shelf = @Shelf)
                AND (@Bin IS NULL OR @Bin = '' OR stl.Bin = @Bin)
-               AND stl.QuantityOnHand > 0
+               AND stl.QuantityOnHand > 0 AND ISNULL(stl.IsNonStock,0) = 0
          ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
          SELECT *,
              (SELECT TOP 1 wos.Status FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        

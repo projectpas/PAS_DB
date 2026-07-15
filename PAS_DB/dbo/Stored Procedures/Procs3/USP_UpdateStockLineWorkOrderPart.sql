@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_UpdateStockLineWorkOrderPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateStockLineWorkOrderPart.sql) =====
+
 /*************************************************************             
  ** File:   [USP_UpdateStockLineWorkOrderPart]            
  ** Author:    Priyansh Patel  
@@ -14,9 +15,10 @@
     1    04/11/2025   Priyansh Patel	Created
 	2    25/11/2025   Moin Bloch		Format SP
 	3    04/JUNE/2026 Rajesh Gami		Restrict decreasing the quantity when the Work Order type is Teardown.[PN-16719]
+	4    09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[USP_UpdateStockLineWorkOrderPart] 1052,'ADMIN',2,4,6,5,6,1,1
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
+CREATE   PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
 (
     @WorkOrderPartNoId BIGINT,
     @UpdatedBy NVARCHAR(100),
@@ -59,7 +61,7 @@ BEGIN
 			SL.[QuantityOnHand] = CASE WHEN ISNULL(SL.[QuantityOnHand], 0) > 0 AND @IsTearDownWO = 0  THEN ISNULL(SL.[QuantityOnHand], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityOnHand], 0) END
 		 FROM [dbo].[StockLine] SL
 		 INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = SL.[MasterCompanyId]
-		 WHERE SL.[StockLineId] = @StockLineId AND SL.[MasterCompanyId] = @MasterCompanyId;
+		 WHERE SL.[StockLineId] = @StockLineId AND SL.[MasterCompanyId] = @MasterCompanyId AND ISNULL(SL.IsNonStock,0) = 0;
 
 		 EXEC [dbo].[USP_AddUpdateStocklineHistory]	@StocklineId=@StockLineId,@ModuleId=@ModuleId,@ReferenceId=@WorkOrderPartNoId,@SubModuleId=@SubModuleId,@ActionId=@ActionId,@Qty=@Qty,@UpdatedBy=@UpdatedBy;
 

@@ -19,6 +19,7 @@
     2    06/17/2025    Hemant  Saliya   Check For Is deleted Condition  
     3    09/04/2026    Ayushi Patel	    PN-15909 Update (Added UOM Changes) 
     4	 18/06/2026	   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+    5	 15/07/2026	   Ayushi			[PN-17273]Return Consume UOM
 --EXEC [GetWorkOrderQoutePirntMateriallist] 10338,10476,8307
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
@@ -37,7 +38,7 @@ BEGIN
     SELECT  
         --mt.Quantity,  
         ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
-        mt.UomName,  
+        uom.ShortName as UomName,  
         mt.PartNumber as partnumber,  
         mt.ConditionType AS Condition,  
         mt.PartDescription as PartDescription,  
@@ -72,7 +73,8 @@ BEGIN
         ) AS extCost
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
-        LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId  
+        LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId 
+        LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on imt.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
     WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 

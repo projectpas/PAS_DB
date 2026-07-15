@@ -37,11 +37,22 @@ CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @MPN                    NVARCHAR(255)   = NULL,
     @MPNDescription         NVARCHAR(500)   = NULL,
     @ReconciliationStatus   NVARCHAR(50)    = NULL,
+    -- Qty/cost filters are matched against AggregatedParts' computed values below,
+    -- so they're kept as varchar "contains" filters like the other columns rather
+    -- than numeric equality/range params.
+    @QtyShippedFilter       NVARCHAR(50)    = NULL,
+    @QtyConsumedFilter      NVARCHAR(50)    = NULL,
+    @QtyReturnedFilter      NVARCHAR(50)    = NULL,
+    @QtyDamagedLostFilter   NVARCHAR(50)    = NULL,
+    @QtyRemainingFilter     NVARCHAR(50)    = NULL,
+    @UnitCostFilter         NVARCHAR(50)    = NULL,
+    @ExtendedCostFilter     NVARCHAR(50)    = NULL,
+    @DateShipped            DATETIME        = NULL,
+    @DateReturned           DATETIME        = NULL,
     @VendorId               BIGINT          = NULL,
     @RepairOrderId          BIGINT          = NULL,
     -- Standard params
     @IsDeleted              BIT             = 0,
-    @EmployeeId             BIGINT,
     @MasterCompanyId        INT
 AS
 BEGIN
@@ -255,11 +266,18 @@ BEGIN
         ReconciliationStatus,
         COUNT(1) OVER ()                AS NumberOfItems
     FROM  AggregatedParts
-    WHERE (
-        @ReconciliationStatus IS NULL
-        OR ReconciliationStatus = @ReconciliationStatus
-        OR (@ReconciliationStatus = 'Consumed' AND ReconciliationStatus IN ('Fully Consumed', 'Partially Consumed'))
-    )
+    WHERE (@ReconciliationStatus IS NULL OR ReconciliationStatus LIKE '%' + @ReconciliationStatus + '%')
+      AND (@QtyShippedFilter     IS NULL OR CAST(QtyShipped     AS VARCHAR(50)) LIKE '%' + @QtyShippedFilter     + '%')
+      AND (@QtyConsumedFilter    IS NULL OR CAST(QtyConsumed    AS VARCHAR(50)) LIKE '%' + @QtyConsumedFilter    + '%')
+      AND (@QtyReturnedFilter    IS NULL OR CAST(QtyReturned    AS VARCHAR(50)) LIKE '%' + @QtyReturnedFilter    + '%')
+      AND (@QtyDamagedLostFilter IS NULL OR CAST(QtyDamagedLost AS VARCHAR(50)) LIKE '%' + @QtyDamagedLostFilter + '%')
+      AND (@QtyRemainingFilter   IS NULL OR CAST(QtyRemaining   AS VARCHAR(50)) LIKE '%' + @QtyRemainingFilter   + '%')
+      AND (@UnitCostFilter       IS NULL OR CAST(UnitCost       AS VARCHAR(50)) LIKE '%' + @UnitCostFilter       + '%')
+      AND (@ExtendedCostFilter   IS NULL OR CAST(ExtendedCost   AS VARCHAR(50)) LIKE '%' + @ExtendedCostFilter   + '%')
+      -- Date-only match (time component stripped), matching the convention used for
+      -- other date columns (e.g. ExpirationDate/ReceivedDate in ProcStockList).
+      AND (@DateShipped          IS NULL OR CAST(DateShipped  AS DATE) = CAST(@DateShipped  AS DATE))
+      AND (@DateReturned         IS NULL OR CAST(DateReturned AS DATE) = CAST(@DateReturned AS DATE))
     ORDER BY
         -- User-selected sort column
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'VendorName'           THEN VendorName           END ASC,
@@ -278,6 +296,24 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateReturned'         THEN DateReturned         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'DateReturned'         THEN DateReturned         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyShipped'          THEN QtyShipped           END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyShipped'          THEN QtyShipped           END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyConsumed'         THEN QtyConsumed          END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyConsumed'         THEN QtyConsumed          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyReturned'         THEN QtyReturned          END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyReturned'         THEN QtyReturned          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyDamagedLost'      THEN QtyDamagedLost       END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyDamagedLost'      THEN QtyDamagedLost       END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyRemaining'        THEN QtyRemaining         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyRemaining'        THEN QtyRemaining         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'UnitCost'            THEN UnitCost             END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'UnitCost'            THEN UnitCost             END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ExtendedCost'        THEN ExtendedCost         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ExtendedCost'        THEN ExtendedCost         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'RepairOrderPartRecordId' THEN RepairOrderPartRecordId END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'RepairOrderPartRecordId' THEN RepairOrderPartRecordId END DESC,
         -- Secondary stable sort
         RepairOrderPartRecordId DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS

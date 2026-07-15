@@ -22,6 +22,7 @@
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
     5    06/04/2026   Ayushi Patel	        PN-15908 Update (Added UOM Changes)
 	6	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6	 15/07/2026	  Ayushi				[PN-17288]Return Consume UOM
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
@@ -71,8 +72,8 @@ BEGIN
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
 						LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
-						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
-						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.PurchaseUnitOfMeasureId
+						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
+						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.ConsumeUnitOfMeasureId
 						LEFT JOIN [Site] s WITH (NOLOCK) on s.SiteId = sl.SiteId
 						LEFT JOIN Warehouse w WITH (NOLOCK) on w.WarehouseId = sl.WarehouseId
 						LEFT JOIN [Location] l WITH (NOLOCK) on l.LocationId = sl.LocationId

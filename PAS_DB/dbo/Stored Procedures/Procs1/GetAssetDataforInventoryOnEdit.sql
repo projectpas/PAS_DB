@@ -1,22 +1,23 @@
 ﻿
-/*************************************************************           
- ** File:   [GetAssetDataforInventoryOnEdit]           
+/*************************************************************
+ ** File:   [GetAssetDataforInventoryOnEdit]
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used to get Asset Data for Inventory on Edit
- ** Purpose:         
- ** Date:    09/12/2024 
-          
- ** PARAMETERS:    
+ ** Purpose:
+ ** Date:    09/12/2024
 
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/12/2024   Abhishek Jirawla Created
-     
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
+    1    09/12/2024   Abhishek Jirawla	Created
+    2    15/07/2026   Vishal Suthar     Fall back to DeprNonDeprTangibleAssets for AssetTypeName
+
 --  EXEC [GetAssetDataforInventoryOnEdit] 221
 **************************************************************/
 
@@ -26,7 +27,7 @@ CREATE     PROCEDURE [dbo].[GetAssetDataforInventoryOnEdit]
 AS
 BEGIN
     SET NOCOUNT ON;
-	
+
     IF EXISTS (SELECT TOP 1 * FROM DBO.Asset WITH (NOLOCK) WHERE AssetRecordId = @AssetRecordId AND IsIntangible = 1)
     BEGIN
         SELECT TOP 1
@@ -74,7 +75,7 @@ BEGIN
 			asset.Description,
 			asset.AssetRecordId,
 			asset.ManufacturerPN AS PartNumber,
-			CASE 
+			CASE
 				WHEN asset.AlternateAssetRecordId IS NULL THEN ''
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AlternateAssetRecordId)
 			END AS AlternateAssetId,
@@ -134,21 +135,21 @@ BEGIN
 			ISNULL(ascal.VerificationGlAccountId, 0) AS VerificationGlAccountId,
 			ISNULL(ascal.VerificationMemo, '') AS VerificationMemo,
 			ISNULL(ascal.VerificationRequired, 0) AS VerificationRequired,
-			CalibrationCurrencyName = CASE 
-											WHEN ascal.CalibrationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			CalibrationCurrencyName = CASE
+											WHEN ascal.CalibrationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 											END,
-			CertificationCurrencyName = CASE 
-											WHEN ascal.CertificationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			CertificationCurrencyName = CASE
+											WHEN ascal.CertificationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 										END,
-			InspectionCurrencyName = CASE 
-										WHEN ascal.InspectionCurrencyId IS NULL THEN '' 
-										ELSE c.Code 
+			InspectionCurrencyName = CASE
+										WHEN ascal.InspectionCurrencyId IS NULL THEN ''
+										ELSE c.Code
 									END,
-			VerificationCurrencyName = CASE 
-											WHEN ascal.VerificationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			VerificationCurrencyName = CASE
+											WHEN ascal.VerificationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 										END,
 			ISNULL(asmai.WarrantyCompany, '') AS WarrantyCompany,
 			asset.AssetIntangibleTypeId,
@@ -160,7 +161,7 @@ BEGIN
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AssetParentRecordId)
 			END AS AssetParentId,
 			asset.TangibleClassId,
-			ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
+			ISNULL(asty.AssetAttributeTypeName, ISNULL(dnta.AssetAttributeTypeName, '')) AS AssetTypeName,
 			asset.AssetAttributeTypeId,
 			asset.AssetLocationId,
 			(SELECT p.Code + '-' + p.Name FROM DBO.AssetLocation p WITH (NOLOCK) WHERE p.AssetLocationId = asset.AssetLocationId) AS AsetLocationName,
@@ -214,12 +215,13 @@ BEGIN
 			asset.BinId,
 			ISNULL(assbin.Name, '') AS BinName
 		FROM DBO.Asset asset WITH (NOLOCK)
-			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId 
+			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId
 			LEFT JOIN DBO.AssetCalibration ascali WITH (NOLOCK) ON asset.AssetRecordId = ascali.AssetRecordId
 			LEFT JOIN DBO.AssetMaintenance asmai WITH (NOLOCK) ON asset.AssetRecordId = asmai.AssetRecordId
 			LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
 			LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
-			LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+			LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId AND (asset.AssetClassSource IS NULL OR asset.AssetClassSource = 'AssetAttributeType')
+			LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.DeprNonDeprTangibleAssetsId AND asset.AssetClassSource = 'DeprNonDeprTangibleAssets'
 			LEFT JOIN DBO.Vendor vencali WITH (NOLOCK) ON ascal.CalibrationDefaultVendorId = vencali.VendorId
 			LEFT JOIN DBO.Vendor vencert WITH (NOLOCK) ON ascal.CertificationDefaultVendorId = vencert.VendorId
 			LEFT JOIN DBO.Vendor venins WITH (NOLOCK) ON ascal.InspectionDefaultVendorId = venins.VendorId

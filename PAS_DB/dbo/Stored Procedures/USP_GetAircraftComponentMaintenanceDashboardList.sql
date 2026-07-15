@@ -1,5 +1,4 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetAircraftComponentMaintenanceDashboardList.sql) =====
-/**********************************
+﻿/**********************************
 ** File:        [USP_GetAircraftComponentMaintenanceDashboardList]
 ** Description: Dashboard list with optional column-level and dashboard-level filters.
 **                @TailNumber        - column filter, LIKE (contains) search
@@ -148,7 +147,7 @@ BEGIN
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
 			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
-            WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0
+            WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0 AND ISNULL(AMP.IsFromAircraft,0) = 1
 
             UNION ALL
 
@@ -242,7 +241,7 @@ BEGIN
                 INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
-            WHERE AIPD.MasterCompanyId = @MasterCompanyId
+            WHERE AIPD.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
          AND ISNULL(IM.IsNonStock,0) = 0 ),
         Filtered AS
         (

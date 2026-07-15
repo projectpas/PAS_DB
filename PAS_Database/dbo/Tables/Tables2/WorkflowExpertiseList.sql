@@ -2,13 +2,13 @@
     [WorkflowExpertiseListId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkflowId]              BIGINT          NOT NULL,
     [ExpertiseTypeId]         SMALLINT        NULL,
-    [EstimatedHours]          DECIMAL (18, 2) NULL,
-    [LaborDirectRate]         DECIMAL (18, 2) NULL,
-    [DirectLaborRate]         DECIMAL (18, 2) NULL,
-    [OverheadBurden]          DECIMAL (18, 2) CONSTRAINT [DF_WorkflowExpertiseList_OverheadBurden] DEFAULT ((0)) NULL,
-    [OverheadCost]            DECIMAL (18, 2) NULL,
-    [StandardRate]            DECIMAL (18, 2) NULL,
-    [LaborOverheadCost]       DECIMAL (18, 2) NULL,
+    [EstimatedHours]          DECIMAL (18, 6) NULL,
+    [LaborDirectRate]         DECIMAL (18, 6) NULL,
+    [DirectLaborRate]         DECIMAL (18, 6) NULL,
+    [OverheadBurden]          DECIMAL (18, 6) CONSTRAINT [DF_WorkflowExpertiseList_OverheadBurden] DEFAULT ((0)) NULL,
+    [OverheadCost]            DECIMAL (18, 6) NULL,
+    [StandardRate]            DECIMAL (18, 6) NULL,
+    [LaborOverheadCost]       DECIMAL (18, 6) NULL,
     [TaskId]                  BIGINT          NOT NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NULL,
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_WorkflowExpertiseList_PercentId] FOREIGN KEY ([OverheadburdenPercentId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [FK_WorkflowExpertiseList_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

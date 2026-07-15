@@ -12,6 +12,7 @@
 	2    02-Sep-2025        Sahdev Saliya           Added New Field Verified, VerifiedBy And VerifiedDate
 	3	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
 	4	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
+	5	 15-July-2026		Ayushi Patel			Uom Changes [PN-17248]
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
@@ -172,7 +173,9 @@ BEGIN
 									WHEN ISNULL(IM.IsPma, 0) = 1 AND ISNULL(IM.IsDER, 0) = 0 THEN 'PMA'
 									WHEN ISNULL(IM.IsPma, 0) = 0 AND ISNULL(IM.IsDER, 0) = 1 THEN 'DER'
 									ELSE 'OEM'
-								END
+								END,
+				TMP.Quantity = CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') OR ISNULL(IM.StockUnitOfMeasure,'') = '' OR ISNULL(IM.ConsumeUnitOfMeasure,'') = '' THEN ISNULL(TMP.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(TMP.Quantity,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,TMP.MasterCompanyId) END,
+				TMP.UnitCost = CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') OR ISNULL(IM.StockUnitOfMeasure,'') = '' OR ISNULL(IM.ConsumeUnitOfMeasure,'') = '' THEN ISNULL(TMP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(TMP.UnitCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,TMP.MasterCompanyId) END
 			FROM #tmpWorkflowMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId

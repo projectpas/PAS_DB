@@ -207,7 +207,6 @@ BEGIN
 	 BEGIN     
 	  IF @stockTypeId = 1 -- Qty OH > 0        
 	  BEGIN        
-	  PRINT '`111111111'
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        

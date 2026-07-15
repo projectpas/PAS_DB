@@ -39,6 +39,8 @@
 	22   30/07/2025	  RAJESH GAMI		Implemented: Return Stockline to Lot After Internal Repair Completion and Move to Finished Goods  (PN-13046)
 	23   01/Aug/2025  RAJESH GAMI		Trans Out the Old finish good stockline from the LOT (Stk Unit Cost trans out from LOT)
 	24   27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
+	25   15/07/2026   Priyansh Patel	Added missing [StockUnitOfMeasureId],[StockUnitOfMeasure] for new stockline [PN-17283]
+
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -247,7 +249,7 @@ BEGIN
 	LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 	WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
 	GROUP BY iM.ItemMasterId
-  
+
     INSERT INTO [dbo].[Stockline]  
        ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -266,7 +268,7 @@ BEGIN
        ,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate]  
        ,[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId]  
        ,[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition]  
-       ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
+       ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[StockUnitOfMeasureId],[StockUnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
@@ -293,7 +295,7 @@ BEGIN
        ,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate]  
        ,[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId]  
        ,[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition]  
-       ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
+       ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[StockUnitOfMeasureId],[StockUnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerId] END  
        ,CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerName] END,CASE WHEN @IsExchangeWO = 1 THEN 0 ELSE [isCustomerstockType] END   
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  

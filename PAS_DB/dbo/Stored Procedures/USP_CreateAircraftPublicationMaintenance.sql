@@ -85,8 +85,6 @@ BEGIN
                                       AND AEAS.IsDeleted              = 0
                                       AND (
                                           (AEAS.SerialType = 'Individual' AND AEAS.FromSerial = ar.SerialNum)
-                                          OR
-                                          (AEAS.SerialType = 'Range' AND dbo.UFN_SerialInRange(ar.SerialNum, AEAS.FromSerial, AEAS.ToSerial) = 1)
                                       )
                                 )
                             )

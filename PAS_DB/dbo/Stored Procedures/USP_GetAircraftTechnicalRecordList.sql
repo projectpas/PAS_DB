@@ -199,8 +199,6 @@ BEGIN
                                    AND AECS.IsDeleted             = 0
                                    AND (
                                        (AECS.SerialType = 'Individual' AND AECS.FromSerial = AIPD.SerialNumber)
-                                       OR
-                                       (AECS.SerialType = 'Range' AND dbo.UFN_SerialInRange(AIPD.SerialNumber, AECS.FromSerial, AECS.ToSerial) = 1)
                                    )
                              )
                              AND NOT EXISTS (

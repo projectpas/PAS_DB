@@ -135,6 +135,7 @@
     <Build Include="dbo\Tables\Tables1\Assemply.sql" />
     <Build Include="dbo\Tables\Tables1\AssemplyAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Asset.sql" />
+    <Build Include="dbo\Tables\DeprNonDeprTangibleAssets.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAcquisitionType.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAcquisitionTypeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAmortizationInterval.sql" />
@@ -1413,6 +1414,8 @@
     <Build Include="dbo\Tables\Tables2\WorkScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcess.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcessAudit.sql" />
+    <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssets.sql" />
+    <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Views\vw_ILSConditions.sql" />
     <Build Include="dbo\Views\vw_WorkOrderStage.sql" />
     <Build Include="dbo\Views\vw_WOInspectionConditions.sql" />

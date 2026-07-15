@@ -3,11 +3,11 @@
     [WorkflowId]            BIGINT          NOT NULL,
     [WorkflowChargeTypeId]  TINYINT         NOT NULL,
     [Description]           VARCHAR (500)   NULL,
-    [Quantity]              SMALLINT        NULL,
-    [UnitCost]              DECIMAL (18, 2) NULL,
-    [ExtendedCost]          DECIMAL (18, 2) NULL,
-    [UnitPrice]             DECIMAL (18, 2) NULL,
-    [ExtendedPrice]         DECIMAL (18, 2) NULL,
+    [Quantity]              DECIMAL (18, 6) NULL,
+    [UnitCost]              DECIMAL (18, 6) NULL,
+    [ExtendedCost]          DECIMAL (18, 6) NULL,
+    [UnitPrice]             DECIMAL (18, 6) NULL,
+    [ExtendedPrice]         DECIMAL (18, 6) NULL,
     [VendorId]              BIGINT          NULL,
     [TaskId]                BIGINT          NOT NULL,
     [MasterCompanyId]       INT             NOT NULL,
@@ -26,6 +26,8 @@
     CONSTRAINT [FK_WorkflowChargesList_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_WorkflowChargesList_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

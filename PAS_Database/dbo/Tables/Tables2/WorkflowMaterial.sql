@@ -6,9 +6,9 @@
     [Quantity]                DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]         BIGINT          NULL,
     [ConditionCodeId]         BIGINT          NULL,
-    [UnitCost]                DECIMAL (18, 2) CONSTRAINT [DF_WorkflowMaterial_UnitCost] DEFAULT ((0)) NULL,
-    [ExtendedCost]            DECIMAL (18, 2) CONSTRAINT [DF_WorkflowMaterial_ExtendedCost] DEFAULT ((0)) NULL,
-    [Price]                   DECIMAL (18, 2) NULL,
+    [UnitCost]                DECIMAL (18, 6) CONSTRAINT [DF_WorkflowMaterial_UnitCost] DEFAULT ((0)) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) CONSTRAINT [DF_WorkflowMaterial_ExtendedCost] DEFAULT ((0)) NULL,
+    [Price]                   DECIMAL (18, 6) NULL,
     [ProvisionId]             INT             NULL,
     [IsDeferred]              BIT             NULL,
     [WorkflowActionId]        TINYINT         NOT NULL,
@@ -24,7 +24,7 @@
     [PartNumber]              VARCHAR (256)   NULL,
     [PartDescription]         VARCHAR (MAX)   NULL,
     [ItemClassificationId]    BIGINT          NULL,
-    [ExtendedPrice]           DECIMAL (18, 2) NULL,
+    [ExtendedPrice]           DECIMAL (18, 6) NULL,
     [Order]                   INT             NULL,
     [MaterialMandatoriesId]   INT             NULL,
     [WFParentId]              BIGINT          NULL,
@@ -39,6 +39,8 @@
     CONSTRAINT [FK_WorkflowMaterial_UnitOfMeasureId] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkflowMaterial_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

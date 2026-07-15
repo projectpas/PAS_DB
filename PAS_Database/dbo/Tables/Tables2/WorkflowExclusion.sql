@@ -2,9 +2,9 @@
     [WorkflowExclusionId]     BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkflowId]              BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
-    [UnitCost]                DECIMAL (18, 2) CONSTRAINT [DF_WorkflowExclusion_UnitCost] DEFAULT ((0)) NULL,
-    [Quantity]                INT             NULL,
-    [ExtendedCost]            DECIMAL (18, 2) CONSTRAINT [DF_WorkflowExclusion_ExtendedCost] DEFAULT ((0)) NULL,
+    [UnitCost]                DECIMAL (18, 6) CONSTRAINT [DF_WorkflowExclusion_UnitCost] DEFAULT ((0)) NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) CONSTRAINT [DF_WorkflowExclusion_ExtendedCost] DEFAULT ((0)) NULL,
     [EstimtPercentOccurrance] TINYINT         NULL,
     [Memo]                    NVARCHAR (MAX)  NULL,
     [TaskId]                  BIGINT          NULL,
@@ -28,6 +28,8 @@
     CONSTRAINT [FK_WorkFlowExclusion_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkFlowExclusion_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

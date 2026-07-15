@@ -15,8 +15,9 @@
 	4    08-MAY-2026		Bhargav Saliya  	Modified @IsCategoryType to @CategoryId
 	5    10-JUL-2026		Divyesh Kathiriya	Return "All" as CategoryType when @CategoryId is 0. [PN-17218]
 	6    13-JUL-2026		Divyesh Kathiriya	Remove "All" as CategoryType And Add [CategoryId] And [StartDate]. [PN-17218]
+	7    15-JUL-2026		Divyesh Kathiriya	Handle Null For [Provider] And [TrainingName]. [PN-17269]
     
- -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1,@CategoryId = 0
+ -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 260, @MasterCompanyId = 1, @CategoryId = 0
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
@@ -29,8 +30,8 @@ BEGIN
 	BEGIN TRY
 		SELECT
 			E.[FirstName] + ' ' + E.[LastName] AS [EmployeeName],
-			ETN.[Name] AS [TrainingName],
-			ET.[Provider],
+			ISNULL(ETN.[Name], '') AS [TrainingName],
+			ISNULL(ET.[Provider], '') AS [Provider],
 			ETP.[TrainingType],				
 			CASE 
 				WHEN ET.[IsRecurring] IS NULL THEN ''

@@ -13,7 +13,7 @@
 ** 4    29/05/2026  Amit Ghediya    Fixed Serial Range Insert
 ** 5    02/06/2026  Amit Ghediya    Fixed alphanumeric serial (no dash) range insert e.g. AC454245 -> AC454247 with allow duplicate for other pub.
 ** 6    06/07/2026  Amit Ghediya    Added AcSection,ComponentSerialNum,ComponentToSerialNum [PN-17117]
-** 7    13/07/2026  Amit Ghediya    Check for duplication Ser Num [PN-17223]
+** 7    13/07/2026  Amit Ghediya    Check for duplication Ser Num & for save in main table [PN-17223]
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
@@ -113,6 +113,26 @@ BEGIN
         -- VALIDATION PASSED -- now safe to mutate
         -- =========================================================
 
+		DECLARE @SerialListFull VARCHAR(MAX),
+        @AcSerialList    VARCHAR(100),
+        @ComSerialList   VARCHAR(100);
+
+		-- Aircraft serials (IsAircraftSerialNum = 1)
+		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		FROM @tbl_SerialDetail T
+		WHERE ISNULL(T.FromSerial, '') <> ''
+		  AND T.IsAircraftSerialNum = 1;
+
+		SET @AcSerialList = LEFT(@SerialListFull, 100);
+
+		-- Component serials (IsAircraftSerialNum = 0)
+		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		FROM @tbl_SerialDetail T
+		WHERE ISNULL(T.FromSerial, '') <> ''
+		  AND T.IsAircraftSerialNum = 0;
+
+		SET @ComSerialList = LEFT(@SerialListFull, 100);
+
         BEGIN TRANSACTION;
 
         -- =========================================================
@@ -126,12 +146,12 @@ BEGIN
             AE.MakeTypeId            = T.MakeTypeId,
             AE.AircraftModelId       = T.AircraftModelId,
             AE.AircraftSubModel      = T.AircraftSubModel,
-            AE.SerialNum             = T.FromSerialNumber,
+            --AE.SerialNum             = T.FromSerialNumber,
             AE.ItemMasterId          = T.ItemMasterId,
             AE.PartNumber            = T.PartNumber,
             AE.PartDescription       = T.PartDescription,
-			AE.ComponentSerialNum    = T.ComponentSerialNum,
-			AE.ComponentToSerialNum  = T.ComponentToSerialNum,
+			--AE.ComponentSerialNum    = T.ComponentSerialNum,
+			--AE.ComponentToSerialNum  = T.ComponentToSerialNum,
             AE.Notes                 = T.Notes,
             AE.UpdatedBy             = T.UpdatedBy,
             AE.UpdatedDate           = GETUTCDATE()
@@ -177,7 +197,7 @@ BEGIN
             )
             SELECT
                 T.AircraftPublicationsId, T.ACPSectionId, T.MakeTypeId, T.AircraftModelId, T.AircraftSubModel,
-                @FromSerial, T.ItemMasterId, T.PartNumber, T.PartDescription, ComponentSerialNum, ComponentToSerialNum, T.Notes,
+                @AcSerialList, T.ItemMasterId, T.PartNumber, T.PartDescription, @ComSerialList, ComponentToSerialNum, T.Notes,
                 T.MasterCompanyId, T.CreatedBy, T.UpdatedBy,
                 GETUTCDATE(), GETUTCDATE(), 1, 0
             FROM @tbl_AircraftEffectivityType T
@@ -324,19 +344,20 @@ BEGIN
                     T.AircraftSubModel,
 
                     -- Build the serial: prefix + zero-padded number
-                    CASE
-                        WHEN LEN(CAST(@CurrentNo AS VARCHAR)) >= @PaddingLength
-                        THEN @Prefix + CAST(@CurrentNo AS VARCHAR)
-                        ELSE @Prefix + RIGHT(
-                                           REPLICATE('0', @PaddingLength) + CAST(@CurrentNo AS VARCHAR),
-                                           @PaddingLength
-                                       )
-                    END,
-
+                    --CASE
+                    --    WHEN LEN(CAST(@CurrentNo AS VARCHAR)) >= @PaddingLength
+                    --    THEN @Prefix + CAST(@CurrentNo AS VARCHAR)
+                    --    ELSE @Prefix + RIGHT(
+                    --                       REPLICATE('0', @PaddingLength) + CAST(@CurrentNo AS VARCHAR),
+                    --                       @PaddingLength
+                    --                   )
+                    --END,
+					@AcSerialList,
                     T.ItemMasterId,
                     T.PartNumber,
                     T.PartDescription,
-					T.ComponentSerialNum,
+					--T.ComponentSerialNum,
+					@ComSerialList,
 					T.ComponentToSerialNum,
                     T.Notes,
                     T.MasterCompanyId,

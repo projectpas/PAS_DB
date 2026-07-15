@@ -12,6 +12,7 @@
     1    11-Feb-2025     Devendra Shekh				Created
     2    20-Feb-2025     Rajesh Gami				Modify as per requirement
 	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
+	4    15-Jul-2026     Abhishek Jirawla			Adding IsPiecePart condition in RepairOrderPart table
 **************************************************************/
 CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
@@ -212,7 +213,7 @@ BEGIN
 			ROP.RepairOrderPartRecordId PartID
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
-		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
 		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId 
 		

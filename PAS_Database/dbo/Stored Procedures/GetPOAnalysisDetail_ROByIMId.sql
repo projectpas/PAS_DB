@@ -17,6 +17,8 @@
     1    21-AUG-2024      Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price
 
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
+
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_ROByIMId] 
 @PageNumber int = 1,
@@ -129,7 +131,7 @@ BEGIN
 			0 as 'isPurchaseOrder'
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
-			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
+			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId AND ISNULL(POP.IsPiecePart,0) = 0
 			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId  AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.RepairOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId

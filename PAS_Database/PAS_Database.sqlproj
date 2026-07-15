@@ -878,6 +878,8 @@
     <Build Include="dbo\Tables\Tables1\ReceivingReconciliationHeaderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RefundCreditMemoMapping.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrder.sql" />
+    <Build Include="dbo\Tables\Tables3\RepairOrder.sql" />
+    <Build Include="dbo\Tables\Tables3\RepairOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApprovalAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApprover.sql" />
@@ -892,6 +894,8 @@
     <Build Include="dbo\Tables\Tables1\RepairOrderManagementStructureDetailsAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderPart.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderPartAudit.sql" />
+    <Build Include="dbo\Tables\Tables3\RepairOrderPart.sql" />
+    <Build Include="dbo\Tables\Tables3\RepairOrderPartAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderSettingMaster.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Report.sql" />
@@ -925,6 +929,8 @@
     <Build Include="dbo\Tables\Tables1\ROStatus.sql" />
     <Build Include="dbo\Tables\Tables1\ROStatusAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrder.sql" />
+    <Build Include="dbo\Tables\Tables3\SalesOrder.sql" />
+    <Build Include="dbo\Tables\Tables3\SalesOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApprovalAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderAudit.sql" />
@@ -1254,6 +1260,8 @@
     <Build Include="dbo\Tables\Tables2\WorkflowPublications.sql" />
     <Build Include="dbo\Tables\Tables2\WorkflowPublicationsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrder.sql" />
+    <Build Include="dbo\Tables\Tables4\WorkOrder.sql" />
+    <Build Include="dbo\Tables\Tables4\WorkOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAdditionalComments.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAdditionalCommentsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAddress.sql" />
@@ -2901,6 +2909,9 @@
     <Build Include="dbo\Tables\AssetInventoryBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPiecePartReconciliationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetRoPiecePartForVendorReconcilationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReconcilePiecePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_UpdateActiveInActiveStatus.sql" />
     <Build Include="dbo\Views\vw_JobTitle_Audit.sql" />
     <Build Include="dbo\Views\vw_EmployeeStation_Audit.sql" />
@@ -4502,6 +4513,8 @@
     <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
     <Build Include="dbo\Tables\PersistedGrants.sql" />
+    <Build Include="dbo\Tables\PiecePartReconciliationAudit.sql" />
+    <Build Include="dbo\Tables\PiecePartReconciliation.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAccountDetailsByID.sql" />
     <Build Include="dbo\Tables\MaintenanceType.sql" />
     <Build Include="dbo\Views\vw_MaintenanceType.sql" />

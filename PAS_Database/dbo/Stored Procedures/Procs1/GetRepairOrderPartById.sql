@@ -63,6 +63,7 @@ BEGIN
 	WHERE pop.RepairOrderId = @RepairOrderId 
 		AND pop.isParent = 1 
 		AND pop.IsDeleted = 0
+		AND ISNULL(pop.IsPiecePart, 0) = 0
 		AND (pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE, @ASSETTYPE));
 
   END TRY    

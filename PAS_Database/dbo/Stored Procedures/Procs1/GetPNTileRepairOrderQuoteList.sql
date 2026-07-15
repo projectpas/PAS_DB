@@ -10,6 +10,8 @@
  ** --   --------     -------				--------------------------------          
 	1    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
+
 --   EXEC [GetPNTileRepairOrderQuoteList]
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
@@ -104,7 +106,7 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   INNER JOIN [dbo].[VendorRFQRepairOrderPart] ROP WITH (NOLOCK) ON ROP.VendorRFQRepairOrderId = ROQ.VendorRFQRepairOrderId 
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1
+			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1 AND ISNULL(ROT.IsPiecePart,0) = 0
 			   LEFT OUTER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
 			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0					 
 			    LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId

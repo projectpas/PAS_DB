@@ -256,7 +256,7 @@ BEGIN
 					WHERE ROP.MasterCompanyId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@MasterCompanyId, ',')) 
 					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
-					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
+					AND ISNULL(ROP.IsPiecePart,0) = 0 AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
 						
 				--* END: RepairOrder For Reserve *--

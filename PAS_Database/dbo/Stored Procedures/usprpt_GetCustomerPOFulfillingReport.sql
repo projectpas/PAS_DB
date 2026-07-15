@@ -16,8 +16,9 @@
  ** --   --------         -------          --------------------------------            
     1    26-Sep-2025	  Amit Ghediya	   Created 
     2    11-06-2026       Ayushi Patel     [PN-16811] UOM CHNAGES
-	3	 17-06-2026		  Ayushi Patel	   Revert The UOM Changes 
-	
+	3	 17-06-2026		  Ayushi Patel	   Revert The UOM Changes
+	4	 15-07-2026		  Abhishek Jirawla Adding IsPiecePart condition in RepairOrderPart table
+
 EXECUTE   [dbo].[usprpt_GetCustomerPOFulfillingReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   
@@ -126,7 +127,7 @@ BEGIN
 				LEFT JOIN [DBO].[SOPickTicket] SP WITH(NOLOCK) ON SP.SalesOrderPartStocklineId = SST.SalesOrderStocklineId AND SP.SalesOrderPartId = SST.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = SP.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-				LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId AND ROP.StockLineId = SST.StockLineId
+				LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId AND ROP.StockLineId = SST.StockLineId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				LEFT JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 				LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON PO.PurchaseOrderId = SOP.POId
 				WHERE SO.OpenDate >= @id
@@ -239,8 +240,8 @@ BEGIN
 				   AND SP.SalesOrderPartId = SST.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = SP.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-				LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId 
-				   AND ROP.StockLineId = SST.StockLineId
+				LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId
+				   AND ROP.StockLineId = SST.StockLineId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				WHERE SO.OpenDate >= @id
 				  AND SO.OpenDate < DATEADD(DAY, 1, @id2)
 				  AND SO.ManagementStructureId = @ManagementStructureId
@@ -347,7 +348,7 @@ BEGIN
 						SELECT DISTINCT RO.[Status] AS Status
 						FROM [DBO].[RepairOrder] RO
 						INNER JOIN [DBO].[RepairOrderPart] ROP ON ROP.RepairOrderId = RO.RepairOrderId
-						WHERE ROP.SalesOrderId = A.SalesOrderId AND RO.[Status] IS NOT NULL
+						WHERE ROP.SalesOrderId = A.SalesOrderId AND RO.[Status] IS NOT NULL AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					) AS s
 					FOR XML PATH(''), TYPE
 				  ).value('.', 'nvarchar(max)'), 1, 1, '')

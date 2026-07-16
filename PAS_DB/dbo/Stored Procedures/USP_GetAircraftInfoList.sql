@@ -51,11 +51,11 @@ BEGIN
                 AI.UpdatedBy,
                 AI.UpdatedDate,
                 COUNT_BIG(1) OVER () AS TotalRecords
-            FROM dbo.AircraftInfo AS AI
-            INNER JOIN dbo.ItemMaster AS IM
+            FROM [dbo].[AircraftInfo] AS AI WITH(NOLOCK)
+            INNER JOIN [dbo].[ItemMaster] AS IM WITH(NOLOCK)
                 ON IM.ItemMasterId = AI.ItemMasterId
                 AND IM.MasterCompanyId = AI.MasterCompanyId
-            LEFT JOIN dbo.Manufacturer AS M
+            LEFT JOIN [dbo].[Manufacturer] AS M WITH(NOLOCK)
                 ON M.ManufacturerId = IM.ManufacturerId
                 AND M.MasterCompanyId = AI.MasterCompanyId
                 AND M.IsDeleted = 0
@@ -94,7 +94,7 @@ BEGIN
             UpdatedBy,
             UpdatedDate,
             TotalRecords
-        FROM AircraftProfiles
+        FROM AircraftProfiles 
         ORDER BY
             CASE WHEN @SortColumn = 'makeType' AND @SortOrder = 'ASC' THEN MakeType END ASC,
             CASE WHEN @SortColumn = 'makeType' AND @SortOrder = 'DESC' THEN MakeType END DESC,

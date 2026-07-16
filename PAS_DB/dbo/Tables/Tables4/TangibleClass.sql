@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[TangibleClass] (
     [TangibleClassId]   BIGINT         IDENTITY (1, 1) NOT NULL,
-    [TangibleClassName] VARCHAR (30)   NOT NULL,
+    [TangibleClassName] VARCHAR (50)   NULL,
     [TangibleClassMemo] VARCHAR (1000) NULL,
     [MasterCompanyId]   INT            NOT NULL,
     [CreatedBy]         VARCHAR (256)  NOT NULL,
@@ -14,6 +14,8 @@
     CONSTRAINT [FK_TangibleClass_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_TangibleClass] UNIQUE NONCLUSTERED ([TangibleClassName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

@@ -15,6 +15,7 @@
   ** S NO   Date            Author				Change Description              
   ** --   --------			-------				--------------------------------            
      1    22/06/2026		Abhishek Jirawla	Created
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock 
      2    16/07/2026		Abhishek Jirawla	QtyShipped falls back to QuantityOrdered when Enforce Pick Ticket is off
      3    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
      4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none

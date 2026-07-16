@@ -211,7 +211,7 @@ BEGIN
 				FROM #tmpReceivingRoviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
-					WHERE stk.RepairOrderId = TMP.RepairOrderId)
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0)
 				AS result
 
 			UPDATE TMP1
@@ -380,7 +380,7 @@ BEGIN
 				FROM #tmpReceivingPnviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
-					WHERE stk.RepairOrderId = TMP.RepairOrderId
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0
 					) AS result
 
 			UPDATE TMP1

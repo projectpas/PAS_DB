@@ -145,7 +145,7 @@ BEGIN
 
         FROM  dbo.RepairOrderPart  rop WITH (NOLOCK)
         JOIN  dbo.RepairOrder       ro WITH (NOLOCK)  ON  ro.RepairOrderId   = rop.RepairOrderId
-        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId
+        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
         LEFT JOIN dbo.WorkOrder     wo  WITH (NOLOCK) ON  wo.WorkOrderId     = rop.WorkOrderId
         LEFT JOIN dbo.ItemMaster    im  WITH (NOLOCK) ON  im.ItemMasterId    = rop.ItemMasterId
 

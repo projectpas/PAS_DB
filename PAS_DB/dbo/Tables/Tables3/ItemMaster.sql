@@ -102,7 +102,7 @@
     [ItemMasterAssetTypeId]             BIGINT          CONSTRAINT [ItemMaster_ItemMasterAssetTypeId] DEFAULT ((0)) NOT NULL,
     [IsHotItem]                         BIT             CONSTRAINT [ItemMaster_IsHotItem] DEFAULT ((0)) NOT NULL,
     [ExportSizeUnitOfMeasureId]         BIGINT          NULL,
-    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [ItemMaster_IsAcquiredMethodBuy] DEFAULT ((0)) NOT NULL,
+    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [ItemMaster_IsAcquiredMethodBuy] DEFAULT ((0)) NULL,
     [IsOEM]                             BIT             CONSTRAINT [ItemMaster_IsOEM] DEFAULT ((0)) NOT NULL,
     [RevisedPart]                       VARCHAR (250)   NULL,
     [OEMPN]                             VARCHAR (250)   NULL,
@@ -215,6 +215,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

@@ -14,6 +14,7 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    14/07/2026  Amit Ghediya      Created
+** 2    14/07/2026  Amit Ghediya      Update for AC/Com Serial num when any update
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveAircraftEffectivitySerialDetails]
     @AircraftEffectivityId  BIGINT,
@@ -126,6 +127,28 @@ BEGIN
               SELECT 1 FROM @tbl_SerialDetail T
               WHERE T.AircraftEffectivitySerialDetailId = AESD.AircraftEffectivitySerialDetailId
           );
+
+		----Update serial num
+		DECLARE @SerialListFull VARCHAR(MAX),@AcSerialList    VARCHAR(100),@ComSerialList   VARCHAR(100);
+
+		-- Aircraft serials (IsAircraftSerialNum = 1)
+		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		FROM @tbl_SerialDetail T
+		WHERE ISNULL(T.FromSerial, '') <> ''
+		  AND T.IsAircraftSerialNum = 1;
+
+		SET @AcSerialList = LEFT(@SerialListFull, 100);
+
+		-- Component serials (IsAircraftSerialNum = 0)
+		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		FROM @tbl_SerialDetail T
+		WHERE ISNULL(T.FromSerial, '') <> ''
+		  AND T.IsAircraftSerialNum = 0;
+
+		SET @ComSerialList = LEFT(@SerialListFull, 100);
+
+		UPDATE DBO.AircraftEffectivity SET SerialNum = @AcSerialList,ComponentSerialNum = @ComSerialList
+		WHERE AircraftEffectivityId = @AircraftEffectivityId;
 
         -- UPDATE ROWS THE CALLER SUBMITTED WITH A REAL (EXISTING) ID
 

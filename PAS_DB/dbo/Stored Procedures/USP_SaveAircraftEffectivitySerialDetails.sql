@@ -135,13 +135,13 @@ BEGIN
 		DECLARE @AcAffectCount INT, @AcSingleSerial VARCHAR(100);
 		DECLARE @ComAffectCount INT, @ComSingleSerial VARCHAR(100);
 
-		SELECT @AcAffectCount = COUNT(*), @AcSingleSerial = MIN(T.FromSerial)
+		SELECT @AcAffectCount = COUNT(T.AircraftEffectivitySerialDetailId), @AcSingleSerial = MIN(T.FromSerial)
 		FROM @tbl_SerialDetail T
 		WHERE T.IsAircraftSerialNum = 1
 		  AND T.IsAffect            = 1
 		  AND ISNULL(T.FromSerial, '') <> '';
 
-		SELECT @ComAffectCount = COUNT(*), @ComSingleSerial = MIN(T.FromSerial)
+		SELECT @ComAffectCount = COUNT(T.AircraftEffectivitySerialDetailId), @ComSingleSerial = MIN(T.FromSerial)
 		FROM @tbl_SerialDetail T
 		WHERE T.IsAircraftSerialNum = 0
 		  AND T.IsAffect            = 1

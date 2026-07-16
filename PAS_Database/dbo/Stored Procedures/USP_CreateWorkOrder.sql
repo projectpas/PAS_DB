@@ -35,6 +35,8 @@
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
 	23   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
+	24   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
+
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
@@ -185,7 +187,7 @@ BEGIN
 		[PromisedDate] [DATETIME2](7) NULL,
 		[EstimatedCompletionDate] [DATETIME2](7) NULL,
 		[NTE] [VARCHAR](30),
-		[Quantity] [INT] NULL,
+		[Quantity] [DECIMAL](18,6) NULL,
 		[StockLineId] [BIGINT] NULL,
 		[CMMIds] [VARCHAR](256) NULL,
 		[WorkflowId] [BIGINT] NULL,
@@ -323,7 +325,7 @@ BEGIN
 		[StocklineId] [BIGINT] NULL,
 		[ControlNumber] [VARCHAR](200) NULL,
 		[ControlId] [VARCHAR](100) NULL,
-		[Qty] [INT] NULL,
+		[Qty]  [DECIMAL](18,6) NULL,
 		[UnitPrice] [DECIMAL](18,2) NULL,
 		[Amount] [DECIMAL](18,2) NULL,
 		[RMAReasonId] [INT] NULL,
@@ -381,7 +383,7 @@ BEGIN
 		[ControlId] [VARCHAR](100) NULL,
 		[ReferenceId] [BIGINT] NULL,
 		[ReferenceNo] [VARCHAR](50) NULL,
-		[Qty] [INT] NULL,
+		[Qty]  [DECIMAL](18,6) NULL,
 		[UnitPrice] [DECIMAL](18,2) NULL,
 		[Amount] [DECIMAL](18,2) NULL,
 		[RMAReasonId] [INT] NULL,
@@ -398,7 +400,7 @@ BEGIN
 		[InvoiceId] [BIGINT] NULL,
 		[BillingInvoicingItemId] [BIGINT] NULL,
 		[CustomerReference] [VARCHAR](256) NULL,
-		[InvoiceQty] [INT] NULL,
+		[InvoiceQty] [DECIMAL](18,6) NULL,
 		[ReturnDate] [DATETIME2](7) NULL,
 		[WorkOrderNum] [VARCHAR](50) NULL,
 		[ReceiverNum] [VARCHAR](50) NULL							
@@ -712,10 +714,10 @@ BEGIN
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber   
 	WHILE @MinId <= @TotalRecord
 	BEGIN	    
-		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable INT=0,@QuantityReserved INT=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
+		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable DECIMAL(18,6) = 0,@QuantityReserved DECIMAL(18,6)=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
 		DECLARE @PartStockLineId BIGINT = NULL,@WorkOrderPartNumberId BIGINT = NULL,@RMANumber VARCHAR(50)=NULL,@MSDetailsId BIGINT=NULL
 		DECLARE @WorkScopeDescription VARCHAR(500)=NULL,@ReceiverNumber VARCHAR(50),@PartSerialNumber VARCHAR(100)=''
-		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL,@QuantityOnHand INT=0,@QuantityIssued INT=0
+		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL,@QuantityOnHand DECIMAL(18,6)=0,@QuantityIssued DECIMAL(18,6)=0
 		DECLARE @InvoiceNo VARCHAR(256) = NULL,@InvoiceDate DATETIME2(7)=NULL,@RMACustomerId BIGINT = NULL,@RMACustomerName VARCHAR(100)=NULL,@RMACustomerCode VARCHAR(100)=NULL
 		DECLARE @ContactInfo VARCHAR(150)=NULL,@RMACustomerContactId BIGINT=NULL,@RequestedId BIGINT = NULL,@Requestedby VARCHAR(50)=NULL,@ApprovedbyId BIGINT=NULL
 		DECLARE @Approvedby VARCHAR(50)=NULL,@ApprovedDate DATETIME2(7)=NULL,@ReturnDate DATETIME2(7)=NULL,@ManagementStructureId BIGINT=NULL,@ReferenceId BIGINT=NULL,@Result BIGINT=0

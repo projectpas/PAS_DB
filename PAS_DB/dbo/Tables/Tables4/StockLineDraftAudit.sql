@@ -176,6 +176,7 @@
     [IsKitType]                           BIT             NULL,
     [IsSubWOType]                         BIT             NULL,
     [IsRepairManagement]                  BIT             CONSTRAINT [DF_StockLineDraftAudit_IsRepairManagement] DEFAULT ((0)) NULL,
+    [IsNonStock]                           BIT             CONSTRAINT [DF_StockLineDraftAudit_IsNonStock] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
 

@@ -15,8 +15,12 @@
   ** S NO   Date            Author				Change Description              
   ** --   --------			-------				--------------------------------            
      1    22/06/2026		Abhishek Jirawla	Created
-     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
- **************************************************************/  
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock 
+     2    16/07/2026		Abhishek Jirawla	QtyShipped falls back to QuantityOrdered when Enforce Pick Ticket is off
+     3    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
+     4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
+     5    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
+ **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PageNumber             INT,
     @PageSize               INT,
@@ -84,13 +88,20 @@ BEGIN
             rop.ControlId,
             rop.StockLineId,
 
-            -- Total pieces actually shipped to the vendor
-            ISNULL((
-                SELECT SUM(ISNULL(rsi.QtyShipped, 0))
-                FROM   dbo.RepairOrderShippingItem rsi WITH (NOLOCK)
-                WHERE  rsi.RepairOrderPartId = rop.RepairOrderPartRecordId
-                  AND  rsi.IsDeleted         = 0
-            ), 0)                                            AS QtyShipped,
+            -- Total pieces actually shipped to the vendor. When Enforce Pick Ticket is
+            -- off (0/NULL) on the Repair Order, the Pick/Shipping process is skipped
+            -- entirely, so there are no RepairOrderShippingItem rows to sum; fall back
+            -- to the ordered quantity (what QuantityBackOrdered is seeded from in that flow).
+            CASE
+                WHEN ro.IsEnforcePickTicket = 1
+                THEN ISNULL((
+                    SELECT SUM(ISNULL(rsi.QtyShipped, 0))
+                    FROM   dbo.RepairOrderShippingItem rsi WITH (NOLOCK)
+                    WHERE  rsi.RepairOrderPartId = rop.RepairOrderPartRecordId
+                      AND  rsi.IsDeleted         = 0
+                ), 0)
+                ELSE ISNULL(rop.QuantityOrdered, 0)
+            END                                              AS QtyShipped,
 
             rop.UnitCost,
             rop.ExtendedCost,
@@ -110,7 +121,23 @@ BEGIN
             )                                               AS DateReturned,
 
             ro.RepairOrderNumber                            AS RONumber,
-            ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)        AS WorkOrderNumber,
+
+            -- Piece parts (customer-supplied) aren't created against a specific Work Order
+            -- material requirement, so they rarely carry their own WorkOrderId/WorkOrderNo.
+            -- Fall back to any sibling part on the same RO that does, then to '-'.
+            COALESCE(
+                rop.WorkOrderNo,
+                wo.WorkOrderNum,
+                (
+                    SELECT TOP 1 COALESCE(sibling.WorkOrderNo, sibWo.WorkOrderNum)
+                    FROM   dbo.RepairOrderPart sibling WITH (NOLOCK)
+                    LEFT JOIN dbo.WorkOrder sibWo WITH (NOLOCK) ON sibWo.WorkOrderId = sibling.WorkOrderId
+                    WHERE  sibling.RepairOrderId = rop.RepairOrderId
+                      AND  sibling.IsDeleted     = 0
+                      AND  sibling.WorkOrderId  IS NOT NULL
+                ),
+                '-'
+            )                                                AS WONumber,
 
             rop.ManufacturerPN                              AS MPN,
             im.PartDescription                              AS MPNDescription,
@@ -194,7 +221,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WorkOrderNumber,
+            bp.WONumber,
             bp.MPN,
             bp.MPNDescription,
             CAST(NULL AS BIGINT)               AS PiecePartReconciliationId,
@@ -230,7 +257,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WorkOrderNumber,
+            bp.WONumber,
             bp.MPN,
             bp.MPNDescription
     )
@@ -258,7 +285,7 @@ BEGIN
         DateShipped,
         DateReturned,
         RONumber,
-        WorkOrderNumber,
+        WONumber,
         MPN,
         MPNDescription,
         PiecePartReconciliationId,
@@ -291,8 +318,8 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONumber'             THEN RONumber             END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONumber'             THEN RONumber             END DESC,
-        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END ASC,
-        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONumber'       THEN WONumber      END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONumber'       THEN WONumber      END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END ASC,

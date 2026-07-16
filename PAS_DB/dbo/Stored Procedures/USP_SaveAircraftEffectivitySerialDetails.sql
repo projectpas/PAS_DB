@@ -15,6 +15,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    14/07/2026  Amit Ghediya      Created
 ** 2    14/07/2026  Amit Ghediya      Update for AC/Com Serial num when any update
+** 3    16/07/2026  Amit Ghediya      update sernum if only added one ser number in affect
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveAircraftEffectivitySerialDetails]
     @AircraftEffectivityId  BIGINT,
@@ -128,26 +129,27 @@ BEGIN
               WHERE T.AircraftEffectivitySerialDetailId = AESD.AircraftEffectivitySerialDetailId
           );
 
-		----Update serial num
-		DECLARE @SerialListFull VARCHAR(MAX),@AcSerialList    VARCHAR(100),@ComSerialList   VARCHAR(100);
+		----Update legacy single-serial reference fields: exactly one AFFECT entry -> that value,
+		----zero or 2+ AFFECT entries -> blank (frontend then displays "All"). Only AFFECT rows
+		----count -- Except (exclusion) entries must never leak into these legacy fields.
+		DECLARE @AcAffectCount INT, @AcSingleSerial VARCHAR(100);
+		DECLARE @ComAffectCount INT, @ComSingleSerial VARCHAR(100);
 
-		-- Aircraft serials (IsAircraftSerialNum = 1)
-		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		SELECT @AcAffectCount = COUNT(*), @AcSingleSerial = MIN(T.FromSerial)
 		FROM @tbl_SerialDetail T
-		WHERE ISNULL(T.FromSerial, '') <> ''
-		  AND T.IsAircraftSerialNum = 1;
+		WHERE T.IsAircraftSerialNum = 1
+		  AND T.IsAffect            = 1
+		  AND ISNULL(T.FromSerial, '') <> '';
 
-		SET @AcSerialList = LEFT(@SerialListFull, 100);
-
-		-- Component serials (IsAircraftSerialNum = 0)
-		SELECT @SerialListFull = STRING_AGG(T.FromSerial, ',')
+		SELECT @ComAffectCount = COUNT(*), @ComSingleSerial = MIN(T.FromSerial)
 		FROM @tbl_SerialDetail T
-		WHERE ISNULL(T.FromSerial, '') <> ''
-		  AND T.IsAircraftSerialNum = 0;
+		WHERE T.IsAircraftSerialNum = 0
+		  AND T.IsAffect            = 1
+		  AND ISNULL(T.FromSerial, '') <> '';
 
-		SET @ComSerialList = LEFT(@SerialListFull, 100);
-
-		UPDATE DBO.AircraftEffectivity SET SerialNum = @AcSerialList,ComponentSerialNum = @ComSerialList
+		UPDATE DBO.AircraftEffectivity
+		SET SerialNum          = CASE WHEN ISNULL(@AcAffectCount, 0)  = 1 THEN @AcSingleSerial  ELSE NULL END,
+		    ComponentSerialNum = CASE WHEN ISNULL(@ComAffectCount, 0) = 1 THEN @ComSingleSerial ELSE NULL END
 		WHERE AircraftEffectivityId = @AircraftEffectivityId;
 
         -- UPDATE ROWS THE CALLER SUBMITTED WITH A REAL (EXISTING) ID

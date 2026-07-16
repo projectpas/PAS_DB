@@ -1,16 +1,17 @@
-﻿/***************************************************************  
- ** File:  [USP_GetAssetDataforInventory]             
- ** Author: Ayushi Patel 
+﻿/***************************************************************
+ ** File:  [USP_GetAssetDataforInventory]
+ ** Author: Ayushi Patel
  ** Description: Get Asset Details
- ** Purpose:   
- ** Date:  12-Jun-2025  
-            
- ** Change History             
- **************************************************************             
- ** PR   Date				Author  			Change Description              
- ** --   --------			-------				--------------------------------            
+ ** Purpose:
+ ** Date:  12-Jun-2025
+
+ ** Change History
+ **************************************************************
+ ** PR   Date				Author  			Change Description
+ ** --   --------			-------				--------------------------------
     1    2025-06-12		    Ayushi Patel		Created
     2	 02-FEB-2026	    Divyesh Kathiriya	Add "CalibrationCertificateNumber"
+    3	 15-JUL-2026	    Vishal Suthar		Fall back to DeprNonDeprTangibleAssets for AssetTypeName/DeprExpenseGLAccount/AdDepsGLAccount, add CalibratedGLAccount
 
 	exec [USP_GetAssetDataforInventory] 211
 ***************************************************************/
@@ -30,7 +31,7 @@ BEGIN
 
         IF @IsIntangible = 1
         BEGIN
-            SELECT 
+            SELECT
                 asset.AssetId,
                 asset.Name,
                 asset.Description,
@@ -84,7 +85,7 @@ BEGIN
         END
         ELSE
         BEGIN
-            SELECT 
+            SELECT
                 asset.AssetId,
                 asset.Name,
                 asset.Description,
@@ -153,7 +154,7 @@ BEGIN
                 asset.AssetMaintenanceIsContract,
                 ISNULL(asset.AssetParentRecordId, '') AS AssetParentId,
                 asset.TangibleClassId,
-                ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
+                ISNULL(asty.AssetAttributeTypeName, ISNULL(dnta.AssetAttributeTypeName, '')) AS AssetTypeName,
                 asset.AssetAttributeTypeId,
                 asset.AssetLocationId,
                 ISNULL(aloc.Code + '-' + aloc.Name, '') AS AsetLocationName,
@@ -199,8 +200,9 @@ BEGIN
                 ISNULL(asty.AssetLife, 0) AS AssetLife,
                 ISNULL(asdf.Name, '') AS DepreciationFrequency,
                 ISNULL(accGL.AccountCode + '-' + accGL.AccountName, '') AS AcquiredGLAccount,
-                ISNULL(deprGL.AccountCode + '-' + deprGL.AccountName, '') AS DeprExpenseGLAccount,
-                ISNULL(addeppsGL.AccountCode + '-' + addeppsGL.AccountName, '') AS AdDepsGLAccount,
+                ISNULL(deprGL.AccountCode + '-' + deprGL.AccountName, ISNULL(dntaDeprGL.AccountCode + '-' + dntaDeprGL.AccountName, '')) AS DeprExpenseGLAccount,
+                ISNULL(addeppsGL.AccountCode + '-' + addeppsGL.AccountName, ISNULL(dntaAdGL.AccountCode + '-' + dntaAdGL.AccountName, '')) AS AdDepsGLAccount,
+                ISNULL(calGL.AccountCode + '-' + calGL.AccountName, '') AS CalibratedGLAccount,
                 ISNULL(assGL.AccountCode + '-' + assGL.AccountName, '') AS AssetSale,
                 ISNULL(aswGL.AccountCode + '-' + aswGL.AccountName, '') AS AssetWriteOff,
                 ISNULL(aswdGL.AccountCode + '-' + aswdGL.AccountName, '') AS AssetWriteDown,
@@ -237,17 +239,21 @@ BEGIN
             LEFT JOIN dbo.GLAccount vgla WITH (NOLOCK) ON ascal.VerificationGlAccountId = vgla.GLAccountId
             LEFT JOIN dbo.GLAccount mgla WITH (NOLOCK) ON asmai.MaintenanceGLAccountId = mgla.GLAccountId
             LEFT JOIN dbo.GLAccount wgla WITH (NOLOCK) ON asmai.WarrantyGLAccountId = wgla.GLAccountId
-            LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+            LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId AND (asset.AssetClassSource IS NULL OR asset.AssetClassSource = 'AssetAttributeType')
+            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.DeprNonDeprTangibleAssetsId AND asset.AssetClassSource = 'DeprNonDeprTangibleAssets'
+            LEFT JOIN dbo.GLAccount calGL WITH (NOLOCK) ON dnta.CalibratedGLAccountId = calGL.GLAccountId
+            LEFT JOIN dbo.GLAccount dntaDeprGL WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dntaDeprGL.GLAccountId
+            LEFT JOIN dbo.GLAccount dntaAdGL WITH (NOLOCK) ON dnta.AccumDeprGLAccountId = dntaAdGL.GLAccountId
             LEFT JOIN dbo.AssetLocation aloc WITH (NOLOCK) ON asset.AssetLocationId = aloc.AssetLocationId
             LEFT JOIN dbo.AssetDepreciationMethod asdm WITH (NOLOCK) ON asty.DepreciationMethod = asdm.AssetDepreciationMethodId
             LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON asty.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
             LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON asty.ResidualPercentage = per.PercentId
-            LEFT JOIN dbo.GLAccount accGL WITH (NOLOCK) ON asty.AcquiredGLAccountId = accGL.GLAccountId
+            LEFT JOIN dbo.GLAccount accGL WITH (NOLOCK) ON dnta.AcquiredGLAccountId = accGL.GLAccountId
             LEFT JOIN dbo.GLAccount deprGL WITH (NOLOCK) ON asty.DeprExpenseGLAccountId = deprGL.GLAccountId
             LEFT JOIN dbo.GLAccount addeppsGL WITH (NOLOCK) ON asty.AdDepsGLAccountId = addeppsGL.GLAccountId
-            LEFT JOIN dbo.GLAccount assGL WITH (NOLOCK) ON asty.AssetSale = assGL.GLAccountId
-            LEFT JOIN dbo.GLAccount aswGL WITH (NOLOCK) ON asty.AssetWriteOff = aswGL.GLAccountId
-            LEFT JOIN dbo.GLAccount aswdGL WITH (NOLOCK) ON asty.AssetWriteDown = aswdGL.GLAccountId
+            LEFT JOIN dbo.GLAccount assGL WITH (NOLOCK) ON dnta.AssetSaleGLAccountId = assGL.GLAccountId
+            LEFT JOIN dbo.GLAccount aswGL WITH (NOLOCK) ON dnta.AssetWriteOffGLAccountId = aswGL.GLAccountId
+            LEFT JOIN dbo.GLAccount aswdGL WITH (NOLOCK) ON dnta.AssetWriteDownGLAccountId = aswdGL.GLAccountId
             WHERE asset.AssetRecordId = @assetRecordId;
         END
     END TRY
@@ -258,7 +264,7 @@ BEGIN
                 @ProcedureParameters VARCHAR(3000) = '@assetRecordId = ' + CAST(@assetRecordId AS VARCHAR),
                 @ApplicationName VARCHAR(100) = 'PAS';
 
-        EXEC spLogException 
+        EXEC spLogException
             @DatabaseName = @DatabaseName,
             @AdhocComments = @AdhocComments,
             @ProcedureParameters = @ProcedureParameters,

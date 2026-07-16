@@ -13,8 +13,8 @@ BEGIN
 			Declare @IsIntangible bit =0
 			Declare @AssetClassSource varchar(30) = NULL
 
-			select @IsIntangible = IsIntangible from Asset  where AssetRecordId= @AssetRecordId
-			select @AssetClassSource = AssetClassSource from Asset where AssetRecordId = @AssetRecordId
+			select @IsIntangible = IsIntangible from dbo.Asset WITH(NOLOCK)  where AssetRecordId= @AssetRecordId
+			select @AssetClassSource = AssetClassSource from dbo.Asset WITH(NOLOCK) where AssetRecordId = @AssetRecordId
 
 			if(@IsIntangible =1)
 			begin

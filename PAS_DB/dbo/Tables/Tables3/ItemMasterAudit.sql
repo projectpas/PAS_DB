@@ -103,7 +103,7 @@
     [ItemMasterAssetTypeId]             BIGINT          CONSTRAINT [DF_ItemMasterAudit_ItemMasterAssetTypeId_1] DEFAULT ((0)) NOT NULL,
     [IsHotItem]                         BIT             CONSTRAINT [DF_ItemMasterAudit_IsHotItem_1] DEFAULT ((0)) NOT NULL,
     [ExportSizeUnitOfMeasureId]         BIGINT          NULL,
-    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [DF_ItemMasterAudit_IsAcquiredMethodBuy_1] DEFAULT ((0)) NOT NULL,
+    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [DF_ItemMasterAudit_IsAcquiredMethodBuy_1] DEFAULT ((0)) NULL,
     [IsOEM]                             BIT             CONSTRAINT [DF_ItemMasterAudit_IsOEM_1] DEFAULT ((0)) NOT NULL,
     [RevisedPart]                       VARCHAR (250)   NULL,
     [OEMPN]                             VARCHAR (250)   NULL,

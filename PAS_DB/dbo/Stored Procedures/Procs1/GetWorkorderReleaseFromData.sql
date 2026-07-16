@@ -32,9 +32,9 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 21   23/01/2026  Moin Bloch       Fix For **
 ** 22   11/02/2026  Moin Bloch       Updated Added WOReleaseFormId insted of Country PN-15388
 ** 23   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
+** 24   16/07/2026  Vishal Suthar    Added new tags to get replaced (#PublishedBy and #PublicationType)
 
-
- EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
+ EXEC [dbo].[GetWorkorderReleaseFromData] 4566,4155,0,0,1
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
@@ -364,6 +364,7 @@ BEGIN
 							,@VersionNo VersionNo
 					        ,0 AS IsVersionIncrease
 							,@CorrectiveAction CorrectiveAction
+							,pubType.Name AS PublicationType
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  --LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
@@ -378,6 +379,7 @@ BEGIN
 					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedPartId  
 					  LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds 
+					  LEFT JOIN [dbo].[PublicationType] pubType WITH (NOLOCK) ON pubType.PublicationTypeId = pub.PublicationTypeId
 					  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
 					  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
 					 -- LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
@@ -517,30 +519,44 @@ BEGIN
 				UPPER(le.EASALicense) AS EASALicense,  
 				STRING_AGG(
 					REPLACE(
-						REPLACE(
-							REPLACE(
+						REPLACE(                                                   -- NEW outer layer: #PublicationType
+							REPLACE(                                                -- NEW outer layer: #PublishedBy
 								REPLACE(
 									REPLACE(
 										REPLACE(
-											ISNULL(PT.EmailBody,''),
-											'#PublicationByName', 
-											CASE 
-												WHEN pub.PublishedById = 2 THEN ISNULL(ven.VendorName,'-')
-												WHEN pub.PublishedById = 3 THEN ISNULL(mf.Name,'-')
-												WHEN pub.PublishedById = 4 THEN ISNULL(pub.PublishedByOthers,'-')
-												ELSE '-'
-											END
-										), '#PublicationName', UPPER(pub.PublicationId)
-									), '#RevisionDate', UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100), pub.RevisionDate,106),' ','/'), '-'))
-								), '#RevisionNumber', UPPER(pub.RevisionNum)
-							), '#Condition', CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.Memo) ELSE UPPER(wosc.ConditionName) END
-						), '#WorkOrderNumber', wo.WorkOrderNum
+											REPLACE(
+												REPLACE(
+													ISNULL(PT.EmailBody,''),
+													'#PublicationByName', 
+													CASE 
+														WHEN pub.PublishedById = 2 THEN ISNULL(ven.VendorName,'-')
+														WHEN pub.PublishedById = 3 THEN ISNULL(mf.Name,'-')
+														WHEN pub.PublishedById = 4 THEN ISNULL(pub.PublishedByOthers,'-')
+														ELSE '-'
+													END
+												), '#PublicationName', UPPER(pub.PublicationId)
+											), '#RevisionDate', UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100), pub.RevisionDate,106),' ','/'), '-'))
+										), '#RevisionNumber', UPPER(pub.RevisionNum)
+									), '#Condition', CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.Memo) ELSE UPPER(wosc.ConditionName) END
+								), '#WorkOrderNumber', wo.WorkOrderNum
+							),
+							'#PublishedBy',                                         -- NEW tag
+							CASE 
+								WHEN pub.PublishedById = 2 THEN 'Vendor'
+								WHEN pub.PublishedById = 3 THEN 'Manufacturer'
+								WHEN pub.PublishedById = 4 THEN 'Others'
+								ELSE '-'
+							END
+						),
+						'#PublicationType',                                         -- NEW tag
+						ISNULL(UPPER(pubType.Name), '-')
 					), CHAR(13) + CHAR(10)
 				) + CASE WHEN wo.MasterCompanyId = @NeoMasterCompanyId THEN '<br><br><br><br><br>' ELSE '' END AS EmailBody,
 
 				@VersionNo AS VersionNo,  
 				0 AS IsVersionIncrease  
 				,@CorrectiveAction CorrectiveAction
+				,pubType.Name AS PublicationType
 			FROM WorkOrderPartNumber wop WITH (NOLOCK)
 			LEFT JOIN WorkOrder wo WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 			--LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
@@ -558,6 +574,7 @@ BEGIN
 					SELECT CAST(value AS BIGINT)
 					FROM STRING_SPLIT(@CMMIds, ',')
 				)
+			LEFT JOIN [dbo].[PublicationType] pubType WITH (NOLOCK) ON pubType.PublicationTypeId = pub.PublicationTypeId
 			LEFT JOIN PublicationTemplate PT WITH (NOLOCK) ON PT.PublicationTypeId = pub.PublicationTypeId AND PT.IsActive = 1 AND PT.IsDeleted = 0
 			LEFT JOIN Vendor ven WITH (NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
 			LEFT JOIN Manufacturer mf WITH (NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId  
@@ -582,7 +599,8 @@ BEGIN
 				wo.MasterCompanyId,
 				le.EASALicense,
 				le.UKCAALicense,
-				wods.DualReleaseLanguage;
+				wods.DualReleaseLanguage,
+				pubType.Name;
 		END	
 		END
 		ELSE
@@ -639,6 +657,7 @@ BEGIN
 					   ,@VersionNo VersionNo
 					   ,0 AS IsVersionIncrease
 					   ,@CorrectiveAction CorrectiveAction
+					   ,pubType.Name AS PublicationType
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  --LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
@@ -653,6 +672,7 @@ BEGIN
 					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedPartId  
 					  LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds 
+					  LEFT JOIN [dbo].[PublicationType] pubType WITH (NOLOCK) ON pubType.PublicationTypeId = pub.PublicationTypeId
 					  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
 					  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId

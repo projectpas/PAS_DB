@@ -47,9 +47,12 @@
     [EngineRegistryId]               BIGINT          NULL,
     [ServiceLifeUnitMonthsOrDays]    INT             DEFAULT (NULL) NULL,
     [ServiceLifeLimit]               BIGINT          DEFAULT (NULL) NULL,
+    [LastInspectionDate]             DATETIME2 (7)   NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

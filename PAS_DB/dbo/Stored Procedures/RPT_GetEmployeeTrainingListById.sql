@@ -16,7 +16,7 @@
 	5    10-JUL-2026		Divyesh Kathiriya	Return "All" as CategoryType when @CategoryId is 0. [PN-17218]
 	6    13-JUL-2026		Divyesh Kathiriya	Remove "All" as CategoryType And Add [CategoryId] And [StartDate]. [PN-17218]
 	7    15-JUL-2026		Divyesh Kathiriya	Handle Null For [Provider] And [TrainingName]. [PN-17269]
-    
+    8    16-Jul-2026        Bhargav Saliya       Get Duration with perfect formate (PN-17311)
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 260, @MasterCompanyId = 1, @CategoryId = 0
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
@@ -37,11 +37,9 @@ BEGIN
 				WHEN ET.[IsRecurring] IS NULL THEN ''
 				WHEN ET.[IsRecurring] = 1 THEN 'Yes'
 				ELSE 'No'
-			END AS [Recurring],			
-			CASE 
-				WHEN ET.[DurationHours] IS NULL OR ET.[DurationMinutes] IS NULL THEN NULL
-				ELSE CONCAT(FORMAT(ET.[DurationHours], '00'), ':', FORMAT(ET.[DurationMinutes], '00'))
-			END AS [Duration],
+			END AS [Recurring],	
+			CASE WHEN ET.DurationHours IS NULL AND ET.DurationMinutes IS NULL THEN NULL
+					ELSE CONCAT(FORMAT(ISNULL(ET.DurationHours, 0), '00'), ' : ', FORMAT(ISNULL(ET.DurationMinutes, 0), '00')) END AS Duration,			
 			ET.[StartDate],			
 			ET.[CompletionDate],			
 			ET.[ExpirationDate],			

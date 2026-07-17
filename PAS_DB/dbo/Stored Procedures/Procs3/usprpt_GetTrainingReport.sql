@@ -22,6 +22,7 @@
     9    08/07/2026    Kishor Makwana       Added categoryId and isRecurring filters [PN-17166]
     10   10-JUL-2026   Bhargav Saliya       Added Provider Type filter (Internal/External) [PN-17163]
     11   13-Jul-2026   Bhargav Saliya       Get start Date (PN-17217)
+    12   16-Jul-2026   Bhargav Saliya       Get Duration with perfect formate (PN-17311)
 
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[usprpt_GetTrainingReport]
@@ -170,7 +171,8 @@ BEGIN
                 CONVERT(VARCHAR(10), ET.ScheduleDate,   110) AS scheduleDate,
                 CONVERT(VARCHAR(10), ET.CompletionDate, 110) AS completionDate,
                 CONVERT(VARCHAR(10), ET.ExpirationDate, 110) AS expirationDate,
-                DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS daysToExpiration,
+                --DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS daysToExpiration,
+                DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ET.ExpirationDate AS DATE)) AS DaysToExpiration,
                 CASE WHEN ISNULL(EC.IsCertificationInForce, 0) = 1 THEN 'YES' ELSE 'NO' END AS inforce,
                 AFT.Description AS aircraftType,
                 STRING_AGG(A.ModelName, ', ') AS model,
@@ -237,7 +239,7 @@ BEGIN
             COUNT(1) OVER () AS TotalRecordsCount,
             EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
             provider, industryCode, frequency,
-            CAST(DurationHours AS VARCHAR(10)) + ' : ' + RIGHT('0' + CAST(DurationMinutes AS VARCHAR(2)), 2) AS Duration,
+            CASE WHEN DurationHours IS NULL AND DurationMinutes IS NULL THEN NULL ELSE CONCAT(FORMAT(ISNULL(DurationHours, 0), '00'), ' : ', FORMAT(ISNULL(DurationMinutes, 0), '00')) END AS Duration,
             scheduleDate, completionDate, expirationDate,
             daysToExpiration, inforce, aircraftType, model, issuingEntity, certNum, issueDate,
             trainingName, providerType, isRecurring,

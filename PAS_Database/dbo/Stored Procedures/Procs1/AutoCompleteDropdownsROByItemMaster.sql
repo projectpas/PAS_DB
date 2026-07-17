@@ -17,6 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Subhash Saliya Created
+	2	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
      
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
@@ -60,7 +61,7 @@ BEGIN
 
 	END TRY 
 	BEGIN CATCH 
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'AutoCompleteDropdownsROByItemMaster'               
 			  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StartWith, '') as varchar(100))
@@ -72,7 +73,7 @@ BEGIN
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 
-                       @DatabaseName           = @DatabaseName
+                       @PAS_UAT           = @PAS_UAT
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters
                      , @ApplicationName        =  @ApplicationName

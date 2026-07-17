@@ -239,7 +239,7 @@ BEGIN
 							  IF(@JournalTypeCode ='RRO' OR @JournalTypeCode = 'AST-AC')
 							  BEGIN 
 									  SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-									  FROM EntityStructureSetup est WITH(NOLOCK) 
+									  FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
 										JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 										JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 									  WHERE est.EntityStructureId = @CurrentManagementStructureId AND acc.MasterCompanyId  =@MstCompanyId  
@@ -668,7 +668,7 @@ BEGIN
 							  BEGIN 
 
 									  SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-									  FROM EntityStructureSetup est WITH(NOLOCK) 
+									  FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
 										JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 										JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 									  WHERE est.EntityStructureId = @CurrentManagementStructureId AND acc.MasterCompanyId  =@MstCompanyId  
@@ -714,7 +714,7 @@ BEGIN
 					  	  				ROLLBACK TRAN;
 					  				  END
 
-									  IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
+									  IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 										  BEGIN
 
 												  IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
@@ -768,7 +768,7 @@ BEGIN
             				          
 												  SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 												  SELECT @JlBatchHeaderId = SCOPE_IDENTITY()
-												  Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+												  Update dbo.BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 										  END
 										  ELSE
 										  BEGIN
@@ -779,7 +779,7 @@ BEGIN
 							    
 											   if(@CurrentPeriodId =0)
 											   BEGIN
-												  UPDATE BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   
+												  UPDATE dbo.BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   
 												  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 											   END
 
@@ -904,7 +904,7 @@ BEGIN
 											
 
 											-----Goods Received Not Invoiced (GRNI)--------
-											DECLARE @lastQtyCon INT, @lastQtyDam INT, @ConsumeRepairOrderId BIGINT, @ConsumeRepairOrderNum varchar(50)='';
+											DECLARE @lastQtyCon DECIMAL(18,6), @lastQtyDam DECIMAL(18,6), @ConsumeRepairOrderId BIGINT, @ConsumeRepairOrderNum varchar(50)='';
 											SELECT TOP 1 @lastQtyCon = QtyConsumed, @lastQtyDam = QtyDamagedLost, @ConsumeRepairOrderId = ConsumedRepairOrderId 
 											FROM dbo.PiecePartReconciliation WITH(NOLOCK)
 											WHERE StocklineId = @StocklineId
@@ -932,7 +932,7 @@ BEGIN
 											 -----  Accounting MS Entry  -----
 											 EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-											INSERT INTO [StocklineBatchDetails]
+											INSERT INTO dbo.[StocklineBatchDetails]
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
@@ -1008,7 +1008,7 @@ BEGIN
 											 -----  Accounting MS Entry  -----
 											 EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-											INSERT INTO [StocklineBatchDetails]
+											INSERT INTO dbo.[StocklineBatchDetails]
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
@@ -1081,7 +1081,7 @@ BEGIN
 										SET @UnitPrice = @Amount;
 										SET @Amount = (@Qty * @Amount);
 
-										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
+										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 										 
 										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
@@ -1093,7 +1093,7 @@ BEGIN
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
-										FROM DistributionSetup WITH(NOLOCK)  
+										FROM dbo.DistributionSetup WITH(NOLOCK)  
 										WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND DistributionMasterId = @DistributionMasterId
 										AND MasterCompanyId = @MasterCompanyId
 
@@ -1126,7 +1126,7 @@ BEGIN
 
 											EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-										INSERT INTO [StocklineBatchDetails]
+										INSERT INTO dbo.[StocklineBatchDetails]
 											(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 											[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 										VALUES
@@ -1136,7 +1136,7 @@ BEGIN
 											-----Goods Received Not Invoiced (GRNI)--------
 											SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
 												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
-											FROM DistributionSetup WITH(NOLOCK)  
+											FROM dbo.DistributionSetup WITH(NOLOCK)  
 											WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED') AND MasterCompanyId = @MasterCompanyId
 												AND DistributionMasterId = @DistributionMasterId
 
@@ -1158,7 +1158,7 @@ BEGIN
 
 											EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-										INSERT INTO [StocklineBatchDetails]
+										INSERT INTO dbo.[StocklineBatchDetails]
 											(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 											[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 										VALUES

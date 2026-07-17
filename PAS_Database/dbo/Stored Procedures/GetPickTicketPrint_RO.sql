@@ -15,6 +15,7 @@
  ** PR  Date			Author				Change Description            
  ** --  --------		-------				--------------------------------          
 	1	04/15/2025		Vishal Suthar		Created
+	2   15-JUL-2026     Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
      
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
@@ -101,7 +102,7 @@ BEGIN
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetPickTicketPrint_RO' 
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@RepairOrderId, '') AS VARCHAR(100)) + ''',
@@ -110,7 +111,7 @@ BEGIN
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 
-                    @DatabaseName = @DatabaseName
+                    @PAS_UAT = @PAS_UAT
                   , @AdhocComments = @AdhocComments
                   , @ProcedureParameters = @ProcedureParameters
                   , @ApplicationName = @ApplicationName

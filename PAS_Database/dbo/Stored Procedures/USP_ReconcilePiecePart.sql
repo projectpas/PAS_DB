@@ -21,9 +21,9 @@ CREATE     PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @SourceRepairOrderId        BIGINT,
     @ConsumedRepairOrderId      BIGINT          = NULL,   -- may differ from source RO
     @StockLineId                BIGINT,
-    @QtyConsumed                INT             = 0,
-    @QtyReturned                INT             = 0,
-    @QtyDamagedLost             INT             = 0,
+    @QtyConsumed                DECIMAL(18,6)             = 0,
+    @QtyReturned                DECIMAL(18,6)             = 0,
+    @QtyDamagedLost             DECIMAL(18,6)             = 0,
     @Memo                       NVARCHAR(500)   = NULL,
     @UpdatedBy                  NVARCHAR(256),
     @MasterCompanyId            INT,

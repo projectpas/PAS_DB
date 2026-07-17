@@ -14,6 +14,7 @@
 	2	 12 NOV 2024  HEMANT SALIYA	  Verify the count AND removed un used code 
 	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
 	4	 05 Jun 2025  Devendra Shekh	 Resolved Count issue for Remaning 
+	5	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
 
 **************************************************************/ 
 
@@ -234,14 +235,14 @@ SET NOCOUNT ON
 	END  
  END TRY      
  BEGIN CATCH        
-	DECLARE	@ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()  
+	DECLARE	@ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name()  
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             , @AdhocComments     VARCHAR(150)    = 'GetPORODashboardDataCount'   
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '  
             , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
     exec spLogException   
-            @DatabaseName           = @DatabaseName  
+            @PAS_UAT           = @PAS_UAT  
             , @AdhocComments          = @AdhocComments  
             , @ProcedureParameters = @ProcedureParameters  
             , @ApplicationName        =  @ApplicationName  

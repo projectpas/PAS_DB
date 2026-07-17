@@ -23,7 +23,7 @@
 	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
 	8    29/04/2026   Divyesh Kathiriya		Added New Module "ManualJournal" [PN-16139]
 	9    11/05/2026   Nakul Chandigra       Added a new function to apply upper or lower case formatting based on the employee and legal entity.(PN-16181)
-
+	10   17/07/2026   Ayushi Patel          [PN-17323]Added a condition to return qty and amount related fields with 2 decimal for Stockline Module
  EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
@@ -113,11 +113,18 @@ BEGIN
 			END
 		END
 		--------------Set @BaseTable END--------------
-
 		SELECT @SelectList = STRING_AGG(
 			CASE 
 				WHEN MultiValueQuery IS NOT NULL AND MultiValueQuery <> ''
 				THEN '(' + MultiValueQuery + ') AS [' + HeaderName + ']'
+				WHEN @ModuleId = @StocklineModule 
+					 AND SourceColumnName IN ('UnitCost','QuantityAdjustment','QuantityAvailable','QuantityOnHand','QuantityReserved')
+				THEN CONCAT(
+						'CONVERT(VARCHAR(30), CAST(ISNULL(',
+						CASE WHEN ISNULL(IsUseJoinCondition,0) = 0 THEN @BaseTable ELSE SourceTableName END,
+						'.', SourceColumnName, ', 0) AS DECIMAL(18,2)))',
+						' AS [', HeaderName, ']'
+					 )
 				ELSE CONCAT(
 					CASE 
 						WHEN ISNULL(IsUseJoinCondition ,0) = 0

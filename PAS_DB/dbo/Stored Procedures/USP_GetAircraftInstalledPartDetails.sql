@@ -33,6 +33,7 @@
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
 ** 20   07/07/2026	  Kishor Makwana	[PN-17162] Updated for Get ServiceLifeUnitMonthsOrDays, ServiceLifeLimit
 ** 21   10/07/2026	  Amit Ghediya		Update condition to get details data
+** 22   17/07/2026	  Kishor Makwana	Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
 
 *********************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -176,7 +177,16 @@ BEGIN
 				WO.WorkOrderNum AS 'WONumber',
                 WSH.WorksheetHeaderId,
 				AIPD.ServiceLifeUnitMonthsOrDays,
-				AIPD.ServiceLifeLimit
+				AIPD.ServiceLifeLimit,
+				AIPD.LastInspectionDate,
+				CASE WHEN ServiceLifeUnitMonthsOrDays = 1 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Mths'
+				WHEN ServiceLifeUnitMonthsOrDays = 2 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS timeDayMonth,
+				CASE WHEN AIPD.ServiceLifeUnitMonthsOrDays = 1 THEN
+				CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(MONTH, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
+				WHEN AIPD.ServiceLifeUnitMonthsOrDays = 2 THEN CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(DAY, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS remainingTimeDayMonth
+	
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 1

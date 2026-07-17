@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_PostCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -30,6 +30,7 @@
 	19	 24/06/2026	  Moin Bloch    	   Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	22    16/July/2026			 RAJESH GAMI						[PN-17271] - NONSTOCK accounting branch now reads DBO.Stockline (IsNonStock=1) instead of legacy NonStockInventory table.
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -509,9 +510,9 @@ BEGIN
 							
 						IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline') AND UPPER(@StockType) = 'NONSTOCK')
 						BEGIN
-							SELECT @VendorId=VendorId,@ReferenceId=NonStockInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber
-							,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf]
-							FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+							SELECT @VendorId=ST.VendorId,@ReferenceId=ST.StockLineId,@PurchaseOrderId=ST.PurchaseOrderId,@RepairOrderId=ST.RepairOrderId,@StocklineNumber=ST.StockLineNumber
+							,@SiteId=ST.[SiteId],@Site=ST.[Site],@WarehouseId=ST.[WarehouseId],@Warehouse=ST.[Warehouse],@LocationId=ST.[LocationId],@Location=ST.[Location],@BinId=ST.[BinId],@Bin=ST.[Bin],@ShelfId=ST.[ShelfId],@Shelf=ST.[Shelf]
+							FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
 							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
 							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
@@ -528,20 +529,20 @@ BEGIN
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
 
-							SELECT @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+							SELECT @WorkOrderNumber=ST.StockLineNumber,@partId=ST.PurchaseOrderPartRecordId,@ItemMasterId=ST.ItemMasterId,@ManagementStructureId=ST.ManagementStructureId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
 							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
-							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							 SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							SET @ReferencePartId=@partId	
 
 
-							SELECT @PieceItemmasterId=MasterPartId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId
+							SELECT @PieceItemmasterId=ST.ItemMasterId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
 							-----NonStock - Inventory--------
@@ -553,7 +554,7 @@ BEGIN
 							--GET STOCKLINE GLACCOUNT.
 							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
+						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],
@@ -563,8 +564,8 @@ BEGIN
 							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
-							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)

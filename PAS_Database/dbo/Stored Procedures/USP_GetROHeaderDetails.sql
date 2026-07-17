@@ -14,8 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/04/2025  Ayushi Patel     Created
-    2    16/04/2025  Vishal Suthar    Added IsEnforcePickTicket flag
-    3    17/07/2026  Abhishek Jirawla Added HasPieceParts flag
+    2    16/04/2025  Vishal Suthar    Added IsEnforcePickTicket 
+    3    17/06/2025  Abhishek Jirawla Added HasCustomerSuppliedParts flag
+    4    30/06/2025  Abhishek Jirawla Changing HasCustomerSuppliedParts flag to HasPieceParts flag
 
  EXEC [USP_GetROHeaderDetails] 2554
 ************************************************************************/

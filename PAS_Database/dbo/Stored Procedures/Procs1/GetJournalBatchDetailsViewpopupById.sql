@@ -58,6 +58,7 @@
  42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
  43	  10/02/2026  Moin Bloch		     added TWO
  44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
+ 45	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -304,7 +305,7 @@ BEGIN
 					  ,JBH.[Module]  
 					  ,MPNPartId = stbd.PartId  
 					  ,MPNName = stbd.PartNumber  
-					  ,'' AS [DocumentNumber]  
+					  ,ISNULL(stbd.RONum, '') AS [DocumentNumber]  
 					  ,stbd.[SIte]  
 					  ,stbd.[Warehouse]  
 					  ,stbd.[Location]  

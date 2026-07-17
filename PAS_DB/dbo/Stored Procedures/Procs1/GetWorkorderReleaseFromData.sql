@@ -33,8 +33,9 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 22   11/02/2026  Moin Bloch       Updated Added WOReleaseFormId insted of Country PN-15388
 ** 23   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
 ** 24   16/07/2026  Vishal Suthar    Added new tags to get replaced (#PublishedBy and #PublicationType)
+** 25   17/07/2026  Vishal Suthar    Fixed an issue with Multiple CMM case for tags to get replaced (#PublishedBy and #PublicationType)
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 4566,4155,0,0,1
+ EXEC [dbo].[GetWorkorderReleaseFromData] 13422,14316,0,0,1
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
@@ -556,7 +557,10 @@ BEGIN
 				@VersionNo AS VersionNo,  
 				0 AS IsVersionIncrease  
 				,@CorrectiveAction CorrectiveAction
-				,pubType.Name AS PublicationType
+				,STRING_AGG(
+					ISNULL(CONVERT(VARCHAR(100), pubType.Name), '-'),
+					', '
+				) AS PublicationType
 			FROM WorkOrderPartNumber wop WITH (NOLOCK)
 			LEFT JOIN WorkOrder wo WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 			--LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
@@ -599,8 +603,7 @@ BEGIN
 				wo.MasterCompanyId,
 				le.EASALicense,
 				le.UKCAALicense,
-				wods.DualReleaseLanguage,
-				pubType.Name;
+				wods.DualReleaseLanguage;
 		END	
 		END
 		ELSE

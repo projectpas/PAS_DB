@@ -23,7 +23,7 @@
 	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
 	8    29/04/2026   Divyesh Kathiriya		Added New Module "ManualJournal" [PN-16139]
 	9    11/05/2026   Nakul Chandigra       Added a new function to apply upper or lower case formatting based on the employee and legal entity.(PN-16181)
-	10   17/07/2026   Ayushi Patel          [PN-17323]Added a condition to return qty and amount related fields with 2 decimal for Stockline Module
+	10   17/07/2026   Ayushi Patel          [PN-17323]Added a condition to return qty and amount related fields with 2 decimal for all Module
  EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
@@ -113,33 +113,39 @@ BEGIN
 			END
 		END
 		--------------Set @BaseTable END--------------
+		IF OBJECT_ID('tempdb..#FieldList') IS NOT NULL
+			DROP TABLE #FieldList;
+
+		SELECT 
+			fm.HeaderName,
+			fm.DisplaySortOrder,
+			fm.MultiValueQuery,
+			fm.SourceColumnName,
+			ResolvedTable = CASE WHEN ISNULL(fm.IsUseJoinCondition,0) = 0 THEN @BaseTable ELSE fm.SourceTableName END,
+			IsNumeric = CASE WHEN c.DATA_TYPE IN ('decimal','numeric','money','smallmoney','float','real') THEN 1 ELSE 0 END
+		INTO #FieldList
+		FROM DBO.ImportModuleFieldMaster fm WITH (NOLOCK)
+		LEFT JOIN INFORMATION_SCHEMA.COLUMNS c
+			ON c.TABLE_SCHEMA = 'dbo'
+			AND c.TABLE_NAME = CASE WHEN ISNULL(fm.IsUseJoinCondition,0) = 0 THEN @BaseTable ELSE fm.SourceTableName END
+			AND c.COLUMN_NAME = fm.SourceColumnName
+		WHERE fm.ModuleId = @ModuleId AND fm.IsActive = 1 AND fm.IsDeleted = 0;
+
 		SELECT @SelectList = STRING_AGG(
 			CASE 
 				WHEN MultiValueQuery IS NOT NULL AND MultiValueQuery <> ''
 				THEN '(' + MultiValueQuery + ') AS [' + HeaderName + ']'
-				WHEN @ModuleId = @StocklineModule 
-					 AND SourceColumnName IN ('UnitCost','QuantityAdjustment','QuantityAvailable','QuantityOnHand','QuantityReserved')
+				WHEN IsNumeric = 1
 				THEN CONCAT(
 						'CONVERT(VARCHAR(30), CAST(ISNULL(',
-						CASE WHEN ISNULL(IsUseJoinCondition,0) = 0 THEN @BaseTable ELSE SourceTableName END,
-						'.', SourceColumnName, ', 0) AS DECIMAL(18,2)))',
+						ResolvedTable, '.', SourceColumnName, ', 0) AS DECIMAL(18,2)))',
 						' AS [', HeaderName, ']'
 					 )
-				ELSE CONCAT(
-					CASE 
-						WHEN ISNULL(IsUseJoinCondition ,0) = 0
-						THEN @BaseTable
-						ELSE SourceTableName
-					END,
-
-					'.', SourceColumnName,
-					' AS [', HeaderName, ']'
-					)
+				ELSE CONCAT(ResolvedTable, '.', SourceColumnName, ' AS [', HeaderName, ']')
 			END
 			, ', '
 		) WITHIN GROUP (ORDER BY DisplaySortOrder)
-		FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-		WHERE ModuleId = @ModuleId AND IsActive = 1 AND IsDeleted = 0;
+		FROM #FieldList;
 		IF (@ModuleId = @LocationModuleId OR @ModuleId = @ShelfModuleId OR @ModuleId = @BinModuleId)
 		BEGIN
 			SELECT @JoinList = STRING_AGG(JoinCondition, CHAR(10))

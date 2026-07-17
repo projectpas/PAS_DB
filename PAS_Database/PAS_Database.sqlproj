@@ -878,8 +878,6 @@
     <Build Include="dbo\Tables\Tables1\ReceivingReconciliationHeaderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RefundCreditMemoMapping.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrder.sql" />
-    <Build Include="dbo\Tables\Tables3\RepairOrder.sql" />
-    <Build Include="dbo\Tables\Tables3\RepairOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApprovalAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderApprover.sql" />
@@ -894,8 +892,6 @@
     <Build Include="dbo\Tables\Tables1\RepairOrderManagementStructureDetailsAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderPart.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderPartAudit.sql" />
-    <Build Include="dbo\Tables\Tables3\RepairOrderPart.sql" />
-    <Build Include="dbo\Tables\Tables3\RepairOrderPartAudit.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderSettingMaster.sql" />
     <Build Include="dbo\Tables\Tables1\RepairOrderSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Report.sql" />
@@ -929,8 +925,6 @@
     <Build Include="dbo\Tables\Tables1\ROStatus.sql" />
     <Build Include="dbo\Tables\Tables1\ROStatusAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrder.sql" />
-    <Build Include="dbo\Tables\Tables3\SalesOrder.sql" />
-    <Build Include="dbo\Tables\Tables3\SalesOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApprovalAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderAudit.sql" />
@@ -1260,8 +1254,6 @@
     <Build Include="dbo\Tables\Tables2\WorkflowPublications.sql" />
     <Build Include="dbo\Tables\Tables2\WorkflowPublicationsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrder.sql" />
-    <Build Include="dbo\Tables\Tables4\WorkOrder.sql" />
-    <Build Include="dbo\Tables\Tables4\WorkOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAdditionalComments.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAdditionalCommentsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAddress.sql" />

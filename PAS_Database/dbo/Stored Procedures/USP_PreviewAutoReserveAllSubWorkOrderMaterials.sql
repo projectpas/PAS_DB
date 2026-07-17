@@ -15,6 +15,8 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 4    15/Apr/2026	Ayushi Patel	 Added UOM Changes [PN-15910]
 ** 5    16/Apr/2026 Ayushi Patel     Resolved QtyShort Issue [PN-16098]
 ** 6	19/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+** 7	16/07/2026	Priyansh Patel	 added uom from material when stockline is not avialble [PN-17277]
+
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
 exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=270,@IncludeAlternate=1,@IncludeEquiv=1,@EmployeeId=2,@IncludeCustomerStock=1
 **************************************************************/ 
@@ -2185,8 +2187,8 @@ BEGIN
 						wom.[QuantityShort],
 						[IsAltPart],[AltPartMasterPartId],
 						[PartStatusId],[UnReservedQty],[UnIssuedQty],[IssuedById],[ReservedById],[IsEquPart],[ItemMappingId],[TotalReserved],[TotalIssued],
-						[TotalUnReserved],[TotalUnIssued],[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],
-						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],wom.[UnitOfMeasureId],[TaskId],[WOMStockLineId],wom.[StockLineId],[StkItemMasterId],
+						[TotalUnReserved],[TotalUnIssued],wom.[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],
+						[QtyToTurnIn],UPPER(wom.[Figure]) AS [Figure],UPPER(wom.[Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],wom.[UnitOfMeasureId],[TaskId],[WOMStockLineId],wom.[StockLineId],[StkItemMasterId],
 						[StkConditionId],[StkQuantity],
 						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.[QtyReserved],0) ELSE dbo.fn_ConvertUOM(wom.[QtyReserved],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyReserved],
 						wom.[QtyIssued],[StkQuantityShort],[StkAltPartMasterPartId],[StkEquPartMasterPartId],[StkIsAltPart],
@@ -2198,14 +2200,19 @@ BEGIN
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
 						UPPER(wom.[Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
-						UPPER([ControlId]) AS [ControlId],UPPER(uomConsume.[ShortName]) AS [UOM],UPPER([Priority]) AS [Priority],
+						UPPER([ControlId]) AS [ControlId]
+						,UPPER(uomConsume.[ShortName]) AS [UOM],
+						UPPER(wom.[Priority]) AS [Priority],
 						dbo.fn_ConvertUOM(wom.[QtyAvail], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [QtyAvail],
 						dbo.fn_ConvertUOM(wom.[QtyOH], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [QtyOH],
 						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin],[IsMaterials]
 					FROM #SubWorkOrderMaterials wom
 					LEFT JOIN DBO.Stockline SL ON wom.StockLineId = SL.StockLineId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+					LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId 
+					AND SL.ConsumeUnitOfMeasureId IS NULL
+					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = COALESCE(SL.ConsumeUnitOfMeasureId, im.ConsumeUnitOfMeasureId)
+
 					ORDER BY ISNULL(wom.StockLineId,0) DESC
 					
 				END

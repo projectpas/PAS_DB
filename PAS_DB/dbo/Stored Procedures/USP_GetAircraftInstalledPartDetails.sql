@@ -1,13 +1,13 @@
-﻿/*********************
+﻿/*******
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-**********************
+********
 ** Change History
-**********************
+********
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    2026-03-27   Amit Ghediya		Created
@@ -37,7 +37,8 @@
    21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
-*********************/
+   24	17/07/2026	  Amit Ghediya		Update to get with direcly from part IsFromAircraft
+*******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
@@ -92,10 +93,10 @@ BEGIN
         (
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS MakeType,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS Model,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.EngineName END AS TailNum,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNum,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS MakeType,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS Model,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.EngineName END AS TailNum,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNum,
                 AIPD.ATAChapterId,
 				CONCAT_WS(' - ',
 				   NULLIF(IMAM.Level1, ''),
@@ -106,9 +107,9 @@ BEGIN
                 AIPD.PartDescription,
 				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryId ELSE ERH.EngineRegistryId END AS AircraftRegistryId,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryId ELSE ERH.EngineRegistryId END AS AircraftRegistryId,
 				ERH.EngineRegistryId,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryNumber ELSE ERH.EngineRegistryNumber END AS AircraftRegistryNumber,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryNumber ELSE ERH.EngineRegistryNumber END AS AircraftRegistryNumber,
 				STK.Condition,
 				STK.ConditionId,
 				STK.StockLineNumber,
@@ -126,7 +127,7 @@ BEGIN
                 CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
 				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,
 				ISNULL(ARH.AircraftStatusId, ERH.EngineStatusId) AS AircraftStatusId,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN AST.Name ELSE ERH.EngineStatus END AS AircraftStatus,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN AST.Name ELSE ERH.EngineStatus END AS AircraftStatus,
                 AIPD.DateInstalled,
 				AIPD.PositionCodeId,
                 AIPD.PositionCode,
@@ -190,12 +191,12 @@ BEGIN
 				ELSE '' END AS remainingTimeDayMonth
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
-			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId
-			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
+			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
+			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 0
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId

@@ -760,15 +760,19 @@ BEGIN
         ) AS calc
         WHERE ET.EngineRegistryId IS NOT NULL
           AND AMP.ProgramId = (
-                SELECT TOP 1 ProgramId
+                SELECT TOP 1 amp2.ProgramId
                 FROM dbo.AircraftMaintenanceProgram amp2
-                WHERE amp2.EngineRegistryId       = AMP.EngineRegistryId
+                WHERE amp2.EngineRegistryId          = AMP.EngineRegistryId
                   AND ISNULL(amp2.IsFromAircraft, 0) = 0
-                  AND amp2.IsDeleted               = 0
-                  AND amp2.IsActive                = 1
-                  AND amp2.NextScheduledMaintenance IS NOT NULL
-                  AND amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
-                ORDER BY amp2.NextScheduledMaintenance ASC
+                  AND amp2.IsDeleted                 = 0
+                  AND amp2.IsActive                  = 1
+                ORDER BY
+                    -- upcoming scheduled first (soonest), then most recent as fallback
+                    CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE) THEN 0 ELSE 1 END,
+                    CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
+                         THEN amp2.NextScheduledMaintenance END ASC,
+                    amp2.NextScheduledMaintenance DESC,
+                    amp2.ProgramId DESC
             );
 
         -- AircraftMaintenanceProgram — INSERT for any attached engine that has no program row yet

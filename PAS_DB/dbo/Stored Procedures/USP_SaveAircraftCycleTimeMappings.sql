@@ -142,7 +142,7 @@ BEGIN
                 A.MasterCompanyId           = C.MasterCompanyId,
                 A.UpdatedBy                 = C.UpdatedBy,
                 A.UpdatedDate               = GETUTCDATE()
-            FROM dbo.AircraftCycleTimeMappings A
+            FROM dbo.AircraftCycleTimeMappings A WITH(NOLOCK)
             INNER JOIN @CycleTable C
                 ON A.AircraftCycleTimeMappingsId = C.AircraftCycleTimeMappingsId;
 
@@ -270,7 +270,7 @@ BEGIN
 					ELSE AIPD.LastFlownDate
 				END
 
-		FROM dbo.AircraftInstalledPartDetails AIPD
+		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 
 		-------------------------------------------------------
@@ -424,7 +424,7 @@ BEGIN
                 AMP.UpdatedBy   = C.UpdatedBy,
                 AMP.UpdatedDate = GETUTCDATE()
 
-            FROM dbo.AircraftMaintenanceProgram AMP
+            FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
             INNER JOIN @CycleTable C
                 ON AMP.AircraftRegistryId = C.RefrenceId
             -- PERF: CROSS APPLY computes intermediates once per row,
@@ -454,7 +454,7 @@ BEGIN
             -- (same intent as the old @ProgramId filter, now inline)
             WHERE AMP.ProgramId = (
                 SELECT TOP 1 ProgramId
-                FROM dbo.AircraftMaintenanceProgram amp2
+                FROM dbo.AircraftMaintenanceProgram amp2 WITH(NOLOCK)
                 WHERE amp2.AircraftRegistryId   = AMP.AircraftRegistryId
                   AND amp2.IsDeleted            = 0
                   AND amp2.IsActive             = 1
@@ -681,7 +681,7 @@ BEGIN
                     ELSE AIPD.LastFlownDate
                 END
 
-        FROM dbo.AircraftInstalledPartDetails AIPD
+        FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
         INNER JOIN @EngineTable ET ON AIPD.EngineRegistryId = ET.EngineRegistryId AND ISNULL(AIPD.IsFromAircraft, 0) = 0
         WHERE ET.EngineRegistryId IS NOT NULL;
 
@@ -742,7 +742,7 @@ BEGIN
             AMP.UpdatedBy   = ET.UpdatedBy,
             AMP.UpdatedDate = GETUTCDATE()
 
-        FROM dbo.AircraftMaintenanceProgram AMP
+        FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
         INNER JOIN @EngineTable ET
             ON AMP.EngineRegistryId = ET.EngineRegistryId AND ISNULL(AMP.IsFromAircraft, 0) = 0
         CROSS APPLY (
@@ -761,7 +761,7 @@ BEGIN
         WHERE ET.EngineRegistryId IS NOT NULL
           AND AMP.ProgramId = (
                 SELECT TOP 1 amp2.ProgramId
-                FROM dbo.AircraftMaintenanceProgram amp2
+                FROM dbo.AircraftMaintenanceProgram amp2 WITH(NOLOCK)
                 WHERE amp2.EngineRegistryId          = AMP.EngineRegistryId
                   AND ISNULL(amp2.IsFromAircraft, 0) = 0
                   AND amp2.IsDeleted                 = 0

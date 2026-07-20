@@ -15,6 +15,7 @@
  ** PR  Date			Author				Change Description            
  ** --  --------		-------				--------------------------------          
 	1	04/15/2025		Vishal Suthar		Created
+	2   15-JUL-2026     Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
      
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
@@ -80,7 +81,7 @@ BEGIN
 			CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE ropt.[QtyRemaining] END AS QtyRemaining
 		FROM [dbo].[ROPickTicket] ropt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.RepairOrderId = ropt.RepairOrderId AND cte.RepairOrderPartId = ropt.RepairOrderPartId
-		INNER JOIN [dbo].[RepairOrderPart] rop WITH(NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId AND rop.StockLineId = ropt.StocklineId
+		INNER JOIN [dbo].[RepairOrderPart] rop WITH(NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId AND rop.StockLineId = ropt.StocklineId AND ISNULL(rop.IsPiecePart,0) = 0
 		INNER JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
 		INNER JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = rop.StockLineId
 		INNER JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = rop.ItemMasterId
@@ -101,7 +102,7 @@ BEGIN
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetPickTicketPrint_RO' 
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@RepairOrderId, '') AS VARCHAR(100)) + ''',
@@ -110,7 +111,7 @@ BEGIN
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 
-                    @DatabaseName = @DatabaseName
+                    @PAS_UAT = @PAS_UAT
                   , @AdhocComments = @AdhocComments
                   , @ProcedureParameters = @ProcedureParameters
                   , @ApplicationName = @ApplicationName

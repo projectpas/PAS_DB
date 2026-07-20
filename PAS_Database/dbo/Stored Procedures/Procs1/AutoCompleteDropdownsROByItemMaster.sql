@@ -17,6 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Subhash Saliya Created
+	2	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
      
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
@@ -44,7 +45,7 @@ BEGIN
 						 ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
+                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(rop.IsPiecePart,0) = 0
 					 JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE (ro.IsActive = 1 AND ISNULL(ro.IsDeleted,0) = 0 AND (im.ItemMasterId = @itemmasterid)
 						AND (ro.RepairOrderNumber LIKE @StartWith + '%') )
@@ -53,14 +54,14 @@ BEGIN
 			             ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
+                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(rop.IsPiecePart,0) = 0
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE ro.RepairOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY RepairOrderNumber
 
 	END TRY 
 	BEGIN CATCH 
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'AutoCompleteDropdownsROByItemMaster'               
 			  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StartWith, '') as varchar(100))
@@ -72,7 +73,7 @@ BEGIN
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 
-                       @DatabaseName           = @DatabaseName
+                       @PAS_UAT           = @PAS_UAT
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters
                      , @ApplicationName        =  @ApplicationName

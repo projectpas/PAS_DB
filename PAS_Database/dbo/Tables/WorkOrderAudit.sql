@@ -56,6 +56,7 @@
     [AgentSalesMargin]                 DECIMAL (18, 6) NULL,
     [IsFromAircraft]                   BIT             DEFAULT ((0)) NULL,
     [MtcCategoryId]                    BIGINT          NULL,
+    [HasPieceParts]                    BIT             CONSTRAINT [DF_WorkOrderAudit_HasCSP] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
 

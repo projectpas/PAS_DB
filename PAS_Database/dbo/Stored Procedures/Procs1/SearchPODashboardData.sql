@@ -10,9 +10,10 @@
  **************************************************************                 
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
-    1    18/05/2023   Satish Gohil   Count Showing issue fixed    
-	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join    
-**************************************************************/     
+    1    18/05/2023   Satish Gohil   Count Showing issue fixed
+	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join
+	3    17/07/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
+**************************************************************/
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
 CREATE      PROCEDURE [dbo].[SearchPODashboardData]      
@@ -149,7 +150,7 @@ BEGIN
 			(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.FunctionalCurrency AS 'Currency',       
 			RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
 		FROM  DBO.RepairOrder RO WITH (NOLOCK)      
-			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
+			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 			--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
 			--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
 			--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   

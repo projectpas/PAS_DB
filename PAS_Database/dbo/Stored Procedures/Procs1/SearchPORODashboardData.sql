@@ -13,6 +13,8 @@
     1    --------		Unknown
 	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
 
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
+
 **************************************************************/
 -- exec SearchPORODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@StatusID=1,@GlobalFilter=N'',@Module=N'RO',@RefId=0,@PORO=NULL,@OpenDate=NULL,@PartNumber=NULL,@PartDescription=NULL,@Requisitioner=NULL,@Age=0,@Amount=0,@Currency=NULL,@Vendor=NULL,@WorkOrderNo=NULL,@SalesOrderNo=NULL,@PromisedDate=NULL,@EstRecdDate=NULL,@Status=NULL,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=104,@Priority=NULL,@Qty=NULL,@UnitCost=NULL,@ExtCost=NULL,@SubWorkOrderNo=NULL
 CREATE   PROCEDURE [dbo].[SearchPORODashboardData]
@@ -109,7 +111,7 @@ BEGIN
 				ROP.Priority as Priority, ISNULL(ROP.QuantityOrdered, 0) as Qty, ISNULL(ROP.VendorListPrice, 0) as UnitCost, ISNULL(ROP.ExtendedCost, 0) as ExtCost,ROP.SubWorkOrderNo as SubWorkOrderNo
 				FROM 
 				DBO.RepairOrder RO  WITH (NOLOCK)
-				LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = @IsDeleted
+				LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = @IsDeleted AND ISNULL(ROP.IsPiecePart,0) = 0
 				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId

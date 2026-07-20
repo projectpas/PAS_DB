@@ -87,6 +87,7 @@
     [CSRSalesMargin]                DECIMAL (18, 6) NULL,
     [AgentSalesRevenue]             DECIMAL (18, 6) NULL,
     [AgentSalesMargin]              DECIMAL (18, 6) NULL,
+    [HasPieceParts]                 BIT             CONSTRAINT [DF_SalesOrder_HasCSP] DEFAULT ((0)) NOT NULL,
     [SourceBy]                      VARCHAR (30)    NULL,
     [MarketplaceRef]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrder] PRIMARY KEY CLUSTERED ([SalesOrderId] ASC),

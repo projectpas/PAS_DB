@@ -65,6 +65,7 @@
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [IntegrationTypeId]              INT             NULL,
+    [HasPieceParts]                  BIT             CONSTRAINT [DF_RepairOrderAudit_HasCSP] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
 

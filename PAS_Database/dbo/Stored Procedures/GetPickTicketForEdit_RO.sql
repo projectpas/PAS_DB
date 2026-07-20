@@ -12,6 +12,8 @@
  ** --   --------		-------			--------------------------------
 	1	 17/04/2025		Vishal Suthar	Created
 
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
+
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketForEdit_RO]
 	@ROPickTicketId bigint,
@@ -57,7 +59,7 @@ BEGIN
 			ISNULL(sop.QuantityOrdered, 0) - ISNULL(cte.TotalQtyToShip, 0) as QtyToPick from cte
 		INNER JOIN DBO.ROPickTicket sopt WITH(NOLOCK) on sopt.RepairOrderId = cte.RepairOrderId AND sopt.RepairOrderPartId = cte.RepairOrderPartId
 		INNER JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sopt.RepairOrderId
-		INNER JOIN DBO.RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId
+		INNER JOIN DBO.RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId AND ISNULL(sop.IsPiecePart,0) = 0
 		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		INNER JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId

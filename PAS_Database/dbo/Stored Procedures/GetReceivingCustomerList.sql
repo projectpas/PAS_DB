@@ -33,6 +33,7 @@
 	16   13/05/2025   Hemant Saliya		Resolved Performance issue for Production
   	17   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
   	18   17/02/2026   Bhargav Saliya	Added a condition to ensure that Piece Parts do not display records when the [QuantityOnHand] is 0.
+	19   15-JUL-2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -206,7 +207,7 @@ BEGIN
 					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
 					LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND ISNULL(ROP.IsPiecePart,0) = 0
 					LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
 					LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
@@ -339,7 +340,7 @@ BEGIN
 			IF @@trancount > 0
 					PRINT 'ROLLBACK'
                      ROLLBACK TRAN;
-					 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+					 DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetRecevingCustomerList' 
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''', 
@@ -372,7 +373,7 @@ BEGIN
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 
-                       @DatabaseName			= @DatabaseName
+                       @PAS_UAT			= @PAS_UAT
                      , @AdhocComments			= @AdhocComments
                      , @ProcedureParameters		= @ProcedureParameters
                      , @ApplicationName			=  @ApplicationName

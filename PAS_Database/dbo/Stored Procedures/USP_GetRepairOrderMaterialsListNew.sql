@@ -10,7 +10,8 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1	08/05/2024    Abhishek Jirawla			Created
-	
+	2   15/07/2026    Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRepairOrderMaterialsListNew]
 (    
@@ -328,7 +329,7 @@ SET NOCOUNT ON
 					RepairOrderPart pop
 				LEFT JOIN RepairOrderManagementStructureDetails AS popms ON popms.ReferenceID = pop.RepairOrderPartRecordId AND popms.ModuleID = @ModuleId
 				WHERE 
-					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0 AND pop.IsParent = 1
+					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0 AND pop.IsParent = 1 AND ISNULL(pop.[IsPiecePart], 0) = 0
 					AND pop.RepairOrderPartRecordId IN (SELECT RepairOrderPartRecordId FROM #TMPROPartResultListData);
 				
 				-- Insert the split parts into the temporary table
@@ -378,8 +379,9 @@ SET NOCOUNT ON
 					RepairOrderPart splitPart
 				WHERE 
 					splitPart.ParentId IN (SELECT RepairOrderPartRecordId FROM #RepairOrderParts) 
-					AND splitPart.IsParent = 0 
-					AND splitPart.IsDeleted = 0;
+					AND splitPart.IsParent = 0
+					AND splitPart.IsDeleted = 0
+					AND ISNULL(splitPart.[IsPiecePart], 0) = 0;
 
 
 				SELECT @Count = COUNT(ParentID) from #TMPROPartParentListData;

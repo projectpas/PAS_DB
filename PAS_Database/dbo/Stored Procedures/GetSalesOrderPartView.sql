@@ -39,6 +39,8 @@
 	26    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	27    30/Jun/2026  Bhargav Saliya   Already save Extended Margin Amount In table so no need to Multiply with Qty
 	28    08/Jul/2026  Bhargav Saliya   Fixed Conversion issue QtyOH and Qty Avail 
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
+
 -- EXEC [DBO].[GetSalesOrderPartView] 1306,0
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -317,7 +319,7 @@ BEGIN
         LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
         LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
         LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
-        LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
+        LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId AND ISNULL(rop.IsPiecePart,0) = 0
         LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
         WHERE part.SalesOrderId = @SalesOrderId 
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)

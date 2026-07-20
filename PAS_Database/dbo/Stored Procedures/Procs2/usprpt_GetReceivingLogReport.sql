@@ -25,6 +25,7 @@
 	 9    09-JUNE-2026      Priyansh Patel      UOM changes, Changed the decimals to 2 [PN-16778]
 	 10   16-JUNE-2026      Priyansh Patel      converted purchase order quantity to stock uom [PN-16860]
 	 11   19-JUNE-2026      Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
+	 12   15-JUL-2026       Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
 
 
 
@@ -39,7 +40,7 @@ AS
 BEGIN  
   SET NOCOUNT ON;  
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
-  
+
   declare @Fromdate datetime2,
 	@Todate datetime2,
 	@partnumber varchar(50) = NULL,
@@ -57,6 +58,11 @@ BEGIN
 	@Level10 VARCHAR(MAX) = NULL 
   
   BEGIN TRY  
+
+	  DECLARE @ManagementStructureModuleId BIGINT = 0;
+
+	SELECT @ManagementStructureModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK)
+	WHERE ModuleName = 'ROHeader'
 
   select 
    
@@ -94,7 +100,10 @@ BEGIN
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
   
-  DECLARE @ModuleID INT = 4; -- MS Module ID
+  DECLARE @ModuleID INT = 0; -- MS Module ID
+
+  SELECT @ModuleID = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK)
+  WHERE ModuleName = 'POHeader'
 
   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -214,9 +223,9 @@ BEGIN
 				UPPER(MSD.Level10Name) AS level10,
 				UPPER(POP.Condition) 'condition' 
 			  FROM DBO.RepairOrder PO WITH (NOLOCK)  
-				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
-				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
-				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0
+				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1
+				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ManagementStructureModuleId AND MSD.ReferenceID = PO.RepairOrderId
 				INNER JOIN (
 						SELECT SD.RepairOrderId,SD.StockLineId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
 						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
@@ -372,7 +381,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
-	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ManagementStructureModuleId AND MSD.ReferenceID = PO.RepairOrderId  
 					INNER JOIN (
 						SELECT SD.RepairOrderId,SD.StockLineId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
 						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
@@ -432,7 +441,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
   BEGIN CATCH  
      
     DECLARE @ErrorLogID int,  
-            @DatabaseName varchar(100) = DB_NAME()  
+            @PAS_UAT varchar(100) = DB_NAME()  
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             ,  
             @AdhocComments varchar(150) = '[usprpt_GetReceivingLogReport]',  
@@ -442,7 +451,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
             '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter, '') AS varchar(max)),
             @ApplicationName varchar(100) = 'PAS' 
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-    EXEC Splogexception @DatabaseName = @DatabaseName,  
+    EXEC Splogexception @PAS_UAT = @PAS_UAT,  
                         @AdhocComments = @AdhocComments,  
                         @ProcedureParameters = @ProcedureParameters,  
                         @ApplicationName = @ApplicationName,  

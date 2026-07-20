@@ -44,7 +44,8 @@
 	27   12/27/2025   HEMANT SALIYA	    Handle ALT & EQU part reservation issue fix.
 	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
 	29   03/19/2026   Moin Bloch        Do not reserve stockline in Work Order during PO/RO receipt when WO is already Closed or moved to Finished Goods PN-15797
-	30   09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	30   09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	31   20/July/2026	RAJESH GAMI		[PN-17271] - As a part of allow both(Stock and NonStock) for the PO(Remove IsNonStock = 0 condition)
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
@@ -163,7 +164,7 @@ BEGIN
 			INSERT INTO #tmpStockline (StocklineId, PurchaseOrderPartId)
 			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
-			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 AND ISNULL(Stk.IsNonStock,0) = 0 
+			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0
 			--AND STK.ConditionId != @AsRemoveConditionId 
 			ORDER BY StocklineId DESC; 
 
@@ -394,7 +395,7 @@ BEGIN
 									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = ISNULL(Stk.Quantity, 0), @stkQuantityAvailable = ISNULL(Stk.QuantityAvailable, 0), @stkQuantityOnHand = ISNULL(Stk.QuantityOnHand, 0), @stkQuantityReserved = ISNULL(QuantityReserved, 0),
 									@stkQuantityOnOrder = ISNULL(QuantityOnOrder, 0), @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId
 
 									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
 									BEGIN
@@ -634,7 +635,7 @@ BEGIN
 							--Stk.QuantityIssued = @stkQuantityIssued,
 							Stk.QuantityOnOrder = @stkQuantityOnOrder
 							FROM DBO.Stockline Stk 
-							WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+							WHERE Stk.StockLineId = @StkStocklineId;
 
 							SET @ReservedIntoMaterial = 1;
 
@@ -651,7 +652,7 @@ BEGIN
 								SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
 								Stk.WorkOrderId = @ReferenceId
 								FROM DBO.Stockline Stk 
-								WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+								WHERE Stk.StockLineId = @StkStocklineId;
 							END
 						END
 						ELSE
@@ -672,7 +673,7 @@ BEGIN
 							SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 							@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 							@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-							FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+							FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 							SELECT @SelectedWorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId, @AltPartId = Nha_Alt.MappingItemMasterId,
 							@EquPartId = Nha_Equ.MappingItemMasterId 
@@ -739,7 +740,7 @@ BEGIN
 									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityOnHand = Stk.QuantityOnHand, @stkQuantityReserved = QuantityReserved,
 									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
 									BEGIN
@@ -935,7 +936,7 @@ BEGIN
 							Stk.QuantityReserved = @stkQuantityReserved,
 							Stk.QuantityOnOrder = @stkQuantityOnOrder
 							FROM DBO.Stockline Stk 
-							WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+							WHERE Stk.StockLineId = @StkStocklineId;
 
 							IF (@ReservedIntoMaterial = 1)
 							BEGIN
@@ -957,7 +958,7 @@ BEGIN
 								SET Stk.WorkOrderMaterialsKitId = @stkWorkOrderMaterialsKitId,
 								Stk.WorkOrderId = @ReferenceId
 								FROM DBO.Stockline Stk 
-								WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+								WHERE Stk.StockLineId = @StkStocklineId;
 							END
 						END
 
@@ -1068,7 +1069,7 @@ BEGIN
 									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 									IF (@Quantity > 0 AND @stkQty > 0)
 									BEGIN
@@ -1264,7 +1265,7 @@ BEGIN
 							Stk.QuantityReserved = @stkQuantityReserved,
 							Stk.QuantityOnOrder = @stkQuantityOnOrder
 							FROM DBO.Stockline Stk 
-							WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+							WHERE Stk.StockLineId = @StkStocklineId;
 
 							SET @ReservedIntoSubWOMaterial = 1;
 
@@ -1332,7 +1333,7 @@ BEGIN
 									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 									IF (@Quantity > 0 AND @stkQty > 0)
 									BEGIN
@@ -1525,7 +1526,7 @@ BEGIN
 							Stk.QuantityReserved = @stkQuantityReserved,
 							Stk.QuantityOnOrder = @stkQuantityOnOrder
 							FROM DBO.Stockline Stk 
-							WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+							WHERE Stk.StockLineId = @StkStocklineId;
 
 							--IF (@AllowAutoIssue = 0)
 							--BEGIN
@@ -1549,7 +1550,7 @@ BEGIN
 								SET Stk.WorkOrderMaterialsKitId = @stkWorkOrderMaterialsKitId,
 								Stk.WorkOrderId = @SelectedWorkOrderId_ForSWOKit --@ReferenceId
 								FROM DBO.Stockline Stk 
-								WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+								WHERE Stk.StockLineId = @StkStocklineId;
 							END
 						END
 
@@ -1648,7 +1649,7 @@ BEGIN
 						SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 						@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 						@stkPurchaseOrderUnitCost = Stk.UnitCost, @StkUnitSalePrice = Stk.UnitSalesPrice
-						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 						IF OBJECT_ID(N'tempdb..#tmpSalesOrderPart') IS NOT NULL
 						BEGIN
@@ -1823,7 +1824,7 @@ BEGIN
 										Stk.QuantityReserved = @stkQuantityReserved,
 										Stk.QuantityOnOrder = @stkQuantityOnOrder
 										FROM DBO.Stockline Stk 
-										WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+										WHERE Stk.StockLineId = @StkStocklineId;
 
 										SET @QuantityReservedForPoPart = @Qty; 
 
@@ -1834,7 +1835,7 @@ BEGIN
 											UPDATE Stk
 											SET Stk.SalesOrderPartId = @stkSalesOrderPartId
 											FROM DBO.Stockline Stk 
-											WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+											WHERE Stk.StockLineId = @StkStocklineId;
 										END
 										EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @SalesOrderPartIdToUpdate, @UpdatedBy, @MasterCompanyId;
 									END
@@ -1968,7 +1969,7 @@ BEGIN
 										Stk.QuantityReserved = @stkQuantityReserved,
 										Stk.QuantityOnOrder = @stkQuantityOnOrder
 										FROM DBO.Stockline Stk 
-										WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+										WHERE Stk.StockLineId = @StkStocklineId;
 
 										SET @QuantityReservedForPoPart = @Qty; 
 
@@ -1979,7 +1980,7 @@ BEGIN
 											UPDATE Stk
 											SET Stk.SalesOrderPartId = @stkSalesOrderPartId
 											FROM DBO.Stockline Stk 
-											WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+											WHERE Stk.StockLineId = @StkStocklineId;
 										END
 										EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @InsertedSalesOrderStocklineId, @UpdatedBy, @MasterCompanyId;
 									END
@@ -2031,7 +2032,7 @@ BEGIN
 						SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 						@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 						@stkPurchaseOrderUnitCost = Stk.UnitCost, @StkUnitSalePrice = Stk.UnitSalesPrice
-						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
 						IF OBJECT_ID(N'tempdb..#tmpExchangeSalesOrderPart') IS NOT NULL
 						BEGIN
@@ -2129,7 +2130,7 @@ BEGIN
 									Stk.QuantityReserved = @stkQuantityReserved,
 									Stk.QuantityOnOrder = @stkQuantityOnOrder
 									FROM DBO.Stockline Stk 
-									WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+									WHERE Stk.StockLineId = @StkStocklineId;
 
 									SET @QuantityReservedForPoPart = @Qty; 
 
@@ -2218,7 +2219,7 @@ BEGIN
 											Stk.QuantityReserved = @stkQuantityReserved,
 											Stk.QuantityOnOrder = @stkQuantityOnOrder
 											FROM DBO.Stockline Stk 
-											WHERE Stk.StockLineId = @StkStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+											WHERE Stk.StockLineId = @StkStocklineId;
 
 											SET @QuantityReservedForPoPart = @Qty; 
 

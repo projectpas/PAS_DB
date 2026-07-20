@@ -103,6 +103,11 @@ BEGIN
 
     BEGIN TRY
         DECLARE @ACTemplateType INT = 2;
+		DECLARE @AirframeCode VARCHAR(50);
+		DECLARE @EngineCode VARCHAR(50);
+
+		SELECT @AirframeCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'AIRFRAME';
+		SELECT @EngineCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'ENGINE';
 
         --------------------------------------------------------------------------------
         -- Normalize date filters to sargable half-open ranges [start, next day)
@@ -219,7 +224,7 @@ BEGIN
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.AircraftModel  ELSE ERH.EngineModel    END AS AircraftModel,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.SerialNum      ELSE ERH.SerialNum      END AS SerialNumber,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ISNULL(ARH.StockLineId, 0) ELSE ISNULL(ERH.StockLineId, 0) END AS StockLineId,
-                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN 'AIRFRAME'         ELSE 'ENGINE'           END AS ACSection
+                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END AS ACSection
             ) REG
             -- Format flight-hours strings ONCE; reused by both SELECT and filters
             CROSS APPLY (

@@ -14,8 +14,7 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    09/07/2026  Amit Ghediya		Created
-** 2    14/07/2026  Amit Ghediya		Allow to create maintanace [PN-17223]
-
+** 2    14/07/2026  Amit Ghediya		Allow to create maintanace for allow except ser num [PN-17223]
 ************************************************************/
 CREATE       PROCEDURE [dbo].[USP_CreateAircraftPublicationMaintenance]
     @AircraftPublicationId BIGINT,
@@ -59,37 +58,39 @@ BEGIN
                     ON ae.MakeTypeId = ar.MakeTypeId
                     AND ae.AircraftPublicationId = @AircraftPublicationId
                     AND ISNULL(ae.IsDeleted, 0) = 0
-                    -- Aircraft serial match: ae.SerialNum still covers the simple single-serial
-                    -- case. When it's blank, the real "affects" list (if any) lives in
-                    -- AircraftEffectivitySerialDetail, scoped to this specific rule via
-                    -- AircraftEffectivityId -- no rows there means wildcard (matches every serial).
+                    AND (ae.AircraftModelId IS NULL OR ar.AircraftModelId = ae.AircraftModelId)
                     AND (
-                        (ISNULL(ae.SerialNum, '') <> '' AND ae.SerialNum = ar.SerialNum)
-                        OR
-                        (
-                            ISNULL(ae.SerialNum, '') = ''
-                            AND (
-                                NOT EXISTS (
-                                    SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
-                                    WHERE AircraftEffectivityId = ae.AircraftEffectivityId
-                                      AND IsAircraftSerialNum    = 1
-                                      AND IsAffect               = 1
-                                      AND IsDeleted              = 0
-                                )
-                                OR EXISTS (
-                                    SELECT 1
-                                    FROM dbo.AircraftEffectivitySerialDetail AEAS WITH (NOLOCK)
-                                    WHERE AEAS.AircraftEffectivityId = ae.AircraftEffectivityId
-                                      AND AEAS.IsAircraftSerialNum    = 1
-                                      AND AEAS.IsAffect               = 1
-                                      AND AEAS.IsDeleted              = 0
-                                      AND (
-                                          (AEAS.SerialType = 'Individual' AND AEAS.FromSerial = ar.SerialNum)
-                                      )
-                                )
-                            )
+                          -- Case A: rule HAS aircraft affect rows -> registry serial must be in that list
+                          (
+                              EXISTS (SELECT 1 FROM dbo.AircraftEffectivitySerialDetail AF WITH (NOLOCK)
+                                      WHERE AF.AircraftEffectivityId = ae.AircraftEffectivityId
+                                        AND AF.IsAircraftSerialNum = 1 AND AF.IsAffect = 1 AND AF.IsDeleted = 0)
+                              AND EXISTS (SELECT 1 FROM dbo.AircraftEffectivitySerialDetail AF WITH (NOLOCK)
+                                          WHERE AF.AircraftEffectivityId = ae.AircraftEffectivityId
+                                            AND AF.IsAircraftSerialNum = 1 AND AF.IsAffect = 1 AND AF.IsDeleted = 0
+                                            AND (
+                                                (AF.FromSerial = ar.SerialNum)
+                                            ))
+                          )
+                          OR
+                          -- Case B: NO affect rows -> if the picker has EVER touched this rule's
+                          -- AC-level data (any affect OR except row), trust the child table and treat
+                          -- "no affects" as wildcard -- AircraftEffectivity.SerialNum isn't kept in
+                          -- sync once the grid's eye icon edits only the child table. Only fall back
+                          -- to the legacy single-value/blank field when completely untouched by the picker.
+                          (
+                              NOT EXISTS (SELECT 1 FROM dbo.AircraftEffectivitySerialDetail AF WITH (NOLOCK)
+                                          WHERE AF.AircraftEffectivityId = ae.AircraftEffectivityId
+                                            AND AF.IsAircraftSerialNum = 1 AND AF.IsAffect = 1 AND AF.IsDeleted = 0)
+                              AND (
+                                    EXISTS (SELECT 1 FROM dbo.AircraftEffectivitySerialDetail ANYAC WITH (NOLOCK)
+                                            WHERE ANYAC.AircraftEffectivityId = ae.AircraftEffectivityId
+                                              AND ANYAC.IsAircraftSerialNum = 1 AND ANYAC.IsDeleted = 0)
+                                    OR (ISNULL(ae.SerialNum, '') <> '' AND ae.SerialNum = ar.SerialNum)
+                                    OR ISNULL(ae.SerialNum, '') = ''
+                                  )
+                          )
                         )
-                    )
                     -- Aircraft-level exclusion: skip if this aircraft's serial has been
                     -- explicitly excepted for this rule
                     AND NOT EXISTS (

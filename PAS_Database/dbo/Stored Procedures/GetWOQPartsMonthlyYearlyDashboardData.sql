@@ -17,8 +17,8 @@
 	2    16 OCT 2024	HEMANT SALIYA		UPDATE Open Date Changes   
 	3    18 OCT 2024	HEMANT SALIYA		UPDATE For TAT Calculation 
 	4    03 SEP 2025	Devendra Shekh		WO Stage Count Issue Resolved 
-
-EXEC GetWOQPartsMonthlyYearlyDashboardData 1, 2, '2024-10-18',10,1
+	10   20-July-2026   Ayushi Patel        [PN-17346]Return qty count as decimal insted of int
+EXEC GetWOQPartsMonthlyYearlyDashboardData 1,2,'2026-07-20',10,1;
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -60,14 +60,14 @@ BEGIN
 				CREATE TABLE #tmpTop10PartQuoted (
 					ID bigint NOT NULL IDENTITY,
 					PartNumber VARCHAR(100)  NULL,
-					TotalSalesCount INT NULL
+					TotalSalesCount DECIMAL(18,2)
 				)
 
 				;WITH tmpTop10WorkOrderQuotePart as (
 					SELECT
 						IM.partnumber,
 						IM.ItemMasterId,
-						COUNT(WP.Quantity) AS TotalSalesCount
+						CAST(COUNT(WP.Quantity) AS DECIMAL(18,2)) AS TotalSalesCount
 					FROM dbo.WorkOrder WO WITH (NOLOCK)
 						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WP.WorkOrderId = WO.WorkOrderId  
 						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
@@ -96,14 +96,14 @@ BEGIN
 					CREATE TABLE #tmpTop10CustomerReceivedPart (
 						ID bigint NOT NULL IDENTITY,
 						Customer VARCHAR(100)  NULL,
-						TotalWorkOrderCount INT NULL
+						TotalWorkOrderCount DECIMAL(18,2)
 					)
 
 					;WITH tmpTop10CustomerReceivedWOPart AS (
 					SELECT  
 						C.Name, 
 						C.CustomerId, 
-						COUNT(*) AS CountOfOrders
+						CAST(COUNT(*) AS DECIMAL(18,2)) AS CountOfOrders
 					FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RC.CustomerId
 					WHERE CONVERT(DATE, RC.ReceivedDate) 
@@ -167,14 +167,14 @@ BEGIN
 					CREATE TABLE #tmpTop10WOStage (
 						ID bigint NOT NULL IDENTITY,
 						Stage VARCHAR(100)  NULL,
-						TotalPartCount INT NULL
+						TotalPartCount DECIMAL(18,2)
 					)
 
 					;WITH tmpTop10WorkOrderStage AS (
 					SELECT  
 						WS.Stage AS Name, 
 						WOP.WorkOrderStageId, 
-						COUNT(WOP.ID) AS CountOfOrders
+						CAST(COUNT(WOP.ID) AS DECIMAL(18,2)) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
 						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.WorkableBacklog, 0) = 1 

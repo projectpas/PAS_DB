@@ -18,6 +18,7 @@
 	5    o9/12/2023  Bhargav Saliya  Add two column [QuantityIssued] and [QuantityReserved]
     5    09 NOV 2023  Rajesh Gami    Add flag : @IsFromSOSOQ in the parameter and add code for the same for getting all the itemmaster from the dashboard (trading page SO SOQ)     
     6    07/16/2026   Bhargav Saliya  Apply UOM conversion (fn_ConvertUOM) on Qty & UnitCost columns (stock -> consume). UnitSalesPrice left as-is (already stored in consume UOM).
+	7    07/20/2026   Ayushi Patel    [PN-17343]Revert UOM conversion (fn_ConvertUOM) from Qty & UnitCost columns when @IsFromSOSOQ = 0
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  
@@ -159,9 +160,9 @@ BEGIN
 			   (ISNULL(stl.ConditionId,'')) 'ConditionId',  
 					 (ISNULL(stl.Condition,'')) 'Condition',  
 					 (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber',  
-					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityOnHand,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityOnHand,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityOnHand',  
-					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityAvailable,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityAvailable',  
-					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.UnitCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.UnitCost,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS varchar) 'UnitCost',  
+					 CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
+					 CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',  
+					 CAST(stl.UnitCost AS varchar) 'UnitCost',
 					 (ISNULL(po.PurchaseOrderNumber,'')) 'PurchaseOrderNumber',  
 					 (ISNULL(ro.RepairOrderNumber,'')) 'RepairOrderNumber',  
 					 vp.VendorName AS Vendor,  

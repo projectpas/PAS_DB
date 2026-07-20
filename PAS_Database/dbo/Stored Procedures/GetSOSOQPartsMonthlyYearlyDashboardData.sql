@@ -21,8 +21,9 @@
 	6	 02-DEC-2024  Vishal Suthar			Fixed issues with amount in most of the charts
 	7    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
 	8	 30-Jun-2025  Devendra Shekh		Modified(SO Billing Table Changes)
-	9	 02 JUNE 2026	RAJESH GAMI					Fixed : Amount related issues for the SO
-EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
+	9	 02 JUNE 2026	RAJESH GAMI			Fixed : Amount related issues for the SO
+	10   20-July-2026  Ayushi Patel         [PN-17346]Return qty count as decimal insted of int
+EXEC dbo.GetSOSOQPartsMonthlyYearlyDashboardData 1,2,'2026-07-20',10;
 ************************************************************************/
 CREATE  PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -497,14 +498,14 @@ BEGIN
 				CREATE TABLE #tmpTop10PartQuoted (
 					ID bigint NOT NULL IDENTITY,
 					PartNumber VARCHAR(100)  NULL,
-					TotalSalesCount INT NULL
+					TotalSalesCount DECIMAL(18,2)
 				)
 
 				;WITH tmpTop10SalesOrderQuotePart as (
 					SELECT
 						IM.partnumber,
 						IM.ItemMasterId,
-						COUNT(SOQP.QtyQuoted) AS TotalSalesCount
+						CAST(COUNT(SOQP.QtyQuoted) AS DECIMAL(18,2)) AS TotalSalesCount
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
@@ -535,7 +536,7 @@ BEGIN
 					CREATE TABLE #tmpTop10PartSold (
 						ID bigint NOT NULL IDENTITY,
 						PartNumber VARCHAR(100)  NULL,
-						TotalSalesCount INT
+						TotalSalesCount DECIMAL(18,2)
 					)
 
 					DECLARE @ShippedStatusId INT, @PostedStatusId VARCHAR(100)
@@ -546,7 +547,7 @@ BEGIN
 						SELECT
 							IM.partnumber,
 							IM.ItemMasterId,
-							SUM(QtyOrder) AS TotalSalesCount
+							CAST(SUM(ISNULL(SOP.QtyOrder,0)) AS DECIMAL(18,2)) AS TotalSalesCount
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId

@@ -809,7 +809,7 @@ BEGIN
         FROM @EngineTable ET
         WHERE ET.EngineRegistryId IS NOT NULL
           AND NOT EXISTS (
-                SELECT 1 FROM dbo.AircraftMaintenanceProgram amp3
+                SELECT 1 FROM dbo.AircraftMaintenanceProgram amp3 WITH(NOLOCK)
                 WHERE amp3.EngineRegistryId = ET.EngineRegistryId
                   AND ISNULL(amp3.IsFromAircraft, 0) = 0
                   AND amp3.IsDeleted = 0

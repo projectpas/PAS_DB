@@ -10,9 +10,10 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    04-06-2025    Sahdev Saliya       Created  
+ ** S NO   Date         Author				Change Description              
+ ** --   --------       -------				--------------------------------            
+    1    04-06-2025		Sahdev Saliya       Created
+	2    07-15-2026		Vishal Suthar       Added RMAPickTicketBarcode column instead of returning blank
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
@@ -29,7 +30,7 @@ BEGIN
 			SELECT
 				sopkt.RMAPickTicketId,
 				sopkt.RMAPickTicketNumber,
-				'' AS RMAPickTicketBarcode,
+				sopkt.RMAPickTicketNumber AS RMAPickTicketBarcode,
 				soq.VendorRMAId,
 				soq.RMANumber AS RMANum,
 				soq.VendorId AS CustomerId,

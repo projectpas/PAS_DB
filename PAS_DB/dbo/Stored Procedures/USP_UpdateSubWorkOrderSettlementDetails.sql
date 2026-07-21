@@ -66,7 +66,7 @@ BEGIN
 		BEGIN
 			DECLARE @SubWorkOrderSettlementDetailId BIGINT,@WorkOrderId BIGINT,@SubWorkOrderId BIGINT,@SubWOPartNoId BIGINT,
 					@WorkOrderSettlementId BIGINT,@IsMastervalue BIT, @IsvalueNA BIT,@ItemIsMastervalue BIT,@ItemIsvalue_NA BIT,
-					@ItemMemo NVARCHAR(MAX), @ItemUserId BIGINT,@ItemUserName VARCHAR(500);
+					@ItemUserId BIGINT,@ItemUserName VARCHAR(500);
 			
 			SELECT @SubWorkOrderSettlementDetailId = [SubWorkOrderSettlementDetailId], 
 			       @WorkOrderId = [WorkOrderId], 

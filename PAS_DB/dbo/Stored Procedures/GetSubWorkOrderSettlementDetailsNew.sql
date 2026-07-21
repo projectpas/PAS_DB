@@ -34,13 +34,6 @@ BEGIN
 				 SELECT @ProvisionId = [ProvisionId] FROM [dbo].[Provision] WITH (NOLOCK) WHERE [StatusCode] = 'REPLACE'
 				DECLARE @MaterialSettlement INT,@LaborSettlement INT,@AllToolsSettlement INT
 
-				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-				SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM [dbo].[Employee] E WITH (NOLOCK) 
-					LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.[TimeZoneId] = ETZ.[TimeZoneId]
-					LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.[LegalEntityId] = LE.[LegalEntityId]
-					LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.[TimeZoneId] = LTZ.[TimeZoneId]
-				WHERE E.[EmployeeId] = @EmployeeId; 
-
 				SELECT @MasterCompanyID = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkorderId
 
 				SELECT @TaskStatusID = [TaskStatusId] FROM [dbo].[TaskStatus] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyID AND UPPER([StatusCode]) = 'COMPLETED'

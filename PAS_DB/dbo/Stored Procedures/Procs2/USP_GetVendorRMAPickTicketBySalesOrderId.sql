@@ -1,5 +1,4 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPickTicketBySalesOrderId.sql) =====
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetVendorRMAPickTicketBySalesOrderId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get GetVendorRMAPickTicketBySalesOrderId Pdf
@@ -11,10 +10,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    04-06-2025    Sahdev Saliya       Created  
-    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date            Author			Change Description              
+ ** --   --------         -------			--------------------------------            
+    1    04-06-2025		Sahdev Saliya       Created
+	2    09/July/2026   RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3    07-15-2026		Vishal Suthar       Added RMAPickTicketBarcode column instead of returning blank
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
@@ -31,7 +31,7 @@ BEGIN
 			SELECT
 				sopkt.RMAPickTicketId,
 				sopkt.RMAPickTicketNumber,
-				'' AS RMAPickTicketBarcode,
+				sopkt.RMAPickTicketNumber AS RMAPickTicketBarcode,
 				soq.VendorRMAId,
 				soq.RMANumber AS RMANum,
 				soq.VendorId AS CustomerId,

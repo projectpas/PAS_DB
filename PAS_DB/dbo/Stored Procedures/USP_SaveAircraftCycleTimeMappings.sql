@@ -32,7 +32,12 @@ Exec [USP_SaveAircraftCycleTimeMappings]
                                         Perf: Remove READ UNCOMMITTED from write transaction.
   12    02/06/2026  Amit Ghediya        Update logic for AircraftMaintenanceProgram for currunt HH:mm update for hr & cycle [PN-16650].
   13	16/06/2026  Amit Ghediya        Update minute logic for AircraftInstalledPartDetails [PN-16887]
-**************************************************************/   
+  14    17/07/2026  Amit Ghediya        Save EngineRegistryId with engine rows, and additionally mirror the
+                                        same AircraftInstalledPartDetails / AircraftMaintenanceProgram update
+                                        (and insert-if-missing) logic used for the aircraft onto each attached
+                                        engine's own EngineRegistryId/IsFromAircraft=0 records. Aircraft-level
+                                        logic above is unchanged. [PN-16323]
+**************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
     @CycleData  NVARCHAR(MAX),
     @EngineData NVARCHAR(MAX)
@@ -137,7 +142,7 @@ BEGIN
                 A.MasterCompanyId           = C.MasterCompanyId,
                 A.UpdatedBy                 = C.UpdatedBy,
                 A.UpdatedDate               = GETUTCDATE()
-            FROM dbo.AircraftCycleTimeMappings A
+            FROM dbo.AircraftCycleTimeMappings A WITH(NOLOCK)
             INNER JOIN @CycleTable C
                 ON A.AircraftCycleTimeMappingsId = C.AircraftCycleTimeMappingsId;
 
@@ -265,7 +270,7 @@ BEGIN
 					ELSE AIPD.LastFlownDate
 				END
 
-		FROM dbo.AircraftInstalledPartDetails AIPD
+		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 
 		-------------------------------------------------------
@@ -419,7 +424,7 @@ BEGIN
                 AMP.UpdatedBy   = C.UpdatedBy,
                 AMP.UpdatedDate = GETUTCDATE()
 
-            FROM dbo.AircraftMaintenanceProgram AMP
+            FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
             INNER JOIN @CycleTable C
                 ON AMP.AircraftRegistryId = C.RefrenceId
             -- PERF: CROSS APPLY computes intermediates once per row,
@@ -449,7 +454,7 @@ BEGIN
             -- (same intent as the old @ProgramId filter, now inline)
             WHERE AMP.ProgramId = (
                 SELECT TOP 1 ProgramId
-                FROM dbo.AircraftMaintenanceProgram amp2
+                FROM dbo.AircraftMaintenanceProgram amp2 WITH(NOLOCK)
                 WHERE amp2.AircraftRegistryId   = AMP.AircraftRegistryId
                   AND amp2.IsDeleted            = 0
                   AND amp2.IsActive             = 1
@@ -511,6 +516,7 @@ BEGIN
         (
             AircraftEngineStartsMappingsId  BIGINT,
             AircraftCycleTimeMappingsId     BIGINT,
+            EngineRegistryId                BIGINT,
             EngineName                      VARCHAR(50),
             [Hours]                         DECIMAL(18,6),
             [Minutes]                       DECIMAL(18,6),
@@ -531,6 +537,7 @@ BEGIN
         SELECT
             AircraftEngineStartsMappingsId,
             AircraftCycleTimeMappingsId,
+            EngineRegistryId,
             EngineName,
             [Hours], [Minutes],
             CurruntHours, CurruntMinutes,
@@ -543,6 +550,7 @@ BEGIN
         (
             AircraftEngineStartsMappingsId  BIGINT,
             AircraftCycleTimeMappingsId     BIGINT,
+            EngineRegistryId                BIGINT,
             EngineName                      VARCHAR(50),
             [Hours]                         DECIMAL(18,6),
             [Minutes]                       DECIMAL(18,6),
@@ -566,6 +574,7 @@ BEGIN
             AND target.EngineName                     = source.EngineName
         WHEN MATCHED THEN
             UPDATE SET
+                target.EngineRegistryId = source.EngineRegistryId,
                 target.[Hours]          = source.[Hours],
                 target.[Minutes]        = source.[Minutes],
                 target.CurruntHours     = source.CurruntHours,
@@ -583,6 +592,7 @@ BEGIN
             INSERT
             (
                 AircraftCycleTimeMappingsId,
+                EngineRegistryId,
                 EngineName,
                 [Hours], [Minutes],
                 CurruntHours, CurruntMinutes,
@@ -596,6 +606,7 @@ BEGIN
             VALUES
             (
                 @CycleId,               -- always link to the just-saved cycle record
+                source.EngineRegistryId,
                 source.EngineName,
                 source.[Hours], source.[Minutes],
                 source.CurruntHours, source.CurruntMinutes,
@@ -607,7 +618,166 @@ BEGIN
                 1, 0
             );
 
-		-----------------------Add LastFlownDate--------------------		
+        -------------------------------------------------------
+        -- MIRROR AIRCRAFT-LEVEL AIPD/AMP UPDATES ONTO EACH ATTACHED ENGINE
+        -- Same formulas as the aircraft blocks above, scoped by
+        -- EngineRegistryId/IsFromAircraft=0 instead of AircraftRegistryId/IsFromAircraft=1.
+        -- Cycles are NOT entered separately per engine in the UI — the aircraft's own
+        -- Cycles/CumulativeCycles/AddUpdated values are mirrored onto each engine too.
+        -- Aircraft-level logic above is untouched by this block.
+        -------------------------------------------------------
+        DECLARE @Eng_Cycles DECIMAL(18,6), @Eng_CumulativeCycles DECIMAL(18,6), @Eng_AddUpdated BIT;
+        SELECT TOP 1
+            @Eng_Cycles           = Cycles,
+            @Eng_CumulativeCycles = CumulativeCycles,
+            @Eng_AddUpdated       = AddUpdated
+        FROM @CycleTable;
+
+        -- AIPD (installed parts) for each attached engine
+        UPDATE AIPD
+        SET
+            AIPD.FlightHours =
+                CASE WHEN ISNULL(ET.[Hours], 0) > 0
+                THEN
+                    FLOOR(
+                        FLOOR(ISNULL(AIPD.FlightHours, 0))
+                        + FLOOR(ISNULL(ET.[Hours], 0))
+                        + (
+                            (FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+                             + FLOOR(ISNULL(ET.[Minutes], 0)))
+                            / 60
+                          )
+                    )
+                ELSE
+                    FLOOR(
+                        FLOOR(ISNULL(ET.CumulativeHours, 0))
+                        + (FLOOR(ISNULL(ET.CumulativeMinutes, 0)) / 60)
+                    )
+                END,
+
+            AIPD.FlightMinutes =
+                CASE WHEN ISNULL(ET.[Minutes], 0) > 0
+                THEN
+                    (FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+                     + FLOOR(ISNULL(ET.[Minutes], 0)))
+                    % 60
+                ELSE
+                    FLOOR(ISNULL(ET.CumulativeMinutes, 0)) % 60
+                END,
+
+            AIPD.Cycles =
+                CASE WHEN ISNULL(@Eng_Cycles, 0) > 0
+                THEN ISNULL(AIPD.Cycles, 0) + ISNULL(@Eng_Cycles, 0)
+                ELSE ISNULL(@Eng_CumulativeCycles, 0)
+                END,
+
+            AIPD.UpdatedBy   = ET.UpdatedBy,
+            AIPD.UpdatedDate = GETUTCDATE(),
+
+            AIPD.LastFlownDate =
+                CASE
+                    WHEN ISNULL(@Eng_AddUpdated, 0) = 1
+                    THEN CAST(GETUTCDATE() AS DATE)
+                    ELSE AIPD.LastFlownDate
+                END
+
+        FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
+        INNER JOIN @EngineTable ET ON AIPD.EngineRegistryId = ET.EngineRegistryId AND ISNULL(AIPD.IsFromAircraft, 0) = 0
+        WHERE ET.EngineRegistryId IS NOT NULL;
+
+        -- AircraftMaintenanceProgram for each attached engine — UPDATE existing engine-scoped row(s)
+        UPDATE AMP
+        SET
+            AMP.FlightHoursRecordedHours =
+                CASE WHEN ISNULL(ET.[Hours], 0) > 0 THEN
+                    FLOOR(ISNULL(AMP.FlightHoursRecordedHours,   0))
+                    + FLOOR(ISNULL(ET.[Hours], 0))
+                    + (
+                          (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
+                           + FLOOR(ISNULL(ET.[Minutes], 0)))
+                          / 60
+                      )
+                ELSE FLOOR(ISNULL(ET.CumulativeHours, 0))
+                    + (  FLOOR(ISNULL(ET.CumulativeMinutes, 0))
+                          / 60
+                      )
+                END,
+
+            AMP.FlightHoursRecordedMinutes =
+                CASE WHEN ISNULL(ET.[Minutes], 0) > 0 THEN
+                    (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
+                     + FLOOR(ISNULL(ET.[Minutes], 0)))
+                    % 60
+                ELSE (FLOOR(ISNULL(ET.CumulativeMinutes, 0)))
+                    % 60
+                END,
+
+            AMP.CyclesRecorded =
+                CASE WHEN ISNULL(@Eng_Cycles, 0) > 0 THEN
+                     ISNULL(AMP.CyclesRecorded, 0) + ISNULL(@Eng_Cycles, 0)
+                ELSE ISNULL(@Eng_CumulativeCycles, 0)
+                END,
+
+            AMP.FlightHoursRemainingHours =
+                CASE
+                    WHEN calc.LimitTotalMinutes IS NULL THEN NULL
+                    WHEN calc.LimitTotalMinutes - calc.NewRecordedTotalMinutes < 0 THEN 0
+                    ELSE (calc.LimitTotalMinutes - calc.NewRecordedTotalMinutes) / 60
+                END,
+
+            AMP.FlightHoursRemainingMinutes =
+                CASE
+                    WHEN calc.LimitTotalMinutes IS NULL THEN NULL
+                    WHEN calc.LimitTotalMinutes - calc.NewRecordedTotalMinutes < 0 THEN 0
+                    ELSE (calc.LimitTotalMinutes - calc.NewRecordedTotalMinutes) % 60
+                END,
+
+            AMP.CyclesRemaining =
+                CASE
+                    WHEN calc.NewRecordedCycles IS NULL THEN NULL
+                    WHEN ISNULL(AMP.CyclesLimit, 0) - calc.NewRecordedCycles < 0 THEN 0
+                    ELSE ISNULL(AMP.CyclesLimit, 0) - calc.NewRecordedCycles
+                END,
+
+            AMP.UpdatedBy   = ET.UpdatedBy,
+            AMP.UpdatedDate = GETUTCDATE()
+
+        FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+        INNER JOIN @EngineTable ET
+            ON AMP.EngineRegistryId = ET.EngineRegistryId AND ISNULL(AMP.IsFromAircraft, 0) = 0
+        CROSS APPLY (
+            SELECT
+                LimitTotalMinutes =
+                    ISNULL(AMP.FlightHoursLimitHours,   0) * 60
+                    + ISNULL(AMP.FlightHoursLimitMinutes, 0),
+
+                NewRecordedTotalMinutes =
+                    (FLOOR(ISNULL(AMP.FlightHoursRecordedHours, 0)) + FLOOR(ISNULL(ET.[Hours], 0))) * 60
+                    + (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0)) + FLOOR(ISNULL(ET.[Minutes], 0))),
+
+                NewRecordedCycles =
+                    ISNULL(AMP.CyclesRecorded, 0) + ISNULL(@Eng_Cycles, 0)
+        ) AS calc
+        WHERE ET.EngineRegistryId IS NOT NULL
+          AND AMP.ProgramId = (
+                SELECT TOP 1 amp2.ProgramId
+                FROM dbo.AircraftMaintenanceProgram amp2 WITH(NOLOCK)
+                WHERE amp2.EngineRegistryId          = AMP.EngineRegistryId
+                  AND ISNULL(amp2.IsFromAircraft, 0) = 0
+                  AND amp2.IsDeleted                 = 0
+                  AND amp2.IsActive                  = 1
+                  AND amp2.NextScheduledMaintenance IS NOT NULL
+                  AND amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
+                ORDER BY
+                    -- upcoming scheduled first (soonest), then most recent dated as fallback
+                    CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE) THEN 0 ELSE 1 END,
+                    CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
+                         THEN amp2.NextScheduledMaintenance END ASC,
+                    amp2.NextScheduledMaintenance DESC,
+                    amp2.ProgramId DESC
+            );
+
+		-----------------------Add LastFlownDate--------------------
 
 		UPDATE dbo.AircraftRegistryHeader SET LastFlownDate = CAST(GETUTCDATE() AS DATE) WHERE AircraftRegistryId  = @AircraftRegistryId;
 

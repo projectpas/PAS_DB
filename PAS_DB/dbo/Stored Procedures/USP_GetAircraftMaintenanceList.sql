@@ -43,6 +43,8 @@
 **                                      flagged Applicability=1 whose AircraftEffectivity/
 **                                      AircraftEffectivitySerialDetail criteria match this aircraft --
 **                                      aircraft-linked records only, NULL for engine-linked rows)
+** 18   14/07/2026	 Amit Ghediya	    Added @ApplicableSbAd,@WoStatus filter [PN-17161]
+** 19   20/07/2026	 Amit Ghediya	    Added @ACSection for aircrfat type 
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -91,14 +93,21 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @LastinspectedBy         VARCHAR(256)    = NULL,
     @IsFromAircraft          BIT             = NULL,
     @SequenceNo              BIGINT          = NULL,
-    @MaintanaceType          VARCHAR(256)    = NULL,
-    @IsScheduled             BIT             = NULL
+    @ACSection               VARCHAR(256)    = NULL,
+    @IsScheduled             BIT             = NULL,
+	@ApplicableSbAd          BIT             = NULL,
+	@WoStatus                VARCHAR(50)     = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
         DECLARE @ACTemplateType INT = 2;
+		DECLARE @AirframeCode VARCHAR(50);
+		DECLARE @EngineCode VARCHAR(50);
+
+		SELECT @AirframeCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'AIRFRAME';
+		SELECT @EngineCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'ENGINE';
 
         --------------------------------------------------------------------------------
         -- Normalize date filters to sargable half-open ranges [start, next day)
@@ -146,7 +155,7 @@ BEGIN
                 REG.AircraftMake,
                 REG.AircraftModel,
                 REG.SerialNumber,
-                REG.MaintanaceType,
+                REG.ACSection,
                 MC.[Name]                   AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
@@ -198,7 +207,7 @@ BEGIN
                 AMP.SequenceNo,
                 AMP.IsFromAircraft,
                 LWO.WorkOrderStatus         AS WoStatus,
-                SBAD.ApplicableSbAd,
+				CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END AS ApplicableSbAd,
                 COUNT(1) OVER ()            AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
@@ -215,7 +224,7 @@ BEGIN
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.AircraftModel  ELSE ERH.EngineModel    END AS AircraftModel,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.SerialNum      ELSE ERH.SerialNum      END AS SerialNumber,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ISNULL(ARH.StockLineId, 0) ELSE ISNULL(ERH.StockLineId, 0) END AS StockLineId,
-                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN 'AIRFRAME'         ELSE 'ENGINE'           END AS MaintanaceType
+                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END AS ACSection
             ) REG
             -- Format flight-hours strings ONCE; reused by both SELECT and filters
             CROSS APPLY (
@@ -251,107 +260,6 @@ BEGIN
                 WHERE WOP.[ProgramId] = AMP.[ProgramId]
                 ORDER BY WO.[WorkOrderId] DESC
             ) LWO
-            -- Applicable SB/AD: publications flagged Applicability = 1 whose AC Type/Model/SubModel/
-            -- Serial (and, where component-scoped, installed-component serial) effectivity criteria
-            -- match this aircraft -- same matching pattern as USP_CreateAircraftPublicationMaintenance /
-            -- USP_GetAircraftPublicationById, plus the Applicability=1 gate. Aircraft-linked records
-            -- only (IsFromAircraft=1); engine-linked rows get NULL since there's no established
-            -- engine-level effectivity/publication matching elsewhere in the app.
-            OUTER APPLY (
-                SELECT STRING_AGG(PubData.PubNum, ', ') WITHIN GROUP (ORDER BY PubData.PubNum) AS ApplicableSbAd
-                FROM (
-                    SELECT DISTINCT PUB.PubNum
-                    FROM dbo.AircraftEffectivity ACE WITH (NOLOCK)
-                    INNER JOIN dbo.AircraftPublication PUB WITH (NOLOCK)
-                            ON PUB.AircraftPublicationId = ACE.AircraftPublicationId
-                           AND PUB.MasterCompanyId        = @MasterCompanyId
-                           AND ISNULL(PUB.IsDeleted, 0)   = 0
-                           AND ISNULL(PUB.Applicability, 0) = 1
-                    WHERE ISNULL(AMP.IsFromAircraft, 0) = 1
-                      AND ISNULL(ACE.IsDeleted, 0) = 0
-                      AND ARH.MakeTypeId = ACE.MakeTypeId
-                      AND (ACE.AircraftModelId IS NULL OR ARH.AircraftModelId = ACE.AircraftModelId)
-                      AND (ISNULL(ACE.AircraftSubModel, '') = '' OR ARH.AircraftSubModel = ACE.AircraftSubModel)
-                      -- Aircraft serial match: exact ACE.SerialNum, or wildcard/affects-list/range via
-                      -- AircraftEffectivitySerialDetail (scoped to this specific rule)
-                      AND (
-                          (ISNULL(ACE.SerialNum, '') <> '' AND ARH.SerialNum = ACE.SerialNum)
-                          OR
-                          (
-                              ISNULL(ACE.SerialNum, '') = ''
-                              AND (
-                                  NOT EXISTS (
-                                      SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
-                                      WHERE AircraftEffectivityId = ACE.AircraftEffectivityId
-                                        AND IsAircraftSerialNum    = 1
-                                        AND IsAffect               = 1
-                                        AND IsDeleted              = 0
-                                  )
-                                  OR EXISTS (
-                                      SELECT 1
-                                      FROM dbo.AircraftEffectivitySerialDetail AEAS WITH (NOLOCK)
-                                      WHERE AEAS.AircraftEffectivityId = ACE.AircraftEffectivityId
-                                        AND AEAS.IsAircraftSerialNum    = 1
-                                        AND AEAS.IsAffect               = 1
-                                        AND AEAS.IsDeleted              = 0
-                                        AND (
-                                            (AEAS.SerialType = 'Individual' AND AEAS.FromSerial = ARH.SerialNum)
-                                        )
-                                  )
-                              )
-                          )
-                      )
-                      -- Aircraft-level exclusion
-                      AND NOT EXISTS (
-                          SELECT 1
-                          FROM dbo.AircraftEffectivitySerialDetail EXC WITH (NOLOCK)
-                          WHERE EXC.AircraftEffectivityId = ACE.AircraftEffectivityId
-                            AND EXC.IsAircraftSerialNum    = 1
-                            AND EXC.IsAffect               = 0
-                            AND EXC.IsDeleted              = 0
-                            AND EXC.FromSerial             = ARH.SerialNum
-                      )
-                      -- Component-level: only enforced when this effectivity row targets a specific component
-                      AND (
-                          ISNULL(ACE.ItemMasterId, 0) = 0
-                          OR NOT EXISTS (
-                              SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
-                              WHERE AircraftEffectivityId = ACE.AircraftEffectivityId
-                                AND ItemMasterId          = ACE.ItemMasterId
-                                AND IsAircraftSerialNum   = 0
-                                AND IsAffect              = 1
-                                AND IsDeleted             = 0
-                          )
-                          OR EXISTS (
-                              SELECT 1
-                              FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
-                              WHERE AIPD.AircraftRegistryId = ARH.AircraftRegistryId
-                                AND AIPD.ItemMasterId       = ACE.ItemMasterId
-                                AND AIPD.IsDeleted          = 0
-                                AND EXISTS (
-                                    SELECT 1
-                                    FROM dbo.AircraftEffectivitySerialDetail AECS WITH (NOLOCK)
-                                    WHERE AECS.AircraftEffectivityId = ACE.AircraftEffectivityId
-                                      AND AECS.ItemMasterId          = ACE.ItemMasterId
-                                      AND AECS.IsAircraftSerialNum   = 0
-                                      AND AECS.IsAffect              = 1
-                                      AND AECS.IsDeleted             = 0
-                                      AND (
-                                          (AECS.SerialType = 'Individual' AND AECS.FromSerial = AIPD.SerialNumber)
-                                      )
-                                )
-                                AND NOT EXISTS (
-                                    SELECT 1 FROM dbo.AircraftEffectivitySerialDetail EXC2 WITH (NOLOCK)
-                                    WHERE EXC2.AircraftEffectivityId = ACE.AircraftEffectivityId
-                                      AND EXC2.IsAircraftSerialNum    = 0
-                                      AND EXC2.IsAffect               = 0
-                                      AND EXC2.IsDeleted              = 0
-                                      AND EXC2.FromSerial             = AIPD.SerialNumber
-                                )
-                          )
-                      )
-                ) PubData
-            ) SBAD
             WHERE
                 AMP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
@@ -382,7 +290,7 @@ BEGIN
                 AND (@AircraftMake    IS NULL OR REG.AircraftMake         LIKE '%' + @AircraftMake         + '%')
                 AND (@AircraftModel   IS NULL OR REG.AircraftModel        LIKE '%' + @AircraftModel        + '%')
                 AND (@SerialNumber    IS NULL OR REG.SerialNumber         LIKE '%' + @SerialNumber         + '%')
-                AND (@MaintanaceType  IS NULL OR REG.MaintanaceType       LIKE '%' + @MaintanaceType       + '%')
+                AND (@ACSection      IS NULL OR REG.ACSection       LIKE '%' + @ACSection           + '%')
                 AND (@MaintenanceType IS NULL OR AMP.MaintenanceType      LIKE '%' + @MaintenanceType      + '%')
                 AND (@TemplateId      IS NULL OR AMP.TemplateId = @TemplateId)
                 AND (@TemplateVersionNumber IS NULL OR AMP.TemplateVersionNumber LIKE '%' + @TemplateVersionNumber + '%')
@@ -416,13 +324,15 @@ BEGIN
                 AND (ISNULL(@Description, '')     = '' OR AMP.[Description]   LIKE '%' + @Description     + '%')
                 AND (@SequenceNo IS NULL OR CAST(AMP.SequenceNo AS VARCHAR(50)) LIKE '%' + CAST(@SequenceNo AS VARCHAR(50)) + '%')
                 AND (@IsScheduled IS NULL OR AMP.IsScheduled = @IsScheduled)
+				AND (@ApplicableSbAd IS NULL OR CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END = @ApplicableSbAd)
+				AND (ISNULL(@WoStatus, '') = '' OR LWO.WorkOrderStatus LIKE '%' + @WoStatus + '%')
         )
 
         SELECT
             ProgramId, AircraftRegistryId, EngineRegistryId, AircraftRegistryNumber,
             VersionNumber, MaintenanceType, MaintenanceTypeId, NextScheduledMaintenance,
             TemplateId, TemplateIdNumber, TemplateVersionNumber,
-            TailNumber, AircraftMake, AircraftModel, SerialNumber, MaintanaceType,
+            TailNumber, AircraftMake, AircraftModel, SerialNumber, ACSection,
             MaintenanceClassName,
             FlightHoursLimitHours, FlightHoursLimitMinutes, FlightHoursLimitMonthsOrDays,
             FlightHoursRecordedHours, FlightHoursRecordedMinutes,
@@ -456,8 +366,8 @@ BEGIN
             CASE WHEN @SortColumn = 'AircraftModel'            AND @SortOrder = 'DESC' THEN AircraftModel END DESC,
             CASE WHEN @SortColumn = 'SerialNumber'             AND @SortOrder = 'ASC'  THEN SerialNumber END ASC,
             CASE WHEN @SortColumn = 'SerialNumber'             AND @SortOrder = 'DESC' THEN SerialNumber END DESC,
-            CASE WHEN @SortColumn = 'MaintanaceType'           AND @SortOrder = 'ASC'  THEN MaintanaceType END ASC,
-            CASE WHEN @SortColumn = 'MaintanaceType'           AND @SortOrder = 'DESC' THEN MaintanaceType END DESC,
+            CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'ASC'  THEN ACSection END ASC,
+            CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'DESC' THEN ACSection END DESC,
             CASE WHEN @SortColumn = 'MaintenanceType'          AND @SortOrder = 'ASC'  THEN MaintenanceType END ASC,
             CASE WHEN @SortColumn = 'MaintenanceType'          AND @SortOrder = 'DESC' THEN MaintenanceType END DESC,
             CASE WHEN @SortColumn = 'TemplateId'               AND @SortOrder = 'ASC'  THEN TemplateIdNumber END ASC,
@@ -518,6 +428,13 @@ BEGIN
             CASE WHEN @SortColumn = 'Description'              AND @SortOrder = 'DESC' THEN [Description] END DESC,
             CASE WHEN @SortColumn = 'SequenceNo'               AND @SortOrder = 'ASC'  THEN SequenceNo END ASC,
             CASE WHEN @SortColumn = 'SequenceNo'               AND @SortOrder = 'DESC' THEN SequenceNo END DESC,
+
+			CASE WHEN @SortColumn = 'IsScheduled'               AND @SortOrder = 'ASC'  THEN IsScheduled END ASC,
+            CASE WHEN @SortColumn = 'IsScheduled'               AND @SortOrder = 'DESC' THEN IsScheduled END DESC,
+			CASE WHEN @SortColumn = 'WoStatus'               AND @SortOrder = 'ASC'  THEN WoStatus END ASC,
+            CASE WHEN @SortColumn = 'WoStatus'               AND @SortOrder = 'DESC' THEN WoStatus END DESC,
+			CASE WHEN @SortColumn = 'ApplicableSbAd'               AND @SortOrder = 'ASC'  THEN ApplicableSbAd END ASC,
+            CASE WHEN @SortColumn = 'ApplicableSbAd'               AND @SortOrder = 'DESC' THEN ApplicableSbAd END DESC,
             ProgramId DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY

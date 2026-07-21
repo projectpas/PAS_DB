@@ -1,19 +1,19 @@
-﻿/*************************************************************           
- ** File:   [ProcGetRoList]           
- ** Author:   Moin Bloch  
+﻿/*************************************************************
+ ** File:   [ProcGetRoList]
+ ** Author:   Moin Bloch
  ** Description: Get Data for Repair Order listing
- ** Purpose:         
+ ** Purpose:
  ** Date:   17-Dec-2020
-          
- ** PARAMETERS:           
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
- ** Change History           
- **************************************************************           
- ** SN   Date           Author  		Change Description            
- ** --   --------		-------------	--------------------------------          
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** SN   Date           Author  		Change Description
+ ** --   --------		-------------	--------------------------------
     01	 03-July-2023	Vishal Suthar		Removed script of "MULTIPLE" hover over
 	02	 30-Dec-2024	Abhishek Jirawla	MULTIPLE checking was improper so corrected it and Performance changes implemented
 	03	 03-Mar-2025	Bhargav Saliya		Get New isStkLable value
@@ -28,10 +28,10 @@
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
 	13   14-05-2026     Bhargav Saliya      Remove The VendoreId Condition [PN-16416]
 	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
-	15	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
-	16    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810]
-	15	 09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-     
+	15    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810]
+	16	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
+	17	 16/07/2026		Abhishek Jirawla	Added @StrictVendorId parameter to filter RO list strictly by a single VendorId, independent of the existing @VendorId condition disabled per PN-16416 (PN-16786)
+
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ProcGetRoList]
@@ -41,14 +41,14 @@ CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@SortOrder int = null,
 	@StatusID int = null,
 	@GlobalFilter varchar(50) = null,
-	@RepairOrderNumber varchar(50) = null,	
+	@RepairOrderNumber varchar(50) = null,
 	@OpenDate datetime = null,
 	@ClosedDate datetime = null,
 	@VendorName varchar(50) = null,
 	@VendorCode varchar(50) = null,
 	@Status varchar(50) = null,
 	@ApprovedBy varchar(50) = null,
-	@RequestedBy varchar(50) = null,	
+	@RequestedBy varchar(50) = null,
 	@CreatedDate datetime = null,
 	@UpdatedDate  datetime = null,
 	@CreatedBy  varchar(50) = null,
@@ -67,12 +67,13 @@ CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@IsUpdated BIT = NULL,
 	@qtyShipped varchar(50) = NULL,
 	@qtyRemaining varchar(50) = NULL,
+	@IntegrationTypeId BIGINT = null,
 	@StatusIds nvarchar(max) = NULL,
-	@IntegrationTypeId BIGINT = null
+	@StrictVendorId bigint = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 		DECLARE @RecordFrom int;
 		Declare @IsActive bit=1
@@ -80,25 +81,25 @@ BEGIN
 		DECLARE @ItemTypeAsset Int;
 		DECLARE @ItemTypeStock Int;
 		DECLARE @ItemTypeNonStock Int;
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';	
-		SELECT 
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
 			@CurrntEmpTimeZoneDesc = COALESCE(
 				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
 			)
-		FROM 
-			dbo.Employee E WITH (NOLOCK) 
-		LEFT JOIN 
-			dbo.TimeZone ETZ WITH (NOLOCK) 
+		FROM
+			dbo.Employee E WITH (NOLOCK)
+		LEFT JOIN
+			dbo.TimeZone ETZ WITH (NOLOCK)
 			ON E.TimeZoneId = ETZ.TimeZoneId
-		LEFT JOIN 
-			dbo.LegalEntity LE WITH (NOLOCK) 
+		LEFT JOIN
+			dbo.LegalEntity LE WITH (NOLOCK)
 			ON E.LegalEntityId = LE.LegalEntityId
-		LEFT JOIN 
-			dbo.TimeZone LTZ WITH (NOLOCK) 
+		LEFT JOIN
+			dbo.TimeZone LTZ WITH (NOLOCK)
 			ON LE.TimeZoneId = LTZ.TimeZoneId
-		WHERE 
-			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific�employee
+		WHERE
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SELECT @ItemTypeStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Stock'
 		SELECT @ItemTypeNonStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Non-Stock'
@@ -108,23 +109,23 @@ BEGIN
 		IF @IsDeleted IS NULL
 		Begin
 			Set @IsDeleted = 0
-		End	
-		
+		End
+
 		IF @SortColumn IS NULL OR @SortColumn = Upper('CreatedDate')
 		Begin
 			Set @SortColumn = Upper('RepairOrderId')
-		End 
+		End
 		Else
-		Begin 
+		Begin
 			Set @SortColumn = Upper(@SortColumn)
 		End
 		IF (@StatusID = 6 AND @Status = 'All')
-		BEGIN			
+		BEGIN
 			SET @Status = ''
 		END
 		IF (@StatusID = 6 OR @StatusID = 0)
 		BEGIN
-			SET @StatusID = null			
+			SET @StatusID = null
 		END
 		DECLARE @MSModuleID INT = 24; -- Repair Order Management Structure Module ID
 
@@ -134,7 +135,7 @@ BEGIN
 		IF (@ViewType = 'roview')
 		BEGIN
 			;WITH RepairOrderPartAggregated AS (
-				SELECT 
+				SELECT
 					ROP.RepairOrderId,
 					COUNT(ROP.RepairOrderPartRecordId) AS PartCount,
 					COUNT(ROP.WorkOrderId) AS WorkOrderCount,
@@ -151,10 +152,10 @@ BEGIN
 				GROUP BY ROP.RepairOrderId
 			)
 
-			SELECT DISTINCT 
+			SELECT DISTINCT
 			       RO.RepairOrderId,
 			       RO.RepairOrderNumber,
-				   RO.RepairOrderNumber AS RepairOrderNo,				   
+				   RO.RepairOrderNumber AS RepairOrderNo,
 			       RO.OpenDate,
 				   RO.ClosedDate,
 				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
@@ -193,9 +194,9 @@ BEGIN
 						OR
 						((@StatusIds IS NULL OR LTRIM(RTRIM(@StatusIds)) = '') AND (@StatusID IS NULL OR RO.StatusId=@StatusID))
 					)) AND
-					RO.MasterCompanyId=@MasterCompanyId 
+					RO.MasterCompanyId=@MasterCompanyId
 					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(RO.isUpdated,0) = ISNULL(@IsUpdated,0))
-					AND (@IntegrationTypeId IS NULL OR RO.IntegrationTypeId = @IntegrationTypeId) --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
+					AND (@IntegrationTypeId IS NULL OR RO.IntegrationTypeId = @IntegrationTypeId) AND (@StrictVendorId IS NULL OR RO.VendorId = @StrictVendorId) --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
 			GROUP BY RO.RepairOrderId,RO.RepairOrderNumber,RO.RepairOrderNumber,RO.OpenDate,RO.ClosedDate,RO.CreatedDate,RO.CreatedBy,
 				   RO.UpdatedDate,RO.UpdatedBy,RO.IsActive,RO.IsDeleted,RO.VendorId,RO.VendorName,RO.VendorCode,RO.StatusId,RO.[Status],
 				   RO.Requisitioner,RO.ApprovedBy,ROPA.PartCount,
@@ -209,8 +210,8 @@ BEGIN
 				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end
 				FROM #tmpReceivingRoviewList TMP
 				OUTER APPLY (
-					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
-					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0) 
+					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0)
 				AS result
 
 			UPDATE TMP1
@@ -218,12 +219,12 @@ BEGIN
 					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
 				FROM #tmpReceivingRoviewList TMP1
 				OUTER APPLY (
-					SELECT 
+					SELECT
 						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0)AS QuantityOrdered,
 						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
-					FROM DBO.RepairOrderPart rop WITH (NOLOCK) 
+					FROM DBO.RepairOrderPart rop WITH (NOLOCK)
 					LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = rop.RepairOrderPartRecordId
-					WHERE rop.RepairOrderId = TMP1.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0) 
+					WHERE rop.RepairOrderId = TMP1.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0)
 				AS result
 
 			;WITH ResultData AS(
@@ -237,13 +238,13 @@ BEGIN
 					M.WorkOrderNumType,
 					CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
 					0 as RepairOrderPartRecordId,isStkLable,qtyShipped,qtyRemaining
-				FROM #tmpReceivingRoviewList M 
-					
-			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
+				FROM #tmpReceivingRoviewList M
+
+			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR	
-					(VendorName LIKE '%' +@GlobalFilter+'%') OR	
-					(VendorCode LIKE '%' +@GlobalFilter+'%') OR					
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(VendorName LIKE '%' +@GlobalFilter+'%') OR
+					(VendorCode LIKE '%' +@GlobalFilter+'%') OR
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
 					(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR
 					([Status] LIKE '%' +@GlobalFilter+'%') OR
@@ -254,36 +255,36 @@ BEGIN
 					(M.WorkOrderNumType like '%' +@GlobalFilter+'%') OR
 					(M.qtyShipped like '%' +@GlobalFilter+'%') OR
 					(M.qtyRemaining like '%' +@GlobalFilter+'%')))
-					OR 
+					OR
 					(@GlobalFilter='' AND IsDeleted=@IsDeleted AND
-					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
+					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND
 					(ISNULL(@ApprovedBy,'') ='' OR ApprovedBy LIKE '%' + @ApprovedBy + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND
 					(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND
-					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND									
-					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
+					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND
+					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND
 					(ISNULL(@ClosedDate,'') ='' OR CAST(ClosedDate AS Date) = CAST(@ClosedDate AS date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
 					(ISNULL(@PartNumberType,'') ='' OR M.PartNumberType like '%'+ @PartNumberType+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR M.PartDescription like '%'+ @PartDescription+'%') AND
-					(ISNULL(@EstDeliveryType,'') ='' OR M.EstDeliveryType like '%'+ @EstDeliveryType+'%') AND					
+					(ISNULL(@EstDeliveryType,'') ='' OR M.EstDeliveryType like '%'+ @EstDeliveryType+'%') AND
 					(ISNULL(@ManufacturerType,'') ='' OR M.ManufacturerType like '%'+ @ManufacturerType+'%') AND
 					(ISNULL(@SalesOrderNumberType,'') ='' OR M.SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND
 					(ISNULL(@WorkOrderNumType,'') ='' OR M.WorkOrderNumType like '%'+@WorkOrderNumType+'%') AND
 					(ISNULL(@qtyShipped,'') ='' OR M.qtyShipped like '%'+@qtyShipped+'%') AND
 					(ISNULL(@qtyRemaining,'') ='' OR M.qtyRemaining like '%'+@qtyRemaining+'%'))
-				   )), 
+				   )),
 					CTE_Count AS (Select COUNT(RepairOrderId) AS NumberOfItems FROM ResultData)
 					SELECT RepairOrderId,RepairOrderNumber,RepairOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted
 						,VendorId,VendorName,VendorCode,StatusId,[Status],RequestedBy,ApprovedBy,
 						'' PartNumber, PartNumberType, PartDescription , '' Manufacturer, ManufacturerType, '' WorkOrderNum, WorkOrderNumType, '' SalesOrderNumber, SalesOrderNumberType,
 						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId ,isStkLable,qtyShipped,qtyRemaining
 					FROM ResultData, CTE_Count
-			ORDER BY  
+			ORDER BY
             CASE WHEN (@SortOrder=1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
@@ -297,7 +298,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='RequestedBy')  THEN RequestedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedBy')  THEN RequestedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,           
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
@@ -324,15 +325,15 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='qtyShipped')  THEN qtyShipped END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END DESC
-			OFFSET @RecordFrom ROWS 
+			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY
 		END
 		ELSE
 		BEGIN
-			SELECT DISTINCT 
+			SELECT DISTINCT
 			       RO.RepairOrderId,
 			       RO.RepairOrderNumber,
-				   RO.RepairOrderNumber AS RepairOrderNo,				   
+				   RO.RepairOrderNumber AS RepairOrderNo,
 			       RO.OpenDate,
 				   RO.ClosedDate,
 				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
@@ -371,20 +372,15 @@ BEGIN
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 
-			WHERE ((RO.IsDeleted=@IsDeleted) AND
-				(
-					(@StatusIds IS NOT NULL AND LTRIM(RTRIM(@StatusIds)) <> '' AND RO.StatusId IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@StatusIds, ',')))
-					OR
-					((@StatusIds IS NULL OR LTRIM(RTRIM(@StatusIds)) = '') AND (@StatusID IS NULL OR RO.StatusId=@StatusID))
-				)) AND
-			        RO.MasterCompanyId=@MasterCompanyId --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
-		    
+			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
+			        RO.MasterCompanyId=@MasterCompanyId AND (@StrictVendorId IS NULL OR RO.VendorId = @StrictVendorId) --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
+
 			UPDATE TMP
 				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end
 				FROM #tmpReceivingPnviewList TMP
 				OUTER APPLY (
-					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
-					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0 
+					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0
 					) AS result
 
 			UPDATE TMP1
@@ -392,20 +388,20 @@ BEGIN
 					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
 				FROM #tmpReceivingPnviewList TMP1
 				OUTER APPLY (
-					SELECT 
+					SELECT
 						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0) AS QuantityOrdered,
 						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
 					FROM DBO.RepairOrderShippingItem ROSI WITH (NOLOCK)
-					WHERE ROSI.RepairOrderPartId = TMP1.RepairOrderPartRecordId) 
+					WHERE ROSI.RepairOrderPartId = TMP1.RepairOrderPartRecordId)
 				AS result
 
 					;with ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM #tmpReceivingPnviewList)
 			SELECT * INTO #TempResult FROM  #tmpReceivingPnviewList
-			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
+			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR	
-					(VendorName LIKE '%' +@GlobalFilter+'%') OR	
-					(VendorCode LIKE '%' +@GlobalFilter+'%') OR					
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(VendorName LIKE '%' +@GlobalFilter+'%') OR
+					(VendorCode LIKE '%' +@GlobalFilter+'%') OR
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
 					(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR
 					([Status] LIKE '%' +@GlobalFilter+'%') OR
@@ -413,17 +409,17 @@ BEGIN
 					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(SalesOrderNumberType like '%' +@GlobalFilter+'%') OR
 					(WorkOrderNumType like '%' +@GlobalFilter+'%')))
-					OR 
+					OR
 					(@GlobalFilter='' AND IsDeleted=@IsDeleted AND
-					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
+					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND
 					(ISNULL(@ApprovedBy,'') ='' OR ApprovedBy LIKE '%' + @ApprovedBy + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND
 					(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND
-					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND									
-					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
+					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND
+					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND
 					(ISNULL(@ClosedDate,'') ='' OR CAST(ClosedDate AS Date) = CAST(@ClosedDate AS date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))  AND
@@ -436,7 +432,7 @@ BEGIN
 				   )
 				   SELECT @Count = COUNT(RepairOrderId) FROM #TempResult
 				   SELECT *, @Count AS NumberOfItems FROM #TempResult
-			ORDER BY  
+			ORDER BY
             CASE WHEN (@SortOrder=1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
@@ -450,7 +446,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='RequestedBy')  THEN RequestedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedBy')  THEN RequestedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,           
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
@@ -464,7 +460,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PartDescription END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,	
+			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
@@ -473,17 +469,17 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC
-			OFFSET @RecordFrom ROWS 
+			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY
 		END
-	END TRY    
-	BEGIN CATCH      
+	END TRY
+	BEGIN CATCH
 		DECLARE @ErrorLogID INT
 		,@DatabaseName VARCHAR(100) = db_name()
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 		,@AdhocComments VARCHAR(150) = 'ProcGetRoList'
 		,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
-			+ '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
+			+ '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100))
 			+ '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
 			+ '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
 			+ '@Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') AS varchar(100))
@@ -491,10 +487,10 @@ BEGIN
 			+ '@Parameter7 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
 			+ '@Parameter8 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
 			+ '@Parameter9 = ''' + CAST(ISNULL(@UpdatedBy , '') AS varchar(100))
-			+ '@Parameter10 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))			
+			+ '@Parameter10 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))
 			+ '@Parameter11 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
 			+ '@Parameter12 = ''' + CAST(ISNULL(@EmployeeId , '') AS varchar(100))
-			+ '@Parameter13 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			+ '@Parameter13 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))
 		,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName
@@ -505,6 +501,6 @@ BEGIN
 
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 
-		RETURN (1);           
+		RETURN (1);
 	END CATCH
 END

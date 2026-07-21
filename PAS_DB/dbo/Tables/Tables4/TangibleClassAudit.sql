@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[TangibleClassAudit] (
     [TangibleClassAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [TangibleClassId]      BIGINT         NOT NULL,
-    [TangibleClassName]    VARCHAR (30)   NOT NULL,
+    [TangibleClassName]    VARCHAR (50)   NULL,
     [TangibleClassMemo]    VARCHAR (1000) NULL,
     [MasterCompanyId]      INT            NOT NULL,
     [CreatedBy]            VARCHAR (256)  NOT NULL,

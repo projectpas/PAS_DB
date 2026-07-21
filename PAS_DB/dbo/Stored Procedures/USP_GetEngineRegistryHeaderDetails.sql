@@ -16,9 +16,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
  ** 1    29/06/2026   Amit Ghediya		Created [PN-17037]
- 
- 
-EXEC [dbo].[USP_GetEngineRegistryHeaderDetails] 61501 ,10242  
+ ** 2    20/07/2026   Amit Ghediya		Added filter params for SLNum/CntrlNum/Cond/Site/Warehouse/Location [PN-17344]
+
+EXEC [dbo].[USP_GetEngineRegistryHeaderDetails] 61501 ,10242
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetEngineRegistryHeaderDetails]
 (
@@ -26,7 +26,7 @@ CREATE    PROCEDURE [dbo].[USP_GetEngineRegistryHeaderDetails]
 	@MasterCompanyId BIGINT
 )
 AS
-BEGIN 
+BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON
 	BEGIN TRY
@@ -60,9 +60,19 @@ BEGIN
 				AR.Memo,
 				AR.EngineRegistryNumber,
 				AR.[Description],
-				AR.[EngineName]
-			FROM dbo.[EngineRegistryHeader] AR WITH(NOLOCK) 
-			WHERE AR.EngineRegistryId = @EngineRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
+				AR.[EngineName],
+				STK.StockLineNumber AS SLNum,
+				STK.ControlNumber AS CntrlNum,
+				STK.Condition AS Cond,
+				SITE.[Name] AS Site,
+				WH.[Name] AS Warehouse,
+				LOC.[Name] AS Location
+			FROM dbo.[EngineRegistryHeader] AR WITH(NOLOCK)
+			LEFT JOIN dbo.[Stockline] STK WITH(NOLOCK) ON AR.StockLineId = STK.StockLineId
+			LEFT JOIN dbo.[Site] SITE WITH(NOLOCK) ON STK.SiteId = SITE.SiteId
+			LEFT JOIN dbo.[Warehouse] WH WITH(NOLOCK) ON STK.WarehouseId = WH.WarehouseId
+			LEFT JOIN dbo.[Location] LOC WITH(NOLOCK) ON STK.LocationId = LOC.LocationId
+			WHERE AR.EngineRegistryId = @EngineRegistryId AND AR.MasterCompanyId = @MasterCompanyId
 		END
 	COMMIT  TRANSACTION
 	END TRY

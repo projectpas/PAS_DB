@@ -33,7 +33,7 @@
 	13   03/06/2026  Sahdev Saliya      Added new field Model [PN-16667]
 	14   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
 	15   07/07/2026  Priyansh Patel 	Added consumeuom from item master if not avilable in stock [PN-17057]
-
+	16   21/07/2026  Ayushi Patel       [PN-17349]Added fallback condition for Stock and Purchase UOM, same as Consume UOM.
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -398,8 +398,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN [dbo].[Customer] CUSTOBF  WITH (NOLOCK) ON CUSTOBF.[CustomerId] = stl.[ObtainFrom]     
          LEFT JOIN [dbo].[Vendor] VENOBF  WITH (NOLOCK) ON VENOBF.[VendorId] = stl.[ObtainFrom] 
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
-		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		 LEFT JOIN DBO.UnitOfMeasure uomStock WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = CASE WHEN ISNULL(stl.PurchaseUnitOfMeasureId,0) > 0 THEN stl.PurchaseUnitOfMeasureId ELSE im.PurchaseUnitOfMeasureId END
+		 LEFT JOIN DBO.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = CASE WHEN ISNULL(stl.StockUnitOfMeasureId,0) > 0 THEN stl.StockUnitOfMeasureId ELSE im.StockUnitOfMeasureId END
 		 LEFT JOIN DBO.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = CASE WHEN stl.ConsumeUnitOfMeasureId > 0 
 		 THEN stl.ConsumeUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId

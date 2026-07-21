@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/07/2026   Moin Bloch     Created
+	2    21/07/2026   Moin Bloch 	 Added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 
 	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 4352,261
 **************************************************************/
@@ -185,12 +186,14 @@ BEGIN
 						sop.[RevisedSerialNumber],		
 						ISNULL(sop.[IsTransferredToParentWO],0) AS [IsTransferredToParentWO],
 						ISNULL(sop.[IsFinishGood],0) AS [IsFinishGood],
-						ISNULL(sop.[IsClosed],0) AS [IsWOClose]
+						ISNULL(sop.[IsClosed],0) AS [IsWOClose],
+						ISNULL(SL.[ControlNumber],'') [ControlNumber]
 				INTO #SubSettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
 					LEFT JOIN Combined c ON c.[SubWOPartNoId] = wosd.[SubWOPartNoId]
 					LEFT JOIN [dbo].[SubWorkOrderPartNumber] sop WITH(NOLOCK) ON sop.[SubWOPartNoId] = wosd.[SubWOPartNoId]
+					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON sop.[StockLineId] = SL.[StockLineId]
 					LEFT JOIN [dbo].[ItemMaster] Im WITH(NOLOCK) ON sop.[ItemMasterId] = Im.[ItemMasterId] AND ISNULL(Im.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = wosd.[RevisedItemmasterid] AND ISNULL(IMR.IsNonStock,0) = 0
 				WHERE wosd.[WorkOrderId] = @WorkorderId and wosd.[SubWorkOrderId] = @SubWorkOrderId
@@ -221,7 +224,8 @@ BEGIN
 					MAX([RevisedSerialNumber]) AS [RevisedSerialNumber],
 					MAX(CAST([IsTransferredToParentWO] AS INT)) AS [IsTransferredToParentWO],
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
-					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose]'
+					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],
+					MAX([ControlNumber]) AS [ControlNumber]'
 					+ @cols + N'
 				FROM #SubSettlementRows
 				GROUP BY [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId]';

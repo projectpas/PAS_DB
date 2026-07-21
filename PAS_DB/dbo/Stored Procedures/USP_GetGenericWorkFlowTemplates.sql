@@ -33,7 +33,7 @@ BEGIN
             w.WorkOrderNumber as WorkFlowNo,
             ISNULL(wt.TaskCount, 0) AS TaskCount
         FROM dbo.Workflow w WITH (NOLOCK)
-        LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON w.ItemMasterId = im.ItemMasterId
+        LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON w.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 0
         LEFT JOIN (SELECT WorkflowId, COUNT(DISTINCT TaskId) AS TaskCount FROM dbo.WorkflowTask WITH (NOLOCK) WHERE ISNULL(IsDeleted, 0) = 0 GROUP BY WorkflowId) wt
             ON w.WorkflowId = wt.WorkflowId
         WHERE w.MasterCompanyId = @MasterCompanyId

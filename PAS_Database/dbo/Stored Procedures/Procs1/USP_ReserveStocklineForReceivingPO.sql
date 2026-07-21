@@ -44,6 +44,7 @@
 	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
 	29   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16128]
 	30	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	31   21/07/2026   Ayushi Patel      [PN-17294] Resolved the issue of qty reserved from sales order
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -147,7 +148,6 @@ BEGIN
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM #tmpPurchaseOrderPartReference
 		SELECT @AsRemoveConditionId = ConditionId FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND cond.MasterCompanyId = @MasterCompanyId
-
 		--Start Loop Based On Porchase Order Part wise
 		SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderPartReference;
 		WHILE (@LoopID > 0)
@@ -203,7 +203,6 @@ BEGIN
 			ORDER BY StocklineId DESC; 
 
 			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
-
 			--Start Stockline Loop to Reserve Qty
 			WHILE (@StkLoopID > 0 AND @POReferenceQty > 0)
 			BEGIN
@@ -1699,7 +1698,6 @@ BEGIN
 						DECLARE @SOPLoopID BIGINT;
 
 						SELECT @SOPLoopID = MAX(ID) FROM #tmpSalesOrderPart;
-
 						WHILE (@SOPLoopID > 0)
 						BEGIN
 							DECLARE @SelectedSalesOrderPartId BIGINT = 0;
@@ -1716,11 +1714,17 @@ BEGIN
 
 							SET @OriginalReqQuantity = @QtyRequested;
 
-							IF (@POReferenceQty < @OriginalReqQuantity)
+							--IF (@POReferenceQty < @OriginalReqQuantity)
+							--BEGIN
+							--	SET @QtyRequested = @POReferenceQty;
+							--END
+							-- FIX: subtract what's already reserved BEFORE capping by PO qty
+							SET @QtyRequested = ISNULL(@OriginalReqQuantity,0) - ISNULL(@QuantityReserved,0);
+
+							IF (@POReferenceQty < @QtyRequested)
 							BEGIN
 								SET @QtyRequested = @POReferenceQty;
 							END
-
 							IF ((@OriginalReqQuantity - @QuantityReserved) > 0)
 							BEGIN
 								IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId)
@@ -1733,11 +1737,18 @@ BEGIN
 
 									SET @Qty = 0;
 									SET @SOPQty = 0;
-
+									
+									--IF (@stkQuantityAvailable > 0)
+									--BEGIN
+									--	IF (@stkQuantityAvailable >= @QtyRequested)
+									--		SET @Qty = (@QtyRequested - @QuantityReserved);
+									--	ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+									--		SET @Qty = @stkQuantityAvailable;
+									--END
 									IF (@stkQuantityAvailable > 0)
 									BEGIN
 										IF (@stkQuantityAvailable >= @QtyRequested)
-											SET @Qty = (@QtyRequested - @QuantityReserved);
+											SET @Qty = @QtyRequested;              
 										ELSE IF (@QtyRequested >= @stkQuantityAvailable)
 											SET @Qty = @stkQuantityAvailable;
 									END
@@ -1793,7 +1804,7 @@ BEGIN
 										SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
 										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 										@SalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
-
+										
 										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
@@ -1806,7 +1817,7 @@ BEGIN
 										@RefNumber;
 									
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
-
+										
 										SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
 										SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
 
@@ -1831,7 +1842,7 @@ BEGIN
 													ISNULL(SOPC.NetSaleAmount, 0),@stkMasterCompanyId,@UpdatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0
 													FROM dbo.SalesOrderStockLineV1 stk WITH (NOLOCK) LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) on stk.SalesOrderPartId =  SOPC.SalesOrderPartId
 									   WHERE stk.SalesOrderStocklineId = @InsertedSalesOrderStocklineId AND stk.SalesOrderPartId = @SalesOrderPartIdToUpdate AND ISNULL(stk.IsDeleted,0) = 0												 
-
+									   	
 										UPDATE TOP (CAST(FLOOR(@Qty) AS INT)) StkDraft
 										SET StkDraft.SOQty = @Qty,
 										StkDraft.SalesOrderId = @ReferenceId,
@@ -1853,7 +1864,7 @@ BEGIN
 										Stk.QuantityOnOrder = @stkQuantityOnOrder
 										FROM DBO.Stockline Stk 
 										WHERE Stk.StockLineId = @StkStocklineId;
-
+												
 										SET @QuantityReservedForPoPart = @Qty; 
 
 										EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
@@ -1874,6 +1885,7 @@ BEGIN
 								END
 								ELSE
 								BEGIN
+								
 								IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId)
 								--IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 								BEGIN

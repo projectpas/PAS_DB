@@ -4741,6 +4741,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
     <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

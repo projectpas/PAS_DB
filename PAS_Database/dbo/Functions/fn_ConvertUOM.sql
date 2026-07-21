@@ -1,6 +1,6 @@
 ﻿CREATE FUNCTION [dbo].[fn_ConvertUOM]
 (
-    @Qty DECIMAL(18,8),
+    @Qty DECIMAL(18,6),
     @FromUOM VARCHAR(50),
     @ToUOM VARCHAR(50),
     @IsCost BIT = 0,

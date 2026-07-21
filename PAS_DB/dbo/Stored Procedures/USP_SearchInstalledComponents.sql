@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿-- ===== PROCEDURE: [dbo].[USP_SearchInstalledComponents]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_SearchInstalledComponents.sql) =====
+/*************************************************************
 ** File:        [USP_SearchInstalledComponents]
 ** Description: To search the installed components
 ** Date:        21/04/2026
@@ -12,7 +13,8 @@
 ** 1    21/04/2026   Priyansh Patel     Created [PN-16140]
 ** 2    06/05/2026   Priyansh Patel     Created [PN-16303]
 ** 3    03/06/2026   Nakul Chandigra    Added [TotalTSNMM] field for select [PN-16691]
-** 3    04/06/2026   Sumit Kumar        Added missing fields for the view PN-16214.
+** 4    04/06/2026   Sumit Kumar        Added missing fields for the view PN-16214.
+** 6    17/July/2026   Amit Ghediya       return IsFromAircraft/EngineRegistryId per row
 
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
@@ -50,27 +52,34 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
 
-    ;WITH Result AS (
+    ;WITH Base AS (
         SELECT
             [AIPD].[AircraftInstalledPartDetailsId],
             [AIPD].[AircraftRegistryId]                                                     AS [AircraftRegistryId],
+            ISNULL([AIPD].[IsFromAircraft],0)                                               AS [IsFromAircraft],
+            [AIPD].[EngineRegistryId]                                                       AS [EngineRegistryId],
             [AIPD].[ItemMasterId]                                                           AS [ItemMasterId],
             [AIPD].[PartNumber]                                                             AS [PartNumber],
             [AIPD].[PartDescription]                                                        AS [PartDescription],
-            [ARH].[TailNum]                                                                 AS [ACTailNum],
-            [ARH].[MakeType],
-            [ARH].[AircraftModel],
-            [ARH].[SerialNum],
-            [ARH].[TotalTSN],
-            [ARH].[TotalCSN],
-            [ARH].[Hobbs],
+            -- Engine-installed parts (IsFromAircraft = 0) show the attached ENGINE's own
+            -- identity here instead of an aircraft's, so these columns always reflect the
+            -- part's actual install target rather than always assuming "aircraft".
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TailNum       ELSE ERH.EngineName   END AS [ACTailNum],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.MakeType      ELSE ERH.MakeType      END AS [MakeType],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel   END AS [AircraftModel],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.SerialNum     ELSE ERH.SerialNum     END AS [SerialNum],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TotalTSN      ELSE ERH.TotalTSN      END AS [TotalTSN],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TotalCSN      ELSE ERH.TotalCSN      END AS [TotalCSN],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.Hobbs         ELSE ERH.Hobbs         END AS [Hobbs],
             CONCAT_WS(' - ', [IMAM].[Level1], [IMAM].[Level2], [IMAM].[Level3])            AS [ATACode],
             [AIPD].[DateInstalled],
             FORMAT(ISNULL([AIPD].[FlightHours], 0), '0') + ' : ' + FORMAT(ISNULL([AIPD].[FlightMinutes], 0), '00') AS [FlightHours],
+            [AIPD].[FlightHours]                                                             AS [RawFlightHours],
+            [AIPD].[FlightMinutes]                                                           AS [RawFlightMinutes],
             [AIPD].[Cycles],
-            [ARH].[LastMaintenanceDate]                                                     AS [LastMaintenance],
-            [ARH].[NextScheduled]                                                           AS [NextMaintenance],
-            [ARH].[TotalTSNMM],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.LastMaintenanceDate ELSE ERH.LastMaintenanceDate END AS [LastMaintenance],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.NextScheduled       ELSE ERH.NextScheduled       END AS [NextMaintenance],
+            CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TotalTSNMM    ELSE ERH.TotalTSNMM    END AS [TotalTSNMM],
             [AIPD].[SequenceNum],
             [AIPD].[IsLLP],
 			[AIPD].[IsSerialized],
@@ -92,25 +101,29 @@ BEGIN
 			[STK].SerialNumber
         FROM [dbo].[AircraftInstalledPartDetails] AIPD WITH (NOLOCK)
              LEFT JOIN [dbo].[ItemMasterAircraftMapping] IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
-             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
+             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 1
+             LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 0
              LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.MasterCompanyId = @MasterCompanyId
-            AND (@ItemMasterId      IS NULL OR @ItemMasterId = 0  OR AIPD.ItemMasterId = @ItemMasterId)
-            AND (@PartDescription   IS NULL OR AIPD.PartDescription LIKE '%' + @PartDescription + '%')
-            AND (@ACTailNum         IS NULL OR ARH.TailNum          LIKE '%' + @ACTailNum       + '%')
-            AND (@MakeType          IS NULL OR ARH.MakeType         LIKE '%' + @MakeType        + '%')
-            AND (@AircraftModel     IS NULL OR ARH.AircraftModel    LIKE '%' + @AircraftModel   + '%')
-            AND (@SerialNum       IS NULL OR ARH.SerialNum LIKE '%' + @SerialNum       + '%')
-            AND (@ColumnSerialNum IS NULL OR ARH.SerialNum LIKE '%' + @ColumnSerialNum + '%')
-            AND (@ATACode           IS NULL OR CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) LIKE '%' + @ATACode + '%')
-            AND (@DateInstalled     IS NULL OR CAST(AIPD.DateInstalled          AS DATE) = @DateInstalled)
-            AND (@LastMaintenance   IS NULL OR CAST(ARH.LastMaintenanceDate     AS DATE) = @LastMaintenance)
-            AND (@NextMaintenance   IS NULL OR CAST(ARH.NextScheduled           AS DATE) = @NextMaintenance)
-            AND (@TotalTSN          IS NULL OR ARH.TotalTSN      = @TotalTSN)
-            AND (@TotalCSN          IS NULL OR ARH.TotalCSN      = @TotalCSN)
-            AND (@Hobbs             IS NULL OR ARH.Hobbs         = @Hobbs)
-            AND (@FlightHours       IS NULL OR CAST([AIPD].[FlightHours]  AS VARCHAR) LIKE '%' + @FlightHours + '%' OR CAST([AIPD].[FlightMinutes]  AS VARCHAR) LIKE '%' + @FlightHours + '%')
-            AND (@Cycles            IS NULL OR AIPD.Cycles       = @Cycles)
+    ),
+    Result AS (
+        SELECT * FROM Base
+        WHERE (@ItemMasterId      IS NULL OR @ItemMasterId = 0  OR ItemMasterId = @ItemMasterId)
+            AND (@PartDescription   IS NULL OR PartDescription LIKE '%' + @PartDescription + '%')
+            AND (@ACTailNum         IS NULL OR ACTailNum          LIKE '%' + @ACTailNum       + '%')
+            AND (@MakeType          IS NULL OR MakeType         LIKE '%' + @MakeType        + '%')
+            AND (@AircraftModel     IS NULL OR AircraftModel    LIKE '%' + @AircraftModel   + '%')
+            AND (@SerialNum       IS NULL OR SerialNum LIKE '%' + @SerialNum       + '%')
+            AND (@ColumnSerialNum IS NULL OR SerialNum LIKE '%' + @ColumnSerialNum + '%')
+            AND (@ATACode           IS NULL OR ATACode LIKE '%' + @ATACode + '%')
+            AND (@DateInstalled     IS NULL OR CAST(DateInstalled          AS DATE) = @DateInstalled)
+            AND (@LastMaintenance   IS NULL OR CAST(LastMaintenance     AS DATE) = @LastMaintenance)
+            AND (@NextMaintenance   IS NULL OR CAST(NextMaintenance           AS DATE) = @NextMaintenance)
+            AND (@TotalTSN          IS NULL OR TotalTSN      = @TotalTSN)
+            AND (@TotalCSN          IS NULL OR TotalCSN      = @TotalCSN)
+            AND (@Hobbs             IS NULL OR Hobbs         = @Hobbs)
+            AND (@FlightHours       IS NULL OR CAST(RawFlightHours  AS VARCHAR) LIKE '%' + @FlightHours + '%' OR CAST(RawFlightMinutes  AS VARCHAR) LIKE '%' + @FlightHours + '%')
+            AND (@Cycles            IS NULL OR Cycles       = @Cycles)
     ),
     TotalCounted AS (
         SELECT COUNT(1) AS TotalCount FROM Result

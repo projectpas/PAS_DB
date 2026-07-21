@@ -4746,6 +4746,8 @@
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssets.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

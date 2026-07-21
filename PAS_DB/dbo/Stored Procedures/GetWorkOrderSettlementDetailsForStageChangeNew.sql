@@ -272,7 +272,7 @@ BEGIN
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
 					LEFT JOIN Combined c ON c.[WorkFlowWorkOrderId] = wosd.[WorkFlowWorkOrderId] AND c.[workOrderPartNoId] = wosd.[workOrderPartNoId]
-					LEFT JOIN [dbo].[ItemMaster] IM ON IM.[ItemMasterId] = wosd.[RevisedPartId]
+					LEFT JOIN [dbo].[ItemMaster] IM ON IM.[ItemMasterId] = wosd.[RevisedPartId] AND ISNULL(IM.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
 					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]	

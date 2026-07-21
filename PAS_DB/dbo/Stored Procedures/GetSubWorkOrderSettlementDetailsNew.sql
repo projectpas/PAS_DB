@@ -191,8 +191,8 @@ BEGIN
 					LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
 					LEFT JOIN Combined c ON c.[SubWOPartNoId] = wosd.[SubWOPartNoId]
 					LEFT JOIN [dbo].[SubWorkOrderPartNumber] sop WITH(NOLOCK) ON sop.[SubWOPartNoId] = wosd.[SubWOPartNoId]
-					LEFT JOIN [dbo].[ItemMaster] Im WITH(NOLOCK) ON sop.[ItemMasterId] = Im.[ItemMasterId]
-					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = wosd.[RevisedItemmasterid]
+					LEFT JOIN [dbo].[ItemMaster] Im WITH(NOLOCK) ON sop.[ItemMasterId] = Im.[ItemMasterId] AND ISNULL(Im.IsNonStock,0) = 0
+					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = wosd.[RevisedItemmasterid] AND ISNULL(IMR.IsNonStock,0) = 0
 				WHERE wosd.[WorkOrderId] = @WorkorderId and wosd.[SubWorkOrderId] = @SubWorkOrderId
 
 				DECLARE @cols NVARCHAR(MAX) = N'';

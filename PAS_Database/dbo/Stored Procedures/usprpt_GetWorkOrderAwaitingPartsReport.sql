@@ -17,7 +17,7 @@
  ** --   ---------------  --------------------------------
 	1	22-10-2024		Abhishek Jirawla	CREATED  
 	2	15-06-2026	    Priyansh Patel      uom changes related to quantity field [PN-16829]
-	3	09-07-2026	    Priyansh Patel      uom changes removed the conversion due to stock uom return required [PN-16829] 
+	3	20-07-2026	    Priyansh Patel      uom changes removed the conversion due to stock uom return required and added uom conversion for po data [PN-16829] 
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
@@ -211,7 +211,7 @@ BEGIN TRANSACTION
 		MPNData.conditionId 'conditionId',
 		MPNData.condition 'condition',
 		UPPER(IMWOM.ManufacturerName) 'manufacturer',
-		UPPER(IMWOM.ConsumeUnitOfMeasure) 'uom',
+		UPPER(IMWOM.StockUnitOfMeasure) 'uom',
 		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
@@ -367,15 +367,20 @@ BEGIN TRANSACTION
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
 		APD.ConditionId,
-		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+		dbo.fn_ConvertUOM(SUM(ISNULL(POP.QuantityBackOrdered, 0)), IMWOM.PurchaseUnitOfMeasure, IMWOM.StockUnitOfMeasure, 0, IMWOM.MasterCompanyId) AS Backlog
+
 	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
 		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
 		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+		INNER JOIN DBO.ItemMaster IMWOM WITH (NOLOCK) ON IMWOM.ItemMasterId = POP.ItemMasterId
 	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId
 	GROUP BY 
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
-		APD.ConditionId
+		APD.ConditionId,
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.PurchaseUnitOfMeasure,
+		IMWOM.MasterCompanyId
 	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 	INSERT INTO #AwaitingPartsData
@@ -393,7 +398,7 @@ BEGIN TRANSACTION
 		MPNData.conditionId 'conditionId',
 		MPNData.condition 'condition',
 		UPPER(IMWOM.ManufacturerName) 'manufacturer',
-		UPPER(IMWOM.ConsumeUnitOfMeasure) 'uom',
+		UPPER(IMWOM.StockUnitOfMeasure) 'uom',
 		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
@@ -551,15 +556,19 @@ BEGIN TRANSACTION
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
 		APD.ConditionId,
-		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+		dbo.fn_ConvertUOM(SUM(ISNULL(POP.QuantityBackOrdered, 0)), IMWOM.PurchaseUnitOfMeasure, IMWOM.StockUnitOfMeasure, 0, IMWOM.MasterCompanyId) AS Backlog
 	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
 		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
 		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+		INNER JOIN DBO.ItemMaster IMWOM WITH (NOLOCK) ON IMWOM.ItemMasterId = POP.ItemMasterId
 	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId AND APD.isKitType = 1
 	GROUP BY 
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
-		APD.ConditionId
+		APD.ConditionId,
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.PurchaseUnitOfMeasure,
+		IMWOM.MasterCompanyId
 	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 

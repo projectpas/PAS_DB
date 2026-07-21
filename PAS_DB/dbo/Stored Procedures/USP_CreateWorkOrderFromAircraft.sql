@@ -19,6 +19,7 @@
 	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatusId Fields [PN-16897]
 	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
 	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
+	10   20/July/2026	Amit Ghediya		Get properly serial num & registor num
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -55,7 +56,18 @@ BEGIN
 			DECLARE  @ExternalCustomerType VARCHAR(50) = 'External'
 			DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0,@ModuleEnumCustomer INT=1
 			DECLARE @WorkOrderNum VARCHAR(30)
-			DECLARE @WorkSheetStatusId INT = 2;			
+			DECLARE @WorkSheetStatusId INT = 2;		
+			DECLARE @IsFromAircraft BIT = 0;
+
+			IF(ISNULL(@AircraftInstalledPartDetailsId,0) > 0)
+			BEGIN
+				SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftInstalledPartDetails] WITH(NOLOCK) WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+			END
+
+			IF(ISNULL(@ProgramId,0) > 0)
+			BEGIN
+				SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftMaintenanceProgram] WITH(NOLOCK) WHERE [ProgramId] = @ProgramId;
+			END
 
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 			IF(ISNULL(@CustomerId,0) = 0)
@@ -159,11 +171,18 @@ BEGIN
 			FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0;
+			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 ;
 						
 			SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId);
 
-			SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+			IF(ISNULL(@IsFromAircraft,0) = 1)
+			BEGIN
+				 SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+			END
+			ELSE
+			BEGIN
+				 SELECT @ACTailNum = [EngineName], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [EngineRegistryNumber] FROM [dbo].[EngineRegistryHeader] WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId
+			ENd
 			
 			SET @TATDaysCurrent = DATEDIFF(DAY, @ReceivedDate, GETUTCDATE())
 			DECLARE @tbl_Parts WorkOrderMPNType;
@@ -263,7 +282,7 @@ BEGIN
 				@ItemMasterId,          -- [MasterPartId]                bigint
 				@Notes,                 -- [Notes]                       nvarchar(max)
 				@AircraftRegistryNumber,-- [AircraftRegistryNumber]      varchar(30)
-				1,                      -- [IsFromAircraft]              bit
+				@IsFromAircraft,                      -- [IsFromAircraft]              bit
 				@AircraftInstalledPartDetailsId,                   -- [AircraftInstalledPartDetailsId] bigint
 				@AirCraftSerialNumber,           -- [AircraftSerialNumber]        varchar(100)
 				@AircraftRegistryId,                   -- [AircraftRegistryId]          bigint

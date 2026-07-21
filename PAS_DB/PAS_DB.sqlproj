@@ -4746,6 +4746,15 @@
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssets.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderSettlementDetailsUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\SubWorkOrderSettlementDetailType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

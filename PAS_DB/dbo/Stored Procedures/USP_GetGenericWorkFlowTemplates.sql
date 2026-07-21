@@ -15,7 +15,6 @@ EXEC [USP_GetGenericWorkFlowTemplates]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetGenericWorkFlowTemplates]
 (
-    @WorkScopeId BIGINT,
     @MasterCompanyId INT
 )
 AS
@@ -37,8 +36,7 @@ BEGIN
         LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON w.ItemMasterId = im.ItemMasterId
         LEFT JOIN (SELECT WorkflowId, COUNT(DISTINCT TaskId) AS TaskCount FROM dbo.WorkflowTask WITH (NOLOCK) WHERE ISNULL(IsDeleted, 0) = 0 GROUP BY WorkflowId) wt
             ON w.WorkflowId = wt.WorkflowId
-        WHERE w.WorkScopeId = @WorkScopeId
-            AND w.MasterCompanyId = @MasterCompanyId
+        WHERE w.MasterCompanyId = @MasterCompanyId
             AND w.IsActive = 1
             AND ISNULL(w.IsDeleted, 0) = 0
             AND w.ItemMasterId IS NULL -- Only Generic WO Templates
@@ -49,7 +47,7 @@ BEGIN
     BEGIN CATCH
         DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name();
         DECLARE @AdhocComments VARCHAR(150) = 'USP_GetGenericWorkFlowTemplates';
-        DECLARE @ProcedureParameters VARCHAR(3000) = '@WorkScopeId = ' + CAST(ISNULL(@WorkScopeId, '') AS VARCHAR(100));
+        DECLARE @ProcedureParameters VARCHAR(3000) = '@MasterCompanyId = ' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100));
         EXEC spLogException @DatabaseName = @DatabaseName, @AdhocComments = @AdhocComments, @ProcedureParameters = @ProcedureParameters, @ApplicationName = 'PAS', @ErrorLogID = @ErrorLogID OUTPUT;
         RAISERROR ('Unexpected Error Occured in the database.', 16, 1);
     END CATCH

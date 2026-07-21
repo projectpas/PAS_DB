@@ -16,13 +16,16 @@
 	5    10-JUL-2026		Divyesh Kathiriya	Return "All" as CategoryType when @CategoryId is 0. [PN-17218]
 	6    13-JUL-2026		Divyesh Kathiriya	Remove "All" as CategoryType And Add [CategoryId] And [StartDate]. [PN-17218]
 	7    15-JUL-2026		Divyesh Kathiriya	Handle Null For [Provider] And [TrainingName]. [PN-17269]
-    8    16-Jul-2026        Bhargav Saliya       Get Duration with perfect formate (PN-17311)
- -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 260, @MasterCompanyId = 1, @CategoryId = 0
+    8    16-Jul-2026        Bhargav Saliya      Get Duration with perfect formate (PN-17311)
+	9    20-Jul-2026		Divyesh Kathiriya   Added @EmployeeTrainingIds [PN-17270]
+
+ -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 260, @MasterCompanyId = 1, @CategoryId = 0, @EmployeeTrainingIds = '44,45'
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
 @MasterCompanyId BIGINT,
-@CategoryId BIGINT
+@CategoryId BIGINT,
+@EmployeeTrainingIds VARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -53,7 +56,13 @@ BEGIN
 			ET.[EmployeeId] = @EmployeeId
 			AND ET.[MasterCompanyId] = @MasterCompanyId
 			AND ET.[IsDeleted] = 0
-			AND (ISNULL(@CategoryId,0) = 0 OR ET.CategoryId = @CategoryId)
+			AND (ISNULL(@EmployeeTrainingIds, '') NOT IN ('', '0') OR ISNULL(@CategoryId, 0) = 0 OR ET.[CategoryId] = @CategoryId)
+			AND (ISNULL(@EmployeeTrainingIds, '') IN ('', '0') OR ET.[EmployeeTrainingId] IN
+				(
+					SELECT TRY_CAST(Item AS BIGINT)
+					FROM [DBO].[SPLITSTRING](@EmployeeTrainingIds, ',')
+					WHERE TRY_CAST(Item AS BIGINT) IS NOT NULL
+				))
 		ORDER BY 
 			ET.[EmployeeTrainingId] DESC;
 			

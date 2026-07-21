@@ -43,6 +43,8 @@
 **                                      AircraftEffectivitySerialDetail criteria match this aircraft --
 **                                      aircraft-linked records only, NULL for engine-linked rows)
 ** 18   14/07/2026	 Amit Ghediya	    Added @ApplicableSbAd,@WoStatus filter [PN-17161]
+** 19   20/07/2026	 Amit Ghediya	    Added @ACSection for aircrfat type
+** 20   21/07/2026   Kishor Makwana     [PN-17374] Update TimeLimit and TimeRemaining columd data with caption days or Mth 
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -163,7 +165,9 @@ BEGIN
                 FH.FlightHoursRemaining,
                 -- Limits
                 AMP.CyclesLimit,
-                AMP.TimeLimit,
+                CASE WHEN AMP.FlightHoursLimitMonthsOrDays = 1 THEN CAST(AMP.TimeLimit AS VARCHAR(20)) + ' Mths'
+				WHEN AMP.FlightHoursLimitMonthsOrDays = 2 THEN CAST(AMP.TimeLimit AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS TimeLimit,
                 AMP.LandingsLimit,
                 AMP.EngineStartsLimit,
                 -- Recorded
@@ -173,7 +177,7 @@ BEGIN
                 AMP.EngineStartsRecorded,
                 -- Remaining
                 CASE WHEN AMP.CyclesRemaining > 0 THEN AMP.CyclesRemaining ELSE NULL END AS CyclesRemaining,
-                AMP.TimeRemaining,
+                CAST(AMP.TimeRemaining AS VARCHAR(20)) + ' Days' AS TimeRemaining,
                 AMP.LandingsRemaining,
                 AMP.EngineStartsRemaining,
                 AMP.IsScheduled,

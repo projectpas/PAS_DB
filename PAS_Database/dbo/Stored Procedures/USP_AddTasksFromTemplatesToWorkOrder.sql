@@ -177,6 +177,7 @@ BEGIN
                     WHERE wfm.WorkflowId = @WfId 
                       AND wfm.TaskId = @TskId 
                       AND ISNULL(wfm.IsDeleted, 0) = 0
+                      AND ISNULL(im.IsNonStock, 0) = 0
                       AND NOT (
                           (@IsDER = 1 AND @IsPMA = 1 AND (ISNULL(im.IsDER, 0) = 1 OR ISNULL(im.IsPMA, 0) = 1)) OR
                           (@IsDER = 0 AND @IsPMA = 1 AND ISNULL(im.IsPMA, 0) = 1) OR

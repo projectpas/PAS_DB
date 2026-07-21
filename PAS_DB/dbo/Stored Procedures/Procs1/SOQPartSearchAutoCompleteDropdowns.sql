@@ -52,6 +52,9 @@
 										 already restricts to ItemTypeId = 1 / ISNULL(IsNonStock,0) = 0 everywhere), so the
 										 PN search dropdown behind api/ItemMaster/searchpartnumberadvancednew shows the type
 										 suffix consistently with the other AutoComplete dropdowns.
+	6    16/July/2026				 RAJESH GAMI						[PN-17350] - Allow Non-Stock parts in this PN search (removed ItemTypeId=1 / IsNonStock=0
+										 filters from all 8 blocks); added ItemType ('Stock'/'Non-Stock') output column; Label
+										 suffix is now conditional (Stock)/(Non-Stock) instead of always (Stock).
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -82,7 +85,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 					Label VARCHAR(Max),
 					PartDescription VARCHAR(MAX),
 					ManufacturerName VARCHAR(MAX),
-					StockType VARCHAR(50))
+					StockType VARCHAR(50),
+					ItemType VARCHAR(20))
 
 		IF OBJECT_ID(N'tempdb..#Result') IS NOT NULL
 		BEGIN
@@ -95,146 +99,143 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 						Label VARCHAR(MAX),
 						PartDescription VARCHAR(MAX),
 						ManufacturerName VARCHAR(MAX),
-						StockType VARCHAR(50))
+						StockType VARCHAR(50),
+						ItemType VARCHAR(20))
 
 		--- FOR OEM
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
-		 AND ISNULL(im.IsNonStock,0) = 0
 		 IF( @CustRestrictedPMA <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-         AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
 		--FOR DER
 		IF( @CustRestrictedDer <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1
-         AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
 		IF( @IncludePMA = 1)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-		 AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
 		IF( @IncludeDER = 1)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1
-		 AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
 		 --Adding PMA Except Parts
-		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON im.ManufacturerId = M.ManufacturerId
 			INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON
@@ -246,24 +247,23 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 							AND rpDER.IsDeleted = 0
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
 
 		--Adding DER Except Parts
-		 AND ISNULL(im.IsNonStock,0) = 0
-		 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName AS ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
+			END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON im.ManufacturerId = M.ManufacturerId
 			INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON
@@ -275,11 +275,9 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 							AND rpDER.IsDeleted = 0
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
 
-		 AND ISNULL(im.IsNonStock,0) = 0
 			 INSERT INTO #Result
 				SELECT
 				DISTINCT TOP 50 *
@@ -288,22 +286,22 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 
 		IF(@Idlist IS NOT NULL)
 		BEGIN
-			INSERT INTO #Result(PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+			INSERT INTO #Result(PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 			SELECT DISTINCT
 					im.ItemMasterId AS PartId,
 					im.partnumber AS PartNumber,
-					(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+					(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END)) AS Label,
 					im.PartDescription AS PartDescription,
 					im.ManufacturerName AS ManufacturerName,
 					(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 					WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 					WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 					ELSE 'OEM'
-					END) AS StockType
+					END) AS StockType,
+			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
 		SELECT DISTINCT TOP 50 r.PartId,
@@ -311,6 +309,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			r.PartDescription,
 			r.ManufacturerName,
 			r.StockType,
+			r.ItemType,
 			r.Label
 			FROM #Result r
 

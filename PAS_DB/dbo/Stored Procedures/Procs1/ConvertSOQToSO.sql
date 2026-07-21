@@ -33,6 +33,7 @@
 	16   17/JUN/2026  AMIT GHEDIYA	    Save ContractReference data move soq to so [PN-16119] 
 	17   19/JUN/2026  AMIT GHEDIYA	    Save [SourceBy],[MarketplaceRef] data move soq to so [PN-16922]
 	18   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	19   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
 	
 declare @p13 bigint
 set @p13=NULL
@@ -101,7 +102,7 @@ BEGIN
 			ON part.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
 	LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 	LEFT JOIN DBO.SalesOrderQuotePartCost partc WITH (NOLOCK) ON partc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-	LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+	LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
 	WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0)
 	,SalesOrderQuoteAnalysisData AS (
 		SELECT NetSales, Misc FROM SalesOrderQuoteAnalysisView WHERE SalesOrderQuoteId = @SalesOrderQuoteId
@@ -384,7 +385,7 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
-					WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+					WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId;
 					--SOP.SalesOrderPartId = @CurrentSOPartId;
 
 					SELECT @InsertedReservePartId = SCOPE_IDENTITY();
@@ -396,14 +397,14 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
-					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
 
 					UPDATE SOPSTK
 					SET SOPSTK.StatusId = CASE WHEN (SOPSTK.QtyOrder = SOPSTK.QtyReserved) THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
-					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId AND ISNULL(Stk.IsNonStock,0) = 0;
+					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
 
 					Update DBO.SalesOrderPartV1 
 					SET StatusId = CASE WHEN QtyOrder = QtyReserved THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END

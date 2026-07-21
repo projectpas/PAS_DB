@@ -17,6 +17,7 @@
     1    07/11/2025   Ekta Chandegra     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
      
   EXEC USP_GetExchangeQuotePartView @ExchangeQuoteId = 113
 
@@ -86,12 +87,12 @@ BEGIN
 
 			im.ManufacturerName
 		FROM [dbo].[ExchangeQuotePart] part WITH(NOLOCK)
-		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON part.ConditionId = cond.ConditionId
 		INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
 		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
+		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0 ;
 
 		-------------------------------
 		-- 2. Retrieve ExchangeQuoteScheduleBilling details

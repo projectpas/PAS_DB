@@ -13,6 +13,7 @@
 	1	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[sp_GetExchangePickTicketApproveList]
@@ -30,7 +31,7 @@ BEGIN
 		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) 
 		INNER JOIN SalesOrderPartV1 sp WITH(NOLOCK) ON sp.SalesOrderId = @ExchangeSalesOrderId
 		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.StockLineId = sll.StockLineId 
-		AND sll.ItemMasterId = sop.ItemMasterId Where sp.SalesOrderId = @ExchangeSalesOrderId AND ISNULL(sll.IsNonStock,0) = 0) AS QuantityAvailable,
+		AND sll.ItemMasterId = sop.ItemMasterId Where sp.SalesOrderId = @ExchangeSalesOrderId) AS QuantityAvailable,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber 
 		,SUM(ISNULL(sopt.QtyToShip,0))as QtyToShip,
 		((SELECT TOP 1 QtyQuoted FROM ExchangeSalesOrderPart WITH(NOLOCK) Where ExchangeSalesOrderId = @ExchangeSalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
@@ -44,7 +45,7 @@ BEGIN
 		,CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN  v.VendorCode ELSE cr.CustomerCode END AS CustomerCode
 		from dbo.ExchangeSalesOrderPart sop WITH (NOLOCK)
 		INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN ExchangeSalesOrder so  WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 		LEFT JOIN ExchangeQuote soq WITH (NOLOCK) on soq.ExchangeQuoteId = sop.ExchangeQuoteId
 		LEFT JOIN ExchangeSOPickTicket sopt  WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId and sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
@@ -54,7 +55,6 @@ BEGIN
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId  AND ISNULL(SO.IsVendor,0) = 0
 		LEFT JOIN Vendor v WITH(NOLOCK) on so.CustomerId = v.VendorId AND ISNULL(SO.IsVendor,0) = 1
 		where sop.ExchangeSalesOrderId=@ExchangeSalesOrderId AND (sor.QtyToReserve > 0 OR sopt.ExchangeSalesOrderPartId IS NOT NULL)
-		 AND ISNULL(imt.IsNonStock,0) = 0
 		 group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId,SO.IsVendor,v.VendorName,v.VendorCode

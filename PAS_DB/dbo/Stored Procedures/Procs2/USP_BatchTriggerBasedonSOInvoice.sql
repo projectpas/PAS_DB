@@ -23,6 +23,7 @@
 	4	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
 	5    07-07-2025  Moin Bloch        Changed Old To New Billing Table
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter on ItemMaster lookup so Non-Stock part number resolves correctly for SO invoice GL journal creation.
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
 ************************************************************************/
@@ -130,7 +131,6 @@ BEGIN
 					  SET @partId = @ReferencePartId;
 	                  select @ItemmasterId=ItemMasterId from SalesOrderPartV1 WITH(NOLOCK)  where SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	                   select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
 					  select @StocklineNumber=StockLineNumber from Stockline  where StockLineId=@StockLineId
 					  select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK) 

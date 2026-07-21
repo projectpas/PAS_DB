@@ -22,6 +22,7 @@
 	5   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
 	6   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes)
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock invoice lines are included in the QuickBooks Exchange SO invoice sync payload.
      
  EXECUTE [QuickBooks_GetSyncPendingExChangeInvoiceList] 1, 1, 136, 0
 **************************************************************/ 
@@ -184,7 +185,6 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0
 					 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
@@ -265,7 +265,6 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0
 					 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId

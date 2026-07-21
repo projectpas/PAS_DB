@@ -25,6 +25,7 @@
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
@@ -43,7 +44,7 @@ BEGIN
 			Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
 		'' AS SerialNumber, 
 		(SELECT SUM(QuantityAvailable) FROM DBO.StockLine sll WITH(NOLOCK) 
-		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId AND ISNULL(sll.IsNonStock,0) = 0) AS QuantityAvailable,
+		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId) AS QuantityAvailable,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,
 		(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
@@ -113,7 +114,7 @@ BEGIN
 		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
 		LEFT JOIN DBO.SalesOrderStockLineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN DBO.SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 		LEFT JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
@@ -126,7 +127,6 @@ BEGIN
           AND sao.SalesOrderPartId = sop.SalesOrderPartId
           AND sao.ApprovalActionId = 5
         )
-		 AND ISNULL(imt.IsNonStock,0) = 0
          group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId

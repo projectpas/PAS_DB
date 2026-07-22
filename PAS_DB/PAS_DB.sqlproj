@@ -4761,6 +4761,7 @@
     <Build Include="dbo\User Defined Types\SubWorkOrderSettlementDetailType.sql" />
     <Build Include="dbo\Tables\AISettingMaster.sql" />
     <Build Include="dbo\Tables\AIChatMessages.sql" />
+    <Build Include="dbo\Tables\DeprNonDeprTangibleAssetsAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

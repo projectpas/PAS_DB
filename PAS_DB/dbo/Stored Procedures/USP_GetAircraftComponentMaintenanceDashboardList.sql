@@ -312,7 +312,7 @@ BEGIN
             Grouped AS
             (
                 SELECT *, ROW_NUMBER() OVER (
-                    PARTITION BY pnNum,acTailNum,acMake, mtceType
+                    PARTITION BY acTailNum,acMake, mtceType,pnNum,pnDescription, CAST(lastMtced AS DATE)
                     ORDER BY RemainingFlightHoursHours DESC, RemainingFlightHoursMinutes DESC
                 ) AS rn
                 FROM Filtered

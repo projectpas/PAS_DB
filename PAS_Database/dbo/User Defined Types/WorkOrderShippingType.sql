@@ -63,7 +63,7 @@
     [soldAttention]                      VARCHAR (100)   NULL,
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
-    [NoOfItems]                          INT             NULL,
+    [NoOfItems]                          DECIMAL (18, 6) NULL,
     [IsCustomerShipping]                 BIT             NULL,
     [IsManualShipping]                   BIT             NULL,
     [ManufactureCountryId]               INT             NULL,

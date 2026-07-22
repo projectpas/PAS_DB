@@ -53,6 +53,7 @@
 	36	 13/03/2025	  Vishal Suthar		Fixed issue with duplicate records when no invoice is created and only proforma was created
 	37	 03/04/2025	  Vishal Suthar		Fixed issue with Freight and Charges not populating on revised billing
 	38   07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	39   21-07-2025   Ayushi Patel      [PN-17375]UOM changes
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
@@ -115,7 +116,7 @@ BEGIN
 			InvoiceNo [VARCHAR](250)  NULL,
 			InvoiceTypeId [BIGINT] NULL,
 			SOShippingNum [VARCHAR](250)  NULL,
-			QtyToBill [INT]  NULL,
+			QtyToBill [decimal](18,6)  NULL,
 			SalesOrderNumber [VARCHAR](250)  NULL,
 			partnumber [VARCHAR](250) NOT NULL,
 			ItemMasterId [BIGINT] NOT NULL,
@@ -125,26 +126,26 @@ BEGIN
 			SerialNumber  [VARCHAR](250)  NULL,
 			CustomerName [VARCHAR](250)  NULL,
 			StockLineId [BIGINT]  NULL,
-			QtyBilled [INT]  NULL,
+			QtyBilled [decimal](18,6)  NULL,
 			ItemNo [INT]  NULL,
 			SalesOrderId [BIGINT]  NULL,
 			SalesOrderPartId [BIGINT]  NULL,
 			SalesOrderStocklineId [BIGINT] NULL,
 			Condition [VARCHAR](250)  NULL,
 			CurrencyCode [VARCHAR](100)  NULL,
-			TotalSales [decimal](18,2) NULL,   
-			TotalUnitCost [decimal](18,2) NULL,  
-			TotalFreight [decimal](18,2) NULL,  
-			TotalFlatFreight [decimal](18,2) NULL,   
-			TotalCharges [decimal](18,2) NULL,  
-			TotalFlatCharges [decimal](18,2) NULL, 
+			TotalSales [decimal](18,6) NULL,   
+			TotalUnitCost [decimal](18,6) NULL,  
+			TotalFreight [decimal](18,6) NULL,  
+			TotalFlatFreight [decimal](18,6) NULL,   
+			TotalCharges [decimal](18,6) NULL,  
+			TotalFlatCharges [decimal](18,6) NULL, 
 			InvoiceStatus [VARCHAR](250)  NULL,
 			SmentNo [VARCHAR](250)  NULL,
 			VersionNo [VARCHAR](250)  NULL,
 			IsVersionIncrease [INT]  NULL,
 			IsNewInvoice [INT]  NULL,
 			IsProforma [BIT] NULL,
-			DepositAmount [DECIMAL](18,2) NULL,
+			DepositAmount [DECIMAL](18,6) NULL,
 			IsAllowIncreaseVersionForBillItem [BIT] NULL,
 			[IsBilling] [bit] NULL,
 			ECCN [VARCHAR](200)  NULL,

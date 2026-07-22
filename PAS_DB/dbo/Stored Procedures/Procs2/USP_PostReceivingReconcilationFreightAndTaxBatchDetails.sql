@@ -19,6 +19,7 @@
 	7    08/06/2026   Moin Bloch    Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
 	8	 29/06/2026	  Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	9    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10   20/July/2026   RAJESH GAMI    [PN-17350] - Converted legacy dbo.NonStockInventory GL-account/quantity lookups in the NONSTOCK branch to dbo.Stockline with ISNULL(SL.IsNonStock,0)=1
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -241,9 +242,9 @@ BEGIN
 								   @StkMatchGlAccountId = SL.[GLAccountId],
 								   @StkGlAccountNumber = GL.[AccountCode],
 								   @StkGlAccountName = GL.[AccountName] 						
-							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE [NonStockInventoryId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 						END
 						ELSE
 						BEGIN
@@ -251,9 +252,9 @@ BEGIN
 								   @StkGlAccountId = SL.[GLAccountId],
 								   @StkGlAccountNumber = GL.[AccountCode],
 								   @StkGlAccountName = GL.[AccountName] 						
-							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE [NonStockInventoryId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 						END
   					END
 					IF(UPPER(@StockType) = 'ASSET')

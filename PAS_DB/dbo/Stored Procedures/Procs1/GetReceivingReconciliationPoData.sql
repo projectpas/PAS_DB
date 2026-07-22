@@ -27,6 +27,7 @@
 	15   09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	16   21/July/2026   RAJESH GAMI	[PN-17271] - Remove IsNonStock = 0 condition for the PurchaseOrder as we have to allow both 
 	17   20/July/2026   RAJESH GAMI	[PN-17271] - Remove IsNonStock = 0 condition from all 4 Repair Order (RO) branches (mirroring the PO branches' fix above) so Non-Stock RO stocklines are returned too, not just Stock. Left the legacy NonStockInventory PO branches untouched (unreachable/inert dead code post-merge, safer to leave as-is for now).
+	18   20/July/2026   RAJESH GAMI	[PN-17350] - Removed the 4 dead PO Non-Stock UNION branches (dbo.NonStockInventory/NonStockInventoryDraft) from the not-Multiple and Multiple Type=1 sections; the adjacent PO Stock branches already return non-stock rows unfiltered post PN-17271, making these branches unreachable duplicates.
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPoData]
@@ -112,78 +113,6 @@ BEGIN
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
-				UNION
-			
-				SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber,
-					stk.NonStockInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNumber,
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					-- stkdf.QuantityOnHand AS 'ReceivedQty',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
-					stk.RRQty AS 'InvoicedQty',
-					stk.UnitCost AS 'InvoicedUnitCost',
-					(stk.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'NONSTOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
-					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
-					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId 
-					AND pop.PurchaseOrderPartRecordId=CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
-					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)),0) = 0			
-				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-		
-				UNION ALL
-			
-				SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber, 
-					stk.NonStockInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNumber,
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					--stkdf.QuantityOnHand AS 'ReceivedQty',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
-					stk.RRQty AS 'InvoicedQty',
-					stk.UnitCost AS 'InvoicedUnitCost',
-					(stk.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'NONSTOCK' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
-					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
-					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId
-				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-					
 				UNION
 			
 				SELECT stk.InventoryNumber AS 'StockLineNumber',
@@ -467,78 +396,6 @@ BEGIN
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
-				UNION
-			
-				SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber,
-					stk.NonStockInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNumber,
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					-- stkdf.QuantityOnHand AS 'ReceivedQty',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
-					stk.RRQty AS 'InvoicedQty',
-					stk.UnitCost AS 'InvoicedUnitCost',
-					(stk.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'NONSTOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
-					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
-					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId 
-					--AND pop.PurchaseOrderPartRecordId=CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
-					--AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)),0) = 0			
-				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-		
-				UNION ALL
-			
-				SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber, 
-					stk.NonStockInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNumber,
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					--stkdf.QuantityOnHand AS 'ReceivedQty',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
-					stk.RRQty AS 'InvoicedQty',
-					stk.UnitCost AS 'InvoicedUnitCost',
-					(stk.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'NONSTOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
-					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
-					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId
-				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-					
 				UNION
 			
 				SELECT stk.InventoryNumber AS 'StockLineNumber',

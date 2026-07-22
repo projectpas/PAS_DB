@@ -10,6 +10,7 @@
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    14-09-2023     Ayesha Sultana       Get Non Stock Report data Asof Now
+    2    20/July/2026     RAJESH GAMI          [PN-17350] - Eliminated legacy ItemMasterNonStock/NonStockInventory references; report now reads ItemMaster/Stockline filtered to IsNonStock = 1
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetNonStockReportAsOfNow] 
@@ -78,10 +79,10 @@ BEGIN
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
 		  SELECT @PageSize=COUNT(*)
-		  FROM DBO.NonStockInventory stl WITH (NOLOCK)
-			INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.NonStockInventoryId
+		  FROM DBO.Stockline stl WITH (NOLOCK)
+			INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT OUTER JOIN DBO.ItemMasterNonStock im WITH (NOLOCK) ON stl.MasterPartId = im.MasterPartId
+			LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 			LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId
 			LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
 			LEFT OUTER JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid
@@ -98,7 +99,8 @@ BEGIN
 			AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))	
+			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+			AND ISNULL(stl.IsNonStock,0) = 1
 		 END
 	  
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
@@ -111,7 +113,7 @@ BEGIN
         UPPER(im.partnumber) AS 'pn',
         UPPER(im.PartDescription) AS 'pndescription',
         UPPER(stl.SerialNumber) 'sernum',
-        UPPER(stl.NonStockInventoryNumber) 'nonstockinventorynumber',
+        UPPER(stl.StockLineNumber) 'nonstockinventorynumber',
         UPPER(stl.condition) 'cond',
         UPPER(stl.unitofmeasure) 'uom',
         UPPER(POP.altequipartnumber) 'AltEquiv',
@@ -121,7 +123,7 @@ BEGIN
 		--FORMAT(stl.UnitCost , 'N', 'en-us') 'unitcost',
 		ISNULL(stl.UnitCost ,0) 'unitcost', 
 		--FORMAT(stl.ExtendedCost , 'N', 'en-us') 'extcost',
-		ISNULL(stl.ExtendedCost ,0) 'extcost', 
+		(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0)) 'extcost', 
         UPPER(stl.manufacturer) 'mfg',
 		FORMAT(stl.UnitCost , 'N', 'en-us') 'unitprice',
 		FORMAT(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 'N', 'en-us') 'extprice',
@@ -140,17 +142,17 @@ BEGIN
         UPPER(stl.location) 'Location',
         UPPER(stl.shelf) 'Shelf',
         UPPER(stl.bin) 'Bin',
-        UPPER(stl.GLAccount) 'glaccount',
+        UPPER(stl.GlAccountName) 'glaccount',
         UPPER(pox.PurchaseOrderNumber) 'ponum',
         UPPER(rox.RepairOrderNumber) 'ronum',
 		--FORMAT(stl.RepairOrderUnitCost , 'N', 'en-us') 'rocost',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'rcvddate', 
         UPPER(stl.ReceiverNumber) 'receivernum',
 		stl.MasterCompanyId
-      FROM DBO.NonStockInventory stl WITH (NOLOCK)
-	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.NonStockInventoryId
+      FROM DBO.Stockline stl WITH (NOLOCK)
+	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		LEFT OUTER JOIN DBO.ItemMasterNonStock im WITH (NOLOCK) ON stl.MasterPartId = im.MasterPartId
+		LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 		LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId
 		LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
 		LEFT OUTER JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid
@@ -168,6 +170,7 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+			AND ISNULL(stl.IsNonStock,0) = 1
 			)
 			,FinalCTE(TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, AltEquiv,
 				 vendorname, vendorcode, qtyonhand,unitcost,extcost,mfg,unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,

@@ -44,6 +44,8 @@
 **                                      AircraftEffectivitySerialDetail criteria match this aircraft --
 **                                      aircraft-linked records only, NULL for engine-linked rows)
 ** 18   14/07/2026	 Amit Ghediya	    Added @ApplicableSbAd,@WoStatus filter [PN-17161]
+** 19   20/07/2026	 Amit Ghediya	    Added @ACSection for aircrfat type
+** 20   21/07/2026   Kishor Makwana     [PN-17374] Update TimeLimit and TimeRemaining columd data with caption days or Mth 
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -92,7 +94,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @LastinspectedBy         VARCHAR(256)    = NULL,
     @IsFromAircraft          BIT             = NULL,
     @SequenceNo              BIGINT          = NULL,
-    @MaintanaceType          VARCHAR(256)    = NULL,
+    @ACSection               VARCHAR(256)    = NULL,
     @IsScheduled             BIT             = NULL,
 	@ApplicableSbAd          BIT             = NULL,
 	@WoStatus                VARCHAR(50)     = NULL
@@ -102,6 +104,11 @@ BEGIN
 
     BEGIN TRY
         DECLARE @ACTemplateType INT = 2;
+		DECLARE @AirframeCode VARCHAR(50);
+		DECLARE @EngineCode VARCHAR(50);
+
+		SELECT @AirframeCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'AIRFRAME';
+		SELECT @EngineCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'ENGINE';
 
         --------------------------------------------------------------------------------
         -- Normalize date filters to sargable half-open ranges [start, next day)
@@ -149,7 +156,7 @@ BEGIN
                 REG.AircraftMake,
                 REG.AircraftModel,
                 REG.SerialNumber,
-                REG.MaintanaceType,
+                REG.ACSection,
                 MC.[Name]                   AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
@@ -164,7 +171,9 @@ BEGIN
                 FH.FlightHoursRemaining,
                 -- Limits
                 AMP.CyclesLimit,
-                AMP.TimeLimit,
+                CASE WHEN AMP.FlightHoursLimitMonthsOrDays = 1 THEN CAST(AMP.TimeLimit AS VARCHAR(20)) + ' Mths'
+				WHEN AMP.FlightHoursLimitMonthsOrDays = 2 THEN CAST(AMP.TimeLimit AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS TimeLimit,
                 AMP.LandingsLimit,
                 AMP.EngineStartsLimit,
                 -- Recorded
@@ -174,7 +183,7 @@ BEGIN
                 AMP.EngineStartsRecorded,
                 -- Remaining
                 CASE WHEN AMP.CyclesRemaining > 0 THEN AMP.CyclesRemaining ELSE NULL END AS CyclesRemaining,
-                AMP.TimeRemaining,
+                CAST(AMP.TimeRemaining AS VARCHAR(20)) + ' Days' AS TimeRemaining,
                 AMP.LandingsRemaining,
                 AMP.EngineStartsRemaining,
                 AMP.IsScheduled,
@@ -218,7 +227,7 @@ BEGIN
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.AircraftModel  ELSE ERH.EngineModel    END AS AircraftModel,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.SerialNum      ELSE ERH.SerialNum      END AS SerialNumber,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ISNULL(ARH.StockLineId, 0) ELSE ISNULL(ERH.StockLineId, 0) END AS StockLineId,
-                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN 'AIRFRAME'         ELSE 'ENGINE'           END AS MaintanaceType
+                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END AS ACSection
             ) REG
             -- Format flight-hours strings ONCE; reused by both SELECT and filters
             CROSS APPLY (
@@ -284,7 +293,7 @@ BEGIN
                 AND (@AircraftMake    IS NULL OR REG.AircraftMake         LIKE '%' + @AircraftMake         + '%')
                 AND (@AircraftModel   IS NULL OR REG.AircraftModel        LIKE '%' + @AircraftModel        + '%')
                 AND (@SerialNumber    IS NULL OR REG.SerialNumber         LIKE '%' + @SerialNumber         + '%')
-                AND (@MaintanaceType  IS NULL OR REG.MaintanaceType       LIKE '%' + @MaintanaceType       + '%')
+                AND (@ACSection      IS NULL OR REG.ACSection       LIKE '%' + @ACSection           + '%')
                 AND (@MaintenanceType IS NULL OR AMP.MaintenanceType      LIKE '%' + @MaintenanceType      + '%')
                 AND (@TemplateId      IS NULL OR AMP.TemplateId = @TemplateId)
                 AND (@TemplateVersionNumber IS NULL OR AMP.TemplateVersionNumber LIKE '%' + @TemplateVersionNumber + '%')
@@ -326,7 +335,7 @@ BEGIN
             ProgramId, AircraftRegistryId, EngineRegistryId, AircraftRegistryNumber,
             VersionNumber, MaintenanceType, MaintenanceTypeId, NextScheduledMaintenance,
             TemplateId, TemplateIdNumber, TemplateVersionNumber,
-            TailNumber, AircraftMake, AircraftModel, SerialNumber, MaintanaceType,
+            TailNumber, AircraftMake, AircraftModel, SerialNumber, ACSection,
             MaintenanceClassName,
             FlightHoursLimitHours, FlightHoursLimitMinutes, FlightHoursLimitMonthsOrDays,
             FlightHoursRecordedHours, FlightHoursRecordedMinutes,
@@ -360,8 +369,8 @@ BEGIN
             CASE WHEN @SortColumn = 'AircraftModel'            AND @SortOrder = 'DESC' THEN AircraftModel END DESC,
             CASE WHEN @SortColumn = 'SerialNumber'             AND @SortOrder = 'ASC'  THEN SerialNumber END ASC,
             CASE WHEN @SortColumn = 'SerialNumber'             AND @SortOrder = 'DESC' THEN SerialNumber END DESC,
-            CASE WHEN @SortColumn = 'MaintanaceType'           AND @SortOrder = 'ASC'  THEN MaintanaceType END ASC,
-            CASE WHEN @SortColumn = 'MaintanaceType'           AND @SortOrder = 'DESC' THEN MaintanaceType END DESC,
+            CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'ASC'  THEN ACSection END ASC,
+            CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'DESC' THEN ACSection END DESC,
             CASE WHEN @SortColumn = 'MaintenanceType'          AND @SortOrder = 'ASC'  THEN MaintenanceType END ASC,
             CASE WHEN @SortColumn = 'MaintenanceType'          AND @SortOrder = 'DESC' THEN MaintenanceType END DESC,
             CASE WHEN @SortColumn = 'TemplateId'               AND @SortOrder = 'ASC'  THEN TemplateIdNumber END ASC,

@@ -36,7 +36,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
                                         same AircraftInstalledPartDetails / AircraftMaintenanceProgram update
                                         (and insert-if-missing) logic used for the aircraft onto each attached
                                         engine's own EngineRegistryId/IsFromAircraft=0 records. Aircraft-level
-                                        logic above is unchanged.
+                                        logic above is unchanged. [PN-16323]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
     @CycleData  NVARCHAR(MAX),
@@ -766,53 +766,15 @@ BEGIN
                   AND ISNULL(amp2.IsFromAircraft, 0) = 0
                   AND amp2.IsDeleted                 = 0
                   AND amp2.IsActive                  = 1
+                  AND amp2.NextScheduledMaintenance IS NOT NULL
+                  AND amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
                 ORDER BY
-                    -- upcoming scheduled first (soonest), then most recent as fallback
+                    -- upcoming scheduled first (soonest), then most recent dated as fallback
                     CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE) THEN 0 ELSE 1 END,
                     CASE WHEN amp2.NextScheduledMaintenance >= CAST(GETDATE() AS DATE)
                          THEN amp2.NextScheduledMaintenance END ASC,
                     amp2.NextScheduledMaintenance DESC,
                     amp2.ProgramId DESC
-            );
-
-        -- AircraftMaintenanceProgram — INSERT for any attached engine that has no program row yet
-        INSERT INTO dbo.AircraftMaintenanceProgram
-        (
-            TailNumber, AircraftMake, AircraftModel, SerialNumber,
-            MaintenanceType, TemplateId,
-            FlightHoursRecordedHours,
-            FlightHoursRecordedMinutes,
-            FlightHoursRemainingHours,
-            FlightHoursRemainingMinutes,
-            CyclesRemaining,
-            CyclesRecorded,
-            MasterCompanyId,
-            CreatedBy, UpdatedBy,
-            CreatedDate, UpdatedDate,
-            IsActive, IsDeleted,
-            AircraftRegistryId, EngineRegistryId, IsFromAircraft
-        )
-        SELECT
-            '', '', '', '',
-            '', 1,
-            FLOOR(ISNULL(ET.CumulativeHours,   0)),
-            FLOOR(ISNULL(ET.CumulativeMinutes, 0)) % 60,
-            NULL,
-            NULL,
-            NULL,
-            ISNULL(@Eng_CumulativeCycles, 0),
-            ET.MasterCompanyId,
-            ET.CreatedBy, ET.UpdatedBy,
-            GETUTCDATE(), GETUTCDATE(),
-            1, 0,
-            ET.EngineRegistryId, ET.EngineRegistryId, 0
-        FROM @EngineTable ET
-        WHERE ET.EngineRegistryId IS NOT NULL
-          AND NOT EXISTS (
-                SELECT 1 FROM dbo.AircraftMaintenanceProgram amp3 WITH(NOLOCK)
-                WHERE amp3.EngineRegistryId = ET.EngineRegistryId
-                  AND ISNULL(amp3.IsFromAircraft, 0) = 0
-                  AND amp3.IsDeleted = 0
             );
 
 		-----------------------Add LastFlownDate--------------------

@@ -1,7 +1,7 @@
-﻿CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
+CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
     [AircraftEngineStartsMappingsId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [AircraftCycleTimeMappingsId]    BIGINT          NULL,
-    [EngineRegistryId]               BIGINT          NOT NULL,
+    [EngineRegistryId]               BIGINT          NULL,
     [EngineName]                     VARCHAR (50)    NULL,
     [Hours]                          DECIMAL (18, 6) NULL,
     [CurruntHours]                   DECIMAL (18, 6) NULL,
@@ -13,16 +13,20 @@
     [MasterCompanyId]                INT             NOT NULL,
     [CreatedBy]                      VARCHAR (256)   NOT NULL,
     [UpdatedBy]                      VARCHAR (256)   NOT NULL,
-    [CreatedDate]                    DATETIME2 (7)   CONSTRAINT [DF__tmp_ms_xx__Creat__07534DF3] DEFAULT (getutcdate()) NOT NULL,
+    [CreatedDate]                    DATETIME2 (7)   DEFAULT (getutcdate()) NOT NULL,
     [UpdatedDate]                    DATETIME2 (7)   NOT NULL,
-    [IsActive]                       BIT             CONSTRAINT [DF__tmp_ms_xx__IsAct__0847722C] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]                      BIT             CONSTRAINT [DF__tmp_ms_xx__IsDel__093B9665] DEFAULT ((0)) NOT NULL,
+    [IsActive]                       BIT             DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                      BIT             DEFAULT ((0)) NOT NULL,
     [Minutes]                        DECIMAL (18, 6) NULL,
     [CurruntMinutes]                 DECIMAL (18, 6) NULL,
     [CumulativeMinutes]              DECIMAL (18, 6) NULL,
-    CONSTRAINT [PK__tmp_ms_x__23E8FB0BAD197607] PRIMARY KEY CLUSTERED ([AircraftEngineStartsMappingsId] ASC),
+    PRIMARY KEY CLUSTERED ([AircraftEngineStartsMappingsId] ASC),
     CONSTRAINT [FK_AircraftEngineStartsMappings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 

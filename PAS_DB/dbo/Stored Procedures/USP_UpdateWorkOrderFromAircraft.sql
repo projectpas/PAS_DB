@@ -20,6 +20,7 @@
 	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
 	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
 	9   01/July/2026	RAJESH GAMI			[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   20/July/2026	Amit Ghediya		Get properly serial num & registor num
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
@@ -52,6 +53,7 @@ BEGIN
                 @PartNumbers NVARCHAR(MAX)=NULL,@IsTraveler BIT=NULL,@AllowInvoiceBeforeShipping BIT=NULL
 		DECLARE @WorkOrderNum VARCHAR(30);
 		DECLARE @WorkSheetStatusId  INT = 2;
+		DECLARE @IsFromAircraft BIT = 0;
 		
         -- PART DETAILS			
 		DECLARE @WorkOrderScopeId BIGINT = NULL
@@ -63,6 +65,16 @@ BEGIN
 		DECLARE @AircraftRegistryNumber VARCHAR(50)=NULL,@ModuleEnumCustomer INT=1,@ConditionId BIGINT=0,@WorkOrderStatus VARCHAR(50)=''
 		DECLARE @PartNumber VARCHAR(200) = NULL,@ItemMasterId BIGINT=0,@CustomerId  BIGINT=0
 		DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0
+
+		IF(ISNULL(@AircraftInstalledPartDetailsId,0) > 0)
+		BEGIN
+			SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftInstalledPartDetails] WITH(NOLOCK) WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+		END
+
+		IF(ISNULL(@ProgramId,0) > 0)
+		BEGIN
+			SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftMaintenanceProgram] WITH(NOLOCK) WHERE [ProgramId] = @ProgramId;
+		END
 
 		-- ── OLD value holders (capture BEFORE update) ─────────
         DECLARE @Old_PartNumber         VARCHAR(200),
@@ -162,7 +174,14 @@ BEGIN
 		
 		SET @TATDaysCurrent = DATEDIFF(DAY, @ReceivedDate, GETUTCDATE())
 
-		SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+		IF(ISNULL(@IsFromAircraft,0) = 1)
+		BEGIN
+			 SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+		END
+		ELSE
+		BEGIN
+			 SELECT @ACTailNum = [EngineName], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [EngineRegistryNumber] FROM [dbo].[EngineRegistryHeader] WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId
+		END
 
 		--IF(@MaintenanceTypeId > 0)
 		--BEGIN
@@ -274,7 +293,7 @@ BEGIN
 			@ItemMasterId,                    -- [MasterPartId]                
 			@Notes,                           -- [Notes]                       
 			@AircraftRegistryNumber,          -- [AircraftRegistryNumber]      
-			1,                                -- [IsFromAircraft]              
+			@IsFromAircraft,                                -- [IsFromAircraft]              
 			@AircraftInstalledPartDetailsId,  -- [AircraftInstalledPartDetailsId] 
 			@AirCraftSerialNumber,            -- [AircraftSerialNumber]        
 			@AircraftRegistryId,              -- [AircraftRegistryId]          

@@ -276,7 +276,7 @@ BEGIN
 					LEFT JOIN Combined c ON c.[WorkFlowWorkOrderId] = wosd.[WorkFlowWorkOrderId] AND c.[workOrderPartNoId] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[ItemMaster] IM ON IM.[ItemMasterId] = wosd.[RevisedPartId] AND ISNULL(IM.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
-					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId]
+					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
 					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]	
 				WHERE wosd.[WorkOrderId] = @WorkorderId

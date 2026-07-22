@@ -1,34 +1,4 @@
-﻿/* =====================================================================
- PN-17009 : Stock/Non-Stock label suffix for the PN search dropdown
-            behind api/ItemMaster/searchpartnumberadvancednew.
-
- Updated SP only (1 object) - safe to run standalone.
-
- dbo.SOQPartSearchAutoCompleteDropdowns is called from
- CommonRepository.SOQPartSearchAutoCompleteDropdowns(...), invoked by
- ItemMasterController.SearchPartNumberAdvancedNew() at route
- POST api/ItemMaster/searchpartnumberadvancednew.
-
- This SP already restricts every one of its 8 INSERT blocks to
- im.ItemTypeId = 1 (ItemMasterStockTypeEnum.Stock) AND
- ISNULL(im.IsNonStock,0) = 0 - it never returns Non-Stock items - so the
- fix here is purely cosmetic/consistency: appended ' (Stock)' to the end
- of the Label expression in all 8 blocks, matching the same rule already
- applied to AutoCompleteDropdowns.sql / AutoCompleteDropdownsItemMasterWithManufacturer.sql:
-   with manufacturer    -> "PartNumber - Manufacturer (Stock)"
-   without manufacturer -> "PartNumber (Stock)"
-
- No Non-Stock branch exists in this SP to add a ' (Non-Stock)' suffix to
- - flagging in case this PN search should also surface Non-Stock parts
- going forward; let me know if so and I'll add a matching branch.
-
- Author : RAJESH GAMI
- Date   : 13/July/2026
-===================================================================== */
-
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.SOQPartSearchAutoCompleteDropdowns
--- ---------------------------------------------------------------------------------------------------
+﻿
 /*************************************************************
  ** File:   [SOQPartSearchAutoCompleteDropdowns]
  ** Author:
@@ -55,6 +25,7 @@
 	6    16/July/2026				 RAJESH GAMI						[PN-17350] - Allow Non-Stock parts in this PN search (removed ItemTypeId=1 / IsNonStock=0
 										 filters from all 8 blocks); added ItemType ('Stock'/'Non-Stock') output column; Label
 										 suffix is now conditional (Stock)/(Non-Stock) instead of always (Stock).
+	7    20/July/2026				 RAJESH GAMI						[PN-17350] - Added a dedicated Non-Stock section (guarded by @CustRestrictedDer=0 AND @IncludeDER=0 AND @IncludePMA=0) since Non-Stock items have no meaningful OEM/PMA/DER classification and were never matched by any of the 8 existing blocks' IsOEM/IsPma/IsDER conditions (e.g. searching 'NS-15022022' returned nothing). Guarded with NOT EXISTS against #TempTable so no part can appear twice in the grid.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -277,6 +248,36 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+
+		--Adding Non-Stock Parts (independent of OEM/PMA/DER classification - that pedigree
+		--classification does not apply to Non-Stock items). Only run for the plain/default
+		--search call (not the PMA/DER-restriction-driven or Include-PMA/Include-DER calls),
+		--and never insert a part that a previous block already added, so the grid has no
+		--duplicate rows.
+		IF (@CustRestrictedDer = 0 AND @IncludeDER = 0 AND @IncludePMA = 0)
+		BEGIN
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
+		SELECT DISTINCT
+			im.ItemMasterId AS PartId,
+			im.partnumber AS PartNumber,
+			(im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Non-Stock)') AS Label,
+			im.PartDescription AS PartDescription,
+			im.ManufacturerName AS ManufacturerName,
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
+			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
+			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
+			ELSE 'OEM'
+			END) AS StockType,
+			'Non-Stock' AS ItemType
+			FROM DBO.ItemMaster im WITH(NOLOCK)
+			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+			WHERE im.IsActive = 1
+			AND im.IsDeleted = 0
+			AND im.MasterCompanyId = @MasterCompanyId
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
+			AND ISNULL(im.IsNonStock,0) = 1
+			AND NOT EXISTS (SELECT 1 FROM #TempTable ExistingTT WHERE ExistingTT.PartId = im.ItemMasterId)
+		END
 
 			 INSERT INTO #Result
 				SELECT

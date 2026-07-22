@@ -11,6 +11,7 @@
  ** --		--------		-------				--------------------------------            
     1		01-17-2024		Vishal Suthar		Created
     2		20/July/2026		RAJESH GAMI		[PN-17350] - Eliminated legacy ItemMasterNonStock/NonStockInventory references; report now reads ItemMaster/Stockline filtered to IsNonStock = 1
+    3		20/July/2026		RAJESH GAMI		[PN-17350] - Repointed MS lookup from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @ModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
  exec usprpt_GetNonStockReportAsOfNow_SSRS @mastercompanyid=1,@id=N'1/17/2024',@id2=N'1,2,3',@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
@@ -60,7 +61,8 @@ BEGIN
 	SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
 	SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10
 
-	DECLARE @ModuleID INT = 11; -- MS Module ID 
+	DECLARE @ModuleID INT; -- MS Module ID 
+	SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
 	
 	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, Item_Group, Item_Type, AltEquiv,
 				 vendorname, vendorcode, qtyonhand,unitcost,extcost,mfg,unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
@@ -106,7 +108,7 @@ BEGIN
         UPPER(stl.ReceiverNumber) 'receivernum',
 		stl.MasterCompanyId
       FROM DBO.Stockline stl WITH (NOLOCK)
-	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
+	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
 		LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 		LEFT JOIN dbo.ItemGroup IG WITH (NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId

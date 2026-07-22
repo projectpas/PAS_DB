@@ -18,6 +18,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Cleanup: removed dead duplicate legacy-table UNION branch and redirected remaining legacy-table joins to the unified ItemMaster/Stockline tables (IsNonStock flag)
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock MS lookup (Opr=3, MD join) repointed from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; reused the already-dynamic @StocklineMSID ('Stockline' module) instead of the separate hardcoded-lookup @NonStocklineMSID ('NonStockStockline' module), which was removed as dead code
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -36,13 +37,12 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @Stock INT=1,@NonStock INT=2,@Asset INT=11, @PurchaseOrderPartMSId INT,@AssetMSID INT,@StocklineMSID INT,@NonStocklineMSID INT
+		DECLARE @Stock INT=1,@NonStock INT=2,@Asset INT=11, @PurchaseOrderPartMSId INT,@AssetMSID INT,@StocklineMSID INT
 						
 		SELECT @PurchaseOrderPartMSId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'POPart'
 
 		SELECT @StocklineMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
 	
-  	    SELECT @NonStocklineMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'NonStockStockline'
 
 		SELECT @AssetMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetInventoryTangible'
 				
@@ -348,7 +348,7 @@ BEGIN
 			 0 [StockLineId] 
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
-		LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @NonStocklineMSID
+		LEFT JOIN [dbo].[StocklineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
 		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 1
 					
 		END

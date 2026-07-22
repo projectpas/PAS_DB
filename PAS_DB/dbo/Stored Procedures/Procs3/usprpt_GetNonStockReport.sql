@@ -14,6 +14,7 @@
     1    02-August-2022  Deep Patel			   Created
     2    16-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
     3    20/July/2026     RAJESH GAMI          [PN-17350] - Eliminated legacy ItemMasterNonStock/NonStockInventory references; report now reads ItemMaster/Stockline filtered to IsNonStock = 1
+    4    20/July/2026     RAJESH GAMI          [PN-17350] - Repointed MS lookup (both occurrences) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @ModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
 
 EXECUTE   [dbo].[usprpt_GetNonStockReport] '2','2010-01-01','2022-04-26',null,1,10
@@ -79,14 +80,15 @@ BEGIN
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
-      DECLARE @ModuleID INT = 11; -- MS Module ID
+      DECLARE @ModuleID INT; -- MS Module ID
+      SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	  	  
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
 		  SELECT @PageSize=COUNT(*)
 		  FROM DBO.Stockline stl WITH (NOLOCK)
-			INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
+			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 			LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId
@@ -156,7 +158,7 @@ BEGIN
         UPPER(stl.ReceiverNumber) 'receivernum',
 		stl.MasterCompanyId
       FROM DBO.Stockline stl WITH (NOLOCK)
-	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
+	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 		LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId

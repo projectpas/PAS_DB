@@ -20,6 +20,7 @@
 	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
 	10   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
 	11   26/06/2026   Priyansh Patel  Convert All qty and cost uom for purchaseorder from Stock to Purchase uom  [PN-16941]
+	12   22/07/2026   Priyansh Patel  Added Stock Uom and poextcost fix  [PN-16941]
 
 	
 --  EXEC GetReceivingReconciliationDetailsById 136
@@ -48,6 +49,7 @@ BEGIN
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL THEN IM.[PurchaseUnitOfMeasure]
 					  WHEN JBD.[Type] = 2 AND RO.RepairOrderId IS NOT NULL THEN IM.[StockUnitOfMeasure]
 				 ELSE '' END AS UnitOfMeasure
+				,IM.[StockUnitOfMeasure] AS StockUnitOfMeasure
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[POQtyOrder], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId)
 				 ELSE JBD.[POQtyOrder]  END AS POQtyOrder
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL THEN CASE WHEN NULLIF(IM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IM.PurchaseUnitOfMeasure, '') IS NULL OR IM.StockUnitOfMeasure = IM.PurchaseUnitOfMeasure THEN JBD.[ReceivedQty]
@@ -55,8 +57,7 @@ BEGIN
 				 ELSE JBD.[ReceivedQty] END AS ReceivedQty
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[POUnitCost], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, IM.MasterCompanyId)
 				 ELSE JBD.[POUnitCost] END AS POUnitCost
-				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[POExtCost], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, IM.MasterCompanyId)
-				 ELSE JBD.[POExtCost] END AS POExtCost
+				,JBD.[POExtCost] AS POExtCost
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[InvoicedQty], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId)
 				 ELSE JBD.[InvoicedQty] END AS InvoicedQty
 				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[InvoicedUnitCost], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, IM.MasterCompanyId)

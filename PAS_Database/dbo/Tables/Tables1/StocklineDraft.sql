@@ -175,6 +175,8 @@
     [IsKitType]                           BIT             NULL,
     [IsSubWOType]                         BIT             NULL,
     [IsRepairManagement]                  BIT             CONSTRAINT [DF_StocklineDraft_IsRepairManagement] DEFAULT ((0)) NULL,
+     [IsNonStock] BIT NULL, 
+
     CONSTRAINT [PK_StocklineDraft] PRIMARY KEY CLUSTERED ([StockLineDraftId] ASC),
     CONSTRAINT [FK_StocklineDraft_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_StocklineDraft_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),

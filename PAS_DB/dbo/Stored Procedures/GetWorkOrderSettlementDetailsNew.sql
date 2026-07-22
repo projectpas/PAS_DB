@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    09/07/2026   Moin Bloch 	    Created
+	2    21/07/2026   Moin Bloch 	    added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 
   EXEC [GetWorkOrderSettlementDetailsNew] 14353,2
   EXEC [GetWorkOrderSettlementDetailsNew] 4353,2
@@ -241,13 +242,15 @@ BEGIN
 						CASE WHEN ISNULL(c.[IsBillingCompleled],0) > 0 THEN 1 ELSE 0 END  [IsBillingCompleled],
 						ISNULL(c.[IsAllowReopenWO], 1) AS [IsAllowReopenWO],						
 						ISNULL(WOP.[IsFinishGood],0) AS [IsFinishGood],
-						ISNULL(WOP.[IsClosed],0) AS [IsWOClose]
+						ISNULL(WOP.[IsClosed],0) AS [IsWOClose],
+						ISNULL(SL.[ControlNumber],'') [ControlNumber]
 				INTO #SettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
 					LEFT JOIN Combined c ON c.[WorkFlowWorkOrderId] = wosd.[WorkFlowWorkOrderId] AND c.[workOrderPartNoId] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = wosd.[RevisedPartId] AND ISNULL(IM.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
+					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
 					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]					
 				WHERE wosd.[WorkOrderId] = @WorkorderId AND WOP.[IsDeleted] = 0
@@ -291,7 +294,8 @@ BEGIN
 					MAX(CAST([IsBillingCompleled] AS INT)) AS [IsBillingCompleled],
 					MAX(CAST([IsAllowReopenWO] AS INT)) AS [IsAllowReopenWO],
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
-					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose]'
+					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],
+					MAX([ControlNumber]) AS [ControlNumber]'
 					+ @cols + N'
 				FROM #SettlementRows
 				GROUP BY [WorkOrderId], [WorkFlowWorkOrderId], [workOrderPartNoId]';

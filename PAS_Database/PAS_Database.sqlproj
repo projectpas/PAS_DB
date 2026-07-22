@@ -136,6 +136,7 @@
     <Build Include="dbo\Tables\Tables1\AssemplyAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Asset.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleAssets.sql" />
+    <Build Include="dbo\Tables\DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAcquisitionType.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAcquisitionTypeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AssetAmortizationInterval.sql" />

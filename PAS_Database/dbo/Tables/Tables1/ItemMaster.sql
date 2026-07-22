@@ -179,6 +179,7 @@
     [CalendarDate]                      DATETIME2 (7)   NULL,
     [Model]                             VARCHAR (200)   NULL,
     [IntegrationTypeId]                 INT             NULL,
+    [IsNonStock] BIT NULL, 
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),

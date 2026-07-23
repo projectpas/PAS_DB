@@ -6,9 +6,10 @@
  *************************************************************
  ** Change History
  *************************************************************
- ** PR   Date         Author   Change Description
- ** --   ----------   -------  ------------------------------------------
- ** 1    15/07/2026   Nakul    Created Aircraft Profile list procedure.[PN-17264]
+ ** PR   Date         Author				Change Description
+ ** --   ----------   -------			------------------------------------------
+ ** 1    15/07/2026   Nakul				   Created Aircraft Profile list procedure.[PN-17264]
+ ** 2    07/23/2026   Amit Ghediya		   Get IsAircraft flag for engine or aircraft
  *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInfoList]
     @PageNumber       INT          = 1,
@@ -25,8 +26,10 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInfoList]
     @CreatedBy        VARCHAR(100) = NULL,
     @CreatedDate      DATE         = NULL,
     @UpdatedBy        VARCHAR(100) = NULL,
-    @UpdatedDate      DATE         = NULL,
-    @MasterCompanyId  INT
+    @UpdatedDate      DATE         = NULL,    
+	@IsAircraft       BIT          = NULL,
+	@PartNumber       VARCHAR(100) = NULL,
+	@MasterCompanyId  INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -50,6 +53,9 @@ BEGIN
                 AI.CreatedDate,
                 AI.UpdatedBy,
                 AI.UpdatedDate,
+				AI.IsAircraft,
+				AI.ItemMasterId,
+				IM.PartNumber,
                 COUNT_BIG(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftInfo] AS AI WITH(NOLOCK)
             INNER JOIN [dbo].[ItemMaster] AS IM WITH(NOLOCK)
@@ -70,6 +76,7 @@ BEGIN
                     OR AI.ACSubModel LIKE '%' + @GlobalFilter + '%'
                     OR AI.CreatedBy LIKE '%' + @GlobalFilter + '%'
                     OR AI.UpdatedBy LIKE '%' + @GlobalFilter + '%'
+					OR IM.PartNumber LIKE '%' + @GlobalFilter + '%'
                 )
                 AND (@MakeType IS NULL OR AI.ACMakeTypeName LIKE '%' + @MakeType + '%')
                 AND (@Manufacturer IS NULL OR M.Name LIKE '%' + @Manufacturer + '%')
@@ -81,6 +88,8 @@ BEGIN
                 AND (@CreatedDate IS NULL OR CAST(AI.CreatedDate AS DATE) = @CreatedDate)
                 AND (@UpdatedBy IS NULL OR AI.UpdatedBy LIKE '%' + @UpdatedBy + '%')
                 AND (@UpdatedDate IS NULL OR CAST(AI.UpdatedDate AS DATE) = @UpdatedDate)
+				AND (@IsAircraft IS NULL OR AI.IsAircraft = @IsAircraft)
+				AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%')
         )
         SELECT
             MakeType,
@@ -93,6 +102,9 @@ BEGIN
             CreatedDate,
             UpdatedBy,
             UpdatedDate,
+			IsAircraft,
+			ItemMasterId,
+			PartNumber,
             TotalRecords
         FROM AircraftProfiles 
         ORDER BY
@@ -116,6 +128,8 @@ BEGIN
             CASE WHEN @SortColumn = 'updatedBy' AND @SortOrder = 'DESC' THEN UpdatedBy END DESC,
             CASE WHEN @SortColumn = 'updatedDate' AND @SortOrder = 'ASC' THEN UpdatedDate END ASC,
             CASE WHEN @SortColumn = 'updatedDate' AND @SortOrder = 'DESC' THEN UpdatedDate END DESC,
+			CASE WHEN @SortColumn = 'partNumber' AND @SortOrder = 'ASC' THEN PartNumber END ASC,
+			CASE WHEN @SortColumn = 'partNumber' AND @SortOrder = 'DESC' THEN PartNumber END DESC,
             CASE WHEN @SortColumn = 'aircraftInfoId' AND @SortOrder = 'ASC' THEN AircraftInfoId END ASC,
             AircraftInfoId DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS

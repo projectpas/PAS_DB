@@ -20,6 +20,7 @@
      3    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
      4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
      5    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
+     6    21/07/2026		Abhishek Jirawla	Added ORDER BY support for Condition, SerialNumber, StocklineNumber, ControlNumber, ControlId, MPN, MPNDescription so every grid column is sortable
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PageNumber             INT,
@@ -316,6 +317,20 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartNumber'           THEN PartNumber           END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'Condition'            THEN Condition            END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'Condition'            THEN Condition            END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'SerialNumber'         THEN SerialNumber         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'SerialNumber'         THEN SerialNumber         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'StocklineNumber'      THEN StocklineNumber      END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'StocklineNumber'      THEN StocklineNumber      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ControlNumber'        THEN ControlNumber        END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ControlNumber'        THEN ControlNumber        END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ControlId'            THEN ControlId            END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ControlId'            THEN ControlId            END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'MPN'                  THEN MPN                  END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'MPN'                  THEN MPN                  END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'MPNDescription'       THEN MPNDescription       END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'MPNDescription'       THEN MPNDescription       END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONumber'             THEN RONumber             END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONumber'             THEN RONumber             END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONumber'       THEN WONumber      END ASC,

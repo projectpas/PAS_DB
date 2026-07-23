@@ -9,6 +9,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    29/06/2026   Amit Ghediya  Created [PN-17037]
 ** 2    09/07/2026   Amit Ghediya  Get Engine name for list
+** 3    19/07/2026   Amit Ghediya  Added SLNum, CntrlNum, Cond, Site, Warehouse from Stockline [PN-17344]
 
 ********************/
 CREATE     PROCEDURE [dbo].[USP_GetEngineList]
@@ -38,7 +39,13 @@ CREATE     PROCEDURE [dbo].[USP_GetEngineList]
     @IsDeleted          BIT             = 0,
     @MasterCompanyId    INT,
     @Custname           VARCHAR(200)    = NULL,
-	@EngineName         VARCHAR(200)    = NULL
+	@EngineName         VARCHAR(200)    = NULL,
+    @SLNum              VARCHAR(50)     = NULL,
+    @CntrlNum           VARCHAR(50)     = NULL,
+    @Cond               VARCHAR(100)    = NULL,
+    @Site               VARCHAR(50)     = NULL,
+    @Warehouse          VARCHAR(100)    = NULL,
+    @Location           VARCHAR(50)     = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -70,12 +77,22 @@ BEGIN
 				ASS.[Name] AS EngineStatus,
                 AR.IsActive,
                 AR.CreatedDate,
-                C.[Name] AS Custname,				
+                C.[Name] AS Custname,
+                STK.StockLineNumber AS SLNum,
+                STK.ControlNumber AS CntrlNum,
+                STK.Condition AS Cond,
+                SITE.[Name] AS Site,
+                WH.[Name] AS Warehouse,
+                LOC.[Name] AS Location,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[EngineRegistryHeader] AS AR WITH (NOLOCK)
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[EngineStatusId] = ASS.[AircraftStatusId]
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
             LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON AR.CustomerId = C.CustomerId
+            LEFT JOIN [dbo].[StockLine] STK WITH (NOLOCK) ON AR.StockLineId = STK.StockLineId
+            LEFT JOIN [dbo].[Site] SITE WITH (NOLOCK) ON STK.SiteId = SITE.SiteId
+            LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON STK.WarehouseId = WH.WarehouseId
+            LEFT JOIN [dbo].[Location] LOC WITH (NOLOCK) ON STK.LocationId = LOC.LocationId
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)
@@ -107,7 +124,13 @@ BEGIN
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@EngineStatusId  IS NULL OR AR.EngineStatusId = @EngineStatusId)
-                AND (@Custname          IS NULL OR C.[Name] LIKE '%' + @Custname + '%')				
+                AND (@Custname          IS NULL OR C.[Name] LIKE '%' + @Custname + '%')
+                AND (@SLNum             IS NULL OR STK.StockLineNumber LIKE '%' + @SLNum     + '%')
+                AND (@CntrlNum          IS NULL OR STK.ControlNumber   LIKE '%' + @CntrlNum  + '%')
+                AND (@Cond              IS NULL OR STK.Condition       LIKE '%' + @Cond      + '%')
+                AND (@Site              IS NULL OR SITE.[Name]         LIKE '%' + @Site      + '%')
+                AND (@Warehouse         IS NULL OR WH.[Name]           LIKE '%' + @Warehouse + '%')
+                AND (@Location          IS NULL OR LOC.[Name]          LIKE '%' + @Location  + '%')
         )
         SELECT
             EngineRegistryId,
@@ -132,6 +155,12 @@ BEGIN
             IsActive,
             CreatedDate,
             Custname,
+            SLNum,
+            CntrlNum,
+            Cond,
+            Site,
+            Warehouse,
+            Location,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -175,6 +204,18 @@ BEGIN
             CASE WHEN @SortColumn = 'CreatedDate'        AND @SortOrder = 'DESC' THEN CreatedDate       END DESC,
             CASE WHEN @SortColumn = 'Custname' AND @SortOrder = 'ASC' THEN Custname END ASC,
             CASE WHEN @SortColumn = 'Custname' AND @SortOrder = 'DESC' THEN Custname END DESC,
+            CASE WHEN @SortColumn = 'SLNum' AND @SortOrder = 'ASC' THEN SLNum END ASC,
+            CASE WHEN @SortColumn = 'SLNum' AND @SortOrder = 'DESC' THEN SLNum END DESC,
+            CASE WHEN @SortColumn = 'CntrlNum' AND @SortOrder = 'ASC' THEN CntrlNum END ASC,
+            CASE WHEN @SortColumn = 'CntrlNum' AND @SortOrder = 'DESC' THEN CntrlNum END DESC,
+            CASE WHEN @SortColumn = 'Cond' AND @SortOrder = 'ASC' THEN Cond END ASC,
+            CASE WHEN @SortColumn = 'Cond' AND @SortOrder = 'DESC' THEN Cond END DESC,
+            CASE WHEN @SortColumn = 'Site' AND @SortOrder = 'ASC' THEN Site END ASC,
+            CASE WHEN @SortColumn = 'Site' AND @SortOrder = 'DESC' THEN Site END DESC,
+            CASE WHEN @SortColumn = 'Warehouse' AND @SortOrder = 'ASC' THEN Warehouse END ASC,
+            CASE WHEN @SortColumn = 'Warehouse' AND @SortOrder = 'DESC' THEN Warehouse END DESC,
+            CASE WHEN @SortColumn = 'Location' AND @SortOrder = 'ASC' THEN Location END ASC,
+            CASE WHEN @SortColumn = 'Location' AND @SortOrder = 'DESC' THEN Location END DESC,
             EngineRegistryId DESC
         OFFSET  (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY

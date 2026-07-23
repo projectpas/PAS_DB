@@ -38,6 +38,9 @@
    22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
    24	17/07/2026	  Amit Ghediya		Update to get with direcly from part IsFromAircraft
+   25	18/07/2026	  Amit Ghediya		Return IsFromAircraft as its own output column (was only used
+                                        internally for the CASE branching above) so the UI can tell, per
+                                        row, whether it's an aircraft- or engine-installed component.
 *******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -93,6 +96,7 @@ BEGIN
         (
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
+				ISNULL(AIPD.IsFromAircraft,0) AS IsFromAircraft,
 				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS MakeType,
 				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS Model,
 				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.EngineName END AS TailNum,

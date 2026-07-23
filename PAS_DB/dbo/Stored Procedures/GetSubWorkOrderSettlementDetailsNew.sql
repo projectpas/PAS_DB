@@ -15,7 +15,7 @@
 	2    21/07/2026   Moin Bloch 	 Added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 	3    22/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level Scrap Certificate Generation
 
-	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 4352,261
+	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 4189,247,2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderSettlementDetailsNew]
 @WorkorderId BIGINT,
@@ -181,10 +181,13 @@ BEGIN
 							 WHEN wos.[WorkOrderSettlementId] = @AllToolsSettlement THEN CASE WHEN ISNULL(c.[AllToolsAreCheckOut],0) <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.[IsMastervalue] END AS IsMastervalue,
 						wosd.[Isvalue_NA],
+						ISNULL(wosd.ConditionId,0) as [FinalConditionId],
+						wosd.conditionName [FinalConditionName],
 						Im.[partnumber],
 						wosd.[RevisedItemmasterid] AS RevisedPartId,
 						IMR.[partnumber] AS RevisedPartNumber,						
-						sop.[RevisedSerialNumber],		
+						sop.[RevisedSerialNumber],	
+						CASE WHEN sop.[RevisedSerialNumber] IS NOT NULL AND sop.[RevisedSerialNumber] <> '' THEN sop.[RevisedSerialNumber] ELSE SL.[SerialNumber] END AS [SerialNumber],
 						ISNULL(sop.[IsTransferredToParentWO],0) AS [IsTransferredToParentWO],
 						ISNULL(sop.[IsFinishGood],0) AS [IsFinishGood],
 						ISNULL(sop.[IsClosed],0) AS [IsWOClose],
@@ -222,9 +225,12 @@ BEGIN
 					[SubWorkOrderId],
 					[SubWOPartNoId],
 					MAX([partnumber]) AS [partnumber],
+					MAX([SerialNumber]) AS [SerialNumber],
 					MAX([RevisedPartId]) AS [RevisedPartId],
 					MAX([RevisedPartNumber]) AS [RevisedPartNumber],
 					MAX([RevisedSerialNumber]) AS [RevisedSerialNumber],
+					MAX([FinalConditionId]) AS [FinalConditionId],
+					MAX([FinalConditionName]) AS [FinalConditionName],	
 					MAX(CAST([IsTransferredToParentWO] AS INT)) AS [IsTransferredToParentWO],
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
 					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],

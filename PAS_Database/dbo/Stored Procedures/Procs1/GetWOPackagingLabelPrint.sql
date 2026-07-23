@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    05/23/2020   Hemant Saliya		Created
 	2    01/01/2024   Devendra Shekh	updated for serialnumber
+	2    22/07/2026   Bhargav Saliya	Get Consume UOM [PN-17353]
      
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
@@ -45,7 +46,7 @@ BEGIN
 						sl.ControlNumber, 
 						sl.IdNumber, 
 						sl.Condition as ConditionDescription,
-						sl.UnitOfMeasure as UOM, 
+						sl.ConsumeUnitOfMeasure as UOM, 
 						wo.WorkOrderNum,
 						(SELECT QtyShipped FROM DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) Where WOSI.WorkOrderPartNumId = wopt.OrderPartId AND wopt.PickTicketId = WOSI.WOPickTicketId) AS QtyShipped
 				FROM WOPickTicket wopt WITH (NOLOCK)

@@ -6,6 +6,7 @@
     [AircraftModel]    VARCHAR (100) NULL,
     [AircraftSubModel] VARCHAR (100) NULL,
     [ItemMasterId]     BIGINT        NULL,
+    [IsAircraft]       BIT           NULL,
     [IsActive]         BIT           NULL,
     [IsDeleted]        BIT           NULL,
     [MasterCompanyId]  INT           NULL,

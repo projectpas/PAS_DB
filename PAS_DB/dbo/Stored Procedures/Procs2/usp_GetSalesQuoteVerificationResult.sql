@@ -16,6 +16,7 @@
  ** --    --------         -------              --------------------------------            
     1     15/04/2025      Ekta Chandegra        Created  
     2     09/July/2026      RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3     22/July/2026      RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 	
 
 -- exec dbo.usp_GetSalesQuoteVerificationResult @SalesOrderQuoteId=937
@@ -97,7 +98,7 @@ BEGIN
 		FROM [dbo].[SalesOrderQuotePartV1] sop WITH(NOLOCK)
 		LEFT JOIN [dbo].[SalesOrderQuoteApproval] soqcapl WITH(NOLOCK) ON sop.SalesOrderQuotePartId = soqcapl.SalesOrderQuotePartId
 		LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderQuotePartId = stk.SalesOrderQuotePartId
-		LEFT JOIN [dbo].[StockLine] slr WITH(NOLOCK) ON stk.StockLineId = slr.StockLineId AND ISNULL(slr.IsNonStock,0) = 0
+		LEFT JOIN [dbo].[StockLine] slr WITH(NOLOCK) ON stk.StockLineId = slr.StockLineId
 		WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId
 		  AND sop.IsDeleted = 0;
 

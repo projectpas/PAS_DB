@@ -21,6 +21,7 @@ EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now correctly appear in this Sales Order print PDF header data
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
 	@salesOrderId BIGINT            
@@ -88,8 +89,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-			 AND ISNULL(itemMaster.IsNonStock,0) = 0
-			 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+						 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 			INNER JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			INNER JOIN dbo.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
@@ -99,10 +99,10 @@ BEGIN
 			LEFT JOIN dbo.Countries cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 			LEFT JOIN dbo.Currency cur WITH(NOLOCK) ON so.CurrencyId = cur.CurrencyId
 			INNER JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.SalesOrderFreight soFreight WITH(NOLOCK) ON so.SalesOrderId = soFreight.SalesOrderId AND soFreight.IsDeleted = 0 AND soFreight.IsActive = 1
 			LEFT JOIN dbo.SalesOrderCharges soCharges WITH(NOLOCK) ON so.SalesOrderId = soCharges.SalesOrderId AND soCharges.IsDeleted = 0 AND soCharges.IsActive = 1
-			LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+			LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
 			LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 			OUTER APPLY (SELECT COUNT(SP.SalesOrderPartId) AS 'ItemNo' FROM DBO.SalesOrderPartV1 SP WITH(NOLOCK) WHERE SP.SalesOrderId = so.SalesOrderId GROUP BY SP.SalesOrderId) PartCount

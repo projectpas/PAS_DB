@@ -24,6 +24,7 @@
 	9    01/july/2025 RAJESH GAMI	 Change the table as per new Billing Structure
 	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing/invoicing lists.
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -74,7 +75,6 @@ SET NOCOUNT ON;
 				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 
 				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0
 				 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
 				
@@ -111,7 +111,7 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
-				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId AND ISNULL(im.IsNonStock,0) = 0 ;
+				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId ;
 			END
 			ELSE
 			BEGIN
@@ -148,7 +148,7 @@ SET NOCOUNT ON;
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 
-				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND ISNULL(im.IsNonStock,0) = 0 ;
+				WHERE sop.SalesOrderPartId = @SalesOrderPartId ;
 			END
 		END
 

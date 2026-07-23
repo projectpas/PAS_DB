@@ -15,6 +15,7 @@
 	2    10/04/2025   Moin Bloch           Modified change logic for QuantityReceived
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the StockLineDraftCount CASE branch and the standalone NonStockInventoryDraft SELECT resultset to StocklineDraft (IsNonStock=1)
 
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
@@ -76,7 +77,7 @@ BEGIN
 			CASE WHEN POP.ItemTypeId=1 THEN 
 			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[StocklineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (StockLineId = 0 OR StockLineId IS  NULL))  
 			WHEN POP.ItemTypeId = 2 THEN
-			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (NonStockInventoryId = 0 OR NonStockInventoryId IS  NULL))  
+			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[StocklineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (StockLineId = 0 OR StockLineId IS  NULL) AND ISNULL(IsNonStock,0) = 1)  
 			WHEN POP.ItemTypeId = 11 THEN
 			(SELECT ISNULL(SUM(Qty),0) FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND AssetInventoryId = 0)  
 			ELSE 0 END AS StockLineDraftCount			
@@ -179,20 +180,20 @@ BEGIN
 		WHERE SLD.PurchaseOrderId=@PurchaseOrderId
 
 
-		/* START SELECT FROM NonStockInventoryDraft */
+		/* START SELECT FROM StocklineDraft (Non-Stock rows, IsNonStock=1) */
 		SELECT 
 		SLD.PurchaseOrderPartRecordId,
 		SLDM.LastMSLevel,
 		SLDM.AllMSlevels,
-		SLD.NonStockInventoryDraftId AS 'StockLineDraftId',
-		SLD.NonStockInventoryNumber AS 'StockLineNumber',
+		SLD.StockLineDraftId AS 'StockLineDraftId',
+		SLD.StockLineNumber AS 'StockLineNumber',
 		SLD.ControlNumber,
 		SLD.IdNumber,
 		SLD.ConditionId,
 		SLD.SerialNumber,
 		SLD.Quantity,
-		SLD.UnitCost AS 'PurchaseOrderUnitCost',
-		SLD.ExtendedCost AS 'PurchaseOrderExtendedCost',
+		SLD.PurchaseOrderUnitCost AS 'PurchaseOrderUnitCost',
+		SLD.PurchaseOrderExtendedCost AS 'PurchaseOrderExtendedCost',
 		SLD.ReceiverNumber,
 		0 AS WorkOrder,
 		0 AS SalesOrder,
@@ -216,13 +217,13 @@ BEGIN
 		'' AS 'CertifiedBy',
 		'' AS 'TagType',
 		NULL AS 'TagDate',
-		SLD.MfgExpirationDate,
+		SLD.ExpirationDate AS MfgExpirationDate,
 		NULL AS 'CertifiedDueDate',
 		'' AS 'AircraftTailNumber',
 		SLD.GLAccountId,
 		SLD.GLAccount,
 		SLD.Condition,
-		SLD.ManagementStructureId,
+		SLD.ManagementStructureEntityId AS ManagementStructureId,
 		SLD.SiteId,
 		SLD.WarehouseId,
 		SLD.LocationId,
@@ -232,11 +233,11 @@ BEGIN
 		0 AS 'TLAItemMasterId',
 		'' AS 'NHAItemMasterText',
 		'' AS 'TLAItemMasterText',
-		SLD.Site AS 'SiteText',
+		SLD.SiteName AS 'SiteText',
 		SLD.Warehouse AS 'WarehouseText',
 		SLD.Location AS 'LocationText',
-		SLD.Shelf AS 'ShelfText',
-		SLD.Bin AS 'BinText',
+		SLD.ShelfName AS 'ShelfText',
+		SLD.BinName AS 'BinText',
 		0 AS 'ObtainFrom',
 		0 AS 'Owner',
 		'' AS 'TraceableToName',
@@ -248,9 +249,9 @@ BEGIN
 		'' AS 'TaggedByName',
 		'' AS 'CertTypeId',
 		'' AS 'CertType'
-		FROM DBO.[NonStockInventoryDraft] SLD WITH (NOLOCK)
-		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.NonStockInventoryDraftId AND ModuleID = @NonStockModuleId
-		WHERE SLD.PurchaseOrderId = @PurchaseOrderId
+		FROM DBO.[StocklineDraft] SLD WITH (NOLOCK)
+		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.StockLineDraftId AND ModuleID = @NonStockModuleId
+		WHERE SLD.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SLD.IsNonStock,0) = 1
 
 
 		/* START SELECT FROM AssetInventoryDraft */

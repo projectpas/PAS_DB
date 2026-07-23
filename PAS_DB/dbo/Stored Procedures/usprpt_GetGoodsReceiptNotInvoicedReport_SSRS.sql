@@ -18,7 +18,8 @@
 	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
 	7	 22/06/2026		 Abhishek Jirawla			Adding IsPiecePart condition in RepairOrderPart table
 	8	 09/July/2026		 RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	9	 22/July/2026	Moin Bloch 			        [PN-17397] - Cost is displayed as 0.00 for Asset Repair Order (RO) receipts
+	9	 20/July/2026		 RAJESH GAMI			[PN-17350] - Eliminated legacy NonStockInventory reference; PO non-stock branch now reads Stockline filtered to IsNonStock = 1
+	10	 22/July/2026	Moin Bloch 			        [PN-17397] - Cost is displayed as 0.00 for Asset Repair Order (RO) receipts
 
 
 EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
@@ -98,7 +99,7 @@ BEGIN
 			PO.PurchaseOrderNumber AS 'poRoNum',
 			PO.[Status] AS 'poStatus',
 			COALESCE(STK.PartNumber, NSTK.PartNumber, AI.[Name]) AS 'pn',
-			COALESCE(STK.PNDescription, NSTK.PartDescription, AI.[Description]) AS 'pnDescription',
+			COALESCE(STK.PNDescription, NSTK.PNDescription, AI.[Description]) AS 'pnDescription',
 			POP.StockType AS 'stockType',
 			--STK.Condition AS 'cond',
 			ISNULL(POP.QuantityOrdered,0) AS 'qtyOrdered',
@@ -129,7 +130,7 @@ BEGIN
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND ISNULL(STK.IsNonStock,0) = 0
-		LEFT JOIN DBO.NonStockInventory NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId
+		LEFT JOIN DBO.Stockline NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId AND ISNULL(NSTK.IsNonStock,0) = 1
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = AI.PurchaseOrderPartRecordId
 		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
 		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId    

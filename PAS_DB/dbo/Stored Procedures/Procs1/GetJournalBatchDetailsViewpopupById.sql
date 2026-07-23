@@ -61,6 +61,7 @@
  45	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
 	45    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	46    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	47    20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed both NONSTOCK-branch MS lookups (RPO/RRO/AST branch @NONStockModuleID; MSTK branch @NONStockModuleIDs) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; both variables now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -262,7 +263,8 @@ BEGIN
 			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST')
 				OR UPPER(@Module) = UPPER('ASSETAC') OR UPPER(@Module) = UPPER('ASSETSALE') OR UPPER(@Module) = UPPER('ASSETDEP'))        
 			BEGIN  
-				DECLARE @NONStockModuleID INT = 11;  
+				DECLARE @NONStockModuleID INT;  
+				SELECT @NONStockModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';  
 				DECLARE @ModuleID INT = 2;  
 				DECLARE @AssetModuleID varchar(500) ='42,43'  
 				  
@@ -357,7 +359,7 @@ BEGIN
 						LEFT JOIN [dbo].[StocklineBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId  
 						LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stbd.StockLineId AND UPPER(stbd.StockType)= 'STOCK'  
 						--LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID  
-						LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'  
+						LEFT JOIN [dbo].[StocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'  
 						--LEFT JOIN [dbo].[EntityStructureSetup] NES ON NES.EntityStructureId=NMSD.EntityMSID  
 						LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'  
 						--LEFT JOIN [dbo].[EntityStructureSetup] AES ON AES.EntityStructureId=AMSD.EntityMSID  
@@ -372,7 +374,8 @@ BEGIN
 			END  			
 			IF(UPPER(@Module) = UPPER('MSTK'))        
 			BEGIN  
-				DECLARE @NONStockModuleIDs INT = 11;  
+				DECLARE @NONStockModuleIDs INT;  
+				SELECT @NONStockModuleIDs = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';  
 				DECLARE @ModuleIDs INT = 2;  
 				DECLARE @AssetModuleIDs varchar(500) ='42,43'  
 				  
@@ -465,7 +468,7 @@ BEGIN
 						INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 						LEFT JOIN [dbo].[StocklineBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId  
 						LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleIDs AND MSD.ReferenceID = stbd.StockLineId AND UPPER(stbd.StockType)= 'STOCK'  
-						LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleIDs AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'  
+						LEFT JOIN [dbo].[StocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleIDs AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'  
 						LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleIDs,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'  
 						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
 						LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 

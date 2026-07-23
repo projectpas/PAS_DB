@@ -29,6 +29,7 @@
 	13   04-MAY-2026    Hemant Saliya       Re-Structure the SP to change the days calculation
 	14   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
 	15   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	16   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1
@@ -63,7 +64,8 @@ BEGIN
   @IsDownload BIT = NULL            
         
   BEGIN TRY        
-      DECLARE @ModuleID INT = 2, @NonStockModuleID INT = 11, @AssetModuleID INT = 42;
+      DECLARE @ModuleID INT = 2, @NonStockModuleID INT, @AssetModuleID INT = 42;
+      SELECT @NonStockModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
       DECLARE @Count BIGINT = 0, @PostStatusId INT, @CMPostedStatusId INT, @MSModuleId INT = 0, 
               @CMMSModuleID BIGINT = 61, @invoiceNum varchar(30) = '', @PageSize int = 0, @PageNumber int = 1;
 
@@ -117,7 +119,7 @@ BEGIN
               INNER JOIN [dbo].[Vendor]                                 v    WITH (NOLOCK) ON v.VendorId = rrh.VendorId      
               LEFT JOIN  [dbo].[CreditTerms]                            ctm  WITH (NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId      
               LEFT JOIN  dbo.StocklineManagementStructureDetails         MSD  WITH (NOLOCK) ON MSD.ModuleID = @ModuleID        AND MSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'STOCK'
-              LEFT JOIN  dbo.NonStocklineManagementStructureDetails      NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
+              LEFT JOIN  dbo.StocklineManagementStructureDetails      NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
               LEFT JOIN  dbo.AssetManagementStructureDetails             AMSD WITH (NOLOCK) ON AMSD.ModuleID = @AssetModuleID   AND AMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'ASSET' 
               LEFT JOIN  [dbo].[EntityStructureSetup]                    ES   ON ES.EntityStructureId = MSD.EntityMSID                  
               WHERE rrh.VendorId = ISNULL(@vendorId, rrh.VendorId)        
@@ -315,7 +317,7 @@ BEGIN
               INNER JOIN [dbo].[Vendor]                          v    WITH (NOLOCK) ON v.VendorId  = rrh.VendorId     
               LEFT JOIN  [dbo].[CreditTerms]                     ctm  WITH (NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId			  
               LEFT JOIN  dbo.StocklineManagementStructureDetails  MSD  WITH (NOLOCK) ON MSD.ModuleID  = @ModuleID        AND MSD.ReferenceID  = rrd.StocklineId AND UPPER(rrd.StockType) = 'STOCK'
-              LEFT JOIN  dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
+              LEFT JOIN  dbo.StocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
               LEFT JOIN  dbo.AssetManagementStructureDetails     AMSD WITH (NOLOCK) ON AMSD.ModuleID  = @AssetModuleID   AND AMSD.ReferenceID  = rrd.StocklineId AND UPPER(rrd.StockType) = 'ASSET' 
               LEFT JOIN  [dbo].[EntityStructureSetup]            ES   WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID                
               WHERE rrh.[VendorId]            = ISNULL(@vendorId, rrh.VendorId)        
@@ -801,7 +803,7 @@ BEGIN
               INNER JOIN [dbo].[Vendor]                            v    WITH (NOLOCK) ON v.VendorId   = rrh.VendorId      
               LEFT JOIN  [dbo].[CreditTerms]                       ctm  WITH (NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
               LEFT JOIN  [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID  = @ModuleID        AND MSD.ReferenceID  = rrd.StocklineId AND UPPER(rrd.StockType) = 'STOCK'
-              LEFT JOIN  dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
+              LEFT JOIN  dbo.StocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId AND UPPER(rrd.StockType) = 'NONSTOCK'
               LEFT JOIN  dbo.AssetManagementStructureDetails       AMSD WITH (NOLOCK) ON AMSD.ModuleID  = @AssetModuleID   AND AMSD.ReferenceID  = rrd.StocklineId AND UPPER(rrd.StockType) = 'ASSET' 
               LEFT JOIN  [dbo].[EntityStructureSetup]              ES   WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID			    
               WHERE rrh.[VendorId]               = ISNULL(@vendorId, rrh.VendorId)  			  

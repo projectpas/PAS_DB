@@ -4746,6 +4746,8 @@
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssets.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />

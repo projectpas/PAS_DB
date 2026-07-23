@@ -40,6 +40,7 @@
 	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	28	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	29   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	30   20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (variable population + unit-cost update/GLAccount lookups in the ReconciliationPO GRNI/Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
 
 **************************************************************/  
 CREATE  PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -517,13 +518,13 @@ BEGIN
 
 							IF(UPPER(@StockType) = 'NONSTOCK')
 							BEGIN
-								SELECT @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
-										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
+								SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
 										@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
 										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(UnitCost,0),@ROStocklineUnitPrice=ISNULL(UnitCost,0),@StocklineQtyAvail=QuantityOnHand 
-								FROM dbo.NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
 												  
-								SELECT @PieceItemmasterId=MasterPartId FROM dbo.NonStockInventory WITH(NOLOCK)  WHERE NonStockInventoryId=@StocklineId
+								SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 
 							END
 							IF(UPPER(@StockType) = 'ASSET')
@@ -729,17 +730,17 @@ BEGIN
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
 										BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
-											UPDATE dbo.NonStockInventory
+											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE NonStockInventoryId=@StocklineId
+											WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 										END
 
 										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
-										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0)=1
 									END
 
 									IF(UPPER(@StockType) = 'ASSET')
@@ -1056,9 +1057,9 @@ BEGIN
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
 										BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
-											UPDATE dbo.NonStockInventory
+											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE NonStockInventoryId=@StocklineId
+											WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 										END
 										
 										SELECT TOP 1 @DistributionSetupId=ID, 
@@ -1074,9 +1075,9 @@ BEGIN
 										SELECT TOP 1 @GlAccountId=SL.GLAccountId,
 										             @GlAccountNumber=GL.AccountCode,
 													 @GlAccountName=GL.AccountName 
-												FROM DBO.NonStockInventory SL WITH(NOLOCK)
+												FROM DBO.Stockline SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.NonStockInventoryId=@StocklineId
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0)=1
 									END
 									IF(UPPER(@StockType) = 'ASSET')
 									BEGIN

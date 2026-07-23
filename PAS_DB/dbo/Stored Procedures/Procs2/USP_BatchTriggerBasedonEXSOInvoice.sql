@@ -28,6 +28,7 @@
 	13	 24/04/2025	  Devendra Shekh Modify (Added [IsManualText] check for DistributionSetup)
 	14	 06/07/2026	  Moin Bloch     Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters from Exchange SO invoice GL journal-entry creation so Non-Stock items are included.
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -178,7 +179,6 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON EP.[ItemMasterId] = IM.[ItemMasterId]
 			 WHERE EP.[ExchangeSalesOrderId] = @ReferenceId AND EP.[ExchangeSalesOrderPartId] = @partId
 			 	        
-	         AND ISNULL(IM.IsNonStock,0) = 0
 			  SELECT @LastMSLevel = [LastMSLevel],
 			       @AllMSlevels = [AllMSlevels] 
 			  FROM [dbo].[ExchangeManagementStructureDetails] WITH(NOLOCK) 
@@ -852,7 +852,6 @@ BEGIN
 							@MPNName = itm.[partnumber]
 					FROM [dbo].[ExchangeSalesOrderPart] esop WITH(NOLOCK) 
 					 LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = esop.[ItemMasterId]					
-					 AND ISNULL(itm.IsNonStock,0) = 0
 					  WHERE esop.ExchangeSalesOrderPartId = @ReferencePartId ;
 										
 					SELECT @LotId = SL.[LotId],

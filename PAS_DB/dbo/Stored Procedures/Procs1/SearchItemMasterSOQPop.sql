@@ -8,6 +8,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from alt-part subquery, StockLine join, and main WHERE clause.
 ****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
@@ -36,7 +37,6 @@ BEGIN
 		,c.Description ConditionDescription
 		,ISNULL(STUFF((
         SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-        AND ISNULL(I.IsNonStock,0) = 0
         FOR XML PATH(''))
         ,1,1,''), '') AlternateFor
 		,CASE 
@@ -51,7 +51,7 @@ BEGIN
 	FROM DBO.ItemMaster im 
 	LEFT JOIN DBO.Condition c ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 	LEFT JOIN DBO.StockLine sl ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-		AND sl.IsDeleted = 0 AND ISNULL(sl.IsNonStock,0) = 0 
+		AND sl.IsDeleted = 0
 		--AND ((sl.ConditionId = CASE WHEN @ConditionIds = '' THEN @ConditionIds ELSE sl.ConditionId END)
 		--	OR sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))
 	LEFT JOIN DBO.PurchaseOrder po ON po.PurchaseOrderId = sl.PurchaseOrderId 
@@ -69,7 +69,6 @@ BEGIN
 	WHERE 
 		im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 		--AND (sl.ItemMasterId is null OR ((@ConditionIds = '' OR @ConditionIds IS NULL OR  sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))))
-	 AND ISNULL(im.IsNonStock,0) = 0
 		 GROUP BY
 		im.PartNumber
 		,im.ItemMasterId 

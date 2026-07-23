@@ -17,6 +17,7 @@
 	2    31/10/2023     AMIT GHEDIYA			Added Isseralized for Qty check.
 	3    22/12/2023     Bhargav Salya			Added NewUnitCostTotransfer Field
 	4    16/06/2026     Moin Bloch			    Added [BulkStockScrapCertificateId] Field PN-16824
+	5    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
        
 -- EXEC USP_GetbulkstocklineadjustmentById 110,2  
   
@@ -83,7 +84,7 @@ BEGIN
 			   BSAD.[FromManagementStructureId],
 			   BSAD.[ToManagementStructureId],
 			   BSAD.[QuantityOnHand],
-			   BSAD.[UnitOfMeasure],
+			   STL.[StockUnitOfMeasure] AS [UnitOfMeasure],
 			   BSAD.[NewUnitCostTotransfer],
 			   BSAD.[AdjustmentReasonId],
 			   BSSS.[BulkStockScrapCertificateId]

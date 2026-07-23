@@ -18,6 +18,7 @@
 	5    22/04/2026     Rajesh Gami				Getting proper value of Quantity and UnitCost for the details type [PN-15728]
 	6    09/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
     7    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
+	8    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
@@ -48,8 +49,8 @@ CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
     @LastMSLevel   VARCHAR(200) = NULL,
     @AllMSLevels   VARCHAR(500) = NULL,
 	@AdjustmentReasonId bigint = NULL,
-	@AdjustmentReason VARCHAR(200) = NULL
-
+	@AdjustmentReason VARCHAR(200) = NULL,
+	@UnitOfMeasure VARCHAR(250) = NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -178,6 +179,7 @@ BEGIN
                     STL.[Condition],
                     STL.StockLineNumber,
                     STL.ControlNumber,
+                    STL.[StockUnitOfMeasure] AS UnitOfMeasure,
                     bsadj.StatusId,
 					BSAD.AdjustmentReasonId,
 					SAR.[Description] AS AdjustmentReason
@@ -213,6 +215,7 @@ BEGIN
                     [Condition],
                     StockLineNumber,
                     ControlNumber,
+                    UnitOfMeasure,
                     StatusId,
 					AdjustmentReasonId,
 					AdjustmentReason
@@ -226,6 +229,7 @@ BEGIN
                         OR LOWER(PartDescription) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(StockLineNumber) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(ControlNumber) LIKE '%' + LOWER(@GlobalFilter) + '%'
+                        OR LOWER(UnitOfMeasure) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AdjustmentType) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(LastMSLevel) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AllMSLevels) LIKE '%' + LOWER(@GlobalFilter) + '%'
@@ -244,6 +248,7 @@ BEGIN
                     AND (ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%')
                     AND (ISNULL(@StockLineNumber, '') = '' OR StockLineNumber LIKE '%' + @StockLineNumber + '%')
                     AND (ISNULL(@ControlNumber, '') = '' OR ControlNumber LIKE '%' + @ControlNumber + '%')
+                    AND (ISNULL(@UnitOfMeasure, '') = '' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%')
                     AND (ISNULL(@LastMSLevel, '') = '' OR LastMSLevel LIKE '%' + @LastMSLevel + '%')
                     AND (ISNULL(@AllMSLevels, '') = '' OR AllMSLevels LIKE '%' + @AllMSLevels + '%')
                     AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
@@ -269,6 +274,7 @@ BEGIN
                 [Condition],
                 StockLineNumber,
                 ControlNumber,
+                UnitOfMeasure,
                 StatusId,
                 NumberOfItems,
 				AdjustmentReasonId,
@@ -298,6 +304,9 @@ BEGIN
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END DESC,
+
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'UnitOfMeasure') THEN UnitOfMeasure END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'UnitOfMeasure') THEN UnitOfMeasure END DESC,
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'QTYADJUSTMENT') THEN NewQty END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QTYADJUSTMENT') THEN NewQty END DESC,

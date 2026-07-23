@@ -30,6 +30,7 @@
 	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
 	16	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
 	17	 16/07/2026		Abhishek Jirawla	Added @StrictVendorId parameter to filter RO list strictly by a single VendorId, independent of the existing @VendorId condition disabled per PN-16416 (PN-16786)
+	18	 22/07/2026		Bhargav Saliya		Changed qtyShipped/qtyRemaining temp columns to DECIMAL(18,6) so they match the decimal type expected by the API (PN-17353)
 
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -176,8 +177,8 @@ BEGIN
 					CASE WHEN ROPA.WorkOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxWorkOrderNo END AS WorkOrderNumType,
 					CASE WHEN ROPA.SalesOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxSalesOrderNo END AS SalesOrderNumberType,
 					0 AS isStkLable,
-					0 AS qtyShipped,
-					0 AS qtyRemaining,
+					CAST(0 AS DECIMAL(18, 6)) AS qtyShipped,
+					CAST(0 AS DECIMAL(18, 6)) AS qtyRemaining,
 					ROPA.QuantityOrdered
 			INTO #tmpReceivingRoviewList
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
@@ -359,8 +360,8 @@ BEGIN
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryType,
 				   ROP.RepairOrderPartRecordId,
 				   0 AS isStkLable,
-				   0 AS qtyShipped,
-				   0 AS qtyRemaining,
+				   CAST(0 AS DECIMAL(18, 6)) AS qtyShipped,
+				   CAST(0 AS DECIMAL(18, 6)) AS qtyRemaining,
 				   ROP.QuantityOrdered AS QuantityOrdered
 			INTO #tmpReceivingPnviewList
 			FROM  dbo.RepairOrder RO WITH (NOLOCK)

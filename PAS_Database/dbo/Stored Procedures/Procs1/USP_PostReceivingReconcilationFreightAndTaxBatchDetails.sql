@@ -8,15 +8,16 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-	1    11/02/2023   Moin Bloch    Created
-	2    11/23/2023   Moin Bloch    Added AccountMSModuleId For Accounting Batch Management Structure Details 
-	3    12/22/2023   Moin Bloch    Modified GLAccounts From Distribution Setup To  ReceivingReconciliationDetails
-	4    12/26/2023   Moin Bloch    Change the logic of Batch Entry
-	5    13/02/2026   Amit Ghediya  Update gl to get it from line level for tax (PN-15443)
-	6    03/09/2024   Moin Bloch    Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
-	7    08/06/2026   Moin Bloch    Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			-------------------------------            
+	1    11/02/2023   Moin Bloch		Created
+	2    11/23/2023   Moin Bloch		Added AccountMSModuleId For Accounting Batch Management Structure Details 
+	3    12/22/2023   Moin Bloch		Modified GLAccounts From Distribution Setup To  ReceivingReconciliationDetails
+	4    12/26/2023   Moin Bloch		Change the logic of Batch Entry
+	5    13/02/2026   Amit Ghediya		Update gl to get it from line level for tax (PN-15443)
+	6    03/09/2024   Moin Bloch		Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
+	7    08/06/2026   Moin Bloch		Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
+	8    22/07/2026   Priyansh Patel    UOM Changes [PN-16941]
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -45,11 +46,11 @@ BEGIN
 			DECLARE @TotalRecord INT = 0; 
 			DECLARE @TotalStocklineRecord INT = 0; 
 			DECLARE @MinId BIGINT = 1;  
-			DECLARE @TotalInvQty INT = 0;  
-			DECLARE @TotalStkAvlQty INT = 0;  
-			DECLARE @TotalFreight DECIMAL(18,2) = 0
-			DECLARE @TotalTax DECIMAL(18,2) = 0 
-			DECLARE @TotalMisc DECIMAL(18,2) = 0 			
+			DECLARE @TotalInvQty DECIMAL(18,6) = 0;  
+			DECLARE @TotalStkAvlQty DECIMAL(18,6) = 0;  
+			DECLARE @TotalFreight DECIMAL(18,6) = 0
+			DECLARE @TotalTax DECIMAL(18,6) = 0 
+			DECLARE @TotalMisc DECIMAL(18,6) = 0 			
 			DECLARE @Freight INT  = 1
 			DECLARE @Misc INT  = 2
 			DECLARE @Tax INT  = 3
@@ -61,18 +62,18 @@ BEGIN
 			DECLARE @AccountMSModuleId INT = 0;
 			DECLARE @VendorId BIGINT;
 			DECLARE @VendorName VARCHAR(50);
-			DECLARE @FreightInvCost DECIMAL(18,2) = 0;
-			DECLARE @FreightInvCogs DECIMAL(18,2) = 0;
-			DECLARE @TaxInvCost DECIMAL(18,2) = 0;
-			DECLARE @TaxInvCogs DECIMAL(18,2) = 0;
-			DECLARE @TotalDebit decimal(18, 2) = 0;
-			DECLARE @TotalCredit decimal(18, 2) = 0;
+			DECLARE @FreightInvCost DECIMAL(18,6) = 0;
+			DECLARE @FreightInvCogs DECIMAL(18,6) = 0;
+			DECLARE @TaxInvCost DECIMAL(18,6) = 0;
+			DECLARE @TaxInvCogs DECIMAL(18,6) = 0;
+			DECLARE @TotalDebit DECIMAL(18,6) = 0;
+			DECLARE @TotalCredit DECIMAL(18,6) = 0;
 			DECLARE @TransactionDate DATETIME2(7)
 			DECLARE @CodeTypeId AS BIGINT = 74;
 			DECLARE @StlQtyAvailGlobal INT  = 0
 			DECLARE @StlQtyUsedGlobal INT  = 0
-			DECLARE @TotalFreightsAmt DECIMAL(18,2) = 0;
-			DECLARE @TotalVarCOGS DECIMAL(18,2) = 0;
+			DECLARE @TotalFreightsAmt DECIMAL(18,6) = 0;
+			DECLARE @TotalVarCOGS DECIMAL(18,6) = 0;
 			DECLARE @ReceivingReconciliationNumber VARCHAR(50)=''
 			DECLARE @MiscGLId BIGINT = 0;
 			DECLARE @MiscGlAccountNumber VARCHAR(50)='';
@@ -107,15 +108,15 @@ BEGIN
 			    [ID] [BIGINT] NOT NULL IDENTITY, 
 				[ReceivingReconciliationDetailId] [BIGINT] NOT NULL,
 				[StocklineId] [BIGINT] NULL,
-				[InvoicedQty] [INT] NULL,
-				[InvoicedUnitCost] [DECIMAL](18, 2) NULL,				
+				[InvoicedQty] [DECIMAL](18, 6) NULL,
+				[InvoicedUnitCost] [DECIMAL](18, 6) NULL,				
 				[StockType] [VARCHAR](256) NULL,
 				[Packagingid] [INT] NULL,	
 				[IsManual] [BIT] NULL,		
-				[FreightAdjustment] [DECIMAL](18, 2) NULL,	
-				[TaxAdjustment] [DECIMAL](18, 2) NULL,	
-				[FreightAdjustmentPerUnit] [DECIMAL](18, 2) NULL,	
-				[TaxAdjustmentPerUnit] [DECIMAL](18, 2) NULL,	
+				[FreightAdjustment] [DECIMAL](18, 6) NULL,	
+				[TaxAdjustment] [DECIMAL](18, 6) NULL,	
+				[FreightAdjustmentPerUnit] [DECIMAL](18, 6) NULL,	
+				[TaxAdjustmentPerUnit] [DECIMAL](18, 6) NULL,	
 			) 
 
 			SELECT [ReceivingReconciliationDetailId],[StocklineId],[InvoicedQty],[InvoicedUnitCost],[StockType],[Packagingid],[IsManual],[FreightAdjustment],[TaxAdjustment],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit]			
@@ -154,7 +155,7 @@ BEGIN
 			SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRFreightAndTaxPostType WHERE [IsManual] = 1 AND [PackagingId] =  @Tax;
 		    ----- Total Misc -----
 		    SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  @Misc;
-
+			
 			SELECT @TotalRecord = COUNT(*), @MinId = MIN([ID]) FROM #RRFreightAndTaxPostType;
 
 			SELECT @TotalStocklineRecord = COUNT(*) FROM #RRFreightAndTaxPostType WHERE [IsManual] = 0;
@@ -168,13 +169,13 @@ BEGIN
 				DECLARE @StocklineId BIGINT = 0;
 				DECLARE @ReceivingReconciliationDetailId BIGINT = 0;
 				DECLARE @Packagingid INT = 0;
-				DECLARE @FreightAdjustment DECIMAL(18,2) = 0;
-				DECLARE @TaxAdjustment DECIMAL(18,2) = 0;
-				DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) = 0;
-				DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) = 0;
+				DECLARE @FreightAdjustment DECIMAL(18,6) = 0;
+				DECLARE @TaxAdjustment DECIMAL(18,6) = 0;
+				DECLARE @FreightAdjustmentPerUnit DECIMAL(18,6) = 0;
+				DECLARE @TaxAdjustmentPerUnit DECIMAL(18,6) = 0;
 				DECLARE @StockType VARCHAR(50)	 = 0;
-				DECLARE @StocklineQtyAvail BIGINT = 0;
-				DECLARE @ReceivedQty INT = 0;
+				DECLARE @StocklineQtyAvail DECIMAL(18,6) = 0;
+				DECLARE @ReceivedQty DECIMAL(18,6) = 0;
 				DECLARE @DistributionSetupId INT = 0;
 				DECLARE @Distributionname VARCHAR(200);
 				DECLARE @GlAccountId INT;
@@ -190,8 +191,8 @@ BEGIN
 				DECLARE @Desc VARCHAR(100);
 				DECLARE @PurchaseOrderId BIGINT = 0;
 				DECLARE @PurchaseOrderNumber VARCHAR(50) = '';
-				DECLARE @StlQtyAvail INT  = 0
-			    DECLARE @StlQtyUsed INT  = 0
+				DECLARE @StlQtyAvail DECIMAL(18,6)  = 0
+			    DECLARE @StlQtyUsed DECIMAL(18,6)  = 0
 
 				SELECT @StocklineId = [StocklineId],	
 				       @Packagingid = ISNULL([Packagingid],0),
@@ -381,7 +382,7 @@ BEGIN
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					
 					-----  RECONCILIATION PO STOCK INVENTORY  -----			
-					
+
 					IF(@FreightInvCogs <= 0)
 					BEGIN
 						IF(@TotalFreight <> @FreightInvCost)
@@ -1152,7 +1153,7 @@ BEGIN
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROFREIGHTINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
-					
+						
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],

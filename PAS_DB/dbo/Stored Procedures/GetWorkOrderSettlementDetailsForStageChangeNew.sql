@@ -269,7 +269,8 @@ BEGIN
 						ISNULL(c.[IsAllowReopenWO], 1) AS IsAllowReopenWO,
 						ISNULL(WOP.[IsFinishGood],0) AS IsFinishGood,
 						ISNULL(WOP.[IsClosed],0) AS IsWOClose,
-						ISNULL(SL.[ControlNumber],'') [ControlNumber]
+						ISNULL(SL.[ControlNumber],'') [ControlNumber],
+						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId]
 				INTO #SettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
@@ -278,7 +279,8 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
-					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]	
+					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]
+					LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.[WorkOrderId] = WOP.[WorkOrderId] AND SC.[workOrderPartNoId] = WOP.[ID]
 				WHERE wosd.[WorkOrderId] = @WorkorderId
 
 				-- ============================================================
@@ -326,7 +328,8 @@ BEGIN
 					MAX(CAST([IsAllowReopenWO] AS INT)) AS [IsAllowReopenWO],
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
 					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],
-					MAX([ControlNumber]) AS [ControlNumber]'
+					MAX([ControlNumber]) AS [ControlNumber],
+					MAX([ScrapCertificateId]) AS [ScrapCertificateId]'
 					+ @cols + N'
 				FROM #SettlementRows
 				GROUP BY [WorkOrderId], [WorkFlowWorkOrderId], [workOrderPartNoId]';

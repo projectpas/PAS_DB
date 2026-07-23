@@ -12,6 +12,7 @@
 	2    08/12/2023   Jevik Raiyani          added @statusValue
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed). Also removed a soft exclusion (ISNULL(STL.IsNonStock,0)=0) on the Stockline join.
 
 --   EXEC [GetPNTilePurchaseOrderQuoteList]
 **************************************************************/ 
@@ -107,14 +108,14 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId 
 			  LEFT OUTER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = POP.VendorRFQPOPartRecordId
 			  LEFT OUTER JOIN [dbo].[PurchaseOrderPart] POT WITH (NOLOCK) ON POP.PurchaseOrderId = POT.PurchaseOrderId AND POT.isParent=1
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON POT.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON POT.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON POP.TagTypeId = TAT.TagTypeId
 			 WHERE POQ.IsDeleted = 0
 				  AND POQ.IsActive = 1
 				  AND POQ.MasterCompanyId = @MasterCompanyId	
 				  AND POP.ItemMasterId = @ItemMasterId		
 				  AND (@ConditionId IS NULL OR POP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)
+			), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

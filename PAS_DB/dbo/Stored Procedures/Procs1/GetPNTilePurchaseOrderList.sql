@@ -14,6 +14,7 @@
 	5    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Purchase Order History (PN Tile): removed IsNonStock/ItemType exclusions from part join and WHERE clause.
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
@@ -107,15 +108,14 @@ BEGIN
 			  INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			  INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0 	
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON POP.TagTypeId = TAT.TagTypeId
 		 	  WHERE PO.IsDeleted = 0
 				  AND PO.IsActive = 1	 
 				  AND PO.MasterCompanyId = @MasterCompanyId	
 				  AND POP.ItemMasterId = @ItemMasterId
-				  AND POP.ItemTypeId = @ItemTypeStock
 				  AND (@ConditionId IS NULL OR POP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
+			 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

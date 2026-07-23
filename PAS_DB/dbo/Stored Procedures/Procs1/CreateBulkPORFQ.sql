@@ -8,6 +8,7 @@
 	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
 	3    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 ****************************************************************************************************************************************/ 
 CREATE      PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
@@ -236,7 +237,6 @@ BEGIN
   
   
     /************************************************************************/    
-     AND ISNULL(IM.IsNonStock,0) = 0
      EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderRFQId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,20,1,0    
     
      INSERT INTO #tmpVendorParts ([NewId])    

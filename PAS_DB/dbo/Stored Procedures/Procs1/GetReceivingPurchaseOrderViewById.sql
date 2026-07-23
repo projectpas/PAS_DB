@@ -16,6 +16,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the StockLineDraftCount CASE branch and the standalone NonStockInventoryDraft SELECT resultset to StocklineDraft (IsNonStock=1)
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Completed the fix: (a) added ISNULL(SLD.IsNonStock,0)=0 to the Stock-side StocklineDraft SELECT so Non-Stock draft rows are not duplicated across both the Stock and Non-Stock draft resultsets; (b) removed the hard ISNULL(SL.IsNonStock,0)=0 exclusion on the posted Stockline SELECT (Non-Stock posted stockline rows were never returned on this view at all); (c) removed leftover soft NHA/TLA ItemMaster IsNonStock exclusions in both the draft and posted sections.
 
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
@@ -169,15 +170,13 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SLD.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SLD.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SLD.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0
 		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SLD.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0
 		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SLD.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SLD.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SLD.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SLD.ShelfId
 		LEFT JOIN  [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SLD.BinId
-		WHERE SLD.PurchaseOrderId=@PurchaseOrderId
+		WHERE SLD.PurchaseOrderId=@PurchaseOrderId AND ISNULL(SLD.IsNonStock,0) = 0
 
 
 		/* START SELECT FROM StocklineDraft (Non-Stock rows, IsNonStock=1) */
@@ -396,15 +395,13 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SL.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SL.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SL.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0
 		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SL.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0
 		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SL.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SL.ShelfId
 		LEFT JOIN  [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
-		WHERE SL.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SL.IsNonStock,0) = 0
+		WHERE SL.PurchaseOrderId = @PurchaseOrderId
 
 		SELECT * FROM TimeLifeDraft WHERE PurchaseOrderId= @PurchaseOrderId
 		SELECT * FROM TimeLife WHERE PurchaseOrderId= @PurchaseOrderId

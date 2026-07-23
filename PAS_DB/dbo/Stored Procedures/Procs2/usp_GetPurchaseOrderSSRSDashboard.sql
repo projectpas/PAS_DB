@@ -22,6 +22,7 @@
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
      
 EXECUTE   [dbo].[usp_GetPurchaseOrderSSRSDashboard] 
 **************************************************************/
@@ -91,8 +92,6 @@ BEGIN
           ON PO.RequestedBy = E2.EmployeeId
 
 		  where PO.MasterCompanyId = @mastercompanyid
-
-     AND ISNULL(IM.IsNonStock,0) = 0
 		   COMMIT TRANSACTION
   END TRY
 

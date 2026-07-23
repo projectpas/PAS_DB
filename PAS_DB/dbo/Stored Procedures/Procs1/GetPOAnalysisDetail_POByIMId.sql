@@ -17,6 +17,7 @@
     1    21-AUG-2024      Rajesh Gami       Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_POByIMId] 
@@ -156,7 +157,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0 ) as a
+		 ) as a
 
 		--Select * from #TempPOAnalysisTbl
 		SELECT *

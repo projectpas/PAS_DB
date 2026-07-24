@@ -32,25 +32,43 @@ CREATE       PROCEDURE [dbo].[AutoCompleteDropdownsSalesorderItemMaster]
 	@SalesOrderId BIGINT
 AS
 	BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-    SET NOCOUNT ON
-	BEGIN TRY
-				IF(@Count = '0') 
-				   BEGIN
-				   SET @Count='20';	
-				END	
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+    SET NOCOUNT ON;
 
-				SELECT DISTINCT TOP 20 
-					IM.ItemMasterId AS Value,
-					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = SOP.MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
-					IM.partnumber AS Label
-				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
-					JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				WHERE (IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0  
-				AND SOP.SalesOrderId = @SalesOrderId 
-				AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))    
-				 ORDER BY Label	
-		END TRY    
+    BEGIN TRY
+
+        IF @Count = '0'
+            SET @Count = '20';
+
+        SELECT DISTINCT TOP 20
+            IM.ItemMasterId  AS Value,
+            CONCAT(
+                IM.PartNumber,
+                CASE WHEN dupCounts.PartNumberCount > 1
+                     THEN ' - ' + ISNULL(IM.ManufacturerName, '')
+                     ELSE ''
+                END
+            )                AS PartNumber,
+            IM.PartNumber    AS Label
+        FROM dbo.ItemMaster IM WITH (NOLOCK)
+        JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK)
+            ON SOP.ItemMasterId = IM.ItemMasterId
+        OUTER APPLY (
+            SELECT COUNT(*) AS PartNumberCount
+            FROM dbo.ItemMaster SD WITH (NOLOCK)
+            WHERE SD.PartNumber       = IM.PartNumber
+              AND SD.MasterCompanyId  = SOP.MasterCompanyId
+        ) dupCounts
+        WHERE IM.IsActive              = 1
+          AND ISNULL(IM.IsDeleted, 0)  = 0
+          AND SOP.SalesOrderId         = @SalesOrderId
+          AND (
+                IM.PartNumber LIKE @StartWith + '%'
+             OR IM.PartNumber LIKE '%' + @StartWith + '%'
+          )
+        ORDER BY Label;
+
+    END TRY   
 		BEGIN CATCH      
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 

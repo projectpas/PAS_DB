@@ -18,6 +18,7 @@
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
 	8    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
@@ -134,7 +135,7 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
-				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId
 				WHERE BI.BillingInvoicingId = @BillingInvoicingId	 
 				--UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
 				SELECT 

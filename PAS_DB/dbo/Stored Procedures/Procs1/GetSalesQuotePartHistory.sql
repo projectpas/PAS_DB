@@ -15,6 +15,7 @@
     1    13/11/2024    SHREY CHANDEGARA  Created    
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
          
  EXECUTE GetSalesQuotePartHistory 958  
 **************************************************************/     
@@ -84,11 +85,10 @@ BEGIN
 		FROM [dbo].[SalesOrderQuotePartV1Audit] part WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuoteAudit] soq WITH(NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
 			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1Audit] soqs WITH(NOLOCK) ON soqs.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON soqs.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON soqs.StockLineId = qs.StockLineId
 			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc WITH(NOLOCK) ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc WITH(NOLOCK) ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

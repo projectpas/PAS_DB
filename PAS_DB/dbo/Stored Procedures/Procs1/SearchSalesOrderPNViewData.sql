@@ -25,6 +25,7 @@
 	10   20-11-2025  Rajesh Gami		Correct the SO Amount
 	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   22/July/2026 RAJESH GAMI			[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter is no longer needed)
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
 	@PageNumber int,  
@@ -143,7 +144,6 @@ BEGIN
     LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId = SP.SalesOrderPartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-     AND ISNULL(IM.IsNonStock,0) = 0
      LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
     LEFT JOIN DBO.Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId
     LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId

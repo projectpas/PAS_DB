@@ -17,6 +17,7 @@
 	4    07-07-2025    Moin Bloch            Changed Old To New Billing Table
 	5    09/July/2026    RAJESH GAMI            [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09-07-2026    Bhargav Saliya        Get ResaleNumber AND CustomerVATNumber
+	6    23/July/2026    RAJESH GAMI            [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
          
 -- EXEC [dbo].[GetPackagingLabel] 1300, 1507
 **************************************************************/  
@@ -92,7 +93,7 @@ BEGIN
     LEFT JOIN [dbo].[SalesOrderShipping] sos WITH(NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId
     LEFT JOIN [dbo].[BillingInvoicing] sobi WITH(NOLOCK) ON sos.SalesOrderId = sobi.ReferenceId AND sobi.[ModuleId] = @SalesOrderModuleId
     LEFT JOIN [dbo].[Employee] saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId
-    LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+    LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
     LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN [dbo].[ShippingVia] sh WITH(NOLOCK) ON sos.ShipviaId = sh.ShippingViaId

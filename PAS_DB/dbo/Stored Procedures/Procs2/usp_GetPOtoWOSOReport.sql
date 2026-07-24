@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------              
     1  11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
          
 **************************************************************/ 
 CREATE        PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
@@ -130,7 +131,6 @@ BEGIN
           ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.ItemMaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.ItemMasterId
-         AND ISNULL(IM2.IsNonStock,0) = 0
            INNER JOIN DBO.ItemMaster IM1 WITH (NOLOCK)
           ON WOPN.itemmasterId = IM1.itemmasterid
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
@@ -145,7 +145,6 @@ BEGIN
         value
       FROM string_split(@status, ','))
       AND PO.MasterCompanyId = @mastercompanyid
-     AND ISNULL(IM1.IsNonStock,0) = 0
        COMMIT TRANSACTION
   END TRY
   BEGIN CATCH

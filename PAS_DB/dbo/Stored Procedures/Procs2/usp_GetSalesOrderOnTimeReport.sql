@@ -24,6 +24,7 @@
 	5    07-07-2025   Moin Bloch         Changed Old To New Billing Table
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 
 EXECUTE   [dbo].[usp_GetSalesOrderOnTimeReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -162,11 +163,11 @@ BEGIN
         LEFT OUTER JOIN dbo.salesorderpartv1 AS SOP WITH (NOLOCK) ON SO.salesorderid = SOP.salesorderid
         LEFT OUTER JOIN dbo.SalesOrderStocklineV1 AS SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT OUTER JOIN dbo.stockline AS STL WITH (NOLOCK)
-          ON SOPS.stocklineid = STL.stocklineid and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+          ON SOPS.stocklineid = STL.stocklineid and STL.IsParent=1
         --LEFT OUTER JOIN DBO.WorkOrder AS WO WITH(NOLOCK) ON STl.WorkOrderId = WO.WorkOrderId           
         LEFT OUTER JOIN dbo.itemmaster WITH (NOLOCK)
           ON SOP.itemmasterid = itemmaster.itemmasterid
-         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 LEFT OUTER JOIN dbo.billinginvoicing AS SOBI WITH (NOLOCK)
+         LEFT OUTER JOIN dbo.billinginvoicing AS SOBI WITH (NOLOCK)
           ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
         LEFT OUTER JOIN dbo.condition AS CDTN WITH (NOLOCK)
           ON SOP.conditionid = CDTN.conditionid

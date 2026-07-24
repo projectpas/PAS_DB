@@ -22,7 +22,8 @@
 	2    25-Mar-2024  Moin Bloch    Fixed Decimal Value Exception 
 	3    03-07-2025   Moin Bloch    Changed Old To New Billing Table
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/  
+	5    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion added during the PN-17008 transitional phase so Non-Stock parts now correctly appear in this Quoted Unit report
+**************************************************************/
 CREATE      PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_QuotedUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
@@ -158,8 +159,7 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0
-			 LEFT JOIN [dbo].[Condition] AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
+						 LEFT JOIN [dbo].[Condition] AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
 		  
 		  WHERE 
 				--WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced'  AND 

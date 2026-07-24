@@ -27,7 +27,7 @@
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	9    22/July/2026			 Amit Ghediya						Added @ViewType - Summary Dashboard groups rows by acTailNum + mtceType + pnNum [PN-17223]
+	9    22/July/2026			 Amit Ghediya						Added @ViewType - Summary Dashboard groups rows by acTailNum + mtceType + pnNum with filter issue [PN-17223]
 ***********************************/
 CREATE     PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -68,10 +68,15 @@ BEGIN
         SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
 		DECLARE @AirframeCode VARCHAR(50);
 		DECLARE @EngineCode VARCHAR(50);
+		DECLARE @SectionCode VARCHAR(50);
 
 		SELECT @AirframeCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'AIRFRAME';
 		SELECT @EngineCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'ENGINE';
 
+		IF(ISNULL(@SectionId,0) > 0)
+		BEGIN
+			SELECT @SectionCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [AircraftSectionId] = @SectionId;
+		END
 
         IF (@ViewType = 'Summary')
         BEGIN
@@ -305,7 +310,7 @@ BEGIN
 					AND (@LastinspectedBy    IS NULL OR LastinspectedBy   LIKE '%' + @LastinspectedBy   + '%')
                     -- dashboard-level dropdown filters
                     AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))  -- exact match
-                    AND (@SectionId    IS NULL OR sectionId    = @SectionId)                                 -- direct match on CTE column
+                    AND (@SectionCode    IS NULL OR section    = @SectionCode)                                 -- direct match on CTE column
                     AND (@IsScheduled  IS NULL OR isScheduled  = @IsScheduled)                               -- direct match on AMP.IsScheduled
                     AND (ISNULL(@SearchMaintenanceType, '') = '' OR LOWER(mtceType) = LOWER(@SearchMaintenanceType))  -- exact match; NULL for INSTALLED rows
             ),
@@ -587,7 +592,7 @@ BEGIN
 					AND (@LastinspectedBy    IS NULL OR LastinspectedBy   LIKE '%' + @LastinspectedBy   + '%')
                     -- dashboard-level dropdown filters
                     AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))  -- exact match
-                    AND (@SectionId    IS NULL OR sectionId    = @SectionId)                                 -- direct match on CTE column
+                    AND (@SectionCode    IS NULL OR section    = @SectionCode)                                 -- direct match on CTE column
                     AND (@IsScheduled  IS NULL OR isScheduled  = @IsScheduled)                               -- direct match on AMP.IsScheduled
                     AND (ISNULL(@SearchMaintenanceType, '') = '' OR LOWER(mtceType) = LOWER(@SearchMaintenanceType))  -- exact match; NULL for INSTALLED rows
             ),

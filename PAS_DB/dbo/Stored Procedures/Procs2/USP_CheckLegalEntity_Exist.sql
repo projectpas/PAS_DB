@@ -22,6 +22,7 @@
 	5   28/01/2025 Devendra Shekh	Modified (Handling Null @CurrntEmpTimeZoneDesc )
 	6   22/08/2025 Devendra Shekh	Modified (added LegalEntity join for @CurrntEmpTimeZoneDesc)
 	7   09/July/2026 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8   23/July/2026 RAJESH GAMI	[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
      
 **************************************************************/
 
@@ -214,7 +215,7 @@ BEGIN
 				  FROM [Stockline] SL WITH(NOLOCK)
 				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId
 				  LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
-				  WHERE SL.[StockLineId] = @ReferenceId AND ISNULL(SL.IsNonStock,0) = 0 
+				  WHERE SL.[StockLineId] = @ReferenceId 
 			  END
 			  END
 		COMMIT  TRANSACTION

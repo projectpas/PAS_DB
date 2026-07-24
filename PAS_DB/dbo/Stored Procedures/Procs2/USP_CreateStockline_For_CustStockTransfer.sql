@@ -22,6 +22,7 @@
 	2    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
     3    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
   
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
@@ -55,7 +56,7 @@ BEGIN
 
 			SELECT @ItemMasterId_Part = ItemMasterId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
-			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part AND ISNULL(IM.IsNonStock,0) = 0 ;
+			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part ;
 
 			IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
@@ -738,7 +739,6 @@ BEGIN
 					ON CSTL.StockLineId = STL.StockLineId  
 					/* PN Manufacturer Combination Stockline logic */
 
-					 WHERE ISNULL(IM.IsNonStock,0) = 0
 DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
@@ -782,7 +782,6 @@ DELETE FROM #tmpCodePrefixes;
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					 AND ISNULL(iM.IsNonStock,0) = 0
 					 GROUP BY iM.ItemMasterId
 
 					INSERT INTO DBO.Stockline ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],

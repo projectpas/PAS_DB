@@ -36,6 +36,7 @@
 	19   07/May/2026  Rajesh Gami	   ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 	20   21/05/2026   Moin Bloch       Added  [AircraftSerialNumber] PN-16469
 	21    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -477,7 +478,7 @@ BEGIN
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
-				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId AND ISNULL(im.IsNonStock,0) = 0 ;	
+				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId ;	
 			END
 			
 			TRUNCATE TABLE #TempTableForPartType;

@@ -27,6 +27,7 @@
 	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
 	3    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -109,7 +110,6 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-		   AND ISNULL(IM.IsNonStock,0) = 0
 			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		        AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid  
 				AND SO.IsActive = 1 AND SO.IsDeleted = 0
@@ -179,7 +179,6 @@ BEGIN
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-       AND ISNULL(IM.IsNonStock,0) = 0
 			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		    AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid
 			AND SO.IsActive = 1 AND SO.IsDeleted = 0

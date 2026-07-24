@@ -19,6 +19,7 @@
     5    09 NOV 2023  Rajesh Gami    Add flag : @IsFromSOSOQ in the parameter and add code for the same for getting all the itemmaster from the dashboard (trading page SO SOQ)     
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  
@@ -121,7 +122,7 @@ BEGIN
 			   ,ISNULL((SELECT TOP 1 ISNULL(SP_CalSPByPP_UnitSalePrice,0) FROM dbo.ItemMasterPurchaseSale imp WITH(NOLOCK) WHERE im.ItemMasterId =imp.ItemmasterId AND imp.ConditionId = c.ConditionId),0) AS BaseSalePrice
 				FROM  [dbo].[ItemMaster] im WITH (NOLOCK) 					
 					LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionId,','))
-					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId  AND stl.ConditionId = c.ConditionId AND stl.IsParent = 1  AND stl.IsCustomerStock = 0 AND stl.QuantityOnHand > 0 AND stl.QuantityAvailable > 0 AND ISNULL(stl.IsNonStock,0) = 0     
+					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId  AND stl.ConditionId = c.ConditionId AND stl.IsParent = 1  AND stl.IsCustomerStock = 0 AND stl.QuantityOnHand > 0 AND stl.QuantityAvailable > 0     
 				    LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId      
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId      
 					LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId      
@@ -130,9 +131,7 @@ BEGIN
 					 AND im.MasterCompanyId = @MasterCompanyId        
 				  AND im.ItemMasterId = @ItemMasterId       
 				  --AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
-				  AND im.ItemTypeId  = 1      
-
-				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				  AND im.ItemTypeId  = 1 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResultsSOQ FROM  Result      
 				  SELECT @Count = COUNT(StockLineId) FROM #TempResultsSOQ         
       
@@ -193,8 +192,7 @@ BEGIN
 				  AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
 				  AND stl.IsParent = 1       
 				  AND stl.IsCustomerStock = 0       
-				  AND im.ItemTypeId  = 1      
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				  AND im.ItemTypeId  = 1 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResults FROM  Result      
 				 WHERE ((@GlobalFilter <>'' AND       
 					   ((PartNumber LIKE '%' +@GlobalFilter+'%') OR      
@@ -336,8 +334,7 @@ BEGIN
 				AND stl.IsParent = 1       
 				AND stl.QuantityOnHand > 0  
 				AND stl.IsCustomerStock = 0       
-				AND im.ItemTypeId  = 1      
-			   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				AND im.ItemTypeId  = 1 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 			  SELECT * INTO #TempResults_ALT FROM  Result      
 			   WHERE ((@GlobalFilter <>'' AND       
 				  ((PartNumber LIKE '%' +@GlobalFilter+'%') OR      

@@ -13,6 +13,7 @@
  ** --   --------     -------		---------------------------     
     1    06/28/2023   Moin Bloch     Added IsRMA Flag
     2    09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 *******************************************************************************
 EXEC USP_CreateStocklinePartHistory 1,0,0,2,1
 *******************************************************************************/
@@ -78,7 +79,7 @@ BEGIN
 				LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON pop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
-				WHERE STL.StockLineId = @StocklineId AND ISNULL(STL.IsNonStock,0) = 0
+				WHERE STL.StockLineId = @StocklineId
 		END
 		IF(@IsRO = 1)
 		BEGIN
@@ -100,7 +101,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON rop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
-				WHERE STL.StockLineId = @extstocklineId AND ISNULL(STL.IsNonStock,0) = 0;
+				WHERE STL.StockLineId = @extstocklineId;
 
 				INSERT INTO [dbo].[StockLineHistoryDetails] ([StocklineId], [ItemMasterId_o], [ItemMasterId_m], [StocklineNum],
 					[PurchaseOrderId], [PONum], [POCost], [ConditionId], [ConditionName], [RepairOrderId], [RONum], [WorkscoprId],[WorkscopeName],
@@ -114,7 +115,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON rop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
-				WHERE STL.StockLineId = @StocklineId AND ISNULL(STL.IsNonStock,0) = 0;
+				WHERE STL.StockLineId = @StocklineId;
 
 				DECLARE @stlnum VARCHAR(100);
 				SET @stlnum = (SELECT StocklineNum FROM dbo.StockLineHistoryDetails WITH (NOLOCK) WHERE StocklineId = @StocklineId AND extstocklineId = @StocklineId)
@@ -165,7 +166,7 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMA] po WITH (NOLOCK) ON STL.VendorRMAId = po.VendorRMAId
 				LEFT JOIN [dbo].[VendorRMADetail] pop WITH (NOLOCK) ON STL.VendorRMADetailId = pop.VendorRMADetailId
 				LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = po.VendorId
-				WHERE STL.StockLineId = @StocklineId AND ISNULL(STL.IsNonStock,0) = 0;
+				WHERE STL.StockLineId = @StocklineId;
 		END
 	END
     COMMIT TRANSACTION

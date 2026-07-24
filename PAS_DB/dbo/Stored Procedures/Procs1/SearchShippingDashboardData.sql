@@ -16,6 +16,7 @@
 	4    03-Jun-2026   Sumit Kumar      Added RO and Vendor RMA shipping entries to dashboard
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
@@ -105,7 +106,6 @@ BEGIN
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 						INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN DBO.ItemMaster imt  WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = wo.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK)  ON WOSI.WorkOrderPartNumId = wopt.OrderPartId AND WOSI.WOPickTicketId = wopt.PickTicketId						
@@ -140,7 +140,6 @@ BEGIN
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK)  ON SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND SOSI.SOPickTicketId = sopt.SOPickTicketId						
@@ -177,8 +176,7 @@ BEGIN
 						LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 						INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0
-						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.ExchangeSalesOrderShippingItem EOSI WITH (NOLOCK)  ON EOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND EOSI.SOPickTicketId = sopt.SOPickTicketId						
@@ -214,7 +212,6 @@ BEGIN
 						INNER JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON ropt.RepairOrderId = rop.RepairOrderId AND ropt.RepairOrderPartId = rop.RepairOrderPartRecordId AND ropt.StocklineId = rop.StockLineId
 						INNER JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = rop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.Priority P WITH (NOLOCK) ON P.PriorityId = rop.PriorityId
 						LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = ro.VendorId and VS.IsPrimary=1
 						LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = ropt.RepairOrderPartId AND ROSI.ROPickTicketId = ropt.ROPickTicketId
@@ -249,7 +246,6 @@ BEGIN
 						INNER JOIN DBO.VendorRMA rma WITH (NOLOCK) ON rma.VendorRMAId = rmad.VendorRMAId
 						INNER JOIN DBO.Vendor V WITH (NOLOCK) ON V.VendorId = rma.VendorId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = rmad.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = rma.VendorId and VS.IsPrimary=1
 						LEFT JOIN DBO.RMAShippingItem RMSI WITH (NOLOCK) ON RMSI.VendorRMADetailId = rmpt.VendorRMADetailId AND RMSI.RMAPickTicketId = rmpt.RMAPickTicketId
 						LEFT JOIN DBO.RMAShipping RMS WITH (NOLOCK) ON RMSI.RMAShippingId = RMS.RMAShippingId

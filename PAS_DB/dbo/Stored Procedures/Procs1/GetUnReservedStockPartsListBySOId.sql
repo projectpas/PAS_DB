@@ -20,6 +20,7 @@
 	 4    07-07-2025    Moin Bloch          Changed Old To New Billing Table
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0,0
 **************************************************************/
@@ -102,7 +103,7 @@ BEGIN
 		AND sop.IsDeleted = 0
 		AND (sopi.TotalReserved > 0)
 		AND so.SalesOrderId = @SalesOrderId
-		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId) AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 )
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId) )
 
 		SELECT SalesOrderReservePartId,
 			   SalesOrderPartId,

@@ -18,6 +18,7 @@
     1    08/10/2022  Subhash Saliya     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory population/unit-cost-update references (PO and RO Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 more leftover IsNonStock=0 exclusion filters (MPNName lookups) missed by the earlier PN-17350 pass.
    EXEC [dbo].[USP_CreateReceivingReconciliationBatchDetails] 'RPO',10023,0
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails] @StocklineId bigint=NULL, @Qty int=0, @Amount Decimal(18, 2), @ModuleName varchar(200), @UpdateBy varchar(200), @DistributionCode varchar(200), @JournalBatchHeaderId bigint, @JournalTypename varchar(200), @StockType varchar(50), @PackagingId int, @EmployeeId BIGINT, @RRId BIGINT, @ReceivingReconciliationDetailId BIGINT, @BatchId BIGINT OUTPUT
@@ -120,11 +121,10 @@ AS BEGIN
 
 
 
-					 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+					 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId ;
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					 select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
-		             SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-             AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		             SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId
 		              IF(@PackagingId>0)BEGIN
                 SET @Amount=(@Qty * @Amount);
                 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
@@ -392,14 +392,13 @@ AS BEGIN
 						  SELECT @PieceItemmasterId=MasterPartId  from AssetInventory  where AssetInventoryId=@StocklineId
 
 					END
-                 	 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+                 	 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId ;
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					 select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
 					  SET @Amount = (@Qty * @Amount);
 
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
-		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-                  AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId
 		               IF(@PackagingId>0)BEGIN
                      SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                      from DistributionSetup WITH(NOLOCK)

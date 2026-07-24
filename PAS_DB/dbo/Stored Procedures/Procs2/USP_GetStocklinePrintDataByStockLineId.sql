@@ -22,6 +22,7 @@
 										 filter returned zero rows - blank print label - for every migrated Non-Stock Stockline
 										 record. Left the itm.IsNonStock filter (WorkOrderPartNumber's MPN reference, a
 										 different ItemMaster row) untouched.
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Per updated business direction (Non-Stock now allowed everywhere), removed the 4 remaining itm.IsNonStock=0 exclusions on the WorkOrderPartNumber MPN-reference lookup that were deliberately left in place during the prior PN-17009 bugfix pass.
 
 --EXEC [USP_GetStocklinePrintDataByStockLineId]
 **************************************************************/
@@ -193,7 +194,6 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StockLineId
@@ -249,7 +249,6 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0
@@ -309,7 +308,6 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 			 END
@@ -363,7 +361,6 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 			 END

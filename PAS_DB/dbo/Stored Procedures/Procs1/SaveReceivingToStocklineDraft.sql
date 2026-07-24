@@ -36,6 +36,7 @@
     16   02-06-2026   Nakul Chandigra   Merge UAT Changes
 	17    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	18    15/July/2026			 RAJESH GAMI						[PN-17271] - Also insert Non-Stock PO Parts into StocklineDraft (IsNonStock = 1).
+	19    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters on ItemMaster lookups (isSerialized) that would silently fail for Non-Stock items.
 	19    15/July/2026			 RAJESH GAMI						[PN-17271] - Removed NonStockInventoryDraft insert; StocklineDraft is now the sole insert for Non-Stock PO Parts.
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'
 **************************************************************/    
@@ -153,7 +154,7 @@ BEGIN
      FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId    
      WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;    
     
-     SELECT @IsSerialized = ISNULL(IM.isSerialized, 0) FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;    
+     SELECT @IsSerialized = ISNULL(IM.isSerialized, 0) FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId ;    
     
      SET @CurrentIndex = 0;    
      SET @LoopID_Qty = @QtyToTraverse;    
@@ -234,7 +235,7 @@ BEGIN
 		NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
 		@LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
 		NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
-		FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;    
+		FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId ;    
     
 		SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    
     
@@ -335,7 +336,7 @@ BEGIN
 		  NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
 		  @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
 		  NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
-		  FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;    
+		  FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId ;    
     
 		  SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    
     

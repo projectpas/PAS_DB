@@ -15,6 +15,7 @@
 	3    05-30-2025	  ABHISHEK JIRAWLA	Adding Traceability Changes
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
      
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
@@ -151,7 +152,7 @@ ELSE sl.ConditionId
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				AND ISNULL(sl.QuantityAvailable, 0) > 0
 				--AND sl.IsCustomerStock = 0
-				AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0
+				AND sl.IsParent = 1
 		END
 		COMMIT  TRANSACTION
 

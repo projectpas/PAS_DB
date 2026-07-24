@@ -15,6 +15,7 @@
 	4    19/09/2024	    AMIT GHEDIYA		    Added for AutoPost Batch
 	5  	 07/07/2026	    Moin Bloch              Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (MPNName/PiecePN lookups).
 
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -396,13 +397,12 @@ BEGIN
 					IF(@Amount > 0)
 					BEGIN
 						SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
-						SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-						 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+						SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
 						 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 						Set @ReferencePartId=@partId	
 
 						SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
-						SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+						SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 
 						------Depreciation Expense -----------
 
@@ -519,15 +519,12 @@ BEGIN
 					SET @Amount = (@ARCaseAmount);
 
 					SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
-					SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+					SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
 					 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 					Set @ReferencePartId=@partId	
 
 					SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
-					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 					 IF(@JournalBatchDetailId = 0)
 					BEGIN
 						INSERT INTO [dbo].[BatchDetails]
@@ -813,8 +810,7 @@ BEGIN
 					SET @Amount = (@AssetTotalPrice);
 
 					SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
-					SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+					SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
 					 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 					Set @ReferencePartId=@partId	
 

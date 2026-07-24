@@ -22,6 +22,7 @@
     1    04/05/2021   Subhash Saliya Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE USP_GetRollupMaterialList 325
 
@@ -73,7 +74,7 @@ SET NOCOUNT ON
 			PartQuantityAvailable = sl.QuantityAvailable,
 			PartQuantityReserved = (SELECT SUM(sl.QuantityReserved) FROM WorkOrderMaterialStockLine womsl 
 							JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId 
-							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
+							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			sl.QuantityTurnIn as PartQuantityTurnIn,
 			PartQuantityOnOrder = sl.QuantityOnOrder,
@@ -114,7 +115,7 @@ SET NOCOUNT ON
 			isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 	        StockLIneId = (SELECT top 1 sl.StockLIneId
 							FROM WorkOrderMaterialStockLine womsl JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId
-							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
+							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			wom.Quantity as QunatityRequried,
 			pop.QuantityBackOrdered as QunatityBackOrder,
@@ -150,5 +151,4 @@ SET NOCOUNT ON
 		LEFT JOIN dbo.SubWorkOrderMaterialMapping SBWOMM WITH (NOLOCK) ON SBWOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		WHERE WOM.WorkOrderMaterialsId = @workOrderMaterialId --AND WOM.IsAltPart = 0 AND WOM.IsEquPart = 0;
- AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 		 END

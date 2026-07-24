@@ -14,6 +14,7 @@
  ** --   --------			-------				--------------------------------          
     1    09-Dec-2025		Devendra Shekh		  Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items in Vendor RFQ Part Details
 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[usp_GetVendorRFQPartDetails] (
@@ -99,7 +100,6 @@ SET NOCOUNT ON
 		INNER JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON TPR.ThirdPartyRFQId = ILSD.ThirdPartyRFQId
 		LEFT JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = VRFQ.IntegrationEmailID
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
-		 AND ISNULL(IM.IsNonStock,0) = 0
 		 WHERE TPR.ThirdPartyRFQId = @ThirdPartyRFQId AND TPR.MasterCompanyId = @MasterCompanyId 
 		AND ISNULL(TPR.IsActive, 0) = 1 AND ISNULL(TPR.IsDeleted, 0) = 0 ;
 

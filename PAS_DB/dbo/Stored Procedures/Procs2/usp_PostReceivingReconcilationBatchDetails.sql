@@ -41,6 +41,7 @@
 	28	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	29   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	30   20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (variable population + unit-cost update/GLAccount lookups in the ReconciliationPO GRNI/Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
+	31   24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) on the Receiving-PO MPN/PiecePN lookups to allow Non-Stock items in Reconciliation Batch posting
 
 **************************************************************/  
 CREATE  PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -539,13 +540,12 @@ BEGIN
 
 							END
 
-							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId ;
 							SELECT @VendorName =VendorName FROM dbo.Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 							SELECT @PurchaseOrderNumber=PurchaseOrderNumber FROM dbo.PurchaseOrder WITH(NOLOCK)  WHERE PurchaseOrderId= @PurchaseOrderId;
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
 								-- Reconciliation PO
-							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 								 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving PO-'+@PurchaseOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber

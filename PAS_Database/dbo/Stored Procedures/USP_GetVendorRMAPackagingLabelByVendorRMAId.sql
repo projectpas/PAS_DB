@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
+    2    24-07-2026    Bhargav Saliya       Added New fiels [PN-17341]  
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
@@ -55,7 +56,14 @@ BEGIN
 					soq.CreatedDate,
 					soq.UpdatedBy,
 					soq.UpdatedDate,
-					qs.ManagementStructureId
+					qs.ManagementStructureId,
+					ISNULL(posv.ShipVia, '')        AS ShipViaName,
+					rsh.ShipDate                    AS ShipDate,
+					ISNULL(rsh.AirwayBill, '')      AS AWB,
+					ISNULL(rsh.RMAShippingNum, '')  AS ShippingOrderNo,
+					rsh.NoOfContainer               AS NoOfContainer,
+					ISNULL(soq.Notes, '')           AS Notes,
+					soq.OpenDate                    AS OpenDate
 				FROM [dbo].RMAPickTicket sopkt WITH(NOLOCK)
 				INNER JOIN [dbo].VendorRMA soq WITH(NOLOCK) ON sopkt.VendorRMAId = soq.VendorRMAId
 				INNER JOIN [dbo].VendorRMADetail part WITH(NOLOCK) ON soq.VendorRMAId = part.VendorRMAId
@@ -69,6 +77,7 @@ BEGIN
 				LEFT JOIN [dbo].StockLine qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 				LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN [dbo].RMAShipping rsh WITH(NOLOCK) ON spb.RMAShippingId = rsh.RMAShippingId
 				WHERE sopkt.VendorRMAId = @VendorRMAId
 				  AND sopkt.VendorRMADetailId = @VendorRMADetailId;
 			END TRY    

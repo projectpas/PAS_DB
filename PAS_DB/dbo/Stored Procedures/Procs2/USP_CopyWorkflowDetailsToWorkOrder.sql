@@ -1305,6 +1305,7 @@ SET NOCOUNT ON;
 										[NewParentId] [BIGINT] NULL,
 									)
 
+									-- Get the highest existing parent sequence number for the current WorkOrderTask to ssign the next sequence number to a newly created parent instruction.
 									DECLARE @MaxExistingParentSeq INT = 0;
 									SELECT @MaxExistingParentSeq = ISNULL(MAX(TRY_CAST(SequenceNumber AS INT)), 0)
 									FROM dbo.WorkOrderTaskInstruction WITH (NOLOCK)

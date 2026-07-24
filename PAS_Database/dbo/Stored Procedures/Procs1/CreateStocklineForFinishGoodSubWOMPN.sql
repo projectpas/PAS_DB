@@ -32,7 +32,7 @@
 15    04/14/2025   HEMANT SALIYA   Added Work Order Work Flow Id for UpdateWOMaterialsCost
 16    04/18/2025   ABHISHEK JIRAWLA  Added Integration Portal in Stockline
 17	  24/04/2025   Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
-       
+18    24/07/2026   Ayushi patel     [PN-17349]Added stockUnitOfMeasure , StockUnitOfMeasureId into stockline table        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
@@ -279,7 +279,7 @@ BEGIN
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife], [IntegrationPortal])  
+         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife], [IntegrationPortal],StockUnitOfMeasureId,StockUnitOfMeasure)  
       SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,@StockLineNumber,[StocklineMatchKey],[ControlNumber],@ItemMasterId,1,@RevisedConditionId  
          ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
          ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
@@ -301,7 +301,7 @@ BEGIN
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],ISNULL(@ROUnitCost, 0),[TaggedByType]  
-         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1, 1,@SubWorkOrderNum,1,[IsStkTimeLife], @IntegrationPortal
+         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1, 1,@SubWorkOrderNum,1,[IsStkTimeLife], @IntegrationPortal,StockUnitOfMeasureId,StockUnitOfMeasure
      FROM dbo.Stockline WITH(NOLOCK)  
      WHERE StockLineId = @StocklineId  
   

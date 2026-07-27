@@ -29,6 +29,7 @@
 	11	 07/25/2025   Vishal Suthar	   Fixed an issue with not updating the Provision with new implementation
 	12   11/19/2025   Moin Bloch       Fixed an issue For WO Kit When We Change Condition at Receiving Time 
 	13   17/Apr/2026  Ayushi Patel     Added UOM Conversion Changes [PN-15044]
+	14   27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 EXEC [dbo].[USP_CreateWOStocklineFromRO]   3043,'ADMIN User' 
 **************************************************************/
@@ -651,11 +652,12 @@ SET NOCOUNT ON
 										    FROM dbo.StocklineDraft SD LEFT JOIN dbo.Stockline SL ON SD.StockLineId = SL.StockLineId 
 											WHERE SL.StockLineId = @StocklineId;
 											INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, RepairOrderId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
-														IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
+														IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, Notes) 
 											SELECT @WorkOrderMaterialsId, @RepairOrderId, @StockLineId, SL.ItemMasterId, @ProvisionId, SL.ConditionId, 
 													CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
 													CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
-													0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, @MasterCompanyId, 1, 0,@MaterialRefNo+@RONumber 
+													0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, @MasterCompanyId, 1, 0,@MaterialRefNo+@RONumber,
+													(SELECT TOP 1 Memo FROM dbo.RepairOrderPart WITH(NOLOCK) WHERE RepairOrderPartRecordId = @RepairOrderPartId) 
 											FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 												JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 												JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
@@ -725,11 +727,12 @@ SET NOCOUNT ON
 											IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialStockLine WITH (NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId)
 											BEGIN
 												INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, RepairOrderId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
-														IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
+														IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, Notes) 
 												SELECT @ExWorkOrderMaterialsId, @RepairOrderId, @StockLineId, SL.ItemMasterId, @ProvisionId, SL.ConditionId, 
 														CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
 														CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
-														0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, Sl.MasterCompanyId, 1, 0 ,@MaterialRefNo+@RONumber
+														0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, Sl.MasterCompanyId, 1, 0 ,@MaterialRefNo+@RONumber,
+														(SELECT TOP 1 Memo FROM dbo.RepairOrderPart WITH(NOLOCK) WHERE RepairOrderPartRecordId = @RepairOrderPartId) 
 												FROM #ROStockLineSamePart ROS WITH(NOLOCK) 
 													JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 													JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SL.ItemMasterId = IM.ItemMasterId

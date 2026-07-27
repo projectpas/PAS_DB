@@ -9,6 +9,7 @@
  ** PR   Date					Author						Change Description              
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
+ ** 2    27-July-2025			SUMIT						Added notes field in material list [PN-16818]
        
 **************************************************************/  
   
@@ -24,11 +25,12 @@ BEGIN
 
 		DECLARE @CreatedMaterial VARCHAR(100) = 'Created-Updated';
 
+		-- Insert WorkOrderMaterialStockLine including Notes column from UDT
 		INSERT INTO [dbo].[WorkOrderMaterialStockLine] ([WorkOrderMaterialsId], [StocklineId], [ItemMasterId], [ProvisionId], [ConditionId], [Quantity], [QtyReserved], [QtyIssued], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
-		[IsActive], [IsDeleted], [UnitCost], [ExtendedCost], [UnitPrice], [Figure], [Item], [ReferenceNumber], [AltPartMasterPartId], [IsAltPart], [EquPartMasterPartId], [IsEquPart]) 
+		[IsActive], [IsDeleted], [UnitCost], [ExtendedCost], [UnitPrice], [Figure], [Item], [ReferenceNumber], [AltPartMasterPartId], [IsAltPart], [EquPartMasterPartId], [IsEquPart], [Notes]) 
 		SELECT TMP.[WorkOrderMaterialsId], TMP.[StocklineId], TMP.[ItemMasterId], [ProvisionId], [ConditionCodeId], [StocklineQuantity], 0, 0, TMP.[MasterCompanyId], TMP.[CreatedBy], TMP.[UpdatedBy], GETUTCDATE(), GETUTCDATE(),
 		1, 0, STK.[UnitCost], (ISNULL(STK.UnitCost, 0) * ISNULL(StocklineQuantity, 0)), STK.[UnitCost], TMP.Figure, TMP.[Item], @CreatedMaterial,
-		CASE WHEN ISNULL([IsAltPart], 0) = 1 THEN [IsAlternatePart] ELSE [AltPartMasterPartId] END, [IsAltPart], CASE WHEN ISNULL([IsEquPart], 0) = 1 THEN [IsAlternatePart] ELSE [EquPartMasterPartId] END, [IsEquPart]
+		CASE WHEN ISNULL([IsAltPart], 0) = 1 THEN [IsAlternatePart] ELSE [AltPartMasterPartId] END, [IsAltPart], CASE WHEN ISNULL([IsEquPart], 0) = 1 THEN [IsAlternatePart] ELSE [EquPartMasterPartId] END, [IsEquPart], TMP.[Notes]
 		FROM @tbl_WorkOrderMaterialsType TMP
 		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 		 

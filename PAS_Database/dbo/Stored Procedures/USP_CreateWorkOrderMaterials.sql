@@ -9,7 +9,7 @@
  ** PR   Date					Author						Change Description              
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
-       
+ ** 2    27-July-2025			SUMIT						Added notes field in material list [PN-16818]
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderMaterials]  
@@ -110,14 +110,14 @@ BEGIN
 				[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 				[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 				[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-				[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
 			SELECT [WorkOrderMaterialsId], [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], 
 				[QuantityReserved], [QuantityIssued], [IssuedById], [IssuedDate], [ReservedById], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [PartStatusId], [UnReservedQty], [UnIssuedQty], [ParentWorkOrderMaterialsId], [ItemMappingId],
 				[TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [QtyToTurnIn], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [IsFromWorkFlow], [IsEquPart], [StockLineId],
 				[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 				[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 				[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-				[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
+				[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes]
 			FROM #tmpWorkOrderMaterial; 
 
 			EXEC [USP_UpdateWorkOrderMaterials] @tmpWOMaterial;
@@ -150,14 +150,15 @@ BEGIN
 			BEGIN
 				WHILE(@TotalMaterialCount >= @CurrentRowId)
 				BEGIN
+					-- Insert WorkOrderMaterials including Notes column
 					INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [ConditionCodeId], [ItemClassificationId],
 							[Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty], 
 							[IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder],
-							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber])
+							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber], [Notes])
 					SELECT [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [ConditionCodeId], [ItemClassificationId],
 							[Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty], 
 							[IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder],
-							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber]
+							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber], [Notes]
 					FROM #tmpWorkOrderMaterial WHERE [RowId] = @CurrentRowId;
 
 					SET @WorkOrderMaterialsId = SCOPE_IDENTITY();			
@@ -182,14 +183,14 @@ BEGIN
 							[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 							[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 							[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-							[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+							[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
 						SELECT [WorkOrderMaterialsId], [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], 
 							[QuantityReserved], [QuantityIssued], [IssuedById], [IssuedDate], [ReservedById], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [PartStatusId], [UnReservedQty], [UnIssuedQty], [ParentWorkOrderMaterialsId], [ItemMappingId],
 							[TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [QtyToTurnIn], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [IsFromWorkFlow], [IsEquPart], [StockLineId],
 							[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 							[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 							[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-							[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
+							[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes]
 						FROM #tmpWorkOrderMaterial WHERE [RowId] = @CurrentRowId; 
 						
 						-- Create Work Order Material StockLine

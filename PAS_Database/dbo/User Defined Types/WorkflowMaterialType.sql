@@ -30,5 +30,6 @@
     [WFParentId]              BIGINT          NULL,
     [IsVersionIncrease]       BIT             NULL,
     [Figure]                  NVARCHAR (100)  NULL,
-    [Item]                    NVARCHAR (100)  NULL);
+    [Item]                    NVARCHAR (100)  NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL);
 

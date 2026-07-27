@@ -34,6 +34,7 @@
    25   26/05/2026  Hemant Saliya        Performance optimization and code cleanup
    26   26/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
    27   27/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
+   28   27/07/2025  SUMIT                Added notes field in material list [PN-16818]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
@@ -80,7 +81,8 @@ CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
     @WorkOrderWorkflowId        BIGINT          = NULL,
     @IsMPNTendor                BIT             = 0,
     @AircraftTail               VARCHAR(400)    = NULL,
-    @AircraftSN                 VARCHAR(30)     = NULL
+    @AircraftSN                 VARCHAR(30)     = NULL,
+    @Notes                      NVARCHAR(MAX)   = NULL
 AS
 BEGIN
 
@@ -710,14 +712,14 @@ BEGIN
                     ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,
                     UnitCost, ExtendedCost, UnitPrice,
                     CreatedDate, CreatedBy, UpdatedDate, UpdatedBy,
-                    MasterCompanyId, IsActive, IsDeleted
+                    MasterCompanyId, IsActive, IsDeleted, Notes
                 )
                 SELECT
                     @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId,
                     @ConditionId, @Quantity, @Quantity, 0, 0,
                     0, 0, 0,
                     GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy,
-                    @MasterCompanyId, 1, 0
+                    @MasterCompanyId, 1, 0, @Notes
                 FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
                 WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
 
@@ -841,8 +843,7 @@ BEGIN
                     ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,
                     UnitCost, ExtendedCost, UnitPrice,
                     CreatedDate, CreatedBy, UpdatedDate, UpdatedBy,
-                    MasterCompanyId, IsActive, IsDeleted
-                )
+                    MasterCompanyId, IsActive, IsDeleted)
                 SELECT
                     @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId,
                     @ConditionId, @Quantity, @Quantity, 0, 0,

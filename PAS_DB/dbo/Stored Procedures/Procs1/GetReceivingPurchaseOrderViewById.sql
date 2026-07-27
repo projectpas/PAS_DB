@@ -15,6 +15,8 @@
 	2    10/04/2025   Moin Bloch           Modified change logic for QuantityReceived
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the StockLineDraftCount CASE branch and the standalone NonStockInventoryDraft SELECT resultset to StocklineDraft (IsNonStock=1)
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Completed the fix: (a) added ISNULL(SLD.IsNonStock,0)=0 to the Stock-side StocklineDraft SELECT so Non-Stock draft rows are not duplicated across both the Stock and Non-Stock draft resultsets; (b) removed the hard ISNULL(SL.IsNonStock,0)=0 exclusion on the posted Stockline SELECT (Non-Stock posted stockline rows were never returned on this view at all); (c) removed leftover soft NHA/TLA ItemMaster IsNonStock exclusions in both the draft and posted sections.
 
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
@@ -76,7 +78,7 @@ BEGIN
 			CASE WHEN POP.ItemTypeId=1 THEN 
 			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[StocklineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (StockLineId = 0 OR StockLineId IS  NULL))  
 			WHEN POP.ItemTypeId = 2 THEN
-			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (NonStockInventoryId = 0 OR NonStockInventoryId IS  NULL))  
+			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[StocklineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (StockLineId = 0 OR StockLineId IS  NULL) AND ISNULL(IsNonStock,0) = 1)  
 			WHEN POP.ItemTypeId = 11 THEN
 			(SELECT ISNULL(SUM(Qty),0) FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND AssetInventoryId = 0)  
 			ELSE 0 END AS StockLineDraftCount			
@@ -168,31 +170,29 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SLD.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SLD.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SLD.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0
 		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SLD.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0
 		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SLD.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SLD.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SLD.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SLD.ShelfId
 		LEFT JOIN  [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SLD.BinId
-		WHERE SLD.PurchaseOrderId=@PurchaseOrderId
+		WHERE SLD.PurchaseOrderId=@PurchaseOrderId AND ISNULL(SLD.IsNonStock,0) = 0
 
 
-		/* START SELECT FROM NonStockInventoryDraft */
+		/* START SELECT FROM StocklineDraft (Non-Stock rows, IsNonStock=1) */
 		SELECT 
 		SLD.PurchaseOrderPartRecordId,
 		SLDM.LastMSLevel,
 		SLDM.AllMSlevels,
-		SLD.NonStockInventoryDraftId AS 'StockLineDraftId',
-		SLD.NonStockInventoryNumber AS 'StockLineNumber',
+		SLD.StockLineDraftId AS 'StockLineDraftId',
+		SLD.StockLineNumber AS 'StockLineNumber',
 		SLD.ControlNumber,
 		SLD.IdNumber,
 		SLD.ConditionId,
 		SLD.SerialNumber,
 		SLD.Quantity,
-		SLD.UnitCost AS 'PurchaseOrderUnitCost',
-		SLD.ExtendedCost AS 'PurchaseOrderExtendedCost',
+		SLD.PurchaseOrderUnitCost AS 'PurchaseOrderUnitCost',
+		SLD.PurchaseOrderExtendedCost AS 'PurchaseOrderExtendedCost',
 		SLD.ReceiverNumber,
 		0 AS WorkOrder,
 		0 AS SalesOrder,
@@ -216,13 +216,13 @@ BEGIN
 		'' AS 'CertifiedBy',
 		'' AS 'TagType',
 		NULL AS 'TagDate',
-		SLD.MfgExpirationDate,
+		SLD.ExpirationDate AS MfgExpirationDate,
 		NULL AS 'CertifiedDueDate',
 		'' AS 'AircraftTailNumber',
 		SLD.GLAccountId,
 		SLD.GLAccount,
 		SLD.Condition,
-		SLD.ManagementStructureId,
+		SLD.ManagementStructureEntityId AS ManagementStructureId,
 		SLD.SiteId,
 		SLD.WarehouseId,
 		SLD.LocationId,
@@ -232,11 +232,11 @@ BEGIN
 		0 AS 'TLAItemMasterId',
 		'' AS 'NHAItemMasterText',
 		'' AS 'TLAItemMasterText',
-		SLD.Site AS 'SiteText',
+		SLD.SiteName AS 'SiteText',
 		SLD.Warehouse AS 'WarehouseText',
 		SLD.Location AS 'LocationText',
-		SLD.Shelf AS 'ShelfText',
-		SLD.Bin AS 'BinText',
+		SLD.ShelfName AS 'ShelfText',
+		SLD.BinName AS 'BinText',
 		0 AS 'ObtainFrom',
 		0 AS 'Owner',
 		'' AS 'TraceableToName',
@@ -248,9 +248,9 @@ BEGIN
 		'' AS 'TaggedByName',
 		'' AS 'CertTypeId',
 		'' AS 'CertType'
-		FROM DBO.[NonStockInventoryDraft] SLD WITH (NOLOCK)
-		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.NonStockInventoryDraftId AND ModuleID = @NonStockModuleId
-		WHERE SLD.PurchaseOrderId = @PurchaseOrderId
+		FROM DBO.[StocklineDraft] SLD WITH (NOLOCK)
+		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.StockLineDraftId AND ModuleID = @NonStockModuleId
+		WHERE SLD.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SLD.IsNonStock,0) = 1
 
 
 		/* START SELECT FROM AssetInventoryDraft */
@@ -395,15 +395,13 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SL.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SL.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SL.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0
 		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SL.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0
 		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SL.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SL.ShelfId
 		LEFT JOIN  [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
-		WHERE SL.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SL.IsNonStock,0) = 0
+		WHERE SL.PurchaseOrderId = @PurchaseOrderId
 
 		SELECT * FROM TimeLifeDraft WHERE PurchaseOrderId= @PurchaseOrderId
 		SELECT * FROM TimeLife WHERE PurchaseOrderId= @PurchaseOrderId

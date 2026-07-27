@@ -16,6 +16,7 @@
 	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
 
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
@@ -48,9 +49,8 @@ BEGIN
 		INNER JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId AND stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN dbo.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0
 		 LEFT JOIN dbo.Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId

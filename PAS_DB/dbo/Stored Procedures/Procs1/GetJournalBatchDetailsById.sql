@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/10/2022  Subhash Saliya     Created
+	2    20/July/2026   RAJESH GAMI        [PN-17350] - Repointed RPO/RRO/AST-branch NONSTOCK MS lookup from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NONStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
      
 --EXEC GetJournalBatchDetailsById 27,0,'SOI'
 ************************************************************************/
@@ -101,7 +102,8 @@ BEGIN
 		ELSE IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('AST'))
 			BEGIN
 				--DECLARE @STKModuleID INT = 2;
-				DECLARE @NONStockModuleID INT = 11;
+				DECLARE @NONStockModuleID INT;
+				SELECT @NONStockModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
 	            DECLARE @ModuleID INT = 2;
 				DECLARE @AssetModuleID varchar(500) ='42,43'
 
@@ -205,7 +207,7 @@ BEGIN
 				 left join StocklineBatchDetails stbd WITH(NOLOCK) ON JBD.JournalBatchDetailId = stbd.JournalBatchDetailId
 				 LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'STOCK'
 				 LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-				 LEFT JOIN dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'
+				 LEFT JOIN dbo.StocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'
 				 LEFT JOIN dbo.EntityStructureSetup NES ON NES.EntityStructureId=NMSD.EntityMSID
 				 LEFT JOIN dbo.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'
 				 LEFT JOIN dbo.EntityStructureSetup AES ON AES.EntityStructureId=AMSD.EntityMSID

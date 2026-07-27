@@ -11,11 +11,12 @@
  **********************           
  ** Change History           
  **********************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    27/06/2025  Moin Bloch			Created
-    2    01/07/2025  Devendra Shekh     Allowing to fetch @cmmIds data Despite being Deleted/InActive
-    3    11/02/2026   AYUSHI PATEL      Fixed duplicate record issue when applying revisionNumber logic.Moved COUNT() OVER() calculation to outer query after UNION to ensure consistent PublicationId formatting.
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+    1    27/06/2025		Moin Bloch			Created
+    2    01/07/2025		Devendra Shekh		Allowing to fetch @cmmIds data Despite being Deleted/InActive
+    3    11/02/2026		AYUSHI PATEL		Fixed duplicate record issue when applying revisionNumber logic.Moved COUNT() OVER() calculation to outer query after UNION to ensure consistent PublicationId formatting.
+	4    24/07/2026		Vishal Suthar		Added RevNumber by concatenating it in PubId for all the records
  
 --   EXEC [dbo].[USP_GetPartPublications] 102544,1,'711'
      EXEC [dbo].[USP_GetPartPublications] 102544,1,''
@@ -35,11 +36,12 @@ BEGIN
 	IF(@cmmIds IS NULL OR @cmmIds = '')
 	BEGIN
 		SELECT 
-			CASE 
-				WHEN COUNT(*) OVER (PARTITION BY p.PublicationId) > 1
-				THEN p.PublicationId + '_' + CAST(p.RevisionNum AS VARCHAR(20))
-				ELSE p.PublicationId
-			END AS PublicationId,
+			--CASE 
+			--	WHEN COUNT(*) OVER (PARTITION BY p.PublicationId) > 1
+			--	THEN p.PublicationId + '_' + CAST(p.RevisionNum AS VARCHAR(20))
+			--	ELSE p.PublicationId
+			--END AS PublicationId,
+			p.PublicationId + '_' + CAST(p.RevisionNum AS VARCHAR(20)) AS PublicationId,
 			[p].[PublicationRecordId],
 			[p].[ExpirationDate],
 			'' AS [FileName],
@@ -87,11 +89,12 @@ BEGIN
     )
 
     SELECT DISTINCT
-        CASE 
-            WHEN COUNT(*) OVER (PARTITION BY PublicationId) > 1
-                THEN PublicationId + '_' + CAST(RevisionNum AS VARCHAR(20))
-            ELSE PublicationId
-        END AS PublicationId,
+        --CASE 
+        --    WHEN COUNT(*) OVER (PARTITION BY PublicationId) > 1
+        --        THEN PublicationId + '_' + CAST(RevisionNum AS VARCHAR(20))
+        --    ELSE PublicationId
+        -- END AS PublicationId,
+		PublicationId + '_' + CAST(RevisionNum AS VARCHAR(20)) AS PublicationId,
         PublicationRecordId,
         ExpirationDate,
         '' AS FileName,

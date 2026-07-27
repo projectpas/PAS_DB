@@ -32,6 +32,7 @@
 	14	 11/SEP/2025	Vishal Suthar		PN-14127 - Fixed the DirectCost to exclude Charges & Freight
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	17    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 
 EXECUTE [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -140,7 +141,6 @@ BEGIN
 		  AND (ISNULL(@Level8, '') = '' OR MSD.[Level8Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level8, ',')))
 		  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 		  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))	
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 		   GROUP BY 
 				C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
 				FORMAT (SO.opendate, 'MM/dd/yyyy'),SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.salestax,
@@ -161,7 +161,7 @@ BEGIN
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0 
+			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 
 			LEFT JOIN DBO.SOMarginSummary SOMS WITH (NOLOCK) ON SO.SalesOrderId = SOMS.SalesOrderId   
 			LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId 
 			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM  DBO.SalesOrderCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
@@ -279,7 +279,6 @@ BEGIN
 	  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 	  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))
 			  
-	 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 	   UNION ALL
 
 	SELECT DISTINCT
@@ -336,7 +335,7 @@ BEGIN
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId  
 		LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 		LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0 
+		LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 
 		LEFT JOIN DBO.SOMarginSummary SOMS WITH (NOLOCK) ON SO.SalesOrderId = SOMS.SalesOrderId   
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId 
 		LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM  DBO.SalesOrderCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 

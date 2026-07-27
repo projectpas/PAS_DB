@@ -26,6 +26,7 @@
 	10   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
      
 -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
@@ -114,7 +115,6 @@ BEGIN
 		WHERE 
 		so.SalesOrderId = @SalesOrderId
 		AND sopt.SOPickTicketNumber = @pickTicketNo
-		 AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 		 ORDER BY sopt.SOPickTicketId ASC
 	--END
 	--COMMIT  TRANSACTION

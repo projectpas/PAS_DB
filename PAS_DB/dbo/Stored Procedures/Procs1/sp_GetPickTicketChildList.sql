@@ -18,6 +18,7 @@
 	1    10/15/2024   Vishal Suthar Modified SP to get Pick ticket child table list from new SO Part tables
 	2    03/03/2025   Ayushi Patel    converted the date into utc (PickedDate , ConfirmedDate) , Added a case to get timeZone
 	3    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026   RAJESH GAMI    [PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
      
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
@@ -66,7 +67,7 @@ BEGIN
 		FROM DBO.SOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId

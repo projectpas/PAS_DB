@@ -21,6 +21,7 @@
 	4   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes and bill/ship)
 	5    07-07-2025        Moin Bloch           Changed Old To New Billing Table 
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock invoice lines are included in the QuickBooks SO invoice update sync payload.
      
  EXECUTE [QuickBooks_GetUpdatePendingSOInvoiceList] 1
 **************************************************************/ 
@@ -177,7 +178,6 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0
 					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
@@ -240,7 +240,6 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0
 					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))

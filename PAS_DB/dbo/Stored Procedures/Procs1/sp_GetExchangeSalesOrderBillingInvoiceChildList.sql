@@ -6,6 +6,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on Exchange-SO billing invoice child list.
 ****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetExchangeSalesOrderBillingInvoiceChildList]
 	@ExchangeSalesOrderId  bigint,
@@ -38,8 +39,7 @@ BEGIN
 				INNER JOIN DBO.ExchangeSalesOrderPart sop WITH (NOLOCK) on sop.ExchangeSalesOrderId = sos.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sosi.ExchangeSalesOrderPartId
 				INNER JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0
-				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 				LEFT JOIN DBO.ExchangeSalesOrderCustomsInfo soc WITH (NOLOCK) on soc.ExchangeSalesOrderShippingId = sos.ExchangeSalesOrderShippingId
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId

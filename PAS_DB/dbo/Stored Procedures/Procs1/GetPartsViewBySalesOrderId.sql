@@ -27,6 +27,7 @@
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from part join and WHERE clause.
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
@@ -205,7 +206,7 @@ BEGIN
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
-		LEFT JOIN DBO.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+		LEFT JOIN DBO.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
@@ -227,7 +228,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
-		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0 AND ISNULL(itemMaster.IsNonStock,0) = 0 ;
+		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0 ;
 	END
 COMMIT TRANSACTION
 

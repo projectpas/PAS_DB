@@ -21,6 +21,7 @@
 	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
 	8    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SO part stockline.
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -200,7 +201,7 @@ BEGIN
 				
 				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[PriorityId])
 				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,@PriorityId
-				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId AND ISNULL(STK.IsNonStock,0) = 0;
+				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
 				SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
@@ -219,7 +220,7 @@ BEGIN
 				@UnitCost, ISNULL((@UnitCost * @QtyOrder), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyOrder), 0), 
 				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM [DBO].[StockLine] Stkl 
-				WHERE Stkl.StockLineId = @StockLineId AND ISNULL(Stkl.IsNonStock,0) = 0
+				WHERE Stkl.StockLineId = @StockLineId
 			END
 
 			--Update Reset Approve Process

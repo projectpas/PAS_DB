@@ -4746,6 +4746,8 @@
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Views\vw_DeprNonDeprTangibleAssets.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
@@ -4765,6 +4767,9 @@
     <Build Include="dbo\Stored Procedures\USP_LinkPartToExistingWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetOpenWorksheetsForAircraft.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
+    <Build Include="dbo\Tables\DeprNonDeprTangibleAssetsAudit.sql" />
+    <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssetsAudit.sql" />
+    <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssets.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

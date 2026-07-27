@@ -18,6 +18,7 @@
 	8    31/10/2025   Amit Ghediya		added for location
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
@@ -101,7 +102,7 @@ BEGIN
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
-				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					so.SalesOrderId = @SalesOrderId AND 
 					((stk.QtyReserved + --sor.QtyToReserve + 
@@ -109,7 +110,6 @@ BEGIN
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 					 END
 		ELSE
 		BEGIN
@@ -176,7 +176,7 @@ BEGIN
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
-				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.SalesOrderId = @SalesOrderId AND 
@@ -185,7 +185,6 @@ BEGIN
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)
 					) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 					 END
 
 				

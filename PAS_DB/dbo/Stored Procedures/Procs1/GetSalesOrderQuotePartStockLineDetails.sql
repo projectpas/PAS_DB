@@ -16,7 +16,8 @@
     1    09/12/2024  EKTA CHANDEGRA  Created    
     2    22/06/2024  Kishor Makwana  Added ModuleName [PN-16937] 
     3    09/July/2026  RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
- EXEC GetSalesOrderQuotePartStockLineDetails 965  
+    4    22/July/2026  RAJESH GAMI  [PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
+ EXEC GetSalesOrderQuotePartStockLineDetails 965
 ************************************************************************/     
   
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartStockLineDetails]  
@@ -42,7 +43,7 @@ BEGIN
    ISNULL(md.ModuleName,'') AS ModuleName
   FROM [dbo].[SalesOrderQuotePartV1] part WITH(NOLOCK)  
   LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] stk WITH(NOLOCK) ON part.SalesOrderQuotePartId = stk.SalesOrderQuotePartId  
-  LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+  LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
   LEFT JOIN [dbo].[Module] md WITH(NOLOCK) ON md.ModuleId= qs.CertifiedById
   WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId;  
  END TRY  

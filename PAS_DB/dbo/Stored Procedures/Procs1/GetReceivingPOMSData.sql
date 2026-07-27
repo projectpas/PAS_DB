@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/02/2022  Moin Bloch     Created
+	2    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed dead duplicate NonStockInventoryDraft UNION branch; already covered by the unfiltered StockLineDraft branch above
      
 -- EXEC [GetReceivingPOMSData] 1
 ************************************************************************/ 
@@ -40,13 +41,7 @@ BEGIN
 			sldManagementStructureEntityId = invd.ManagementStructureId
 	   FROM PurchaseOrderPart part WITH(NOLOCK) INNER JOIN AssetInventoryDraft invd WITH(NOLOCK) on part.PurchaseOrderPartRecordId = invd.PurchaseOrderPartRecordId 
 			WHERE part.PurchaseOrderId = @PurchaseOrderId AND invd.isDeleted = 0 and invd.isActive = 1
-			UNION
-	SELECT 	part.PurchaseOrderPartRecordId,
-			part.ManagementStructureId as partManagementStructureId,
-			StockLineDraftId = sld.NonStockInventoryDraftId,
-			sldManagementStructureEntityId = sld.ManagementStructureId
-	   FROM PurchaseOrderPart part WITH(NOLOCK) INNER JOIN NonStockInventoryDraft sld WITH(NOLOCK) on part.PurchaseOrderPartRecordId = sld.PurchaseOrderPartRecordId 
-	  WHERE part.PurchaseOrderId = @PurchaseOrderId AND sld.isDeleted = 0 AND sld.isActive = 1
+
 
 	END TRY    
 	BEGIN CATCH      

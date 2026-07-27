@@ -28,6 +28,7 @@
 	11	11/SEP/2025		Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 
 --EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -128,7 +129,6 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
 
-		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 			 SELECT @PageSizeCM=COUNT(*) 
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
@@ -141,7 +141,7 @@ select
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId 
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1
 		WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND SOBI.ModuleId = @SOModuleId AND SOBII.ModuleId = @SOModuleId AND
 		CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
 		SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1 
@@ -251,7 +251,6 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))  
 
-		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 			 UNION ALL  
   
 		SELECT DISTINCT 
@@ -304,7 +303,7 @@ select
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId 
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
-			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1
   
 		WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  SOBI.ModuleId = @SOModuleId AND SOBII.ModuleId = @SOModuleId AND
 		CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  

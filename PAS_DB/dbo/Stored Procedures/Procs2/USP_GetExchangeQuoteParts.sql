@@ -16,6 +16,7 @@
     1    09/16/2025  EKTA CHANDEGRA    Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
 	     
 exec [dbo].[USP_GetExchangeQuoteParts] @ExchangeQuoteId=152
 ************************************************************************/ 
@@ -67,10 +68,10 @@ BEGIN
 		FROM [dbo].[ExchangeQuotePart] part WITH(NOLOCK)
 			 INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
 			 INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
-			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 			 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		WHERE part.ExchangeQuoteId = @ExchangeQuoteId
-		  AND ISNULL(part.IsDeleted,0) = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
+		  AND ISNULL(part.IsDeleted,0) = 0 ;
 
 		-- Child collection: ExchangeQuoteScheduleBilling
 		SELECT sb.*

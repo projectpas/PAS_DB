@@ -20,6 +20,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    9	04/03/2026  Ayushi Patel	PN-15604 Return ItemNo for print
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
@@ -315,9 +316,8 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sp.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sp.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderStocklineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
-			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON sp.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0
 			 LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN dbo.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sp.ConditionId = cp.ConditionId

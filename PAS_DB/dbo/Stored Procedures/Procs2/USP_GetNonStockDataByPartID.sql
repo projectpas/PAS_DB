@@ -30,6 +30,15 @@
 											(aliased from ItemMasterId) since the API layer
 											(ItemMasterRepository.GetNonStockDataByPartID) still reads
 											that column name.
+    3	23/July/2026		RAJESH GAMI			[PN-17350] - Fixed wrong currency: ItemMaster has a legacy,
+					unrelated [CurrencyId] column distinct from [PurchaseCurrencyId].
+					The earlier ItemMasterNonStock->ItemMaster redirect (PR 2) carried
+					over a reference to [im].[CurrencyId] (the wrong/unrelated column)
+					instead of [im].[PurchaseCurrencyId] (the equivalent of the old
+					ItemMasterNonStock.CurrencyId). Changed the SELECT column and the
+					Currency join to use [im].[PurchaseCurrencyId], aliased back to
+					[CurrencyId] so the API layer (ItemMasterRepository) is unaffected.
+
 
  -- EXEC [USP_GetNonStockDataByPartID] @ItemMasterId=181
 **************************************************************/
@@ -56,12 +65,12 @@ BEGIN
             [im].[ListPrice],
             [im].[UnitCost],
             [im].[DiscountPurchasePercent],
-            [im].[CurrencyId],
+            [im].[PurchaseCurrencyId] AS [CurrencyId],
             ISNULL([cucy].[Code], '') AS [CurrencyName]
         FROM[DBO].[ItemMaster] AS [im] WITH(NOLOCK)
         LEFT JOIN[DBO].[Manufacturer] AS [mfg] WITH(NOLOCK) ON [im].[ManufacturerId] = [mfg].[ManufacturerId]
         LEFT JOIN[DBO].[GLAccount] AS [gl] WITH(NOLOCK) ON [im].[GLAccountId] = [gl].[GLAccountId]
-        LEFT JOIN[DBO].[Currency] AS [cucy] WITH(NOLOCK) ON [im].[CurrencyId] = [cucy].[CurrencyId]
+        LEFT JOIN[DBO].[Currency] AS [cucy] WITH(NOLOCK) ON [im].[PurchaseCurrencyId] = [cucy].[CurrencyId]
         LEFT JOIN[DBO].[UnitOfMeasure] AS [ipuom] WITH(NOLOCK) ON [im].[PurchaseUnitOfMeasureId] = [ipuom].[UnitOfMeasureId]
         WHERE [im].[ItemMasterId] = @ItemMasterId;
 

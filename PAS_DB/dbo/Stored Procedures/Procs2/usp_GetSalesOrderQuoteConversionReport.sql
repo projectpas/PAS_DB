@@ -22,6 +22,7 @@
     5    07-07-2025   Moin Bloch         Changed Old To New Billing Table
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteConversionReport] '','2020-06-15','2021-06-15','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -172,11 +173,10 @@ BEGIN
         LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON SOQP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0
            LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON STK.stocklineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+          ON STK.stocklineId = STL.StockLineId and STL.IsParent=1
         --left join DBO.SOMarginSummary SOMS WITH(NOLOCK) ON so.SalesOrderId=SOMS.SalesOrderId
         LEFT JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK)
           ON SO.SalesOrderId = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId

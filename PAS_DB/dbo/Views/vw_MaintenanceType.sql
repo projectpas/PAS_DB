@@ -12,10 +12,7 @@ SELECT
     CreatedDate,
     UpdatedDate,
     IsActive,
-    IsDeleted,
-    NULL as WorkScopeCodeNew,
-    NULL AS ConditionId,
-    1 AS IsAircraft
+    IsDeleted
 FROM dbo.MaintenanceType
 WHERE ISNULL(IsDeleted, 0) = 0
     AND ISNULL(IsActive, 0) = 1;

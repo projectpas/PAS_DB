@@ -19,7 +19,8 @@
  **  S NO   Date         Author    Change Description                
  **  --   --------      --------  --------------------------------              
       1  07-April-2025   Ayushi   created      
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	  2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	  3  27-July-2025    SUMIT    Added notes field in material list [PN-16818] 
   
 -- EXEC GetWorkFlowWithMaterialList 80
 **************************************************************/
@@ -84,6 +85,7 @@ BEGIN
         IsVersionIncrease BIT NULL,
         Figure NVARCHAR(50) NULL,
         Item NVARCHAR(50) NULL,
+        Notes NVARCHAR(MAX) NULL,
         StockType NVARCHAR(50) NULL,
         ItemClassificationCode NVARCHAR(50) NULL,
         UnitOfMeasure NVARCHAR(50) NULL,
@@ -97,7 +99,7 @@ BEGIN
 		CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, 
 		MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, 
 		ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, 
-		Figure, Item, StockType, ItemClassificationCode, UnitOfMeasure, ConditionName
+		Figure, Item, Notes, StockType, ItemClassificationCode, UnitOfMeasure, ConditionName
 	)
 	SELECT 
 		WorkflowMaterialListId, WorkflowId, ItemMasterId, TaskId, Quantity, 
@@ -106,7 +108,7 @@ BEGIN
 		CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, 
 		MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, 
 		ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, 
-		Figure, Item, NULL, NULL, NULL, NULL 
+		Figure, Item, Notes, NULL, NULL, NULL, NULL 
 	FROM DBO.WorkflowMaterial wm WITH (NOLOCK)
 	WHERE wm.WorkflowId = @WorkflowId 
 	  AND (wm.IsDeleted IS NULL OR wm.IsDeleted <> 1)
@@ -166,6 +168,7 @@ BEGIN
 	ml.Price,
 	ISNULL(ml.IsDeferred,0) as IsDeferred,
 	ml.Memo,
+	ml.Notes,
 	ml.MaterialMandatoriesName,
 	ml.PartNumber,
 	ml.PartDescription,

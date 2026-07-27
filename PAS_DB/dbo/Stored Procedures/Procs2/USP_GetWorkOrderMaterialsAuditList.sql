@@ -22,6 +22,7 @@
     2    11/02/2025   Bhargav Saliya   UTC Date Changes
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    27-July-2025			 SUMIT								Added notes field in material list [PN-16818]
  EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
 **************************************************************/     
@@ -125,6 +126,7 @@ SET NOCOUNT ON
 					IM.ItemClassificationId,
 					IM.PurchaseUnitOfMeasureId,
 					WOM.Memo,
+					ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 					WOM.IsDeferred,
 					WOM.TaskId,
 					wom.TaskName,

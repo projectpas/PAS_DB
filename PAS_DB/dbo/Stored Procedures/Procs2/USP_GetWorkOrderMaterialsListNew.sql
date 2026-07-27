@@ -40,6 +40,7 @@
 	28    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	29    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	30    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	31 27-July-2025			 SUMIT               Added notes field in material list [PN-16818]
 
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
@@ -282,6 +283,7 @@ SET NOCOUNT ON
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
 					[Memo] [nvarchar](MAX) NULL,
+					[Notes] [nvarchar](MAX) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,
@@ -591,7 +593,7 @@ IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [IsPiecePart], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -752,6 +754,7 @@ IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1088,7 +1091,7 @@ IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [IsPiecePart], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -1252,6 +1255,7 @@ IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,

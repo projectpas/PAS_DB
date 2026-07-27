@@ -32,6 +32,8 @@
 	15   21/May/2026  Rajesh Gami	    [PN-16507] SOQ to SO: SOQ status should not change to Closed until all parts are converted to SO
 	16   17/JUN/2026  AMIT GHEDIYA	    Save ContractReference data move soq to so [PN-16119] 
 	17   19/JUN/2026  AMIT GHEDIYA	    Save [SourceBy],[MarketplaceRef] data move soq to so [PN-16922]
+	18   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	19   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
 	
 declare @p13 bigint
 set @p13=NULL

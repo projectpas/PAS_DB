@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetPurchaseOrderSSRSDashboard   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetPurchaseOrderSSRSDashboard.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetPurchaseOrderSSRSDashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for PurchaseOrderSSRSDashboard 
@@ -17,11 +21,13 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
      
 EXECUTE   [dbo].[usp_GetPurchaseOrderSSRSDashboard] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetPurchaseOrderSSRSDashboard]
+CREATE   PROCEDURE [dbo].[usp_GetPurchaseOrderSSRSDashboard]
 @mastercompanyid int =0
 --@vendorname varchar(max)
 --@partnumber varchar(max)
@@ -86,8 +92,7 @@ BEGIN
           ON PO.RequestedBy = E2.EmployeeId
 
 		  where PO.MasterCompanyId = @mastercompanyid
-
-    COMMIT TRANSACTION
+		   COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

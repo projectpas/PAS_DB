@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_GetInventoryUnitCostAdjustmentReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetInventoryUnitCostAdjustmentReport]
  ** Author:   
  ** Description: Get Data for Stock Report for Unit Cost AdjustMent
@@ -12,6 +13,8 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------			-------				--------------------------------            
     1    29-Jan-2026		Devendra Shekh        created
+    2    09/July/2026		RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3    24/July/2026		RAJESH GAMI        [PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (2) to allow Non-Stock items in Inventory Unit Cost Adjustment Report
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport]     

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderMarginReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderMarginReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetWorkOrderMarginReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderMargin Report
@@ -19,10 +23,11 @@
 	2	        		Swetha			Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant			Updated Managment Structure Details and Date filter Condition
 	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderMarginReport] '128','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderMarginReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderMarginReport] @name varchar(40) = NULL,
 @Fromdate datetime = NULL,
 @Todate datetime = NULL,
 @mastercompanyid varchar(200),
@@ -148,7 +153,8 @@ BEGIN
           ON WOBI.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOBI.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WO.WorkOrderId = WOS.WorkOrderId
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK)
           ON WO.SalesPersonId = E.EmployeeId

@@ -1,4 +1,5 @@
-﻿/*********************             
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesQuoteVerificationResult]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesQuoteVerificationResult.sql) =====
+/*********************             
  ** File:   [usp_GetSalesQuoteVerificationResult]             
  ** Author:  Ekta Chnadegra 
  ** Description: This stored procedure is used to GetSalesQuoteVerificationResult
@@ -14,6 +15,8 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     15/04/2025      Ekta Chandegra        Created  
+    2     09/July/2026      RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3     22/July/2026      RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 	
 
 -- exec dbo.usp_GetSalesQuoteVerificationResult @SalesOrderQuoteId=937

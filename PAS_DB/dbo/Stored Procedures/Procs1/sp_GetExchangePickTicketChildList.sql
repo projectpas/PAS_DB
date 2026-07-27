@@ -13,6 +13,8 @@
  ** --   --------		 -------				--------------------------------            
     1    Unknown		Unknown					Unknown
 	2    27-Mar-2025	Divyesh Kathiriya		Update PickedDate based on Employee time zone
+	3    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 
 	EXEC [dbo].[sp_GetExchangePickTicketChildList] 135,3,1,226
 ***************************************************************/

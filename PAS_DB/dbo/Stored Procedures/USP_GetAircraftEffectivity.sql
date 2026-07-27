@@ -1,4 +1,8 @@
-﻿/*************************************************************     
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAircraftEffectivity   (source: PAS_DB/dbo/Stored Procedures/USP_GetAircraftEffectivity.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
 ** Description: <This Proc Is used to Get Aircraft AircraftEffectivity>    
@@ -11,7 +15,8 @@ Exec [USP_GetAircraftEffectivity]
 ** --   --------    -------         --------------------------------  
    1    05/05/2026  Amit Ghediya		Created
    2    27/05/2026  Code Review		Apply IsActive and IsDeleted filters
-   3    14/07/2026  Amit Ghediya	Return ACPSectionId, ComponentSerialNum, ComponentToSerialNum for displayed component serial number [PN-17223]
+   3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   4    14/07/2026  Amit Ghediya	Return ACPSectionId, ComponentSerialNum, ComponentToSerialNum for displayed component serial number [PN-17223]
 										
 
 **************************************************************/
@@ -79,7 +84,8 @@ BEGIN
             LEFT JOIN dbo.aircrafttype MT WITH(NOLOCK) ON AE.MakeTypeId = MT.AircraftTypeId
             LEFT JOIN dbo.AircraftModel AM WITH(NOLOCK) ON AE.AircraftModelId = AM.AircraftModelId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON AE.ItemMasterId = IM.ItemMasterId
-            WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
 			AND AE.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(AE.IsDeleted, 0) = ISNULL(@IsDeleted, 0)
         )

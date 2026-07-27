@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿-- ===== PROCEDURE: [dbo].[USP_GetReqQtyFromPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReqQtyFromPart.sql) =====
+/*************************************************************                   
  ** File:   [USP_GetReqQtyFromPart]                   
  ** Author:   Shrey Chandegara        
  ** Description:             
@@ -16,10 +17,12 @@
     2    12/06/2023   Vishal Suthar		Modified to see qty from material KIT        
     3    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
     4    03/26/2024	  Vishal Suthar		Modified the issue with SO Part Qty and also modified Switch case to IF-ELSE
+    5    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	
  EXECUTE USP_GetReqQtyFromPart 6691, 12684, 751, 3
 **************************************************************/         
-CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
+CREATE   PROCEDURE [dbo].[USP_GetReqQtyFromPart]
 	@PurchaseOrderId BIGINT,      
 	@PurchaseOrderPartRecordId BIGINT,      
 	@ReferenceId BIGINT,      

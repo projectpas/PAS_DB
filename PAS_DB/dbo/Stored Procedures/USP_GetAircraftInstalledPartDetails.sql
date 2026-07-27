@@ -34,6 +34,9 @@
 ** 20   07/07/2026	  Kishor Makwana	[PN-17162] Updated for Get ServiceLifeUnitMonthsOrDays, ServiceLifeLimit
 ** 21   10/07/2026	  Amit Ghediya		Update condition
 
+   21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+   24  23/July/2026	RAJESH GAMI	[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
    23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
    24	17/07/2026	  Amit Ghediya		Update to get with direcly from part IsFromAircraft
    25	18/07/2026	  Amit Ghediya		Return IsFromAircraft as its own output column (was only used

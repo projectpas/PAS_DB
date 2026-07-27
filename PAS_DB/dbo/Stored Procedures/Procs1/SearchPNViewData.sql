@@ -1,4 +1,8 @@
-﻿/*************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchPNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchPNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
  ** File:   [SearchPNViewData]
  ** Description: Get Search Data for PN View
  **************************************************************
@@ -22,8 +26,10 @@
  **                                      EXISTS semi-joins); replaced COUNT aggregate with
  **                                      its exact CASE equivalent (count was always 1/0
  **                                      because the group key contained the unique part id).
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
  **************************************************************/
-CREATE PROCEDURE [dbo].[SearchPNViewData]
+CREATE   PROCEDURE [dbo].[SearchPNViewData]
  @PageNumber int,
  @PageSize int,
  @SortColumn varchar(50)=null,
@@ -129,7 +135,7 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderQuotePartCost SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=SP.ItemMasterId
-    LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
     LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId=SOQ.SalesPersonId
     WHERE (SOQ.IsDeleted = @IsDeleted)
       AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID)

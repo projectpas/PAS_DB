@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotList.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_GetLotList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot Listing 
@@ -15,9 +16,11 @@
 	3    19/02/2025		 Ayushi Patel			converted the date into utc (created) , Added a case to get timeZone
 	4    28 May 2026	 Rajesh Gami			Added VendorName [PN-16601]
 	5    12 June 2026    Rajesh Gami			Fixed the Amount related issue (PN-16799)
+	6    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 **************************************************************
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
+CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

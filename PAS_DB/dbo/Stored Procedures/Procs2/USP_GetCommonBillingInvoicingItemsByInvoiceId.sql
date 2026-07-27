@@ -1,4 +1,8 @@
-﻿/*****************************************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCommonBillingInvoicingItemsByInvoiceId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCommonBillingInvoicingItemsByInvoiceId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*****************************************************************************************           
  ** File:   [USP_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -11,9 +15,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    19/05/2025   Moin Bloch    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceId]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceId]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS
@@ -107,7 +112,8 @@ BEGIN
 			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 			   WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0		  		  
-		END 
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+			    END 
 		
 	END TRY    
 	BEGIN CATCH      

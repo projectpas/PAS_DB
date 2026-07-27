@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSOShippingChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSOShippingChildList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetSOShippingChildList]           
  ** Author:   
  ** Description: 
@@ -23,9 +24,11 @@
 	6   10 Nov 2025		Rajesh Gami			Added [UPSPdfPath]	
 	7   12 Jan 2026		VISHAL SUTHAR		Fixed issue populating duplicate shipping records for same stockline (specifically for SA to allow multiple invoice for posted one)
 	8	25 APR 2026     RAJESH GAMI         Added MastercompanyId in the condition 
+	9	09/July/2026 RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
+CREATE   PROCEDURE [dbo].[sp_GetSOShippingChildList]  
  @SalesOrderId  bigint,  
  @SalesOrderPartId bigint,  
  @ConditionId bigint  

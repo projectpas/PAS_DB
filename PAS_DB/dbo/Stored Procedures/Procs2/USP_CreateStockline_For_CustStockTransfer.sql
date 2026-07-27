@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateStockline_For_CustStockTransfer   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStockline_For_CustStockTransfer.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [USP_CreateStockline_For_CustStockTransfer]            
  ** Author:   Bhargav Saliya  
  ** Description: This stored procedure is used to Crate stocklines for Customer stock transfer
@@ -17,11 +21,13 @@
     1    21 DEC 2023   BHARGAV SALIYA		Created
 	2    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
     3    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
   
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE     PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -50,7 +56,7 @@ BEGIN
 
 			SELECT @ItemMasterId_Part = ItemMasterId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
-			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
+			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part ;
 
 			IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
@@ -733,7 +739,7 @@ BEGIN
 					ON CSTL.StockLineId = STL.StockLineId  
 					/* PN Manufacturer Combination Stockline logic */
 
-					DELETE FROM #tmpCodePrefixes;
+DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
 					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
@@ -776,7 +782,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					GROUP BY iM.ItemMasterId
+					 GROUP BY iM.ItemMasterId
 
 					INSERT INTO DBO.Stockline ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],
 					[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],

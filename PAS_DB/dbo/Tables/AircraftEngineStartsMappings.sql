@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
+CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
     [AircraftEngineStartsMappingsId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [AircraftCycleTimeMappingsId]    BIGINT          NULL,
     [EngineRegistryId]               BIGINT          NULL,

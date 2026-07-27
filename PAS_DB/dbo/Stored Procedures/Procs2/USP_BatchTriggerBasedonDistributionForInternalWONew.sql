@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionForInternalWONew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionForInternalWONew.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalWONew]
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Accounting entry for Internal WO
@@ -11,9 +15,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1	 06/06/2025   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 
-create   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew]
 @DistributionMasterId bigint=NULL,
 @ReferenceId bigint=NULL,
 @ReferencePartId bigint=NULL,
@@ -155,7 +160,8 @@ BEGIN
 			[dbo].[ItemMaster] WITH(NOLOCK) 
 			WHERE ItemMasterId=@ItemmasterId 
 
-	        SELECT @LastMSLevel=LastMSLevel,
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+			 SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@partId
@@ -221,7 +227,8 @@ BEGIN
 
 		        SELECT @PiecePN = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
-				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		         SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
 				--GL Selection Saved At StockLine 

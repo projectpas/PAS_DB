@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderTracking   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderTracking.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetWorkOrderTracking]           
  ** Author:      
  ** Description: Get Data FOR WorkOrderTracking
@@ -16,10 +20,11 @@
  ** --   --------     -------			--------------------------------          
 	1
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderTracking] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
 @Level2 varchar(max) = NULL,
@@ -181,7 +186,8 @@ BEGIN
           ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId
         LEFT JOIN ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = im.ItemMasterId
-        LEFT JOIN WorkOrderShipping AS WOS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WOS.WorkOrderId = WO.WorkOrderId
         LEFT JOIN WorkOrderStage WOSG WITH (NOLOCK)
           ON WOPN.WorkOrderStageId = WOSG.WorkOrderStageId

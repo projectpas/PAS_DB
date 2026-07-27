@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_ProcStockListFromLotId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_ProcStockListFromLotId.sql) =====
+
 /*************************************************************           
  ** File:   [USP_Lot_ProcStockListFromLotId]           
  ** Author:  Amit Ghediya
@@ -6,13 +7,17 @@
  ** Purpose:         
  ** Date:   04/12/2023      
           
- ** RETURN VALUE:           
+ **  WHERE ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+RETURN VALUE:           
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/12/2023  Amit Ghediya    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
      
 -- EXEC USP_Lot_ProcStockListFromLotId
 ************************************************************************/
@@ -102,8 +107,8 @@ BEGIN
 					INNER JOIN DBO.LotCalculationDetails Cal WITH (NOLOCK) ON lin.LotTransInOutId = Cal.LotTransInOutId
 					INNER JOIN DBO.Lot lt WITH(NOLOCK) on lin.LotId = lt.LotId
 					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON lin.StockLineId = stl.StockLineId
-					LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
-					LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
+					LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
+					 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 					WHERE lin.LotId = @LotId AND im.ItemMasterId = @ItemMasterId 
 					AND ISNULL(lin.QtyToTransIn,0) >0 AND ISNULL(stl.QuantityAvailable,0) >0 AND ( (REPLACE(cal.Type,' ','')  ='Trans In(RO)' AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0)) OR (REPLACE(cal.Type,' ','') = REPLACE('Trans Out(SO)',' ','') AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0))

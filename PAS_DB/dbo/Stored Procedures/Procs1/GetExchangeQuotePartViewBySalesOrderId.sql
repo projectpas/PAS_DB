@@ -14,6 +14,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    06/11/2025   Ekta Chandegra     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
      
  EXEC GetExchangeQuotePartViewBySalesOrderId @ExchangeSalesOrderId=165
 ************************************************************************/
@@ -68,7 +71,7 @@ BEGIN
         INNER JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON part.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
         LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
         WHERE part.ExchangeSalesOrderId = @ExchangeSalesOrderId
-            AND ISNULL(part.IsDeleted,0) = 0;
+            AND ISNULL(part.IsDeleted,0) = 0 ;
 	END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()    

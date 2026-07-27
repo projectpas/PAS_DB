@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CycleCount_Stockline_DetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CycleCount_Stockline_DetailsById.sql) =====
+/*************************************************************           
  ** File:   [USP_CycleCount_Stockline_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Cycle Count Stockline Details
@@ -18,6 +19,8 @@
 	5    22/11/2024   Moin Bloch		Added QuantityIssued Field
 	6    27/11/2024   Moin Bloch		Replaced QuantityOnHand on QuantityAvailable
 	7    01/04/2025   Devendra Shekh	added new param @QtyTypeId to hangle QuantityOnHand
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -133,7 +136,8 @@ BEGIN
 					WHERE CCD2.[StockLineId] = SL.[StockLineId]
 					  AND CC2.[StatusId] <> @CycleCountStatusId
 			   )
-	END TRY  
+	 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+			    END TRY  
 		BEGIN CATCH      
 			IF @@trancount > 0			
             DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

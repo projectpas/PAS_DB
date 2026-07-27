@@ -17,6 +17,9 @@
 ** 5    04/09/2025  Moin Bloch		 Updated Added History
 
 EXEC [dbo].[DeleteWOMaterialsOnIssuedOrReserved] 61067,'ADMIN User'
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
 @WorkFlowWorkOrderId BIGINT,
@@ -119,7 +122,7 @@ BEGIN
 
 			SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
 	
-			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId ;
 							
 			SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @DeleteWOMaterial;	
 

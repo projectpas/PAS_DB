@@ -15,7 +15,13 @@
   ** S NO   Date            Author				Change Description              
   ** --   --------			-------				--------------------------------            
      1    22/06/2026		Abhishek Jirawla	Created
- **************************************************************/  
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock 
+     2    16/07/2026		Abhishek Jirawla	QtyShipped falls back to QuantityOrdered when Enforce Pick Ticket is off
+     3    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
+     4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
+     5    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
+     6    21/07/2026		Abhishek Jirawla	Added ORDER BY support for Condition, SerialNumber, StocklineNumber, ControlNumber, ControlId, MPN, MPNDescription so every grid column is sortable
+ **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PageNumber             INT,
     @PageSize               INT,
@@ -29,10 +35,30 @@ CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PartDescription        NVARCHAR(500)   = NULL,
     @RONumber               NVARCHAR(100)   = NULL,
     @WONumber               NVARCHAR(100)   = NULL,
+    @Condition              NVARCHAR(100)   = NULL,
+    @SerialNumber           NVARCHAR(100)   = NULL,
+    @StocklineNumber        NVARCHAR(100)   = NULL,
+    @ControlNumber          NVARCHAR(100)   = NULL,
+    @ControlId              NVARCHAR(50)    = NULL,
+    @MPN                    NVARCHAR(255)   = NULL,
+    @MPNDescription         NVARCHAR(500)   = NULL,
     @ReconciliationStatus   NVARCHAR(50)    = NULL,
+    -- Qty/cost filters are matched against AggregatedParts' computed values below,
+    -- so they're kept as varchar "contains" filters like the other columns rather
+    -- than numeric equality/range params.
+    @QtyShippedFilter       NVARCHAR(50)    = NULL,
+    @QtyConsumedFilter      NVARCHAR(50)    = NULL,
+    @QtyReturnedFilter      NVARCHAR(50)    = NULL,
+    @QtyDamagedLostFilter   NVARCHAR(50)    = NULL,
+    @QtyRemainingFilter     NVARCHAR(50)    = NULL,
+    @UnitCostFilter         NVARCHAR(50)    = NULL,
+    @ExtendedCostFilter     NVARCHAR(50)    = NULL,
+    @DateShipped            DATETIME        = NULL,
+    @DateReturned           DATETIME        = NULL,
+    @VendorId               BIGINT          = NULL,
+    @RepairOrderId          BIGINT          = NULL,
     -- Standard params
     @IsDeleted              BIT             = 0,
-    @EmployeeId             BIGINT,
     @MasterCompanyId        INT
 AS
 BEGIN
@@ -61,15 +87,22 @@ BEGIN
             ISNULL(rop.StockLineNumber, sl.StockLineNumber) AS StocklineNumber,
             ISNULL(rop.ControlNumber,   sl.ControlNumber)   AS ControlNumber,
             rop.ControlId,
+            rop.StockLineId,
 
-            -- Total pieces the customer sent in
-            ISNULL((
-                SELECT SUM(rcw.Quantity)
-                FROM   dbo.ReceivingCustomerWork rcw WITH (NOLOCK)
-                WHERE  rcw.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
-                  AND  rcw.IsPiecePart = 1
-                  AND  rcw.IsDeleted   = 0
-            ), rop.QuantityOrdered)                         AS QtyShipped,
+            -- Total pieces actually shipped to the vendor. When Enforce Pick Ticket is
+            -- off (0/NULL) on the Repair Order, the Pick/Shipping process is skipped
+            -- entirely, so there are no RepairOrderShippingItem rows to sum; fall back
+            -- to the ordered quantity (what QuantityBackOrdered is seeded from in that flow).
+            CASE
+                WHEN ro.IsEnforcePickTicket = 1
+                THEN ISNULL((
+                    SELECT SUM(ISNULL(rsi.QtyShipped, 0))
+                    FROM   dbo.RepairOrderShippingItem rsi WITH (NOLOCK)
+                    WHERE  rsi.RepairOrderPartId = rop.RepairOrderPartRecordId
+                      AND  rsi.IsDeleted         = 0
+                ), 0)
+                ELSE ISNULL(rop.QuantityOrdered, 0)
+            END                                              AS QtyShipped,
 
             rop.UnitCost,
             rop.ExtendedCost,
@@ -89,7 +122,23 @@ BEGIN
             )                                               AS DateReturned,
 
             ro.RepairOrderNumber                            AS RONumber,
-            ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)        AS WorkOrderNumber,
+
+            -- Piece parts (customer-supplied) aren't created against a specific Work Order
+            -- material requirement, so they rarely carry their own WorkOrderId/WorkOrderNo.
+            -- Fall back to any sibling part on the same RO that does, then to '-'.
+            COALESCE(
+                rop.WorkOrderNo,
+                wo.WorkOrderNum,
+                (
+                    SELECT TOP 1 COALESCE(sibling.WorkOrderNo, sibWo.WorkOrderNum)
+                    FROM   dbo.RepairOrderPart sibling WITH (NOLOCK)
+                    LEFT JOIN dbo.WorkOrder sibWo WITH (NOLOCK) ON sibWo.WorkOrderId = sibling.WorkOrderId
+                    WHERE  sibling.RepairOrderId = rop.RepairOrderId
+                      AND  sibling.IsDeleted     = 0
+                      AND  sibling.WorkOrderId  IS NOT NULL
+                ),
+                '-'
+            )                                                AS WONumber,
 
             rop.ManufacturerPN                              AS MPN,
             im.PartDescription                              AS MPNDescription,
@@ -98,13 +147,17 @@ BEGIN
 
         FROM  dbo.RepairOrderPart  rop WITH (NOLOCK)
         JOIN  dbo.RepairOrder       ro WITH (NOLOCK)  ON  ro.RepairOrderId   = rop.RepairOrderId
-        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId
+        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
         LEFT JOIN dbo.WorkOrder     wo  WITH (NOLOCK) ON  wo.WorkOrderId     = rop.WorkOrderId
         LEFT JOIN dbo.ItemMaster    im  WITH (NOLOCK) ON  im.ItemMasterId    = rop.ItemMasterId
 
         WHERE rop.IsPiecePart       = 1
           AND rop.IsDeleted         = ISNULL(@IsDeleted, 0)
           AND rop.MasterCompanyId   = @MasterCompanyId
+          AND ro.StatusId IN (
+              SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK)
+              WHERE Description IN ('Fulfilling', 'Closed', 'Shipped')
+          )
 
           AND (
               @GlobalFilter = ''
@@ -124,6 +177,18 @@ BEGIN
           AND (@RONumber        IS NULL OR ro.RepairOrderNumber  LIKE '%' + @RONumber        + '%')
           AND (@WONumber        IS NULL OR ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)
                                               LIKE '%' + @WONumber + '%')
+          AND (@Condition       IS NULL OR rop.Condition        LIKE '%' + @Condition       + '%')
+          AND (@SerialNumber    IS NULL OR ISNULL(rop.SerialNumber, sl.SerialNumber)
+                                              LIKE '%' + @SerialNumber    + '%')
+          AND (@StocklineNumber IS NULL OR ISNULL(rop.StockLineNumber, sl.StockLineNumber)
+                                              LIKE '%' + @StocklineNumber + '%')
+          AND (@ControlNumber   IS NULL OR ISNULL(rop.ControlNumber, sl.ControlNumber)
+                                              LIKE '%' + @ControlNumber   + '%')
+          AND (@ControlId       IS NULL OR rop.ControlId        LIKE '%' + @ControlId       + '%')
+          AND (@MPN             IS NULL OR rop.ManufacturerPN   LIKE '%' + @MPN             + '%')
+          AND (@MPNDescription  IS NULL OR im.PartDescription   LIKE '%' + @MPNDescription  + '%')
+          AND (@VendorId        IS NULL OR ro.VendorId          = @VendorId)
+          AND (@RepairOrderId   IS NULL OR rop.RepairOrderId    = @RepairOrderId)
     ),
 
     /* ────────────────────────────────────────────────────────────────────
@@ -143,6 +208,7 @@ BEGIN
             bp.PartDescription,
             bp.Condition,
             bp.SerialNumber,
+            bp.StockLineId,
             bp.StocklineNumber,
             bp.ControlNumber,
             bp.ControlId,
@@ -156,7 +222,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WorkOrderNumber,
+            bp.WONumber,
             bp.MPN,
             bp.MPNDescription,
             CAST(NULL AS BIGINT)               AS PiecePartReconciliationId,
@@ -181,6 +247,7 @@ BEGIN
             bp.PartDescription,
             bp.Condition,
             bp.SerialNumber,
+            bp.StockLineId,
             bp.StocklineNumber,
             bp.ControlNumber,
             bp.ControlId,
@@ -191,7 +258,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WorkOrderNumber,
+            bp.WONumber,
             bp.MPN,
             bp.MPNDescription
     )
@@ -205,6 +272,7 @@ BEGIN
         PartDescription,
         Condition,
         SerialNumber,
+        StockLineId,
         StocklineNumber,
         ControlNumber,
         ControlId,
@@ -218,7 +286,7 @@ BEGIN
         DateShipped,
         DateReturned,
         RONumber,
-        WorkOrderNumber,
+        WONumber,
         MPN,
         MPNDescription,
         PiecePartReconciliationId,
@@ -227,11 +295,18 @@ BEGIN
         ReconciliationStatus,
         COUNT(1) OVER ()                AS NumberOfItems
     FROM  AggregatedParts
-    WHERE (
-        @ReconciliationStatus IS NULL
-        OR ReconciliationStatus = @ReconciliationStatus
-        OR (@ReconciliationStatus = 'Consumed' AND ReconciliationStatus IN ('Fully Consumed', 'Partially Consumed'))
-    )
+    WHERE (@ReconciliationStatus IS NULL OR ReconciliationStatus LIKE '%' + @ReconciliationStatus + '%')
+      AND (@QtyShippedFilter     IS NULL OR CAST(QtyShipped     AS VARCHAR(50)) LIKE '%' + @QtyShippedFilter     + '%')
+      AND (@QtyConsumedFilter    IS NULL OR CAST(QtyConsumed    AS VARCHAR(50)) LIKE '%' + @QtyConsumedFilter    + '%')
+      AND (@QtyReturnedFilter    IS NULL OR CAST(QtyReturned    AS VARCHAR(50)) LIKE '%' + @QtyReturnedFilter    + '%')
+      AND (@QtyDamagedLostFilter IS NULL OR CAST(QtyDamagedLost AS VARCHAR(50)) LIKE '%' + @QtyDamagedLostFilter + '%')
+      AND (@QtyRemainingFilter   IS NULL OR CAST(QtyRemaining   AS VARCHAR(50)) LIKE '%' + @QtyRemainingFilter   + '%')
+      AND (@UnitCostFilter       IS NULL OR CAST(UnitCost       AS VARCHAR(50)) LIKE '%' + @UnitCostFilter       + '%')
+      AND (@ExtendedCostFilter   IS NULL OR CAST(ExtendedCost   AS VARCHAR(50)) LIKE '%' + @ExtendedCostFilter   + '%')
+      -- Date-only match (time component stripped), matching the convention used for
+      -- other date columns (e.g. ExpirationDate/ReceivedDate in ProcStockList).
+      AND (@DateShipped          IS NULL OR CAST(DateShipped  AS DATE) = CAST(@DateShipped  AS DATE))
+      AND (@DateReturned         IS NULL OR CAST(DateReturned AS DATE) = CAST(@DateReturned AS DATE))
     ORDER BY
         -- User-selected sort column
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'VendorName'           THEN VendorName           END ASC,
@@ -242,14 +317,46 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartNumber'           THEN PartNumber           END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'Condition'            THEN Condition            END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'Condition'            THEN Condition            END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'SerialNumber'         THEN SerialNumber         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'SerialNumber'         THEN SerialNumber         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'StocklineNumber'      THEN StocklineNumber      END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'StocklineNumber'      THEN StocklineNumber      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ControlNumber'        THEN ControlNumber        END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ControlNumber'        THEN ControlNumber        END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ControlId'            THEN ControlId            END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ControlId'            THEN ControlId            END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'MPN'                  THEN MPN                  END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'MPN'                  THEN MPN                  END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'MPNDescription'       THEN MPNDescription       END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'MPNDescription'       THEN MPNDescription       END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONumber'             THEN RONumber             END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONumber'             THEN RONumber             END DESC,
-        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END ASC,
-        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONumber'       THEN WONumber      END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONumber'       THEN WONumber      END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateReturned'         THEN DateReturned         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'DateReturned'         THEN DateReturned         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyShipped'          THEN QtyShipped           END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyShipped'          THEN QtyShipped           END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyConsumed'         THEN QtyConsumed          END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyConsumed'         THEN QtyConsumed          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyReturned'         THEN QtyReturned          END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyReturned'         THEN QtyReturned          END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyDamagedLost'      THEN QtyDamagedLost       END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyDamagedLost'      THEN QtyDamagedLost       END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'QtyRemaining'        THEN QtyRemaining         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'QtyRemaining'        THEN QtyRemaining         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'UnitCost'            THEN UnitCost             END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'UnitCost'            THEN UnitCost             END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'ExtendedCost'        THEN ExtendedCost         END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'ExtendedCost'        THEN ExtendedCost         END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'RepairOrderPartRecordId' THEN RepairOrderPartRecordId END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'RepairOrderPartRecordId' THEN RepairOrderPartRecordId END DESC,
         -- Secondary stable sort
         RepairOrderPartRecordId DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS

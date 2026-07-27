@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterDataForDropDown   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterDataForDropDown.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_GetItemMasterDataForDropDown]       
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used for get Data of ItemMasterDataForDropDown
@@ -10,8 +14,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 26-09-2025			Nakul Chandigra		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Retired remaining dbo.ItemMasterNonStock reference. Redirected the Non-Stock (ELSE) branch to dbo.ItemMaster WHERE ISNULL(IsNonStock,0) = 1, mirroring the Stock branch (MasterPartId -> ItemMasterId, ItemMasterNonStockId count -> ItemMasterId count, direct ManufacturerName column instead of Manufacturer subquery).
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
+CREATE      PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
 @MasterCompanyId BIGINT,
 @type VARCHAR (256)
 AS
@@ -32,7 +38,7 @@ BEGIN
                 WHEN (SELECT COUNT(im2.ItemMasterId) 
                       FROM [DBO].ItemMaster im2 WITH(NOLOCK)
                       WHERE im2.PartNumber = im.PartNumber 
-                        AND im2.MasterCompanyId = @MasterCompanyId) > 1
+                        AND im2.MasterCompanyId = @MasterCompanyId AND ISNULL(im2.IsNonStock,0) = 0 ) > 1
                 THEN im.PartNumber + ' - ' + im.ManufacturerName
                 ELSE im.PartNumber
             END AS label,
@@ -42,33 +48,30 @@ BEGIN
           AND im.IsActive = 1
           AND im.IsDeleted = 0
           AND im.ItemTypeId = 1 
-    END
+     AND ISNULL(im.IsNonStock,0) = 0
+           END
     ELSE
     BEGIN
         SELECT DISTINCT
-            im.MasterPartId AS ItemMasterId,
+            im.ItemMasterId,
             im.PartNumber,
             im.PartDescription,
             CASE
-                WHEN (SELECT COUNT(im2.ItemMasterNonStockId) 
-                      FROM [DBO].ItemMasterNonStock im2 WITH(NOLOCK)
-                      WHERE im2.PartNumber = im.PartNumber 
-                        AND im2.MasterCompanyId = @MasterCompanyId) > 1
-                THEN im.PartNumber + ' - ' + 
-                     (SELECT TOP 1 Name 
-                      FROM [DBO].Manufacturer m WITH(NOLOCK)
-                      WHERE m.ManufacturerId = im.ManufacturerId)
+                WHEN (SELECT COUNT(im2.ItemMasterId)
+                      FROM [DBO].ItemMaster im2 WITH(NOLOCK)
+                      WHERE im2.PartNumber = im.PartNumber
+                        AND im2.MasterCompanyId = @MasterCompanyId AND ISNULL(im2.IsNonStock,0) = 1) > 1
+                THEN im.PartNumber + ' - ' + im.ManufacturerName
                 ELSE im.PartNumber
             END AS label,
-            (SELECT TOP 1 Name 
-             FROM [DBO].Manufacturer m WITH(NOLOCK)
-             WHERE m.ManufacturerId = im.ManufacturerId) AS ManufacturerName
-        FROM [DBO].ItemMasterNonStock im WITH(NOLOCK)
+            im.ManufacturerName
+        FROM [dbo].ItemMaster im WITH(NOLOCK)
         WHERE im.MasterCompanyId = @MasterCompanyId
           AND im.IsActive = 1
           AND im.IsDeleted = 0
-          AND im.ItemTypeId = 2 
-    END	 
+          AND im.ItemTypeId = 2
+          AND ISNULL(im.IsNonStock,0) = 1
+    END
 	END TRY 
 	BEGIN CATCH
 		IF @@trancount > 0		  

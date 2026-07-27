@@ -19,6 +19,9 @@
 	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
 	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    07-08-2024   Sahdev Saliya     Modified For Date Filter issue
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters (poview and VendorRFQ view branches) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed). Also removed a third hard exclusion (ISNULL(ST.IsNonStock,0)=0) on the #TempStkList staging query that feeds ReceivedDate to both branches.
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]

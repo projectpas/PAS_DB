@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]           
  ** Author:   Abhishek Jirawla
  ** Description: Get PurchaseOrder Details to Update PurchaseOrder in QuickBooks    
@@ -12,10 +16,12 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]
+CREATE       PROCEDURE [dbo].[QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,
@@ -79,7 +85,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
 				WHERE PO.QuickBooksReferenceId IS NOT NULL AND PO.PurchaseOrderId = @ReferenceId AND PO.MasterCompanyId = @MasterCompanyId
 				GROUP BY PO.PurchaseOrderId,
@@ -148,7 +154,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
 				WHERE RO.QuickBooksReferenceId IS NOT NULL AND RO.RepairOrderId = @ReferenceId AND RO.MasterCompanyId = @MasterCompanyId
 				GROUP BY RO.RepairOrderId,

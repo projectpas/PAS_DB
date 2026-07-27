@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateReceivingReconciliationBatchDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateReceivingReconciliationBatchDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -12,9 +16,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/10/2022  Subhash Saliya     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory population/unit-cost-update references (PO and RO Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 more leftover IsNonStock=0 exclusion filters (MPNName lookups) missed by the earlier PN-17350 pass.
    EXEC [dbo].[USP_CreateReceivingReconciliationBatchDetails] 'RPO',10023,0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails] @StocklineId bigint=NULL, @Qty int=0, @Amount Decimal(18, 2), @ModuleName varchar(200), @UpdateBy varchar(200), @DistributionCode varchar(200), @JournalBatchHeaderId bigint, @JournalTypename varchar(200), @StockType varchar(50), @PackagingId int, @EmployeeId BIGINT, @RRId BIGINT, @ReceivingReconciliationDetailId BIGINT, @BatchId BIGINT OUTPUT
+CREATE     PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails] @StocklineId bigint=NULL, @Qty int=0, @Amount Decimal(18, 2), @ModuleName varchar(200), @UpdateBy varchar(200), @DistributionCode varchar(200), @JournalBatchHeaderId bigint, @JournalTypename varchar(200), @StockType varchar(50), @PackagingId int, @EmployeeId BIGINT, @RRId BIGINT, @ReceivingReconciliationDetailId BIGINT, @BatchId BIGINT OUTPUT
 AS BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON;
@@ -91,12 +98,12 @@ AS BEGIN
 
 					IF(UPPER(@StockType) = 'NONSTOCK')
 					 BEGIN
-					      Select @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
-					      @PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber
+					      Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+					      @PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber
 					     ,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
-					      @VendorId=VendorId,@POStocklineUnitPrice=Isnull(UnitCost,0),@ROStocklineUnitPrice=isnull(UnitCost,0),@StocklineQtyAvail=QuantityOnHand  from NonStockInventory where NonStockInventoryId=@StocklineId;
+					      @VendorId=VendorId,@POStocklineUnitPrice=Isnull(UnitCost,0),@ROStocklineUnitPrice=isnull(UnitCost,0),@StocklineQtyAvail=QuantityOnHand  from Stockline where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
 						  
-						  SELECT @PieceItemmasterId=MasterPartId from NonStockInventory  where NonStockInventoryId=@StocklineId
+						  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 
 					END
 
@@ -114,11 +121,11 @@ AS BEGIN
 
 
 
-					 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId;
+					 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId ;
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					 select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
-		             SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-            IF(@PackagingId>0)BEGIN
+		             SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId
+		              IF(@PackagingId>0)BEGIN
                 SET @Amount=(@Qty * @Amount);
                 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                 from DistributionSetup WITH(NOLOCK)
@@ -190,9 +197,9 @@ AS BEGIN
 						      IF(@POROUnitPrice !=isnull(@RRUnitPrice, 0))
 						      BEGIN
                                  SET @StocklineUnitPrice=@RRUnitPrice
-                                 update NonStockInventory
+                                 update Stockline
                                  SET  UnitCost=@StocklineUnitPrice
-                                where NonStockInventoryId=@StocklineId
+                                where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
                               END
 					           SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                                FROM DistributionSetup WITH(NOLOCK)
@@ -275,9 +282,9 @@ AS BEGIN
 						      IF(@POROUnitPrice !=isnull(@RRUnitPrice, 0))
 						      BEGIN
                                  SET @StocklineUnitPrice=@RRUnitPrice
-                                 update NonStockInventory
+                                 update Stockline
                                  SET  UnitCost=@StocklineUnitPrice
-                                where NonStockInventoryId=@StocklineId
+                                where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
                               END
 					           SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                                FROM DistributionSetup WITH(NOLOCK)
@@ -365,12 +372,12 @@ AS BEGIN
 
 					IF(UPPER(@StockType) = 'NONSTOCK')
 					 BEGIN
-					      Select @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
-					      @PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber
+					      Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+					      @PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber
 					     ,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
-					      @VendorId=VendorId,@POStocklineUnitPrice=Isnull(UnitCost,0),@ROStocklineUnitPrice=isnull(UnitCost,0),@StocklineQtyAvail=isnull(QuantityOnHand,0)   from NonStockInventory where NonStockInventoryId=@StocklineId;
+					      @VendorId=VendorId,@POStocklineUnitPrice=Isnull(UnitCost,0),@ROStocklineUnitPrice=isnull(UnitCost,0),@StocklineQtyAvail=isnull(QuantityOnHand,0)   from Stockline where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
 						  
-						  SELECT @PieceItemmasterId=MasterPartId from NonStockInventory  where NonStockInventoryId=@StocklineId
+						  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 
 					END
 
@@ -385,14 +392,14 @@ AS BEGIN
 						  SELECT @PieceItemmasterId=MasterPartId  from AssetInventory  where AssetInventoryId=@StocklineId
 
 					END
-                 	 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId;
+                 	 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId ;
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					 select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
 					  SET @Amount = (@Qty * @Amount);
 
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
-		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-                 IF(@PackagingId>0)BEGIN
+		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId
+		               IF(@PackagingId>0)BEGIN
                      SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                      from DistributionSetup WITH(NOLOCK)
                      where UPPER(Name)=UPPER('VAR - Cost/Qty - COGS')AND JournalTypeId=7;
@@ -464,9 +471,9 @@ AS BEGIN
 						      IF(@POROUnitPrice !=isnull(@RRUnitPrice, 0))
 						      BEGIN
                                  SET @StocklineUnitPrice=@RRUnitPrice
-                                 update NonStockInventory
+                                 update Stockline
                                  SET  UnitCost=@StocklineUnitPrice
-                                WHERE NonStockInventoryId=@StocklineId
+                                WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
                               END
 					           SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                                FROM DistributionSetup WITH(NOLOCK)
@@ -548,9 +555,9 @@ AS BEGIN
 						      IF(@POROUnitPrice !=isnull(@RRUnitPrice, 0))
 						      BEGIN
                                  SET @StocklineUnitPrice=@RRUnitPrice
-                                 update NonStockInventory
+                                 update Stockline
                                  SET  UnitCost=@StocklineUnitPrice
-                                WHERE NonStockInventoryId=@StocklineId
+                                WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
                               END
 					           SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                                FROM DistributionSetup WITH(NOLOCK)

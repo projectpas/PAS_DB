@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotSummaryByLotId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotSummaryByLotId.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_GetLotSummaryByLotId]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot summary by lot id
@@ -12,10 +13,12 @@
  ** --   --------     -------		---------------------------     
     1    05/05/2023   Rajesh Gami     Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	3    09/July/2026	 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026	 RAJESH GAMI	[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE   PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN

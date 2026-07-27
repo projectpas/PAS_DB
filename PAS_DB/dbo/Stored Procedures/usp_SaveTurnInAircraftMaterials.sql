@@ -1,4 +1,4 @@
-﻿/*************************************************************     
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <08/04/2026>    
 ** Description: <This Proc Is used to Same Turn In Aircraft Materials Stockline>    
@@ -16,6 +16,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
    5	22/05/2026  Abhishek Jirawla	Added @IsCustomer Stock based on customer
    6	26/05/2026  Priyansh Patel	    Added new field 'TTSN, TCSN '(PN-16477)
    7	30/06/2026  Amit Ghediya	    Update for Engine data [PN-17075]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/   
 CREATE      PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
@@ -168,7 +169,8 @@ BEGIN
 		 INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId  
 		 ON CSTL.StockLineId = STL.StockLineId  
   
-		 SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+		  WHERE ISNULL(IM.IsNonStock,0) = 0
+SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;  
      
 		 IF(ISNULL(@IsFromAircraft,0) = 1)
 		 BEGIN
@@ -235,7 +237,8 @@ BEGIN
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-			GROUP BY iM.ItemMasterId
+			 AND ISNULL(iM.IsNonStock,0) = 0
+			 GROUP BY iM.ItemMasterId
 
 		 INSERT INTO [dbo].[Stockline](StockLineNumber, ControlNumber, IDNumber, IsCustomerStock,IsCustomerstockType,ItemMasterId,PartNumber, PurchaseUnitOfMeasureId,ConditionId,Quantity,   
 		   QuantityAvailable, QuantityOnHand,QuantityTurnIn,IsSerialized,SerialNumber, CustomerId, ObtainFromType, ObtainFrom, ObtainFromName, OwnerType, [Owner], OwnerName, TraceableToType,   

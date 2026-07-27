@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesOrderQuoteHistoryReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesOrderQuoteHistoryReport.sql) =====
+/*************************************************************           
  ** File:   [usp_GetSalesOrderQuoteHistoryReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuote History Report 
@@ -17,10 +18,13 @@
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	        	  Vishal Suthar Modified to make use of new SOQ-SO new tables
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
      
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteHistoryReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuoteHistoryReport] @customername varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetSalesOrderQuoteHistoryReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -151,7 +155,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
         LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON STK.stocklineId = STL.StockLineId
+         LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON STK.stocklineId = STL.StockLineId
         LEFT JOIN DBO.CustomerType CT WITH (NOLOCK)
           ON SOQ.AccountTypeId = CT.CustomerTypeId
         --LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId

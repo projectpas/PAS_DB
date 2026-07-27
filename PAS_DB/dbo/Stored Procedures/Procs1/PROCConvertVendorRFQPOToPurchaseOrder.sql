@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.PROCConvertVendorRFQPOToPurchaseOrder   (source: PAS_DB/dbo/Stored Procedures/Procs1/PROCConvertVendorRFQPOToPurchaseOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [PROCConvertVendorRFQPOToPurchaseOrder]               
  ** Author:  Moin Bloch    
  ** Description: This stored procedure is used to convert vendor RFQ PO to Purchase Order      
@@ -27,11 +31,13 @@
 	12   11/09/2024  Amit Ghediya      Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while Convert VendorRFQPO To PurchaseOrder.
 	13   25/09/2025  Devendra Shekh	   Added Changes for @IsFromRFQ to Update [VendorRFQPart]
 	14   12/12/2025  Devendra Shekh	   Added SP usp_MapRFQReferences For PO Part Reference Mapping
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
-CREATE      PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
+CREATE        PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
 @VendorRFQPurchaseOrderId bigint,    
 @VendorRFQPOPartRecordId bigint,    
 @PurchaseOrderId bigint,    
@@ -203,7 +209,7 @@ BEGIN
         -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
-         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    
+         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId] ),NULL,    
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
@@ -445,7 +451,7 @@ BEGIN
 		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @ReportCurrencyId),
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
-         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    
+         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId] ),NULL,    
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
@@ -631,7 +637,7 @@ BEGIN
 		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @ReportCurrencyId),
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
-         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    
+         (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId] ),NULL,    
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    

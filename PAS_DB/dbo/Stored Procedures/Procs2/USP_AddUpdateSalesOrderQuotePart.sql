@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿-- ===== PROCEDURE: [dbo].[USP_AddUpdateSalesOrderQuotePart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdateSalesOrderQuotePart.sql) =====
+/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderQuotePart]             
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order quote part details
@@ -16,6 +17,8 @@
 	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @MinsoqId
 	6    15-09-2025	  Amit Ghediya		 Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderQuotePartV1 table
+	8    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SOQ part stockline.
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -23,7 +26,7 @@ insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.0000
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
 ***************************************************************/
-CREATE       PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
 	@tbl_SalesOrderQuotePartList SOQPartListType READONLY
 	--@tbl_SalesOrderQuoteStocklineList SOQStockLineListType READONLY
 AS

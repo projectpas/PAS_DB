@@ -17,6 +17,8 @@
 	5    17/JUL/2025   RAJESH GAMI		SO: Freight Charges Amount Issue Fixed
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
+	8    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/

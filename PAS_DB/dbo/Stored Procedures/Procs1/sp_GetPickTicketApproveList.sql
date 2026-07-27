@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketApproveList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketApproveList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve pickticket listing data
@@ -22,10 +23,13 @@
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -123,7 +127,7 @@ BEGIN
           AND sao.SalesOrderPartId = sop.SalesOrderPartId
           AND sao.ApprovalActionId = 5
         )
-		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
+         group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOOperatingMetricReport_MostSold   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOOperatingMetricReport_MostSold.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_MostSold]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most SOLD SO
@@ -17,9 +21,11 @@
     1    01-Sep-2025	Rajesh Gami		Created 
 	2    04-Sep-2025	Rajesh Gami		Remove all taxes from the revenue (Sales and Other Tax)
 	3    25-Sep-2025	Vishal Suthar	Modified Revenue calculation
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostSold] 
+CREATE       PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostSold] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -133,8 +139,8 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
-			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-		  WHERE 
+			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId
+			 WHERE 
 				   SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
 				   AND BI.InvoiceStatus = 'Invoiced'
 					AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND SO.mastercompanyid = @mastercompanyid

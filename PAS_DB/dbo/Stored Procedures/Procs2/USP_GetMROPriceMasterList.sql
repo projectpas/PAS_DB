@@ -1,4 +1,8 @@
-﻿/*********************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetMROPriceMasterList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetMROPriceMasterList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*********************           
  ** File:   [USP_GetMROPriceMasterList]         
  ** Author: Priyansh Patel
  ** Description: This stored procedure returns all MRO Price Master records
@@ -12,11 +16,12 @@
  ** --   --------      -------			---------------------------     
     1    27/10/2025    Priyansh Patel   Created
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **********************/
 -- Example: EXEC [USP_GetMROPriceMasterList] 0, 0, 1, 1, 10
 
-CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterList] 
+CREATE   PROCEDURE [dbo].[USP_GetMROPriceMasterList] 
     @ItemMasterId BIGINT = NULL, 
     @IsDeleted BIT = 0,
     @MasterCompanyId INT,
@@ -64,7 +69,7 @@ BEGIN
 							AND (@ItemMasterId IS NULL OR IM.ItemMasterId = @ItemMasterId)
 							AND IM.IsActive = 1
 							AND IM.IsDeleted = @IsDeleted
-					)
+					 AND ISNULL(IM.IsNonStock,0) = 0 )
 					INSERT INTO #PagedParents (ItemMasterId, PartNumber, PartDescription, ManufacturerName)
 					SELECT 
 						ItemMasterId, 
@@ -91,7 +96,7 @@ BEGIN
 						 (@ItemMasterId IS NULL OR IM.ItemMasterId = @ItemMasterId)
 						AND IM.MasterCompanyId = @MasterCompanyId
 						AND IM.IsActive = 1
-						AND IM.IsDeleted = @IsDeleted;
+						AND IM.IsDeleted = @IsDeleted AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 
@@ -127,7 +132,8 @@ BEGIN
         AND IM.IsActive = 1
         AND IM.IsDeleted = @IsDeleted
 		
-    ORDER BY IM.ItemMasterId DESC;
+     AND ISNULL(IM.IsNonStock,0) = 0
+         ORDER BY IM.ItemMasterId DESC;
 
     -- Total count
     SELECT COUNT(DISTINCT IM.ItemMasterId) AS TotalRecords
@@ -136,7 +142,7 @@ BEGIN
 		 (@ItemMasterId IS NULL OR IM.ItemMasterId = @ItemMasterId)
        AND IM.MasterCompanyId = @MasterCompanyId
         AND IM.IsActive = 1
-        AND IM.IsDeleted = @IsDeleted;
+        AND IM.IsDeleted = @IsDeleted AND ISNULL(IM.IsNonStock,0) = 0 ;
 
     END TRY
 

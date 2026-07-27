@@ -1,5 +1,9 @@
 ﻿
-CREATE VIEW dbo.vw_ItemMasterPartManufacturer
+-- ---------------------------------------------------------------------------------------------------
+-- View: dbo.vw_ItemMasterPartManufacturer   (source: PAS_DB/dbo/Views/vw_ItemMasterPartManufacturer.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+CREATE   VIEW dbo.vw_ItemMasterPartManufacturer
 AS
 
 WITH PartCounts AS
@@ -8,7 +12,8 @@ WITH PartCounts AS
         PartNumber,
         COUNT(*) AS PartCount
     FROM dbo.ItemMaster
-    GROUP BY PartNumber
+     WHERE ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+GROUP BY PartNumber
 )
 
 SELECT
@@ -22,4 +27,5 @@ SELECT
 
 FROM dbo.ItemMaster IM
 INNER JOIN PartCounts PC
-    ON IM.PartNumber = PC.PartNumber;
+    ON IM.PartNumber = PC.PartNumber WHERE ISNULL(IM.IsNonStock,0) = 0
+;

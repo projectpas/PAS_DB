@@ -15,6 +15,8 @@
  ** --   --------		-------			--------------------------------            
     1    01/02/2025		EKTA CHANDEGRA	 Created  
     2    07-07-2025     Moin Bloch       Changed Old To New Billing Table
+    3    09/July/2026     RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    4    22/July/2026     RAJESH GAMI       [PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 
 exec dbo.GetSalesOrderProformaInvoicingPdfData @sobillingInvoicingId=11201
 

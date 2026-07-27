@@ -50,6 +50,7 @@
     [ManufacturerPN]                  NVARCHAR (80)   NULL,
     [CntrlNumber]                     INT             NULL,
     [AssetAttributeTypeId]            BIGINT          NULL,
+    [AssetClassSource]                VARCHAR (30)    NULL,
     CONSTRAINT [PK_Asset] PRIMARY KEY CLUSTERED ([AssetRecordId] ASC),
     CONSTRAINT [FK__Asset__MasterPar__47D257FB] FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_Asset_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
@@ -58,6 +59,8 @@
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 GO

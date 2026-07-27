@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usp_DeleteWFMaterialsFromWOMaterils]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_DeleteWFMaterialsFromWOMaterils.sql) =====
+
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <07/30/2021>  
@@ -11,11 +12,12 @@ Exec [usp_SaveWorkOrderMaterials]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    07/30/2021  Hemant Saliya    Delete Items From WO Materisl When Work Flow has been Changed
+2    09/July/2026  RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC dbo.usp_DeleteWFMaterialsFromWOMaterils 54,'Admin'
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
+CREATE   PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
 	@WorkFlowWorkOrderId BIGINT
 AS
 BEGIN
@@ -37,7 +39,7 @@ BEGIN
 					FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.IsFromWorkFlow = 1 AND (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)) = 0;
 					
-					UPDATE dbo.Stockline  SET WorkOrderMaterialsId = NULL FROM dbo.Stockline S JOIN #TempWorkOrderMaterials tmpWOM ON S.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+					UPDATE dbo.Stockline  SET WorkOrderMaterialsId = NULL FROM dbo.Stockline S JOIN #TempWorkOrderMaterials tmpWOM ON S.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId WHERE ISNULL(S.IsNonStock,0) = 0
 
 					DELETE WOIS FROM dbo.WorkOrderIssuedStock WOIS JOIN #TempWorkOrderMaterials tmpWOM ON WOIS.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId;
 

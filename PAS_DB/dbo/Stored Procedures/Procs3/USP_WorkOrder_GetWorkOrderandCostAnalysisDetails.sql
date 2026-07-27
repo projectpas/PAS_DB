@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrder_GetWorkOrderandCostAnalysisDetails.sql) =====
+/*************************************************************           
  ** File:   [USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get WorkOrder/SubWorkOrder CostAnalysis Details.
@@ -24,11 +25,13 @@
 	8    04/22/2025   Hemant Saliya		Repair Cost at Part wise from Srockline
 	9    04/25/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
 	10   02/05/2026   Hemant Saliya		Handle -ve Adjustment cost issue
+	11   09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   23/July/2026   RAJESH GAMI		[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
+CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT

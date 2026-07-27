@@ -1,4 +1,8 @@
-﻿-----------------------------------------------------------------------------------------------------  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AddUpdateTravelerSetupHeader   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdateTravelerSetupHeader.sql)
+-- ---------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------  
   
 /*************************************************************             
  ** File:   [USP_AddUpdateTravelerSetupHeader]             
@@ -20,11 +24,12 @@
     1    12/22/2023   Subhash Saliya  Created
 	2    05/22/2023   Satish Gohil    Update Code prefix function
 	3    01/09/2025   Moin Bloch      Changed [WorkScope] Discription to [WorkScopeCode]
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC [USP_AddUpdateTravelerSetupHeader] 44  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[USP_AddUpdateTravelerSetupHeader]  
+CREATE     PROCEDURE [dbo].[USP_AddUpdateTravelerSetupHeader]  
  @WorkScopeId bigint,    
  @MasterCompanyId bigint,    
  @CreatedBy varchar(100),  
@@ -55,7 +60,8 @@ BEGIN
                 SELECT TOP 1 @PartNumber=partnumber from [dbo].[ItemMaster] WITH(NOLOCK) WHERE  ItemMasterId=@ItemMasterId   
                  
   
-                IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
+                 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+                 IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
 				BEGIN  
 					DROP TABLE #tmpCodePrefixes  
 				END  

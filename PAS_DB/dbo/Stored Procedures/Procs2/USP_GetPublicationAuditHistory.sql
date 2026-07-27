@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPublicationAuditHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPublicationAuditHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:   [USP_GetPublicationAuditHistory]             
  ** Author: Ayushi Patel  
  ** Description: Get Publication Audit History by PublicationId 
@@ -13,8 +17,9 @@
 	2    2025-10-16		  Bhargav Saliya			Added Case For [verifiedBy]
 	3    10/11/2025       Bhargav Saliya            Get Notes which has been newly added
 	4    10/13/2025       Bhargav Saliya            Remove added
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ***************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
+CREATE     PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
     @PublicationId BIGINT,
     @EmployeeId BIGINT
 AS
@@ -67,7 +72,8 @@ BEGIN
 		INNER JOIN DBO.PublicationType pt WITH (NOLOCK) ON pa.PublicationTypeId = pt.PublicationTypeId
         LEFT JOIN DBO.PublicationItemMasterMapping pum WITH (NOLOCK) ON pa.PublicationRecordId = pum.PublicationRecordId
         LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON pum.ItemMasterId = im.ItemMasterId
-        LEFT JOIN DBO.ItemMasterATAMapping ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
+         AND ISNULL(im.IsNonStock,0) = 0
+         LEFT JOIN DBO.ItemMasterATAMapping ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
         LEFT JOIN DBO.ATAChapter ac WITH (NOLOCK) ON ima.ATAChapterId = ac.ATAChapterId
         LEFT JOIN DBO.Employee e WITH (NOLOCK) ON pa.EmployeeId = e.EmployeeId
         LEFT JOIN DBO.Employee vb WITH (NOLOCK) ON pa.VerifiedBy = vb.EmployeeId

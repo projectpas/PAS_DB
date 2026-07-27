@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockReportAsOfNow]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockReportAsOfNow.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   VISHAL SUTHAR  
  ** Description: Get Data for Stock Report  
@@ -25,6 +26,9 @@
  	9	 13-02-2026		Devendra Shekh		Added New param @id9  
 	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
 	11	 28-04-2026		HEMANT SALIYA		Exclude Non-Stock GL account from get GL balance
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -19,6 +19,9 @@
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (ItemMaster, joined Stockline, alternate-part mapping) so Non-Stock parts are included.
      
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
@@ -56,8 +59,7 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					)
+									FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -65,6 +67,7 @@ BEGIN
 						WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS Oempmader
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 					,@MappingType AS MappingType
 					,imps.PP_UnitPurchasePrice AS UnitCost
 					,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
@@ -82,7 +85,7 @@ BEGIN
 					AND (
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
-						)
+						) 
 					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
@@ -93,7 +96,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				GROUP BY
+					 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure
@@ -109,6 +112,7 @@ BEGIN
 					,c.ConditionId
 					,im.IsPma
 					,im.IsDER
+					,im.IsNonStock
 					,OEMPMA.partnumber
 					,sl.ItemMasterId
 					,imps.PP_UnitPurchasePrice

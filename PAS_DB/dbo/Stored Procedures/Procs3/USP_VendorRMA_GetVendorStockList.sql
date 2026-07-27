@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetVendorStockList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetVendorStockList.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorStockList]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor Stock Listing 
@@ -14,6 +15,9 @@
     2    12-July-2023		Devendra SHekh     added condition to for @IsVCMAdd
     3    07-Nov-2023		Devendra SHekh     added case for vendorData
     4    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -109,8 +113,7 @@ BEGIN
 		  LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		  LEFT JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON SL.[VendorId] = VO.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) 
-		), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 		SELECT * INTO #TempResult FROM  Result 
 			WHERE 
@@ -195,8 +198,7 @@ BEGIN
 			AND SL.StockLineId NOT IN 
 			(SELECT ISNULL(StockLineId,0) FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
 			LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) ON vcmd.VendorCreditMemoId = vcm.VendorCreditMemoId 
-			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed'))
-		), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed')) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 		SELECT * INTO #TempResultData FROM  Result 
 			WHERE 

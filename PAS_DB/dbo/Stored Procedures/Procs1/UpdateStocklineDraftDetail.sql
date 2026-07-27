@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateStocklineDraftDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateStocklineDraftDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [UpdateStocklineDraftDetail]           
  ** Author: 
  ** Description: This stored procedure is update into stockline draft
@@ -19,9 +23,11 @@
 	3    18-04-2024   Shrey Chandegara  change for order date 
 	4    25-04-2024   Vishal Suthar		Removed field (WorkOrderId, SalesOrderId, etc.) to get updated from POP which will remove the data of receiver stock report
     5    10-APR-2025  Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
-CREATE     Procedure [dbo].[UpdateStocklineDraftDetail]
+CREATE       Procedure [dbo].[UpdateStocklineDraftDetail]
 	@PurchaseOrderId  bigint
 AS
 BEGIN
@@ -146,8 +152,8 @@ BEGIN
 	    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 	    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
-	    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId	
-	    LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
+	    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId
+	     LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 	    LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] NHA WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 	    LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
 	    LEFT JOIN [dbo].[Location] LC WITH (NOLOCK) ON LC.LocationId = SD.LocationId

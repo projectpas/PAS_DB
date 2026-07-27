@@ -1,4 +1,8 @@
-﻿/*******************************************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetVendorCapabilityAudit   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetVendorCapabilityAudit.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*******************************************************************************************
  ** File:   [GetVendorCapabilityAudit]           
  ** Author:  Ayushi Patel
  ** Description: This SP gets audit history of Vendor Capability with timezone adjusted dates
@@ -14,10 +18,11 @@
  ** PR   Date         Author		        Change Description            
  ** --   --------     -------		    --------------------------------          
     1    01/05/2025  Ayushi Patel	    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  *******************************************************************************************/           
 
-CREATE   PROCEDURE [dbo].[GetVendorCapabilityAudit]
+CREATE     PROCEDURE [dbo].[GetVendorCapabilityAudit]
     @VendorCapabilityId BIGINT,
     @VendorId BIGINT,
     @EmployeeId BIGINT
@@ -78,7 +83,8 @@ BEGIN
             dbo.CapabilityType vcat WITH (NOLOCK) ON CONVERT(INT, vca.CapabilityTypeId) = vcat.CapabilityTypeId
         LEFT JOIN 
             dbo.ItemMaster itm WITH (NOLOCK) ON vca.ItemMasterId = itm.ItemMasterId
-        LEFT JOIN 
+         AND ISNULL(itm.IsNonStock,0) = 0
+             LEFT JOIN 
             dbo.Manufacturer man WITH (NOLOCK) ON itm.ManufacturerId = man.ManufacturerId
         WHERE 
             vca.VendorCapabilityId = @VendorCapabilityId 

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceiverStockPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to get data for PN Label and Receiver Stock Print Report 
@@ -23,6 +23,10 @@
 	7    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 	8    29 DEC 2025  Hemant Saliya		Handle Duplicate PN Label issue for MTI
 	9    15 JAN 2026  Bhargav Saliya	Get Inspector and Inspected Date For Receiving Stock
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the remaining NonStockInventory/ItemMasterNonStock UNION branches (isParentData=1 grouping query and isParentData=0 detail query) to Stockline/ItemMaster with IsNonStock=1
+	10 	  27/July/2026   Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber`
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 exec dbo.GetReceiverStockPO @PurchaseOrderId=9818,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 
@@ -73,14 +77,16 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=i.ItemMasterId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
+				 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+				 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 			UNION
 			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) >1 THEN 3 when MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules 
-				FROM [dbo].[NonStockInventory] sl WITH(NOLOCK)
-				INNER JOIN [dbo].[ItemMasterNonStock] i WITH(NOLOCK) ON i.MasterPartId = sl.MasterPartId
-				LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=sl.MasterPartId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
+				FROM [dbo].[Stockline] sl WITH(NOLOCK)
+				INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
+				LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=sl.ItemMasterId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
+				 AND ISNULL(i.IsNonStock,0) = 1 AND ISNULL(sl.IsNonStock,0) = 1
 				GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 			UNION
 			SELECT sl.ReceiverNumber, (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate, 1 AS Modules FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
@@ -117,7 +123,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -134,7 +142,8 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 1
 
-			UNION
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+			 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -161,7 +170,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -178,7 +189,8 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 
 
-			UNION
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+			 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -205,7 +217,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -221,17 +235,18 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 					   
-			UNION
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+			 UNION
 
-			SELECT sl.MasterPartId AS ItemMasterId,
+			SELECT sl.ItemMasterId AS ItemMasterId,
 				   sl.ConditionId,
-				   sl.UnitOfMeasureId AS PurchaseUnitOfMeasureId,
+				   sl.PurchaseUnitOfMeasureId AS PurchaseUnitOfMeasureId,
 				   sl.PartNumber AS partnumber,
-				   CASE WHEN LEN(sl.PartDescription) > 50 THEN SUBSTRING(sl.PartDescription, 1 , 50) + '...' ELSE sl.PartDescription END AS 'PartDescription',
+				   CASE WHEN LEN(sl.PNDescription) > 50 THEN SUBSTRING(sl.PNDescription, 1 , 50) + '...' ELSE sl.PNDescription END AS 'PartDescription',
 				   sl.Condition,
 				   sl.UnitOfMeasure,
-			       sl.NonStockInventoryId AS StockLineId,
-				   sl.NonStockInventoryNumber AS StockLineNumber,
+			       sl.StockLineId AS StockLineId,
+				   sl.StockLineNumber AS StockLineNumber,
 				   sl.SerialNumber,
 				   sl.Quantity as Qty,
 				   sl.ControlNumber,
@@ -247,14 +262,16 @@ BEGIN
 				  CASE WHEN POP.WorkOrderId >1 THEN 'WO3' when POP.SalesOrderId >1 then 'SO' ELSE 'STOCK' END as ModuleName,
 				  CASE WHEN POP.WorkOrderId >1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber,
 				  sl.Manufacturer,
-				  CAST(sl.MfgExpirationDate AS DATE) AS ExpirationDate,
+				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				   '' AS TraceableToName,
 				   '' as Inspector,
-				   NULL InspectionDate
-			FROM [dbo].[NonStockInventory] sl WITH(NOLOCK)
-			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=sl.MasterPartId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
+				   NULL InspectionDate,
+				   '' AS LotNumber,
+				   '' AS EngineSerialNumber
+			FROM [dbo].[Stockline] sl WITH(NOLOCK)
+			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=sl.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1
+			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND ISNULL(sl.IsNonStock,0) = 1
 			UNION
 			SELECT sl.AssetRecordId AS ItemMasterId,
 				    0 AS ConditionId,
@@ -283,7 +300,9 @@ BEGIN
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				    '' AS TraceableToName,
 					'' as Inspector,
-					NULL InspectionDate
+					NULL InspectionDate,
+					'' AS LotNumber,
+					'' AS EngineSerialNumber
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) 
 			LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)

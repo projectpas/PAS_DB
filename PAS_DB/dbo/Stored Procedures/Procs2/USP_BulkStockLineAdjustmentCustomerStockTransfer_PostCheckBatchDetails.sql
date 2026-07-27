@@ -26,6 +26,7 @@
 	10	 11/05/2024	  Devendra Shekh	  Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	11	 16/01/2025   AMIT GHEDIYA		  Modify(get Distribution based on new settings from stockline level)
 	12	 02/06/2025	  Abhishek Jirawla	  Fixed Name concat read script
+	13	 08/07/2026	  Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
      
 **************************************************************/
 
@@ -112,6 +113,7 @@ BEGIN
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @ReferenceNumber VARCHAR(50) = '';
@@ -362,7 +364,8 @@ BEGIN
 					SELECT TOP 1 @DistributionSetupId=ID,
 					             @DistributionName=Name,
 								 @JournalTypeId =JournalTypeId,
-								 @CrDrType = CRDRType
+								 @CrDrType = CRDRType, 
+								 @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					        FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 							WHERE UPPER(DistributionSetupCode) = UPPER(@INV_DistributionSetupCode) 
 							AND MasterCompanyId = @MasterCompanyId 
@@ -373,7 +376,7 @@ BEGIN
 
 					SET @TotalAmount = (ISNULL(@NewUnitCostTotransfer,0) * ISNULL(@newqty,0)) ;
 					
-					IF(@TotalAmount > 0)
+					IF(@TotalAmount > 0 AND @IsBypassAccounting = 0)
 					BEGIN
 					
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -410,7 +413,8 @@ BEGIN
 				              @CrDrType = CRDRType,
 							  @GlAccountId = GlAccountId,
 							  @GlAccountNumber = GlAccountNumber,
-							  @GlAccountName = GlAccountName
+							  @GlAccountName = GlAccountName,
+							  @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 				        FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 						WHERE UPPER(DistributionSetupCode) =UPPER(@INV_RES_DistributionSetupCode) 
 						AND MasterCompanyId = @MasterCompanyId 
@@ -419,7 +423,7 @@ BEGIN
 				 ---SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 				 ---SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
-				 IF(@TotalAmount > 0)
+				 IF(@TotalAmount > 0 AND @IsBypassAccounting = 0)
 				 BEGIN
 
 				 INSERT INTO [dbo].[CommonBatchDetails]

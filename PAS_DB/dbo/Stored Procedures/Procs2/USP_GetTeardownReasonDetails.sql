@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetTeardownReasonDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetTeardownReasonDetails.sql) =====
+/*************************************************************           
  ** File:   [USP_GetTeardownReasonDetails]           
  ** Author:   Devendra Shekh
  ** Description: Retrieves teardown reason details
@@ -17,6 +18,8 @@
 	4   26-Feb-2025		Devendra Shekh			Added Changes for SubWO
 	5	09-APR-2025		Devendra Shekh			Comparing @CorrectiveActionCode instead of name
 	6	17-APR-2025		Devendra Shekh			Reading Memo Text From [CorrectiveActionTemplate]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
  EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1, 0
  EXECUTE [USP_GetTeardownReasonDetails] 147, '', 0, 1, 222
@@ -62,10 +65,12 @@ BEGIN
 			FROM [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SWOP.RevisedConditionId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = SWOP.ConditionId
-			LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWOP.StockLineId
+			LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWOP.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-			LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = SWOP.RevisedItemmasterid
-			WHERE SWOP.[SubWOPartNoId] = @SubWOPartNoId;
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = SWOP.RevisedItemmasterid
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			  WHERE SWOP.[SubWOPartNoId] = @SubWOPartNoId;
 		END
 
 		SELECT @RPPubTypeId = [PublicationTypeId] FROM [dbo].[PublicationType] WITH(NOLOCK) WHERE [Name] = 'RSPEC' AND [MasterCompanyId] = @MasterCompanyId;

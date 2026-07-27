@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[UpdateExchangeQuoteNameColumnsWithId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateExchangeQuoteNameColumnsWithId.sql) =====
+/*************************************************************             
  ** File:   [UpdateExchangeQuoteNameColumnsWithId]
  ** Author:   Deep Patel
  ** Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -16,10 +17,12 @@
  ** --   --------     -------			-----------------------
     1    31-March-2021   Deep Patel		Created
 	3	 04/04/2024	  Bhargav Saliya   Credit terms Changes
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --  EXEC [dbo].[UpdateExchangeQuoteNameColumnsWithId] 5
 **************************************************************/
-CREATE PROCEDURE [dbo].[UpdateExchangeQuoteNameColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateExchangeQuoteNameColumnsWithId]
 	@ExchangeQuoteId int
 AS
 BEGIN
@@ -67,7 +70,8 @@ BEGIN
 		--StatusName = st.Description
 		FROM [dbo].[ExchangeQuotePart] EQP WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON EQP.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON EQP.StockLineId = sl.StockLineId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON EQP.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = EQP.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON EQP.ConditionId = c.ConditionId
 		Where EQP.ExchangeQuoteId = @ExchangeQuoteId

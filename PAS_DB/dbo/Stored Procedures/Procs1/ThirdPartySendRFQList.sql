@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.ThirdPartySendRFQList   (source: PAS_DB/dbo/Stored Procedures/Procs1/ThirdPartySendRFQList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [ThirdPartySendRFQList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Third Party Send RFQ List
@@ -19,10 +23,12 @@
 	7    04-11-2025   Devendra Shekh  Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart]
 	8    04-12-2025   Devendra Shekh  Modified to DateTime For rfqSentDate, vendorResponseDate
 	9    03-02-2026   Vishal Suthar   Fixed ItemMaster duplicate issue with same partnumber with different description we have in PAS
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
+CREATE     PROCEDURE [dbo].[ThirdPartySendRFQList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -259,8 +265,8 @@ BEGIN
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
 					LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON part.[PartNumber] = IM.[partnumber] AND part.Description = IM.PartDescription AND part.[MasterCompanyId] = IM.[MasterCompanyId]
-					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
-					LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
+					 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					  LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = ird.ILSRFQDetailId AND RR.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = ird.ILSRFQDetailId AND RFQR.[MasterCompanyId] = ird.[MasterCompanyId] 
 		 	  WHERE 

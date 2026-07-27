@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSOOperatingMetricReport_QuotedUnitByIMId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSOOperatingMetricReport_QuotedUnitByIMId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [dbo.GetSOOperatingMetricReport_QuotedUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most Quoted SO By ItemMaster Id
@@ -15,8 +19,10 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    01-Sep-2025  Rajesh Gami   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[GetSOOperatingMetricReport_QuotedUnitByIMId] 
+CREATE       PROCEDURE [dbo].[GetSOOperatingMetricReport_QuotedUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -154,8 +160,8 @@ BEGIN
 			--LEFT JOIN [dbo].[BillingInvoicing] AS BI WITH (NOLOCK) ON SOBII.BillingInvoicingId = BI.BillingInvoicingId and BI.IsVersionIncrease=0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0  AND BI.InvoiceStatus = 'Invoiced' AND BI.[ModuleId] = @SOModuleId
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SOQ.CustomerId = Customer.CustomerId  
-			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOQP.ConditionId = CN.ConditionId 
+			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOQP.ConditionId = CN.ConditionId 
 		  WHERE 
 				ISNULL(SOQ.IsDeleted,0) = 0 AND	SOQ.CustomerId=ISNULL(@customerid,SOQ.CustomerId)  AND SOQP.ItemMasterId = ISNULL(@itemMasterId,SOQP.ItemMasterId) 
 				--AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy) 

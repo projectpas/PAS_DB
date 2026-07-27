@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_UpdateModuleCountDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_UpdateModuleCountDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_UpdateModuleCountDetails]           
  ** Author:   Abhishek Jirawla
  ** Description: Update Module Count Details
@@ -16,10 +20,12 @@
 	3	 19-Jun-2025   Moin Bloch       Replaced Old To New Table For Billing Invoicing
     4    21-Apr-2026   Moin Bloch       Modified Added Xero Accounting Changes PN-16008
 	5    05-06-2026    Bhargav Saliya   Added Xero Case For Credit Memo
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 6 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 1, 1
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
+CREATE        PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
 	@MasterCompanyId INT = NULL,
 	@ModuleId BIGINT = NULL
 AS
@@ -516,7 +522,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- Pending ItemMaster Data
@@ -524,7 +530,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- All ItemMaster Data
@@ -532,7 +538,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 			WHERE ACI.ModuleId = @ItemMasterModuleId
 
@@ -550,7 +556,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- Pending ItemMaster Data
@@ -558,7 +564,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- All ItemMaster Data
@@ -566,7 +572,7 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
+				 GROUP BY MasterCompanyId
 			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 			WHERE ACI.ModuleId = @ItemMasterModuleId
 

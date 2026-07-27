@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetPurchaseOrderPartsForView]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartsForView.sql) =====
+/*************************************************************           
  ** File:   [USP_GetPurchaseOrderPartsForView]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to get PurchaseOrderPartRecordId from StockLineDraft NonStockInventoryDraft  AssetInventoryDraft Tables
@@ -14,6 +15,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/04/2025   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Cleanup: removed dead duplicate legacy-table UNION branch and redirected remaining legacy-table joins to the unified ItemMaster/Stockline tables (IsNonStock flag)
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock MS lookup (Opr=3, MD join) repointed from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; reused the already-dynamic @StocklineMSID ('Stockline' module) instead of the separate hardcoded-lookup @NonStocklineMSID ('NonStockStockline' module), which was removed as dead code
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -32,13 +37,12 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @Stock INT=1,@NonStock INT=2,@Asset INT=11, @PurchaseOrderPartMSId INT,@AssetMSID INT,@StocklineMSID INT,@NonStocklineMSID INT
+		DECLARE @Stock INT=1,@NonStock INT=2,@Asset INT=11, @PurchaseOrderPartMSId INT,@AssetMSID INT,@StocklineMSID INT
 						
 		SELECT @PurchaseOrderPartMSId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'POPart'
 
 		SELECT @StocklineMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
 	
-  	    SELECT @NonStocklineMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'NonStockStockline'
 
 		SELECT @AssetMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetInventoryTangible'
 				
@@ -56,8 +60,6 @@ BEGIN
 
 			INSERT INTO #tblPurchaseOrderPartRecordIds([PurchaseOrderPartRecordId])		
 			SELECT [PurchaseOrderPartRecordId] FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId AND [isDeleted] = 0 AND (([IsParent] = 1 AND [isSerialized] = 1) OR ([IsParent] = 0 AND [isSerialized] = 0)) AND [StockLineId] IS NOT NULL --> 0
-			UNION
-			SELECT [PurchaseOrderPartRecordId] FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId AND [isDeleted] = 0 AND (([IsParent] = 1 AND [isSerialized] = 1) OR ([IsParent] = 0 AND [isSerialized] = 0)) AND [NonStockInventoryId] > 0
 			UNION
 			SELECT [PurchaseOrderPartRecordId] FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId AND [isDeleted] = 0 AND (([IsParent] = 1 AND [isSerialized] = 1) OR ([IsParent] = 0 AND [isSerialized] = 0))  AND [AssetInventoryId] > 0
 
@@ -158,8 +160,9 @@ BEGIN
 			[part].[POPartSplitUser] AS [PoPartSplitUserName]
 		FROM [dbo].[PurchaseOrderPart] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
-		LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
-		LEFT JOIN [dbo].[ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
+		 AND ISNULL(itm.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
+		LEFT JOIN [dbo].[ItemMaster] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[ItemMasterId] AND ISNULL(nsi.IsNonStock,0) = 1
 		WHERE [part].[PurchaseOrderPartRecordId] IN (SELECT [PurchaseOrderPartRecordId] FROM #tblPurchaseOrderPartRecordIds)
    
 		END
@@ -264,7 +267,7 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
 		
 		END
 		IF(@Opr=3)
@@ -273,13 +276,13 @@ BEGIN
 			[ItemTypeId] = @NonStock,		
 			MD.[LastMSLevel],
 			MD.[AllMSlevels],
-			SL.[NonStockInventoryNumber] [StockLineNumber],
+			SL.[StockLineNumber],
             SL.[ControlNumber],
             SL.[IdNumber],
             SL.[SerialNumber],
             ISNULL(SL.[Quantity],0) [Quantity],
-            ISNULL(SL.[UnitCost],0) [PurchaseOrderUnitCost],
-            (ISNULL(SL.[UnitCost],0) * SL.[Quantity]) [PurchaseOrderExtendedCost],
+            ISNULL(SL.[PurchaseOrderUnitCost],0) [PurchaseOrderUnitCost],
+            SL.[PurchaseOrderExtendedCost] [PurchaseOrderExtendedCost],
 			ISNULL(SL.[ReceiverNumber],'') [ReceiverNumber],
 			0 [OwnerType],
 			0 [ObtainFromType],
@@ -302,13 +305,13 @@ BEGIN
 			'' [CertifiedBy],
 			NULL AS [TagDate],
 			--CASE WHEN SL.[MfgExpirationDate] IS NOT NULL THEN FORMAT(SL.[MfgExpirationDate], 'MM/dd/yyyy') ELSE NULL END AS [ExpirationDate],
-			SL.[MfgExpirationDate] AS [ExpirationDate],
+			SL.[ExpirationDate] AS [ExpirationDate],
 			NULL AS [CertifiedDueDate],
 			''  [AircraftTailNumber],
             NULL AS [LastCalibrationDate],
 			NULL AS [NextCalibrationDate],
 			SL.[GLAccountId],
-			SL.[GLAccount] [GLAccountText],
+			SL.[GlAccountName] [GLAccountText],
 			0 AS [ConditionId],
 			SL.[Condition] AS [ConditionText],
 			SL.[ManagementStructureId] [ManagementStructureEntityId],			
@@ -318,7 +321,7 @@ BEGIN
             SL.[ShelfId],
             SL.[BinId],
             SL.[Manufacturer] [ManufacturerText],
-            SL.[ShippingVia] [ShippingViaText],
+            SV.[Name] AS [ShippingViaText],
             SL.[Site] SiteText,
             SL.[Warehouse] WarehouseText,
             SL.[Location] LocationText,
@@ -334,18 +337,19 @@ BEGIN
 			'' [TaggedByName],
 			 0 [TaggedByType],
 		    '' [TaggedByTypeName],
-			SL.[UnitOfMeasureId],
+			SL.[PurchaseUnitOfMeasureId] [UnitOfMeasureId],
 			'' [UnitOfMeasure],
 			'' [TagType],
 			 0 [TagTypeId],
 			'' [CertifiedType],
             '' [CertType],
 			'' [CertTypeId],
-            SL.[UnitCost],
+            CASE WHEN SL.[PurchaseOrderUnitCost] > 0 THEN SL.[PurchaseOrderUnitCost] ELSE 0 END [UnitCost],
 			 0 [StockLineId] 
-		FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
-		LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[NonStockInventoryId] AND [ModuleID] = @NonStocklineMSID
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
+		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
+		LEFT JOIN [dbo].[StocklineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 1
 					
 		END
 		IF(@Opr=4)

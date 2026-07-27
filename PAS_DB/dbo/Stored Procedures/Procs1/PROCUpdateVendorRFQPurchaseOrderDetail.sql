@@ -1,5 +1,17 @@
-﻿--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
-CREATE PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.PROCUpdateVendorRFQPurchaseOrderDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/PROCUpdateVendorRFQPurchaseOrderDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
+--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items in Vendor RFQ Purchase Order detail update
+****************************************************************************************************************************************/
+CREATE   PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
 @VendorRFQPurchaseOrderId  bigint
 AS
 BEGIN
@@ -119,7 +131,7 @@ BEGIN
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
-		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId; 
+		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId ; 
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	
 

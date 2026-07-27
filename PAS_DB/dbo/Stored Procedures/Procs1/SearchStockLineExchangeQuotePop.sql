@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineExchangeQuotePop]           
  ** Author:  Unknown
  ** Description: Get Search Data for Exchange Quote  search for from part list tab
@@ -13,6 +13,9 @@
     1                 Unknown        Created
 	2	 19-04-2024   Moin Bloch     Allow IsCustomerStock in Vendor Exchange PN-7409
 	3    05-30-2025	  ABHISHEK JIRAWLA	Adding Traceability Changes
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
      
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
@@ -118,7 +121,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					AND sl.isActive = 1 AND sl.IsDeleted = 0 
 					--AND sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 					AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-											THEN @ConditionId ELSE sl.ConditionId 
+											THEN @ConditionId
+ELSE sl.ConditionId 
 											END
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 

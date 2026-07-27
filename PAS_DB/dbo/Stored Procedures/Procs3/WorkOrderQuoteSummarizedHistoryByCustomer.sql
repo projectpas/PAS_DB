@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderQuoteSummarizedHistoryByCustomer   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderQuoteSummarizedHistoryByCustomer.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
@@ -18,11 +22,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [WorkOrderQuoteSummarizedHistoryByCustomer] 295,0
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByCustomer]
+CREATE   PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -75,7 +80,8 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = WOQ.CurrencyId						
 					WHERE IM.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WOQ.createdDate, GETDATE()) < @Month 
 					--GROUP BY IM.partnumber, WOP.ItemMasterId, WS.WorkScopeCode, WS.WorkScopeId ,C.Code
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 			COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

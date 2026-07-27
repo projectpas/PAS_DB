@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPackagingLabelByVendorRMAId.sql) =====
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPackagingLabelByVendorRMAId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMAPackagingLabel By VendorRMAId pdf
@@ -13,6 +14,8 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
+    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026    RAJESH GAMI      [PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrintForVendorRMA]
  ** Author: unknown
  ** Description: 
@@ -13,6 +13,8 @@
     1					unknown			Created
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
@@ -44,9 +46,10 @@ BEGIN
 		LEFT JOIN DBO.RMAShippingItem SSI WITH(NOLOCK) ON SSI.RMAPickTicketId = sopt.RMAPickTicketId
 		INNER JOIN dbo.VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN dbo.VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
-		LEFT JOIN  dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN  dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN  dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN  dbo.Condition co WITH(NOLOCK) on co.ConditionId = sl.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN  dbo.Condition co WITH(NOLOCK) on co.ConditionId = sl.ConditionId
 		LEFT JOIN  dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.RMAShippingItem SOSI WITH(NOLOCK) ON SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId
 		LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId AND SOS.VendorRMAId = @VendorRMAId

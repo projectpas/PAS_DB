@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_SaveEmailRFQ   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveEmailRFQ.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_SaveEmailRFQ]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used save the RFQs Received on Email
@@ -23,9 +27,10 @@
 	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
 	13	 10 Dec 2025	Devendra Shekh		Modified (Duplicate RFQ Issue Resolved)
 	14	 07 JAN 2026	Amit Ghediya		Modified for add contact details for existing customer diffrent email & phone.
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
+CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
     @tbl_RfqCustomerType dbo.RfqCustomerType READONLY,
     @tbl_RfqPartDetailType dbo.RfqPartDetailType READONLY,
@@ -239,7 +244,8 @@ BEGIN
 			FROM #tmpQuote TMP
 			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
 			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
-			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
 
 			SELECT @TotalQuoteRow = MAX(RowId), @CurrentQuoteRow = MIN(RowId) FROM #tmpQuote;
 

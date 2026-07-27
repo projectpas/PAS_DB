@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetBillingInvoicingDetails]           
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
@@ -23,6 +23,9 @@
 	9    05 Aug 2025   BHARGAV Saliya Fixed ShippingTerms Issue PN_13778
 	10   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
 	11   29/06/2026    BHARGAV Saliya 	  get Terms and Id From WO Table [PN-17040]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoicing details (WorkOrder branch untouched).
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
@@ -144,7 +147,7 @@ BEGIN
 			 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 			INNER JOIN [dbo].[CreditTerms] [ct] WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 			 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-			 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+			 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 			WHERE [wosh].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
 			END
@@ -224,7 +227,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				INNER JOIN [dbo].[CreditTerms] [ct]  WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 				 LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
 				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
@@ -303,7 +306,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				INNER JOIN [dbo].[CreditTerms] [ct]  WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
 			END
@@ -382,7 +385,7 @@ BEGIN
 				LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				LEFT JOIN [dbo].[CreditTerms] [ct] WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE [wosh].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
 			
 			END
@@ -461,7 +464,7 @@ BEGIN
 					INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON SO.FunctionalCurrencyId = [cr].[CurrencyId]
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-					LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+					 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
 				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId
@@ -526,7 +529,7 @@ BEGIN
 				 	LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				 	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON so.FunctionalCurrencyId = [cr].[CurrencyId]
-				 	WHERE sos.SalesOrderShippingId = @ShippingId;
+				 	WHERE sos.SalesOrderShippingId = @ShippingId ;
 				 END
 				 ELSE
 				 BEGIN
@@ -586,7 +589,7 @@ BEGIN
 					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]					
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
-				 	WHERE so.SalesOrderId = @ReferenceId;
+				 	WHERE so.SalesOrderId = @ReferenceId ;
 				 END
 			END			
 					

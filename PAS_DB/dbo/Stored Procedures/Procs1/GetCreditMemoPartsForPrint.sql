@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetCreditMemoPartsForPrint   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetCreditMemoPartsForPrint.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetCreditMemoPartsForPrint]           
  ** Author: Moin Bloch
  ** Description: Get Customer RMAPartsDetails
@@ -13,11 +17,13 @@
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    03-07-2025   Moin Bloch        Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	
  --  EXEC GetCreditMemoPartsForPrint 93,0,38
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetCreditMemoPartsForPrint]
+CREATE   PROCEDURE [dbo].[GetCreditMemoPartsForPrint]
 @InvoicingId bigint,
 @IsWorkOrder bit,
 @CreditMemoHeaderId bigint
@@ -51,7 +57,7 @@ BEGIN
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
 				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.[ModuleId] = @SOModuleId
-		END
+				 END
 		ELSE 
 		BEGIN
 				SELECT CM.InvoiceId,	
@@ -71,7 +77,7 @@ BEGIN
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.RevisedConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
 				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND WOBI.[ModuleId] = @WOModuleId
-		END
+				 END
 	END TRY    
 	BEGIN CATCH      
 	IF @@trancount > 0				

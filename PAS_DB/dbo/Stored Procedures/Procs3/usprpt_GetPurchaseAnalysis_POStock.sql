@@ -1,4 +1,6 @@
-﻿/*************************************************************             
+﻿
+-- ===== PROCEDURE: [dbo].[usprpt_GetPurchaseAnalysis_POStock]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPurchaseAnalysis_POStock.sql) =====
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_POStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Purchased Stock]
@@ -15,6 +17,9 @@
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price & totalPOs count fix
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17271] - As a part of allow both(Stock and NonStock) for the PO(Remove IsNonStock = 0 condition)
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_POStock]
 @PageNumber int = 1,
@@ -143,7 +148,7 @@ BEGIN
 			  AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE)
 			  AND PO.MasterCompanyId=@mastercompanyid
 			  AND (ISNULL(@conditionIds,'')='' OR STK.ConditionId IN(SELECT value FROM STRING_SPLIT(@conditionIds,',')))
-		) AS a;
+			 ) AS a;
 
 	  SELECT * INTO #TempPOAnalysisFinal FROM
 		(SELECT 

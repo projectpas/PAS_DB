@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_GetBulkStockScrapCertificateForPDF]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetBulkStockScrapCertificateForPDF.sql) =====
+/*************************************************************             
  ** File:   [USP_GetBulkStockScrapCertificateForPDF]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Scrap Certificate Adjustment Details  
@@ -16,6 +17,8 @@
     1    16/06/2026     Moin Bloch			Created
 	2    22/06/2026     Moin Bloch			Added More Fields PN-16955
 	3    24/06/2026     Moin Bloch			Added Customer Field PN-16973
+	4    09/July/2026     RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026     RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 	
        
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1

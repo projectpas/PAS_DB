@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetItemDetailsForUpdateItem   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetItemDetailsForUpdateItem.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_GetItemDetailsForUpdateItem]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Item Details to Update Item in QuickBooks    
@@ -12,10 +16,11 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_GetItemDetailsForUpdateItem]
+CREATE       PROCEDURE [dbo].[QuickBooks_GetItemDetailsForUpdateItem]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL
@@ -63,7 +68,8 @@ BEGIN
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE ISNULL(IM.QuickBooksReferenceId, '') != '' AND IM.ItemMasterId = @ReferenceId AND IM.MasterCompanyId = @MasterCompanyId
 		
-		END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 END
 	END TRY    
 	BEGIN CATCH      
 

@@ -1,4 +1,5 @@
-﻿-------------------------------------------------------------------------------------------------------------------
+﻿-- ===== PROCEDURE: [dbo].[USP_GetRollupMaterialList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRollupMaterialList.sql) =====
+-------------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsList]           
@@ -19,12 +20,15 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/05/2021   Subhash Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE USP_GetRollupMaterialList 325
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetRollupMaterialList]    
+CREATE   PROCEDURE [dbo].[USP_GetRollupMaterialList]    
 (    
 @workOrderMaterialId BIGINT = NULL 
 )    
@@ -147,4 +151,4 @@ SET NOCOUNT ON
 		LEFT JOIN dbo.SubWorkOrderMaterialMapping SBWOMM WITH (NOLOCK) ON SBWOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		WHERE WOM.WorkOrderMaterialsId = @workOrderMaterialId --AND WOM.IsAltPart = 0 AND WOM.IsEquPart = 0;
-END
+		 END

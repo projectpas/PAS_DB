@@ -14,6 +14,7 @@
 ** 2    06/05/2026   Priyansh Patel     Created [PN-16303]
 ** 3    03/06/2026   Nakul Chandigra    Added [TotalTSNMM] field for select [PN-16691]
 ** 4    04/06/2026   Sumit Kumar        Added missing fields for the view PN-16214.
+** 5    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 6    17/July/2026   Amit Ghediya       return IsFromAircraft/EngineRegistryId per row
 
 *************************************************************/
@@ -103,7 +104,7 @@ BEGIN
              LEFT JOIN [dbo].[ItemMasterAircraftMapping] IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
              LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 1
              LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 0
-             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             WHERE AIPD.MasterCompanyId = @MasterCompanyId
     ),
     Result AS (

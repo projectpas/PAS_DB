@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise.sql) =====
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on ProductSale
@@ -16,10 +17,13 @@
     1    08/02/2024   Moin Bloch    Created
 	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from Stockline and ItemMaster joins used for tax site lookup.
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 10425,10666,77 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
 @SalesOrderQuoteId BIGINT,
 @SalesOrderQuotePartId BIGINT,
 @CustomerId BIGINT 
@@ -55,7 +59,7 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQPS WITH(NOLOCK) ON SOQPS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId] 
 			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQPS.[StockLineId] = STK.[StockLineId]
 			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
-			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
+			  LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
 			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
    		     WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId 
 			   AND SOQP.[SalesOrderQuotePartId] = @SalesOrderQuotePartId

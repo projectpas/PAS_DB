@@ -15,6 +15,7 @@
   ** S NO   Date            Author				Change Description
   ** --   --------			-------				--------------------------------
      1    22/06/2026		Abhishek Jirawla	Created
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @RepairOrderPartRecordId    BIGINT,
@@ -27,7 +28,8 @@ CREATE   PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @Memo                       NVARCHAR(500)   = NULL,
     @UpdatedBy                  NVARCHAR(256),
     @MasterCompanyId            INT,
-    @ChargesTypeId              BIGINT          = NULL    -- when provided + QtyConsumed > 0, adds cost to consumed RO
+    @ChargesTypeId              BIGINT          = NULL,   -- when provided + QtyConsumed > 0, adds cost to consumed RO
+    @ParentRepairOrderPartId    BIGINT          = NULL    -- optional parent piece part link (child-split scenario)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -54,6 +56,7 @@ BEGIN
 
     -- WO cost rollup (populated in step 4b, consumed in step 7)
     DECLARE @PiecePartCostPerUnit   DECIMAL(18,4)   = 0;
+    DECLARE @StocklineCostDelta     DECIMAL(18,4)   = 0;   -- proportional delta applied to main stockline UnitCost
     DECLARE @MainStockLineId        BIGINT;
     DECLARE @MainPartQty            INT;
     DECLARE @WOId                   BIGINT;
@@ -241,6 +244,7 @@ BEGIN
             QtyRemaining,
             ReconciliationStatus,
             Memo,
+            ParentRepairOrderPartId,
             MasterCompanyId,
             CreatedBy,
             CreatedDate,
@@ -262,6 +266,7 @@ BEGIN
             @QtyRemainingNow,
             @Status,
             @Memo,
+            @ParentRepairOrderPartId,
             @MasterCompanyId,
             @UpdatedBy,
             @Now,
@@ -283,15 +288,23 @@ BEGIN
                   USP_CreateWOStocklineFromRO / USP_CreateSOStocklineFromRO
                   do for regular RO parts.
         ──────────────────────────────────────────────────────────────── */
-        IF ISNULL(@QtyConsumed, 0) > 0
+        IF ISNULL(@QtyConsumed, 0) > 0 OR ISNULL(@QtyDamagedLost, 0) > 0
         BEGIN
-            -- Always resolve piece part cost details for steps 4a and 4b
+            -- Cost lookup runs for both consumed and damaged/lost so @PiecePartCostPerUnit
+            -- is always populated and returned to C# for GL batch posting.
             SELECT
                 @PartUnitCost = ISNULL(UnitCost, 0),
                 @PartNumber   = PartNumber,
                 @PartDesc     = PartDescription
             FROM dbo.RepairOrderPart WITH (NOLOCK)
             WHERE RepairOrderPartRecordId = @RepairOrderPartRecordId;
+
+            SET @PiecePartCostPerUnit = @PartUnitCost;
+
+            -- Steps 4a and 4b (charges line + main stockline cost absorption) only apply when
+            -- qty was consumed, not for damaged/lost.
+            IF ISNULL(@QtyConsumed, 0) > 0
+            BEGIN
 
             /* 4a. RepairOrderCharges line on the consuming RO */
             IF @ChargesTypeId IS NOT NULL
@@ -355,19 +368,20 @@ BEGIN
             WHERE rop.RepairOrderId          = @ConsumedRepairOrderId
               AND ISNULL(rop.IsPiecePart, 0) = 0
               AND sl.IsParent                = 1
-              AND sl.IsDeleted               = 0;
+              AND sl.IsDeleted               = 0 AND ISNULL(sl.IsNonStock,0) = 0;
 
             IF @MainStockLineId IS NOT NULL
             BEGIN
-                SET @PiecePartCostPerUnit = @QtyConsumed * @PartUnitCost / @MainPartQty;
+                -- Proportional cost delta: total piece part cost spread across the main part's qty.
+                SET @StocklineCostDelta = @QtyConsumed * @PartUnitCost / @MainPartQty;
 
                 -- Add to RepairOrderUnitCost (the repair-spend component) and recompute UnitCost.
                 -- UnitCost = PurchaseOrderUnitCost + RepairOrderUnitCost + Adjustment, so adding
                 -- the same delta to both RepairOrderUnitCost and UnitCost keeps the formula intact.
                 UPDATE dbo.StockLine
                 SET
-                    RepairOrderUnitCost = ISNULL(RepairOrderUnitCost, 0) + @PiecePartCostPerUnit,
-                    UnitCost            = ISNULL(UnitCost, 0)            + @PiecePartCostPerUnit,
+                    RepairOrderUnitCost = ISNULL(RepairOrderUnitCost, 0) + @StocklineCostDelta,
+                    UnitCost            = ISNULL(UnitCost, 0)            + @StocklineCostDelta,
                     UpdatedBy           = @UpdatedBy,
                     UpdatedDate         = @Now
                 WHERE StockLineId = @MainStockLineId;
@@ -377,8 +391,8 @@ BEGIN
                 -- IsNewPartAdded = 1: a new piece part has been added to the repair order for this stockline.
                 UPDATE dbo.WorkOrderMaterialStockLine
                 SET
-                    UnitCost     = ISNULL(UnitCost, 0) + @PiecePartCostPerUnit,
-                    ExtendedCost = (ISNULL(UnitCost, 0) + @PiecePartCostPerUnit) * ISNULL(Quantity, 0),
+                    UnitCost     = ISNULL(UnitCost, 0) + @StocklineCostDelta,
+                    ExtendedCost = (ISNULL(UnitCost, 0) + @StocklineCostDelta) * ISNULL(Quantity, 0),
                     IsPiecePart  = 1,
                     UpdatedBy    = @UpdatedBy,
                     UpdatedDate  = @Now
@@ -389,8 +403,8 @@ BEGIN
                 -- Propagate to SubWorkOrderMaterialStockLine (sub WO case)
                 UPDATE dbo.SubWorkOrderMaterialStockLine
                 SET
-                    UnitCost     = ISNULL(UnitCost, 0) + @PiecePartCostPerUnit,
-                    ExtendedCost = (ISNULL(UnitCost, 0) + @PiecePartCostPerUnit) * ISNULL(Quantity, 0),
+                    UnitCost     = ISNULL(UnitCost, 0) + @StocklineCostDelta,
+                    ExtendedCost = (ISNULL(UnitCost, 0) + @StocklineCostDelta) * ISNULL(Quantity, 0),
                     UpdatedBy    = @UpdatedBy,
                     UpdatedDate  = @Now
                 WHERE StockLineId = @MainStockLineId
@@ -445,12 +459,13 @@ BEGIN
                     -- UnitCost up to the SO part level.
                     UPDATE dbo.SalesOrderStockLineCost
                     SET
-                        UnitCost    = ISNULL(UnitCost, 0) + @PiecePartCostPerUnit,
+                        UnitCost    = ISNULL(UnitCost, 0) + @StocklineCostDelta,
                         UpdatedBy   = @UpdatedBy,
                         UpdatedDate = @Now
                     WHERE SalesOrderStocklineId = @SOStocklineId;
                 END
             END
+            END -- end consumed-only section (4a + 4b)
         END
 
         /* ────────────────────────────────────────────────────────────────
@@ -483,7 +498,7 @@ BEGIN
         JOIN  dbo.RepairOrder  srcRO WITH (NOLOCK) ON srcRO.RepairOrderId = ppr.SourceRepairOrderId
         LEFT JOIN dbo.RepairOrder conRO WITH (NOLOCK) ON conRO.RepairOrderId = ppr.ConsumedRepairOrderId
         JOIN  dbo.StockLine    sl    WITH (NOLOCK) ON sl.StockLineId      = ppr.StockLineId
-        WHERE ppr.PiecePartReconciliationId = @NewReconciliationId;
+        WHERE ppr.PiecePartReconciliationId = @NewReconciliationId AND ISNULL(sl.IsNonStock,0) = 0;
 
         COMMIT TRANSACTION;
 

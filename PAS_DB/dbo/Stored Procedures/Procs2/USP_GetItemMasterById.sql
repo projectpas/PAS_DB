@@ -1,4 +1,8 @@
-﻿/*********************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*********************             
  ** File:   UPDATE CUSTOMER IN WO           
  ** Author:  HEMANT SALIYA  
  ** Description: This SP Is Used to Get Item Master By Id
@@ -11,11 +15,12 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    27-MAY-2024   HEMANT SALIYA      Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    
 exec USP_GetItemMasterById 
 *************************************************************/   
   
-CREATE   PROCEDURE [dbo].[USP_GetItemMasterById] 	
+CREATE     PROCEDURE [dbo].[USP_GetItemMasterById] 	
 @ItemMasterId BIGINT = NULL	
 AS  
 BEGIN  
@@ -127,8 +132,9 @@ BEGIN
 			iM.Item
 		FROM dbo.ItemMaster iM WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMaster imst ON iM.IsOemPNId = imst.ItemMasterId
-		WHERE 
-			iM.ItemMasterId = @ItemMasterId;
+		 AND ISNULL(imst.IsNonStock,0) = 0
+			 WHERE 
+			iM.ItemMasterId = @ItemMasterId AND ISNULL(iM.IsNonStock,0) = 0 ;
 
   
  END TRY      

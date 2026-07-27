@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSubWOMaterialsPickTicketApproveList]           
  ** Author:   Hemant Saliya
  ** Description: This SP is used Get Sub WO Pick Ticket Details    
@@ -19,6 +19,8 @@
  ** --   --------     -------				--------------------------------          
     1    09/20/2021   Hemant Saliya			Created
 	2    12/19/2023	  Devendra Shekh		changes for kit
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE GetSubWOMaterialsPickTicketApproveList 48,30,31
 
@@ -53,7 +55,7 @@ SET NOCOUNT ON
 					wom.ConditionCodeId AS ConditionId,
 					C.[Name] as CustomerName, 
 					C.CustomerCode,
-					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStockline WMSL JOIN dbo.StockLine sl WITH (NOLOCK) ON WMSL.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsId = WMSL.SubWorkOrderMaterialsId) AS QuantityAvailable,
+					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStockline WMSL JOIN dbo.StockLine sl WITH (NOLOCK) ON WMSL.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsId = WMSL.SubWorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0) AS QuantityAvailable,
 					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
 					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0) END AS QtyToShip,
 
@@ -74,7 +76,8 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer C WITH (NOLOCK) on C.CustomerId = WO.CustomerId
 				WHERE WOM.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-				UNION ALL
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 UNION ALL
 				
 				SELECT 
 					wom.SubWorkOrderMaterialsKitId as OrderPartId, 
@@ -91,7 +94,7 @@ SET NOCOUNT ON
 					wom.ConditionCodeId AS ConditionId,
 					cr.[Name] as CustomerName, 
 					cr.CustomerCode,
-					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStocklineKIT wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId) AS QuantityAvailable,
+					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStocklineKIT wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId AND ISNULL(sl.IsNonStock,0) = 0) AS QuantityAvailable,
 					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
 					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1) END AS QtyToShip,
 
@@ -111,7 +114,8 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-			END
+			 AND ISNULL(imt.IsNonStock,0) = 0
+				 END
 		COMMIT  TRANSACTION
 
 		END TRY    

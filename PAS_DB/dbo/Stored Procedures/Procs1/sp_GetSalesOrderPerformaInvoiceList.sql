@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSalesOrderPerformaInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSalesOrderPerformaInvoiceList.sql) =====
+/*************************************************************           
  ** File:   [dbo].[sp_GetSalesOrderPerformaInvoiceList]          
  ** Author:   AMIT GHEDIYA
  ** Description: Get Performa Invoice Data.
@@ -10,10 +11,13 @@
  ** --   --------     -------				--------------------------------          
     1    01/29/2024   AMIT GHEDIYA			Created
 	2	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO performa invoice list.
 
 --   EXEC sp_GetSalesOrderPerformaInvoiceList 814
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
+CREATE   PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -38,7 +42,7 @@ BEGIN
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
+							 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
 							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 1
 										AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder

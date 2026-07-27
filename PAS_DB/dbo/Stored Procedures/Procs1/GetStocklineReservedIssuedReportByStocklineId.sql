@@ -24,6 +24,8 @@
     11   12-02-2026    Moin Bloch		Modified Added TearDown Work Order Issue Operation PN-15435
 	12   26-03-2026    Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 	13	 26-06-2026	   Abhishek Jirawla Added Repair Order Piece part listing and calculations in the SP.
+	14	 09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 

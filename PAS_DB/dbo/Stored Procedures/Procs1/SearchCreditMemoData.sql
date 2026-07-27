@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   SearchCreditMemoData           
  ** Author:  Moin  
  ** Description: Get Credit Memo Filter Data  
@@ -20,6 +20,8 @@
 	7    06/25/2024   Moin Bloch        Updated Multiple Reson
 	8    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	9    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    10    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -54,7 +56,8 @@ CREATE   PROCEDURE [dbo].[SearchCreditMemoData]
 	@IsDeleted bit=NULL,  
 	@IsActive bit=NULL,  
 	@ManufacturerName varchar(50)= NULL,
-	@IsUpdated BIT = NULL
+	@IsUpdated BIT = NULL,
+    @IntegrationTypeId BIGINT = null
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -166,7 +169,10 @@ BEGIN
               INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
               LEFT JOIN dbo.Vendor VR WITH (NOLOCK) ON VR.RelatedCustomerId = CM.CustomerId
   
-        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID) AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CM.IsUpdated,0) = ISNULL(@IsUpdated,0)))    
+        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID) 
+        AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CM.isUpdated,0) = ISNULL(@IsUpdated,0))
+		AND (@IntegrationTypeId IS NULL OR CM.IntegrationTypeId = @IntegrationTypeId)  
+        )    
    ),  
    PartCTE AS(    
     Select CRD.CreditMemoHeaderId,(Case When COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumber',    
@@ -177,7 +183,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 THEN ',' ELSE '' END + I.partnumber    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       Left Join dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
-      Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartNumber    
     ) A    
@@ -193,7 +200,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
-      Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartDescription    
     ) A    
@@ -210,7 +218,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.ManufacturerName) > 0 THEN ',' ELSE '' END + I.ManufacturerName    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId    
-      Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') ManufacturerName    
     ) A    

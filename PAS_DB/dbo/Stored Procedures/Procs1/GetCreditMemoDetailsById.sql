@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetCreditMemoDetailsById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetCreditMemoDetailsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Credit Memo Part Details
@@ -15,10 +19,11 @@
  ** --   --------     -------		--------------------------------          
     1    25/04/2022  Moin Bloch     Created
 	2    28/03/2024  HEMANT SALIYA  Updated for Add Billing Level Details
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetCreditMemoDetailsById]
+CREATE     PROCEDURE [dbo].[GetCreditMemoDetailsById]
 @CreditMemoHeaderId bigint
 AS
 BEGIN
@@ -77,7 +82,8 @@ BEGIN
 	FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
 	   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
-	WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
+	 AND ISNULL(IM.IsNonStock,0) = 0
+	    WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    
 	BEGIN CATCH

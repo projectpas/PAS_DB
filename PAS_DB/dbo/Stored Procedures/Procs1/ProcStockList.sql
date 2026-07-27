@@ -42,6 +42,10 @@
 	25   01/20/2026   Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
 	26   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
 	27   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
+	28    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	29    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Added @IsNonStock filter (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column, no new joins added
+	30    08/July/2026			 RAJESH GAMI						[PN-17009] - Added computed 'Type' column (Stock/Non-Stock text) for the FieldMaster-driven grid column
+	31    08/July/2026			 RAJESH GAMI						[PN-17009] - Renamed computed column 'Type' to 'ItemType'; Added @ItemType filter param + GlobalFilter/specific-filter support so searching 'Stock'/'Non-Stock' matches by IsNonStock flag
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -53,14 +57,16 @@
 @LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
 @CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL,@PNSource=NULL
 **************************************************************/   
-CREATE       PROCEDURE [dbo].[ProcStockList]	
+CREATE         PROCEDURE [dbo].[ProcStockList]	
 	@PageNumber int = NULL,
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
 	@SortOrder int = NULL,        
 	@GlobalFilter varchar(50) = NULL,        
-	@stockTypeId int = NULL,        
-	@StocklineNumber varchar(50) = NULL,       
+	@stockTypeId int = NULL,
+	@IsNonStock bit = NULL,
+	@ItemType varchar(50) = NULL,
+	@StocklineNumber varchar(50) = NULL,
 	@MainPartNumber varchar(50) = NULL,       
 	@PartNumber varchar(50) = NULL,        
 	@PartDescription varchar(50) = NULL,        
@@ -232,6 +238,8 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -289,7 +297,7 @@ BEGIN
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND ISNULL(stl.IsParent, 0) = 1 
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
@@ -342,11 +350,12 @@ BEGIN
 		  (IsDocument LIKE '%' +@GlobalFilter+'%') OR 
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
-		  (PNSource LIKE '%' +@GlobalFilter+'%')		  
-		  ))         
-		  OR           
-		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
-		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
+		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
+		  (ItemType LIKE '%' +@GlobalFilter+'%')
+		  ))
+		  OR
+		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
+		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		  (ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
@@ -396,9 +405,10 @@ BEGIN
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
-		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		   
-		 )        
-		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
+		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		 )
+		SELECT @Count = COUNT(StockLineId) FROM #TempResults
 		
 		 SELECT *, @Count AS NumberOfItems FROM #TempResults ORDER BY          
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
@@ -539,6 +549,8 @@ BEGIN
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
 		stl.ItemTypeId,       
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -596,7 +608,7 @@ BEGIN
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		 --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		 --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
+		WHERE stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
@@ -654,11 +666,12 @@ BEGIN
 		(IsDocument LIKE '%' +@GlobalFilter+'%') OR
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
-		(PNSource LIKE '%' +@GlobalFilter+'%')		
-		))         
-		OR           
-		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
-		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
+		(PNSource LIKE '%' +@GlobalFilter+'%') OR
+		(ItemType LIKE '%' +@GlobalFilter+'%')
+		))
+		OR
+		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
+		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
@@ -708,9 +721,10 @@ BEGIN
 		AND (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') 
 		AND (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
-		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		 
-	   )        
-	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
+		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+	   )
+	   SELECT @Count = COUNT(StockLineId) FROM #TempResult
         
 	   SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY          
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN MainPartNumber END ASC,        
@@ -856,6 +870,8 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,        
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -914,7 +930,7 @@ BEGIN
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
@@ -967,10 +983,11 @@ BEGIN
 		  (IsDocument LIKE '%' +@GlobalFilter+'%') OR
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
-		  (PNSource LIKE '%' +@GlobalFilter+'%')))		  
-		  OR           
-		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
-		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
+		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
+		  (ItemType LIKE '%' +@GlobalFilter+'%')))
+		  OR
+		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
+		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
 		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
@@ -1020,9 +1037,10 @@ BEGIN
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') AND
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
-		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		   
-		 )        
-	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
+		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		 )
+	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults
         
 	   SELECT *, @Count AS NumberOfItems FROM #TempALTResults ORDER BY        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
@@ -1163,6 +1181,8 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,        
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -1222,7 +1242,7 @@ BEGIN
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
+	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                
@@ -1278,9 +1298,10 @@ BEGIN
 		(IsDocument LIKE '%' +@GlobalFilter+'%') or
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
-		(PNSource LIKE '%' +@GlobalFilter+'%')))
-		OR           
-		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
+		(PNSource LIKE '%' +@GlobalFilter+'%') OR
+		(ItemType LIKE '%' +@GlobalFilter+'%')))
+		OR
+		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
@@ -1331,8 +1352,9 @@ BEGIN
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
 		(IsNull(@UnitCost,'') =''  OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
-		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		  
-	   )        
+		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+	   )
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         
 		  SELECT *, @Count AS NumberOfItems FROM #TempALTResult ORDER BY      
@@ -1456,58 +1478,87 @@ BEGIN
         
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------        
               , @AdhocComments     VARCHAR(150)    = 'ProcStockList'         
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''',         
-                @Parameter2 = ' + ISNULL(@PageSize,'') + ',         
-                @Parameter3 = ' + ISNULL(@SortColumn,'') + ',         
-                @Parameter4 = ' + ISNULL(@SortOrder,'') + ',         
-                @Parameter5 = ' + ISNULL(@GlobalFilter,'') + ',         
-                @Parameter6 = ' + ISNULL(@stockTypeId,'') + ',         
-                @Parameter7 = ' + ISNULL(@StocklineNumber,'') + ',         
-                @Parameter8 = ' + ISNULL(@PartNumber,'') + ',         
-                @Parameter9 = ' + ISNULL(@PartDescription,'') + ',         
-                @Parameter10 = ' + ISNULL(@ItemGroup,'') + ',         
-                @Parameter11 = ' + ISNULL(@UnitOfMeasure,'') + ',         
-                @Parameter12 = ' + ISNULL(@SerialNumber,'') + ',         
-                @Parameter13 = ' + ISNULL(@GlAccountName,'') + ',         
-                @Parameter14 = ' + ISNULL(@ItemCategory,'') + ',        
-                @Parameter15 = ' + ISNULL(@Condition,'') + ',         
-                @Parameter16 = ' + ISNULL(@QuantityAvailable,'') + ',         
-                @Parameter17 = ' + ISNULL(@QuantityOnHand,'') + ',         
-                @Parameter18 = ' + ISNULL(@CompanyName,'') + ',         
-                @Parameter19 = ' + ISNULL(@BuName,'') + ',        
-                @Parameter20 = ' + ISNULL(@DeptName,'') + ',         
-                @Parameter21 = ' + ISNULL(@DivName,'') + ',         
-                @Parameter22 = ' + ISNULL(@RevisedPN,'') + ',         
-                @Parameter23 = ' + ISNULL(@AWB,'') + ',         
-                @Parameter24 = ' + ISNULL(CAST(@ReceivedDate AS varchar(20)) ,'') +''',          
-                @Parameter25 = ' + ISNULL(@TraceableToName,'') + ',         
-                @Parameter26 = ' + ISNULL(@TaggedByName,'') + ',         
-                @Parameter27 = ' + ISNULL(@TagType,'') + ',         
-                @Parameter28 = ' + ISNULL(CAST(@TagDate AS varchar(20)) ,'') +''',          
-                @Parameter30 = ' + ISNULL(CAST(@ExpirationDate AS varchar(20)) ,'') +''',         
-                @Parameter31 = ' + ISNULL(@IdNumber,'') + ',         
-                @Parameter32 = ' + ISNULL(@Manufacturer,'') + ',         
-                @Parameter33 = ' + ISNULL(@PartCertificationNumber,'') + ',        
-                @Parameter34 = ' + ISNULL(@CertifiedBy,'') + ',         
-                @Parameter35 = ' + ISNULL(@CertifiedDate,'') + ',         
-                @Parameter36 = ' + ISNULL(@UpdatedBy,'') + ',         
-                @Parameter37 = ' + ISNULL(CAST(@UpdatedDate AS varchar(20)) ,'') +''',        
-                @Parameter38 = ' + ISNULL(@EmployeeId,'') + ',         
-                @Parameter39 = ' + ISNULL(@MasterCompanyId,'') + ',         
-                @Parameter40 = ' + ISNULL(@IsCustomerStock ,'') +',  
-                @Parameter41 = ' + ISNULL(@WorkOrderNumber,'') + ',
-                @Parameter42 = ' + ISNULL(@IsTimeLife ,'') +',
-				@Parameter43 = ' + ISNULL(@CustomerName,'') + ',
-				'        
-              , @ApplicationName VARCHAR(100) = 'PAS'        
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------        
-              exec spLogException         
-                       @DatabaseName           = @DatabaseName        
-                     , @AdhocComments          = @AdhocComments        
-                     , @ProcedureParameters = @ProcedureParameters        
-                     , @ApplicationName        =  @ApplicationName        
-                     , @ErrorLogID   = @ErrorLogID OUTPUT ;        
-              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)        
-              RETURN(1);        
-  END CATCH              
+              , @ProcedureParameters VARCHAR(3000)  = CONCAT(
+				''
+				,'@Parameter1 = ', ISNULL(CAST(@PageNumber AS VARCHAR(200)), '')
+				,'@Parameter2 = ', ISNULL(CAST(@PageSize AS VARCHAR(200)), '')
+				,'@Parameter3 = ', ISNULL(CAST(@SortColumn AS VARCHAR(200)), '')
+				,'@Parameter4 = ', ISNULL(CAST(@SortOrder AS VARCHAR(200)), '')
+				,'@Parameter5 = ', ISNULL(CAST(@GlobalFilter AS VARCHAR(200)), '')
+				,'@Parameter6 = ', ISNULL(CAST(@stockTypeId AS VARCHAR(200)), '')
+				,'@Parameter7 = ', ISNULL(CAST(@IsNonStock AS VARCHAR(200)), '')
+				,'@Parameter8 = ', ISNULL(CAST(@StocklineNumber AS VARCHAR(200)), '')
+				,'@Parameter9 = ', ISNULL(CAST(@MainPartNumber AS VARCHAR(200)), '')
+				,'@Parameter10 = ', ISNULL(CAST(@PartNumber AS VARCHAR(200)), '')
+				,'@Parameter11 = ', ISNULL(CAST(@PartDescription AS VARCHAR(200)), '')
+				,'@Parameter12 = ', ISNULL(CAST(@ItemGroup AS VARCHAR(200)), '')
+				,'@Parameter13 = ', ISNULL(CAST(@UnitOfMeasure AS VARCHAR(200)), '')
+				,'@Parameter14 = ', ISNULL(CAST(@SerialNumber AS VARCHAR(200)), '')
+				,'@Parameter15 = ', ISNULL(CAST(@GlAccountName AS VARCHAR(200)), '')
+				,'@Parameter16 = ', ISNULL(CAST(@ItemCategory AS VARCHAR(200)), '')
+				,'@Parameter17 = ', ISNULL(CAST(@Condition AS VARCHAR(200)), '')
+				,'@Parameter18 = ', ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)), '')
+				,'@Parameter19 = ', ISNULL(CAST(@QuantityOnHand AS VARCHAR(200)), '')
+				,'@Parameter20 = ', ISNULL(CAST(@CompanyName AS VARCHAR(200)), '')
+				,'@Parameter21 = ', ISNULL(CAST(@BuName AS VARCHAR(200)), '')
+				,'@Parameter22 = ', ISNULL(CAST(@DeptName AS VARCHAR(200)), '')
+				,'@Parameter23 = ', ISNULL(CAST(@DivName AS VARCHAR(200)), '')
+				,'@Parameter24 = ', ISNULL(CAST(@RevisedPN AS VARCHAR(200)), '')
+				,'@Parameter25 = ', ISNULL(CAST(@AWB AS VARCHAR(200)), '')
+				,'@Parameter26 = ', ISNULL(CAST(@ReceivedDate AS VARCHAR(200)), '')
+				,'@Parameter27 = ', ISNULL(CAST(@TraceableToName AS VARCHAR(200)), '')
+				,'@Parameter28 = ', ISNULL(CAST(@TaggedByName AS VARCHAR(200)), '')
+				,'@Parameter29 = ', ISNULL(CAST(@TagType AS VARCHAR(200)), '')
+				,'@Parameter30 = ', ISNULL(CAST(@TagDate AS VARCHAR(200)), '')
+				,'@Parameter31 = ', ISNULL(CAST(@ExpirationDate AS VARCHAR(200)), '')
+				,'@Parameter32 = ', ISNULL(CAST(@ControlNumber AS VARCHAR(200)), '')
+				,'@Parameter33 = ', ISNULL(CAST(@IdNumber AS VARCHAR(200)), '')
+				,'@Parameter34 = ', ISNULL(CAST(@Manufacturer AS VARCHAR(200)), '')
+				,'@Parameter35 = ', ISNULL(CAST(@PartCertificationNumber AS VARCHAR(200)), '')
+				,'@Parameter36 = ', ISNULL(CAST(@CertifiedBy AS VARCHAR(200)), '')
+				,'@Parameter37 = ', ISNULL(CAST(@CertifiedDate AS VARCHAR(200)), '')
+				,'@Parameter38 = ', ISNULL(CAST(@UpdatedBy AS VARCHAR(200)), '')
+				,'@Parameter39 = ', ISNULL(CAST(@UpdatedDate AS VARCHAR(200)), '')
+				,'@Parameter40 = ', ISNULL(CAST(@EmployeeId AS VARCHAR(200)), '')
+				,'@Parameter41 = ', ISNULL(CAST(@MasterCompanyId AS VARCHAR(200)), '')
+				,'@Parameter42 = ', ISNULL(CAST(@IsCustomerStock AS VARCHAR(200)), '')
+				,'@Parameter43 = ', ISNULL(CAST(@ItemMasterId AS VARCHAR(200)), '')
+				,'@Parameter44 = ', ISNULL(CAST(@StockLineIds AS VARCHAR(200)), '')
+				,'@Parameter45 = ', ISNULL(CAST(@obtainFROM AS VARCHAR(200)), '')
+				,'@Parameter46 = ', ISNULL(CAST(@ownerName AS VARCHAR(200)), '')
+				,'@Parameter47 = ', ISNULL(CAST(@LastMSLevel AS VARCHAR(200)), '')
+				,'@Parameter48 = ', ISNULL(CAST(@QuantityReserved AS VARCHAR(200)), '')
+				,'@Parameter49 = ', ISNULL(CAST(@WorkOrderStage AS VARCHAR(200)), '')
+				,'@Parameter50 = ', ISNULL(CAST(@IsECStock AS VARCHAR(200)), '')
+				,'@Parameter51 = ', ISNULL(CAST(@IsCStock AS VARCHAR(200)), '')
+				,'@Parameter52 = ', ISNULL(CAST(@Site AS VARCHAR(200)), '')
+				,'@Parameter53 = ', ISNULL(CAST(@Location AS VARCHAR(200)), '')
+				,'@Parameter54 = ', ISNULL(CAST(@IsALTStock AS VARCHAR(200)), '')
+				,'@Parameter55 = ', ISNULL(CAST(@WorkOrderNumber AS VARCHAR(200)), '')
+				,'@Parameter56 = ', ISNULL(CAST(@IsTimeLife AS VARCHAR(200)), '')
+				,'@Parameter57 = ', ISNULL(CAST(@CustomerName AS VARCHAR(200)), '')
+				,'@Parameter58 = ', ISNULL(CAST(@IsTurnIn AS VARCHAR(200)), '')
+				,'@Parameter59 = ', ISNULL(CAST(@PONumber AS VARCHAR(200)), '')
+				,'@Parameter60 = ', ISNULL(CAST(@RONumber AS VARCHAR(200)), '')
+				,'@Parameter61 = ', ISNULL(CAST(@ReceiverNumber AS VARCHAR(200)), '')
+				,'@Parameter62 = ', ISNULL(CAST(@QuantityAdjustment AS VARCHAR(200)), '')
+				,'@Parameter63 = ', ISNULL(CAST(@IsDocument AS VARCHAR(200)), '')
+				,'@Parameter64 = ', ISNULL(CAST(@IsRepairManagement AS VARCHAR(200)), '')
+				,'@Parameter65 = ', ISNULL(CAST(@BatchNumber AS VARCHAR(200)), '')
+				,'@Parameter66 = ', ISNULL(CAST(@UnitCost AS VARCHAR(200)), '')
+				,'@Parameter67 = ', ISNULL(CAST(@GLAccount AS VARCHAR(200)), '')
+				,'@Parameter68 = ', ISNULL(CAST(@PNSource AS VARCHAR(200)), '')
+				,'@Parameter69 = ', ISNULL(CAST(@ItemType AS VARCHAR(200)), '')
+			)
+            , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+            exec spLogException
+                    @DatabaseName           = @DatabaseName
+                    , @AdhocComments          = @AdhocComments
+                    , @ProcedureParameters = @ProcedureParameters
+                    , @ApplicationName        =  @ApplicationName
+                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+            RETURN(1);
+  END CATCH
 END

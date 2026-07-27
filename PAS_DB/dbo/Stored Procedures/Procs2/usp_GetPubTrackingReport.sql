@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetPubTrackingReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetPubTrackingReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetPubTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for PubTracking Report  
@@ -16,11 +20,12 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetPubTrackingReport] '2020-06-15','2021-06-15','1'
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetPubTrackingReport] @Fromdate datetime,
+CREATE   PROCEDURE [dbo].[usp_GetPubTrackingReport] @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int
 AS
@@ -75,7 +80,8 @@ BEGIN
           ON PUB.MasterCompanyId = MC.MasterCompanyId
       WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate)
       AND PUB.MasterCompanyId = @mastercompanyid
-    COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
     ROLLBACK TRANSACTION

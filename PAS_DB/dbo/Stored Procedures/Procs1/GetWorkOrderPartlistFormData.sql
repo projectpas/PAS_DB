@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderPartlistFormData   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderPartlistFormData.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [GetWorkOrderPrintPdfData]           
  ** Author:   Subhash Saliya
@@ -18,11 +22,12 @@
  ** --   --------     -------		--------------------------------          
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/
 
-Create   PROCEDURE [dbo].[GetWorkOrderPartlistFormData]
+CREATE     PROCEDURE [dbo].[GetWorkOrderPartlistFormData]
 @WorkorderId bigint,
 @workOrderPartNoId bigint
 AS
@@ -54,7 +59,8 @@ BEGIN
 					INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wo.WorkOrderId 
 					LEFT JOIN WorkOrderQuote woq WITH (NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0
 					LEFT JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-				WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+					 WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
 		END
 		COMMIT  TRANSACTION
 

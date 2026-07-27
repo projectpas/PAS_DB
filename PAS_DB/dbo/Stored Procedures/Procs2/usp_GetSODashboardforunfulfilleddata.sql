@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetSODashboardforunfulfilleddata   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSODashboardforunfulfilleddata.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetSODashboardforunfulfilleddata]           
  ** Author:   Swetha  
  ** Description: Get Data for SODashboardforunfulfilleddata 
@@ -19,11 +23,13 @@
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
     4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	5   07-07-2025    Moin Bloch    Changed Old To New Billing Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 
 EXECUTE   [dbo].[usp_GetSODashboardforunfulfilleddata] 
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usp_GetSODashboardforunfulfilleddata]
+CREATE        PROCEDURE [dbo].[usp_GetSODashboardforunfulfilleddata]
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -59,7 +65,7 @@ BEGIN
         LEFT OUTER JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
         LEFT OUTER JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON SOP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
+           LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
           ON SO.SalesOrderId = SOMS.SalesOrderId
         LEFT JOIN dbo.SalesOrderApproval SOA WITH (NOLOCK)
           ON SOP.SalesOrderPartId = SOA.SalesOrderPartId

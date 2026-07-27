@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetExchangeQuoteParts]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuoteParts.sql) =====
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteParts]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_GetExchangeQuoteParts
@@ -13,6 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    09/16/2025  EKTA CHANDEGRA    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
 	     
 exec [dbo].[USP_GetExchangeQuoteParts] @ExchangeQuoteId=152
 ************************************************************************/ 
@@ -67,7 +71,7 @@ BEGIN
 			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 			 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		WHERE part.ExchangeQuoteId = @ExchangeQuoteId
-		  AND ISNULL(part.IsDeleted,0) = 0;
+		  AND ISNULL(part.IsDeleted,0) = 0 ;
 
 		-- Child collection: ExchangeQuoteScheduleBilling
 		SELECT sb.*

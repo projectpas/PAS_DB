@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketChildList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetPickTicketChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Pick ticket child table list
@@ -16,10 +17,12 @@
  ** --   --------     -------		--------------------------------          
 	1    10/15/2024   Vishal Suthar Modified SP to get Pick ticket child table list from new SO Part tables
 	2    03/03/2025   Ayushi Patel    converted the date into utc (PickedDate , ConfirmedDate) , Added a case to get timeZone
+	3    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026   RAJESH GAMI    [PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
      
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
-CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketChildList]
 	@SalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,

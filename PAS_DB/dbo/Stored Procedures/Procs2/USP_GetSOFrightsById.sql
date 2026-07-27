@@ -1,4 +1,8 @@
-﻿/*************************************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSOFrightsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSOFrightsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************************************
  ** File:   [USP_GetSOFrightsById]           
  ** Author:   Shrey Chandegara
  ** Description: This stored procedure is used get SO Freight By SOId    
@@ -10,10 +14,12 @@
  ** PR   Date         Author  				Change Description            
  ** --   --------     -------				--------------------------------          
     1    31-03-2025   Shrey Chandegara		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 
 -- EXEC USP_GetSOFrightsById 760,0  
 **************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetSOFrightsById]
+CREATE     PROCEDURE [dbo].[USP_GetSOFrightsById]
 @SalesOrderId BIGINT,
 @IsDeleted BIT
 
@@ -65,7 +71,7 @@ BEGIN
 		LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON sf.CurrencyId = cur.CurrencyId
 		LEFT JOIN [dbo].[SalesOrderPartV1] part WITH(NOLOCK) ON sf.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-		WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
+		 WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
 
 	END TRY
 	BEGIN CATCH

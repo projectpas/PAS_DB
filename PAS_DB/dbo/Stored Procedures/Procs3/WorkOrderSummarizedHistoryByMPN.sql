@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderSummarizedHistoryByMPN   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderSummarizedHistoryByMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [WorkOrderSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
@@ -18,11 +22,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/06/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [WorkOrderSummarizedHistoryByMPN] 18,1
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
+CREATE     PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -87,7 +92,8 @@ BEGIN
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = WO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 					WHERE WOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WC.createdDate, GETDATE()) < @Month
-					GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId
 
 					IF((SELECT COUNT(1) FROM #tmpWorkOrderCostDetails) > 0)
 					BEGIN

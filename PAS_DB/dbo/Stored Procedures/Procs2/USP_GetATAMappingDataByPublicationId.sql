@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetATAMappingDataByPublicationId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetATAMappingDataByPublicationId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File: [USP_GetATAMappingDataByPublicationId]            
  ** Author: Ayushi Patel  
  ** Description: Get ATA Mapping Data by Publication ID
@@ -10,9 +14,10 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-06-02		  Ayushi Patel				Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
  ***************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetATAMappingDataByPublicationId]
+CREATE     PROCEDURE [dbo].[USP_GetATAMappingDataByPublicationId]
     @PublicationId BIGINT
 AS
 BEGIN
@@ -42,7 +47,8 @@ BEGIN
           AND ISNULL(it.IsActive,0) = 1
           AND ISNULL(im.IsActive,0) = 1
           AND ISNULL(im.IsDeleted,0) = 0
-    END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+           END TRY
     BEGIN CATCH
 		SELECT
 		ERROR_NUMBER() AS ErrorNumber,

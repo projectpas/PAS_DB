@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
@@ -40,6 +40,9 @@
 	22   22/05/2025   Abhishek Jirawala Added new field Repair Management for list
 	23   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
 	24   02/12/2025   Bhargav Saliya	Added Unit Cost
+	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	27    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover hard-coded IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,

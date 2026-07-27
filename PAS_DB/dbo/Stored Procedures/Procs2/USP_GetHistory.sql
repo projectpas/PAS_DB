@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [USP_GetHistory]             
  ** Author:  Amit Ghediya  
  ** Description: This stored procedure is used History data  
@@ -15,9 +19,10 @@
 	2    20/03/2023   Amit Ghediya    Added DB Standards  
     3	 02/04/2025   Bhargav Saliya  UTC Date Changes 
 	3    01/09/2025   Moin Bloch	  Updated Added New Field [Activity]
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_GetHistory]  
+CREATE       PROCEDURE [dbo].[USP_GetHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  
@@ -84,7 +89,8 @@ BEGIN
 		INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
 		 LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
 		 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-    WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
+     AND ISNULL(IM.IsNonStock,0) = 0
+		  WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
     ),  
     FinalResult AS (  
     SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName  

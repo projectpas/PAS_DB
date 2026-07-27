@@ -1,4 +1,4 @@
-﻿/*************************************************************                 
+/*************************************************************                 
  ** File:   [GetSOConfirmationList]                 
  ** Author:   Ayushi Patel        
  ** Description: Get Data for Sales Order Confirmation listing      
@@ -17,6 +17,9 @@
     01  06/08/2024		Ayushi Patel    Created      
 	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
@@ -228,7 +231,7 @@ BEGIN
         LEFT JOIN Customer cust ON so.CustomerId = cust.CustomerId
         LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
         LEFT JOIN ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
-        LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
+         LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
         LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

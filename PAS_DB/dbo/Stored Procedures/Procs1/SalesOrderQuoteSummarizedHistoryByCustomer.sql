@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used for SOQ Summarized History By Customer.    
@@ -14,6 +14,9 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
@@ -79,7 +82,7 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
-						GROUP BY SOQ.CustomerName,
+						 GROUP BY SOQ.CustomerName,
 						SOQ.CustomerId,
 						SOQ.SalesOrderQuoteId,
 						Cond.Description, APPR.ApprovalActionId, C.Code, SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost,

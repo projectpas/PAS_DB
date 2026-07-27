@@ -1,4 +1,8 @@
-﻿----------------------------------------------------------------------------------------
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetOperationalMgntDashboard   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetOperationalMgntDashboard.sql)
+-- ---------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [usp_GetOperationalMgntDashboard]           
@@ -18,11 +22,12 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetOperationalMgntDashboard] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetOperationalMgntDashboard]
+CREATE   PROCEDURE [dbo].[usp_GetOperationalMgntDashboard]
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -55,7 +60,8 @@ BEGIN
         ON RCW.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON RCW.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.ItemGroup IG WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.ItemGroup IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
           ON RCW.workorderid = WO.workorderid

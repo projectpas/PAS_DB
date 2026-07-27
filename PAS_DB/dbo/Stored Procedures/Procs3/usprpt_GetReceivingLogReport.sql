@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetReceivingLogReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetReceivingLogReport.sql) =====
+/*************************************************************             
  ** File:   [usprpt_GetReceivingLogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for ReceivingLog Report    
@@ -22,6 +23,8 @@
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
 	 8	  22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
+	 9	  09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	 10	  24/July/2026		RAJESH GAMI	[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (4) to allow Non-Stock items in Receiving Log Report
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  

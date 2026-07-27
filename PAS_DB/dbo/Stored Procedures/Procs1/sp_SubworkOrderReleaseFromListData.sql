@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_SubworkOrderReleaseFromListData   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_SubworkOrderReleaseFromListData.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [sp_SubworkOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -26,11 +30,12 @@
 	9    02/20/2025   Moin Bloch        Updated For Get Is813013aeOr14ae
 	10	 07/Mar/2025  Bhargav Saliya	 UTC Date Changes 
 	11   18/Sep/2025  Devendra Shekh    Updated For Get [FormStatus]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_SubworkOrderReleaseFromListData]
+CREATE     Procedure [dbo].[sp_SubworkOrderReleaseFromListData]
 @SubWorkOrderId bigint,
 @SubWOPartNoId bigint,
 @EmployeeId bigint= 0
@@ -119,8 +124,10 @@ BEGIN
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId   
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
-					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
-				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
+					   AND ISNULL(im.IsNonStock,0) = 0
+					   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
+				       AND ISNULL(ims.IsNonStock,0) = 0
+					    LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 					  LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
 					  LEFT JOIN [dbo].[Condition] c WITH(NOLOCK) ON c.ConditionId = wop.RevisedConditionId 

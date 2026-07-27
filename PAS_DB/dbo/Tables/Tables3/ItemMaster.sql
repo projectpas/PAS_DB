@@ -102,7 +102,7 @@
     [ItemMasterAssetTypeId]             BIGINT          CONSTRAINT [ItemMaster_ItemMasterAssetTypeId] DEFAULT ((0)) NOT NULL,
     [IsHotItem]                         BIT             CONSTRAINT [ItemMaster_IsHotItem] DEFAULT ((0)) NOT NULL,
     [ExportSizeUnitOfMeasureId]         BIGINT          NULL,
-    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [ItemMaster_IsAcquiredMethodBuy] DEFAULT ((0)) NOT NULL,
+    [IsAcquiredMethodBuy]               BIT             CONSTRAINT [ItemMaster_IsAcquiredMethodBuy] DEFAULT ((0)) NULL,
     [IsOEM]                             BIT             CONSTRAINT [ItemMaster_IsOEM] DEFAULT ((0)) NOT NULL,
     [RevisedPart]                       VARCHAR (250)   NULL,
     [OEMPN]                             VARCHAR (250)   NULL,
@@ -178,6 +178,10 @@
     [Starts]                            INT             NULL,
     [CalendarDate]                      DATETIME2 (7)   NULL,
     [IntegrationTypeId]                 INT             NULL,
+    [IsNonStock]                        BIT             NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -211,6 +215,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

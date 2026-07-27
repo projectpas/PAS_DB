@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_WorkOrderAnalysisForShippingARbalance   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrderAnalysisForShippingARbalance.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_WorkOrderAnalysisForShippingARbalance]           
  ** Author: [Ayushi Patel]  
  ** Description: This stored procedure is used to analyze Work Order for Shipping AR balance.  
@@ -14,10 +18,11 @@
  ** --   --------     -------		---------------------------     
     1    17/03/2025   Ayushi Patel     Created
 	2    03/07/2025   Moin Bloch       Changed Old To New Billing Table
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
     USP_WorkOrderAnalysisForShippingARbalance 8473 , 8128
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
+CREATE     PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
 @WorkOrderId BIGINT,  
 @WorkOrderPartNoId BIGINT  
 AS  
@@ -93,7 +98,8 @@ BEGIN
         INNER JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON wop.WorkOrderStatusId = st.Id  
         WHERE wo.WorkOrderId = @WorkOrderId  
           AND woc.WOPartNoId = @WorkOrderPartNoId  
-        ORDER BY wop.ID;  
+         AND ISNULL(im.IsNonStock,0) = 0
+           ORDER BY wop.ID;  
 
         -- Drop the temporary table after usage
         DROP TABLE #QuoteTable;

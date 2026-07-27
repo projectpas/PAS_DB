@@ -15,6 +15,8 @@
 	5   28 May 2025   RAJESH GAMI   Corrected InvoiceAmount
 	6	13 Jun 2025	  RAJESH GAMI	Change the new billing invoicing table with old one (WO, SO)
 	8	04 Jul 2025   RAJESH GAMI   Fixed: Select All Not Working for WO
+	9	09/July/2026 RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10	20/July/2026 RAJESH GAMI   [PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts appear on invoice CSV export.
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',1,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]

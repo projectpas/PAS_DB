@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineSOQPop]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Search Data for SOQ, SO  search for from part list tab
@@ -18,6 +18,9 @@
 	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (both UNION branches) so Non-Stock stocklines are included.
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -126,7 +129,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
@@ -250,7 +254,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 

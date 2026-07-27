@@ -15,10 +15,12 @@
  ** PR   Date         Author   Change Description                
  ** --   --------     -------   --------------------------------              
     1    09/01/2023   Vishal Suthar  Created  
-	2    06-12-2023   Shrey Chandegara Updated For Nonstock 
-    
-EXEC [GetStocklineIdsForReceivingPO] 2174  
-**************************************************************/    
+	2    06-12-2023   Shrey Chandegara Updated For Nonstock
+	3    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    16/July/2026   RAJESH GAMI   [PN-17271] - NonStockInventoryIds now reads DBO.Stockline (IsNonStock=1) instead of legacy DBO.NonStockInventory.
+
+EXEC [GetStocklineIdsForReceivingPO] 2174
+**************************************************************/
 CREATE    PROCEDURE [dbo].[GetStocklineIdsForReceivingPO]  
 (    
  @PurchaseOrderId BIGINT = NULL  
@@ -34,17 +36,17 @@ BEGIN
   SELECT STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(100))  
         FROM DBO.Stockline Stk WITH (NOLOCK)  
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
-        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0      
+        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 0      
         FOR XML PATH('')), 1, 1, '') StocklineIds,   
    STUFF((SELECT ',' + CAST(Stk.AssetInventoryId AS VARCHAR(100))  
         FROM DBO.AssetInventory Stk WITH (NOLOCK)  
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
         AND Stk.IsActive = 1 AND Stk.IsDeleted = 0      
         FOR XML PATH('')), 1, 1, '') AssetInventoryIds,
-	STUFF((SELECT ',' + CAST(Stk.NonStockInventoryId AS VARCHAR(100))  
-        FROM DBO.NonStockInventory Stk WITH (NOLOCK)  
-        Where Stk.PurchaseOrderId = @PurchaseOrderId      
-        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0      
+	STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(100))
+        FROM DBO.Stockline Stk WITH (NOLOCK)
+        Where Stk.PurchaseOrderId = @PurchaseOrderId
+        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 1
         FOR XML PATH('')), 1, 1, '') NonStockInventoryIds;
   
  END  

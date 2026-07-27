@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetRepairOrderPartById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetRepairOrderPartById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetRepairOrderPartById]           
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to Get Repair Order Part Details
@@ -14,9 +18,10 @@
     1    11/10/2022  Deep Patel     Created
 	2	 09/05/2024  Abhishek Jirawla Combine queries by removing union and returning 1 result set with proper order as needed.
 	3    19/06/2026  Abhishek Jirawla Adding IsPiecePart condition in RepairOrderPart table 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC GetRepairOrderPartById 303
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetRepairOrderPartById]
+CREATE     PROCEDURE [dbo].[GetRepairOrderPartById]
 @RepairOrderId bigint
 AS
 BEGIN
@@ -43,7 +48,7 @@ BEGIN
 			(CASE 
 				WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) 
 						FROM [dbo].[ItemMaster] SD WITH(NOLOCK) 
-						WHERE im.PartNumber = SD.PartNumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 
+						WHERE im.PartNumber = SD.PartNumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 
 				THEN ' - ' + imf.[Name] 
 				ELSE '' 
 				END)
@@ -58,7 +63,8 @@ BEGIN
 	FROM [dbo].[RepairOrderPart] pop WITH (NOLOCK) 
 	-- Join conditionally based on ItemTypeId
 		LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON pop.ItemMasterId = im.ItemMasterId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
-		LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
 		LEFT JOIN [dbo].[Asset] AST WITH (NOLOCK) ON pop.ItemMasterId = AST.AssetRecordId AND pop.ItemTypeId = @ASSETTYPE
 		LEFT JOIN [dbo].[Manufacturer] Amf WITH (NOLOCK) ON AST.ManufacturerId = Amf.ManufacturerId AND pop.ItemTypeId = @ASSETTYPE
 	WHERE pop.RepairOrderId = @RepairOrderId 

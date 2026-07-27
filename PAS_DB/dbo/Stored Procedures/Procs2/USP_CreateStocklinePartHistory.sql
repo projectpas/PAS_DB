@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateStocklinePartHistory]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStocklinePartHistory.sql) =====
+/*************************************************************           
  ** File:   [USP_CreateStocklinePartHistory]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Store Stock Line History
@@ -11,6 +12,8 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/28/2023   Moin Bloch     Added IsRMA Flag
+    2    09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 *******************************************************************************
 EXEC USP_CreateStocklinePartHistory 1,0,0,2,1
 *******************************************************************************/

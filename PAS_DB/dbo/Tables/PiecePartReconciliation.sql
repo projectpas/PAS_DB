@@ -18,6 +18,7 @@
     [IsActive]                  BIT            CONSTRAINT [DF_PPR_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT            CONSTRAINT [DF_PPR_IsDeleted] DEFAULT ((0)) NOT NULL,
     [QtyDamagedLost]            INT            DEFAULT ((0)) NOT NULL,
+    [ParentRepairOrderPartId]   BIGINT         NULL,
     CONSTRAINT [PK_PiecePartReconciliation] PRIMARY KEY CLUSTERED ([PiecePartReconciliationId] ASC),
     CONSTRAINT [FK_PPR_RepairOrderPart] FOREIGN KEY ([RepairOrderPartRecordId]) REFERENCES [dbo].[RepairOrderPart] ([RepairOrderPartRecordId]),
     CONSTRAINT [FK_PPR_SourceRO] FOREIGN KEY ([SourceRepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
@@ -27,19 +28,6 @@
 
 
 
-GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_ConsumedRepairOrderId]
-    ON [dbo].[PiecePartReconciliation]([ConsumedRepairOrderId] ASC) WHERE ([ConsumedRepairOrderId] IS NOT NULL);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_SourceRepairOrderId]
-    ON [dbo].[PiecePartReconciliation]([SourceRepairOrderId] ASC);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_RepairOrderPartRecordId]
-    ON [dbo].[PiecePartReconciliation]([RepairOrderPartRecordId] ASC);
 
 
 GO

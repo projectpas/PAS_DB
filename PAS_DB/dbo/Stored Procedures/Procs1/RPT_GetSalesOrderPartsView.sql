@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/10/2024>  
 ** Description: 
@@ -18,6 +18,9 @@ EXEC [RPT_GetSalesOrderPartsView]
    7	12/04/2024	Vishal Suthar	Fixed an issue with fetching Notes from stockline
    8	06/03/2025	Vishal Suthar	Removed truncation for PN Description Field
    9	04/03/2026  Ayushi Patel	PN-15604 Return ItemNo for print
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
@@ -315,7 +318,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON sp.ItemMasterId = im.ItemMasterId
-			LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
+			 LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN dbo.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sp.ConditionId = cp.ConditionId
 			LEFT JOIN dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = sp.SalesOrderQuotePartId

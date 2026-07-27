@@ -1,4 +1,9 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -33,9 +38,10 @@
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
+	23    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
+CREATE       PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -484,12 +490,10 @@ BEGIN
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
-	--IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
-	--BEGIN			
-	--	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
-	--END
-
-	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermId AND [MasterCompanyId]=@MasterCompanyId
+	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
+	BEGIN			
+		SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
+	END
 
     -- Insert or Update WorkOrder table (simplified)   
 
@@ -679,7 +683,7 @@ BEGIN
 
 	SELECT TOP 1 @ItemMasterId=[ItemMasterId],@ID=[ID] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 	
-	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 	IF ISNULL(@IsFromLot, 0) = 0
 	BEGIN
@@ -1037,7 +1041,7 @@ BEGIN
 		BEGIN
 		    DECLARE @NewWorkFlowName VARCHAR(50)='',@AddWorkFlow VARCHAR(20)='AddWorkFlow',@WorkFlowTemplateBody VARCHAR(MAX)=''
 			
-			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId;
+			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			SELECT @NewWorkFlowName=ISNULL([WorkOrderNumber],'') FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId]=@WorkflowId;
 			
 			SELECT TOP 1 @WorkFlowTemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddWorkFlow;

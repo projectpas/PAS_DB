@@ -1,4 +1,8 @@
-﻿/*****************************************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting   (source: PAS_DB/dbo/Stored Procedures/USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*****************************************************************************************
  ** File:   [[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]]
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -15,10 +19,13 @@
 	3    05/06/2026   Moin Bloch        Fix Discription
 	4    08/06/2026   Abhishek Jirawla  Adding ItemMasterId
 	5    09/06/2026   Moin Bloch        Fix For Due Date PN-16784
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch's ItemMaster join so Non-Stock invoice line items are included in the Xero SO invoice sync payload.
+	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from Exchange SO branch's ItemMaster join so Non-Stock invoice line items are included in the Xero Exchange SO invoice sync payload.
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] 12682,15,0
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @IsSync BIT = 0
@@ -109,7 +116,8 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		END
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+               END
 		IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -185,7 +193,7 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		END
+               END
 		IF(@ModuleId = @EXModuleId) /*********START:EXCHANGE SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -233,7 +241,7 @@ BEGIN
 					INNER JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
 					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				WHERE (
+					 WHERE (
                     (@IsSync = 0 AND SOBII.SOBillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(SOBI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(SOBI.IsUpdated, 0) = 1)

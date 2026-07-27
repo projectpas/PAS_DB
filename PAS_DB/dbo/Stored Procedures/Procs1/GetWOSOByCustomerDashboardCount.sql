@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWOSOByCustomerDashboardCount   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWOSOByCustomerDashboardCount.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetWOSOByCustomerDashboardCount]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get work order and sales order count based on customer  
@@ -18,9 +22,11 @@
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
     4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
+CREATE     PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
 	@MasterCompanyId BIGINT
 AS
 BEGIN
@@ -41,7 +47,7 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOP.SalesOrderPartId and SOPC.IsDeleted=0
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
+				 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
 				LEFT JOIN DBO.BillingInvoicing SOB WITH (NOLOCK) ON SOB.ReferenceId = SOP.SalesOrderId AND ISNULL(SOB.IsPerformaInvoice,0) = 0  AND SOB.[ModuleId] = @SOModuleId
 				Where SO.MasterCompanyId = @MasterCompanyId

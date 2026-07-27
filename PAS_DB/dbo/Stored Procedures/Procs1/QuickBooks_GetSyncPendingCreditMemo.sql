@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetSyncPendingCreditMemo   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetSyncPendingCreditMemo.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingCreditMemo]           
  ** Author:   Devendra Shekh
  ** Description: Get Credit Memo Details to Create Credit Memo in QuickBooks    
@@ -12,10 +16,11 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------					--------------------------------          
     1   12-Feb-2025			Devendra Shekh			Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[QuickBooks_GetSyncPendingCreditMemo] 1, 1, 87
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingCreditMemo]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetSyncPendingCreditMemo]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL
@@ -118,7 +123,8 @@ BEGIN
 				JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CMD.CreditMemoHeaderId = CMH.CreditMemoHeaderId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = CMH.CustomerId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = CMD.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerId = C.CustomerId AND billToSite.IsPrimary = 1
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerId = C.CustomerId AND billToSite.IsPrimary = 1
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON shipToSite.CustomerId = C.CustomerId AND shipToSite.IsPrimary = 1
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId

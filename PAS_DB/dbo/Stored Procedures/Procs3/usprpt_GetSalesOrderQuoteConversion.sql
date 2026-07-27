@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetSalesOrderQuoteConversion]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSalesOrderQuoteConversion.sql) =====
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuoteConversion]             
  ** Author:   
  ** Description: Get Data for SalesOrderQuotes Report   
@@ -19,10 +20,13 @@
    4   02-DEC-2024      Vishal Suthar	   Fixed the join after adding the missing column
    5   21-01-2025       Shrey Chandegara   Changes for sorevenue and soqrevenue (charge ,salestax and othertax not come in sorevenue)
    6   01/july/2025		RAJESH GAMI		   Change the table as per new Billing Structure for SO  
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now correctly appear in this Sales Order Quote Conversion report
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSalesOrderQuoteConversion] 
+CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderQuoteConversion] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -102,14 +106,14 @@ BEGIN
 			  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
 			  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 		      LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
-			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
-			  LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId   
+			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
+			  LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 			  LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			  LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 			  --LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			  LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
-		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
+			   LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1
+		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)
 				AND  SOQP.ItemMasterId = ISNULL(@partnumber,SOQP.ItemMasterId)
 				--AND SOQ.SalesPersonId=ISNULL(@salesperson,SOQ.SalesPersonId)  
@@ -217,7 +221,7 @@ BEGIN
 		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
 		  LEFT JOIN DBO.ItemMaster IMQ WITH (NOLOCK) ON SOQP.ItemMasterId = IMQ.ItemMasterId
-		  LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
+		   LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
 		  OUTER APPLY(
@@ -226,7 +230,7 @@ BEGIN
 			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPC.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN (SELECT InvoiceNo,SOBII.SubReferenceId,SOBII.SalesTax,SOBII.OtherTax 
+			 LEFT JOIN (SELECT InvoiceNo,SOBII.SubReferenceId,SOBII.SalesTax,SOBII.OtherTax
 			FROM  DBO.BillingInvoicing SOBI WITH (NOLOCK)
 			LEFT JOIN DBO.BillingInvoicingItems SOBII ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
 			WHERE ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @SOModuleId

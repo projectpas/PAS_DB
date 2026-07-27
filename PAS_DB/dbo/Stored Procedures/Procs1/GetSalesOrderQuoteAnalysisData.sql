@@ -10,6 +10,9 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   12/27/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 
 EXEC [GetSalesOrderQuoteAnalysisData] 230
 **************************************************************/
@@ -50,7 +53,7 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON soq.CustomerId = cf.CustomerId
 		INNER JOIN DBO.SalesOrderQuotePartCost partcost WITH (NOLOCK) ON part.SalesOrderQuotePartId = partcost.SalesOrderQuotePartId
 		LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON cf.CurrencyId = curr.CurrencyId
-		WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0;
+		WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0 ;
 	END TRY
 	BEGIN CATCH
 		IF @@trancount > 0

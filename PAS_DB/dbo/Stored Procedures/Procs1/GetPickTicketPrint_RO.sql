@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_RO]           
  ** Author:    
  ** Description: This stored procedure is used to retrieve pickticket data for pdf
@@ -15,6 +15,9 @@
  ** PR  Date			Author				Change Description            
  ** --  --------		-------				--------------------------------          
 	1	04/15/2025		Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
      
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
@@ -95,7 +98,7 @@ BEGIN
 		LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId
 		LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.RepairOrderId = ropt.RepairOrderId
 		WHERE ro.RepairOrderId = @RepairOrderId AND ropt.ROPickTicketNumber = @pickTicketNo
-		ORDER BY ropt.ROPickTicketId ASC
+		 ORDER BY ropt.ROPickTicketId ASC
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

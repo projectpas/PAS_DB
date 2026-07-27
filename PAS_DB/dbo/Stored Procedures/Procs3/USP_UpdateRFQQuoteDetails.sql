@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateRFQQuoteDetails   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateRFQQuoteDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateQuoteDetails]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used for update old quote parice & if new will add parts.
@@ -12,10 +16,12 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    18-08-2025	   Amit Ghediya       Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter (SalesOrderQuotePart branch) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	
 -- EXEC USP_UpdateQuoteDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateRFQQuoteDetails]
+CREATE     PROCEDURE [dbo].[USP_UpdateRFQQuoteDetails]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -169,7 +175,7 @@ BEGIN
 					 FROM [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) 
 					 INNER JOIN [dbo].[itemmaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
 					 WHERE LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(@LinePartNumber))
-					 AND SOQP.[ConditionId] = @ConditionId;
+					 AND SOQP.[ConditionId] = @ConditionId ;
 					
 					 IF(ISNULL(@RefrenceId,0) > 0 AND @RFQModuleId = @ModuleId)
 					 BEGIN		 		

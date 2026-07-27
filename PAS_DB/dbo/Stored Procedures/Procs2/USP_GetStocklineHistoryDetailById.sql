@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStocklineHistoryDetailById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStocklineHistoryDetailById.sql) =====
+
 /*************************************************************               
  ** File:   [USP_GetStocklineHistoryDetailById]              
  ** Author:   Devendra      
@@ -20,12 +21,14 @@
  3  25-July-2023   Shrey Chandegara Add Parameter QtyOnAction For Filtering.
  4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone   
  5  14/07/2025     RajeshGami        By default latest record should be on the top
+ 6  09/July/2026     RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ 7  16/July/2026     RAJESH GAMI        [PN-17271] - Removed unnecessary/harmful IsNonStock=0 filter; query is already scoped to one exact @StockLineId, so it now returns history for Non-Stock stocklines too.
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
   
 **************************************************************/    
-CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]  
+CREATE   PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]  
  @PageNumber INT,    
  @PageSize INT,    
  @SortColumn VARCHAR(50)=null,    

@@ -26,6 +26,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the remaining NonStockInventory/ItemMasterNonStock UNION branches (isParentData=1 grouping query and isParentData=0 detail query) to Stockline/ItemMaster with IsNonStock=1
+	10 	  27/July/2026   Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber`
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 exec dbo.GetReceiverStockPO @PurchaseOrderId=9818,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 
@@ -122,7 +123,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -167,7 +170,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -212,7 +217,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -258,7 +265,9 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				   '' AS TraceableToName,
 				   '' as Inspector,
-				   NULL InspectionDate
+				   NULL InspectionDate,
+				   '' AS LotNumber,
+				   '' AS EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=sl.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
@@ -291,7 +300,9 @@ BEGIN
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				    '' AS TraceableToName,
 					'' as Inspector,
-					NULL InspectionDate
+					NULL InspectionDate,
+					'' AS LotNumber,
+					'' AS EngineSerialNumber
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) 
 			LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)

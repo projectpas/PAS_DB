@@ -22,6 +22,7 @@
     6    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    27/July/2026   Sumit             [PN-17058] Selected the Stockline Lot number and EngineSerialNumber`
 -- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
 
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
@@ -101,7 +102,9 @@ BEGIN
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
 				  sl.Manufacturer,				  
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			    FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			INNER JOIN [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
@@ -143,7 +146,9 @@ BEGIN
 				  '' AS ReferenceNumber,
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			    FROM [dbo].[Stockline] sl WITH(NOLOCK)			
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			INNER JOIN [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
@@ -185,7 +190,9 @@ BEGIN
 				   ''  as ReferenceNumber,
 				   sl.ManufactureName AS Manufacturer,
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				    '' AS TraceableToName
+				    '' AS TraceableToName,
+					'' AS LotNumber,
+					'' AS EngineSerialNumber
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE RepairOrderId=@RepairOrderId 
 			AND sl.ReceiverNumber = @ReceiverNumber;

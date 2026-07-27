@@ -28,6 +28,7 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 8 redundant "AND ISNULL(IM/SL/STL/SD.IsNonStock,0) = 0"
+	14    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 more leftover soft IsNonStock=0 exclusions (IMRI/IMoem/IMTLA/IMNHA aliases) missed by the earlier PN-17009 bugfix pass.
 											 filters. Every query/UPDATE in this SP is already scoped to one exact @StocklineId,
 											 so filtering on the Stockline's own IsNonStock silently skipped ALL of Condition,
 											 UnitOfMeasure, Manufacturer, Site/Warehouse/Location/Shelf/Bin, ItemGroup, TLA/NHA
@@ -110,13 +111,9 @@ BEGIN
 					INNER JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.ManufacturerId = MF.ManufacturerId
 					INNER JOIN [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 					 LEFT JOIN [dbo].[ItemMaster] IMRI WITH(NOLOCK) ON IMRI.ItemMasterId = SL.RevicedPNId
-					  AND ISNULL(IMRI.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
-					  AND ISNULL(IMoem.IsNonStock,0) = 0
 					   LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
-					  AND ISNULL(IMTLA.IsNonStock,0) = 0
 					   LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
-					  AND ISNULL(IMNHA.IsNonStock,0) = 0
 					   LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
 					 LEFT JOIN [dbo].[ItemType] IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
 					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 

@@ -24,6 +24,7 @@
 	7	 20-Feb-2026	Devendra Shekh		Added Missing Report Changes
 	8    17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer(PN-15762)
 	9    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters on the SalesOrder-linked branches (SOP.SalesOrderId=SO.SalesOrderId). The ExchangeSalesOrder-only branches were left untouched, out of scope.
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
@@ -492,7 +493,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
+									WHERE SOP.SalesOrderId = SO.SalesOrderId
 									FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
@@ -1401,7 +1402,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
+									WHERE SOP.SalesOrderId = SO.SalesOrderId
 									FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       

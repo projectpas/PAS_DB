@@ -42,6 +42,7 @@
 	24   02/12/2025   Bhargav Saliya	Added Unit Cost
 	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	27    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover hard-coded IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -282,7 +283,7 @@ BEGIN
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND ISNULL(stl.IsParent, 0) = 1 
-		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0          
+		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus, 
@@ -577,7 +578,7 @@ BEGIN
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
-		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0  
+		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT *,
 	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        
@@ -879,7 +880,7 @@ BEGIN
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
-		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0  
+		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
@@ -1174,7 +1175,7 @@ BEGIN
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
-		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0  
+		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT *,
 	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        

@@ -21,6 +21,7 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing/invoicing lists (WorkOrder branch untouched).
+	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -132,8 +133,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
 					INNER JOIN [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId] AND wosi.[WorkOrderPartNumId] = wop.[ID]
 					 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
-					  AND ISNULL(imt.IsNonStock,0) = 0
-					  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
+					  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
 					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0 AND wobii.[ModuleId] = @WOModuleId
 					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobii.[SubReferenceId] = wop.ID AND wobii.[QtyBilled] = wosi.[QtyShipped] AND wobi.[ModuleId] = @WOModuleId
 					WHERE wop.[WorkOrderId] = @ReferenceId
@@ -182,8 +182,7 @@ BEGIN
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
-					 AND ISNULL(imt.IsNonStock,0) = 0
-					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
 					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0 AND wobii.[ModuleId] = @WOModuleId
 					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobi.[ModuleId] = @WOModuleId
 					AND wobii.[SubReferenceId] = wop.[ID] AND wobii.[QtyBilled] = wop.[Quantity] --wopick.QtyToShip
@@ -261,8 +260,7 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId] AND wosi.[WorkOrderPartNumId] = wop.[ID]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
-					 AND ISNULL(imt.IsNonStock,0) = 0
-					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
 					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 1 AND wobii.[ModuleId] = @WOModuleId
 					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND wobi.[ModuleId] = @WOModuleId
 					AND ISNULL(wobi.[IsVersionIncrease],0) = 0 
@@ -312,7 +310,7 @@ BEGIN
 					INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
 					INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sos.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
 								AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sosi.QtyShipped
@@ -350,7 +348,7 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
 						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId--AND sobi.IsVersionIncrease = 0
 						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
 									AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder
@@ -391,7 +389,7 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
 						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId --AND sobi.IsVersionIncrease = 0
 						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
 									AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder

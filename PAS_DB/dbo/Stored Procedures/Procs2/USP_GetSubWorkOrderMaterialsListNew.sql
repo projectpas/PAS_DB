@@ -24,6 +24,7 @@
 	13   22/06/2026		Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 15 leftover IsNonStock=0 exclusion filters.
 	       
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
@@ -269,7 +270,7 @@ SET NOCOUNT ON
 			   SL.QuantityOnOrder,  
 			   SL.IsParent  
 		 FROM dbo.Stockline SL WITH(NOLOCK)   
-		 JOIN dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1 WHERE ISNULL(SL.IsNonStock,0) = 0  
+		 JOIN dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1  
   
 		 INSERT INTO #tmpWOMStockline SELECT         
 			   WOMS.StockLineId,         
@@ -334,7 +335,7 @@ SET NOCOUNT ON
 		JOIN dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
 		WHERE SL.MasterCompanyId = @MasterCompanyId 
 		AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-		AND  SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
+		AND  SL.IsActive = 1 AND SL.IsDeleted = 0
 
 		INSERT INTO #tmpWOMStocklineKit SELECT DISTINCT						
 				WOMS.StockLineId, 						
@@ -667,8 +668,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -687,7 +687,7 @@ SET NOCOUNT ON
 					JOIN dbo.SubWorkOrderPartNumber wo WITH (NOLOCK) ON wo.SubWOPartNoId = WOM.SubWOPartNoId  
 					JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId  
 					LEFT JOIN dbo.SubWorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND MSTL.IsDeleted = 0  
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0  
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 					LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
@@ -702,14 +702,12 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-				 AND ISNULL(IMS.IsNonStock,0) = 0
 					 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 			    AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
 				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 				--UNION ALL
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				 INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
 								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
@@ -888,8 +886,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -908,7 +905,7 @@ SET NOCOUNT ON
 					JOIN dbo.SubWorkOrderPartNumber wo WITH (NOLOCK) ON wo.SubWOPartNoId = WOM.SubWOPartNoId  
 					JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId  
 					LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND MSTL.IsDeleted = 0  
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0  
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 					LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
@@ -923,12 +920,10 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-				 AND ISNULL(IMS.IsNonStock,0) = 0
 					 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
-		 AND ISNULL(IM.IsNonStock,0) = 0
 				 END
 		ELSE
 		BEGIN
@@ -1112,8 +1107,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1132,7 +1126,7 @@ SET NOCOUNT ON
 				  JOIN dbo.SubWorkOrderPartNumber wo WITH (NOLOCK) ON wo.SubWOPartNoId = WOM.SubWOPartNoId  
 				  JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId  
 				  LEFT JOIN dbo.SubWorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND MSTL.IsDeleted = 0  
-				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0  
+				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 				  LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 				  LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
@@ -1146,13 +1140,11 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-			  AND ISNULL(IMS.IsNonStock,0) = 0
 				   WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 			 AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
 			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 			 --UNION ALL
-			 AND ISNULL(IM.IsNonStock,0) = 0
 			  INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 							[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
 							[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
@@ -1331,8 +1323,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1351,7 +1342,7 @@ SET NOCOUNT ON
 				  JOIN dbo.SubWorkOrderPartNumber wo WITH (NOLOCK) ON wo.SubWOPartNoId = WOM.SubWOPartNoId  
 				  JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId  
 				  LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND MSTL.IsDeleted = 0  
-				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0  
+				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 				  LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 				  LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
@@ -1367,11 +1358,9 @@ SET NOCOUNT ON
 
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-			  AND ISNULL(IMS.IsNonStock,0) = 0
 				   WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
-		 AND ISNULL(IM.IsNonStock,0) = 0
 			  END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;

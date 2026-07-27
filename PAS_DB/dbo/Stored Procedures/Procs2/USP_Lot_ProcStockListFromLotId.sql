@@ -17,6 +17,7 @@ RETURN VALUE:
     1    04/12/2023  Amit Ghediya    Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
      
 -- EXEC USP_Lot_ProcStockListFromLotId
 ************************************************************************/
@@ -105,9 +106,8 @@ BEGIN
 					FROM LotTransInOutDetails lin WITH (NOLOCK)
 					INNER JOIN DBO.LotCalculationDetails Cal WITH (NOLOCK) ON lin.LotTransInOutId = Cal.LotTransInOutId
 					INNER JOIN DBO.Lot lt WITH(NOLOCK) on lin.LotId = lt.LotId
-					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON lin.StockLineId = stl.StockLineId AND ISNULL(stl.IsNonStock,0) = 0
-					LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
-					 AND ISNULL(im.IsNonStock,0) = 0
+					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON lin.StockLineId = stl.StockLineId
+					LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 					 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 					WHERE lin.LotId = @LotId AND im.ItemMasterId = @ItemMasterId 

@@ -12,11 +12,12 @@
  **************************************************************                 
   ** Change History                 
  **************************************************************                 
- ** PR   Date         Author   Change Description                  
- ** --   --------     -------   --------------------------------                
-    1    09/22/2023   Vishal Suthar  Created    
-    2    10/05/2023   Vishal Suthar  Modified to get parent stockline draft details to bind as parent record    
-      
+ ** PR   Date         Author   Change Description
+ ** --   --------     -------   --------------------------------
+    1    09/22/2023   Vishal Suthar  Created
+    2    10/05/2023   Vishal Suthar  Modified to get parent stockline draft details to bind as parent record
+    3    24/July/2026  RAJESH GAMI   [PN-17350] - Converted legacy dbo.NonStockInventoryDraft references (StkDraft update/lookup blocks) to dbo.StocklineDraft with ISNULL(IsNonStock,0)=1; TVP/temp-table column names unchanged (fixed C# contract)
+
 declare @p4 dbo.UpdateNonStocklineReceivingPOType
 insert into @p4 values(307,NULL,2319,3968,NULL,1,NULL,0,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',0,0,NULL,0,NULL,7,NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,2,NULL,0,NULL,0,NULL,0,NULL,0,NULL,5,NULL,N'DHFL-78978',N'sadad',1,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-18 18:35:38.5446619','2023-12-18 13:05:38.1860000',1,0,0,0,0)
 insert into @p4 values(308,NULL,2319,3968,NULL,0,NULL,0,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',0,0,NULL,0,NULL,7,NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,2,NULL,0,NULL,0,NULL,0,NULL,0,NULL,5,NULL,N'DHFL-78978',N'sadad',1,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-18 18:35:38.5451734','2023-12-18 13:05:38.1860000',1,0,0,0,0)
@@ -171,7 +172,7 @@ BEGIN
    SELECT @SelectedNonStockInventoryDraftId = NonStockInventoryDraftId, @SelectedPurchaseOrderPartRecordId = PurchaseOrderPartRecordId, @Quantity = Quantity, @IsSameDetailsForAllParts = IsSameDetailsForAllParts, @IsSerialized = IsSerialized    
    FROM #UpdateNonStocklineReceivingPOType WHERE ID = @LoopID;    
     
-   SELECT @PrevIsSameDetailsForAllParts = IsSameDetailsForAllParts, @PrevIsSerialized = IsSerialized, @PrevIsParent = IsParent FROM DBO.NonStockInventoryDraft StkDraft WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    
+   SELECT @PrevIsSameDetailsForAllParts = IsSameDetailsForAllParts, @PrevIsSerialized = IsSerialized, @PrevIsParent = IsParent FROM DBO.StocklineDraft StkDraft WHERE StkDraft.StockLineDraftId = @SelectedNonStockInventoryDraftId AND ISNULL(StkDraft.IsNonStock,0) = 1;
     SELECT * FROM #UpdateNonStocklineReceivingPOType WHERE NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId; 
     
    IF (@PrevIsSerialized = 1 AND @IsSerialized = 0)
@@ -200,32 +201,30 @@ BEGIN
 		END
 	END
 
-   UPDATE StkDraft    
-   SET StkDraft.ManagementStructureId = TmpStkDraft.ManagementStructureEntityId,
-   StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,    
-   StkDraft.WarehouseId = CASE WHEN TmpStkDraft.WarehouseId > 0 THEN TmpStkDraft.WarehouseId ELSE NULL END,    
-   StkDraft.LocationId = CASE WHEN TmpStkDraft.LocationId > 0 THEN TmpStkDraft.LocationId ELSE NULL END,    
-   StkDraft.ShelfId = CASE WHEN TmpStkDraft.ShelfId > 0 THEN TmpStkDraft.ShelfId ELSE NULL END,    
-   StkDraft.BinId = CASE WHEN TmpStkDraft.BinId > 0 THEN TmpStkDraft.BinId ELSE NULL END,    
-   StkDraft.UnitCost = ISNULL(TmpStkDraft.UnitCost, 0),    
-   StkDraft.ExtendedCost = ISNULL(TmpStkDraft.ExtendedCost, 0),    
-   StkDraft.ConditionId = TmpStkDraft.ConditionId,    
-   StkDraft.ShippingViaId = CASE WHEN TmpStkDraft.ShippingViaId > 0 THEN TmpStkDraft.ShippingViaId ELSE NULL END,    
-   StkDraft.ShippingReference = TmpStkDraft.ShippingReference,    
-   StkDraft.ShippingAccount = TmpStkDraft.ShippingAccount,    
-   StkDraft.MfgExpirationDate = TmpStkDraft.MfgExpirationDate,   
-   StkDraft.IsSameDetailsForAllParts = TmpStkDraft.IsSameDetailsForAllParts, 
-   StkDraft.TimeLifeDetailsNotProvided = TmpStkDraft.TimeLifeDetailsNotProvided,  
-   StkDraft.SerialNumberNotProvided = TmpStkDraft.SerialNumberNotProvided,  
-   StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,  
-   StkDraft.UpdatedBy = TmpStkDraft.UpdatedBy,    
-   StkDraft.UnitOfMeasureId = TmpStkDraft.UnitOfMeasureId,    
-   StkDraft.UpdatedDate = GETUTCDATE(),  
-   StkDraft.Acquired = TmpStkDraft.Acquired,
+   UPDATE StkDraft
+   SET StkDraft.ManagementStructureEntityId = TmpStkDraft.ManagementStructureEntityId,
+   StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,
+   StkDraft.WarehouseId = CASE WHEN TmpStkDraft.WarehouseId > 0 THEN TmpStkDraft.WarehouseId ELSE NULL END,
+   StkDraft.LocationId = CASE WHEN TmpStkDraft.LocationId > 0 THEN TmpStkDraft.LocationId ELSE NULL END,
+   StkDraft.ShelfId = CASE WHEN TmpStkDraft.ShelfId > 0 THEN TmpStkDraft.ShelfId ELSE NULL END,
+   StkDraft.BinId = CASE WHEN TmpStkDraft.BinId > 0 THEN TmpStkDraft.BinId ELSE NULL END,
+   StkDraft.PurchaseOrderUnitCost = ISNULL(TmpStkDraft.UnitCost, 0),
+   StkDraft.PurchaseOrderExtendedCost = ISNULL(TmpStkDraft.ExtendedCost, 0),
+   StkDraft.ConditionId = TmpStkDraft.ConditionId,
+   StkDraft.ShippingViaId = CASE WHEN TmpStkDraft.ShippingViaId > 0 THEN TmpStkDraft.ShippingViaId ELSE NULL END,
+   StkDraft.ShippingReference = TmpStkDraft.ShippingReference,
+   StkDraft.ShippingAccount = TmpStkDraft.ShippingAccount,
+   StkDraft.IsSameDetailsForAllParts = TmpStkDraft.IsSameDetailsForAllParts,
+   StkDraft.TimeLifeDetailsNotProvided = TmpStkDraft.TimeLifeDetailsNotProvided,
+   StkDraft.SerialNumberNotProvided = TmpStkDraft.SerialNumberNotProvided,
+   StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,
+   StkDraft.UpdatedBy = TmpStkDraft.UpdatedBy,
+   StkDraft.UnitOfMeasureId = TmpStkDraft.UnitOfMeasureId,
+   StkDraft.UpdatedDate = GETUTCDATE(),
    StkDraft.IsParent = @PrevIsParent
-   FROM DBO.NonStockInventoryDraft StkDraft    
-   INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.NonStockInventoryDraftId    
-   WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    
+   FROM DBO.StocklineDraft StkDraft
+   INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.StockLineDraftId
+   WHERE StkDraft.StockLineDraftId = @SelectedNonStockInventoryDraftId AND ISNULL(StkDraft.IsNonStock,0) = 1;
     
    IF(@IsCreate = 0)
    	BEGIN
@@ -233,13 +232,13 @@ BEGIN
 		BEGIN
 			UPDATE StkDraft
 			SET StkDraft.IsSameDetailsForAllParts = CASE WHEN TmpStkDraft.IsSameDetailsForAllParts = 1 THEN 0 ELSE 1 END
-			FROM DBO.NonStockInventoryDraft StkDraft
-			INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.NonStockInventoryDraftId
-			WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;
+			FROM DBO.StocklineDraft StkDraft
+			INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.StockLineDraftId
+			WHERE StkDraft.StockLineDraftId = @SelectedNonStockInventoryDraftId AND ISNULL(StkDraft.IsNonStock,0) = 1;
 		END
 	END
 
-   SELECT @ManagementStructureId = ManagementStructureId, @CreatedBy = CreatedBy FROM DBO.NonStockInventoryDraft StkDraft WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    
+   SELECT @ManagementStructureId = ManagementStructureEntityId, @CreatedBy = CreatedBy FROM DBO.StocklineDraft StkDraft WHERE StkDraft.StockLineDraftId = @SelectedNonStockInventoryDraftId AND ISNULL(StkDraft.IsNonStock,0) = 1;
     
    SET @StockLineDraftMSDetailsOpr = 2;    
     

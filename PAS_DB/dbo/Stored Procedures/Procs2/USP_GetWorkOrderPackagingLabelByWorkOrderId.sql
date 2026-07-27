@@ -19,6 +19,7 @@
 	 2    6-12-2025         MOIN BLOCH              Updated BillingInvoice Old To New Table
 	 3    13/01/2025		Amit Ghediya			Get ShippingAccountInfo field
 	 4    09/July/2026		RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026		RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 
 	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
@@ -119,7 +120,7 @@ BEGIN
 				LEFT JOIN [DBO].[BillingInvoicingItems] sobii WITH(NOLOCK) ON sobii.[ReferenceId] = wo.[WorkOrderId] AND sobii.[SubReferenceId] = @workOrderPartNoId AND sobii.[ModuleId] = @WOModuleId AND ISNULL(sobii.[IsVersionIncrease],0) = 0 AND ISNULL(sobii.[IsPerformaInvoice],0) = 0
 				LEFT JOIN [DBO].[BillingInvoicing] sobi WITH(NOLOCK) ON sobii.[BillingInvoicingId] = sobi.[BillingInvoicingId]							
 				LEFT JOIN [DBO].[Employee] saemp WITH(NOLOCK) ON wo.SalesPersonId = saemp.EmployeeId
-				LEFT JOIN [DBO].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+				LEFT JOIN [DBO].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 				LEFT JOIN [DBO].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 				LEFT JOIN [DBO].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 				LEFT JOIN [DBO].[CustomerDomensticShippingShipVia] custship WITH(NOLOCK) ON sos.CustomerDomensticShippingShipViaId = custship.CustomerDomensticShippingShipViaId

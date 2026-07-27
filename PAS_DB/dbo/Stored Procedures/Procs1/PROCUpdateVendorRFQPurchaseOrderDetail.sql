@@ -9,6 +9,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items in Vendor RFQ Purchase Order detail update
 ****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
 @VendorRFQPurchaseOrderId  bigint
@@ -130,7 +131,7 @@ BEGIN
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
-		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId AND ISNULL(IM.IsNonStock,0) = 0 ; 
+		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId ; 
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	
 

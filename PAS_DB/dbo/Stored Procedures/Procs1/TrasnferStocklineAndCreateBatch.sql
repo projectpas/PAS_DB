@@ -22,6 +22,7 @@
 	2    01/01/2024   BHARGAV SALIYA  CONVERT DATE IN UTC
 	3    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
 **************************************************************/
 -----------------------------------------------------------------------------------------------------
 /*************************************************************
@@ -138,7 +139,6 @@ BEGIN
 				ON CSTL.StockLineId = STL.StockLineId
 				/* PN Manufacturer Combination Stockline logic */
 
-				 WHERE ISNULL(IM.IsNonStock,0) = 0
 INSERT INTO #tmpCodePrefixestable (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
@@ -478,14 +478,12 @@ INSERT INTO #tmpCodePrefixestable (CodePrefixId,CodeTypeId,CurrentNumber, CodePr
 					  SET @UnitPrice = @Amount;
 					  SET @Amount = (@Qty * @Amount);
 					  SET @ManagementStructureId = @ManagementStructureIdTo;
-	                  SELECT @MPNName = partnumber FROM DBO.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                  SELECT @MPNName = partnumber FROM DBO.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
 	                   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@NewStocklineId AND ModuleID=@STKMSModuleID
 					  Set @ReferencePartId=0
 
 					  SELECT @PieceItemmasterId=ItemMasterId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
-		              SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		              SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 		               SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
 
 					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 

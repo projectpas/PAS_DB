@@ -4,7 +4,7 @@
             @StockLineId (or equivalent single-record parameter).
 
  Root cause: during the PN-17009 sweep, many Stockline-related SPs got
- an "AND ISNULL(im.IsNonStock,0) = 0" / "AND ISNULL(stl.IsNonStock,0) = 0"
+ an "" / ""
  style filter added wherever dbo.ItemMaster or dbo.Stockline appeared in
  a query. That filter makes sense for LIST queries (e.g. the Stockline
  grid, PN dropdowns) where you're choosing WHICH rows to return. It does
@@ -73,6 +73,7 @@
 	16    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Return IsNonStock, Currency, CurrencyId
 	17    08/July/2026			 RAJESH GAMI						[PN-17009] - Return ItemNonStockClassificationId, NonStockClassification
 	18    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/iM.IsNonStock,0) = 0"
+	19    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 more leftover soft IsNonStock=0 exclusions (oempnpart/rPart aliases) missed by the earlier PN-17009 bugfix pass.
 										 filters. (1) The final WHERE clause filtered on im.IsNonStock even though this SP is
 										 already scoped to one exact @StockLineId and im is joined via INNER JOIN
 										 dbo.ItemMaster ON stl.ItemMasterId = im.ItemMasterId (the Stockline's own item) -
@@ -424,12 +425,10 @@ ELSE 0 END AS IsSkipSerialNo
 		 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON stl.[RepairOrderId] = ro.[RepairOrderId]
 		 LEFT JOIN [dbo].[TimeLife] ti WITH(NOLOCK) ON stl.[StockLineId] = ti.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] oempnpart WITH(NOLOCK) ON stl.[IsOemPNId] = oempnpart.[ItemMasterId]
-		  AND ISNULL(oempnpart.IsNonStock,0) = 0
 		  LEFT JOIN [dbo].[AssetAcquisitionType] iaty WITH(NOLOCK) ON stl.[AcquistionTypeId] = iaty.[AssetAcquisitionTypeId]
 		 LEFT JOIN [dbo].[Employee] empr WITH(NOLOCK) ON stl.[RequestorId] = empr.[EmployeeId]
 		 LEFT JOIN [dbo].[Employee] empi WITH(NOLOCK) ON stl.[InspectionBy] = empi.[EmployeeId]
 		 LEFT JOIN [dbo].[ItemMaster] rPart WITH(NOLOCK) ON im.[RevisedPartId] = rPart.[ItemMasterId]
-		  AND ISNULL(rPart.IsNonStock,0) = 0
 		  LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.[VendorId] = ve.[VendorId]
 		 LEFT JOIN [dbo].[TagType] tt WITH(NOLOCK) ON stl.[TagTypeId] = tt.[TagTypeId]
 		 LEFT JOIN [dbo].[Customer] ct WITH(NOLOCK) ON stl.[CustomerId] = ct.[CustomerId]

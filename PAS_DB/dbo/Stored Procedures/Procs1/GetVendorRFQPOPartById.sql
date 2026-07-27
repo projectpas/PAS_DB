@@ -19,6 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    05-07-20242  SHREY CHANDEGARA     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) to allow Non-Stock items in Vendor RFQ PO Part lookup
      
 -- EXEC GetVendorRFQPOPartById 104
 ************************************************************************/
@@ -40,11 +41,10 @@ BEGIN
 	 
 	SELECT pop.PartNumber,pop.ItemMasterId,pop.VendorRFQPOPartRecordId,pop.ManufacturerId,
 	  pop.PartNumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK) 
-	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
+	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[VendorRFQPurchaseOrderPart] pop WITH (NOLOCK) 	
-	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 
-	   AND ISNULL(im.IsNonStock,0) = 0
+	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId
 	   LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
 	  WHERE pop.VendorRFQPurchaseOrderId = @VendorRFQPOId  AND pop.IsDeleted = 0
 

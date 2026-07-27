@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1     05/27/2025   Ekta Chandegra     Created
     2     09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3     24/July/2026   RAJESH GAMI     [PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
      
 -- EXEC GetExchangeSalesOrderPackagingLabelBySalesOrderId @ExchangeId=157 , @SalesOrderPartId=147
 ************************************************************************/
@@ -92,7 +93,7 @@ BEGIN
 			LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] sosi WITH(NOLOCK) ON sopkt.SOPickTicketId = sosi.SOPickTicketId
 			LEFT JOIN [dbo].[ExchangeSalesOrderShipping] sos WITH(NOLOCK) ON sosi.ExchangeSalesOrderShippingId = sos.ExchangeSalesOrderShippingId
 			LEFT JOIN [dbo].[Employee] saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId
-			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] ebi WITH(NOLOCK) ON sos.ExchangeSalesOrderShippingId = ebi.ExchangeSalesOrderShippingId AND ebi.IsDeleted = 0
@@ -163,7 +164,7 @@ BEGIN
 			LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] sosi WITH(NOLOCK) ON sopkt.SOPickTicketId = sosi.SOPickTicketId
 			LEFT JOIN [dbo].[ExchangeSalesOrderShipping] sos WITH(NOLOCK) ON sosi.ExchangeSalesOrderShippingId = sos.ExchangeSalesOrderShippingId
 			LEFT JOIN [dbo].[Employee] saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId
-			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] ebi WITH(NOLOCK) ON sos.ExchangeSalesOrderShippingId = ebi.ExchangeSalesOrderShippingId AND ebi.IsDeleted = 0

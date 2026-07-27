@@ -18,6 +18,7 @@
 	2    22/06/2026     Moin Bloch			Added More Fields PN-16955
 	3    24/06/2026     Moin Bloch			Added Customer Field PN-16973
 	4    09/July/2026     RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026     RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 	
        
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1
@@ -72,7 +73,7 @@ BEGIN
     FROM [dbo].[BulkStockScrapCertificate] c WITH(NOLOCK)
 	LEFT JOIN [dbo].[BulkStockLineAdjustment]   bs      WITH(NOLOCK) ON bs.BulkStkLineAdjId  = c.BulkStkLineAdjId
 	LEFT JOIN [dbo].[BulkStockLineAdjustmentDetails] ba WITH(NOLOCK) ON ba.BulkStkLineAdjDetailsId  = c.BulkStkLineAdjDetailsId	
-    LEFT JOIN [dbo].[StockLine]   sl                    WITH(NOLOCK) ON sl.StockLineId  =      c.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+    LEFT JOIN [dbo].[StockLine]   sl                    WITH(NOLOCK) ON sl.StockLineId  =      c.StockLineId
     LEFT JOIN [dbo].[ScrapReason] sr                    WITH(NOLOCK) ON sr.Id           =      c.ScrapReasonId
 	LEFT JOIN [dbo].[Manufacturer] MF                   WITH(NOLOCK) ON sl.ManufacturerId =    MF.ManufacturerId
     LEFT JOIN [dbo].[Employee]    emp                   WITH(NOLOCK) ON emp.EmployeeId  =      c.ScrapedByEmployeeId

@@ -29,6 +29,7 @@ EXECUTE   [dbo].[usp_GetStocklinepurchaseDashboard]
  **************************************************************
  ** PR   Date         Author			Change Description
 	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    24/July/2026   RAJESH GAMI   [PN-17350] - Removed obsolete Stockline.IsNonStock=0 filter on PurchaseOrder join to allow Non-Stock items in Purchase Dashboard
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetStocklinepurchaseDashboard]
 AS
@@ -51,7 +52,7 @@ BEGIN
         ISNULL(A.ClassificationName, '') 'ClassificationName'
       FROM PurchaseOrder PO WITH (NOLOCK)
       LEFT JOIN Stockline STL WITH (NOLOCK)
-        ON PO.PurchaseOrderId = STL.purchaseorderid AND ISNULL(STL.IsNonStock,0) = 0
+        ON PO.PurchaseOrderId = STL.purchaseorderid
         LEFT JOIN PurchaseOrderPart POP WITH (NOLOCK)
           ON PO.PurchaseOrderId = POP.PurchaseOrderId AND POP.ItemTypeId = @StockType
         LEFT JOIN Vendor V WITH (NOLOCK)

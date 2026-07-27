@@ -27,6 +27,7 @@
 	10   20-11-2025  Rajesh Gami		Correct the SOAmount
 	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 ************************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchSOViewData]    
 	@PageNumber INT,
@@ -248,8 +249,7 @@ BEGIN
        SELECT     
           STUFF((SELECT ',' + I.partnumber    
            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)    
-           LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId    
-            AND ISNULL(I.IsNonStock,0) = 0
+           LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
             WHERE S.SalesOrderId = SO.SalesOrderId    
            AND S.IsActive = 1 AND S.IsDeleted = 0    
            FOR XML PATH('')), 1, 1, '') PartNumber    
@@ -267,7 +267,6 @@ BEGIN
           STUFF((SELECT ', ' + I.PartDescription    
            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)
            LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
-            AND ISNULL(I.IsNonStock,0) = 0
             WHERE S.SalesOrderId = SO.SalesOrderId
            AND S.IsActive = 1 AND S.IsDeleted = 0
            FOR XML PATH('')), 1, 1, '') PartDescription
@@ -285,7 +284,6 @@ BEGIN
           FROM SalesOrder S WITH (NOLOCK)
           LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON S.SalesOrderId = SP.SalesOrderId
 	   	  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId = SP.ItemMasterId
-		   AND ISNULL(IM.IsNonStock,0) = 0
 	   	   LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId   
           WHERE S.SalesOrderId = SO.SalesOrderId    
           AND S.IsActive = 1 AND S.IsDeleted = 0    

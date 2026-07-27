@@ -17,12 +17,13 @@
  ** --   --------     -------			--------------------------------          
     1    05/23/2020   Hemant Saliya		Created
 	2    01/01/2024   Devendra Shekh	updated for serialnumber
-	2    22/07/2026   Bhargav Saliya	Get Consume UOM [PN-17353]
+	3    22/07/2026   Bhargav Saliya	Get Consume UOM [PN-17353]
+	4    27/07/2026   Bhargav Saliya	Fall back to ItemMaster Consume UOM when stockline UOM is empty [PN-17353]
      
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[GetWOPackagingLabelPrint]
+CREATE      PROCEDURE [dbo].[GetWOPackagingLabelPrint]
 	@WorkOrderId bigint,
 	@PackagingSlipId bigint
 AS
@@ -46,7 +47,7 @@ BEGIN
 						sl.ControlNumber, 
 						sl.IdNumber, 
 						sl.Condition as ConditionDescription,
-						sl.ConsumeUnitOfMeasure as UOM, 
+						CASE WHEN NULLIF(sl.ConsumeUnitOfMeasure,'') IS NULL THEN imt.ConsumeUnitOfMeasure ELSE sl.ConsumeUnitOfMeasure END as UOM,
 						wo.WorkOrderNum,
 						(SELECT QtyShipped FROM DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) Where WOSI.WorkOrderPartNumId = wopt.OrderPartId AND wopt.PickTicketId = WOSI.WOPickTicketId) AS QtyShipped
 				FROM WOPickTicket wopt WITH (NOLOCK)

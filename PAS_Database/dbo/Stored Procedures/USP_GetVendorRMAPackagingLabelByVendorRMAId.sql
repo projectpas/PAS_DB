@@ -14,9 +14,10 @@
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
     2    24-07-2026    Bhargav Saliya       Added New fiels [PN-17341]  
+    3    27-07-2026    Bhargav Saliya       Get Ship ShipViaName [PN-17341]  
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
+CREATE    PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
     @VendorRMAId BIGINT,
     @RMAPickTicketId BIGINT,
     @VendorRMADetailId BIGINT
@@ -57,7 +58,7 @@ BEGIN
 					soq.UpdatedBy,
 					soq.UpdatedDate,
 					qs.ManagementStructureId,
-					ISNULL(posv.ShipVia, '')        AS ShipViaName,
+					ISNULL(sv.Name, '')        AS ShipViaName,
 					rsh.ShipDate                    AS ShipDate,
 					ISNULL(rsh.AirwayBill, '')      AS AWB,
 					ISNULL(rsh.RMAShippingNum, '')  AS ShippingOrderNo,
@@ -71,13 +72,14 @@ BEGIN
 				LEFT JOIN [dbo].Address cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
 				LEFT JOIN [dbo].Countries ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id
 				LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON posadd.ReffranceId = soq.VendorRMAId AND ISNULL(posadd.IsShippingAdd, 0) = 1 AND posadd.ModuleId = @ModuleId  
-				LEFT JOIN [dbo].AllShipVia posv WITH(NOLOCK) ON posv.ReferenceId = soq.VendorRMAId AND posv.ModuleId = @ModuleId
+				--LEFT JOIN [dbo].AllShipVia posv WITH(NOLOCK) ON posv.ReferenceId = soq.VendorRMAId AND posv.ModuleId = @ModuleId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipItems spi WITH(NOLOCK) ON sopkt.RMAPickTicketId = spi.RMAPickTicketId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipHeader spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
 				LEFT JOIN [dbo].StockLine qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 				LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 				LEFT JOIN [dbo].RMAShipping rsh WITH(NOLOCK) ON spb.RMAShippingId = rsh.RMAShippingId
+				LEFT JOIN [dbo].ShippingVia sv WITH(NOLOCK) ON rsh.ShipviaId = sv.ShippingViaId
 				WHERE sopkt.VendorRMAId = @VendorRMAId
 				  AND sopkt.VendorRMADetailId = @VendorRMADetailId;
 			END TRY    

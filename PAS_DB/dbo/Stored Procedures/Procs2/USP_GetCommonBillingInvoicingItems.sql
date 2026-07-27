@@ -1,5 +1,4 @@
-﻿
--- ---------------------------------------------------------------------------------------------------
+﻿-- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_GetCommonBillingInvoicingItems   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCommonBillingInvoicingItems.sql)
 -- ---------------------------------------------------------------------------------------------------
 /*****************************************************************************************           
@@ -22,6 +21,7 @@
 	6    19/08/2025   Moin Bloch    Added Percent value for view
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts' billing invoicing items load correctly (WorkOrder branch untouched).
+	9    27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -164,6 +164,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
@@ -179,6 +180,7 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId] 
 
 
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
@@ -297,6 +299,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[SalesOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[SalesOrderId]
 			  INNER JOIN [dbo].[SalesOrderPartV1] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[SalesOrderPartId]
@@ -310,6 +313,7 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId]
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId ;
 		END
 	END TRY    

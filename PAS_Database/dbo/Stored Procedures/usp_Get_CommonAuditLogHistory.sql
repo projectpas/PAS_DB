@@ -28,6 +28,8 @@
    12       02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
    13       18-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for VendorBillingAddress  Module.(PN-15976) 
    14       22-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for   Module.(PN-15976)
+   15 	    27-JUl-2026	    DIVYESH KATHIRIYA       Add Customer Domenstic Shipping. [PN-15669]
+
 exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
 
@@ -62,6 +64,7 @@ BEGIN
         DECLARE @VendorBillingAddress AS INT;
         DECLARE @VendorShippingAddress AS INT;
         DECLARE @RefModule VARCHAR(100);
+        DECLARE @CustomerDomensticShippingModule AS INT;
 
         -- Validate sort dir
         IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
@@ -76,6 +79,7 @@ BEGIN
 		SET @AircraftCycleTimeModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
         SET @VendorBillingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorBillingAddress');
         SET @VendorShippingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorShippingAddress');
+        SET @CustomerDomensticShippingModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'CustomerDomensticShipping');
 
         IF (@ModuleId = @VendorContactModule)
         BEGIN 
@@ -90,6 +94,11 @@ BEGIN
         ELSE IF (@ModuleId = @VendorShippingAddress)
         BEGIN
             SELECT @RefId = AddressId FROM [dbo].[VendorShippingAddress] WHERE VendorShippingAddressId = TRY_CAST(@PK_Value AS BIGINT);
+            SET  @RefModule = 'Address'
+        END
+        ELSE IF (@ModuleId = @CustomerDomensticShippingModule)
+        BEGIN
+            SELECT @RefId = AddressId FROM [dbo].[CustomerDomensticShipping] WHERE [CustomerDomensticShippingId] = TRY_CAST(@PK_Value AS BIGINT);
             SET  @RefModule = 'Address'
         END
                
@@ -147,7 +156,7 @@ BEGIN
             )
             ) AS c;
         END
-        ELSE IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress)
+        ELSE IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress OR  @ModuleId = @CustomerDomensticShippingModule)
         BEGIN 
             SELECT @cols =
                 STRING_AGG(QUOTENAME(ColumnName), ',')
@@ -313,7 +322,7 @@ BEGIN
               
                         ),'
         END
-        ELSE IF (@ModuleId = @VendorContactModule or @ModuleId = @VendorBillingAddress or @ModuleId = @VendorShippingAddress)
+        ELSE IF (@ModuleId = @VendorContactModule or @ModuleId = @VendorBillingAddress or @ModuleId = @VendorShippingAddress OR @ModuleId = @CustomerDomensticShippingModule)
         BEGIN 
             SET @sql = N';WITH S AS
             (
@@ -434,7 +443,7 @@ BEGIN
                               AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
                         ),'
         END   
-        IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress)
+        IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress OR @ModuleId = @CustomerDomensticShippingModule)
         BEGIN
             SET @sql = N'
             WITH S AS

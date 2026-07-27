@@ -1,16 +1,16 @@
-﻿/*************************************************************
+﻿/*********************
  ** File:        [USP_GetAircraftInfoList]
  ** Author:      Nakul
  ** Description: Returns the tenant-scoped, paginated Aircraft Profile list.
  ** Date:        14/07/2026
- *************************************************************
+ *********************
  ** Change History
- *************************************************************
+ *********************
  ** PR   Date         Author				Change Description
  ** --   ----------   -------			------------------------------------------
  ** 1    15/07/2026   Nakul				   Created Aircraft Profile list procedure.[PN-17264]
- ** 2    07/23/2026   Amit Ghediya		   Get IsAircraft flag for engine or aircraft
- *************************************************************/
+ ** 2    07/23/2026   Amit Ghediya		   Get IsAircraft flag for engine or aircraft with group by set
+ *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInfoList]
     @PageNumber       INT          = 1,
     @PageSize         INT          = 10,
@@ -41,18 +41,18 @@ BEGIN
 
         ;WITH AircraftProfiles AS
         (
-            SELECT
-                AI.AircraftInfoId,
+            SELECT DISTINCT
+                max(AI.AircraftInfoId) AS AircraftInfoId,
                 AI.ACMakeTypeName AS MakeType,
                 M.Name AS Manufacturer,
                 AI.ACModelName AS AircraftModel,
                 AI.ACSubModel AS AircraftSubModel,
                 IM.IsSerialized,
                 IM.IsTimeLife,
-                AI.CreatedBy,
-                AI.CreatedDate,
-                AI.UpdatedBy,
-                AI.UpdatedDate,
+                MAX(AI.CreatedBy)   AS CreatedBy,
+				MAX(AI.CreatedDate) AS CreatedDate,
+				MAX(AI.UpdatedBy)   AS UpdatedBy,
+				MAX(AI.UpdatedDate) AS UpdatedDate,
 				AI.IsAircraft,
 				AI.ItemMasterId,
 				IM.PartNumber,
@@ -90,8 +90,14 @@ BEGIN
                 AND (@UpdatedDate IS NULL OR CAST(AI.UpdatedDate AS DATE) = @UpdatedDate)
 				AND (@IsAircraft IS NULL OR AI.IsAircraft = @IsAircraft)
 				AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%')
+				GROUP BY 
+				AI.ACMakeTypeName,                M.[Name] ,                AI.ACModelName ,
+                AI.ACSubModel ,                IM.IsSerialized,                IM.IsTimeLife,             
+				AI.IsAircraft,
+				AI.ItemMasterId,
+				IM.PartNumber
         )
-        SELECT
+        SELECT 
             MakeType,
             Manufacturer,
             AircraftModel,
@@ -106,7 +112,7 @@ BEGIN
 			ItemMasterId,
 			PartNumber,
             TotalRecords
-        FROM AircraftProfiles 
+        FROM AircraftProfiles 		
         ORDER BY
             CASE WHEN @SortColumn = 'makeType' AND @SortOrder = 'ASC' THEN MakeType END ASC,
             CASE WHEN @SortColumn = 'makeType' AND @SortOrder = 'DESC' THEN MakeType END DESC,
@@ -132,6 +138,8 @@ BEGIN
 			CASE WHEN @SortColumn = 'partNumber' AND @SortOrder = 'DESC' THEN PartNumber END DESC,
             CASE WHEN @SortColumn = 'aircraftInfoId' AND @SortOrder = 'ASC' THEN AircraftInfoId END ASC,
             AircraftInfoId DESC
+
+		
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY
         OPTION (RECOMPILE);

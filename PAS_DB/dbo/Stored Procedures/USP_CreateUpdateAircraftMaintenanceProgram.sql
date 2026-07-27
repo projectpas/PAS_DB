@@ -23,7 +23,8 @@
    13    25/06/2026	    Amit Ghediya			Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
    14    29/06/2026	    Moin Bloch			    Removed MaintenanceTypeId PN-17043
    15    30/06/2026	    Amit Ghediya	        Update for Engine data [PN-17075]
-   16    01/07/2026	    Amit Ghediya	        Add auto SequenceNo when insert data
+   16    01/07/2026	    Amit Ghediya	        Add auto SequenceNo when insert data remove update
+   16    01/07/2026	    Amit Ghediya	        Remove update time ac & engine id not required
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -236,8 +237,6 @@ BEGIN
             -- ── Main UPDATE ───────────────────────────────────
             UPDATE dbo.AircraftMaintenanceProgram
             SET
-                AircraftRegistryId          = @AircraftRegistryId,
-				EngineRegistryId            = CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN NULL ELSE  @AircraftRegistryId END,
                 TailNumber                  = @TailNumber,
                 AircraftMake                = @AircraftMake,
                 AircraftModel               = @AircraftModel,

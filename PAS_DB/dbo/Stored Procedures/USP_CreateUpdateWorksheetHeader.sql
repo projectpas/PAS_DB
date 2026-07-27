@@ -22,6 +22,7 @@
     5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
 	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
     7    30/06/2026     Divyesh Kathiriya       Added WorkSheetStatusId fields [PN-16897]
+	8    27/07/2026     Amit Ghediya			Added for mapping table WorksheetMapping for multiple ws. [PN-17396]
 
 **************************************************************/
 
@@ -33,9 +34,22 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
 
-        DECLARE @WorksheetHeaderId  BIGINT = (SELECT WorksheetHeaderId FROM @tbl_WorksheetHeaderType);
-        DECLARE @MasterCompanyId    INT    = (SELECT MasterCompanyId   FROM @tbl_WorksheetHeaderType);
-        DECLARE @AircraftRegistryId BIGINT  = (SELECT AircraftRegistryId   FROM @tbl_WorksheetHeaderType);
+		DECLARE @WorksheetHeaderId              BIGINT,
+				@MasterCompanyId                INT,
+				@AircraftRegistryId              BIGINT,
+				@ProgramId                       BIGINT,
+				@AircraftInstalledPartDetailsId  BIGINT,
+				@IsFromAircraft                  BIT,
+				@UpdatedBy                       VARCHAR(256);
+
+		SELECT 
+			@WorksheetHeaderId             = WorksheetHeaderId,
+			@MasterCompanyId                = MasterCompanyId,
+			@AircraftRegistryId             = AircraftRegistryId,
+			@ProgramId                      = ProgramId,
+			@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId,
+			@UpdatedBy						= UpdatedBy
+		FROM @tbl_WorksheetHeaderType;
 
         DECLARE @CodePrefix         NVARCHAR(50);
         DECLARE @CodeSuffix         NVARCHAR(50);
@@ -399,6 +413,9 @@ BEGIN
 				-- ── END HISTORY BLOCK ─────────────────────────────
             END
         END
+
+		--Add into Mapping WorksheetMapping table
+		EXEC USP_LinkPartToExistingWorksheet @WorksheetHeaderId,@ProgramId,@AircraftInstalledPartDetailsId,@IsFromAircraft,@MasterCompanyId,@UpdatedBy
 
     END TRY
     BEGIN CATCH

@@ -25,6 +25,7 @@
    15    30/06/2026	    Amit Ghediya	        Update for Engine data [PN-17075]
    16    01/07/2026	    Amit Ghediya	        Add auto SequenceNo when insert data remove update
    16    01/07/2026	    Amit Ghediya	        Remove update time ac & engine id not required
+   17    27/07/2026	    Amit Ghediya	        Remove VW_WorkScopeType & add new view VW_MaintenanceType
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -147,9 +148,9 @@ BEGIN
 		END
         
 
-        SELECT @MaintenanceType = WorkScopeCode
-        FROM dbo.VW_WorkScopeType WITH(NOLOCK)
-        WHERE WorkScopeId = @MaintenanceTypeId
+        SELECT @MaintenanceType = MaintenanceType
+        FROM dbo.VW_MaintenanceType WITH(NOLOCK)
+        WHERE MaintenanceTypeId = @MaintenanceTypeId
           AND [IsActive]  = 1
           AND [IsDeleted] = 0;
 

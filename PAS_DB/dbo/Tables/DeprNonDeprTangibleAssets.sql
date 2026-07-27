@@ -34,7 +34,10 @@
 
 
 
+
+
 GO
+
 CREATE   TRIGGER [dbo].[Trg_DeprNonDeprTangibleAssetsAudit] ON [dbo].[DeprNonDeprTangibleAssets]
    AFTER INSERT,UPDATE,DELETE
 AS
@@ -52,7 +55,7 @@ DECLARE @TangibleClassId BIGINT,@AssetDeprMethodId BIGINT,
 	@DepreciationFrequencyId=DepreciationFrequencyId,@ResidualPercentage=ResidualPercentage,@CalibratedGLAccountId=CalibratedGLAccountId,
 	@AcquiredGLAccountId=AcquiredGLAccountId,@DeprExpenseGLAccountId=DeprExpenseGLAccountId,@AccumDeprGLAccountId=AccumDeprGLAccountId,
 	@AssetSaleGLAccountId=AssetSaleGLAccountId,@AssetWriteOffGLAccountId=AssetWriteOffGLAccountId,@AssetWriteDownGLAccountId=AssetWriteDownGLAccountId,
-	@LegalEntityIds=SelectedCompanyIds,@DeprNonDeprTangibleAssetsId=DeprNonDeprTangibleAssetsId FROM INSERTED
+	@LegalEntityIds=LegalEntityId,@DeprNonDeprTangibleAssetsId=DeprNonDeprTangibleAssetsId FROM INSERTED
 	SELECT @TangibleClass=TangibleClassName FROM TangibleClass WHERE TangibleClassId=@TangibleClassId
 	SELECT @AssetDepreciationMethodName=AssetDepreciationMethodName FROM AssetDepreciationMethod WHERE AssetDepreciationMethodId=@AssetDeprMethodId
 	SELECT @AssetDepreciationIntervalName=AssetDepreciationIntervalName FROM AssetDepreciationInterval WHERE AssetDepreciationIntervalId=@DepreciationFrequencyId

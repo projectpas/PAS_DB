@@ -4764,6 +4764,8 @@
     <Build Include="dbo\Tables\AISettingMaster.sql" />
     <Build Include="dbo\Tables\AIChatMessages.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleAssetsAudit.sql" />
+    <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssetsAudit.sql" />
+    <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssets.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

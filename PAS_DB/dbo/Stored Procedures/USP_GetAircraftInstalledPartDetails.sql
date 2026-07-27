@@ -36,12 +36,12 @@
 
    21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	24  23/July/2026	RAJESH GAMI	[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
    23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
    24	17/07/2026	  Amit Ghediya		Update to get with direcly from part IsFromAircraft
    25	18/07/2026	  Amit Ghediya		Return IsFromAircraft as its own output column (was only used
                                         internally for the CASE branching above) so the UI can tell, per
                                         row, whether it's an aircraft- or engine-installed component.
+   26   27/07/2026   Amit Ghediya		Get Worksheet from mapping table [PN-17396]
 *******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -200,13 +200,12 @@ BEGIN
 			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 0
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
-			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END)
+			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY AircraftInstalledPartDetailsId ORDER BY CreatedDate DESC) AS RN FROM dbo.WorksheetHeader WITH (NOLOCK)) WSH ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND WSH.RN = 1
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
@@ -248,6 +247,13 @@ BEGIN
 				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 				ORDER BY WOP_inner.ID DESC 
 			) AS WOP
+			OUTER APPLY (
+                SELECT TOP (1) W.WorksheetNumber, W.WorksheetHeaderId
+                FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK)
+				INNER JOIN [dbo].[WorksheetHeader] W WITH (NOLOCK) ON W.WorksheetHeaderId = WSM.WorksheetHeaderId
+                WHERE WSM.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+                ORDER BY W.CreatedDate DESC
+            ) WSH
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE 
 			--	AIPD.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
@@ -257,6 +263,7 @@ BEGIN
 			----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
 			--AND AIPD.MasterCompanyId = @MasterCompanyId
 			       AIPD.MasterCompanyId = @MasterCompanyId
+					  AND ISNULL(IM.IsNonStock,0) = 0
 					  AND (
 							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
 							OR ( ISNULL(@IsFromAircraft,0) = 1

@@ -21,9 +21,10 @@
 	10   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
 	11   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
 	12   17/07/2025   Bhargav Saliya    Revert Changes For Cost [PN-17163]
+	13   27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS
@@ -163,6 +164,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
@@ -178,6 +180,7 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId] 
 
 
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
@@ -296,6 +299,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[SalesOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[SalesOrderId]
 			  INNER JOIN [dbo].[SalesOrderPartV1] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[SalesOrderPartId]
@@ -309,6 +313,7 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId]
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 		END
 	END TRY    

@@ -1,4 +1,5 @@
 ﻿
+
 CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
 AS
 SELECT AAT.[DeprNonDeprTangibleAssetsId]
@@ -37,7 +38,7 @@ SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[UpdatedDate]
       ,AAT.[IsActive]
       ,AAT.[IsDeleted]	  	  
-	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT SelectedCompanyIds FROM [dbo].[AssetAttributeType] AMM WITH (NOLOCK) WHERE AMM.AssetAttributeTypeId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
+	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT LegalEntityId FROM [dbo].[DeprNonDeprTangibleAssets] AMM WITH(NOLOCK) WHERE AMM.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
 				LEFT JOIN [DBO].[LegalEntity] I ON ss.Item = I.LegalEntityId
 		FOR XML PATH('')), 1, 1, '') 'LegalEntity'
 	  ,AAT.LegalEntityId

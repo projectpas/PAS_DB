@@ -16,6 +16,7 @@
 	2    25/11/2025   Moin Bloch		Format SP
 	3    04/JUNE/2026 Rajesh Gami		Restrict decreasing the quantity when the Work Order type is Teardown.[PN-16719]
 	4    09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22/07/2026	  Amit Ghediya      Skip update stockline when WO IsFromAircraft = 1 [PN-16898]
  EXEC [dbo].[USP_UpdateStockLineWorkOrderPart] 1052,'ADMIN',2,4,6,5,6,1,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
@@ -41,6 +42,7 @@ BEGIN
 
     DECLARE @StockLineId BIGINT, @IsTearDownWO BIT = 0;
     DECLARE @WorkOrderId BIGINT,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
+	DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
 
     -- Get WorkOrderPartNumber info
      SELECT @StockLineId = ISNULL(WOP.StockLineId, 0),
@@ -49,19 +51,22 @@ BEGIN
 	   INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = WOP.[MasterCompanyId]
        WHERE WOP.[ID] = @WorkOrderPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
 
-	   SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId	AND [MasterCompanyId] = @MasterCompanyId;
+	   SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId],@IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId	AND [MasterCompanyId] = @MasterCompanyId;
 	   SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
     -- Update StockLine
-		UPDATE SL
-		SET SL.[WorkOrderId] = @WorkOrderId,
-			SL.[WorkOrderPartNoId] = @WorkOrderPartNoId,
-			SL.[UpdatedDate] = GETUTCDATE(),
-			SL.[UpdatedBy] = @UpdatedBy,
-			SL.[QuantityAvailable] = CASE WHEN ISNULL(SL.[QuantityAvailable], 0) > 0 AND @IsTearDownWO = 0 THEN ISNULL(SL.[QuantityAvailable], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityAvailable], 0) END,
-			SL.[QuantityOnHand] = CASE WHEN ISNULL(SL.[QuantityOnHand], 0) > 0 AND @IsTearDownWO = 0  THEN ISNULL(SL.[QuantityOnHand], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityOnHand], 0) END
-		 FROM [dbo].[StockLine] SL
-		 INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = SL.[MasterCompanyId]
-		 WHERE SL.[StockLineId] = @StockLineId AND SL.[MasterCompanyId] = @MasterCompanyId AND ISNULL(SL.IsNonStock,0) = 0;
+	   IF(ISNULL(@IsFromAircraft, 0) = 0)
+       BEGIN
+			UPDATE SL
+			SET SL.[WorkOrderId] = @WorkOrderId,
+				SL.[WorkOrderPartNoId] = @WorkOrderPartNoId,
+				SL.[UpdatedDate] = GETUTCDATE(),
+				SL.[UpdatedBy] = @UpdatedBy,
+				SL.[QuantityAvailable] = CASE WHEN ISNULL(SL.[QuantityAvailable], 0) > 0 AND @IsTearDownWO = 0 THEN ISNULL(SL.[QuantityAvailable], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityAvailable], 0) END,
+				SL.[QuantityOnHand] = CASE WHEN ISNULL(SL.[QuantityOnHand], 0) > 0 AND @IsTearDownWO = 0  THEN ISNULL(SL.[QuantityOnHand], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityOnHand], 0) END
+			 FROM [dbo].[StockLine] SL
+			 INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = SL.[MasterCompanyId]
+			 WHERE SL.[StockLineId] = @StockLineId AND SL.[MasterCompanyId] = @MasterCompanyId AND ISNULL(SL.IsNonStock,0) = 0;
+		END
 
 		 EXEC [dbo].[USP_AddUpdateStocklineHistory]	@StocklineId=@StockLineId,@ModuleId=@ModuleId,@ReferenceId=@WorkOrderPartNoId,@SubModuleId=@SubModuleId,@ActionId=@ActionId,@Qty=@Qty,@UpdatedBy=@UpdatedBy;
 

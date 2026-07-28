@@ -16,6 +16,7 @@
 	3		15/04/2024		Moin Bloch			Added Scrap Entry Operatin
 	4		12/02/2026		Moin Bloch			Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
 	5       26/03/2026      Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
+	6		22/07/2026	    Amit Ghediya       Skip update stockline when WO IsFromAircraft = 1 [PN-16898]
 
 	EXEC [USP_UpdateMPNTenderStocklineDetail] 1,1,'dsdsd'
 **************************************************************/ 
@@ -44,10 +45,11 @@ BEGIN
 				DECLARE @HistoryModuleId INT = 0;
 				DECLARE @TearDown INT;
 				DECLARE @WorkOrderTypeId BIGINT;  
+				DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
 
 				SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown');
 
-				SELECT @WorkOrderTypeId = [WorkOrderTypeId] FROM  [dbo].[WorkOrder] WITH(NOLOCK)  WHERE [WorkOrderId] = @WorkOrderId
+				SELECT @WorkOrderTypeId = [WorkOrderTypeId], @IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM  [dbo].[WorkOrder] WITH(NOLOCK)  WHERE [WorkOrderId] = @WorkOrderId
 
 				IF(@TearDown <> @WorkOrderTypeId)
 				BEGIN
@@ -67,34 +69,43 @@ BEGIN
 
 				IF(@Opr = 1)   -- If Remaining Amount > 0
 				BEGIN
-					UPDATE [dbo].[Stockline] 
-					   SET [QuantityReserved] = @QuantityReserved - 1,  
-						 --[QuantityOnHand] = @QuantityOnHand - 1,					   
-						 --[QuantityIssued] = @QuantityIssued + 1    
-						   [QuantityAvailable] = @QuantityAvailable + 1,  
-						   [UnitCost] = 0
-					 WHERE [StockLineId] = @StocklineId;	
+					IF(ISNULL(@IsFromAircraft, 0) = 0)
+					BEGIN
+						UPDATE [dbo].[Stockline] 
+						   SET [QuantityReserved] = @QuantityReserved - 1,  
+							 --[QuantityOnHand] = @QuantityOnHand - 1,					   
+							 --[QuantityIssued] = @QuantityIssued + 1    
+							   [QuantityAvailable] = @QuantityAvailable + 1,  
+							   [UnitCost] = 0
+						 WHERE [StockLineId] = @StocklineId;
+					END
 
 					 -- Quantity Un-Reserve History
 					 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
 				END
 				IF(@Opr = 2)  -- If Remaining Amount = 0
 				BEGIN
-					UPDATE [dbo].[Stockline] 
-					   SET [QuantityReserved] = @QuantityReserved - 1,   
-						   [QuantityAvailable] = @QuantityAvailable + 1  
-					 WHERE [StockLineId] = @StocklineId;	
+					IF(ISNULL(@IsFromAircraft, 0) = 0)
+					BEGIN
+						UPDATE [dbo].[Stockline] 
+						   SET [QuantityReserved] = @QuantityReserved - 1,   
+							   [QuantityAvailable] = @QuantityAvailable + 1  
+						 WHERE [StockLineId] = @StocklineId;
+					END
 					
 					-- Quantity Un-Reserve History
 					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
 				END
 				IF(@Opr = 3)  -- If Remaining Amount = 0
 				BEGIN
-					UPDATE [dbo].[Stockline] 
-					   SET [QuantityReserved] = @QuantityReserved - 1,  						
-						   [QuantityOnHand] = @QuantityAvailable - 1,  
-						   [UnitCost] = 0
-					 WHERE [StockLineId] = @StocklineId;
+					IF(ISNULL(@IsFromAircraft, 0) = 0)
+					BEGIN
+						UPDATE [dbo].[Stockline] 
+						   SET [QuantityReserved] = @QuantityReserved - 1,  						
+							   [QuantityOnHand] = @QuantityAvailable - 1,  
+							   [UnitCost] = 0
+						 WHERE [StockLineId] = @StocklineId;
+					END
 					
 					-- Quantity Un-Reserve History
 					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;

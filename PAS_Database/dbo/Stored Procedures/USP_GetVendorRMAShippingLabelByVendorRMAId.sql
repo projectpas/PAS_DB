@@ -15,6 +15,8 @@
     1    09-06-2025    Sahdev Saliya       Created  
 	2    06-04-2026	   Amit Ghediya		   UOM Conversion Changes [PN-15140]
 	3	 19/06/2026	   Ayushi			   [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	4    27/07/2026    Ayushi              [PN-17433]Removed UOM convertion for QtyShipped
+	exec USP_GetVendorRMAShippingLabelByVendorRMAId 89,101,55
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAShippingLabelByVendorRMAId]
     @VendorRMAId BIGINT,
@@ -55,7 +57,8 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(sosi.QtyShipped,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId) END AS NoOfPiece,
+					sosi.QtyShipped,
+					--CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(sosi.QtyShipped,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId) END AS NoOfPiece,
 					so.UpdatedDate
 				FROM [dbo].VendorRMA so WITH(NOLOCK)
 				LEFT JOIN [dbo].RMAShipping sos WITH(NOLOCK) ON so.VendorRMAId = sos.VendorRMAId AND sos.RMAShippingId = @RMAShippingId

@@ -27,7 +27,8 @@
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	9    22/July/2026			 Amit Ghediya						Added @ViewType - Summary Dashboard groups rows by acTailNum + mtceType + pnNum [PN-17223]
+	9    22/July/2026			 Amit Ghediya						Added @ViewType - Summary Dashboard groups rows by acTailNum + mtceType + pnNum with filter issue [PN-17223]
+   10    27/July/2026			 Amit Ghediya						Get Worksheet from mapping table [PN-17396]
 ***********************************/
 CREATE     PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -68,10 +69,15 @@ BEGIN
         SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
 		DECLARE @AirframeCode VARCHAR(50);
 		DECLARE @EngineCode VARCHAR(50);
+		DECLARE @SectionCode VARCHAR(50);
 
 		SELECT @AirframeCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'AIRFRAME';
 		SELECT @EngineCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [Code] = 'ENGINE';
 
+		IF(ISNULL(@SectionId,0) > 0)
+		BEGIN
+			SELECT @SectionCode = [Section] FROM DBO.AircraftSection WITH (NOLOCK) WHERE [AircraftSectionId] = @SectionId;
+		END
 
         IF (@ViewType = 'Summary')
         BEGIN
@@ -87,6 +93,8 @@ BEGIN
                     mtc.MtcCategory                                                    AS mtceCategory,
                     AMP.ProgramId                                                      AS programId,
                     AMP.MaintenanceType                                                AS mtceType,
+					AMP.MaintenanceTypeId                                              AS MaintenanceTypeId,
+					AMP.mtcCategoryId,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END AS section,
                     WF.WorkOrderNumber                                                 AS pnNum,
                     CAST(NULL AS NVARCHAR(MAX))                                        AS pnDescription,
@@ -135,6 +143,7 @@ BEGIN
                     ARH.StockLineId                                                    AS stockLineId,
                     CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                     WS_M.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
+					WS_M.WorksheetHeaderId                                             AS WorksheetHeaderId,
                     AMP.IsScheduled                                                    AS isScheduled,   -- direct column value
 					0 AS isLLP,
 					0 AS isSerialized,
@@ -160,11 +169,12 @@ BEGIN
                     JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
                 ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
                 LEFT JOIN (
-                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,
+                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,WSH.WorksheetHeaderId,
                            ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
-                    FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
+					FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
                     INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                         ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+					WHERE EXISTS (SELECT 1 FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK) WHERE WSM.WorksheetHeaderId = WSH.WorksheetHeaderId)
                 ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
 				LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById
                 WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0 AND ISNULL(AMP.IsFromAircraft,0) = 1
@@ -181,6 +191,8 @@ BEGIN
                     CAST(NULL AS NVARCHAR(256))                                        AS mtceCategory,
                     CAST(0 AS BIGINT)                                                  AS programId,
                     CAST(NULL AS NVARCHAR(200))                                        AS mtceType,
+					0                                                                  AS MaintenanceTypeId,
+					0																   AS mtcCategoryId,
                     CASE WHEN ISNULL(AIPD.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END  AS section,
                     AIPD.PartNumber                                                    AS pnNum,
                     AIPD.PartDescription                                               AS pnDescription,
@@ -243,6 +255,7 @@ BEGIN
                     AIPD.StockLineId                                                   AS stockLineId,
                     CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                     WS_I.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
+					WS_I.WorksheetHeaderId                                             AS WorksheetHeaderId,
                     CAST(NULL AS BIT)                                                 AS isScheduled,   -- installed parts have no schedule concept
 					AIPD.isLLP,
 					AIPD.isSerialized,
@@ -262,11 +275,12 @@ BEGIN
                     JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
                 ) LWO_I ON LWO_I.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND LWO_I.rn = 1
                 LEFT JOIN (
-                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,
+                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,WSH.WorksheetHeaderId,
                            ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
                     FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
                     INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                         ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+					WHERE EXISTS (SELECT 1 FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK) WHERE WSM.WorksheetHeaderId = WSH.WorksheetHeaderId)
                 ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
                 WHERE AIPD.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
              AND ISNULL(IM.IsNonStock,0) = 0 ),
@@ -305,7 +319,7 @@ BEGIN
 					AND (@LastinspectedBy    IS NULL OR LastinspectedBy   LIKE '%' + @LastinspectedBy   + '%')
                     -- dashboard-level dropdown filters
                     AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))  -- exact match
-                    AND (@SectionId    IS NULL OR sectionId    = @SectionId)                                 -- direct match on CTE column
+                    AND (@SectionCode    IS NULL OR section    = @SectionCode)                                 -- direct match on CTE column
                     AND (@IsScheduled  IS NULL OR isScheduled  = @IsScheduled)                               -- direct match on AMP.IsScheduled
                     AND (ISNULL(@SearchMaintenanceType, '') = '' OR LOWER(mtceType) = LOWER(@SearchMaintenanceType))  -- exact match; NULL for INSTALLED rows
             ),
@@ -371,6 +385,8 @@ BEGIN
                     mtc.MtcCategory                                                    AS mtceCategory,
                     AMP.ProgramId                                                      AS programId,
                     AMP.MaintenanceType                                                AS mtceType,
+					AMP.MaintenanceTypeId                                              AS MaintenanceTypeId,
+					AMP.mtcCategoryId,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END  AS section,
                     WF.WorkOrderNumber                                                 AS pnNum,
                     CAST(NULL AS NVARCHAR(MAX))                                        AS pnDescription,
@@ -419,6 +435,7 @@ BEGIN
                     ARH.StockLineId                                                    AS stockLineId,
                     CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                     WS_M.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
+					WS_M.WorksheetHeaderId                                             AS WorksheetHeaderId,
                     AMP.IsScheduled                                                    AS isScheduled,   -- direct column value
 					0 AS isLLP,
 					0 AS isSerialized,
@@ -444,11 +461,12 @@ BEGIN
                     JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
                 ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
                 LEFT JOIN (
-                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,
+                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,WSH.WorksheetHeaderId,
                            ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
                     FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
                     INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                         ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+					WHERE EXISTS (SELECT 1 FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK) WHERE WSM.WorksheetHeaderId = WSH.WorksheetHeaderId)
                 ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
 				LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById
                 WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0 AND ISNULL(AMP.IsFromAircraft,0) = 1
@@ -465,6 +483,8 @@ BEGIN
                     CAST(NULL AS NVARCHAR(256))                                        AS mtceCategory,
                     CAST(0 AS BIGINT)                                                  AS programId,
                     CAST(NULL AS NVARCHAR(200))                                        AS mtceType,
+					0                                                                  AS MaintenanceTypeId,
+					0                                                                  AS mtcCategoryId,
                     CASE WHEN ISNULL(AIPD.IsFromAircraft, 0) = 1 THEN @AirframeCode   ELSE @EngineCode   END  AS section,
                     AIPD.PartNumber                                                    AS pnNum,
                     AIPD.PartDescription                                               AS pnDescription,
@@ -525,6 +545,7 @@ BEGIN
                     AIPD.StockLineId                                                   AS stockLineId,
                     CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                     WS_I.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
+					WS_I.WorksheetHeaderId                                             AS WorksheetHeaderId,
                     CAST(NULL AS BIT)                                                 AS isScheduled,   -- installed parts have no schedule concept
 					AIPD.isLLP,
 					AIPD.isSerialized,
@@ -544,11 +565,12 @@ BEGIN
                     JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
                 ) LWO_I ON LWO_I.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND LWO_I.rn = 1
                 LEFT JOIN (
-                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,
+                    SELECT WSH.AircraftRegistryId, ASEC.Section, WSH.WorksheetTypeId,WSH.WorksheetHeaderId,
                            ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
                     FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
                     INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                         ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+					WHERE EXISTS (SELECT 1 FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK) WHERE WSM.WorksheetHeaderId = WSH.WorksheetHeaderId)
                 ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
                 WHERE AIPD.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
              AND ISNULL(IM.IsNonStock,0) = 0 ),
@@ -587,7 +609,7 @@ BEGIN
 					AND (@LastinspectedBy    IS NULL OR LastinspectedBy   LIKE '%' + @LastinspectedBy   + '%')
                     -- dashboard-level dropdown filters
                     AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))  -- exact match
-                    AND (@SectionId    IS NULL OR sectionId    = @SectionId)                                 -- direct match on CTE column
+                    AND (@SectionCode    IS NULL OR section    = @SectionCode)                                 -- direct match on CTE column
                     AND (@IsScheduled  IS NULL OR isScheduled  = @IsScheduled)                               -- direct match on AMP.IsScheduled
                     AND (ISNULL(@SearchMaintenanceType, '') = '' OR LOWER(mtceType) = LOWER(@SearchMaintenanceType))  -- exact match; NULL for INSTALLED rows
             ),

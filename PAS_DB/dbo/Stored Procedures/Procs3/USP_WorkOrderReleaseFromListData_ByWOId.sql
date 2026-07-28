@@ -242,7 +242,9 @@ BEGIN
 				,UPPER(lcf.[Description])
 				,lcf.[Reference]
 				,1                                                               -- Quantity (no rollup on logbook)
-				,NULL                                                            -- Batchnumber
+				,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber)
+					  ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END
+				 END                                                             -- Batchnumber
 				,lcf.[status]
 				,CASE WHEN ISNULL(lcf.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
 						TRY_CAST(REPLACE(lcf.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
@@ -287,6 +289,7 @@ BEGIN
 				,lcf.IsAircraftLogBook
 			FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON lcf.workOrderPartNoId = wop.Id
+			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			WHERE lcf.[WorkorderId] = @WorkorderId;
 		END
 

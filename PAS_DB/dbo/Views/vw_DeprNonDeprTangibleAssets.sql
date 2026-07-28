@@ -1,4 +1,6 @@
-﻿CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
+﻿
+
+CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
 AS
 SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[TangibleClassId]
@@ -36,10 +38,10 @@ SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[UpdatedDate]
       ,AAT.[IsActive]
       ,AAT.[IsDeleted]	  	  
-	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT SelectedCompanyIds FROM [dbo].[AssetAttributeType] AMM WHERE AMM.AssetAttributeTypeId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
+	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT LegalEntityId FROM [dbo].[DeprNonDeprTangibleAssets] AMM WITH(NOLOCK) WHERE AMM.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
 				LEFT JOIN [DBO].[LegalEntity] I ON ss.Item = I.LegalEntityId
 		FOR XML PATH('')), 1, 1, '') 'LegalEntity'
-	  ,AAT.SelectedCompanyIds
+	  ,AAT.LegalEntityId
   FROM [dbo].[DeprNonDeprTangibleAssets] AAT WITH (NOLOCK)
   LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
   LEFT JOIN [dbo].[AssetDepreciationMethod] ADM WITH (NOLOCK) ON AAT.AssetDeprMethodId = ADM.AssetDepreciationMethodId

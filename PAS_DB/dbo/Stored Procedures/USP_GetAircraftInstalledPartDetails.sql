@@ -41,6 +41,7 @@
    25	18/07/2026	  Amit Ghediya		Return IsFromAircraft as its own output column (was only used
                                         internally for the CASE branching above) so the UI can tell, per
                                         row, whether it's an aircraft- or engine-installed component.
+   26   27/07/2026   Amit Ghediya		Get Worksheet from mapping table [PN-17396]
 *******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -205,7 +206,6 @@ BEGIN
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY AircraftInstalledPartDetailsId ORDER BY CreatedDate DESC) AS RN FROM dbo.WorksheetHeader WITH (NOLOCK)) WSH ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND WSH.RN = 1
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
@@ -247,6 +247,13 @@ BEGIN
 				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 				ORDER BY WOP_inner.ID DESC 
 			) AS WOP
+			OUTER APPLY (
+                SELECT TOP (1) W.WorksheetNumber, W.WorksheetHeaderId
+                FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK)
+				INNER JOIN [dbo].[WorksheetHeader] W WITH (NOLOCK) ON W.WorksheetHeaderId = WSM.WorksheetHeaderId
+                WHERE WSM.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+                ORDER BY W.CreatedDate DESC
+            ) WSH
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE 
 			--	AIPD.IsFromAircraft = ISNULL(@IsFromAircraft, 1)

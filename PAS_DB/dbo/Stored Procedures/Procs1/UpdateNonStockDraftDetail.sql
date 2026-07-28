@@ -14,10 +14,11 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** --   --------     -------		--------------------------------
     1    02/02/2022  Moin Bloch     Created
-	2    11/04/2025   Moin Bloch    Updated [QuantityReceived] in [PurchaseOrderPart] Table      
-     
+	2    11/04/2025   Moin Bloch    Updated [QuantityReceived] in [PurchaseOrderPart] Table
+	3    24/July/2026	 RAJESH GAMI	[PN-17350] - Converted legacy dbo.NonStockInventoryDraft/dbo.ItemMasterNonStock references to dbo.StocklineDraft/dbo.ItemMaster (ISNULL(IsNonStock,0)=1); mirrored the enrichment columns already populated for Stock rows in UpdateStocklineDraftDetail since both stock types now share the same StocklineDraft table
+
 -- EXEC [UpdateNonStockDraftDetail] 179
 ************************************************************************/
 CREATE PROCEDURE [dbo].[UpdateNonStockDraftDetail]
@@ -76,46 +77,36 @@ BEGIN
 	    --SET @LoopID = @LoopID - 1;
 	    --END 
 	    
-	    UPDATE dbo.NonStockInventoryDraft  SET ParentId = (SELECT TOP 1 S.NonStockInventoryDraftId FROM dbo.NonStockInventoryDraft S WITH (NOLOCK) WHERE 
-	    	                                S.NonStockDraftNumber = SDF.NonStockDraftNumber AND (ISNULL(IsParent,0) = 1))
-	    	  FROM dbo.NonStockInventoryDraft SDF WITH (NOLOCK)  WHERE SDF.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
-	     
+	    UPDATE dbo.StocklineDraft  SET ParentId = (SELECT TOP 1 S.StockLineDraftId FROM dbo.StocklineDraft S WITH (NOLOCK) WHERE
+	    	                                S.StockLineDraftNumber = SDF.StockLineDraftNumber AND (ISNULL(IsParent,0) = 1) AND ISNULL(S.IsNonStock,0) = 1)
+	    	  FROM dbo.StocklineDraft SDF WITH (NOLOCK)  WHERE SDF.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsNonStock,0) = 1
+
 	    UPDATE SD SET
 	    --SD.Level1 = PMS.Level1,
 	    --SD.Level2 = PMS.Level2,
 	    --SD.Level3 = PMS.Level3,
 	    --SD.Level4 = PMS.Level4,
-		PurchaseOrderNumber = PO.PurchaseOrderNumber,
-		PartNumber = POP.PartNumber,
-		PartDescription = POP.PartDescription,
-		CurrencyId = IMNS.CurrencyId,
-        Currency = CR.Code,
-		Condition = CO.[Description],  
-		GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')), 
-		UnitOfMeasure = UM.ShortName,	
 		Manufacturer = MF.[NAME],
-		--Acquired = IMNS.IsAcquiredMethodBuy, 
-		IsHazardousMaterial = IMNS.IsHazardousMaterial,
-		ItemNonStockClassificationId = IMNS.ItemNonStockClassificationId,
-		NonStockClassification = ICLF.ItemClassificationCode,
-		Site = S.[Name],	
+		Condition = CO.[Description],
 		Warehouse = WH.[Name],
-		Location = LC.[Name],	 
-		Shelf = SF.[Name],
-		Bin = B.[Name],
-		ShippingVia = SV.[Name],   
-		VendorId = PO.VendorId,
-		VendorName =  PO.VendorName,
-		RequisitionerId = PO.RequestedBy,
-		Requisitioner = PO.Requisitioner,
-		OrderDate = PO.OpenDate,
-		EntryDate =  PO.OpenDate
-	    FROM dbo.NonStockInventoryDraft SD WITH (NOLOCK)
+		[Location] = LC.[Name],
+		GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
+		LegalEntityName = LE.[Name],
+		ShelfName = SF.[Name],
+		BinName = B.[Name],
+		SiteName = S.[Name],
+		ShippingVia = SV.[Name],
+		ShelfLife = IM.ShelfLife,
+		OrderDate = PO.CreatedDate,
+		IsHazardousMaterial = IM.IsHazardousMaterial,
+		IsPMA = IM.IsPma,
+		IsDER = IM.IsDER,
+		OEM = IM.IsOEM,
+		UnitOfMeasure = UM.ShortName
+	    FROM dbo.StocklineDraft SD WITH (NOLOCK)
 	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 		LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId =  SD.PurchaseOrderID
-		LEFT JOIN dbo.ItemMasterNonStock IMNS WITH (NOLOCK) ON IMNS.MasterPartId =  SD.MasterPartId
-		LEFT JOIN dbo.ItemClassification ICLF WITH (NOLOCK) ON ICLF.ItemClassificationId =  SD.ItemNonStockClassificationId
-		LEFT JOIN dbo.Currency CR WITH (NOLOCK) ON CR.CurrencyId = IMNS.CurrencyId
+		LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId AND ISNULL(IM.IsNonStock,0) = 1
 		LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
 		LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = SD.GLAccountId
 		LEFT JOIN dbo.UnitOfMeasure  UM WITH (NOLOCK) ON UM.unitOfMeasureId = SD.UnitOfMeasureId
@@ -124,9 +115,10 @@ BEGIN
 		LEFT JOIN dbo.Warehouse WH WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
 	    LEFT JOIN dbo.[Location] LC WITH (NOLOCK) ON LC.LocationId = SD.LocationId
 		LEFT JOIN dbo.Shelf SF WITH (NOLOCK) ON SF.ShelfId = SD.ShelfId
-	    LEFT JOIN dbo.Bin B WITH (NOLOCK) ON B.BinId = SD.BinId	    
-	    LEFT JOIN dbo.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId    			
-	    WHERE SD.PurchaseOrderID = @PurchaseOrderId
+	    LEFT JOIN dbo.Bin B WITH (NOLOCK) ON B.BinId = SD.BinId
+	    LEFT JOIN dbo.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId = SD.LegalEntityId
+	    WHERE SD.PurchaseOrderID = @PurchaseOrderId AND ISNULL(SD.IsNonStock,0) = 1
 	    		
 	 --   UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) from dbo.NonStockInventory WITH (NOLOCK)
 	 --   where PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND isParent = 1)) FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)

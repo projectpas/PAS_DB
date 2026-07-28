@@ -1,14 +1,18 @@
-﻿CREATE  VIEW [dbo].[vw_MaintenanceType]
-AS 
-	SELECT 
-		MS.MaintenanceTypeId,
-		MS.MaintenanceType,
-		MS.Description,
-		MS.IsActive,
-		MS.IsDeleted,
-		MS.MasterCompanyId,
-		MS.CreatedBy,
-		MS.UpdatedBy,
-		MS.CreatedDate,
-		MS.UpdatedDate
-	FROM [dbo].[MaintenanceType] MS  WITH (NOLOCK)
+﻿
+CREATE VIEW [dbo].[vw_MaintenanceType]
+AS
+SELECT
+    MaintenanceTypeId as MaintenanceTypeId,
+    MaintenanceType as MaintenanceType,
+    MaintenanceType as Description,
+    '' as Memo,
+    MasterCompanyId,
+    CreatedBy,
+    UpdatedBy,
+    CreatedDate,
+    UpdatedDate,
+    IsActive,
+    IsDeleted
+FROM dbo.MaintenanceType
+WHERE ISNULL(IsDeleted, 0) = 0
+    AND ISNULL(IsActive, 0) = 1;

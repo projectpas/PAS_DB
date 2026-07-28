@@ -21,6 +21,7 @@
     3   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 
 EXECUTE   [dbo].[usp_GetVendorUtilizationReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -153,19 +154,17 @@ BEGIN
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
           ON POP.workorderid = WO.workorderid
         LEFT JOIN DBO.Customer C WITH (NOLOCK)
           ON WO.CustomerId = C.CustomerId
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK)
           ON POP.itemmasterid = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0
            LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK)
           ON POP.PurchaseOrderId = WOM.POId
         LEFT JOIN DBO.itemmaster IM1 WITH (NOLOCK)
           ON WOM.itemmasterid = IM1.itemmasterid
-         AND ISNULL(IM1.IsNonStock,0) = 0
            INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = PO.ManagementStructureId
 
@@ -231,7 +230,7 @@ BEGIN
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
+          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1
 	   LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
           ON POP.salesorderid = SO.SalesOrderId
 	    LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON POP.salesorderid = SOP.SalesOrderId
@@ -239,11 +238,9 @@ BEGIN
           ON SO.CustomerId = C.CustomerId
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK)
           ON POP.itemmasterid = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0
            LEFT JOIN DBO.itemmaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.itemmasterid
           AND (SOP.ItemMasterId = POP.ItemMasterId)
-         AND ISNULL(IM2.IsNonStock,0) = 0
            INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = PO.ManagementStructureId
 

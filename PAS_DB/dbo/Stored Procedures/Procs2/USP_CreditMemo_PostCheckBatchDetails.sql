@@ -35,6 +35,7 @@
 	19   03-07-2025   Moin Bloch        Changed Old To New Billing Table
 	20	 06/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	20   09/July/2026     RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	21   23/July/2026     RAJESH GAMI      [PN-17350] - Removed leftover IsNonStock=0 exclusion filter on the SalesOrder-linked branch (SalesOrderPartV1/Stockline). The ExchangeSalesOrder-only branch was left untouched, out of scope.
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -282,7 +283,7 @@ BEGIN
 						FROM [dbo].[BillingInvoicingItems] SOBII WITH(NOLOCK) 
 							JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SubReferenceId
 							JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
-						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId AND ISNULL(SL.IsNonStock,0) = 0
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId
 
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))

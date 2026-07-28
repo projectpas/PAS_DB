@@ -22,6 +22,7 @@
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
      
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
@@ -62,10 +63,9 @@ BEGIN
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId
 						INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkorderId and wowf.WorkOrderPartNoId = wop.ID
 						INNER JOIN WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
-						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
-						 AND ISNULL(imtR.IsNonStock,0) = 0
 						 LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
 						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.PurchaseUnitOfMeasureId
@@ -76,7 +76,7 @@ BEGIN
 						LEFT JOIN Bin bn WITH (NOLOCK) on bn.BinId = sl.BinId
 						LEFT JOIN PurchaseOrder po WITH (NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
-					WHERE wopt.PickTicketId = @WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
+					WHERE wopt.PickTicketId = @WOPickTicketId ;
 				END
 			COMMIT  TRANSACTION
 

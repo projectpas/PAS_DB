@@ -26,6 +26,7 @@
 	9    04/25/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
 	10   02/05/2026   Hemant Saliya		Handle -ve Adjustment cost issue
 	11   09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   23/July/2026   RAJESH GAMI		[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
@@ -119,7 +120,7 @@ BEGIN
 		FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON WOMS.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMS.RepairOrderId
-			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOM.POId AND POP.ItemMasterId = WOM.ItemMasterId AND (POP.ConditionId = WOM.ConditionCodeId OR (pop.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOM.ProvisionId = @exchangeProvisionId))
 			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
 			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOM.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
@@ -146,7 +147,7 @@ BEGIN
 		FROM [DBO].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMSK ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
 			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON WOMSK.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMSK.RepairOrderId
-			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMSK.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMSK.StockLineId = SL.StockLineId
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOMK.POId AND POP.ItemMasterId = WOMK.ItemMasterId AND POP.ConditionId = WOMK.ConditionCodeId
 			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
 			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOMK.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
@@ -268,7 +269,7 @@ BEGIN
 		FROM [DBO].[Stockline] SL WITH(NOLOCK)
 			JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
 			JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId			
-		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId AND ISNULL(SL.IsNonStock,0) = 0;
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
 		SELECT @OutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))), 
 			   @ReserveOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
@@ -276,7 +277,7 @@ BEGIN
 		FROM [DBO].[Stockline] SL WITH(NOLOCK)
 			JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
 			JOIN [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId			
-		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId AND ISNULL(SL.IsNonStock,0) = 0;
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
 		SET @OutSideServiceCost = ISNULL(@OutSideServiceMaterialsCost, 0) + ISNULL(@OutSideServiceKitCost, 0);
 		SET @ReserveOutSideServiceCost = ISNULL(@ReserveOutSideServiceMaterialsCost, 0) + ISNULL(@ReserveOutSideServiceKitCost, 0);

@@ -1,4 +1,4 @@
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -27,6 +27,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition)
 ** 17   09/Mar/2026 Moin Bloch		    Updated OutGoingPartDescription PN-15681 
 ** 18   29/05/2026  Ayushi Patel        Strip time portion from CSN, CSO fields (remove ':00' suffix)
+** 19   22/07/2026  Abhishek Jirawla    Taking value of TSN,CSN,TSO and CSO from TimeLife
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
@@ -119,10 +120,10 @@ BEGIN
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
-			wop.TSN as TSN,              
-			CASE WHEN CHARINDEX(':', ISNULL(wop.CSN, '')) > 0 THEN LEFT(wop.CSN, CHARINDEX(':', wop.CSN) - 1) ELSE wop.CSN END AS CSN,
-			wop.TSO as TSO,              
-			CASE WHEN CHARINDEX(':', ISNULL(wop.CSO, '')) > 0 THEN LEFT(wop.CSO, CHARINDEX(':', wop.CSO) - 1) ELSE wop.CSO END AS CSO,
+			TL.TSN as TSN,              
+			CASE WHEN CHARINDEX(':', ISNULL(TL.CSN, '')) > 0 THEN LEFT(TL.CSN, CHARINDEX(':', TL.CSN) - 1) ELSE TL.CSN END AS CSN,
+			TL.TSO as TSO,              
+			CASE WHEN CHARINDEX(':', ISNULL(TL.CSO, '')) > 0 THEN LEFT(TL.CSO, CHARINDEX(':', TL.CSO) - 1) ELSE TL.CSO END AS CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              
@@ -219,6 +220,18 @@ BEGIN
 			FROM [dbo].[WorkOrder] wo WITH(NOLOCK)              
 			INNER JOIN [dbo].[WorkOrderWorkFlow] wf WITH(NOLOCK) ON wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 			INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.ID = wf.WorkOrderPartNoId
+			OUTER APPLY
+				(
+					SELECT TOP (1)
+						   tl.TimeSinceNew AS TSN,
+						   tl.CyclesSinceNew AS CSN,
+						   tl.TimeSinceOVH AS TSO,
+						   tl.CyclesSinceOVH AS CSO
+					FROM dbo.TimeLife tl WITH (NOLOCK)
+					WHERE tl.StockLineId = wop.StockLineId
+					  AND tl.MasterCompanyId = wop.MasterCompanyId
+					ORDER BY tl.TimeLifeCyclesId DESC      -- or CreatedDate DESC
+				) TL
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0 AND woq.IsActive = 1 AND woq.IsDeleted = 0       
 			LEFT JOIN [dbo].[WorkOrderShipping] shippingInfo WITH(NOLOCK) ON shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=wop.ID              
 			LEFT JOIN [dbo].[CustomerBillingAddress]  billToSiteatt WITH(NOLOCK) ON shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId              
@@ -235,7 +248,7 @@ BEGIN
 			 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = wop.RevisedItemmasterid            
 			 AND ISNULL(imtr.IsNonStock,0) = 0
 			  LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = wop.WorkOrderPriorityId              
-			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0              
+			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0      
 			LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = wop.TechnicianId              
 			LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId              
 			LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            

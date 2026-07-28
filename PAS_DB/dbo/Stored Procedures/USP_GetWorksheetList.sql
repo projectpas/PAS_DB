@@ -13,6 +13,7 @@
 ** 4    22/05/2026    Priyansh Patel    Fixed the employee and time filters [PN-16536]
 ** 5    26/05/2026    Priyansh Patel    Fixed the issue with time [PN-16588]
 ** 6    15/06/2026    Amit Ghediya		bind Wo Num, Ws Status [PN-16694]
+** 7    27/07/2026    Amit Ghediya		Remove VW_WorkScopeType
 
 
 ************************************************************/
@@ -72,7 +73,6 @@ BEGIN
                 WH.AircraftModelId,
                 WH.AircraftModel,
                 WH.AFHours,
-                --MT.WorkScopeCode AS InspectionType,
 				WH.InspectionType,
 				MC.MtcCategory AS MaintenanceCategory,
                 WH.InspectionDate,
@@ -114,7 +114,6 @@ BEGIN
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
             LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
             --LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
-			LEFT JOIN [dbo].[VW_WorkScopeType] MT WITH (NOLOCK) ON MT.WorkScopeId = WH.InspectionType AND MT.IsDeleted = 0
 			LEFT JOIN [dbo].[MaintenanceCategory] MC WITH (NOLOCK) ON MC.MtcCategoryId = WH.MtcCategoryId AND MC.IsDeleted = 0
             LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
@@ -145,7 +144,7 @@ BEGIN
 					OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END	LIKE '%' + @GlobalFilter + '%'
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
-                    OR MT.WorkScopeCode    LIKE '%' + @GlobalFilter + '%'
+                    OR WH.InspectionType    LIKE '%' + @GlobalFilter + '%'
 					OR MC.MtcCategory		LIKE '%' + @GlobalFilter + '%'
                     OR WP.DefectDescription LIKE '%' + @GlobalFilter + '%'
                     OR WP.MaintenanceAction LIKE '%' + @GlobalFilter + '%'

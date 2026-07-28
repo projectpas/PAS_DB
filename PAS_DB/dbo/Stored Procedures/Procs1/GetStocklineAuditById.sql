@@ -17,6 +17,7 @@
     1    12-Aug-2024    Rajesh Gami  Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/v.IsNonStock,0) = 0"
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 more leftover soft IsNonStock=0 exclusion (rPart alias) missed by the earlier PN-17009 bugfix pass.
 										 filters on the Stockline's own ItemMaster join and its self-correlated integration-
 										 portal subquery. This SP is already scoped to one exact @stocklineId, so these
 										 filters were silently blanking ItemMaster-derived fields for migrated Non-Stock
@@ -243,7 +244,6 @@ BEGIN
 			LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN [dbo].ItemMaster rPart WITH(NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId
-			 AND ISNULL(rPart.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].AssetAcquisitionType iaty WITH(NOLOCK) ON stl.AcquistionTypeId = iaty.AssetAcquisitionTypeId
 			LEFT JOIN [dbo].Employee empr WITH(NOLOCK) ON stl.RequestorId = empr.EmployeeId
 			LEFT JOIN [dbo].Employee empi WITH(NOLOCK) ON stl.InspectionBy = empi.EmployeeId

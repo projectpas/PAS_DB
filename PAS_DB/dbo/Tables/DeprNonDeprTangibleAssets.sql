@@ -1,28 +1,28 @@
 ﻿CREATE TABLE [dbo].[DeprNonDeprTangibleAssets] (
-    [DeprNonDeprTangibleAssetsId] BIGINT         IDENTITY (1, 1) NOT NULL,
-    [TangibleClassId]             BIGINT         NOT NULL,
-    [AssetAttributeTypeName]      VARCHAR (30)   NOT NULL,
-    [Description]                 VARCHAR (500)  NOT NULL,
-    [AssetDeprMethodId]           BIGINT         NOT NULL,
-    [CalibratedGLAccountId]       BIGINT         NULL,
-    [AcquiredGLAccountId]         BIGINT         NULL,
-    [DeprExpenseGLAccountId]      BIGINT         NULL,
-    [AccumDeprGLAccountId]        BIGINT         NULL,
-    [AssetSaleGLAccountId]        BIGINT         NULL,
-    [AssetWriteOffGLAccountId]    BIGINT         NULL,
-    [AssetWriteDownGLAccountId]   BIGINT         NULL,
-    [ManagementStructureId]       BIGINT         NULL,
-    [MasterCompanyId]             INT            NOT NULL,
-    [CreatedBy]                   VARCHAR (256)  NOT NULL,
-    [UpdatedBy]                   VARCHAR (256)  NOT NULL,
-    [CreatedDate]                 DATETIME2 (7)  CONSTRAINT [DF_DeprNonDeprTangibleAssets_CreatedDate] DEFAULT (getdate()) NOT NULL,
-    [UpdatedDate]                 DATETIME2 (7)  CONSTRAINT [DF_DeprNonDeprTangibleAssets_UpdatedDate] DEFAULT (getdate()) NOT NULL,
-    [IsActive]                    BIT            CONSTRAINT [DF_DeprNonDeprTangibleAssets_IsActive] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]                   BIT            CONSTRAINT [DF_DeprNonDeprTangibleAssets_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [SelectedCompanyIds]          VARCHAR (1000) NOT NULL,
-    [ResidualPercentage]          BIGINT         NULL,
-    [AssetLife]                   INT            NULL,
-    [DepreciationFrequencyId]     BIGINT         NULL,
+    [DeprNonDeprTangibleAssetsId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [TangibleClassId]             BIGINT        NOT NULL,
+    [AssetAttributeTypeName]      VARCHAR (30)  NOT NULL,
+    [Description]                 VARCHAR (500) NOT NULL,
+    [AssetDeprMethodId]           BIGINT        NOT NULL,
+    [CalibratedGLAccountId]       BIGINT        NULL,
+    [AcquiredGLAccountId]         BIGINT        NULL,
+    [DeprExpenseGLAccountId]      BIGINT        NULL,
+    [AccumDeprGLAccountId]        BIGINT        NULL,
+    [AssetSaleGLAccountId]        BIGINT        NULL,
+    [AssetWriteOffGLAccountId]    BIGINT        NULL,
+    [AssetWriteDownGLAccountId]   BIGINT        NULL,
+    [ManagementStructureId]       BIGINT        NULL,
+    [MasterCompanyId]             INT           NOT NULL,
+    [CreatedBy]                   VARCHAR (256) NOT NULL,
+    [UpdatedBy]                   VARCHAR (256) NOT NULL,
+    [CreatedDate]                 DATETIME2 (7) CONSTRAINT [DF_DeprNonDeprTangibleAssets_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]                 DATETIME2 (7) CONSTRAINT [DF_DeprNonDeprTangibleAssets_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]                    BIT           CONSTRAINT [DF_DeprNonDeprTangibleAssets_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                   BIT           CONSTRAINT [DF_DeprNonDeprTangibleAssets_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [LegalEntityId]               INT           NOT NULL,
+    [ResidualPercentage]          BIGINT        NULL,
+    [AssetLife]                   INT           NULL,
+    [DepreciationFrequencyId]     BIGINT        NULL,
     CONSTRAINT [PK_DeprNonDeprTangibleAssets] PRIMARY KEY CLUSTERED ([DeprNonDeprTangibleAssetsId] ASC),
     CONSTRAINT [FK_DeprNonDeprTangibleAssets_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_DeprNonDeprTangibleAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -32,7 +32,12 @@
 );
 
 
+
+
+
+
 GO
+
 CREATE   TRIGGER [dbo].[Trg_DeprNonDeprTangibleAssetsAudit] ON [dbo].[DeprNonDeprTangibleAssets]
    AFTER INSERT,UPDATE,DELETE
 AS
@@ -50,7 +55,7 @@ DECLARE @TangibleClassId BIGINT,@AssetDeprMethodId BIGINT,
 	@DepreciationFrequencyId=DepreciationFrequencyId,@ResidualPercentage=ResidualPercentage,@CalibratedGLAccountId=CalibratedGLAccountId,
 	@AcquiredGLAccountId=AcquiredGLAccountId,@DeprExpenseGLAccountId=DeprExpenseGLAccountId,@AccumDeprGLAccountId=AccumDeprGLAccountId,
 	@AssetSaleGLAccountId=AssetSaleGLAccountId,@AssetWriteOffGLAccountId=AssetWriteOffGLAccountId,@AssetWriteDownGLAccountId=AssetWriteDownGLAccountId,
-	@LegalEntityIds=SelectedCompanyIds,@DeprNonDeprTangibleAssetsId=DeprNonDeprTangibleAssetsId FROM INSERTED
+	@LegalEntityIds=LegalEntityId,@DeprNonDeprTangibleAssetsId=DeprNonDeprTangibleAssetsId FROM INSERTED
 	SELECT @TangibleClass=TangibleClassName FROM TangibleClass WHERE TangibleClassId=@TangibleClassId
 	SELECT @AssetDepreciationMethodName=AssetDepreciationMethodName FROM AssetDepreciationMethod WHERE AssetDepreciationMethodId=@AssetDeprMethodId
 	SELECT @AssetDepreciationIntervalName=AssetDepreciationIntervalName FROM AssetDepreciationInterval WHERE AssetDepreciationIntervalId=@DepreciationFrequencyId

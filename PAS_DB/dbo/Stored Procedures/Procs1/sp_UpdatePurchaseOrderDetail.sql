@@ -24,6 +24,7 @@
 	3    11/14/2024	  Vishal Suthar		Fixed New table name in the Update statement
 	4    18/MAR/2025    RAJESH GAMI		Fixed QtyOnOrder update for the WorkorderMaterial and KIT
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover soft IsNonStock=0 exclusion filters (IM/AIM aliases) added during PN-17008 transitional Non-Stock merge phase.
 	6	15/July/2026			 RAJESH GAMI						[PN-17271] - Fixed: the Non-Stock branch of the PartNumber/
 									PartDescription CASE expression still joined the legacy
 									dbo.ItemMasterNonStock table (aliased IMN, ON POP.ItemMasterId
@@ -326,7 +327,6 @@ BEGIN
 			  INNER JOIN dbo.Currency RC WITH (NOLOCK) ON RC.CurrencyId = POP.ReportCurrencyId
 			  LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId
 			  LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId
-			   AND ISNULL(IM.IsNonStock,0) = 0
 			   LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON POP.ItemMasterId = AST.AssetRecordId	
 			  LEFT JOIN dbo.ItemMaster IMNS WITH (NOLOCK) ON POP.ItemMasterId = IMNS.ItemMasterId
 			  LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = POP.GlAccountId
@@ -337,7 +337,6 @@ BEGIN
 			  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = POP.AltEquiPartNumberId
-			   AND ISNULL(AIM.IsNonStock,0) = 0
 			   LEFT JOIN dbo.Asset AAST WITH (NOLOCK) ON AAST.AssetRecordId = POP.AltEquiPartNumberId 
 			  LEFT JOIN dbo.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = POP.POPartSplitUserId
 			  LEFT JOIN dbo.Vendor VEN WITH (NOLOCK) ON VEN.VendorId = POP.POPartSplitUserId

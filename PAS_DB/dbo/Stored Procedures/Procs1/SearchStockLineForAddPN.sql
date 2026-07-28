@@ -22,6 +22,7 @@
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 **************************************************************/   
   
 CREATE   PROCEDURE [dbo].[SearchStockLineForAddPN]  
@@ -107,9 +108,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[CustomerName] VARCHAR(100) NULL
 		);
 
-		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
-
-		 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 		 SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 		INSERT INTO #ConditionGroup (ConditionId)
@@ -119,7 +118,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0 ;  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],
@@ -231,7 +230,7 @@ ELSE sl.ConditionId
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
 			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
-			AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0  
+			AND sl.IsParent = 1  
 	   
 	   --UNION  
   
@@ -339,7 +338,7 @@ ELSE sl.ConditionId
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
 				AND imps.ConditionId = c.ConditionId  
 		WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))  
-		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult) AND ISNULL(sl.IsNonStock,0) = 0;
+		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult);
 
 		SELECT * FROM #StockLineResult;
 	  END  

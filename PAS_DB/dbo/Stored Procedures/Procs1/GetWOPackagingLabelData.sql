@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
 	1    05/02/2025   Vishal Suthar		Created
 	2    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover soft IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 
 **************************************************************/
 CREATE   PROCEDURE [DBO].[GetWOPackagingLabelData]
@@ -97,7 +98,7 @@ BEGIN
 		LEFT JOIN DBO.WorkOrderShipping sos WITH (NOLOCK) ON sosi.WorkOrderShippingId = sos.WorkOrderShippingId
 		LEFT JOIN DBO.WorkOrderBillingInvoicing sobi WITH (NOLOCK) ON sos.WorkOrderShippingId = sobi.WorkOrderShippingId AND ISNULL(sobi.IsVersionIncrease, 0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) != 1
 		LEFT JOIN DBO.Employee saemp WITH (NOLOCK) ON wo.SalesPersonId = saemp.EmployeeId
-		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON part.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
+		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON part.StockLineId = qs.StockLineId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 		LEFT JOIN DBO.CustomerDomensticShippingShipVia custship WITH (NOLOCK) ON sos.CustomerDomensticShippingShipViaId = custship.CustomerDomensticShippingShipViaId

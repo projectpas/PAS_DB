@@ -1,4 +1,4 @@
-/************************************************************
+﻿/************************************************************
 ** File:        [USP_GetAircraftPublicationList]
 ** Author:      Amit Ghediya
 ** Description: Get Aircraft Registry data from Aircraft Publication List Data
@@ -22,6 +22,7 @@
 **                                      aircraft's row showed the SAME globally-latest WS/WO across
 **                                      all of them instead of its own (e.g. a worksheet created only
 **                                      for AR-000037 was showing up against other aircraft too).
+	8    27/07/2026 Amit Ghediya		Get Worksheet from mapping table [PN-17396]
 ************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetAircraftPublicationList]
     @PageNumber         INT             = 1,
@@ -161,8 +162,8 @@ BEGIN
                 SELECT TOP (1)
                        WSH.WorksheetNumber, WSH.WorksheetHeaderId, WSH.CreatedDate, WSH.CreatedBy
                 FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
-                LEFT JOIN dbo.WorksheetHeader WSH WITH (NOLOCK)
-                       ON WSH.ProgramId = AMP.ProgramId
+				LEFT JOIN dbo.[WorksheetMapping] WSM WITH (NOLOCK) ON WSM.ProgramId = AMP.ProgramId
+                INNER JOIN dbo.WorksheetHeader WSH WITH (NOLOCK) ON WSM.ProgramId = WSM.ProgramId AND WSH.WorksheetHeaderId = WSM.WorksheetHeaderId
                 WHERE AMP.AircraftPublicationId = AP.AircraftPublicationId
                   AND AMP.AircraftRegistryId    = AR.AircraftRegistryId
                 ORDER BY WSH.CreatedDate DESC, WSH.WorksheetHeaderId DESC
@@ -184,8 +185,8 @@ BEGIN
             OUTER APPLY (
                 SELECT TOP (1)
                     CASE
-                        WHEN AMP.ProgramId IS NULL OR WSH.WorksheetHeaderId IS NULL THEN NULL
-                        WHEN WSH.WorksheetHeaderId IS NULL THEN 'Open'
+                        WHEN AMP.ProgramId IS NULL OR WSM.WorksheetHeaderId IS NULL THEN NULL
+                        WHEN WSM.WorksheetHeaderId IS NULL THEN 'Open'
                         WHEN WOP2.WorkOrderId IS NULL THEN 'Open'
                         WHEN ISNULL(WO2.WorkOrderStatusId, 0) = 2 THEN 'Closed'
                         WHEN UPPER(ISNULL(WOP2.WorkOrderStatus, '')) = 'CLOSED' THEN 'Closed'
@@ -196,8 +197,9 @@ BEGIN
                         ELSE 'In Process'
                     END AS WorkSheetStatus
                 FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
+				LEFT JOIN [dbo].[WorksheetMapping] WSM WITH (NOLOCK) ON WSM.ProgramId = AMP.ProgramId
                 LEFT JOIN dbo.WorksheetHeader WSH WITH (NOLOCK)
-                       ON WSH.ProgramId = AMP.ProgramId
+                       ON WSH.ProgramId = WSM.ProgramId AND WSH.WorksheetHeaderId = WSM.WorksheetHeaderId
                 LEFT JOIN dbo.WorkOrderPartNumber WOP2 WITH (NOLOCK)
                        ON WOP2.ProgramId = AMP.ProgramId
                 LEFT JOIN dbo.WorkOrder WO2 WITH (NOLOCK)

@@ -14,6 +14,8 @@
     1    16/07/2026   Moin Bloch     Created
 	2    21/07/2026   Moin Bloch 	 Added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 	3    22/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level Scrap Certificate Generation
+	4    27/07/2026   Moin Bloch 	 Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
+
 
 	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 4189,247,2
 **************************************************************/
@@ -177,7 +179,7 @@ BEGIN
 						ISNULL(wosd.[SubWOPartNoId],0) AS SubWOPartNoId,
 						ISNULL(wosd.[SubWorkOrderSettlementDetailId],0) AS SubWorkOrderSettlementDetailId,
 						CASE WHEN wos.[WorkOrderSettlementId] = @MaterialSettlement THEN CASE WHEN ISNULL(c.[qtyrequested], 0) = ISNULL(c.[qtyissued], 0) THEN 1 ELSE 0 END 
-							 WHEN wos.[WorkOrderSettlementId] = @LaborSettlement THEN CASE WHEN ISNULL(c.[IsLaborTrackingTurnedOff], 0) = 1 THEN 1 WHEN ISNULL(c.[IsLaborCompleled],0) <= 0 THEN 1 ELSE 0 END 
+							 WHEN wos.[WorkOrderSettlementId] = @LaborSettlement THEN CASE WHEN ISNULL(c.[IsLaborTrackingTurnedOff], 0) = 1 THEN 1 ELSE CASE WHEN ISNULL(c.[IsLaborCompleled],0) <= 0 THEN 1 ELSE 0 END END							
 							 WHEN wos.[WorkOrderSettlementId] = @AllToolsSettlement THEN CASE WHEN ISNULL(c.[AllToolsAreCheckOut],0) <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.[IsMastervalue] END AS IsMastervalue,
 						wosd.[Isvalue_NA],

@@ -153,7 +153,7 @@ BEGIN
 						  ,UPPER(lcf.[Description]) AS [Description]
 						  ,lcf.[Reference]
 						  ,lcf.[Quantity]
-						  ,NULL AS Batchnumber                                              
+						  ,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END END AS Batchnumber
 						  ,lcf.[status] AS [status]
 						  ,lcf.[Remarks]
 						  ,lcf.[Certifies]
@@ -195,6 +195,7 @@ BEGIN
 						  ,1 AS [IsFromLogBook]
 						FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 							  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+							  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						WHERE lcf.[WorkorderId] = @WorkorderId AND lcf.[workOrderPartNoId] = @workOrderPartNoId
  
 						ORDER BY [CreatedDate] DESC   
@@ -287,7 +288,7 @@ BEGIN
 						  ,UPPER(lcf.[Description]) AS [Description]
 						  ,lcf.[Reference]
 						  ,lcf.[Quantity]
-						  ,NULL AS Batchnumber                                              
+						  ,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END END AS Batchnumber
 						  ,lcf.[status] AS [status]
 						  ,lcf.[Remarks]
 						  ,lcf.[Certifies]
@@ -329,6 +330,7 @@ BEGIN
 						  ,1 AS [IsFromLogBook]
 					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					WHERE lcf.[WorkorderId] = @WorkorderId
 					  AND lcf.[workOrderPartNoId] = @workOrderPartNoId
 					  AND lcf.[LogbookCertificateFromId] = @ReleaseFromId
@@ -428,7 +430,7 @@ BEGIN
 								  ,UPPER(lcf.[Description]) AS [Description]
 								  ,lcf.[Reference]
 								  ,lcf.[Quantity]
-								  ,NULL AS Batchnumber                                              
+								  ,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END END AS Batchnumber
 								  ,lcf.[status] AS [status]
 								  ,lcf.[Remarks]
 								  ,lcf.[Certifies]
@@ -470,6 +472,7 @@ BEGIN
 								  ,1 AS [IsFromLogBook]
 								FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 									  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+									  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 								WHERE lcf.[WorkorderId] = @WorkorderId AND lcf.[workOrderPartNoId] = @workOrderPartNoId
 								ORDER BY [CreatedDate] DESC  
 						END
@@ -565,7 +568,7 @@ BEGIN
 								  ,UPPER(lcf.[Description]) AS [Description]
 								  ,lcf.[Reference]
 								  ,lcf.[Quantity]
-								  ,NULL AS Batchnumber                                              
+								  ,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END END AS Batchnumber
 								  ,lcf.[status] AS [status]
 								  ,lcf.[Remarks]
 								  ,lcf.[Certifies]
@@ -607,6 +610,7 @@ BEGIN
 								  ,1 AS [IsFromLogBook]
 							FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 								  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+								  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 							WHERE lcf.[WorkorderId] = @WorkorderId
 							  AND lcf.[workOrderPartNoId] = @workOrderPartNoId
 							  AND lcf.[LogbookCertificateFromId] = @ReleaseFromId

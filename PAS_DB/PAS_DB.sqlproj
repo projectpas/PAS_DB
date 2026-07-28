@@ -4770,6 +4770,7 @@
     <Build Include="dbo\Tables\DeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssetsAudit.sql" />
     <Build Include="dbo\Tables\ManagementDeprNonDeprTangibleAssets.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

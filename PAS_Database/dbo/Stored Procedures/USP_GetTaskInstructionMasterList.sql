@@ -14,11 +14,12 @@
 	4    10-Mar-2025		Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone
     5    11-Mar-2025		RAJESH GAMI      		IsDefaultInstruction Added
     6    10-July-2026		Priyansh Patel      	Added the tasks with no instruction also [PN-17039]
-
+    7    22-July-2026       Nakul Chandigra         Removed TaskId from the ORDER BY clause. Updated the key value alias to TaskSrNo and
+                                                    Changed the SequenceNumber column reference from TIM.[Sequence] to T.[Sequence]. {PN-17386}
 	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetTaskInstructionMasterList]
+CREATE     PROCEDURE [dbo].[USP_GetTaskInstructionMasterList]
 	@MasterCompanyId bigint = NULL,
 	@IsDeleted BIT,
 	@EmployeeId BIGINT
@@ -64,7 +65,7 @@ BEGIN
                 T.TaskId,
                 T.[Description] TaskName,
                 TIM.Title InstructionTitle,
-                TIM.SequenceNumber AS SequenceNumber,
+                T.[Sequence] AS SequenceNumber,
                 TIM.[Description] InstructionDetails,
                 TIM.MasterCompanyId,
                 T.CreatedBy,
@@ -77,7 +78,7 @@ BEGIN
                 ELSE (CAST(TIM.UpdatedDate AS DATETIME)) END UpdatedDate,
                 TIM.IsActive,
                 TIM.IsDeleted,
-                DENSE_RANK() OVER (ORDER BY T.TaskId) AS TaskSrNo,
+                T.[Sequence] AS TaskSrNo,
                 ISNULL(TIM.IsDefaultInstruction, 0) IsDefaultInstruction,
                 ISNULL(TIM.IsParentInstruction, 0) IsParentInstruction
             FROM dbo.Task T WITH (NOLOCK)
@@ -91,9 +92,9 @@ BEGIN
                 AND ISNULL(T.IsDeleted, 0) = @IsDeleted
         )
         SELECT * INTO #LeafTempTbl FROM CTE;
-        SELECT * FROM #LeafTempTbl ORDER BY TaskId, SequenceNumber;
+        SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
 		
-	END TRY    
+	END TRY     
 	BEGIN CATCH      
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()

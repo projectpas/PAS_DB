@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetReceiverStockROPNLabel]            
  ** Author:   
  ** Description: This stored procedure is used to get data for PN Label
@@ -20,6 +21,7 @@
 	4    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
 	5    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
     6    26 SEP 2025  RAJESH GAMI		Added EmployeeId
+	7    28/07/2027   Ayushi Patel      [PN-17459] return stockUnitOfMeaure Insted of purchaseUnitOfMeasure
 -- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
 
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
@@ -78,7 +80,7 @@ BEGIN
 				   i.partnumber,
 				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure AS UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
@@ -120,7 +122,7 @@ BEGIN
 				   i.partnumber,
 				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure AS UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,

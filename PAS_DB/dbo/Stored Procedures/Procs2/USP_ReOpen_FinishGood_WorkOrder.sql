@@ -26,7 +26,8 @@ Exec [ReverseWorkOrder]
 ** 15   06/25/2025  Moin Bloch		     Change Old To new Table
 ** 16   12/22/2025  Hemant Saliya        Handle Reopen Billing case for Posted Invoice.
 ** 17   27/03/2026  Moin Bloch	         Rename Internal To Internal Repair   PN-15850
-** 18   25/06/2026   Moin Bloch	         Replace To Common Accounting SP PN-16871
+** 18   25/06/2026  Moin Bloch	         Replace To Common Accounting SP PN-16871
+** 19   22/07/2026	Amit Ghediya		 Skip new stockline creation and existing stockline deactivation when WO IsFromAircraft = 1 [PN-16898]
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -65,6 +66,7 @@ AS
 	DECLARE @IsPaymentReceived BIT = NULL;
 	DECLARE @WOModuleId INT=0	
 	DECLARE @InvoiceStatusId BIGINT=0
+	DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -76,10 +78,10 @@ AS
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
-			SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			SELECT TOP 1 @WOTypeId = WorkOrderTypeId,@WorkOrderNum = WorkOrderNum, @IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
-			SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			--SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
@@ -109,7 +111,7 @@ AS
 					
 				IF(ISNULL(@IsPaymentReceived, 0) = 0)
 				BEGIN
-					IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+					IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsFromAircraft, 0) = 0) 
 					BEGIN
 						PRINT 'Update Stock Line Qty If Shipping is Done and Customer Stock'
 						/* Update Stock Line Qty If Shipping is Done and Customer Stock */
@@ -121,7 +123,7 @@ AS
 						WHERE StockLineId=@StockLineId
 					END
 
-					IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
+					IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId AND ISNULL(@IsFromAircraft, 0) = 0)
 					BEGIN
 						PRINT ' Update Stock Line Qty If Shipping is Done And not Customer Stock'
 						/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
@@ -130,6 +132,16 @@ AS
 							QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
 							UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
 							Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
+						WHERE StockLineId=@StockLineId
+					END
+
+					--For Aircraft
+					IF(ISNULL(@IsFromAircraft, 0) = 1)
+					BEGIN
+						 UPDATE Stockline SET 
+							QuantityAvailable = ISNULL(QuantityAvailable, 0) - 1,
+							QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
+							UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 						WHERE StockLineId=@StockLineId
 					END
 

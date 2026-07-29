@@ -11,6 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    07/05/2024   HEMANT SALIYA      Created  
+	2    22/07/2026	  Amit Ghediya       Skip update stockline when WO IsFromAircraft = 1 [PN-16898]
    
 exec dbo.USP_UpdateWorkOrderMPNStocklineQtyForShipping @WorkOrderPartNoId=3165, @WorkOrderId=3690,
 *************************************************************/   
@@ -34,13 +35,14 @@ BEGIN
 		DECLARE @WorkOrderStatusId INT;
 		DECLARE @WorkOrderNum VARCHAR(200);
 		DECLARE @UpdatedBy VARCHAR(200);
+		DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
 		
 
 		SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 		FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 		WHERE WOS.WorkOrderId = @WorkOrderId
 
-		SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId, @WorkOrderStatusId = WorkOrderStatusId, @UpdatedBy = UpdatedBy FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+		SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId, @WorkOrderStatusId = WorkOrderStatusId, @UpdatedBy = UpdatedBy, @IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 		SELECT TOP 1 @CustomerWOTypeId = Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'CUSTOMER'
 		SELECT @ClosedWorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE StatusCode = 'CLOSED'
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
@@ -54,14 +56,17 @@ BEGIN
 
 			IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 			BEGIN
-				/* Update Stock Line Qty to Zero If Shipping is Done and Customer Stock */
-				UPDATE Stockline SET 
-					QuantityOnHand = CASE WHEN ISNULL(QuantityOnHand, 0) > 0 THEN ISNULL(QuantityOnHand, 0) - 1 ELSE QuantityOnHand END,
-					QuantityAvailable = CASE WHEN ISNULL(QuantityAvailable, 0) > 0 THEN ISNULL(QuantityAvailable, 0) - 1 ELSE QuantityAvailable END,
-					QuantityReserved = CASE WHEN ISNULL(QuantityReserved, 0) > 0 THEN ISNULL(QuantityReserved, 0) - 1 ELSE QuantityReserved END,
-					UpdatedDate = GETUTCDATE(),
-					Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p> Updated Quntity From Close Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + ' Updated Quntity From Close Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
-				WHERE StockLineId = @StockLineId
+				IF(ISNULL(@IsFromAircraft, 0) = 0)
+				BEGIN
+					/* Update Stock Line Qty to Zero If Shipping is Done and Customer Stock */
+					UPDATE Stockline SET 
+						QuantityOnHand = CASE WHEN ISNULL(QuantityOnHand, 0) > 0 THEN ISNULL(QuantityOnHand, 0) - 1 ELSE QuantityOnHand END,
+						QuantityAvailable = CASE WHEN ISNULL(QuantityAvailable, 0) > 0 THEN ISNULL(QuantityAvailable, 0) - 1 ELSE QuantityAvailable END,
+						QuantityReserved = CASE WHEN ISNULL(QuantityReserved, 0) > 0 THEN ISNULL(QuantityReserved, 0) - 1 ELSE QuantityReserved END,
+						UpdatedDate = GETUTCDATE(),
+						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p> Updated Quntity From Close Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + ' Updated Quntity From Close Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
+					WHERE StockLineId = @StockLineId;
+				END
 
 				DECLARE @ActionId INT;
 				

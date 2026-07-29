@@ -21,6 +21,7 @@
 	6    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 	7    16-Apr-026   Bhargav Saliya        UOM Changes
 	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	9    07/29/2026   Bhargav Saliya	[PN-17467] Add @ItemTypeId param; optional filter by selected part's item type
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@PageNumber int = 1,
@@ -50,7 +51,8 @@ CREATE PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@ItemMasterId bigint = 0,
 	@MasterCompanyId bigint = 1,
 	@StatusValue varchar(50) = NULL,
-	@ConditionId VARCHAR(250) = NULL
+	@ConditionId VARCHAR(250) = NULL,
+	@ItemTypeId INT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -121,7 +123,8 @@ BEGIN
 			 LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId 								
 			 WHERE SOQ.MasterCompanyId = @MasterCompanyId
 			             AND SOQ.IsDeleted = 0
-			 	     AND SP.ItemMasterId = @ItemMasterId 	
+			 	     AND SP.ItemMasterId = @ItemMasterId
+			 	     AND (@ItemTypeId IS NULL OR IM.ItemTypeId = @ItemTypeId)
 			 	     AND (@ConditionId IS NULL OR SP.ConditionId IN (SELECT * FROM STRING_SPLIT(@ConditionId, ',')))
 			),  ResultCount AS (SELECT COUNT(SalesOrderQuoteId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM   Result

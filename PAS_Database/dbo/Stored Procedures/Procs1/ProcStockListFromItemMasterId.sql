@@ -19,6 +19,7 @@
     5    09 NOV 2023  Rajesh Gami    Add flag : @IsFromSOSOQ in the parameter and add code for the same for getting all the itemmaster from the dashboard (trading page SO SOQ)     
     6    07/16/2026   Bhargav Saliya  Apply UOM conversion (fn_ConvertUOM) on Qty & UnitCost columns (stock -> consume). UnitSalesPrice left as-is (already stored in consume UOM).
 	7    07/20/2026   Ayushi Patel    [PN-17343]Revert UOM conversion (fn_ConvertUOM) from Qty & UnitCost columns when @IsFromSOSOQ = 0
+	8    07/29/2026   Bhargav Saliya  [PN-17467] Add @ItemTypeId param; filter by selected part's item type (defaults to Stock when NULL)
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  
@@ -54,8 +55,9 @@ CREATE    PROCEDURE [dbo].[ProcStockListFromItemMasterId]
 @Location varchar(50) = NULL,
 @QuantityIssued varchar(50) = NULL,
 @QuantityReserved varchar(50) = NULL ,
-@IsFromSOSOQ bit = NULL
-AS      
+@IsFromSOSOQ bit = NULL,
+@ItemTypeId INT = NULL
+AS
 BEGIN       
      SET NOCOUNT ON;      
 	   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -130,7 +132,7 @@ BEGIN
 					 AND im.MasterCompanyId = @MasterCompanyId        
 				  AND im.ItemMasterId = @ItemMasterId       
 				  --AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
-				  AND im.ItemTypeId  = 1      
+				  AND im.ItemTypeId = ISNULL(@ItemTypeId, 1)      
 
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResultsSOQ FROM  Result      
@@ -193,7 +195,7 @@ BEGIN
 				  AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
 				  AND stl.IsParent = 1       
 				  AND stl.IsCustomerStock = 0       
-				  AND im.ItemTypeId  = 1      
+				  AND im.ItemTypeId = ISNULL(@ItemTypeId, 1)      
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResults FROM  Result      
 				 WHERE ((@GlobalFilter <>'' AND       
@@ -336,7 +338,7 @@ BEGIN
 				AND stl.IsParent = 1       
 				AND stl.QuantityOnHand > 0  
 				AND stl.IsCustomerStock = 0       
-				AND im.ItemTypeId  = 1      
+				AND im.ItemTypeId = ISNULL(@ItemTypeId, 1)      
 			  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 			  SELECT * INTO #TempResults_ALT FROM  Result      
 			   WHERE ((@GlobalFilter <>'' AND       

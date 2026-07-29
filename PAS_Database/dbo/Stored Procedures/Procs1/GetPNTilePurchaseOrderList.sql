@@ -12,6 +12,7 @@
 	3    05/12/2023   Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	4    12/04/2023   Jevik Raiyani		add @statusValue
 	5    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
+	6    07/29/2026   Bhargav Saliya		[PN-17467] Add @ItemTypeId param; filter by selected part's item type (defaults to Stock when NULL)
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
@@ -44,7 +45,8 @@ CREATE      PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @TagType VARCHAR(250) = NULL,
 @TaggedBy VARCHAR(250) = NULL,
 @TaggedDate datetime = NULL,
-@StatusValue varchar(50) = NULL
+@StatusValue varchar(50) = NULL,
+@ItemTypeId INT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -111,7 +113,7 @@ BEGIN
 				  AND PO.IsActive = 1	 
 				  AND PO.MasterCompanyId = @MasterCompanyId	
 				  AND POP.ItemMasterId = @ItemMasterId
-				  AND POP.ItemTypeId = @ItemTypeStock
+				  AND POP.ItemTypeId = ISNULL(@ItemTypeId, @ItemTypeStock)
 				  AND (@ConditionId IS NULL OR POP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

@@ -17,6 +17,7 @@
  1  12-July-2023   Devendra  created    
  2  13-July-2023   Devendra  changed sp for filtering 
  3  11/02/2025     Ayushi    converted the date into utc (updated) , Added a case to get timeZone
+ 4  07/29/2026     Bhargav Saliya  [PN-17467] Add @ItemTypeId param; optional filter by selected part's item type
          
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
@@ -45,7 +46,8 @@ CREATE   PROCEDURE [dbo].[GetPNTileStocklineHistoryList]
  @SubRefferenceNumber VARCHAR(50) = NULL,
  @QtyOnAction INT = NULL,
  @ConditionIds VARCHAR(250) = NULL,
- @EmployeeId bigint
+ @EmployeeId bigint,
+ @ItemTypeId INT = NULL
 AS
 BEGIN
  SET NOCOUNT ON;
@@ -109,6 +111,7 @@ BEGIN
  INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId
  LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
  WHERE IM.ItemMasterId = @ItemMasterId
+ AND (@ItemTypeId IS NULL OR IM.ItemTypeId = @ItemTypeId)
  AND (@ConditionIds IS NULL OR STL.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds, ',')))),
    FinalResult AS (
  SELECT ModuleName, StockLineNumber, RefferenceId, StklineHistoryId, ModuleId, StocklineId, QuantityAvailable, QuantityOnHand, QuantityReserved, QuantityIssued

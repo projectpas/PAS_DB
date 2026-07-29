@@ -23,6 +23,7 @@
 	8    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 	9    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
 	10   18/06/2026   Bhargav Saliya	    Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	11   07/29/2026   Bhargav Saliya		[PN-17467] Add @ItemTypeId param; optional filter by selected part's item type
 
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
@@ -55,7 +56,8 @@ CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@MasterCompanyId bigint=1,
 	@ConditionId VARCHAR(250) = NULL,
 	@StatusValue varchar(50) = NULL,
-	@SerialNumber varchar(50) = NULL
+	@SerialNumber varchar(50) = NULL,
+	@ItemTypeId INT = NULL
 
 AS
 BEGIN
@@ -131,6 +133,7 @@ BEGIN
 			   LEFT JOIN [dbo].[MasterSalesOrderStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.Id
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId
+				AND (@ItemTypeId IS NULL OR IM.ItemTypeId = @ItemTypeId)
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
 				AND (@ConditionId IS NULL OR SP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))

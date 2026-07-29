@@ -221,6 +221,8 @@
 
 
 
+
+
 GO
 CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
         ON [dbo].[ItemMaster]
@@ -330,3 +332,8 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMaster_ItemMasterId_Perf]
+    ON [dbo].[ItemMaster]([ItemMasterId] ASC)
+    INCLUDE([partnumber], [PartDescription], [ManufacturerId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

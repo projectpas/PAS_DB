@@ -154,5 +154,6 @@
     [PriceDate]                         DATETIME        NULL,
     [InWarranty]                        BIT             NULL,
     [MfgExpirationDate]                 DATETIME        NULL,
-    [IsMfgExpirationDate]               BIT             NULL);
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL);
 

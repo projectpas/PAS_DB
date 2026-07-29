@@ -20,6 +20,7 @@
 	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
 	11   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
+	12   29-July-2026   Ayushi Patel		Added New Field IsService [PN-17470]
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -202,7 +203,8 @@ BEGIN
 						ISNULL(iM.ListPrice,0) ListPrice,
 						Im.PriceDate,
 						ISNULL(iM.UnitCost,0) UnitCost,
-						ISNULL(iM.InWarranty,0) InWarranty
+						ISNULL(iM.InWarranty,0) InWarranty,
+						ISNULL(iM.IsService, 0) AS IsService
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

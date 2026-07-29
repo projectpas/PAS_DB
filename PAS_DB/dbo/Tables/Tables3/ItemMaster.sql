@@ -182,6 +182,7 @@
     [InWarranty]                        BIT             NULL,
     [MfgExpirationDate]                 DATETIME        NULL,
     [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -215,6 +216,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -333,7 +336,3 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
 GO
-CREATE NONCLUSTERED INDEX [IX_ItemMaster_ItemMasterId_Perf]
-    ON [dbo].[ItemMaster]([ItemMasterId] ASC)
-    INCLUDE([partnumber], [PartDescription], [ManufacturerId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
-

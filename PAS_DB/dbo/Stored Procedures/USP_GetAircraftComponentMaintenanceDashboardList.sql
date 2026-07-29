@@ -24,6 +24,7 @@
 ** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
 ** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
+** 8    08/07/2026	 Amit Ghediya  		  Allow to get aircraft data not engine data
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0

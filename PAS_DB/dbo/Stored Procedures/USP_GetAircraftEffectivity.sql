@@ -15,7 +15,7 @@ Exec [USP_GetAircraftEffectivity]
 ** --   --------    -------         --------------------------------  
    1    05/05/2026  Amit Ghediya		Created
    2    27/05/2026  Code Review		Apply IsActive and IsDeleted filters
-	 3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    4    14/07/2026  Amit Ghediya	Return ACPSectionId, ComponentSerialNum, ComponentToSerialNum for displayed component serial number [PN-17223]
 										
 

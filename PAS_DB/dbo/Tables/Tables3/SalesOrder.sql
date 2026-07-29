@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[SalesOrder] (
+CREATE TABLE [dbo].[SalesOrder] (
     [SalesOrderId]                  BIGINT          IDENTITY (1, 1) NOT NULL,
     [Version]                       INT             CONSTRAINT [DF__SalesOrde__Versi__05113BBC] DEFAULT ((1)) NOT NULL,
     [TypeId]                        INT             NOT NULL,
@@ -115,6 +115,8 @@
 
 
 
+
+
 GO
 
 
@@ -142,3 +144,19 @@ BEGIN
 
 END
 GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrder_MC_IsDel_Status_Perf]
+    ON [dbo].[SalesOrder]([MasterCompanyId] ASC, [IsDeleted] ASC, [StatusId] ASC)
+    INCLUDE([SalesOrderId], [SalesOrderNumber], [ContractReference], [OpenDate], [CustomerId], [CustomerName], [CustomerReference], [SalesPersonId], [SalesOrderQuoteId], [ManagementStructureId], [ShippedDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [MarketplaceRef]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrder_MC_IsDel_SOId_Perf]
+    ON [dbo].[SalesOrder]([MasterCompanyId] ASC, [IsDeleted] ASC, [SalesOrderId] DESC)
+    INCLUDE([StatusId], [CustomerId], [ManagementStructureId], [AccountTypeName]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrder_MC_IsDel_CreatedDate_Perf]
+    ON [dbo].[SalesOrder]([MasterCompanyId] ASC, [IsDeleted] ASC, [CreatedDate] DESC)
+    INCLUDE([SalesOrderId], [StatusId], [ManagementStructureId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

@@ -1325,7 +1325,7 @@ SET NOCOUNT ON;
 										WHERE WFD.WorkflowId = @WorkflowId 
 											AND ISNULL(WFD.IsTaskDetails, 0) = 0
 											AND WFD.TaskId = @WorkFlowTaskId
-											AND ISNULL(WFD.IsParent, 0) = 1
+											AND (ISNULL(WFD.IsParent, 0) = 1 OR ISNULL(WFD.ParentId, 0) = 0) --  Due to inconsistent data, identify parent instructions using either IsParent = 1 or a NULL ParentId.
 											AND ISNULL(WFD.IsActive, 0) = 1 
 											AND ISNULL(WFD.IsDeleted, 0) = 0
 									),
@@ -1347,6 +1347,7 @@ SET NOCOUNT ON;
 											AND ISNULL(WFD.IsTaskDetails, 0) = 0
 											AND WFD.TaskId = @WorkFlowTaskId
 											AND ISNULL(WFD.IsParent, 0) = 0
+											AND ISNULL(WFD.ParentId, 0) <> 0 -- Treat records as child instructions only when IsParent = 0 and a valid ParentId exists.
 											AND ISNULL(WFD.IsActive, 0) = 1 
 											AND ISNULL(WFD.IsDeleted, 0) = 0
 									)

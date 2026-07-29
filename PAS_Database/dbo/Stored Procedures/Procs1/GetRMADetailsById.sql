@@ -20,6 +20,7 @@
 	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.  
 	6    12/01/2026   Vishal Suthar   Fixed ambiguous column SerialNumber issue
 	7    17/07/2026   Nakul Chandigra Changed Stock UOM to Consume UOM for Qty.(PN-17257)
+	8    18/07/2026   Nakul Chandigra Changed Stock UOM to Consume UOM for [PartsUnitCost].(PN-17257)
 -- EXEC GetRMADetailsById 105
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[GetRMADetailsById]
@@ -64,7 +65,7 @@ BEGIN
 			  ,IM.ManufacturerName
 			  ,CRD.BillingInvoicingItemId,
 			 CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOBII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.QtyBilled, 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.MasterCompanyId) END as Qty
-			  , SOBII.UnitPrice As [PartsUnitCost],
+			  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOBII.UnitPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.UnitPrice, 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.MasterCompanyId) END as [PartsUnitCost],
 			 (SOBII.PartCost * -1) As [PartsRevenue], 
 			  0 AS [LaborRevenue], 
 			  (SOBII.MiscCharges * -1) AS [MiscRevenue], 

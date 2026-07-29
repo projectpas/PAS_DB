@@ -4,7 +4,7 @@ AS
 SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[TangibleClassId]
 	  ,ATC.[TangibleClassName] 'TangibleClassName'
-	  ,AAT.[AssetAttributeTypeName]
+	  ,AT2.[AssetAttributeTypeName]
 	  ,AAT.[Description] AS [Description]
       ,AAT.[AssetDeprMethodId]
 	  ,ADM.[AssetDepreciationMethodName] 'DepreciationMethodName'
@@ -36,12 +36,9 @@ SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[UpdatedBy]
       ,AAT.[UpdatedDate]
       ,AAT.[IsActive]
-      ,AAT.[IsDeleted]	  	  
-	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT SelectedCompanyIds FROM [dbo].[AssetAttributeType] AMM WHERE AMM.AssetAttributeTypeId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
-				LEFT JOIN [DBO].[LegalEntity] I ON ss.Item = I.LegalEntityId
-		FOR XML PATH('')), 1, 1, '') 'LegalEntity'
-	  ,AAT.LegalEntityId
+      ,AAT.[IsDeleted]
   FROM [dbo].[DeprNonDeprTangibleAssets] AAT WITH (NOLOCK)
+  LEFT JOIN [dbo].[AssetAttributeType] AT2 WITH (NOLOCK) ON AAT.AssetAttributeTypeId = AT2.AssetAttributeTypeId
   LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
   LEFT JOIN [dbo].[AssetDepreciationMethod] ADM WITH (NOLOCK) ON AAT.AssetDeprMethodId = ADM.AssetDepreciationMethodId
   LEFT JOIN [dbo].[Percent] PER WITH (NOLOCK) ON AAT.ResidualPercentage = PER.PercentId

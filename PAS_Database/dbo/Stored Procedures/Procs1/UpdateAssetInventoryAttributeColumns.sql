@@ -1,4 +1,29 @@
-﻿CREATE    PROCEDURE [dbo].[UpdateAssetInventoryAttributeColumns]
+﻿/*************************************************************
+ ** File:   [GetAssetDetailsByInventoryID]
+ ** Author:   Abhishek Jirawla
+ ** Description: This stored procedure is used to Update Asset Inventory Attribute Columns
+ ** Purpose:
+ ** Date:    UNKNOWN
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author				Change Description
+ ** --   --------     -------				--------------------------------
+    1    UNKNOWN	   UNKNOWN				Created
+	2	 29-07-2026	  Abhishek Jirawala		Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+											(never a DeprNonDeprTangibleAssetsId); joined dnta by its
+											AssetAttributeTypeId FK instead of its own PK. Dropped the
+											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+											always joined so its name always resolves.
+
+--  EXEC [UpdateAssetInventoryAttributeColumns] 1123
+**************************************************************/
+CREATE    PROCEDURE [dbo].[UpdateAssetInventoryAttributeColumns]
 	@AssetInventoryId int,
 	@AssetRecordId int
 
@@ -64,7 +89,7 @@ BEGIN
 						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
 						AI.CalibratedGLAccountId = DNTA.CalibratedGLAccountId,
 						AI.CalibratedGLAccountName = GLC.AccountCode +'-'+ GLC.AccountName,
-						AI.AssetAttributeTypeId = DNTA.DeprNonDeprTangibleAssetsId,
+						AI.AssetAttributeTypeId = Asset.AssetAttributeTypeId,
 						AI.AssetSaleGLAccountId = DNTA.AssetSaleGLAccountId,
 						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
 						AI.AssetWriteOffGLAccountId = DNTA.AssetWriteOffGLAccountId,
@@ -75,7 +100,7 @@ BEGIN
 						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.DeprNonDeprTangibleAssetsId = Asset.AssetAttributeTypeId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.AssetAttributeTypeId = Asset.AssetAttributeTypeId
 						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
 						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
 						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId

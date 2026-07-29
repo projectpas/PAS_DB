@@ -13,6 +13,11 @@
     1    2025-06-11		  Ayushi Patel				Created
     2    10 Dec 2025	  Rajesh Gami		        Getting UOM Decimal Places
     3    2026-07-22		  Vishal Suthar				Branch GL account resolution on Asset.AssetClassSource so
+    4    2026-07-29		  Abhishek Jirawala			Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+	                                                (never a DeprNonDeprTangibleAssetsId); joined dnd (DeprNonDeprTangibleAssets)
+	                                                by its AssetAttributeTypeId FK instead of its own PK, and sourced the
+	                                                Asset Class name from the joined AssetAttributeType row since
+	                                                DeprNonDeprTangibleAssets.AssetAttributeTypeName was removed.
 	exec [USP_GetAssetDetails] 214
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAssetDetails]
@@ -115,7 +120,7 @@ BEGIN
                     a.AssetMaintenanceIsContract,
                     parent.AssetId AS assetParentName,
                     a.AssetParentRecordId,
-                    dnd.AssetAttributeTypeName AS AssetType,
+                    aat.AssetAttributeTypeName AS AssetType,
                     a.TangibleClassId,
                     a.AssetLocationId,
                     loc.Name AS AssetLocationName,
@@ -164,7 +169,7 @@ BEGIN
                     ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
                     ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                     a.ManufacturerPN,
-                    dnd.AssetAttributeTypeName AS AssetAttributeType,
+                    aat.AssetAttributeTypeName AS AssetAttributeType,
                     ISNULL(dm.AssetDepreciationMethodName, '') AS DepreciationMethod,
                     CAST(NULL AS DECIMAL(18,2)) AS ResidualPer,
                     CAST(NULL AS INT) AS AssetLife,
@@ -183,7 +188,8 @@ BEGIN
                 LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
                 LEFT JOIN DBO.Asset parent WITH (NOLOCK) ON a.AssetParentRecordId = parent.AssetRecordId
                 LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
-                LEFT JOIN DBO.DeprNonDeprTangibleAssets dnd WITH (NOLOCK) ON a.AssetAttributeTypeId = dnd.DeprNonDeprTangibleAssetsId
+                LEFT JOIN DBO.DeprNonDeprTangibleAssets dnd WITH (NOLOCK) ON a.AssetAttributeTypeId = dnd.AssetAttributeTypeId
+                LEFT JOIN DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
                 LEFT JOIN DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
                 LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
                 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId

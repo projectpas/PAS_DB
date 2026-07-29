@@ -18,6 +18,11 @@
 	2    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
 	3	 30-01-2026	  Divyesh Kathiriya		Add "CalibrationCertificateNumber"
 	4	 15-07-2026	  Vishal Suthar			Fall back to DeprNonDeprTangibleAssets for AssetType
+	5	 29-07-2026	  Abhishek Jirawala		Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+											(never a DeprNonDeprTangibleAssetsId); joined dnta by its
+											AssetAttributeTypeId FK instead of its own PK. Dropped the
+											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+											always joined so its name always resolves.
 
 --  EXEC [GetAssetDetailsByInventoryID] 1123
 **************************************************************/
@@ -146,7 +151,7 @@ BEGIN
 			asset.AssetCalibrationExpectedTolerance,
 			asset.SerialNo,
 			ISNULL(manu.Name, '') AS ManufacturerName,
-			ISNULL(asty.AssetAttributeTypeName, ISNULL(dnta.AssetAttributeTypeName, '')) AS AssetType,
+			ISNULL(asty.AssetAttributeTypeName, '') AS AssetType,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			ISNULL(curr.Code, '') AS CurrencyName,
 			ISNULL(asset.IsInsurance, 0) AS IsInsurance,
@@ -348,8 +353,8 @@ BEGIN
 		LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON asset.CurrencyId = curr.CurrencyId
 		LEFT JOIN DBO.AssetAcquisitionType aacq WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
 		LEFT JOIN DBO.Asset astSrc WITH (NOLOCK) ON asset.AssetRecordId = astSrc.AssetRecordId
-		LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId AND (astSrc.AssetClassSource IS NULL OR astSrc.AssetClassSource = 'AssetAttributeType')
-		LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.DeprNonDeprTangibleAssetsId AND astSrc.AssetClassSource = 'DeprNonDeprTangibleAssets'
+		LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+		LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
 		LEFT JOIN DBO.GLAccount wgla WITH (NOLOCK) ON asset.WarrantyGLAccountId = wgla.GLAccountId
 		LEFT JOIN DBO.GLAccount mgla WITH (NOLOCK) ON asset.MaintenanceGLAccountId = mgla.GLAccountId
 		LEFT JOIN DBO.AssetLocation alo WITH (NOLOCK) ON asset.AssetLocationId = alo.AssetLocationId

@@ -15,9 +15,10 @@
 	2    21/07/2026   Moin Bloch 	 Added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 	3    22/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level Scrap Certificate Generation
 	4    27/07/2026   Moin Bloch 	 Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
+	5    28/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level PN-17434
 
 
-	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 4189,247,2
+	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 3827,170,2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderSettlementDetailsNew]
 @WorkorderId BIGINT,
@@ -185,9 +186,10 @@ BEGIN
 						wosd.[Isvalue_NA],
 						ISNULL(wosd.ConditionId,0) as [FinalConditionId],
 						wosd.conditionName [FinalConditionName],
-						Im.[partnumber],
+						CASE WHEN sop.[RevisedItemmasterid] > 0  THEN IMR.[partnumber] ELSE Im.[partnumber] END AS [PartNumber],
 						wosd.[RevisedItemmasterid] AS RevisedPartId,
-						IMR.[partnumber] AS RevisedPartNumber,						
+						IMR.[partnumber] AS RevisedPartNumber,		
+						sop.[ItemMasterId],
 						sop.[RevisedSerialNumber],	
 						CASE WHEN sop.[RevisedSerialNumber] IS NOT NULL AND sop.[RevisedSerialNumber] <> '' THEN sop.[RevisedSerialNumber] ELSE SL.[SerialNumber] END AS [SerialNumber],
 						ISNULL(sop.[IsTransferredToParentWO],0) AS [IsTransferredToParentWO],
@@ -202,7 +204,7 @@ BEGIN
 					LEFT JOIN [dbo].[SubWorkOrderPartNumber] sop WITH(NOLOCK) ON sop.[SubWOPartNoId] = wosd.[SubWOPartNoId]
 					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON sop.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[ItemMaster] Im WITH(NOLOCK) ON sop.[ItemMasterId] = Im.[ItemMasterId] AND ISNULL(Im.IsNonStock,0) = 0
-					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = wosd.[RevisedItemmasterid] AND ISNULL(IMR.IsNonStock,0) = 0
+					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = sop.[RevisedItemmasterid] AND ISNULL(IMR.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.[WorkOrderId] = sop.[SubWorkOrderId] AND SC.[workOrderPartNoId] = sop.[SubWOPartNoId]
 				WHERE wosd.[WorkOrderId] = @WorkorderId and wosd.[SubWorkOrderId] = @SubWorkOrderId
 
@@ -226,6 +228,7 @@ BEGIN
 					[WorkOrderId],
 					[SubWorkOrderId],
 					[SubWOPartNoId],
+					MAX([ItemMasterId]) AS [ItemMasterId],
 					MAX([partnumber]) AS [partnumber],
 					MAX([SerialNumber]) AS [SerialNumber],
 					MAX([RevisedPartId]) AS [RevisedPartId],

@@ -253,7 +253,7 @@
     [CurrencyId]                          BIGINT          NULL,
     [ItemNonStockClassificationId]        BIGINT          NULL,
     [NonStockClassification]              VARCHAR (100)   NULL,
-    [IsService]                           BIT             NULL,
+    [IsService]                           BIT             CONSTRAINT [DF_Stockline_IsService] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -270,6 +270,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

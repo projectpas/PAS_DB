@@ -255,11 +255,7 @@ SELECT
             ON #RptBase(IsPO, Id, PartID)
             INCLUDE (qtyOrdered, qtyReceived, qtyReconciled, unitCost, extCost,
                      masterCompanyId, CreatedDate, ReceivingReconciliationDetailId);
-
-        CREATE NONCLUSTERED INDEX IX_RptBase_MasterCompany_Date
-            ON #RptBase(masterCompanyId, CreatedDate DESC);
-
-        IF OBJECT_ID(N'tempdb..#GroupData') IS NOT NULL
+IF OBJECT_ID(N'tempdb..#GroupData') IS NOT NULL
             DROP TABLE #GroupData;
 
         SELECT *
@@ -302,7 +298,7 @@ SELECT
 						--cond,
 						Id, IsPO, PartID,qtyReconciled,ReceivingReconciliationDetailId
         ) GD
-        OPTION (RECOMPILE);
+        OPTION (HASH GROUP, RECOMPILE);
 
         CREATE CLUSTERED INDEX IX_GroupData_OrderPart
             ON #GroupData(IsPO, Id, PartID);

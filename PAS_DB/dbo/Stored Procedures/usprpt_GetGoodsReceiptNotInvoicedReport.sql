@@ -389,7 +389,7 @@ BEGIN
         INTO #OrderLevel
         FROM OrderLevel
         WHERE qtyRemaining > 0
-        OPTION (RECOMPILE);
+        OPTION (HASH GROUP, RECOMPILE);
 
         CREATE CLUSTERED INDEX IX_OrderLevel_MasterCompany_CreatedDate
             ON #OrderLevel(masterCompanyId, CreatedDate DESC);

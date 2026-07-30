@@ -1,8 +1,4 @@
-﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.usp_CreateVendorRFQPOFromEmail   (source: PAS_DB/dbo/Stored Procedures/usp_CreateVendorRFQPOFromEmail.sql)
--- ---------------------------------------------------------------------------------------------------
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_CreateVendorRFQPOFromEmail]           
  ** Author:   Vishal Suthar
  ** Description: Create Vendor RFQ PO from Email for A2Z
@@ -17,8 +13,9 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    02-June-2026   Vishal Suthar   Created
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
+	2    01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
+	4	 27-July-2026   Vishal Suthar   Modified to get matching conditions if does not found to get picked like RP, RPD, Repair, Repaired
 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -286,7 +283,8 @@ BEGIN
             (
                 PartNumber       NVARCHAR(200),
                 ManufacturerId   BIGINT,
-                ManufacturerName NVARCHAR(500)
+                ManufacturerName NVARCHAR(500),
+				PRIMARY KEY (PartNumber, ManufacturerId)
             );
 
             DECLARE
@@ -348,9 +346,18 @@ BEGIN
                     SET @LoopManufacturerId = SCOPE_IDENTITY();
                 END
 
-                -- Store resolved ManufacturerId against PartNumber
-                INSERT INTO @PartManufacturers (PartNumber, ManufacturerId, ManufacturerName)
-                VALUES (@LoopPartNumber, @LoopManufacturerId, @LoopManufacturer);
+                IF NOT EXISTS
+				(
+					SELECT 1
+					FROM @PartManufacturers
+					WHERE PartNumber = @LoopPartNumber
+						AND ManufacturerId = @LoopManufacturerId
+				)
+				BEGIN
+					-- Store resolved ManufacturerId against PartNumber
+					INSERT INTO @PartManufacturers (PartNumber, ManufacturerId, ManufacturerName)
+					VALUES (@LoopPartNumber, @LoopManufacturerId, @LoopManufacturer);
+				END
 
                 FETCH NEXT FROM mfg_cursor INTO @LoopPartNumber, @LoopManufacturer;
             END
@@ -382,6 +389,18 @@ BEGIN
             -- Uses per-part ManufacturerId from @PartManufacturers
             ------------------------------------------------------------
             DECLARE @NewItemMasters TABLE (ItemMasterId BIGINT);
+
+			;WITH DistinctParts AS
+			(
+				SELECT DISTINCT
+					LTRIM(RTRIM(p.PartNumber)) AS PartNumber,
+					ISNULL(LTRIM(RTRIM(p.Description)), 'N/A') AS Description,
+					pm.ManufacturerId,
+					pm.ManufacturerName
+				FROM @tbl_EmailParts p
+				INNER JOIN @PartManufacturers pm
+					ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+			)
 
             INSERT INTO dbo.ItemMaster
             (
@@ -420,7 +439,7 @@ BEGIN
                 im.IsOpenDateAvailable, im.OpenDays, im.IsShippedDateAvailable, im.ShippedDays,
                 im.IsOtherDateAvailable, im.OtherDays, im.IsDER, im.IsSchematic, im.OverhaulHours,
                 im.RPHours, im.TestHours, im.RFQTracking,
-                pm.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
+                dp.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
                 im.GLAccountId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId,
                 im.LeadTimeDays, im.ReorderPoint, im.ReorderQuantiy, im.MinimumOrderQuantity,
                 im.CurrencyId, im.PurchaseCurrencyId, im.SalesCurrencyId,
@@ -430,8 +449,8 @@ BEGIN
                 im.turnTimeMfg, im.turnTimeBenchTest, im.SiteId, im.ItemMasterAssetTypeId,
                 im.IsHotItem, im.IsAcquiredMethodBuy, im.IsOEM, im.MTBUR,
                 im.NE, im.NS, im.OH, im.REP, im.SVC,
-                LTRIM(RTRIM(p.PartNumber)),
-                ISNULL(LTRIM(RTRIM(p.Description)), 'N/A'),
+                LTRIM(RTRIM(dp.PartNumber)),
+                ISNULL(LTRIM(RTRIM(dp.Description)), 'N/A'),
                 1, 0,
                 im.InventoryGLSettingId, im.GoodsReceivedNotInvoicesGLAccId, im.WorkInProgressGLAccId,
                 im.InventoryToBillGLAccId, im.FinishedGoodsGLAccId, im.InventoryExchAgreementGLAccId,
@@ -443,17 +462,19 @@ BEGIN
                 im.COGS_WorkOrderGLAccName, im.COGS_SalesOrderGLAccName, im.COGS_QtyVarianceGLAccName,
                 im.COGS_UnitCostVarianceGLAccName, im.RevenueMroGLAccName, im.RevenueSoGLAccName,
                 im.RevenueExchGLAccName, im.COGS_ExchSalesOrderGLAccName
-            FROM @tbl_EmailParts p
-            INNER JOIN @PartManufacturers pm ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+			FROM DistinctParts dp
             CROSS JOIN dbo.ItemMaster im
             WHERE im.ItemMasterId = @TemplateItemMasterId
               AND NOT EXISTS
-              (
-                  SELECT 1 FROM dbo.ItemMaster x WITH (NOLOCK)
-                  WHERE x.MasterCompanyId = @MasterCompanyId
-                    AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
-					AND x.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-                    AND x.IsDeleted = 0 ) ;
+			  (
+				SELECT 1
+				FROM dbo.ItemMaster x
+				WHERE x.MasterCompanyId = @MasterCompanyId
+				  AND x.PartNumber = dp.PartNumber
+				  AND x.PartDescription = dp.Description
+				  AND x.ManufacturerId = dp.ManufacturerId
+				  AND x.IsDeleted = 0
+			  );
 
             ------------------------------------------------------------
             -- RUN UpdateItemMasterDetail FOR EACH NEW ITEM MASTER
@@ -473,6 +494,72 @@ BEGIN
             CLOSE im_cursor;
             DEALLOCATE im_cursor;
 
+			------------------------------------------------------------
+			-- CONDITION ALIAS MAPPING
+			------------------------------------------------------------
+			DECLARE @ConditionMapping TABLE
+			(
+				Alias NVARCHAR(100) PRIMARY KEY,
+				CanonicalCondition NVARCHAR(100)
+			);
+
+			INSERT INTO @ConditionMapping (Alias, CanonicalCondition)
+			VALUES
+			-- Repair / Repaired — collapsed to ONE canonical bucket.
+			-- Some companies (e.g. MasterCompanyId=1) only keep a single
+			-- condition row for this (Description='RP', Code='REPAIRED'),
+			-- so RP/REPAIR/RPD/REPAIRED must all resolve to the same target.
+			('RP', 'REPAIRED'),
+			('REPAIR', 'REPAIRED'),
+			('RPD', 'REPAIRED'),
+			('REPAIRED', 'REPAIRED'),
+
+			-- Overhaul
+			('OH', 'OVERHAULED'),
+			('OVERHAUL', 'OVERHAULED'),
+			('OVERHAULED', 'OVERHAULED'),
+
+			-- Serviceable
+			('SV', 'SVC'),
+			('SERVICEABLE', 'SVC'),
+			('SVC', 'SVC'),
+
+			-- As Removed
+			('AR', 'ASREMOVE'),
+			('AS REMOVED', 'ASREMOVE'),
+			('ASREMOVE', 'ASREMOVE'),
+
+			-- New
+			('NE', 'NEW'),
+			('NEW', 'NEW'),
+
+			-- New Surplus
+			('NS', 'NS'),
+			('NEW SURPLUS', 'NS'),
+
+			-- Beyond Economical Repair
+			('BER', 'BER'),
+
+			-- Exchange
+			('EXCHANGE', 'EXCHANGE'),
+
+			-- Inspection
+			('IN', 'INSPECTED'),
+			('INSPECTION', 'INSPECTED'),
+			('INSPECTED', 'INSPECTED'),
+
+			-- Evaluation
+			('EVALUATION', 'EVALUATION'),
+
+			-- Test
+			('FT', 'FT'),
+			('TEST', 'FT'),
+			('TESTED', 'FT'),
+
+			-- Modified
+			('MD', 'MD'),
+			('MODIFIED', 'MD');
+
             ------------------------------------------------------------
             -- 7. INSERT VendorRFQPurchaseOrderPart
             -- Uses per-part ManufacturerId from @PartManufacturers
@@ -488,7 +575,11 @@ BEGIN
                 im.ItemMasterId,
                 LTRIM(RTRIM(p.PartNumber)),
                 ISNULL(LTRIM(RTRIM(p.Description)), 'N/A'),
-                ISNULL(c.ConditionId, 0),
+                c.ConditionId,                  -- CHANGED: was ISNULL(c.ConditionId, 0) — a false "0" default
+                                                 -- was violating FK_VendorRFQPurchaseOrderPart_Condition whenever
+                                                 -- a condition failed to match. NULL fails safely if the column
+                                                 -- allows it; if not, point this at a real "unknown" ConditionId
+                                                 -- per company instead of 0.
                 c.Description,
                 pm.ManufacturerId,              -- per-part manufacturer
                 pm.ManufacturerName,
@@ -508,15 +599,20 @@ BEGIN
             FROM @tbl_EmailParts p
             INNER JOIN @PartManufacturers pm
                     ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
-            LEFT JOIN dbo.Condition c WITH (NOLOCK)
-                   ON c.MasterCompanyId = @MasterCompanyId
-                  AND c.IsActive = 1 AND c.IsDeleted = 0
-                  AND c.Description = UPPER(LTRIM(RTRIM(p.Condition)))
+			LEFT JOIN @ConditionMapping cm ON cm.Alias = UPPER(LTRIM(RTRIM(ISNULL(p.Condition, ''))))
+			LEFT JOIN dbo.Condition c WITH (NOLOCK) ON c.MasterCompanyId = @MasterCompanyId
+			    AND c.IsActive = 1
+			    AND c.IsDeleted = 0
+			    AND (                                                          -- CHANGED: match Description OR Code
+			        UPPER(LTRIM(RTRIM(c.Description))) = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
+			        OR UPPER(LTRIM(RTRIM(c.Code)))      = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
+			    )
             INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
                    ON im.MasterCompanyId = @MasterCompanyId
                   AND im.IsActive = 1 AND im.IsDeleted = 0
                   AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
                   AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
+				  AND im.ManufacturerId = pm.ManufacturerId
             WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '' ;
 
             -- 7a. Save part management structure details
@@ -556,14 +652,11 @@ BEGIN
      BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	   -- temp table drop
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
-	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 	   ,@AdhocComments VARCHAR(150) = 'usp_CreateVendorRFQPOFromEmail'
 	   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + ISNULL(CAST(@IntegrationEmailID AS VARCHAR(100)), '') + ''''
 	   ,@ApplicationName VARCHAR(100) = 'PAS'
-		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName
 			,@AdhocComments = @AdhocComments
 			,@ProcedureParameters = @ProcedureParameters

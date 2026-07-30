@@ -1,10 +1,10 @@
 ﻿
+
 CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssetsAudit]
 AS
 SELECT
 	[DAT].[AuditDeprNonDeprTangibleAssetsId] AS PkID,
 	[DAT].[DeprNonDeprTangibleAssetsId] AS ID,
-	LegalEntity = STUFF((SELECT ', ' + [Name] FROM dbo.LegalEntity LE WITH(NOLOCK) WHERE LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(DAT.SelectedCompanyIds,',')) FOR XML PATH('')), 1, 2, ''),
 	[ATY].[TangibleClassName] AS [Tangible Class],
 	[DAT].[AssetAttributeTypeName] AS [Name],
 	[DAT].[Description] AS [Description],

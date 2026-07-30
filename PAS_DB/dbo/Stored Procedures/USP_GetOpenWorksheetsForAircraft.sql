@@ -10,6 +10,7 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    24/07/2026  Amit Ghediya      Created
+** 2    30/07/2026  Amit Ghediya      Update for get MakeTypeId,ModelId data match Ws only [PN-17477]
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetOpenWorksheetsForAircraft]
     @PageNumber         INT          = 1,
@@ -25,9 +26,14 @@ BEGIN
 
     BEGIN TRY
 
+		DECLARE @MakeTypeId BIGINT = 0,
+				@ModelId BIGINT = 0;
+
         SET @PageNumber = CASE WHEN @PageNumber < 1 THEN 1 ELSE @PageNumber END;
         SET @PageSize   = CASE WHEN @PageSize < 1 THEN 10 WHEN @PageSize > 500 THEN 500 ELSE @PageSize END;
         SET @SortOrder  = CASE WHEN UPPER(@SortOrder) = 'ASC' THEN 'ASC' ELSE 'DESC' END;
+
+		SELECT @MakeTypeId = [MakeTypeId],@ModelId = [AircraftModelId] FROM [dbo].[AircraftRegistryHeader] WITH (NOLOCK) WHERE [AircraftRegistryId]  = @AircraftRegistryId
 
         ;WITH OpenWorksheets AS
         (
@@ -42,20 +48,17 @@ BEGIN
                 WH.CreatedDate,
                 COUNT_BIG(1) OVER () AS TotalRecords
             FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
-            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
-                ON ARH.AircraftRegistryId = WH.AircraftRegistryId
+            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = WH.AircraftRegistryId
                 AND ARH.MasterCompanyId = WH.MasterCompanyId
 				AND ISNULL(WH.IsFromAircraft,0) = 1
-			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK)
-                ON ERH.EngineRegistryId = WH.EngineRegistryId
+			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ERH.EngineRegistryId = WH.EngineRegistryId
                 AND ERH.MasterCompanyId = WH.MasterCompanyId
 				AND ISNULL(WH.IsFromAircraft,0) = 0
             LEFT JOIN [dbo].[WorkSheetStatus] WSS WITH (NOLOCK)
                 ON WSS.WorkSheetStatusId = WH.WorkSheetStatusId
-            WHERE 
-			--WH.AircraftRegistryId = @AircraftRegistryId
-             -- AND
-			  WH.MasterCompanyId = @MasterCompanyId
+            WHERE WH.MakeTypeId = @MakeTypeId 
+			  AND WH.AircraftModelId = @ModelId
+              AND WH.MasterCompanyId = @MasterCompanyId
               AND WH.IsDeleted = 0
               AND WH.WorkSheetStatusId = 1 -- Open
         )

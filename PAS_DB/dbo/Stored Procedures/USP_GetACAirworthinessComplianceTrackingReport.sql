@@ -13,9 +13,9 @@
 **  1    27/07/2026  Amit Ghediya		Created
 
 ************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetACAirworthinessComplianceTrackingReport]
+CREATE   PROCEDURE [dbo].[USP_GetACAirworthinessComplianceTrackingReport]
     @PageNumber         INT             = 1,
-    @PageSize           INT             = 10,
+    @PageSize           INT             = 20,
     @SortColumn         VARCHAR(100)    = 'AircraftPublicationId',
     @SortOrder          VARCHAR(4)      = 'DESC',
     @GlobalFilter       VARCHAR(100)    = NULL,

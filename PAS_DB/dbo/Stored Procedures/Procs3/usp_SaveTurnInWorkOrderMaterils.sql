@@ -31,6 +31,7 @@
    22   26/05/2026  Hemant Saliya        Lot Trans-In for tender stockline when MPN stockline is a Lot stockline  
    23   27/05/2026  Hemant Saliya        Performance optimization and code cleanup  
    24   29/05/2026  Nakul Chandigra      Added AircraftTail, AircraftSN field 
+   25   27/07/2025  SUMIT                Added notes field in material list [PN-16818]
 
    exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=0,@IsCustomerStock=0,
 @IsCustomerstockType=0,@ItemMasterId=557,@UnitOfMeasureId=1,@ConditionId=9,@Quantity=1,@IsSerialized=1,
@@ -86,7 +87,8 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
     @WorkOrderWorkflowId        BIGINT          = NULL,
     @IsMPNTendor                BIT             = 0,
     @AircraftTail VARCHAR(400) = NULL,  
-    @AircraftSN VARCHAR(30) = NULL
+    @AircraftSN VARCHAR(30) = NULL,
+    @Notes      NVARCHAR(MAX)   = NULL
 AS
 BEGIN
 
@@ -702,14 +704,14 @@ BEGIN
                     ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,
                     UnitCost, ExtendedCost, UnitPrice,
                     CreatedDate, CreatedBy, UpdatedDate, UpdatedBy,
-                    MasterCompanyId, IsActive, IsDeleted
+                    MasterCompanyId, IsActive, IsDeleted, Notes
                 )
                 SELECT
                     @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId,
                     @ConditionId, @Quantity, @Quantity, 0, 0,
                     0, 0, 0,
                     GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy,
-                    @MasterCompanyId, 1, 0
+                    @MasterCompanyId, 1, 0, @Notes
                 FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
                 WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
 
@@ -833,8 +835,7 @@ BEGIN
                     ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,
                     UnitCost, ExtendedCost, UnitPrice,
                     CreatedDate, CreatedBy, UpdatedDate, UpdatedBy,
-                    MasterCompanyId, IsActive, IsDeleted
-                )
+                    MasterCompanyId, IsActive, IsDeleted)
                 SELECT
                     @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId,
                     @ConditionId, @Quantity, @Quantity, 0, 0,

@@ -15,6 +15,8 @@
 	5    17-APR-2026       Priyansh Patel           Added AC Template releted Fields [PN-15968]
 	6    03-JUN-2026       Amit Ghediya             Added AC Template releted Fields MaintenanceClassId [PN-16668]
 	7    29-JUN-2026	   Moin Bloch		        Added MaintenanceType PN-17043
+	8    27-July-2026      SUMIT                    Added notes field in material list [PN-16818]
+
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
 	@tbl_WorkFlowType WorkFlowType READONLY,
@@ -727,19 +729,20 @@ BEGIN
 							[Target].[WFParentId] = [Source].[WFParentId],
 							[Target].[IsVersionIncrease] = ISNULL(@IsVersionIncrease,0),
 							[Target].[Figure] = [Source].[Figure],
-							[Target].[Item] = [Source].[Item]
+							[Target].[Item] = [Source].[Item],
+							[Target].[Notes] = [Source].[Notes]
 
 					WHEN NOT MATCHED THEN
 						INSERT (
 							[WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId],
 							[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId],
-							[WFParentId], [IsVersionIncrease], [Figure], [Item]
+							[WFParentId], [IsVersionIncrease], [Figure], [Item], [Notes]
 						)
 						VALUES (
 							@workFlowMainId, [Source].[ItemMasterId], [Source].[TaskId], [Source].[Quantity], [Source].[UnitOfMeasureId], [Source].[ConditionCodeId], [Source].[UnitCost], [Source].[ExtendedCost],
 							[Source].[Price], [Source].[ProvisionId], [Source].[IsDeferred], [Source].[WorkflowActionId], [Source].[Memo], @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(),
 							GETUTCDATE(), [Source].[IsActive], [Source].[IsDeleted], [Source].[MaterialMandatoriesName], [Source].[PartNumber], [Source].[PartDescription], [Source].[ItemClassificationId], [Source].[ExtendedPrice], [Source].[Order],
-							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item]
+							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item], [Source].[Notes]
 						);
 				END
 				ELSE
@@ -747,11 +750,11 @@ BEGIN
 					INSERT INTO [WorkflowMaterial](
 							[WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId],
 							[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId],
-							[WFParentId], [IsVersionIncrease], [Figure], [Item])
+							[WFParentId], [IsVersionIncrease], [Figure], [Item], [Notes])
 					SELECT	@workFlowMainId, [Source].[ItemMasterId], [Source].[TaskId], [Source].[Quantity], [Source].[UnitOfMeasureId], [Source].[ConditionCodeId], [Source].[UnitCost], [Source].[ExtendedCost],
 							[Source].[Price], [Source].[ProvisionId], [Source].[IsDeferred], [Source].[WorkflowActionId], [Source].[Memo], @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(),
 							GETUTCDATE(), [Source].[IsActive], [Source].[IsDeleted], [Source].[MaterialMandatoriesName], [Source].[PartNumber], [Source].[PartDescription], [Source].[ItemClassificationId], [Source].[ExtendedPrice], [Source].[Order],
-							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item]
+							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item], [Source].[Notes]
 					FROM @tbl_WorkflowMaterialType AS [Source];						
 				END
 			END
@@ -767,11 +770,11 @@ BEGIN
 				INSERT INTO [WorkflowMaterial](
 							[WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId],
 							[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId],
-							[WFParentId], [IsVersionIncrease], [Figure], [Item])
+							[WFParentId], [IsVersionIncrease], [Figure], [Item], [Notes])
 					SELECT	@NewWorkFlowMainId, [Source].[ItemMasterId], [Source].[TaskId], [Source].[Quantity], [Source].[UnitOfMeasureId], [Source].[ConditionCodeId], [Source].[UnitCost], [Source].[ExtendedCost],
 							[Source].[Price], [Source].[ProvisionId], [Source].[IsDeferred], [Source].[WorkflowActionId], [Source].[Memo], @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(),
 							GETUTCDATE(), [Source].[IsActive], [Source].[IsDeleted], [Source].[MaterialMandatoriesName], [Source].[PartNumber], [Source].[PartDescription], [Source].[ItemClassificationId], [Source].[ExtendedPrice], [Source].[Order],
-							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item]
+							[Source].[MaterialMandatoriesId], [Source].[WFParentId], 0, [Source].[Figure], [Source].[Item], [Source].[Notes]
 					FROM @tbl_WorkflowMaterialType AS [Source];	
 			END
 		END

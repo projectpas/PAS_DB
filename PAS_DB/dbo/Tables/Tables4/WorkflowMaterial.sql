@@ -31,6 +31,7 @@
     [IsVersionIncrease]       BIT             NULL,
     [Figure]                  NVARCHAR (50)   NULL,
     [Item]                    NVARCHAR (50)   NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_ProcessMaterial_1] PRIMARY KEY CLUSTERED ([WorkflowMaterialListId] ASC),
     CONSTRAINT [FK_WorkflowMaterial_ConditionCodeId] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkflowMaterial_ItemClassificationId] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),

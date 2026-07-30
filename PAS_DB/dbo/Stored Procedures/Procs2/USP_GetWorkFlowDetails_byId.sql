@@ -19,6 +19,7 @@
 	5	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
 	6    03-JUN-2026        Amit Ghediya            Added AC Template releted Fields MaintenanceClassId [PN-16668]
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6	 27-July-2026		SUMIT					Added notes field in material list [PN-16818]
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
@@ -172,7 +173,7 @@ BEGIN
 			LEFT JOIN [dbo].[EmployeeExpertise] EE WITH(NOLOCK) ON TMP.ExpertiseTypeId = EE.EmployeeExpertiseId
 
 			-- Getting WorkflowMaterial Details
-			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
+			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [Notes], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
 					[IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId], [WFParentId], [IsVersionIncrease], [Figure], [Item], @stockType AS [StockType], @ManufacturerName AS [ManufacturerName], @ItemClassification AS [ItemClassification],
 					@UnitOfMeasure AS [UnitOfMeasure], @Condition AS [ConditionName], @Provision AS Provision
 			INTO #tmpWorkflowMaterial FROM [dbo].[WorkflowMaterial] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]

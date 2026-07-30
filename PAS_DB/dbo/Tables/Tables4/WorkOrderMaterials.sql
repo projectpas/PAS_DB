@@ -53,6 +53,7 @@
     [EquPartMasterPartId]        BIGINT          NULL,
     [isfromsubWorkOrder]         BIT             NULL,
     [ExpectedSerialNumber]       VARCHAR (30)    NULL,
+    [Notes]                      NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderMaterials] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_WorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterials_IssuedById] FOREIGN KEY ([IssuedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -159,7 +160,7 @@ BEGIN
 
 	  ,[TotalStocklineQtyReq], [QtyOnOrder],[QtyOnBkOrder] ,[POId], [PONum], [PONextDlvrDate]
 
-      ,TaskName,PartNum,PartDescription,Condition,RequestType,Provision,ItemClassification,UOM,StockType,Figure,Item) 
+      ,TaskName,PartNum,PartDescription,Condition,RequestType,Provision,ItemClassification,UOM,StockType,Figure,Item,Notes) 
 
     SELECT [WorkOrderMaterialsId]
 
@@ -175,7 +176,7 @@ BEGIN
 
 	  ,[TotalStocklineQtyReq], [QtyOnOrder],[QtyOnBkOrder] ,[POId], [PONum], [PONextDlvrDate]
 
-      ,@TaskName,@PartNum,@PartDesc,@Condition,@RequestType,@Provision,@ItemClassification,@UOM,@StockType,Figure,Item
+      ,@TaskName,@PartNum,@PartDesc,@Condition,@RequestType,@Provision,@ItemClassification,@UOM,@StockType,Figure,Item,Notes
 
 	FROM INSERTED 
 

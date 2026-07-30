@@ -19,6 +19,7 @@
 	8	 09/July/2026		 RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9	 20/July/2026		 RAJESH GAMI			[PN-17350] - Eliminated legacy NonStockInventory reference; PO non-stock branch now reads Stockline filtered to IsNonStock = 1
 	10	 22/July/2026	Moin Bloch 			        [PN-17397] - Cost is displayed as 0.00 for Asset Repair Order (RO) receipts
+	11	 30/July/2026	Kishor Makwana				[PN-17492]  PERFORMANCE ONLY. No change to any returned row, column, value or column order.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
@@ -90,23 +91,38 @@ BEGIN
 		DECLARE @ROModuleID INT = 25;
 		SELECT @POModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'POHeader';
 		SELECT @ROModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ROHeader';
-
-		/* --------------START: Get the timzone and UTC offset -------------- */
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
-		SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
-		FROM dbo.Employee E WITH (NOLOCK) 
-		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-		WHERE E.EmployeeId = @UserEmployeeId;		
-				
-		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
-		/* -------------- END: Get the timzone and UTC offset -------------- */
   
 		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
 		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-		;WITH rptCTE ([vendor],[vendorCode],[poRoNum],[poStatus],
+		DECLARE @FromDateOnly DATE = CAST(@Fromdate AS DATE),
+				@ToDateExclusive DATETIME2 = DATEADD(DAY, 1, CAST(@Todate AS DATE));
+
+        IF OBJECT_ID(N'tempdb..#LevelFilter') IS NOT NULL DROP TABLE #LevelFilter;
+        CREATE TABLE #LevelFilter
+        (
+            LevelNo TINYINT NOT NULL,
+            Item BIGINT NOT NULL,
+            CONSTRAINT PK_LevelFilter PRIMARY KEY CLUSTERED (LevelNo, Item)
+        );
+
+        IF ISNULL(@level1,'')  <> '' INSERT INTO #LevelFilter SELECT 1,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level1,  ',');
+        IF ISNULL(@level2,'')  <> '' INSERT INTO #LevelFilter SELECT 2,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level2,  ',');
+        IF ISNULL(@level3,'')  <> '' INSERT INTO #LevelFilter SELECT 3,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level3,  ',');
+        IF ISNULL(@level4,'')  <> '' INSERT INTO #LevelFilter SELECT 4,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level4,  ',');
+        IF ISNULL(@level5,'')  <> '' INSERT INTO #LevelFilter SELECT 5,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level5,  ',');
+        IF ISNULL(@level6,'')  <> '' INSERT INTO #LevelFilter SELECT 6,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level6,  ',');
+        IF ISNULL(@level7,'')  <> '' INSERT INTO #LevelFilter SELECT 7,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level7,  ',');
+        IF ISNULL(@level8,'')  <> '' INSERT INTO #LevelFilter SELECT 8,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level8,  ',');
+        IF ISNULL(@level9,'')  <> '' INSERT INTO #LevelFilter SELECT 9,  CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level9,  ',');
+        IF ISNULL(@level10,'') <> '' INSERT INTO #LevelFilter SELECT 10, CONVERT(BIGINT, Item) FROM dbo.SPLITSTRING(@level10, ',');
+
+
+
+		IF OBJECT_ID(N'tempdb..#OrderLevel') IS NOT NULL
+            DROP TABLE #OrderLevel;
+
+        ;WITH rptCTE ([vendor],[vendorCode],[poRoNum],[poStatus],
 		[pn],[pnDescription],[stockType],
 		--[cond],
 			[qtyOrdered],[qtyReceived],[qtyReconciled],[qtyRemaining],[receivingReconNum],
@@ -150,11 +166,11 @@ BEGIN
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND ISNULL(STK.IsNonStock,0) = 0
-		LEFT JOIN DBO.Stockline NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId AND ISNULL(NSTK.IsNonStock,0) = 1
+		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId 
+		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND (STK.IsNonStock = 0 OR STK.IsNonStock IS NULL)
+		LEFT JOIN DBO.Stockline NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId AND NSTK.IsNonStock = 1
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = AI.PurchaseOrderPartRecordId
-		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
-		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId  
+		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId		 
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON PO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1 --AND ((ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
@@ -171,20 +187,19 @@ BEGIN
 			AND PO.[IsDeleted] = 0 
 			--AND ISNULL(POP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND ( (CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) OR (CAST(NSTK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) OR (CAST(AI.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)))  
-			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-			AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))    
-			AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))    
-			AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))    
-			AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))    
-			AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))    
-			AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))    
-			AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			AND ( (STK.[CreatedDate] >= @FromDateOnly AND STK.[CreatedDate] < @ToDateExclusive) OR (NSTK.[CreatedDate] >= @FromDateOnly AND NSTK.[CreatedDate] < @ToDateExclusive) OR (AI.[CreatedDate] >= @FromDateOnly AND AI.[CreatedDate] < @ToDateExclusive))  
+			AND (ISNULL(@level1,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 1 AND LF.Item = MSD.[Level1Id]))    
+			AND (ISNULL(@level2,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 2 AND LF.Item = MSD.[Level2Id]))    
+			AND (ISNULL(@level3,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 3 AND LF.Item = MSD.[Level3Id]))    
+			AND (ISNULL(@level4,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 4 AND LF.Item = MSD.[Level4Id]))    
+			AND (ISNULL(@level5,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 5 AND LF.Item = MSD.[Level5Id]))    
+			AND (ISNULL(@level6,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 6 AND LF.Item = MSD.[Level6Id]))    
+			AND (ISNULL(@level7,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 7 AND LF.Item = MSD.[Level7Id]))    
+			AND (ISNULL(@level8,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 8 AND LF.Item = MSD.[Level8Id]))    
+			AND (ISNULL(@level9,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 9 AND LF.Item = MSD.[Level9Id]))    
+			AND (ISNULL(@level10,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 10 AND LF.Item = MSD.[Level10Id]))
 
-			UNION
-
+			UNION ALL
 			SELECT
 			RO.VendorName AS 'vendor',
 			RO.VendorCode AS 'vendorCode',
@@ -223,10 +238,10 @@ BEGIN
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  AND ISNULL(ROP.[IsPiecePart], 0) = 0
-		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId AND ISNULL(STK.IsNonStock,0) = 0
+		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId
+		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId AND (STK.IsNonStock = 0 OR STK.IsNonStock IS NULL)
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = AI.RepairOrderPartRecordId
-
-		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId 
+		 
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND  RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2 --AND ((ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 
@@ -244,17 +259,17 @@ BEGIN
 			AND RO.[IsDeleted] = 0 
 			--AND ISNULL(ROP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND ( (CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) OR  (CAST(AI.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)))  
-			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-			AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))    
-			AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))    
-			AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))    
-			AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))    
-			AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))    
-			AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))    
-			AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			AND ( (STK.[CreatedDate] >= @FromDateOnly AND STK.[CreatedDate] < @ToDateExclusive) OR  (AI.[CreatedDate] >= @FromDateOnly AND AI.[CreatedDate] < @ToDateExclusive))  
+			AND (ISNULL(@level1,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 1 AND LF.Item = MSD.[Level1Id]))    
+			AND (ISNULL(@level2,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 2 AND LF.Item = MSD.[Level2Id]))    
+			AND (ISNULL(@level3,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 3 AND LF.Item = MSD.[Level3Id]))    
+			AND (ISNULL(@level4,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 4 AND LF.Item = MSD.[Level4Id]))    
+			AND (ISNULL(@level5,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 5 AND LF.Item = MSD.[Level5Id]))    
+			AND (ISNULL(@level6,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 6 AND LF.Item = MSD.[Level6Id]))    
+			AND (ISNULL(@level7,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 7 AND LF.Item = MSD.[Level7Id]))    
+			AND (ISNULL(@level8,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 8 AND LF.Item = MSD.[Level8Id]))    
+			AND (ISNULL(@level9,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 9 AND LF.Item = MSD.[Level9Id]))    
+			AND (ISNULL(@level10,'') = '' OR EXISTS (SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo = 10 AND LF.Item = MSD.[Level10Id]))
 		)
 		,GroupData AS
 				(
@@ -369,22 +384,33 @@ BEGIN
 						vendor, vendorCode, poRoNum, poStatus,
 						pn, pnDescription, stockType
 						--, cond
-				),
-				WithTotal ([masterCompanyId], [TotalExtCost]) 
-						AS (SELECT [masterCompanyId], 				
-						FORMAT(SUM([extCost]), 'N', 'en-us') [TotalExtCost]				
-						FROM OrderLevel 
-						WHERE qtyRemaining > 0
-						GROUP BY [masterCompanyId])
-				SELECT
-					COUNT(*) OVER() totalRecordsCount,
-					FC.*
-					,WC.TotalExtCost
-				FROM OrderLevel FC
-				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-				WHERE qtyRemaining > 0
-				ORDER BY CreatedDate DESC
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+				)
+        SELECT *
+        INTO #OrderLevel
+        FROM OrderLevel
+        WHERE qtyRemaining > 0
+        OPTION (RECOMPILE);
+
+        CREATE CLUSTERED INDEX IX_OrderLevel_MasterCompany_CreatedDate
+            ON #OrderLevel(masterCompanyId, CreatedDate DESC);
+
+        ;WITH WithTotal ([masterCompanyId], [TotalExtCost]) AS
+        (
+            SELECT masterCompanyId,
+                   FORMAT(SUM(extCost), 'N', 'en-us') AS TotalExtCost
+            FROM #OrderLevel
+            GROUP BY masterCompanyId
+        )
+        SELECT
+            COUNT(*) OVER() AS totalRecordsCount,
+            FC.*,
+            WC.TotalExtCost
+        FROM #OrderLevel FC
+        INNER JOIN WithTotal WC
+            ON FC.masterCompanyId = WC.masterCompanyId
+        ORDER BY FC.CreatedDate DESC
+        OFFSET((@PageNumber-1) * @pageSize) ROWS
+        FETCH NEXT @pageSize ROWS ONLY; 
     
 	END TRY
 	BEGIN CATCH    

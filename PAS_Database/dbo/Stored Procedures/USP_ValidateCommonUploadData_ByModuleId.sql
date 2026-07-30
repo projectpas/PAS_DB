@@ -59,6 +59,8 @@
 	49   21-May-2026        Bhargav Saliya          Fixed the parameter sequence issue and add and add case  @MaintenanceCategoryModule
 	50   11-June-2026       Nakul Chandigra         Added validation for RFQTraceability table.(PN-16803)
 	51   17-June-2026       Nakul Chandigra         Updated validation for ItemClassification Module  (PN-15952)
+	52	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -254,6 +256,18 @@ BEGIN
 		DECLARE @UserExits INT, @UserFirstLastExits INT;
 		DECLARE @LegalEntityId BIGINT;
 		DECLARE @Level1Id INT;
+		DECLARE @ModuleName VARCHAR(50);
+		DECLARE @maxlength INT;
+
+		SET @ModuleName = (SELECT [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE ImportModuleId = @ModuleId)
+		CREATE TABLE #ColumnInfo
+		(
+			ColumnName   VARCHAR(128),
+			DataType     VARCHAR(50),
+			MaxLength    INT NULL
+		);
+		INSERT INTO #ColumnInfo (ColumnName, DataType, MaxLength)
+		EXEC [dbo].[USP_GetVarcharLength] @ModuleName
 
 		SET @EmployeeMSId  = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		--SET @DropdownListTable = QUOTENAME(@DropdownListTable);
@@ -850,52 +864,16 @@ BEGIN
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-												WHEN @ModuleId = @AircraftStatusModule 
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @MaintenanceStatusModule  
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @AircraftStatusModule 
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @MaintenanceStatusModule  
-													 AND IMF.FieldName = 'Description'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘Description’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @AircraftStatusModule  
-													 AND IMF.FieldName = 'Description'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘Description’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @MaintenanceTypeModule  
-													 AND IMF.FieldName = 'MaintenanceType'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘MaintenanceType’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @MaintenanceClassModule  
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 256
-												THEN '‘Name’ exceeds 256 characters limit.'
-												WHEN @ModuleId = @AircraftSectionModule  
-													 AND IMF.FieldName = 'Section'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 256
-												THEN '‘Section’ exceeds 256 characters limit.'
-												
+												WHEN ISNULL(CI.MaxLength,0) > 0 
+													 AND ISNULL(TMP.FieldValue,'') <> '' 
+												     AND LEN(TMP.FieldValue) > CI.MaxLength
+												THEN '''' + IMF.HeaderName + ''' exceeds '+ CAST(CI.MaxLength AS VARCHAR(10))+ ' characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
 			FROM #ImportFields IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
+			LEFT JOIN #ColumnInfo CI ON CI.ColumnName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			
 			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule) 

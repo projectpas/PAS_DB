@@ -30,6 +30,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderPartCostAudit]
    ON  [dbo].[SalesOrderPartCost]
@@ -40,3 +42,14 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrderPartCost_SOId_Perf]
+    ON [dbo].[SalesOrderPartCost]([SalesOrderId] ASC, [SalesOrderPartId] ASC)
+    INCLUDE([NetSaleAmount], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrderPartCost_PartId_Perf]
+    ON [dbo].[SalesOrderPartCost]([SalesOrderPartId] ASC)
+    INCLUDE([NetSaleAmount], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

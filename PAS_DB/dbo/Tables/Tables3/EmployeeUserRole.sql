@@ -11,3 +11,8 @@
     PRIMARY KEY CLUSTERED ([EmployeeUserRoleId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_EmployeeUserRole_Emp_Role_Perf]
+    ON [dbo].[EmployeeUserRole]([EmployeeId] ASC, [RoleId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

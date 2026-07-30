@@ -19,7 +19,8 @@
  3  11/02/2025     Ayushi    converted the date into utc (updated) , Added a case to get timeZone
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-         
+	6    29/July/2026			 Bhargav Saliya					[PN-17350] - Removed leftover IsNonStock=0 exclusions (missed for this SP during the Non-Stock merge) so Non-Stock parts appear in the Stockline History tile
+
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
@@ -111,7 +112,7 @@ BEGIN
  INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId
  LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
  WHERE IM.ItemMasterId = @ItemMasterId
- AND (@ConditionIds IS NULL OR STL.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds, ','))) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ),
+ AND (@ConditionIds IS NULL OR STL.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds, ','))) ),
    FinalResult AS (
  SELECT ModuleName, StockLineNumber, RefferenceId, StklineHistoryId, ModuleId, StocklineId, QuantityAvailable, QuantityOnHand, QuantityReserved, QuantityIssued
   , QtyOnAction, TextMessage, UpdatedBy, UpdatedDate, [Action], SubModuleName, SubRefferenceNumber  FROM Result

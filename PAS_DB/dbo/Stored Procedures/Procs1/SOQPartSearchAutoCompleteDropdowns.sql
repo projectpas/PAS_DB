@@ -26,8 +26,10 @@
 										 filters from all 8 blocks); added ItemType ('Stock'/'Non-Stock') output column; Label
 										 suffix is now conditional (Stock)/(Non-Stock) instead of always (Stock).
 	7    20/July/2026				 RAJESH GAMI						[PN-17350] - Added a dedicated Non-Stock section (guarded by @CustRestrictedDer=0 AND @IncludeDER=0 AND @IncludePMA=0) since Non-Stock items have no meaningful OEM/PMA/DER classification and were never matched by any of the 8 existing blocks' IsOEM/IsPma/IsDER conditions (e.g. searching 'NS-15022022' returned nothing). Guarded with NOT EXISTS against #TempTable so no part can appear twice in the grid.
+	8	 29/July/2024  HEMANT SALIYA Handle for Non-Stock Cust Restricted PMA adn Cust Restricted DER.
+exec dbo.SOQPartSearchAutoCompleteDropdowns_Hem @CustomerId=14,@CustRestrictedDer=1,@CustRestrictedPMA=1,@IncludeDER=0,@IncludePMA=0,@IncludeAlternatePN=0,@IncludeEquiPN=0,@partSarchText=N'NS-15022022',@Idlist=N'',@MasterCompanyId=1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
+CREATE     PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
   @CustRestrictedDer BIT=0,
   @CustRestrictedPMA BIT=0,
@@ -254,8 +256,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 		--search call (not the PMA/DER-restriction-driven or Include-PMA/Include-DER calls),
 		--and never insert a part that a previous block already added, so the grid has no
 		--duplicate rows.
-		IF (@CustRestrictedDer = 0 AND @IncludeDER = 0 AND @IncludePMA = 0)
-		BEGIN
+		--IF (@CustRestrictedDer = 0 AND @IncludeDER = 0 AND @IncludePMA = 0)
+		--BEGIN
 		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
@@ -277,7 +279,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND ISNULL(im.IsNonStock,0) = 1
 			AND NOT EXISTS (SELECT 1 FROM #TempTable ExistingTT WHERE ExistingTT.PartId = im.ItemMasterId)
-		END
+		--END
 
 			 INSERT INTO #Result
 				SELECT

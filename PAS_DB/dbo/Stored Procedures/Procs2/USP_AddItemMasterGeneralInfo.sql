@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************           
  ** File:		 [USP_AddItemMasterGeneralInfo]           
  ** Author:		 Divyesh Kathiriya
@@ -16,7 +15,9 @@
 	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
 	4    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
 	5   01/July/2026			RAJESH GAMI [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
+	6   29-July-2026        Ayushi Patel		Added New Field IsService [PN-17470]
  -- EXEC [USP_AddItemMasterGeneralInfo] 
+ drop procedure [USP_AddItemMasterGeneralInfo]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
@@ -82,7 +83,7 @@ BEGIN
 				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
 			
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate])
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],[IsService])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -102,7 +103,7 @@ BEGIN
 				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
 				
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate]
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],ISNULL([IsService], 0)
 			FROM @tbl_ItemMasterTableType;
 			SET @ItemMasterId = SCOPE_IDENTITY();
 

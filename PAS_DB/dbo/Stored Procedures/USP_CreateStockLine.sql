@@ -19,6 +19,7 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Accept and persist IsNonStock, Currency, CurrencyId on Insert/Update
 	10    08/July/2026			 RAJESH GAMI						[PN-17009] - Accept and persist ItemNonStockClassificationId, NonStockClassification on Insert/Update
+	11   29/July/2026  Ayushi Patel     Added new field 'IsService' for Non-Stock items (1=Service, 0=Non-Service)[PN-17470]
 --   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -275,7 +276,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TotalCSN DECIMAL(18,2) = NULL,
 @TotalTSNMM DECIMAL(18,6) = NULL,
 @TotalCSNMM DECIMAL(18,6) = NULL,
-@Note NVARCHAR(MAX) = NULL
+@Note NVARCHAR(MAX) = NULL,
+@IsService BIT = NULL
 AS
 BEGIN
 
@@ -467,7 +469,7 @@ BEGIN
 			INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate]
 			   ,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]			   
 			   ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost]			   
-			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsNonStock],[Currency],[CurrencyId],[ItemNonStockClassificationId],[NonStockClassification],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]
+			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsNonStock],[Currency],[CurrencyId],[ItemNonStockClassificationId],[NonStockClassification],[IsService],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]
 			   ,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId]
 			   ,[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]			   
 			   ,[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber]			   
@@ -492,7 +494,7 @@ BEGIN
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
-               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsNonStock,@Currency,@CurrencyId,@ItemNonStockClassificationId,@NonStockClassification,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
+               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsNonStock,@Currency,@CurrencyId,@ItemNonStockClassificationId,@NonStockClassification,@IsService,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
                ,CASE WHEN @MSLegalEntityId > 0 THEN @MSLegalEntityId ELSE @LegalEntityId END,@MasterCompanyId ,@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@isSerialized,CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END
 			   ,CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END,@SiteId,@ObtainFromType,@OwnerType,@TraceableToType,@UnitCostAdjustmentReasonTypeId
                ,@UnitSalePriceAdjustmentReasonTypeId,@IdNumber,@QuantityToReceive,(ISNULL(@QuantityOnHand,0) * ISNULL(@PurchaseOrderUnitCost,0)),@ManufacturingTrace,@ExpirationDate,@AircraftTailNumber,ISNULL(@ShippingViaId,0),@EngineSerialNumber
@@ -640,6 +642,7 @@ BEGIN
                [CurrencyId] = @CurrencyId,
                [ItemNonStockClassificationId] = @ItemNonStockClassificationId,
                [NonStockClassification] = @NonStockClassification,
+			   [IsService] = @IsService,
                [IsPMA] = @IsPMA,
                [IsDER] = @IsDER,
                [IsOemPNId] = @IsOemPNId,

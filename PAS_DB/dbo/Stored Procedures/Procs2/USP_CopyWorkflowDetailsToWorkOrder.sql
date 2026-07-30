@@ -31,6 +31,7 @@
 	11   12-Feb-2026  HEMANT SALIYA		Handle NUll issue fro Copy Material Extended cost.
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
+	14	 27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -672,13 +673,13 @@ SET NOCOUNT ON;
 							DECLARE @ConditionCodeId BIGINT, @Item NVARCHAR(MAX),
 									@Figure NVARCHAR(MAX), @TaskId BIGINT, @Quantity INT, 
 									@UnitCost DECIMAL(18,2)=0, @ExtendedCost DECIMAL(18,2)=0, 
-									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX),
+									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX), @Notes NVARCHAR(MAX),
 									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
 							SELECT WM.ItemMasterId, WM.ConditionCodeId,
 							WM.ProvisionId, 
-							WM.Item, WM.Figure, WM.TaskId, WM.Quantity, ISNULL(WM.UnitCost, 0), ISNULL(WM.ExtendedCost, 0), WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
+							WM.Item, WM.Figure, WM.TaskId, WM.Quantity, ISNULL(WM.UnitCost, 0), ISNULL(WM.ExtendedCost, 0), WM.MaterialMandatoriesName, Memo, Notes, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
 							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
 							WHERE WM.WorkflowId = @WorkflowId AND ISNULL(WM.IsDeleted, 0) = 0
@@ -687,7 +688,7 @@ SET NOCOUNT ON;
 							OPEN newmaterial_cursors
 							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,
 							@TemplateProvisionId, 
-							@Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+							@Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @Notes, @IsDeferred, @WorkflowMaterialListId
 
 							WHILE @@FETCH_STATUS = 0
 							BEGIN
@@ -804,14 +805,14 @@ SET NOCOUNT ON;
 																		IsActive, IsDeleted, MasterCompanyId, WorkOrderId, WorkFlowWorkOrderId, 
 																		ItemMasterId, TaskId, ConditionCodeId, MaterialMandatoriesId, 
 																		ItemClassificationId, Quantity, UnitOfMeasureId, UnitCost, ExtendedCost, 
-																		Memo, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow)
+																		Memo, Notes, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow)
 										SELECT @createdBy, @createdBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 
 											   @masterCompanyId, @workOrderId, @WorkFlowWorkOrderId, @ItemMasterId, 
 											   CASE WHEN ISNULL(@IsTaskBasedWO, 0) > 0 THEN @MaterialsWorkOrderTaskId ELSE @TaskId END AS TaskId, 
 											   @ConditionCodeId, 
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, ISNULL(@UnitCost,0), ISNULL(@ExtendedCost, 0),
-											   @Memo, @IsDeferred, CASE WHEN @TemplateProvisionId > 0 THEN @TemplateProvisionId ELSE @DefaultProvisionId END, @Figure, @Item, 1
+											   @Memo, @Notes, @IsDeferred, CASE WHEN @TemplateProvisionId > 0 THEN @TemplateProvisionId ELSE @DefaultProvisionId END, @Figure, @Item, 1
 										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId  AND ISNULL(WFM.IsDeleted, 0) = 0
 										order by [Order]
 									END
@@ -819,7 +820,7 @@ SET NOCOUNT ON;
 
 								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,@TemplateProvisionId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,@TemplateProvisionId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @Notes, @IsDeferred, @WorkflowMaterialListId
 							END
 
 							CLOSE newmaterial_cursors

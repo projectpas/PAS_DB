@@ -4774,6 +4774,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportColumns.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
+    <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

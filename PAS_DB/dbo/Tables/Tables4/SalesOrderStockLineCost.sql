@@ -26,6 +26,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderStockLineCostAudit]
    ON  [dbo].[SalesOrderStockLineCost]
@@ -36,3 +38,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SOStockLineCost_StocklineId_Perf]
+    ON [dbo].[SalesOrderStockLineCost]([SalesOrderStocklineId] ASC)
+    INCLUDE([NetSaleAmount]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

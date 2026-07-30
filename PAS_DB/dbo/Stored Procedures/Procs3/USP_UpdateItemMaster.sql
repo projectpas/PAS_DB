@@ -18,6 +18,8 @@
 ** 5     19-Jun-2026   Moin Bloch       Fixed for Error Log PN-16924
    6	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    7	28-Jul-2026	Abhishek Jirawala	When IsTimeLife is turned on, cascade IsStkTimeLife = 1 to all StockLines of this ItemMaster with QuantityOnHand > 0
+   8    29-July-2026    Ayushi Patel	Added New Field IsService [PN-17470]
+   drop procedure USP_UpdateItemMaster
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] READONLY,
@@ -203,6 +205,7 @@ BEGIN
 		,i.InWarranty                       = PST.InWarranty
 		,i.MfgExpirationDate                = PST.MfgExpirationDate
 		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
+		,i.IsService						= ISNULL(PST.IsService, 0)
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

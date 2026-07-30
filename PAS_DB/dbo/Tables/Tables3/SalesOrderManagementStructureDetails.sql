@@ -38,6 +38,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderManagementStructureDetailsAudit]
    ON  [dbo].[SalesOrderManagementStructureDetails]
@@ -54,4 +56,9 @@ END
 GO
 CREATE NONCLUSTERED INDEX [IX_SOMSD_Module_Ref]
     ON [dbo].[SalesOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SOMSD_Module_Reference_Perf]
+    ON [dbo].[SalesOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 

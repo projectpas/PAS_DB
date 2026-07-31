@@ -18,7 +18,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster/Stockline IsNonStock=0 filters (2) to allow Non-Stock items in Stock Level Analysis Report
-	7    31-May-2026		Priyansh Patel			[PN-17228] - Fix the issue with record not coming when stockline created manually
+	7    31-July-2026		Priyansh Patel			[PN-17228] - Fix the issue with record not coming when stockline created manually
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 

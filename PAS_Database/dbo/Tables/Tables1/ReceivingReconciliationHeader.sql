@@ -43,6 +43,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_ReceivingReconciliationHeaderAudit]
    ON  [dbo].[ReceivingReconciliationHeader]
@@ -53,3 +55,14 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RRHeader_Vendor_Status]
+    ON [dbo].[ReceivingReconciliationHeader]([VendorId] ASC, [StatusId] ASC, [ReceivingReconciliationId] ASC)
+    INCLUDE([ReceivingReconciliationNumber]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRH_Vendor_Status]
+    ON [dbo].[ReceivingReconciliationHeader]([VendorId] ASC, [StatusId] ASC, [ReceivingReconciliationId] ASC)
+    INCLUDE([ReceivingReconciliationNumber]);
+

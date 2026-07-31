@@ -52,6 +52,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_ReceivingReconciliationDetailsAudit]
    ON  [dbo].[ReceivingReconciliationDetails]
@@ -62,3 +64,14 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RRDetails_Recon_Type_Order_Part]
+    ON [dbo].[ReceivingReconciliationDetails]([ReceivingReconciliationId] ASC, [Type] ASC, [PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRD_Recon_Type_Order_Part]
+    ON [dbo].[ReceivingReconciliationDetails]([ReceivingReconciliationId] ASC, [Type] ASC, [PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]);
+

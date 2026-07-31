@@ -1,8 +1,10 @@
 ﻿
 
+
 CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
 AS
 SELECT AAT.[DeprNonDeprTangibleAssetsId]
+	,AAT.[AssetAttributeTypeId]
       ,AAT.[TangibleClassId]
 	  ,ATC.[TangibleClassName] 'TangibleClassName'
 	  ,AT2.[AssetAttributeTypeName]

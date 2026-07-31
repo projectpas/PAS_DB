@@ -16,6 +16,7 @@
 	5    01-May-2026     Rajesh Gami				Added NonStock and ASSET Inventory [PN-16267]
 	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
 	7    27-Jul-2026     Bhargav					Convert reconciled qty (Stock UOM) back to Purchase UOM so partially-received PO rows are not hidden [PN-17360]
+	11	 30/July/2026	Kishor Makwana				[PN-17492]  PERFORMANCE ONLY. No change to any returned row, column, value or column order.
 EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
@@ -66,6 +67,20 @@ BEGIN
 		DECLARE @ROModuleID INT = 25;
 		SELECT @POModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'POHeader';
 		SELECT @ROModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ROHeader';
+        DECLARE @FromDateOnly DATE=CONVERT(DATE,@id), @ToDateExclusive DATETIME2=DATEADD(DAY,1,CONVERT(DATE,@id2));
+        IF OBJECT_ID(N'tempdb..#LevelFilter') IS NOT NULL DROP TABLE #LevelFilter;
+        CREATE TABLE #LevelFilter(LevelNo TINYINT NOT NULL,Item BIGINT NOT NULL,PRIMARY KEY CLUSTERED(LevelNo,Item));
+        IF ISNULL(@level1,'')<>'' INSERT #LevelFilter SELECT 1,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level1,',');
+        IF ISNULL(@level2,'')<>'' INSERT #LevelFilter SELECT 2,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level2,',');
+        IF ISNULL(@level3,'')<>'' INSERT #LevelFilter SELECT 3,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level3,',');
+        IF ISNULL(@level4,'')<>'' INSERT #LevelFilter SELECT 4,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level4,',');
+        IF ISNULL(@level5,'')<>'' INSERT #LevelFilter SELECT 5,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level5,',');
+        IF ISNULL(@level6,'')<>'' INSERT #LevelFilter SELECT 6,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level6,',');
+        IF ISNULL(@level7,'')<>'' INSERT #LevelFilter SELECT 7,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level7,',');
+        IF ISNULL(@level8,'')<>'' INSERT #LevelFilter SELECT 8,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level8,',');
+        IF ISNULL(@level9,'')<>'' INSERT #LevelFilter SELECT 9,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level9,',');
+        IF ISNULL(@level10,'')<>'' INSERT #LevelFilter SELECT 10,CONVERT(BIGINT,Item) FROM dbo.SPLITSTRING(@level10,',');
+
 
 		/* --------------START: Get the timzone and UTC offset -------------- */
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
@@ -147,17 +162,19 @@ BEGIN
 			AND PO.[IsDeleted] = 0 
 			--AND ISNULL(POP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND ( (CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)) OR (CAST(NSTK.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)) OR (CAST(AI.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)))  
-			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-			AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))    
-			AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))    
-			AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))    
-			AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))    
-			AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))    
-			AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))    
-			AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			AND ((STK.CreatedDate>=@FromDateOnly AND STK.CreatedDate<@ToDateExclusive) OR
+(NSTK.CreatedDate>=@FromDateOnly AND NSTK.CreatedDate<@ToDateExclusive) OR
+(AI.CreatedDate>=@FromDateOnly AND AI.CreatedDate<@ToDateExclusive))  
+			AND (ISNULL(@level1,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=1 AND LF.Item=MSD.[Level1Id]))    
+			AND (ISNULL(@level2,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=2 AND LF.Item=MSD.[Level2Id]))    
+			AND (ISNULL(@level3,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=3 AND LF.Item=MSD.[Level3Id]))    
+			AND (ISNULL(@level4,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=4 AND LF.Item=MSD.[Level4Id]))    
+			AND (ISNULL(@level5,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=5 AND LF.Item=MSD.[Level5Id]))    
+			AND (ISNULL(@level6,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=6 AND LF.Item=MSD.[Level6Id]))    
+			AND (ISNULL(@level7,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=7 AND LF.Item=MSD.[Level7Id]))    
+			AND (ISNULL(@level8,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=8 AND LF.Item=MSD.[Level8Id]))    
+			AND (ISNULL(@level9,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=9 AND LF.Item=MSD.[Level9Id]))    
+			AND (ISNULL(@level10,'') ='' OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=10 AND LF.Item=MSD.[Level10Id]))
 
 			UNION
 
@@ -217,17 +234,18 @@ BEGIN
 			AND RO.[IsDeleted] = 0 
 			--AND ISNULL(ROP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND ( (CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)) OR  (CAST(AI.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)))  
-			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-			AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))    
-			AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))    
-			AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))    
-			AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))    
-			AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))    
-			AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))    
-			AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			AND ((STK.CreatedDate>=@FromDateOnly AND STK.CreatedDate<@ToDateExclusive) OR
+(AI.CreatedDate>=@FromDateOnly AND AI.CreatedDate<@ToDateExclusive))  
+			AND (ISNULL(@level1,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=1 AND LF.Item=MSD.[Level1Id]))    
+			AND (ISNULL(@level2,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=2 AND LF.Item=MSD.[Level2Id]))    
+			AND (ISNULL(@level3,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=3 AND LF.Item=MSD.[Level3Id]))    
+			AND (ISNULL(@level4,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=4 AND LF.Item=MSD.[Level4Id]))    
+			AND (ISNULL(@level5,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=5 AND LF.Item=MSD.[Level5Id]))    
+			AND (ISNULL(@level6,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=6 AND LF.Item=MSD.[Level6Id]))    
+			AND (ISNULL(@level7,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=7 AND LF.Item=MSD.[Level7Id]))    
+			AND (ISNULL(@level8,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=8 AND LF.Item=MSD.[Level8Id]))    
+			AND (ISNULL(@level9,'') =''  OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=9 AND LF.Item=MSD.[Level9Id]))    
+			AND (ISNULL(@level10,'') ='' OR EXISTS(SELECT 1 FROM #LevelFilter LF WHERE LF.LevelNo=10 AND LF.Item=MSD.[Level10Id]))
 		)
 		,GroupData AS
 				(
@@ -357,6 +375,7 @@ BEGIN
 				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				WHERE qtyRemaining > 0
 				ORDER BY CreatedDate DESC
+                OPTION (RECOMPILE)
 	END TRY
 	BEGIN CATCH    
 	DECLARE @ErrorLogID int,    

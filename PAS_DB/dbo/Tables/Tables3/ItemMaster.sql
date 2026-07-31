@@ -182,7 +182,7 @@
     [InWarranty]                        BIT             NULL,
     [MfgExpirationDate]                 DATETIME        NULL,
     [IsMfgExpirationDate]               BIT             NULL,
-    [IsService]                         BIT             NULL,
+    [IsService]                         BIT             CONSTRAINT [DF_ItemMaster_IsService] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -216,6 +216,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

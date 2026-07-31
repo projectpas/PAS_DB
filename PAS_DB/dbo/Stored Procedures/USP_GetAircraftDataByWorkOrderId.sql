@@ -22,6 +22,7 @@
     4    27/JUL/2026  Abhishek Jirawala Removed the WO.IsFromAircraft=1 filter - that flag is actually set from
                                         the PART's own Aircraft/Engine discriminator (0 for Engine), so it was
                                         silently excluding every genuine Engine work order from the result set
+	5    30/JUL/2026  Amit Ghediya	   Get mm data from TTSNMM [PN-17127]
 
 
  EXEC USP_GetAircraftDataByWorkOrderId @WorkOrderId = 1, @workOrderPartNumberId = 1
@@ -60,7 +61,7 @@ BEGIN
                 WHEN ARH.AircraftRegistryId IS NOT NULL
                     THEN CAST(CAST(ARH.TotalTSN AS BIGINT) AS VARCHAR(20))
                          + ' : ' +
-                         CAST(CAST(ARH.TotalCSN AS BIGINT) AS VARCHAR(20))
+                         CAST(CAST(ARH.TotalTSNMM AS BIGINT) AS VARCHAR(20))
                 ELSE NULL
              END,
             -- Shared fields

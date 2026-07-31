@@ -183,6 +183,7 @@
     [InWarranty]                        BIT             NULL,
     [MfgExpirationDate]                 DATETIME        NULL,
     [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

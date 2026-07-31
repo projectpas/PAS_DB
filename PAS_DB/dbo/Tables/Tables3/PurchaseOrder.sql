@@ -79,6 +79,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_PurchaseOrderAudit]
 
@@ -103,3 +105,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrder_MC_IsDeleted_Perf]
+    ON [dbo].[PurchaseOrder]([MasterCompanyId] ASC, [IsDeleted] ASC)
+    INCLUDE([PurchaseOrderId], [VendorId], [VendorName], [VendorCode], [PurchaseOrderNumber], [Status]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

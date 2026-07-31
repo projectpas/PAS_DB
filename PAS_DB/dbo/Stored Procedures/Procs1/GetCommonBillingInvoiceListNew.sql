@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingInvoiceListNew]           
  ** Author:	  Moin Bloch
  ** Description: This SP is Used to get list of Invoices for Part    
@@ -22,7 +22,8 @@
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing/invoicing lists (WorkOrder branch untouched).
 	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
-**************************************************************/ 
+	12    31/July/2026			 Moin Bloch							[PN-17513] - Include Service/Non-Stock parts in SO billing list even when @AllowBillingBeforeShipping = 0 and no shipment has been done, since these items are never physically shipped.
+**************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
 @ReferenceId BIGINT = NULL,
@@ -281,7 +282,7 @@ BEGIN
 		BEGIN		
 			SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 			SELECT @SalesOrderShippingId = ISNULL(SalesOrderShippingId,0) FROM DBO.SalesOrderShipping SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
-						
+			
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 				BEGIN 
 					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
@@ -319,9 +320,42 @@ BEGIN
 					WHERE sop.SalesOrderId = @ReferenceId AND ISNULL(stk.StockLineId, 0) > 0
 					GROUP BY so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription,
 					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId)
+
+					-- Service / Non-Stock parts are never physically shipped, so include them even when no shipment has been done
+					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
+					(
+					SELECT DISTINCT so.SalesOrderNumber, im.partnumber,im.ItemMasterId, im.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	0 AS ItemNo,so.CustomerId
+					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0))
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK)
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId]
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId]
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId]
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0))
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK)
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId]
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId]
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId]
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
+					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
+					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+					INNER JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) = 1 AND ISNULL(im.[IsNonStock],0) = 1)
+					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId
+					WHERE sop.SalesOrderId = @ReferenceId
+					AND NOT EXISTS (
+						SELECT 1 FROM #InvoiceMainDetails imd
+						WHERE imd.ItemMasterId = sop.ItemMasterId AND imd.SubReferenceId = sop.SalesOrderPartId AND imd.ReferenceId = sop.SalesOrderId
+					)
+					GROUP BY so.SalesOrderNumber, im.partnumber,im.ItemMasterId, im.PartDescription,
+					sop.SalesOrderId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId)
 				END
 				ELSE
-				BEGIN					
+				BEGIN
 					IF (@SalesOrderShippingId > 0)
 					BEGIN 					
 						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])

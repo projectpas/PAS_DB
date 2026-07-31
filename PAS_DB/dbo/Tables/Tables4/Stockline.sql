@@ -420,3 +420,37 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_TaggedByName]
     ON [dbo].[Stockline]([TaggedByName] ASC)
     INCLUDE([TaggedByType], [TaggedByTypeName], [MasterCompanyId]) WHERE ([TaggedByName] IS NOT NULL);
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate], [RepairOrderUnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Created_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Created_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_ROPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_POPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

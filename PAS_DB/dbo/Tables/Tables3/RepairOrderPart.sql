@@ -133,6 +133,8 @@
 
 
 
+
+
 GO
 
 
@@ -161,3 +163,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RepairOrderPart_ROId_PiecePart_Perf]
+    ON [dbo].[RepairOrderPart]([RepairOrderId] ASC, [IsPiecePart] ASC)
+    INCLUDE([RepairOrderPartRecordId], [StockType], [QuantityOrdered], [QuantityReceived], [UnitCost], [FunctionalCurrency]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

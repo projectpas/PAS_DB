@@ -15,6 +15,7 @@
 	2    21-November-2025	Amit ghediya		    Added filter & sortOrder
 	3    21-November-2025	Rajesh Gami				Added Quantity BackOrder
 	4    26-May-2025		Bhargav Saliya			Added UOM Changes and Remove The commented Code [PN-15052]
+	5    31-May-2026		Priyansh Patel			[PN-17228] - Fix the issue with record not coming when stockline created manually
 
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
@@ -195,11 +196,11 @@ BEGIN
 				UPPER(MSD.Level8Name) AS level8,    
 				UPPER(MSD.Level9Name) AS level9,    
 				UPPER(MSD.Level10Name) AS level10,
-				quantityBackOrdered =(SELECT TOP 1 SUM(ISNULL(pop.QuantityBackOrdered,0))
+				quantityBackOrdered = ISNULL((SELECT TOP 1 SUM(ISNULL(pop.QuantityBackOrdered,0))
 										FROM dbo.PurchaseOrderPart pop WITH (NOLOCK)
 										INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
 										WHERE pop.ItemMasterId = stl.ItemMasterId AND pop.ConditionId = stl.ConditionId
-											AND ISNULL(pop.IsDeleted, 0) = 0 AND po.[Status] <> 'Canceled')
+											AND ISNULL(pop.IsDeleted, 0) = 0 AND po.[Status] <> 'Canceled'),0)
 			FROM DBO.Stockline stl WITH (NOLOCK)
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
 			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)

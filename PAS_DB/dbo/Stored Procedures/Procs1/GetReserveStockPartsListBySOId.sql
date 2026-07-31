@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetReserveStockPartsListBySOId]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get the stocklines to be reserved from SO Parts
@@ -26,6 +26,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	13    30/July/2026			 MOIN BLOCH					        [PN-17485] - Added [IsService],[IsNonStock] 
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=898
 **************************************************************/
 CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
@@ -103,12 +104,14 @@ BEGIN
 		END AS StockType,
 		SO.MasterCompanyId,
 		SL.LotId,
-		CASE WHEN ISNULL(SL.LotId,0) > 0 THEN 1 ELSE 0 END AS IsLotQty
+		CASE WHEN ISNULL(SL.LotId,0) > 0 THEN 1 ELSE 0 END AS IsLotQty,
+		ISNULL(im.[IsService],0) [IsService], 
+		ISNULL(im.[IsNonStock],0) [IsNonStock]
 		FROM DBO.SalesOrder SO WITH (NOLOCK)
 		LEFT JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		 INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+		INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
 		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON ((sl.StockLineId = Stk.StockLineId AND SOP.TotalQtyOrder = SOP.QtyRequested) OR (SOP.TotalQtyOrder < SOP.QtyRequested AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 		LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderId = SO.SalesOrderId AND SOR.StockLineId = Stk.StockLineId
@@ -149,6 +152,8 @@ BEGIN
 		SOR.AltPartMasterPartId, 
 		SOR.EquPartMasterPartId,
 		SL.LotId,
+		im.[IsService], 
+		im.[IsNonStock],
 		SOP.TotalQtyOrder)
 
 		,FinalReserveList AS(
@@ -184,7 +189,10 @@ BEGIN
 		StockType,
 		SOP.MasterCompanyId,
 		LotId,
-		IsLotQty FROM FinalSalesOrderParts SOP
+		IsLotQty,
+		[IsService],
+		[IsNonStock]
+		FROM FinalSalesOrderParts SOP
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId AND SOP.StockLineId = Stk.StockLineId)
 
 		SELECT DISTINCT SalesOrderId, 
@@ -221,7 +229,10 @@ BEGIN
 		StockType,
 		MasterCompanyId,
 		LotId,
-		IsLotQty FROM FinalReserveList 
+		IsLotQty,
+		[IsService],
+		[IsNonStock] 
+		FROM FinalReserveList 
 		WHERE 
 		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
 			CASE WHEN (QuantityReserved - PartQuantityOnOrder) > 0 THEN QtyToBeReserved 

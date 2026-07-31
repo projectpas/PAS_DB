@@ -250,6 +250,7 @@
     [CurrencyId]                          BIGINT          NULL,
     [ItemNonStockClassificationId]        BIGINT          NULL,
     [NonStockClassification]              VARCHAR (100)   NULL,
+    [IsService]                           BIT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

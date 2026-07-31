@@ -49,7 +49,8 @@
     [TraceableTo]             BIGINT          NULL,
     [TraceableToName]         VARCHAR (500)   NULL,
     [InspectionBy]            BIGINT          NULL,
-    [InspectionDate]          DATETIME2 (7)   NULL);
+    [InspectionDate]          DATETIME2 (7)   NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL);
 
 
 

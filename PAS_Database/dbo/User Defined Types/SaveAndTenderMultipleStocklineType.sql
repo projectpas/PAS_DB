@@ -38,5 +38,6 @@
     [IsKitType]                 BIT             NULL,
     [Unitcost]                  DECIMAL (18, 2) NULL,
     [ProvisionId]               INT             NULL,
-    [EvidenceId]                INT             NULL);
+    [EvidenceId]                INT             NULL,
+    [Notes]                     NVARCHAR (MAX)  NULL);
 

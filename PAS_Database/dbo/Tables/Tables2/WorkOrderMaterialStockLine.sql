@@ -34,6 +34,7 @@
     [IssuedById]              BIGINT          NULL,
     [IssuedDate]              DATETIME2 (7)   NULL,
     [IsPiecePart]             BIT             CONSTRAINT [DF_WorkOrderMaterialStockLine_IsPiecePart] DEFAULT ((0)) NOT NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLine] PRIMARY KEY CLUSTERED ([WOMStockLineId] ASC),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),

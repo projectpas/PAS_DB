@@ -32,6 +32,7 @@
     [IsVersionIncrease]       BIT             NULL,
     [Figure]                  NVARCHAR (50)   NULL,
     [Item]                    NVARCHAR (50)   NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkflowMaterialAudit] PRIMARY KEY CLUSTERED ([WorkflowMaterialAuditId] ASC)
 );
 

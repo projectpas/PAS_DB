@@ -13,8 +13,8 @@
 ** 4    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
 ** 4    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
 ** 5    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
+** 6    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
 
-	
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -33,7 +33,8 @@ BEGIN
 							@TraceableToTypeId INT, @TraceableTo BIGINT, @TraceableToName VARCHAR(500), @Memo VARCHAR(MAX), @WorkOrderId BIGINT, @WorkOrderNumber VARCHAR(50), @ManufacturerId BIGINT,
 							@InspectedById BIGINT, @InspectedDate DATETIME2(7), @ReceiverNumber VARCHAR(500), @ReceivedDate DATETIME2(7), @ManagementStructureId BIGINT,
 							@SiteId BIGINT, @WarehouseId BIGINT, @LocationId BIGINT, @ShelfId BIGINT, @BinId BIGINT, @MasterCompanyId BIGINT, @UpdatedBy VARCHAR(100), @WorkOrderMaterialsId BIGINT, @IsKitType BIT,
-							@Unitcost DECIMAL(18,6), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT;
+							@Unitcost DECIMAL(18,6), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT,
+							@Notes NVARCHAR(MAX);
 
 					DECLARE @PartNumber VARCHAR(500), @SLCurrentNummber BIGINT, @StockLineNumber VARCHAR(50), @CNCurrentNummber BIGINT, @ControlNumber VARCHAR(50), @IDCurrentNummber BIGINT, 
 							@IDNumber VARCHAR(50), @NewWorkOrderMaterialsId BIGINT, @StockLineId BIGINT, @WorkOrderWorkflowId BIGINT, @MSModuleID INT = 2, @IsPMA BIT = 0, @IsDER BIT = 0, 
@@ -127,17 +128,18 @@ BEGIN
 						[IsKitType] BIT NULL,
 						[Unitcost] DECIMAL(18,6) NULL,
 						[ProvisionId] INT NULL,
-						[EvidenceId] INT NULL
+						[EvidenceId] INT NULL,
+						[Notes] NVARCHAR(MAX) NULL
 					);					   
 
 					INSERT INTO #TenderWOMListData ([IsMaterialStocklineCreate], [IsCustomerStock], [IsCustomerstockType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [Quantity], [IsSerialized], [SerialNumber], [CustomerId],
 							[ObtainFromTypeId], [ObtainFrom], [ObtainFromName], [OwnerTypeId], [Owner], [OwnerName], [TraceableToTypeId], [TraceableTo], [TraceableToName], [Memo], [WorkOrderId], [WorkOrderNumber], [ManufacturerId],
 							[InspectedById], [InspectedDate], [ReceiverNumber], [ReceivedDate], [ManagementStructureId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [UpdatedBy], [WorkOrderMaterialsId],
-							[IsKitType], [Unitcost], [ProvisionId], [EvidenceId])
+							[IsKitType], [Unitcost], [ProvisionId], [EvidenceId], [Notes])
 					SELECT	[IsMaterialStocklineCreate], [IsCustomerStock], [IsCustomerstockType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [Quantity], [IsSerialized], [SerialNumber], [CustomerId], [ObtainFromTypeId],
 							[ObtainFrom], [ObtainFromName], [OwnerTypeId], [Owner], [OwnerName], [TraceableToTypeId], [TraceableTo], [TraceableToName], [Memo], [WorkOrderId], [WorkOrderNumber], [ManufacturerId], [InspectedById],
 							[InspectedDate], [ReceiverNumber], [ReceivedDate], [ManagementStructureId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [UpdatedBy], [WorkOrderMaterialsId], [IsKitType],
-							[Unitcost], [ProvisionId], [EvidenceId]
+							[Unitcost], [ProvisionId], [EvidenceId], [Notes]
 					FROM @tbl_SaveAndTenderMultipleStocklineType
 
 					SELECT @TotalWOMCount = MAX(RecordId), @CurrentWOM = MIN(RecordId) FROM #TenderWOMListData;
@@ -156,7 +158,7 @@ BEGIN
 								@TraceableToTypeId = [TraceableToTypeId], @TraceableTo = [TraceableTo], @TraceableToName = [TraceableToName], @Memo = [Memo], @WorkOrderId = [WorkOrderId], @WorkOrderNumber = [WorkOrderNumber],
 								@ManufacturerId = [ManufacturerId], @InspectedById = [InspectedById], @InspectedDate = [InspectedDate], @ReceiverNumber = [ReceiverNumber], @ReceivedDate = [ReceivedDate],
 								@ManagementStructureId = [ManagementStructureId], @SiteId = [SiteId], @WarehouseId = [WarehouseId], @LocationId = [LocationId], @ShelfId = [ShelfId], @BinId = [BinId], @MasterCompanyId = [MasterCompanyId], 
-								@UpdatedBy = [UpdatedBy], @WorkOrderMaterialsId = [WorkOrderMaterialsId], @IsKitType = [IsKitType], @Unitcost = [Unitcost], @ProvisionId = [ProvisionId], @EvidenceId = [EvidenceId]
+								@UpdatedBy = [UpdatedBy], @WorkOrderMaterialsId = [WorkOrderMaterialsId], @IsKitType = [IsKitType], @Unitcost = [Unitcost], @ProvisionId = [ProvisionId], @EvidenceId = [EvidenceId], @Notes = [Notes]
 						FROM #TenderWOMListData
 						WHERE RecordId = @CurrentWOM;
 
@@ -425,9 +427,9 @@ BEGIN
 								END
 
 								INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
-								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
+								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted, Notes)   
 								SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,  
-								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
+								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0, @Notes  
 								FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)   
 								WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId; 
 								
@@ -513,7 +515,7 @@ BEGIN
 								INSERT INTO dbo.WorkOrderMaterialStockLineKit (WorkOrderMaterialsKitId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
 								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
 								SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,  
-								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
+								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0  
 								FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)   
 								WHERE WOM.WorkOrderMaterialsKitId = @NewWorkOrderMaterialsId;
 

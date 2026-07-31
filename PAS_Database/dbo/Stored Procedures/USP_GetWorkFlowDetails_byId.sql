@@ -13,6 +13,8 @@
 	3	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
 	4	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
 	5	 15-July-2026		Ayushi Patel			Uom Changes [PN-17248]
+	6	 27-July-2026		SUMIT					Added notes field in material list [PN-16818]
+
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
@@ -158,7 +160,7 @@ BEGIN
 			LEFT JOIN [dbo].[EmployeeExpertise] EE WITH(NOLOCK) ON TMP.ExpertiseTypeId = EE.EmployeeExpertiseId
 
 			-- Getting WorkflowMaterial Details
-			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
+			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [Notes], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
 					[IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId], [WFParentId], [IsVersionIncrease], [Figure], [Item], @stockType AS [StockType], @ManufacturerName AS [ManufacturerName], @ItemClassification AS [ItemClassification],
 					@UnitOfMeasure AS [UnitOfMeasure], @Condition AS [ConditionName]
 			INTO #tmpWorkflowMaterial FROM [dbo].[WorkflowMaterial] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]

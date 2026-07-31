@@ -36,6 +36,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_PurchaseOrderManagementStructureDetailsAudit]
    ON  [dbo].[PurchaseOrderManagementStructureDetails]
@@ -48,3 +50,8 @@ BEGIN
 
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_POMSD_Module_Reference_Perf]
+    ON [dbo].[PurchaseOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC)
+    INCLUDE([Level1Id], [Level2Id], [Level3Id], [Level4Id], [Level5Id], [Level6Id], [Level7Id], [Level8Id], [Level9Id], [Level10Id]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

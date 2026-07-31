@@ -16,9 +16,9 @@
 	5    09/04/2026    Ayushi Patel	        PN-15909 resolved uom convertion issue for UnitPrice
 	6	 19/06/2026	   Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	7    23/07/2026    Ayushi Patel         [PN-17337] Fixed Dashboard "Today's Quoted" showing Part Amount as 0.00 when WOQ is initially saved with Build Up From Details. 
-											MaterialFlatBillingAmount was being passed through as-is from the client (always 0.00 in this mode) instead of being derived from WorkOrderQuoteMaterial.BillingAmount like UpdateWorkOrderQuoteDetails does.
+											MaterialFlatBillingAmount was being passed through as-is from the client (always 0.00 in this mode) instead of being derived from WorkOrderQuoteMaterial.BillingAmount like UpdateWorkOrderQuoteDetails does & code review Changes.
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
+CREATE      PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteMaterialType [WorkOrderQuoteMaterialType] READONLY,
 @tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
@@ -404,6 +404,7 @@ BEGIN
 
 			EXEC [dbo].[usp_SavePostKitforWOQ] @WOQMaterialKitMappingType;
 		END
+		BEGIN TRAN;
 		;WITH MatTotals AS (
 			SELECT SUM(ISNULL([BillingAmount],0)) AS TotalBillingAmount
 			FROM [dbo].[WorkOrderQuoteMaterial] WITH(NOLOCK)
@@ -414,6 +415,7 @@ BEGIN
 		SET [MaterialFlatBillingAmount] = ISNULL((SELECT TotalBillingAmount FROM MatTotals), 0)
 		WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId
 		  AND ISNULL([QuoteMethod],0) = 0;   -- only recalc for Build-Up-From-Details, never for Flat Rate
+		COMMIT TRAN;
 		EXEC [dbo].[USP_ChangeWOQStatusAfterApproval] @WorkOrderQuoteId, @UpdatedBy, @woPartNoId;
 
 		EXEC [dbo].[USP_UpdateWOTotalCostDetails] @WorkOrderId, @WorkflowWorkOrderId, @UpdatedBy, @MasterCompanyId;

@@ -15,9 +15,10 @@
 	4    20-Mar-2026     Vishal Suthar				Fixed total mismatch issue by adding qtyRemaining > 0 condition in "WithTotal" cte
 	5    01-May-2026     Rajesh Gami				Added NonStock and ASSET Inventory [PN-16267]
 	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
+	7    27-Jul-2026     Bhargav					Convert reconciled qty (Stock UOM) back to Purchase UOM so partially-received PO rows are not hidden [PN-17360]
 EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
+CREATE    PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 DATETIME2,
@@ -97,7 +98,9 @@ BEGIN
 			--STK.Condition AS 'cond',
 			ISNULL(POP.QuantityOrdered,0) AS 'qtyOrdered',
 			ISNULL(POP.QuantityReceived,0) AS 'qtyReceived',
-			ISNULL(RRCD.InvoicedQty,0) AS 'qtyReconciled',
+			ISNULL(CASE WHEN NULLIF(IM.StockUnitOfMeasure,'') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure,'') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure
+						THEN dbo.fn_ConvertUOM(RRCD.InvoicedQty, IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, PO.MasterCompanyId)
+						ELSE RRCD.InvoicedQty END, 0) AS 'qtyReconciled',
 			 0 AS 'qtyRemaining',
 			RRCH.ReceivingReconciliationNumber AS 'receivingReconNum',
 			ISNULL(POP.UnitCost,0) AS 'unitCost',
@@ -125,6 +128,7 @@ BEGIN
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
 		LEFT JOIN DBO.NonStockInventory NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = AI.PurchaseOrderPartRecordId
+		LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId 
 		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
 		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId    
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON PO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId

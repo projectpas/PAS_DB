@@ -4594,6 +4594,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPOFromEmail.sql" />
     <Build Include="dbo\User Defined Types\tbl_EmailVendorRFQPartType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_Optimized.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportColumns.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

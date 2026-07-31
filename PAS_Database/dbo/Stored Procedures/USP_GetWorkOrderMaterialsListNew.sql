@@ -41,6 +41,7 @@
 	30  11-05-2026      Moin Bloch              Fixed Pagination For Part Number Filter PN-16388
 	30  15-07-2026      Priyansh Patel          Convert the kitqty to consume uom PN-17079
 	31  15-07-2026      Abhishek Jirawla        Adding IsPiecePart condition in RepairOrderPart table
+	32  15-07-2026      Abhishek Jirawla        Adding Notes field in WorkOrderMaterialStockLine table
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -282,6 +283,7 @@ SET NOCOUNT ON
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
 					[Memo] [nvarchar](MAX) NULL,
+					[Notes] [nvarchar](MAX) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,
@@ -606,7 +608,7 @@ SET NOCOUNT ON
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -769,6 +771,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1108,7 +1111,7 @@ SET NOCOUNT ON
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -1271,6 +1274,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,

@@ -8,6 +8,7 @@
 ** PR   Date         Author           Change Description
 ** --   --------     -------          ------------------
 ** 1    07/06/2026   SUMIT KUMAR      Created
+** 1    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddTasksFromTemplatesToWorkOrder]
@@ -166,12 +167,12 @@ BEGIN
                     INSERT INTO dbo.WorkOrderMaterials (
                         CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MasterCompanyId, WorkOrderId, WorkFlowWorkOrderId,
                         ItemMasterId, TaskId, ConditionCodeId, MaterialMandatoriesId, ItemClassificationId, Quantity, UnitOfMeasureId, UnitCost, ExtendedCost,
-                        Memo, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow, WOPartNoId
+                        Memo, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow, WOPartNoId, Notes
                     )
                     SELECT 
                         @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @MasterCompanyId, @WorkOrderId, @WorkFlowWorkOrderId,
                         wfm.ItemMasterId, @NewTaskId, wfm.ConditionCodeId, wfm.MaterialMandatoriesId, wfm.ItemClassificationId, wfm.Quantity, wfm.UnitOfMeasureId, ISNULL(wfm.UnitCost, 0), ISNULL(wfm.ExtendedCost, 0),
-                        wfm.Memo, wfm.IsDeferred, ISNULL(wfm.ProvisionId, @ReplaceProvisionId), wfm.Figure, wfm.Item, 1, @WorkOrderPartNumberId
+                        wfm.Memo, wfm.IsDeferred, ISNULL(wfm.ProvisionId, @ReplaceProvisionId), wfm.Figure, wfm.Item, 1, @WorkOrderPartNumberId, wfm.Notes
                     FROM dbo.WorkflowMaterial wfm WITH(NOLOCK)
                     INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wfm.ItemMasterId = im.ItemMasterId
                     WHERE wfm.WorkflowId = @WfId 

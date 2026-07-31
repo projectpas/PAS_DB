@@ -94,5 +94,7 @@
     [CreatedDate]                DATETIME2 (7)   NULL,
     [UpdatedDate]                DATETIME2 (7)   NULL,
     [IsActive]                   BIT             NULL,
-    [IsDeleted]                  BIT             NULL);
+    [IsDeleted]                  BIT             NULL,
+    -- Notes column for WorkOrderMaterialsType UDT
+    [Notes]                      NVARCHAR (MAX)  NULL);
 

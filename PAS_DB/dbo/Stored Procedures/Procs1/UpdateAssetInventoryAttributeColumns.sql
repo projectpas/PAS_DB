@@ -20,6 +20,7 @@
 											AssetAttributeTypeId FK instead of its own PK. Dropped the
 											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
 											always joined so its name always resolves.
+	3	01-08-2026	  Sumit Kumar			Added required fields [PN-17523]
 
 --  EXEC [UpdateAssetInventoryAttributeColumns] 1123
 **************************************************************/
@@ -97,7 +98,13 @@ BEGIN
 						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
 						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
 						AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
-						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName
+						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
+						AI.AssetLife = ISNULL(DNTA.AssetLife, 0),
+						AI.ResidualPercentageId = dnta.ResidualPercentage,
+						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
+						AI.DepreciationFrequencyId =dnta.DepreciationFrequencyId,
+						AI.DepreciationFrequencyName = ISNULL(asdf.Name, '')
+
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
 						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.AssetAttributeTypeId = Asset.AssetAttributeTypeId
@@ -109,6 +116,8 @@ BEGIN
 						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = DNTA.AssetWriteOffGLAccountId
 						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = DNTA.AssetWriteDownGLAccountId
 						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = DNTA.AssetDeprMethodId
+						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
+						LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
 					WHERE AI.AssetInventoryId = @AssetInventoryId
 				END
 				ELSE

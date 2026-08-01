@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[DeprNonDeprTangibleAssets] (
+CREATE TABLE [dbo].[DeprNonDeprTangibleAssets] (
     [DeprNonDeprTangibleAssetsId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [AssetAttributeTypeId]        BIGINT        NULL,
     [TangibleClassId]             BIGINT        NOT NULL,
@@ -37,4 +37,26 @@
 
 
 
+
+
 GO
+
+
+
+CREATE TRIGGER [dbo].[Trg_DeprNonDeprTangibleAssetsAudit]
+
+   ON  [dbo].[DeprNonDeprTangibleAssets]
+
+   AFTER INSERT,DELETE,UPDATE
+
+AS
+
+BEGIN
+
+INSERT INTO dbo.DeprNonDeprTangibleAssetsAudit
+
+SELECT * FROM INSERTED
+
+SET NOCOUNT ON;
+
+END

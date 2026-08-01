@@ -25,9 +25,10 @@
     CONSTRAINT [PK_DeprNonDeprTangibleAssets] PRIMARY KEY CLUSTERED ([DeprNonDeprTangibleAssetsId] ASC),
     CONSTRAINT [FK_DeprNonDeprTangibleAssets_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_DeprNonDeprTangibleAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_DeprNonDeprTangibleAssets_TangibleClass] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
     CONSTRAINT [FK_DeprNonDeprTangibleAssetsDeps_AssetDepreciationMethod] FOREIGN KEY ([AssetDeprMethodId]) REFERENCES [dbo].[AssetDepreciationMethod] ([AssetDepreciationMethodId])
 );
+
+
 
 
 

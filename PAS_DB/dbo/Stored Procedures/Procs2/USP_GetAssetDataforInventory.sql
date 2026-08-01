@@ -202,7 +202,8 @@ BEGIN
                 ISNULL(asty.DepreciationMethod, 0) AS DepreciationMethodId,
                 ISNULL(asdm.AssetDepreciationMethodName, '') AS DepreciationMethod,
                 ISNULL(per.PercentValue, 0) AS ResidualPercentage,
-                ISNULL(asty.AssetLife, 0) AS AssetLife,
+                ISNULL(dnta.AssetLife, 0) AS AssetLife,                
+                ISNULL(asdf.AssetDepreciationFrequencyId, '') AS DepreciationFrequencyId,
                 ISNULL(asdf.Name, '') AS DepreciationFrequency,
                 ISNULL(accGL.AccountCode + '-' + accGL.AccountName, '') AS AcquiredGLAccount,
                 ISNULL(deprGL.AccountCode + '-' + deprGL.AccountName, ISNULL(dntaDeprGL.AccountCode + '-' + dntaDeprGL.AccountName, '')) AS DeprExpenseGLAccount,
@@ -250,9 +251,9 @@ BEGIN
             LEFT JOIN dbo.GLAccount dntaDeprGL WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dntaDeprGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaAdGL WITH (NOLOCK) ON dnta.AccumDeprGLAccountId = dntaAdGL.GLAccountId
             LEFT JOIN dbo.AssetLocation aloc WITH (NOLOCK) ON asset.AssetLocationId = aloc.AssetLocationId
-            LEFT JOIN dbo.AssetDepreciationMethod asdm WITH (NOLOCK) ON asty.DepreciationMethod = asdm.AssetDepreciationMethodId
-            LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON asty.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
-            LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON asty.ResidualPercentage = per.PercentId
+            LEFT JOIN dbo.AssetDepreciationMethod asdm WITH (NOLOCK) ON dnta.AssetDeprMethodId = asdm.AssetDepreciationMethodId
+            LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
+            LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
             LEFT JOIN dbo.GLAccount accGL WITH (NOLOCK) ON dnta.AcquiredGLAccountId = accGL.GLAccountId
             LEFT JOIN dbo.GLAccount deprGL WITH (NOLOCK) ON asty.DeprExpenseGLAccountId = deprGL.GLAccountId
             LEFT JOIN dbo.GLAccount addeppsGL WITH (NOLOCK) ON asty.AdDepsGLAccountId = addeppsGL.GLAccountId

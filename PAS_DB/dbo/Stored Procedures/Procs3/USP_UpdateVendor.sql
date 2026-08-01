@@ -17,7 +17,7 @@
 ** 6     29-June-2026  Sahdev Saliya        Fixed the issue with the @Notes [PN-17015]
 ** 7     02-July-2026  Sahdev Saliya        Added Resale Number [PN-17018]
 ** 8     06-July-2026  Divyesh Kathitiya    Added VAT Number [PN-17124]
-
+** 9     01-Aug-2026   Bhargav Saliya       When we update a vendor at a time, there is no need to update the customer type [PN-17519]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorId BIGINT,
@@ -206,7 +206,6 @@ BEGIN
                     CustomerPhoneExt = @VendorPhoneExt,
                     IsAddressForBilling = @IsAddressForBilling,
                     IsAddressForShipping = @IsAddressForShipping,
-                    CustomerTypeId = @VendorTypeId,
                     IsCustomerAlsoVendor = @IsVendorAlsoCustomer,
                     CustomerCode = CustomerCode,
                     CustomerURL = @VendorURL,

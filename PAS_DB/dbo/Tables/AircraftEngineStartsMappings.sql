@@ -27,10 +27,6 @@ CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
 
 
 
-
-
-
-
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_AircraftEngineStartsMappings]
 ON [dbo].[AircraftEngineStartsMappings]

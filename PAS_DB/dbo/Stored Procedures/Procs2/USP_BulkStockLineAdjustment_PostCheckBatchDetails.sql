@@ -35,7 +35,7 @@
 	19	 31/07/2026	  Bhargav Saliya    FIXED:: (PN-17508) Stockline Adjustment is not working when Accounting Flag is disabled for a Company
 
 **************************************************************/
-CREATE  PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
 	@BulkStkLineAdjHeaderId BIGINT,
 	@MasterCompanyId INT,

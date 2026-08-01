@@ -4778,6 +4778,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNosStockSalesOrderPart.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypesAudit.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

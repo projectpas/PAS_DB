@@ -23,6 +23,7 @@
 	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
 	13	 10 Dec 2025	Devendra Shekh		Modified (Duplicate RFQ Issue Resolved)
 	14	 07 JAN 2026	Amit Ghediya		Modified for add contact details for existing customer diffrent email & phone.
+	15   01 Aug 2026	Kishor Makwana		[PN-17515] -Customer RFQ: SOQ creation from Email fails due to missing Contact information and null Content data
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -325,6 +326,9 @@ BEGIN
 							  @CreatedBy,
 							  @CreatedBy,
 							  @NewCustomerContactId OUTPUT;
+					END
+					BEGIN
+						SELECT TOP 1 @NewCustomerContactId = CustomerContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK) WHERE CCNT.CustomerId = @CustomerId AND ISNULL(CCNT.IsDefaultContact,0) =1;
 					END
 
 					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;

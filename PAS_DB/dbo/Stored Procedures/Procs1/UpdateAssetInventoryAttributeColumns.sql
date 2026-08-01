@@ -102,7 +102,7 @@ BEGIN
 						AI.AssetLife = ISNULL(DNTA.AssetLife, 0),
 						AI.ResidualPercentageId = dnta.ResidualPercentage,
 						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
-						AI.DepreciationFrequencyId =dnta.DepreciationFrequencyId,
+						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
 						AI.DepreciationFrequencyName = ISNULL(asdf.Name, '')
 
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)

@@ -23,6 +23,7 @@
 	8    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SO part stockline.
 	10   30/July/2026	  MOIN BLOCH        [PN-17485] - Added [IsService],[IsNonStock] Conditions If IsNonStock then Create StockLine
+	11   01/July/2026	  MOIN BLOCH        [PN-17485] - Update QtyOnhand And Qty Reserved in Stockline on update Part Qty
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -390,6 +391,26 @@ BEGIN
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			END
 			
+			-- Update Stock Line For Non-Stock On Update
+			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) 
+			BEGIN
+				SELECT @StockLineId = [StockLineId] FROM [dbo].[SalesOrderStocklineV1] WITH(NOLOCK) WHERE [SalesOrderStocklineId] = @SalesOrderStocklineId;
+
+				SELECT @IsService = ISNULL([IsService],0), @IsNonStock = ISNULL([IsNonStock],0) FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StockLineId
+				IF(@IsService = 1 AND @IsNonStock = 1 AND ISNULL(@StockLineId, 0) > 0)
+				BEGIN				
+					UPDATE [dbo].[Stockline] 
+					   SET [QuantityOnHand] = @QtyRequested,							   
+						   [QuantityReserved] = @QtyRequested
+					 WHERE [StockLineId] = @StockLineId
+
+					UPDATE [dbo].[SalesOrderStocklineV1]
+					   SET [QtyOrder] = @QtyRequested,							   
+						   [QtyReserved] = @QtyRequested
+					 WHERE [StockLineId] = @StockLineId
+				END	
+			END
+
 			--Reset Approval Process
 			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
 			BEGIN

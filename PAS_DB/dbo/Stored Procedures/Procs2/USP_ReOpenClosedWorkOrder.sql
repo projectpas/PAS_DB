@@ -1,5 +1,4 @@
-﻿
--- ---------------------------------------------------------------------------------------------------
+﻿-- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_ReOpenClosedWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ReOpenClosedWorkOrder.sql)
 -- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
@@ -23,10 +22,12 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 8    26-08-2025  Bhargav Saliya       Fix WorkOrderStatus isues For After Reopen CLOSED WO
 ** 9	12/02/2026  Moin Bloch			 Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
 ** 10   26/03/2026  Moin Bloch	         Rename TearDown To Internal Teardown PN-15850
+** 11   01/07/2026	RAJESH GAMI			 [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+** 12   28/07/2026	Amit Ghediya         Skip update stockline when WO IsFromAircraft = 1 [PN-16898]
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
-	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
@@ -76,7 +77,8 @@ AS
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
-		    DECLARE @WOModuleId INT
+		    DECLARE @WOModuleId INT;
+			DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
 
 		    SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 			SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
@@ -92,7 +94,7 @@ AS
 			SELECT @WorkOrderStatusId = id,@WorkOrderStatus = [Description] FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'OPEN'
 
 			SELECT @ClosedWorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE StatusCode = 'CLOSED'
-			SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId,@IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			
 			SELECT @StockLineId = StockLineId,@MasterCompanyId = WOP.MasterCompanyId, @ExistingValue = UPPER(WS.[Status]), @MPNPartNum = IM.partnumber 
 			FROM dbo.WorkOrderPartNumber WOP WITH (NOLOCK) 
@@ -130,7 +132,7 @@ AS
 			IF(ISNULL(@IsPaymentReceived, 0) = 0) --ISNULL(@IsShippingDone,0) = 0 AND 
 			BEGIN
 				PRINT 'START'
-				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsFromAircraft, 0) = 0)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done and Customer Stock */
 					UPDATE Stockline SET 
@@ -162,7 +164,7 @@ AS
 					--DELETE FROM WOPickTicket WHERE OrderPartId =  @workOrderPartNoId
 				END
 
-				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId AND ISNULL(@WOTypeId,0) != @TearDownWOTypeId)
+				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId AND ISNULL(@WOTypeId,0) != @TearDownWOTypeId AND ISNULL(@IsFromAircraft, 0) = 0)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
 					UPDATE Stockline SET 
@@ -170,6 +172,16 @@ AS
 						QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
 						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
+					WHERE StockLineId=@StockLineId
+				END
+
+				--For Aircraft
+				IF(ISNULL(@IsFromAircraft, 0) = 1)
+				BEGIN
+					 UPDATE Stockline SET 
+						QuantityAvailable = ISNULL(QuantityAvailable, 0) - 1,
+						QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 					WHERE StockLineId=@StockLineId
 				END
 

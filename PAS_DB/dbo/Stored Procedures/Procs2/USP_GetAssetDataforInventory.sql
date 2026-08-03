@@ -12,6 +12,11 @@
     1    2025-06-12		    Ayushi Patel		Created
     2	 02-FEB-2026	    Divyesh Kathiriya	Add "CalibrationCertificateNumber"
     3	 15-JUL-2026	    Vishal Suthar		Fall back to DeprNonDeprTangibleAssets for AssetTypeName/DeprExpenseGLAccount/AdDepsGLAccount, add CalibratedGLAccount
+    4	 29-JUL-2026	    Abhishek Jirawala	Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId (never a
+	                                        DeprNonDeprTangibleAssetsId); DeprNonDeprTangibleAssets is now a GL-calibrated
+	                                        override joined by its AssetAttributeTypeId FK instead of by its own PK.
+	                                        AssetAttributeTypeName removed from DeprNonDeprTangibleAssets (name now
+	                                        always comes from the joined AssetAttributeType row).
 
 	exec [USP_GetAssetDataforInventory] 211
 ***************************************************************/
@@ -154,7 +159,7 @@ BEGIN
                 asset.AssetMaintenanceIsContract,
                 ISNULL(asset.AssetParentRecordId, '') AS AssetParentId,
                 asset.TangibleClassId,
-                ISNULL(asty.AssetAttributeTypeName, ISNULL(dnta.AssetAttributeTypeName, '')) AS AssetTypeName,
+                ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
                 asset.AssetAttributeTypeId,
                 asset.AssetLocationId,
                 ISNULL(aloc.Code + '-' + aloc.Name, '') AS AsetLocationName,
@@ -197,7 +202,8 @@ BEGIN
                 ISNULL(asty.DepreciationMethod, 0) AS DepreciationMethodId,
                 ISNULL(asdm.AssetDepreciationMethodName, '') AS DepreciationMethod,
                 ISNULL(per.PercentValue, 0) AS ResidualPercentage,
-                ISNULL(asty.AssetLife, 0) AS AssetLife,
+                ISNULL(dnta.AssetLife, 0) AS AssetLife,                
+                ISNULL(asdf.AssetDepreciationFrequencyId, '') AS DepreciationFrequencyId,
                 ISNULL(asdf.Name, '') AS DepreciationFrequency,
                 ISNULL(accGL.AccountCode + '-' + accGL.AccountName, '') AS AcquiredGLAccount,
                 ISNULL(deprGL.AccountCode + '-' + deprGL.AccountName, ISNULL(dntaDeprGL.AccountCode + '-' + dntaDeprGL.AccountName, '')) AS DeprExpenseGLAccount,
@@ -239,15 +245,15 @@ BEGIN
             LEFT JOIN dbo.GLAccount vgla WITH (NOLOCK) ON ascal.VerificationGlAccountId = vgla.GLAccountId
             LEFT JOIN dbo.GLAccount mgla WITH (NOLOCK) ON asmai.MaintenanceGLAccountId = mgla.GLAccountId
             LEFT JOIN dbo.GLAccount wgla WITH (NOLOCK) ON asmai.WarrantyGLAccountId = wgla.GLAccountId
-            LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId AND (asset.AssetClassSource IS NULL OR asset.AssetClassSource = 'AssetAttributeType')
-            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.DeprNonDeprTangibleAssetsId AND asset.AssetClassSource = 'DeprNonDeprTangibleAssets'
+            LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
             LEFT JOIN dbo.GLAccount calGL WITH (NOLOCK) ON dnta.CalibratedGLAccountId = calGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaDeprGL WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dntaDeprGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaAdGL WITH (NOLOCK) ON dnta.AccumDeprGLAccountId = dntaAdGL.GLAccountId
             LEFT JOIN dbo.AssetLocation aloc WITH (NOLOCK) ON asset.AssetLocationId = aloc.AssetLocationId
-            LEFT JOIN dbo.AssetDepreciationMethod asdm WITH (NOLOCK) ON asty.DepreciationMethod = asdm.AssetDepreciationMethodId
-            LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON asty.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
-            LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON asty.ResidualPercentage = per.PercentId
+            LEFT JOIN dbo.AssetDepreciationMethod asdm WITH (NOLOCK) ON dnta.AssetDeprMethodId = asdm.AssetDepreciationMethodId
+            LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
+            LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
             LEFT JOIN dbo.GLAccount accGL WITH (NOLOCK) ON dnta.AcquiredGLAccountId = accGL.GLAccountId
             LEFT JOIN dbo.GLAccount deprGL WITH (NOLOCK) ON asty.DeprExpenseGLAccountId = deprGL.GLAccountId
             LEFT JOIN dbo.GLAccount addeppsGL WITH (NOLOCK) ON asty.AdDepsGLAccountId = addeppsGL.GLAccountId

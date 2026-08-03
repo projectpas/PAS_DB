@@ -26,9 +26,10 @@
  	9	 13-02-2026		Devendra Shekh		Added New param @id9  
 	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
 	11	 28-04-2026		HEMANT SALIYA		Exclude Non-Stock GL account from get GL balance
-	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	14    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
+	12   01/July/2026	RAJESH GAMI			[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   09/July/2026	RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14   24/July/2026	RAJESH GAMI			[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
+	15	 29/July/2026	HEMANT SALIYA		added abck obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
@@ -310,7 +311,7 @@ BEGIN
 	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.[StocklineId] = stl.[StocklineId]
 	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]  
      WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
-	 AND stl.[IsParent] = 1 
+	 AND stl.[IsParent] = 1 AND ISNULL(stl.[IsNonStock], 0) = 0
 	 AND stl.[IsDeleted] = 0
 	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 	 
@@ -349,6 +350,7 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1 
 		AND stl.GLAccountId <> @NonStockGLAccountId
+		AND ISNULL(stl.[IsNonStock], 0) = 0
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	) AND BD.StatusId = @PostedStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
@@ -360,6 +362,7 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid 
 		AND stl.[IsParent] = 1
 		AND stl.GLAccountId <> @NonStockGLAccountId
+		AND ISNULL(stl.[IsNonStock], 0) = 0
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	) AND BD.StatusId = @OpenStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 

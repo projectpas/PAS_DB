@@ -19,10 +19,10 @@
     1    31-10-2025    Sahdev Saliya       Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17367] - Removed IsNonStock=0 filters (main WHERE, RevisedPart join, IntegrationPortal subqueries) so this SP returns Manufacturer/GLAccount/Site/Warehouse/Location/Shelf/Bin defaults for Non-Stock item masters too, not just Stock. Fixes app-stock-line-setup (Non-Stock tab) and app-non-stock-line-setup not auto-binding these fields on PN selection.
-
+	6    29-July-2026            Ayushi Patel		                Added New Field IsService [PN-17470]
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
-CREATE     PROCEDURE [DBO].[USP_GetCommonForStocklineByItemMasterId]
+CREATE      PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
     @ItemMasterId BIGINT = NULL
 
 AS
@@ -31,7 +31,7 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-		SELECT TOP 1
+		SELECT TOP 1 
 			iM.ItemMasterId,
 			iM.PartNumber,
 			iM.PartDescription,
@@ -87,7 +87,8 @@ BEGIN
 			iM.IsReceivedDateAvailable,
 			iM.IsTagDateAvailable,
 			iM.InventoryGLSettingId,
-			iM.ItemClassificationName AS Classification
+			iM.ItemClassificationName AS Classification,
+			iM.IsService
 
     FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId

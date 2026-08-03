@@ -90,8 +90,7 @@
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
     23   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll
 	24   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
-	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
-	26    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)	
 
 	26   09/07/2026   AMIT GHEDIYA			Get for EngineRegistryHeader table merge for dropdown
 	27   13/July/2026  RAJESH GAMI			[PN-17009] Retired dbo.ItemMasterNonStock table lookups (@TableName='ItemMasterNonStock', 3 branches):

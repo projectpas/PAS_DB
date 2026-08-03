@@ -16,7 +16,10 @@
 ** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
 ** 4     03-Apr-2026   Sahdev Saliya    Remove LifeLimitedPart (PN-15833, PN-16649_65)
 ** 5     19-Jun-2026   Moin Bloch       Fixed for Error Log PN-16924
-   6	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
+   6	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   7	28-Jul-2026	Abhishek Jirawala	When IsTimeLife is turned on, cascade IsStkTimeLife = 1 to all StockLines of this ItemMaster with QuantityOnHand > 0
+   8    29-July-2026    Ayushi Patel	Added New Field IsService [PN-17470]
+   drop procedure USP_UpdateItemMaster
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] READONLY,
@@ -33,8 +36,9 @@ BEGIN
 	DECLARE @imItemMasterId BIGINT, @imManufacturerId BIGINT, @imPartNumber VARCHAR(256), @MasterCompanyId INT, @AccountingModuleId BIGINT;
 	DECLARE @mItemMasterId BIGINT, @MasterPartId BIGINT, @PartDescription VARCHAR(256), @PartNumber VARCHAR(256), @ManufacturerId BIGINT, @QuickBooksReferenceId VARCHAR(200), @IntegrationTypeId INT,
 			@mMasterCompanyId BIGINT, @CreatedBy VARCHAR(200), @UpdatedBy VARCHAR(200), @CreatedDate DATETIME2, @IsActive BIT, @IsDeleted BIT;
+	DECLARE @NewIsTimeLife BIT, @NewUpdatedBy VARCHAR(200);
 
-	SELECT @MasterCompanyId = MasterCompanyId, @imManufacturerId = ManufacturerId, @imPartNumber = PartNumber 
+	SELECT @MasterCompanyId = MasterCompanyId, @imManufacturerId = ManufacturerId, @imPartNumber = PartNumber, @NewIsTimeLife = IsTimeLife, @NewUpdatedBy = UpdatedBy
 	FROM @tbl_ItemMasterUpdateType WHERE ItemMasterId = @Id;
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster';
@@ -201,6 +205,7 @@ BEGIN
 		,i.InWarranty                       = PST.InWarranty
 		,i.MfgExpirationDate                = PST.MfgExpirationDate
 		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
+		,i.IsService						= ISNULL(PST.IsService, 0)
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;
@@ -227,6 +232,19 @@ BEGIN
 		WHERE MP.MasterPartId = @MasterPartId AND MP.[MasterCompanyId] = @mMasterCompanyId;
 
 		EXEC dbo.UpdateItemMasterDetail @Id;
+
+		IF (@NewIsTimeLife = 1)
+		BEGIN
+			UPDATE sl
+			SET sl.IsStkTimeLife = 1,
+				sl.UpdatedBy = @NewUpdatedBy,
+				sl.UpdatedDate = GETUTCDATE()
+			FROM dbo.StockLine sl
+			WHERE sl.ItemMasterId = @Id
+			  AND sl.QuantityOnHand > 0
+			  AND ISNULL(sl.IsDeleted, 0) = 0
+			  AND ISNULL(sl.IsStkTimeLife, 0) = 0;
+		END
 	END
 
 	SELECT @MasterPartId AS [MasterPartId], @QuickBooksReferenceId AS [QuickBooksReferenceId], @IntegrationTypeId AS [IntegrationTypeId];

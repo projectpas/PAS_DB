@@ -1,15 +1,20 @@
-﻿CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
+﻿
+
+
+
+CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssets]
 AS
 SELECT AAT.[DeprNonDeprTangibleAssetsId]
+	,AAT.[AssetAttributeTypeId]
       ,AAT.[TangibleClassId]
-	  ,ATC.[TangibleClassName] 'TangibleClassName'
-	  ,AAT.[AssetAttributeTypeName]
+	  ,ATC.[DeprNonDeprTangibleClassTypeName] 'TangibleClassName'
+	  ,AT2.[AssetAttributeTypeName]
 	  ,AAT.[Description] AS [Description]
       ,AAT.[AssetDeprMethodId]
 	  ,ADM.[AssetDepreciationMethodName] 'DepreciationMethodName'
 
 	  ,AAT.[ResidualPercentage]
-	  ,PER.[PercentValue] 'ResidualPercentageValue'
+	  ,PER.[PercentValue] 'ResidualPercentageName'
 	  ,AAT.[AssetLife]
 	  ,AAT.[DepreciationFrequencyId]
 	  ,FI.[Name] 'DepreciationFrequencyName'
@@ -35,13 +40,11 @@ SELECT AAT.[DeprNonDeprTangibleAssetsId]
       ,AAT.[UpdatedBy]
       ,AAT.[UpdatedDate]
       ,AAT.[IsActive]
-      ,AAT.[IsDeleted]	  	  
-	  ,STUFF((SELECT ',' + I.Name FROM DBO.SPLITSTRING((SELECT SelectedCompanyIds FROM [dbo].[AssetAttributeType] AMM WHERE AMM.AssetAttributeTypeId = AAT.DeprNonDeprTangibleAssetsId),',') AS ss
-				LEFT JOIN [DBO].[LegalEntity] I ON ss.Item = I.LegalEntityId
-		FOR XML PATH('')), 1, 1, '') 'LegalEntity'
-	  ,AAT.SelectedCompanyIds
+      ,AAT.[IsDeleted]
   FROM [dbo].[DeprNonDeprTangibleAssets] AAT WITH (NOLOCK)
-  LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
+  LEFT JOIN [dbo].[AssetAttributeType] AT2 WITH (NOLOCK) ON AAT.AssetAttributeTypeId = AT2.AssetAttributeTypeId
+  --LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
+  LEFT JOIN [dbo].[DeprNonDeprTangibleClassTypes] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.DeprNonDeprTangibleClassTypeId
   LEFT JOIN [dbo].[AssetDepreciationMethod] ADM WITH (NOLOCK) ON AAT.AssetDeprMethodId = ADM.AssetDepreciationMethodId
   LEFT JOIN [dbo].[Percent] PER WITH (NOLOCK) ON AAT.ResidualPercentage = PER.PercentId
   LEFT JOIN [dbo].[AssetDepreciationFrequency] FI WITH (NOLOCK) ON AAT.DepreciationFrequencyId = FI.AssetDepreciationFrequencyId

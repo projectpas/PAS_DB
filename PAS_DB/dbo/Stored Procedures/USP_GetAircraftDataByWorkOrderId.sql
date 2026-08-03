@@ -15,11 +15,19 @@
  ** PR   Date          Author			Change Description
  ** --   --------      -------			--------------------------------
     1    23/JUN/2026  Amit Ghediya      Created
+    2    27/JUL/2026  Abhishek Jirawala Join via Stockline to AircraftRegistryHeader/EngineRegistryHeader and TimeLife
+                                        instead of returning hardcoded engine values
+    3    27/JUL/2026  Abhishek Jirawala Only one of the Aircraft/Engine variant fields is now sourced per row,
+                                        based on which registry the stockline actually resolves to
+    4    27/JUL/2026  Abhishek Jirawala Removed the WO.IsFromAircraft=1 filter - that flag is actually set from
+                                        the PART's own Aircraft/Engine discriminator (0 for Engine), so it was
+                                        silently excluding every genuine Engine work order from the result set
+	5    30/JUL/2026  Amit Ghediya	   Get mm data from TTSNMM [PN-17127]
 
 
  EXEC USP_GetAircraftDataByWorkOrderId @WorkOrderId = 1, @workOrderPartNumberId = 1
  **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAircraftDataByWorkOrderId] 
+CREATE   PROCEDURE [dbo].[USP_GetAircraftDataByWorkOrderId]
     @WorkOrderId     BIGINT,
     @WorkOrderPartNumberId BIGINT
 AS
@@ -30,38 +38,43 @@ BEGIN
     BEGIN TRY
 
         SELECT
-            WorkOrderNumber            = WO.WorkOrderNum,
-            -- Engine variant fields
-            EngineModel            = CAST('Engine' AS VARCHAR(100)),
-            TSO                    = CAST('12' AS VARCHAR(50)),
-            TT                     = CAST('13' AS VARCHAR(50)),
-            CSO                    = CAST('15' AS VARCHAR(50)),
-            TC                     = CAST('18' AS VARCHAR(50)),
-            -- Aircraft variant fields
-            AircraftModel          = CASE WHEN ARHM.AircraftRegistryId > 0 THEN ARHM.AircraftModel ELSE ARHP.AircraftModel END,
-            AircraftTailNumber     = CASE WHEN ARHM.AircraftRegistryId > 0 THEN ARHM.TailNum ELSE ARHP.TailNum END,
-            ItemSerialNumber       = CASE WHEN ARHM.AircraftRegistryId > 0 THEN ARHM.SerialNum ELSE ARHP.SerialNum END,
+            WorkOrderNumber        = WO.WorkOrderNum,
+            -- Engine variant fields (only sourced when the stockline is NOT an Aircraft registry match)
+            EngineModel            = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN NULL ELSE ERH.EngineModel END,
+            ItemSerialNumber       = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN ARH.SerialNum ELSE ERH.SerialNum END,
+            TSO                    = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN NULL ELSE CAST(TL.TimeSinceOVH AS VARCHAR(50)) END,
+            TT                     = CASE
+                                        WHEN ARH.AircraftRegistryId IS NOT NULL THEN NULL
+                                        WHEN ERH.EngineRegistryId IS NOT NULL THEN CAST(CAST(ERH.TotalTSN AS BIGINT) AS VARCHAR(50))
+                                        ELSE NULL
+                                      END,
+            CSO                    = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN NULL ELSE CAST(TL.CyclesSinceOVH AS VARCHAR(50)) END,
+            TC                     = CASE
+                                        WHEN ARH.AircraftRegistryId IS NOT NULL THEN NULL
+                                        WHEN ERH.EngineRegistryId IS NOT NULL THEN CAST(CAST(ERH.TotalCSN AS BIGINT) AS VARCHAR(50))
+                                        ELSE NULL
+                                      END,
+            -- Aircraft variant fields (only sourced when the stockline IS an Aircraft registry match)
+            AircraftModel          = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN ARH.AircraftModel ELSE NULL END,
+            AircraftTailNumber     = CASE WHEN ARH.AircraftRegistryId IS NOT NULL THEN ARH.TailNum ELSE NULL END,
             AircraftTT = CASE
-                WHEN ARHM.AircraftRegistryId > 0
-                    THEN CAST(CAST(ARHM.TotalTSN AS BIGINT) AS VARCHAR(20))
+                WHEN ARH.AircraftRegistryId IS NOT NULL
+                    THEN CAST(CAST(ARH.TotalTSN AS BIGINT) AS VARCHAR(20))
                          + ' : ' +
-                         CAST(CAST(ARHM.TotalCSN AS BIGINT) AS VARCHAR(20))
-                ELSE CAST(CAST(ARHP.TotalTSN AS BIGINT) AS VARCHAR(20))
-                         + ' : ' +
-                         CAST(CAST(ARHP.TotalCSN AS BIGINT) AS VARCHAR(20))
+                         CAST(CAST(ARH.TotalTSNMM AS BIGINT) AS VARCHAR(20))
+                ELSE NULL
              END,
             -- Shared fields
             ReleaseDate            = CAST(NULL AS DATETIME),
             SignedByName           = CAST('' AS VARCHAR(100))
         FROM dbo.WorkOrder WO WITH(NOLOCK)
 		JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
-		LEFT JOIN dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) ON AMP.ProgramId = WOP.ProgramId
-		LEFT JOIN dbo.AircraftInstalledPartDetails AIP WITH(NOLOCK) ON AIP.AircraftInstalledPartDetailsId = WOP.AircraftInstalledPartDetailsId
-		LEFT JOIN dbo.AircraftRegistryHeader ARHM WITH(NOLOCK) ON ARHM.AircraftRegistryId = AMP.AircraftRegistryId
-		LEFT JOIN dbo.AircraftRegistryHeader ARHP WITH(NOLOCK) ON ARHP.AircraftRegistryId = AIP.AircraftRegistryId
-        WHERE WO.WorkOrderId = @WorkOrderId 
-		AND WOP.ID = @WorkOrderPartNumberId
-		AND ISNULL(WO.IsFromAircraft,0) = 1;
+		LEFT JOIN dbo.Stockline STK WITH(NOLOCK) ON STK.StockLineId = WOP.StockLineId
+		LEFT JOIN dbo.AircraftRegistryHeader ARH WITH(NOLOCK) ON ARH.StockLineId = STK.StockLineId
+		LEFT JOIN dbo.EngineRegistryHeader ERH WITH(NOLOCK) ON ERH.StockLineId = STK.StockLineId
+		LEFT JOIN dbo.TimeLife TL WITH(NOLOCK) ON TL.StockLineId = STK.StockLineId AND ISNULL(TL.IsActive,0) = 1
+        WHERE WO.WorkOrderId = @WorkOrderId
+		AND WOP.ID = @WorkOrderPartNumberId;
 
     END TRY
     BEGIN CATCH

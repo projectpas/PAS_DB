@@ -13,6 +13,7 @@
 	2   03/21/2025   Ekta Chandegra		Add dbo.USP_AddWorkOrderTaskHistory call to add history
 	3   03/24/2025   Ekta Chandegra		Update IsDeleted value of deleted Work Order Task Instruction in WorkOrderTaskHistory 
 	4   04/29/2025   Ekta Chandegra		Rearrange sequence of remaining instructions after delete
+    5   08/01/2025   SUMIT KUMAR		[PN-17518] Supplied IsFromWorkFlow to USP_InsertWorkOrderTaskInstructionHistory as 0 as it was missing and throughing error
 
 EXEC [DeleteWorkOrderTaskInstruction] 3
 **************************************************************/
@@ -105,7 +106,7 @@ AS
         WHILE @@FETCH_STATUS = 0
         BEGIN
             EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory 
-                @UpdatedInstructionId, @CreatedBy, @InstructionListId, NULL;
+                @UpdatedInstructionId, @CreatedBy, @InstructionListId, NULL, 0;
 
 			EXEC dbo.USP_AddWorkOrderTaskHistory 
                 @WorkOrderTaskId, @CreatedBy, @UpdatedInstructionId, NULL;

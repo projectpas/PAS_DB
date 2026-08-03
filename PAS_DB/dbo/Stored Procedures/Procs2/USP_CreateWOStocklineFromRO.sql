@@ -34,6 +34,7 @@
 	12   11/19/2025   Moin Bloch       Fixed an issue For WO Kit When We Change Condition at Receiving Time 
 	12   03/19/2026   Moin Bloch       Do not reserve stockline in Work Order during PO/RO receipt when WO is already Closed or moved to Finished Goods PN-15797
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14   27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
 	
 
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
@@ -694,11 +695,12 @@ SET NOCOUNT ON
 												FROM dbo.StocklineDraft SD LEFT JOIN dbo.Stockline SL ON SD.StockLineId = SL.StockLineId 
 												WHERE SL.StockLineId = @StocklineId;
 												INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, RepairOrderId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
-															IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
+															IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, Notes) 
 												SELECT @WorkOrderMaterialsId, @RepairOrderId, @StockLineId, SL.ItemMasterId, @ProvisionId, SL.ConditionId, 
 														CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
 														CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
-														0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, @MasterCompanyId, 1, 0,@MaterialRefNo+@RONumber 
+														0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, @MasterCompanyId, 1, 0,@MaterialRefNo+@RONumber,
+														(SELECT TOP 1 Memo FROM dbo.RepairOrderPart WITH(NOLOCK) WHERE RepairOrderPartRecordId = @RepairOrderPartId)  
 												FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 													JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 													JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
@@ -772,11 +774,12 @@ SET NOCOUNT ON
 												IF(@IsFinishGood = 0)
 												BEGIN
 													INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, RepairOrderId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
-															IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
+															IsAltPart, IsEquPart, ExtendedPrice, UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, Notes) 
 													SELECT @ExWorkOrderMaterialsId, @RepairOrderId, @StockLineId, SL.ItemMasterId, @ProvisionId, SL.ConditionId, 
 															CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
 															CASE WHEN SL.QuantityAvailable > @Quantity THEN @Quantity ELSE SL.QuantityAvailable END, 
-															0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, Sl.MasterCompanyId, 1, 0 ,@MaterialRefNo+@RONumber
+															0, 0, 0, 0, ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0), GETDATE(), SL.UpdatedBy, GETDATE(), SL.UpdatedBy, Sl.MasterCompanyId, 1, 0 ,@MaterialRefNo+@RONumber,
+															(SELECT TOP 1 Memo FROM dbo.RepairOrderPart WITH(NOLOCK) WHERE RepairOrderPartRecordId = @RepairOrderPartId)
 													FROM #ROStockLineSamePart ROS WITH(NOLOCK) 
 														JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 														JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SL.ItemMasterId = IM.ItemMasterId

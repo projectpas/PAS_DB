@@ -26,7 +26,8 @@
 	9	 11/11/2025	  Moin Bloch	  Modified (Add Default Entry Of [DirectLaborOHCost],[BurdaenRatePercentageId],[TotalCostPerHour],[BurdenRateAmount] for Assign Total Hours to Work Add All Task )
 	10	 12/23/2025	  Bhargav Saliya  Added case For Dynamic Wo Labour Entry
 	11	 12/26/2025	  Bhargav Saliya  Add  Default Entry In [WorkOrderTaskDetails] fro 'All Task'
-	12   06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
+	12   06/01/2026   Moin Bloch      Added LaborHoursId in WorkOrderLaborHeader
+	13   29/07/2026   Moin Bloch      Due To Dynamic Task [dbo].[Task] Table Entry not able to work so commented Wrong Entry Storing PN-17434
        
 -- EXEC [USP_CreateTravelerLabourTask] 10181,10386,10248,1,'JONAS  KAHNWALD'
 **************************************************************/  
@@ -468,45 +469,46 @@ BEGIN
 				
 			IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLabor] WITH(NOLOCK) WHERE [WorkOrderLaborHeaderId] = @WorkOrderLaborHeaderId AND [MasterCompanyId]=@MasterCompanyId) AND @WorkOrderLaborHeaderId > 0 
 			BEGIN 
-				IF(@LaborHoursId != @AssignTotalHourstoWork)
-				BEGIN
-					INSERT INTO [dbo].[WorkOrderLabor]  
-							([WorkOrderLaborHeaderId]  
-							,[TaskId]  
-							,[ExpertiseId]  
-							,TaskInstruction  
-							,[CreatedBy]  
-							,[UpdatedBy]  
-							,[CreatedDate]  
-							,[UpdatedDate]  
-							,[IsActive]  
-							,[IsDeleted]  
-							,[BillableId]  
-							,[IsFromWorkFlow]  
-							,[MasterCompanyId]  
-							,[TaskStatusId]
-							,[StandardHours]
-							,[StandardMinute])  
-					  SELECT @WorkOrderLaborHeaderId  
-							 ,TST.[TaskId]  
-							 ,@ExpertiseId  
-							 ,TST.[Notes]  
-							 ,@CreatedBy  
-							 ,@CreatedBy  
-							 ,GETUTCDATE()  
-							 ,GETUTCDATE()  
-							 ,1  
-							 ,0  
-							 ,1  
-							 ,0  
-							 ,@MasterCompanyId  
-							 ,@TaskStatusId  
-							 ,TSK.[StandardHours]
-							 ,TSK.[StandardMinute]
-						FROM [dbo].[Traveler_Setup_Task] TST WITH(NOLOCK) 
-					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
-					  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
-				END
+				-- Due To Dynamic Task [dbo].[Task] Table Entry not able to work so commented Wrong Entry Storing PN-17434
+				--IF(@LaborHoursId != @AssignTotalHourstoWork)
+				--BEGIN							
+					--INSERT INTO [dbo].[WorkOrderLabor]  
+					--		([WorkOrderLaborHeaderId]  
+					--		,[TaskId]  
+					--		,[ExpertiseId]  
+					--		,TaskInstruction  
+					--		,[CreatedBy]  
+					--		,[UpdatedBy]  
+					--		,[CreatedDate]  
+					--		,[UpdatedDate]  
+					--		,[IsActive]  
+					--		,[IsDeleted]  
+					--		,[BillableId]  
+					--		,[IsFromWorkFlow]  
+					--		,[MasterCompanyId]  
+					--		,[TaskStatusId]
+					--		,[StandardHours]
+					--		,[StandardMinute])  
+					--  SELECT @WorkOrderLaborHeaderId  
+					--		 ,TST.[TaskId]  
+					--		 ,@ExpertiseId  
+					--		 ,TST.[Notes]  
+					--		 ,@CreatedBy  
+					--		 ,@CreatedBy  
+					--		 ,GETUTCDATE()  
+					--		 ,GETUTCDATE()  
+					--		 ,1  
+					--		 ,0  
+					--		 ,1  
+					--		 ,0  
+					--		 ,@MasterCompanyId  
+					--		 ,@TaskStatusId  
+					--		 ,TSK.[StandardHours]
+					--		 ,TSK.[StandardMinute]
+					--	FROM [dbo].[Traveler_Setup_Task] TST WITH(NOLOCK) 
+					--LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
+					--  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
+				--END
 
 				IF(@LaborHoursId = @AssignTotalHourstoWork)
 				BEGIN	

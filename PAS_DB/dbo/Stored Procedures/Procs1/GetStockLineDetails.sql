@@ -81,7 +81,7 @@
 										 likely why editing a migrated Non-Stock record was failing. (2) The ipAgg integration-
 										 portal subquery filtered the same way, silently blanking that field for Non-Stock
 										 records. Left the oempnpart/rPart joins untouched (different ItemMaster rows).
-
+	20   29-July-2026             Ayushi Patel		                Added New Field IsService [PN-17470]
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -399,7 +399,7 @@ ELSE 0 END AS IsSkipSerialNo
 			,im.ItemClassificationName AS Classification
 			,stl.AircraftSN
 			,ES.ExchangeSalesOrderNumber
-			,	stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,stl.Note
+			,	stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,stl.Note,stl.IsService
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

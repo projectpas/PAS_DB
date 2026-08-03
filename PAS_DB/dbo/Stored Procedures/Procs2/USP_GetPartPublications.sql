@@ -11,11 +11,13 @@
  **********************           
  ** Change History           
  **********************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    27/06/2025  Moin Bloch			Created
-    2    01/07/2025  Devendra Shekh     Allowing to fetch @cmmIds data Despite being Deleted/InActive
-    3    11/02/2026   AYUSHI PATEL      Fixed duplicate record issue when applying revisionNumber logic.Moved COUNT() OVER() calculation to outer query after UNION to ensure consistent PublicationId formatting.
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+    1    27/06/2025		Moin Bloch			Created
+    2    01/07/2025		Devendra Shekh		Allowing to fetch @cmmIds data Despite being Deleted/InActive
+    3    11/02/2026		AYUSHI PATEL		Fixed duplicate record issue when applying revisionNumber logic.Moved COUNT() OVER() calculation to outer query after UNION to ensure consistent PublicationId formatting.
+	4    24/07/2026		Vishal Suthar		Added RevNumber by concatenating it in PubId for all the records
+    7    30/07/2026     SUMIT KUMAR      Changed the 'PublicationId' formatting with {Template Description} – REV – {Revision #} if Revision num is there [PN-17478]
  
 --   EXEC [dbo].[USP_GetPartPublications] 102544,1,'711'
      EXEC [dbo].[USP_GetPartPublications] 102544,1,''
@@ -35,9 +37,14 @@ BEGIN
 	IF(@cmmIds IS NULL OR @cmmIds = '')
 	BEGIN
 		SELECT 
-			CASE 
-				WHEN COUNT(*) OVER (PARTITION BY p.PublicationId) > 1
-				THEN p.PublicationId + '_' + CAST(p.RevisionNum AS VARCHAR(20))
+			--CASE 
+			--	WHEN COUNT(*) OVER (PARTITION BY p.PublicationId) > 1
+			--	THEN p.PublicationId + '_' + CAST(p.RevisionNum AS VARCHAR(20))
+			--	ELSE p.PublicationId
+			--END AS PublicationId,
+            CASE -- Concate prefix ' - REV - ' with PublicationId if RevisionNum is not null or empty
+				WHEN NULLIF(LTRIM(RTRIM(p.RevisionNum)), '') IS NOT NULL
+				THEN p.PublicationId + ' - REV - ' + CAST(p.RevisionNum AS VARCHAR(20))
 				ELSE p.PublicationId
 			END AS PublicationId,
 			[p].[PublicationRecordId],
@@ -87,9 +94,14 @@ BEGIN
     )
 
     SELECT DISTINCT
-        CASE 
-            WHEN COUNT(*) OVER (PARTITION BY PublicationId) > 1
-                THEN PublicationId + '_' + CAST(RevisionNum AS VARCHAR(20))
+        --CASE 
+        --    WHEN COUNT(*) OVER (PARTITION BY PublicationId) > 1
+        --        THEN PublicationId + '_' + CAST(RevisionNum AS VARCHAR(20))
+        --    ELSE PublicationId
+        -- END AS PublicationId,
+        CASE -- Concate prefix ' - REV - ' with PublicationId if RevisionNum is not null or empty
+            WHEN NULLIF(LTRIM(RTRIM(RevisionNum)), '') IS NOT NULL
+            THEN PublicationId + ' - REV - ' + CAST(RevisionNum AS VARCHAR(20))
             ELSE PublicationId
         END AS PublicationId,
         PublicationRecordId,

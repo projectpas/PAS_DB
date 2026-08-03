@@ -14,3 +14,8 @@
     CONSTRAINT [Unique_RoleManagementStructure] UNIQUE NONCLUSTERED ([RoleId] ASC, [EntityStructureId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RMS_EntityStructure_Role_Perf]
+    ON [dbo].[RoleManagementStructure]([EntityStructureId] ASC, [RoleId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

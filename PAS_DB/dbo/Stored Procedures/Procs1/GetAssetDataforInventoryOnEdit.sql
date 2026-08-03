@@ -17,6 +17,11 @@
  ** --   --------     -------			--------------------------------
     1    09/12/2024   Abhishek Jirawla	Created
     2    15/07/2026   Vishal Suthar     Fall back to DeprNonDeprTangibleAssets for AssetTypeName
+    3    29/07/2026   Abhishek Jirawala Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+                                        (never a DeprNonDeprTangibleAssetsId); joined dnta by its
+                                        AssetAttributeTypeId FK instead of its own PK. Dropped the
+                                        dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+                                        always joined so its name always resolves.
 
 --  EXEC [GetAssetDataforInventoryOnEdit] 221
 **************************************************************/
@@ -161,7 +166,7 @@ BEGIN
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AssetParentRecordId)
 			END AS AssetParentId,
 			asset.TangibleClassId,
-			ISNULL(asty.AssetAttributeTypeName, ISNULL(dnta.AssetAttributeTypeName, '')) AS AssetTypeName,
+			ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
 			asset.AssetAttributeTypeId,
 			asset.AssetLocationId,
 			(SELECT p.Code + '-' + p.Name FROM DBO.AssetLocation p WITH (NOLOCK) WHERE p.AssetLocationId = asset.AssetLocationId) AS AsetLocationName,
@@ -220,8 +225,8 @@ BEGIN
 			LEFT JOIN DBO.AssetMaintenance asmai WITH (NOLOCK) ON asset.AssetRecordId = asmai.AssetRecordId
 			LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
 			LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
-			LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId AND (asset.AssetClassSource IS NULL OR asset.AssetClassSource = 'AssetAttributeType')
-			LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.DeprNonDeprTangibleAssetsId AND asset.AssetClassSource = 'DeprNonDeprTangibleAssets'
+			LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+			LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
 			LEFT JOIN DBO.Vendor vencali WITH (NOLOCK) ON ascal.CalibrationDefaultVendorId = vencali.VendorId
 			LEFT JOIN DBO.Vendor vencert WITH (NOLOCK) ON ascal.CertificationDefaultVendorId = vencert.VendorId
 			LEFT JOIN DBO.Vendor venins WITH (NOLOCK) ON ascal.InspectionDefaultVendorId = venins.VendorId

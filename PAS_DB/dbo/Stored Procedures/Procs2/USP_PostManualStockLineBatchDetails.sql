@@ -27,6 +27,9 @@
 	11	 02/06/2025			 Abhishek Jirawla		Fixed Name concat read script
     12   02/12/2025          Moin Bloch             Modify(Added dynamic )
 	13	 06/07/2026	         Moin Bloch             Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	14   28/07/2026	         Moin Bloch             Modify (Skip Accounting Entry PN-17290)
+	15   01/08/2026	         AMIT GHEDIYA           Check bypass for mastercomapnyid [PN-17290]
+	
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -140,7 +143,12 @@ BEGIN
 
 		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
+		SELECT @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+		  FROM [dbo].[DistributionSetup] WITH(NOLOCK)   
+		  WHERE UPPER([DistributionSetupCode]) = UPPER('MSTK-ACCPAYABLE') AND [MasterCompanyId] = @MasterCompanyId
+		   AND [DistributionMasterId] = (SELECT TOP 1 [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'ManualStockLine')
+
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0 AND @IsBypassAccounting = 0)
 		BEGIN		
 			
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'

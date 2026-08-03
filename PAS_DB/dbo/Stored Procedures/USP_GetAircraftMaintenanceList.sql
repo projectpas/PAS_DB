@@ -46,6 +46,8 @@
 ** 18   14/07/2026	 Amit Ghediya	    Added @ApplicableSbAd,@WoStatus filter [PN-17161]
 ** 19   20/07/2026	 Amit Ghediya	    Added @ACSection for aircrfat type
 ** 20   21/07/2026   Kishor Makwana     [PN-17374] Update TimeLimit and TimeRemaining columd data with caption days or Mth 
+** 21	24/07/2026	 Amit Ghediya	    Update tailnum to EngineName
+** 22	27/07/2026	 Amit Ghediya	    Get Worksheet from mapping table [PN-17396]
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -222,7 +224,7 @@ BEGIN
             -- Compute Aircraft-vs-Engine display values ONCE; reused by both SELECT and filters
             CROSS APPLY (
                 SELECT
-                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.TailNum        ELSE ERH.TailNum        END AS TailNumber,
+                    CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.TailNum        ELSE ERH.EngineName        END AS TailNumber,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.MakeType       ELSE ERH.MakeType       END AS AircraftMake,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.AircraftModel  ELSE ERH.EngineModel    END AS AircraftModel,
                     CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN ARH.SerialNum      ELSE ERH.SerialNum      END AS SerialNumber,
@@ -250,8 +252,9 @@ BEGIN
             -- Latest worksheet per program (replaces ranking the whole WorksheetHeader table)
             OUTER APPLY (
                 SELECT TOP (1) W.WorksheetNumber, W.WorksheetHeaderId
-                FROM [dbo].[WorksheetHeader] W WITH (NOLOCK)
-                WHERE W.ProgramId = AMP.ProgramId
+                FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK)
+				INNER JOIN [dbo].[WorksheetHeader] W WITH (NOLOCK) ON W.WorksheetHeaderId = WSM.WorksheetHeaderId
+                WHERE WSM.ProgramId = AMP.ProgramId
                 ORDER BY W.CreatedDate DESC
             ) WSH
             -- Latest work order per program (replaces ranking the whole WorkOrder join)

@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------          
     1    10/07/2026   Moin Bloch 	    Created
 	2    21/07/2026   Moin Bloch 	    added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
+	3    27/07/2026   Moin Bloch 	    Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
 
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 4345,2
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 14353,2
@@ -238,7 +239,7 @@ BEGIN
 						ISNULL(wosd.[workOrderPartNoId],0) as workOrderPartNoId,
 						ISNULL(wosd.[WorkOrderSettlementDetailId],0) as WorkOrderSettlementDetailId,
 						CASE WHEN wos.[WorkOrderSettlementId] = @MaterialSettlement THEN CASE WHEN ISNULL(c.[qtyrequested], 0) = ISNULL(c.[qtyissued], 0) THEN 1 ELSE 0 END 
-							 WHEN wos.[WorkOrderSettlementId] = @LaborSettlement THEN CASE WHEN ISNULL(c.[IsLaborTrackingTurnedOff], 0) = 1 THEN 1 WHEN ISNULL(c.[IsLaborCompleled],0) <= 0 THEN 1 ELSE 0 END 
+							 WHEN wos.[WorkOrderSettlementId] = @LaborSettlement THEN CASE WHEN ISNULL(c.[IsLaborTrackingTurnedOff], 0) = 1 THEN 1 ELSE CASE WHEN ISNULL(c.[IsLaborCompleled],0) <= 0 THEN 1 ELSE 0 END END							
 							 WHEN wos.[WorkOrderSettlementId] = @AllToolsSettlement THEN CASE WHEN ISNULL(c.[AllToolsAreCheckOut],0) <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.[IsMastervalue] END
 						AS IsMastervalue,

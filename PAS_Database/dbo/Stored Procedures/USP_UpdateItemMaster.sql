@@ -18,8 +18,10 @@
 ** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
 ** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
 ** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
+** 10    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
+
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
+create     PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -241,6 +243,7 @@ BEGIN
 		,i.Starts = PST.Starts
 		,i.CalendarDate = PST.CalendarDate
 		,i.Model = PST.Model
+		,i.IsKitAssy = PST.IsKitAssy
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

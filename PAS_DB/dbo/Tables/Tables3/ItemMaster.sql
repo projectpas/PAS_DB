@@ -338,3 +338,9 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
 GO
+CREATE NONCLUSTERED INDEX [IX_ItemMaster_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[ItemMaster]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([ItemTypeId], [IsHazardousMaterial], [IntegrationTypeId], [IsUpdated], [partnumber], [ManufacturerName], [ItemClassificationName], [ItemGroup], [NationalStockNumber], [isSerialized], [isTimeLife], [IsPma], [IsDER], [IsOEM], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [WorkOrderFormTypeId], [IsNonStock]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's tenant/soft-delete/active/hazmat filter
+-- (see ProcItemMasterStockList_Performance_Recommendations.sql for the full review).
+GO

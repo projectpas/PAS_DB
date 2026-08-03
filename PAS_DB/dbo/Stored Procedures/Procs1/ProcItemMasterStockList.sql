@@ -26,7 +26,14 @@
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
 	14   29-Jun-2026    Rajesh Gami			 Merging the NonStock Inventory to Inventory [PN-17008]
-	15    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
+	15    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810]
+	16   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
+										 (DBO.ConvertUTCtoLocal), removed unneeded SELECT DISTINCT,
+										 converted HasSubAssy/RoSubAssy COUNT(...)>0 checks to
+										 EXISTS(...), and removed #TempResult / separate COUNT
+										 pass (now COUNT(*) OVER()). See
+										 ProcItemMasterStockList_Performance_Recommendations.sql
+										 for the full before/after review.
 
 **********************/
 CREATE     PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -68,30 +75,34 @@ BEGIN
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
 
-		DECLARE @RecordFrom int;		
-		DECLARE @Count Int;
+		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit;
 		--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		
-				SELECT 
+		-- PERF FIX: also resolve the numeric UTC offset here, once, alongside the description, so
+		-- the CTE below can use DATEADD directly instead of calling DBO.ConvertUTCtoLocal per row
+		-- (that function re-queries dbo.TimeZone on every call and forces row-by-row execution).
+		DECLARE @BaseUtcOffsetSec INT = 0;
+
+				SELECT
 						@CurrntEmpTimeZoneDesc = COALESCE(
 							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-						)
-					FROM 
-						dbo.Employee E WITH (NOLOCK) 
-					LEFT JOIN 
-						dbo.TimeZone ETZ WITH (NOLOCK) 
+						),
+						@BaseUtcOffsetSec = COALESCE(ETZ.BaseUtcOffsetSec, LTZ.BaseUtcOffsetSec, 0)
+					FROM
+						dbo.Employee E WITH (NOLOCK)
+					LEFT JOIN
+						dbo.TimeZone ETZ WITH (NOLOCK)
 						ON E.TimeZoneId = ETZ.TimeZoneId
-					LEFT JOIN 
-						dbo.LegalEntity LE WITH (NOLOCK) 
+					LEFT JOIN
+						dbo.LegalEntity LE WITH (NOLOCK)
 						ON E.LegalEntityId = LE.LegalEntityId
-					LEFT JOIN 
-						dbo.TimeZone LTZ WITH (NOLOCK) 
+					LEFT JOIN
+						dbo.TimeZone LTZ WITH (NOLOCK)
 						ON LE.TimeZoneId = LTZ.TimeZoneId
-					WHERE 
+					WHERE
 						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
@@ -136,49 +147,65 @@ BEGIN
 		),
 		
 		 Result AS(
-				SELECT DISTINCT im.ItemMasterId,
+				-- PERF FIX: removed SELECT DISTINCT - CTE_IntegrationPortal is already
+				-- GROUP BY ItemMasterId (one row per key) and is LEFT JOINed 1:1 on that same
+				-- key; nothing else in this SELECT can fan a row out, since HasSubAssy/RoSubAssy
+				-- are scalar subqueries, not joins. im.ItemMasterId (the driving PK) already
+				-- guarantees uniqueness, so DISTINCT was just an extra sort/hash over every
+				-- computed column for no benefit.
+				SELECT im.ItemMasterId,
 				       im.PartNumber,
 					   im.PartDescription,
 					   (ISNULL(im.ManufacturerName,'')) 'Manufacturerdesc',
 					   im.ItemClassificationName 'Classificationdesc',
 					   (ISNULL(im.ItemGroup,'')) 'ItemGroup',
-					   im.NationalStockNumber,	
+					   im.NationalStockNumber,
 					   CASE WHEN im.IsSerialized = 1 THEN 'Yes' ELSE 'No' END AS IsSerialized,
 					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
-					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
+					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
-					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
-					   CASE WHEN ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS RoSubAssy,
+					   -- PERF FIX: COUNT(...) > 0 -> EXISTS(...). Same result, but SQL Server can
+					   -- stop at the first matching row instead of counting every match, and this
+					   -- now has a supporting index on (ItemMasterId, PopulateWoMaterialList).
+					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[Assemply] AP WITH (NOLOCK) WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1) THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK) WHERE RAP.ItemMasterId = im.ItemMasterId) THEN 'Yes' ELSE 'No' END AS RoSubAssy,
 					   im.IsActive,
-					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
+					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
 					   StockType = (CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
-										 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA' 
+										 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER'
-										 WHEN im.IsOEM = 1 THEN 'OEM' 
+										 WHEN im.IsOEM = 1 THEN 'OEM'
 										 ELSE ''
-									END),                       
+									END),
 					   im.CreatedDate CreatedDates,
                        --im.UpdatedDate,
-					   (Cast(DBO.ConvertUTCtoLocal(im.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-					   (Cast(DBO.ConvertUTCtoLocal(im.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+					   -- PERF FIX: inline DATEADD using the offset resolved once above, instead of
+					   -- calling DBO.ConvertUTCtoLocal(...) per row (see note near @BaseUtcOffsetSec).
+					   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.CreatedDate) AS Date) AS CreatedDate,
+					   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.UpdatedDate) AS Date) AS UpdatedDate,
 					   im.CreatedBy,
-                       im.UpdatedBy,	
+                       im.UpdatedBy,
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
 					    ISNULL(IM.IsNonStock,0)IsNonStock,
 						im.ItemTypeId
-			   FROM dbo.ItemMaster im WITH (NOLOCK)	
+			   FROM dbo.ItemMaster im WITH (NOLOCK)
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
-		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
+		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
 					AND im.MasterCompanyId=@MasterCompanyId
 					 AND (@ItemTypeStatusId IS NULL OR im.ItemTypeId = @ItemTypeStatusId)
 					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.isUpdated,0) = ISNULL(@IsUpdated,0))
 					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
 			),
-			ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
-			SELECT * INTO #TempResult FROM  Result
+			-- PERF FIX: filters now run directly against Result (no #TempResult heap table), and
+			-- COUNT(*) OVER() supplies NumberOfItems in the same pass that gets sorted/paged below
+			-- - this replaces the old #TempResult + separate "SELECT @Count = COUNT(...)" scan
+			-- with a single pass.
+			FilteredResult AS (
+			SELECT *, COUNT(*) OVER() AS NumberOfItems
+			FROM Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(Manufacturerdesc LIKE '%' +@GlobalFilter+'%') OR					
@@ -218,10 +245,9 @@ BEGIN
 					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%') AND
 					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%'))
 	)
+			)
 
-			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult			
-
-			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
+			SELECT * FROM FilteredResult ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,

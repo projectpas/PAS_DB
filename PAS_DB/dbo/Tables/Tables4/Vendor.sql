@@ -186,3 +186,9 @@ BEGIN
         OR
         (m.Action = 'D' AND m.OldValue IS NOT NULL);
 END;
+GO
+CREATE NONCLUSTERED INDEX [IX_Vendor_RelatedCustomerId_Perf]
+    ON [dbo].[Vendor]([RelatedCustomerId] ASC)
+    INCLUDE([VendorName]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports GetCustomerList's Customer -> Vendor lookup (see
+-- GetCustomerList_Performance_Recommendations.sql for the full review).

@@ -40,3 +40,9 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_Assemply_ItemMasterId_PopulateWoMaterialList_Perf]
+    ON [dbo].[Assemply]([ItemMasterId] ASC, [PopulateWoMaterialList] ASC)
+    INCLUDE([AssemplyId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's HasSubAssy check (see
+-- ProcItemMasterStockList_Performance_Recommendations.sql for the full review).

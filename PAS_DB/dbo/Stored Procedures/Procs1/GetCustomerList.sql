@@ -25,6 +25,13 @@
 	9    02-07-2026   Sahdev Saliya			Added Resale Number [PN-17018]
 	10   07-07-2026   Bhargav Saliya		Added @IntegrationTypeId [PN-16810]
 	11   07-07-2026   Divyesh Kathitiya		Added VAT Number [PN-17124]
+	12   08-03-2026   Rajesh Gami			Performance pass: removed per-row scalar UDF call
+											(DBO.ConvertUTCtoLocal), removed #TempResult /
+											separate COUNT pass (now COUNT(*) OVER()), and
+											switched CustomerContact/Vendor to OUTER APPLY
+											TOP(1) to guard against row duplication. See
+											GetCustomerList_Performance_Recommendations.sql
+											for the full before/after review.
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -74,13 +81,18 @@ BEGIN
 
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit=1
-		DECLARE @Count Int;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		-- PERF FIX: also resolve the numeric UTC offset here, once, alongside the description,
+		-- so the CTE below can use DATEADD directly instead of calling DBO.ConvertUTCtoLocal
+		-- per row (that function re-queries dbo.TimeZone on every call and forces row-by-row
+		-- execution for the whole query).
+		DECLARE @BaseUtcOffsetSec INT = 0;
 		SELECT
 				@CurrntEmpTimeZoneDesc = COALESCE(
 					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-				)
+				),
+				@BaseUtcOffsetSec = COALESCE(ETZ.BaseUtcOffsetSec, LTZ.BaseUtcOffsetSec, 0)
 			FROM
 				dbo.Employee E WITH (NOLOCK)
 			LEFT JOIN
@@ -128,22 +140,22 @@ BEGIN
 					C.CustomerCode,
 					C.Email,
 					CT.CustomerTypeName AS AccountType,
-					STUFF((SELECT ', ' + CC.Description
+					STUFF((SELECT ', ' + CCL.Description
 							FROM dbo.ClassificationMapping cm WITH (NOLOCK)
-							INNER JOIN dbo.CustomerClassification CC WITH (NOLOCK) ON CC.CustomerClassificationId=CM.ClasificationId AND CC.MasterCompanyId = @MasterCompanyId
+							INNER JOIN dbo.CustomerClassification CCL WITH (NOLOCK) ON CCL.CustomerClassificationId=cm.ClasificationId AND CCL.MasterCompanyId = @MasterCompanyId
 							WHERE cm.ReferenceId=C.CustomerId AND cm.ModuleId=@CustomerModule
 							FOR XML PATH('')), 1, 1, '') 'CustomerClassification',
 					A.City,
-					a.StateOrProvince,
+					A.StateOrProvince,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					(ISNULL(E.FirstName,'')+' '+ISNULL(E.LastName,'')) AS 'SalesPersonPrimary',
 					C.IsActive,
 					C.IsDeleted,
-					--C.CreatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(C.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
+					-- PERF FIX: inline DATEADD using the offset resolved once above, instead of
+					-- calling DBO.ConvertUTCtoLocal(...) per row (see note near @BaseUtcOffsetSec).
+					CAST(DATEADD(SECOND, @BaseUtcOffsetSec, C.CreatedDate) AS datetime) AS CreatedDate,
 					C.CreatedBy,
-					--C.UpdatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(C.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
+					CAST(DATEADD(SECOND, @BaseUtcOffsetSec, C.UpdatedDate) AS datetime) AS UpdatedDate,
 					C.UpdatedBy,
 					CA.[Description] AS CustomerType,
 					C.IsTrackScoreCard,
@@ -151,7 +163,7 @@ BEGIN
 					CASE WHEN ISNULL(C.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
 					C.LastSyncDate,
 					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor',
-					V.VendorName,
+					VApply.VendorName,
 					C.Memo,
 					C.ResaleNumber,
 					C.VatNumber
@@ -160,17 +172,39 @@ BEGIN
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
 					LEFT JOIN  dbo.CustomerSales CS  WITH (NOLOCK) ON C.CustomerId=CS.CustomerId
 					LEFT JOIN  dbo.Employee E  WITH (NOLOCK) ON CS.PrimarySalesPersonId=e.EmployeeId
-					LEFT JOIN  dbo.Address a  WITH (NOLOCK) ON C.AddressId=a.AddressId
-					LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=C.CustomerId AND CC.IsDefaultContact=1
-					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
-					LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.RelatedCustomerId = C.CustomerId
+					LEFT JOIN  dbo.Address A  WITH (NOLOCK) ON C.AddressId=A.AddressId
+					-- PERF FIX: TOP(1) APPLY instead of a plain LEFT JOIN filtered on
+					-- IsDefaultContact = 1 - nothing in the schema enforces "only one default
+					-- contact per customer", so a plain join could silently duplicate a
+					-- customer's row. APPLY guarantees at most one match.
+					OUTER APPLY (
+						SELECT TOP (1) CC.ContactId
+						FROM dbo.CustomerContact CC WITH (NOLOCK)
+						WHERE CC.CustomerId = C.CustomerId AND CC.IsDefaultContact = 1
+						ORDER BY CC.CustomerContactId
+					) CCApply
+					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CCApply.ContactId=Contact.ContactId
+					-- PERF FIX: same reasoning as above - Vendor.RelatedCustomerId also has no
+					-- uniqueness guarantee in the schema.
+					OUTER APPLY (
+						SELECT TOP (1) V.VendorName
+						FROM dbo.Vendor V WITH (NOLOCK)
+						WHERE V.RelatedCustomerId = C.CustomerId
+						ORDER BY V.VendorId
+					) VApply
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
-					AND C.MasterCompanyId=@MasterCompanyId 
-					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND C.MasterCompanyId=@MasterCompanyId
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(C.IsUpdated,0) = ISNULL(@IsUpdated,0))
 					AND (@IntegrationTypeId IS NULL OR C.IntegrationTypeId = @IntegrationTypeId)
 					AND (@IsCustomerAlsoVendor IS NULL OR C.IsCustomerAlsoVendor = @IsCustomerAlsoVendor)
-			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
-			SELECT * INTO #TempResult FROM  Result
+			),
+			-- PERF FIX: filters now run directly against Result (no #TempResult heap table),
+			-- and COUNT(*) OVER() supplies NumberOfItems in the same pass that gets sorted/paged
+			-- below - this replaces the old #TempResult + separate "SELECT @Count = COUNT(...)"
+			-- scan with a single pass.
+			FilteredResult AS (
+			SELECT *, COUNT(*) OVER() AS NumberOfItems
+			FROM Result
 			WHERE (
 			(@GlobalFilter <>'' AND ((Name LIKE '%' +@GlobalFilter+'%' ) OR (CustomerCode LIKE '%' +@GlobalFilter+'%') OR
 					(Email LIKE '%' +@GlobalFilter+'%') OR
@@ -215,10 +249,9 @@ BEGIN
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
-
-			Select @Count = COUNT(CustomerId) FROM #TempResult
-
-			SELECT *, @Count AS NumberOfItems FROM #TempResult
+			)
+			SELECT *
+			FROM FilteredResult
 			ORDER BY
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='EMAIL')  THEN Email END ASC,

@@ -50,3 +50,9 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_CustomerContact_CustomerId_IsDefaultContact_Perf]
+    ON [dbo].[CustomerContact]([CustomerId] ASC, [IsDefaultContact] ASC)
+    INCLUDE([ContactId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports GetCustomerList's default-contact lookup (see
+-- GetCustomerList_Performance_Recommendations.sql for the full review).

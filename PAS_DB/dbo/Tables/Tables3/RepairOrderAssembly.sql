@@ -19,4 +19,10 @@
     [IsDeleted]             BIT             CONSTRAINT [DF_RepairOrderAssembly_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_RepairOrderAssembly] PRIMARY KEY CLUSTERED ([RepairOrderAssemblyId] ASC)
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_RepairOrderAssembly_ItemMasterId_Perf]
+    ON [dbo].[RepairOrderAssembly]([ItemMasterId] ASC)
+    INCLUDE([RepairOrderAssemblyId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's RoSubAssy check (see
+-- ProcItemMasterStockList_Performance_Recommendations.sql for the full review).
 

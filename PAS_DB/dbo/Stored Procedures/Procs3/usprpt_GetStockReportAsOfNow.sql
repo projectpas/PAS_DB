@@ -30,7 +30,7 @@
 	13   09/July/2026	RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14   24/July/2026	RAJESH GAMI			[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
 	15	 29/July/2026	HEMANT SALIYA		added abck obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
-
+	16   03/Aug/2026    Kishor Makwana		[PN-17534] As of Now Report: Excel export fails when downloading a large dataset	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -60,20 +60,22 @@ BEGIN
 	END
 
 	CREATE TABLE #TEMPMSFilter(        
-			ID BIGINT  IDENTITY(1,1),        
+			ID BIGINT  IDENTITY(1,1) PRIMARY KEY,        
 			LevelIds VARCHAR(MAX)			 
 		) 
 
-	INSERT INTO #TEMPMSFilter(LevelIds)
-	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
+	IF ISNULL(@strFilter,'') <> ''
+		INSERT INTO #TEMPMSFilter(LevelIds)
+		SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
 
 	CREATE TABLE #TempLocationDataFilter(        
-			ID BIGINT  IDENTITY(1,1),        
+			ID BIGINT  IDENTITY(1,1) PRIMARY KEY,        
 			Sites VARCHAR(MAX)			 
 		)
 
-	INSERT INTO #TempLocationDataFilter(Sites)
-	SELECT Item FROM DBO.SPLITSTRING(@id5,'!')
+	IF ISNULL(@id5,'') <> ''
+		INSERT INTO #TempLocationDataFilter(Sites)
+		SELECT Item FROM DBO.SPLITSTRING(@id5,'!')
 
 	DECLARE   
 	@level1 VARCHAR(MAX) = NULL,  
@@ -114,7 +116,7 @@ BEGIN
     DECLARE @ModuleID INT = 2; -- MS Module ID 	
 	SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
 	DECLARE @NonStockGLAccountId BIGINT = 0; -- MS Module ID 
-	SELECT @NonStockGLAccountId = GLAccountId  FROM [dbo].[GLAccount] WHERE AccountCode = 73300 AND MasterCompanyId = 21
+	SELECT @NonStockGLAccountId = GLAccountId  FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE AccountCode = 73300 AND MasterCompanyId = 21
 
 	--SELECT *  FROM [dbo].[GLAccount] WHERE AccountCode = 73300 AND MasterCompanyId = 21
 
@@ -127,6 +129,34 @@ BEGIN
 	BEGIN
 		SET @id2 = NULL
 	END
+
+	/****** PRE-COMPUTATION (performance only - nothing here changes a returned value) ******/
+	IF OBJECT_ID(N'tempdb..#Split') IS NOT NULL DROP TABLE #Split
+
+	-- as-of date evaluated ONCE, and in a form that lets an index on CreatedDate seek
+	DECLARE @AsOfDate DATE = CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+	DECLARE @AsOfDateEnd DATETIME2(7) = DATEADD(DAY, 1, CAST(@AsOfDate AS DATETIME2(7)))
+
+	CREATE TABLE #Split (Kind VARCHAR(20) NOT NULL, Item VARCHAR(450) NULL)
+
+	IF ISNULL(@level1,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level1', Item FROM DBO.SPLITSTRING(@level1,',')
+	IF ISNULL(@level2,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level2', Item FROM DBO.SPLITSTRING(@level2,',')
+	IF ISNULL(@level3,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level3', Item FROM DBO.SPLITSTRING(@level3,',')
+	IF ISNULL(@level4,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level4', Item FROM DBO.SPLITSTRING(@level4,',')
+	IF ISNULL(@level5,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level5', Item FROM DBO.SPLITSTRING(@level5,',')
+	IF ISNULL(@level6,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level6', Item FROM DBO.SPLITSTRING(@level6,',')
+	IF ISNULL(@level7,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level7', Item FROM DBO.SPLITSTRING(@level7,',')
+	IF ISNULL(@level8,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level8', Item FROM DBO.SPLITSTRING(@level8,',')
+	IF ISNULL(@level9,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level9', Item FROM DBO.SPLITSTRING(@level9,',')
+	IF ISNULL(@level10,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'level10', Item FROM DBO.SPLITSTRING(@level10,',')
+	IF ISNULL(@siteId,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'site', Item FROM DBO.SPLITSTRING(@siteId,',')
+	IF ISNULL(@warehouseId,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'wh', Item FROM DBO.SPLITSTRING(@warehouseId,',')
+	IF ISNULL(@locationId,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'loc', Item FROM DBO.SPLITSTRING(@locationId,',')
+	IF ISNULL(@shelfId,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'shelf', Item FROM DBO.SPLITSTRING(@shelfId,',')
+	IF ISNULL(@binId,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'bin', Item FROM DBO.SPLITSTRING(@binId,',')
+	IF ISNULL(@id2,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'id2', value FROM STRING_SPLIT(@id2, ',')
+	IF ISNULL(@id8,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'id8', LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''
+	CREATE CLUSTERED INDEX IX_Split ON #Split (Kind, Item)
 
 	IF OBJECT_ID(N'tempdb..#TEMPOriginalStocklineRecords') IS NOT NULL    
 	BEGIN    
@@ -208,13 +238,91 @@ BEGIN
 		[TagDate] DATETIME2(7) NULL,
 		[ReconciliationNum] VARCHAR(50) NULL
 	) 
+	
+	DECLARE @TotalRecordsCount INT;
 
+	IF OBJECT_ID(N'tempdb..#BaseRaw') IS NOT NULL DROP TABLE #BaseRaw
+	IF OBJECT_ID(N'tempdb..#Base')    IS NOT NULL DROP TABLE #Base
+
+	SELECT stl.[StockLineId],
+	       stl.[ItemMasterId],
+	       stl.[QuantityOnHand],
+	       -- UPPER() applied HERE so the wide pass needs no DISTINCT (see change 17.C)
+	       UPPER(MSD.[Level1Name]) AS [Level1Name], UPPER(MSD.[Level2Name]) AS [Level2Name],
+	       UPPER(MSD.[Level3Name]) AS [Level3Name], UPPER(MSD.[Level4Name]) AS [Level4Name],
+	       UPPER(MSD.[Level5Name]) AS [Level5Name], UPPER(MSD.[Level6Name]) AS [Level6Name],
+	       UPPER(MSD.[Level7Name]) AS [Level7Name], UPPER(MSD.[Level8Name]) AS [Level8Name],
+	       UPPER(MSD.[Level9Name]) AS [Level9Name], UPPER(MSD.[Level10Name]) AS [Level10Name],
+	       RRH.[ReceivingReconciliationNumber]
+	INTO #BaseRaw
+     FROM [dbo].[Stockline] stl WITH (NOLOCK)    
+     INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]   
+	 INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.StockLineId    
+	  LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.[EntityStructureId] = MSD.[EntityMSID]    
+	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.[StocklineId] = stl.[StocklineId]
+	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]  
+
+     WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
+	 AND stl.[IsParent] = 1 AND (stl.[IsNonStock] IS NULL OR stl.[IsNonStock] = 0)
+	 AND stl.[IsDeleted] = 0
+	 AND stl.[CreatedDate] < @AsOfDateEnd
+	 AND ((ISNULL(@id3,0) = 1 AND stl.[IsCustomerStock] = 0) OR (ISNULL(@id3,0) <> 1 AND stl.[IsCustomerStock] IS NOT NULL)) 	 
+	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT Item FROM #Split WHERE Kind = 'id2'))
+	 AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id] IN (SELECT Item FROM #Split WHERE Kind = 'level1'))    
+	 AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id] IN (SELECT Item FROM #Split WHERE Kind = 'level2'))    
+	 AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id] IN (SELECT Item FROM #Split WHERE Kind = 'level3'))    
+	 AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id] IN (SELECT Item FROM #Split WHERE Kind = 'level4'))
+	 AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id] IN (SELECT Item FROM #Split WHERE Kind = 'level5'))
+	 AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id] IN (SELECT Item FROM #Split WHERE Kind = 'level6'))
+	 AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id] IN (SELECT Item FROM #Split WHERE Kind = 'level7'))
+	 AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id] IN (SELECT Item FROM #Split WHERE Kind = 'level8'))
+	 AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id] IN (SELECT Item FROM #Split WHERE Kind = 'level9'))
+	 AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM #Split WHERE Kind = 'level10'))
+	 AND (ISNULL(@siteId,'') =''  OR stl.[SiteId] IN (SELECT Item FROM #Split WHERE Kind = 'site'))    
+	 AND (ISNULL(@warehouseId,'') ='' OR stl.[WarehouseId] IN (SELECT Item FROM #Split WHERE Kind = 'wh'))    
+	 AND (ISNULL(@locationId,'') ='' OR stl.[LocationId] IN (SELECT Item FROM #Split WHERE Kind = 'loc'))    
+	 AND (ISNULL(@shelfId,'') ='' OR stl.[ShelfId] IN (SELECT Item FROM #Split WHERE Kind = 'shelf'))
+	 AND (ISNULL(@binId,'') ='' OR stl.[BinId] IN (SELECT Item FROM #Split WHERE Kind = 'bin'))
+	 AND (@id6 IS NULL OR im.[ItemMasterId]=@id6)
+	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM #Split WHERE Kind = 'id8'))
+	 OPTION (RECOMPILE);
+
+	SET @TotalRecordsCount = @@ROWCOUNT;   -- identical to the old COUNT(1) OVER ()
+
+	
+	SELECT DISTINCT * INTO #Base FROM #BaseRaw WHERE [QuantityOnHand] > 0
+	DROP TABLE #BaseRaw
+	CREATE CLUSTERED INDEX IX_Base ON #Base ([StockLineId])
+
+	-- Qty_Adjusted, pre-aggregated but SCOPED to the stocklines we actually load
+	IF OBJECT_ID(N'tempdb..#QtyAdj')  IS NOT NULL DROP TABLE #QtyAdj
+	SELECT stladj.[StocklineId], [Qty_Adjusted] = SUM(CAST(stladj.[ChangedTo] AS INT) - CAST(stladj.[ChangedFrom] AS INT))
+	INTO #QtyAdj
+	FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK)
+	LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
+	WHERE stladj.[StocklineAdjustmentDataTypeId] IN (10, 15)
+	  AND EXISTS (SELECT 1 FROM #Base b WHERE b.[StockLineId] = stladj.[StocklineId])
+	GROUP BY stladj.[StocklineId]
+	CREATE CLUSTERED INDEX IX_QtyAdj ON #QtyAdj ([StocklineId])
+
+	-- Ranking, pre-aggregated but SCOPED to the item masters we actually load
+	IF OBJECT_ID(N'tempdb..#Ranking') IS NOT NULL DROP TABLE #Ranking
+	SELECT mp.ItemMasterId, [Ranking] = STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',')
+	INTO #Ranking
+	FROM dbo.ItemMasterRanking mp WITH(NOLOCK)
+	LEFT JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
+	WHERE mp.RankingId IS NOT NULL
+	  AND EXISTS (SELECT 1 FROM #Base b WHERE b.[ItemMasterId] = mp.ItemMasterId)
+	GROUP BY mp.ItemMasterId
+	CREATE CLUSTERED INDEX IX_Ranking ON #Ranking (ItemMasterId)
+
+	/****** STAGE 2 - attach the 1:1 lookup columns and load the report table ****/
 	INSERT INTO #TEMPOriginalStocklineRecords ([TotalRecordsCount], [PN], [PN_Description], [Serial_Num], [SL_Num], [ControlNumber],[Cond], [Item_Group], [Is_Customer_Stock], [UOM], [Item_Type], [stocktype],
 	[Vendor_Name], [Qty], [QTY_on_Hand], [Qty_Reserved], [Qty_Available],[Qty_Adjusted], [PO_UnitCost], [POExtCost], [ROExtCost], [ObtainedFrom], [Owner], [Traceableto], [Mfg], [UnitCost], [UnitPrice], [ExtPrice],
 	[CostAdjustment], [ExtCostAdjustment], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [Site], [Warehouse], [Location], [Shelf], [Bin], [GlAccount], 
 	[PO_Num], [RO_Num], [WO_Num], [SWO_Num], [RO_Cost], [Inventory_Cost], [PORcvdDate], [RORcvdDate], [POReceiverNum], [ROReceiverNum], [MasterCompanyId], [StockLineId], [IsCustomerStock], [CustomerId], [CustomerName],[ReceiverNum],
 	[Ranking],[Classification],[Currency],[PO_Qty],[ReceivedDate],[ReceivedDays],[TagType],[TaggedBy],[TagDate],[ReconciliationNum])
-	SELECT DISTINCT COUNT(1) OVER () AS [TotalRecordsCount],    
+	SELECT @TotalRecordsCount AS [TotalRecordsCount],    
         UPPER(im.[partnumber]) AS 'PN',    
         UPPER(im.[PartDescription]) AS 'PN_Description',    
         UPPER(stl.[SerialNumber]) 'Serial_Num',    
@@ -234,9 +342,7 @@ BEGIN
         stl.[QuantityOnHand] 'QTY_on_Hand',    
         stl.[QuantityReserved] 'Qty_Reserved',    
         UPPER(stl.[QuantityAvailable]) 'Qty_Available',    
-        (SELECT SUM(CAST(stladj.[ChangedTo] AS INT) - CAST(stladj.[ChangedFrom] AS INT)) FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK) LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
-		WHERE stladj.[StocklineAdjustmentDataTypeId] IN (10, 15) AND
-		stladj.[StocklineId] = stl.[StockLineId]) AS 'Qty_Adjusted',
+        qadj.[Qty_Adjusted] AS 'Qty_Adjusted',
 		ISNULL(stl.[PurchaseOrderUnitCost] , 0) 'PO_UnitCost',    
 		ISNULL(ISNULL(stl.[PurchaseOrderUnitCost],0) * ISNULL(stl.[QuantityOnHand],0) , 0) 'POExtCost',
 		ISNULL(ISNULL(stl.[RepairOrderUnitCost],0) * ISNULL(stl.[QuantityOnHand],0) , 0) 'ROExtCost',
@@ -249,16 +355,16 @@ BEGIN
 		ISNULL(ISNULL(stl.[UnitSalesPrice],0) * ISNULL(stl.[QuantityOnHand],0) , 0) 'ExtPrice', 
 		ISNULL(stl.[Adjustment], 0) 'CostAdjustment', 
 		ISNULL(ISNULL(stl.[Adjustment],0) * ISNULL(stl.[QuantityOnHand],0) , 0) 'ExtCostAdjustment', 
-        UPPER(MSD.[Level1Name]) AS level1,
-		UPPER(MSD.[Level2Name]) AS level2,
-		UPPER(MSD.[Level3Name]) AS level3,
-		UPPER(MSD.[Level4Name]) AS level4,
-		UPPER(MSD.[Level5Name]) AS level5,
-		UPPER(MSD.[Level6Name]) AS level6,
-		UPPER(MSD.[Level7Name]) AS level7,
-		UPPER(MSD.[Level8Name]) AS level8,
-		UPPER(MSD.[Level9Name]) AS level9,
-		UPPER(MSD.[Level10Name]) AS level10,
+        b.[Level1Name] AS level1,
+		b.[Level2Name] AS level2,
+		b.[Level3Name] AS level3,
+		b.[Level4Name] AS level4,
+		b.[Level5Name] AS level5,
+		b.[Level6Name] AS level6,
+		b.[Level7Name] AS level7,
+		b.[Level8Name] AS level8,
+		b.[Level9Name] AS level9,
+		b.[Level10Name] AS level10,
         UPPER(stl.[Site]) 'Site',
         UPPER(stl.[Warehouse]) 'Warehouse',    
         UPPER(stl.[Location]) 'Location',    
@@ -281,10 +387,7 @@ BEGIN
 		stl.[CustomerId],
 		CUST.[Name] AS [CustomerName],
 		stl.[ReceiverNumber] AS [ReceiverNum],
-		(SELECT STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking					
-				FROM dbo.ItemMasterRanking mp WITH(NOLOCK)
-				LEFT JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
-				WHERE mp.ItemMasterId = im.ItemMasterId AND  mp.RankingId IS NOT NULL) 'Ranking',
+		rnk.[Ranking] 'Ranking',
 		ITC.[Description] 'Classification',
 		CRR.[Code] 'Currency',
 		0 AS [PO_Qty],
@@ -293,13 +396,11 @@ BEGIN
 		TT.[Name] 'TagType',
 		stl.[TaggedByName] 'TaggedBy',
 		stl.[TagDate] 'TagDate',
-		RRH.[ReceivingReconciliationNumber] 'ReconciliationNum'
-     FROM [dbo].[Stockline] stl WITH (NOLOCK)    
+		b.[ReceivingReconciliationNumber] 'ReconciliationNum'
+     FROM #Base b
+     INNER JOIN [dbo].[Stockline] stl WITH (NOLOCK) ON stl.[StockLineId] = b.[StockLineId]
      INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]   
-	 INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.StockLineId    
-	  LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.[EntityStructureId] = MSD.[EntityMSID]    
 	  LEFT JOIN [dbo].[PurchaseOrder] pox WITH (NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
-	  LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON stl.[PurchaseOrderPartRecordId] = POP.[PurchaseOrderPartRecordId]   
 	  LEFT JOIN [dbo].[RepairOrder] rox WITH (NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]   
 	  LEFT JOIN [dbo].[WorkOrder] wox WITH (NOLOCK) ON stl.[WorkOrderId] = wox.[WorkOrderId]
 	  LEFT JOIN [dbo].[SubWorkOrder] swox WITH (NOLOCK) ON stl.[SubWorkOrderId] = swox.[SubWorkOrderId]
@@ -308,31 +409,9 @@ BEGIN
 	  LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.[ItemClassificationId] = im.[ItemClassificationId]	
 	  LEFT JOIN [dbo].[Currency] CRR WITH (NOLOCK) ON CRR.[CurrencyId] = im.[PurchaseCurrencyId]
 	  LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.[TagTypeId] = stl.[TagTypeId]
-	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.[StocklineId] = stl.[StocklineId]
-	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]  
-     WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
-	 AND stl.[IsParent] = 1 AND ISNULL(stl.[IsNonStock], 0) = 0
-	 AND stl.[IsDeleted] = 0
-	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 	 
-	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@id2,''), ',')))
-	 AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	 AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	 AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	 AND (ISNULL(@level4,'') =''  OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	 AND (ISNULL(@level5,'') =''  OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	 AND (ISNULL(@level6,'') =''  OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	 AND (ISNULL(@level7,'') =''  OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	 AND (ISNULL(@level8,'') =''  OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	 AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	 AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	 AND (ISNULL(@siteId,'') =''  OR stl.[SiteId] IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	 AND (ISNULL(@warehouseId,'') ='' OR stl.[WarehouseId] IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	 AND (ISNULL(@locationId,'') ='' OR stl.[LocationId] IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	 AND (ISNULL(@shelfId,'') ='' OR stl.[ShelfId] IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	 AND (ISNULL(@binId,'') ='' OR stl.[BinId] IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	 AND (@id6 IS NULL OR im.[ItemMasterId]=@id6)
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	  LEFT JOIN #QtyAdj  qadj ON qadj.[StocklineId]  = b.[StockLineId]
+	  LEFT JOIN #Ranking rnk  ON rnk.[ItemMasterId] = b.[ItemMasterId]
+     OPTION (RECOMPILE);
 	 	 
 	DECLARE @PostedStatusId INT, @OpenStatusId INT;
 
@@ -350,9 +429,10 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1 
 		AND stl.GLAccountId <> @NonStockGLAccountId
-		AND ISNULL(stl.[IsNonStock], 0) = 0
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND (stl.[IsNonStock] IS NULL OR stl.[IsNonStock] = 0)
+		AND stl.[IsDeleted] = 0 AND stl.[CreatedDate] < @AsOfDateEnd
 	) AND BD.StatusId = @PostedStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
+	OPTION (RECOMPILE);
 
 
 	SELECT @TotalUnPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -362,9 +442,10 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid 
 		AND stl.[IsParent] = 1
 		AND stl.GLAccountId <> @NonStockGLAccountId
-		AND ISNULL(stl.[IsNonStock], 0) = 0
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND (stl.[IsNonStock] IS NULL OR stl.[IsNonStock] = 0)
+		AND stl.[IsDeleted] = 0 AND stl.[CreatedDate] < @AsOfDateEnd
 	) AND BD.StatusId = @OpenStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
+	OPTION (RECOMPILE);
 
 	DECLARE @TotalInventory DECIMAL(18,2) = 0 
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
@@ -377,7 +458,7 @@ BEGIN
 	 WHERE MasterCompanyId = @mastercompanyid AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
 
 	/* Final Result Set */
-	SELECT DISTINCT TotalRecordsCount,    
+	SELECT TotalRecordsCount,    
 			PN,
 			PN_Description,
 			Serial_Num,

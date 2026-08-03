@@ -61,7 +61,7 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @workOrderType VARCHAR(50) = NULL,
 @RoSubAssy varchar(50) = NULL,
 @Model varchar(200) = NULL,
-@IsKitAssy varchar(50) = NULL
+@IsKitAssy varchar(5) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;

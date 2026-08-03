@@ -37,6 +37,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_ReceivingReconciliationHeaderAudit]
    ON  [dbo].[ReceivingReconciliationHeader]
@@ -51,4 +53,10 @@ GO
 CREATE NONCLUSTERED INDEX [IX_RRCH_Vendor_Status_Perf]
     ON [dbo].[ReceivingReconciliationHeader]([VendorId] ASC, [StatusId] ASC)
     INCLUDE([ReceivingReconciliationId], [ReceivingReconciliationNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRH_Id]
+    ON [dbo].[ReceivingReconciliationHeader]([ReceivingReconciliationId] ASC)
+    INCLUDE([ReceivingReconciliationNumber]);
 

@@ -302,6 +302,8 @@
 
 
 
+
+
 GO
 
 GO
@@ -453,4 +455,22 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_Created_ROPartRec_Perf]
 GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_Created_POPartRec_Perf]
     ON [dbo].[Stockline]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_StockReport]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [IsNonStock], [IsCustomerStock], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_Report]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [PurchaseOrderId], [RepairOrderId], [VendorId], [CustomerId], [GLAccountId], [IsCustomerStock], [IsNonStock]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
+    ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([IsNonStock], [CreatedDate]);
 

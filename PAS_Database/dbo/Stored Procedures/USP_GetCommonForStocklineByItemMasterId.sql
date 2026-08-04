@@ -15,6 +15,11 @@
     1    31-10-2025    Sahdev Saliya       Created  
 	2    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure
 	3    03-06-2026    Sahdev Saliya       Added Model [PN-16667]
+	4    04-Aug-2026   Rajesh Gami         [PN-17009] Merge Non-Stock Inventory into Stockline: added IsService
+									 to the SELECT list. Deliberately NOT adding an IsNonStock filter - this
+									 proc is scoped to one exact @ItemMasterId, so filtering it would make it
+									 return zero rows (and stop auto-binding Manufacturer/GLAccount/Site/
+									 Warehouse/Location/Shelf/Bin defaults) for Non-Stock item masters.
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
@@ -87,7 +92,8 @@ BEGIN
 			ISNULL(uom.DecimalPlaces,2) as DecimalPlaces,
 			ISNULL(iM.StockUnitOfMeasureId,0) StockUnitOfMeasureId,
 			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId,
-			iM.Model
+			iM.Model,
+			iM.IsService
 	    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId

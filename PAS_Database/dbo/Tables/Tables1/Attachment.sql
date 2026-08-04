@@ -16,6 +16,8 @@
 );
 
 
+
+
 GO
 
 
@@ -42,3 +44,8 @@ BEGIN
   
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_Attachment_Ref_Module]
+    ON [dbo].[Attachment]([ReferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([AttachmentId]);
+

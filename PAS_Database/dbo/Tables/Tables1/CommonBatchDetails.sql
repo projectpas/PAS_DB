@@ -44,3 +44,9 @@
     CONSTRAINT [PK_CommonBatchDetails] PRIMARY KEY CLUSTERED ([CommonJournalBatchDetailId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CommonBatchDetails_MC_GL]
+    ON [dbo].[CommonBatchDetails]([MasterCompanyId] ASC, [GlAccountId] ASC)
+    INCLUDE([JournalBatchDetailId], [DebitAmount], [CreditAmount], [IsDeleted], [IsActive]);
+

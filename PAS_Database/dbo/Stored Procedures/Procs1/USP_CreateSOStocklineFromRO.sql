@@ -28,6 +28,7 @@
 	12	 06/23/2025   Vishal Suthar		Handle the case of having the same stockline after repair
 	13	 10/Jul/2025  Rajesh Gami		Fixed: Added the Stockline History while reserve the stockline in the SO (Create RO from the SO and then receive the RO that time history not inserted)
 	14   17/Apr/2026  Ayushi Patel		Added UOM Conversion Changes [PN-15044]
+	15   03/Aug/2026  Bhargav Saliya	Fixed Create Stockline Issue after Receiving RO [PN-17319]
  EXECUTE USP_CreateSOStocklineFromRO 2667
 
 **************************************************************/
@@ -388,6 +389,7 @@ BEGIN
 
                 IF (@QtyFulfilled <= 0)
                 BEGIN
+				  DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -414,6 +416,7 @@ BEGIN
 
                 IF ((SELECT COUNT(1) FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE [SalesOrderPartId] = @ExSalesOrderPartId) = 0)
                 BEGIN
+				  DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -652,6 +655,7 @@ BEGIN
 
 						IF (@QtyFulfilled <= 0)
 						BEGIN
+						    DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 							DELETE SOSTL FROM [dbo].[SalesOrderStocklineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 							DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 
@@ -752,6 +756,7 @@ BEGIN
 													
 								IF(@TotalQty = @RevQty)
 								BEGIN
+									DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderStocklineId;
 									DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 									DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -927,6 +932,7 @@ BEGIN
 													
 								IF(@TotalQty = @RevQty)
 								BEGIN
+								    DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 									DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;

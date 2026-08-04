@@ -41,6 +41,8 @@
 
 
 
+
+
 GO
 
 
@@ -91,3 +93,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_MasterCompany_Code]
+    ON [dbo].[MasterCompany]([MasterCompanyCode] ASC)
+    INCLUDE([MasterCompanyId], [companylogo]);
+

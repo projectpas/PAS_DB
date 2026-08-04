@@ -350,6 +350,8 @@
 
 
 
+
+
 GO
 
 
@@ -513,4 +515,16 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_CreatedDate]
     ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
     INCLUDE([PartNumber], [PNDescription], [CreatedBy]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_StockReport]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [IsCustomerStock] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
+    ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([CreatedDate]);
 

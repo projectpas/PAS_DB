@@ -45,17 +45,19 @@ BEGIN
             END
 
             -- SECTION 2: Parse and Load XML Task Input
-            -- Extracts workflowId and taskId inputs from the provided XML parameter into a local temporary table.
+            -- Extracts workflowId, taskId, and sequenceNumber inputs from the provided XML parameter into a local temporary table.
             CREATE TABLE #NewTasks (
                 ID INT IDENTITY(1,1),
                 WorkflowId BIGINT,
-                TaskId BIGINT
+                TaskId BIGINT,
+                SequenceNumber VARCHAR(10) --  Added SequenceNumber column to parse user-entered values
             );
 
-            INSERT INTO #NewTasks (WorkflowId, TaskId)
+            INSERT INTO #NewTasks (WorkflowId, TaskId, SequenceNumber)
             SELECT 
                 T.c.value('(workflowId)[1]', 'BIGINT'),
-                T.c.value('(taskId)[1]', 'BIGINT')
+                T.c.value('(taskId)[1]', 'BIGINT'),
+                T.c.value('(sequenceNumber)[1]', 'VARCHAR(10)') --  Select sequenceNumber from tasks XML node
             FROM @Xml.nodes('/tasks/task') T(c);
 
             -- SECTION 3: Retrieve Part Restrictions & Base Data
@@ -78,22 +80,27 @@ BEGIN
             -- Iterates through each incoming task to copy its definition and related records.
             WHILE (@CurrentRow <= @TotalRows)
             BEGIN
-                DECLARE @WfId BIGINT, @TskId BIGINT;
-                SELECT @WfId = WorkflowId, @TskId = TaskId FROM #NewTasks WHERE ID = @CurrentRow;
+                DECLARE @WfId BIGINT, @TskId BIGINT, @XmlSeq VARCHAR(10);
+                SELECT @WfId = WorkflowId, @TskId = TaskId, @XmlSeq = SequenceNumber FROM #NewTasks WHERE ID = @CurrentRow; --  Retrieve SequenceNumber for current task row
 
                 -- Check duplicates: Verify task is not already present in the active Work Order Part Number.
                 IF NOT EXISTS (SELECT 1 FROM dbo.WorkOrderTask WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNumberId = @WorkOrderPartNumberId AND TaskId = @TskId AND IsActive = 1 AND IsDeleted = 0)
                 BEGIN
-                    -- Calculate next sequence number (focusing on active, non-deleted tasks to align with frontend lists)
-                    DECLARE @NextSeq INT = 1;
-                    SELECT @NextSeq = ISNULL(MAX(TRY_CAST(SequenceNumber AS INT)), 0) + 1 
-                    FROM dbo.WorkOrderTask WITH(NOLOCK) 
-                    WHERE WorkOrderId = @WorkOrderId 
-                      AND WorkOrderPartNumberId = @WorkOrderPartNumberId
-                      AND IsActive = 1
-                      AND IsDeleted = 0;
+                    DECLARE @SeqStr VARCHAR(50) = @XmlSeq; --  Default to the sequence number passed in the XML
 
-                    DECLARE @SeqStr VARCHAR(50) = RIGHT('00' + CAST(@NextSeq AS VARCHAR(10)), 3);
+                    -- Calculate next sequence number (focusing on active, non-deleted tasks to align with frontend lists) if not provided
+                    IF (ISNULL(@SeqStr, '') = '')
+                    BEGIN
+                        DECLARE @NextSeq INT = 1;
+                        SELECT @NextSeq = ISNULL(MAX(TRY_CAST(SequenceNumber AS INT)), 0) + 1 
+                        FROM dbo.WorkOrderTask WITH(NOLOCK) 
+                        WHERE WorkOrderId = @WorkOrderId 
+                          AND WorkOrderPartNumberId = @WorkOrderPartNumberId
+                          AND IsActive = 1
+                          AND IsDeleted = 0;
+
+                        SET @SeqStr = CAST(@NextSeq AS VARCHAR(10)); --  Fallback next sequence (no padding)
+                    END
 
                     -- Fetch task print settings from Task master definitions
                     DECLARE @TaskIsPrintInWO BIT = 1, @TaskIsPrintInWOQ BIT = 1, @TaskIsPrintInspector BIT = 0, @TaskIsPrintTechnician BIT = 0;
@@ -297,13 +304,14 @@ BEGIN
                     );
 
                     -- Insert parents
+                    -- Orders the instructions logically by their original workflow template sequence
                     INSERT INTO #tmpWFDir (WorkflowDirectionId, ParentId, IsParent, InstructionTitle, SequenceNumber, InstructionDetails, IsPrintInWO)
                     SELECT 
                         WFD.WorkflowDirectionId,
                         NULL,
                         1,
                         WFD.[Action],
-                        CAST(ROW_NUMBER() OVER (ORDER BY WFD.WorkflowDirectionId) AS VARCHAR(100)),
+                        CAST(ROW_NUMBER() OVER (ORDER BY TRY_CAST(WFD.[Sequence] AS DECIMAL(10, 4)), WFD.WorkflowDirectionId) AS VARCHAR(100)), --  Order by template sequence number first
                         WFD.[Description],
                         @TaskIsPrintInWO
                     FROM dbo.WorkflowDirection WFD WITH(NOLOCK)
@@ -315,13 +323,14 @@ BEGIN
                       AND ISNULL(WFD.IsDeleted, 0) = 0;
 
                     -- Insert children
+                    -- Orders child instructions under their respective parents by template sequence
                     INSERT INTO #tmpWFDir (WorkflowDirectionId, ParentId, IsParent, InstructionTitle, SequenceNumber, InstructionDetails, IsPrintInWO)
                     SELECT 
                         WFD.WorkflowDirectionId,
                         WFD.ParentId,
                         0,
                         WFD.[Action],
-                        CAST(ROW_NUMBER() OVER (PARTITION BY WFD.ParentId ORDER BY WFD.WorkflowDirectionId) AS VARCHAR(100)),
+                        CAST(ROW_NUMBER() OVER (PARTITION BY WFD.ParentId ORDER BY TRY_CAST(WFD.[Sequence] AS DECIMAL(10, 4)), WFD.WorkflowDirectionId) AS VARCHAR(100)), --  Order partition by parent, then template sequence
                         WFD.[Description],
                         @TaskIsPrintInWO
                     FROM dbo.WorkflowDirection WFD WITH(NOLOCK)

@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetROPackagingLabelPrint]
  ** Author: unknown
  ** Description:
@@ -14,6 +14,7 @@
 	2   06/19/2026  Abhishek JirawlaAdding IsPiecePart condition in RepairOrderPart table 
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5   08/01/2026  Abhishek Jirawla Removing IsPiecePart condition in RepairOrderPart table 
 	
 EXEC GetROPackagingLabelPrint 2601, 1
 ************************************************************************/
@@ -36,12 +37,13 @@ BEGIN
 		(SELECT top 1 NoOfContainer FROM DBO.RepairOrderShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.RepairOrderShipping SOS WITH(NOLOCK) ON SOS.RepairOrderShippingId = SOSI.RepairOrderShippingId
 		Where SOSI.RepairOrderPartId = sopt.RepairOrderPartId AND sopt.ROPickTicketId = SOSI.ROPickTicketId) AS NoOfContainer,
 		'' AS InvoiceNo,
-		'' AS InvoiceDate
+		'' AS InvoiceDate,
+		ISNULL(SOP.[IsPiecePart], 0) as IsPiecePart
 		FROM ROPickTicket sopt WITH(NOLOCK)
 		LEFT JOIN DBO.RepairOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.ROPickTicketId = SPI.ROPickTicketId AND SPI.RepairOrderPartId = sopt.RepairOrderPartId
 		LEFT JOIN DBO.RepairOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.RepairOrderShippingItem SSI WITH(NOLOCK) ON SSI.ROPickTicketId = sopt.ROPickTicketId
-		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId AND ISNULL(SOP.[IsPiecePart], 0) = 0
+		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId
 		INNER JOIN RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId

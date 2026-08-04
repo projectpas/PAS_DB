@@ -21,6 +21,8 @@
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
 	11   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
 	12   23-June-2026   Rajesh Gami	        Getting return IsStocklineCreated is any stockline is created or not for this part [PN-16878]
+	13   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -204,6 +206,7 @@ BEGIN
 						iM.Starts,
 						iM.CalendarDate,
 						iM.Model,
+						iM.IsKitAssy,
 						@isStocklineCreated as  IsStocklineCreated
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId

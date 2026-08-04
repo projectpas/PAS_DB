@@ -73,8 +73,7 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @RoSubAssy varchar(50) = NULL,
 @Model varchar(200) = NULL,
 @IntegrationTypeId BIGINT = NULL,
-@ItemTypeStatusId varchar(50) = NULL
-@Model varchar(200) = NULL,
+@ItemTypeStatusId varchar(50) = NULL,
 @IsKitAssy varchar(5) = NULL
 AS
 BEGIN	

@@ -220,8 +220,7 @@ BEGIN
 						iM.MfgExpirationDate,
 						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
 						ISNULL(iM.IsService,0) IsService,
-						iM.IsKitAssy,
-						@isStocklineCreated as  IsStocklineCreated
+						iM.IsKitAssy
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

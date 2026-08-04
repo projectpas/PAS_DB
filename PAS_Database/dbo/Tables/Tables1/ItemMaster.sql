@@ -361,3 +361,8 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMaster_Report]
+    ON [dbo].[ItemMaster]([ItemMasterId] ASC)
+    INCLUDE([partnumber], [ItemClassificationId], [PurchaseCurrencyId]);
+

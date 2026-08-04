@@ -12,3 +12,8 @@
     CONSTRAINT [PK_ItemMasterRanking] PRIMARY KEY CLUSTERED ([ItemMasterRankingId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_IM]
+    ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC, [RankingId] ASC);
+

@@ -37,6 +37,7 @@
 										 pass (now COUNT(*) OVER()). See
 										 UOM_ProcItemMasterStockList_Deploy.sql
 										 for the full before/after review.
+	15   03-Aug-2026    Sahdev Saliya        Added IsKitAssy [PN-17371]
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -73,6 +74,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @Model varchar(200) = NULL,
 @IntegrationTypeId BIGINT = NULL,
 @ItemTypeStatusId varchar(50) = NULL
+@Model varchar(200) = NULL,
+@IsKitAssy varchar(5) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -195,7 +198,8 @@ BEGIN
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
 					   im.Model,
 					   ISNULL(im.IsNonStock,0) IsNonStock,
-					   im.ItemTypeId
+					   im.ItemTypeId,
+					    CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
 			   FROM dbo.ItemMaster im WITH (NOLOCK)
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
@@ -228,7 +232,8 @@ BEGIN
 					(RankingsName LIKE '%' +@GlobalFilter+'%') OR
 					(workOrderType LIKE '%' +@GlobalFilter+'%') OR
 					(RoSubAssy LIKE '%' +@GlobalFilter+'%') OR
-					(Model LIKE '%' +@GlobalFilter+'%')))
+					(Model LIKE '%' +@GlobalFilter+'%') OR
+					(IsKitAssy LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -250,7 +255,8 @@ BEGIN
 				    (ISNULL(@RankingsName,'') ='' OR RankingsName LIKE '%' + @RankingsName + '%') AND
 					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%') AND
 					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%') AND
-					(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
+					(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
+					(ISNULL(@IsKitAssy,'') ='' OR IsKitAssy LIKE '%' + @IsKitAssy + '%'))
 	)
 			)
 
@@ -294,7 +300,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='RoSubAssy')  THEN RoSubAssy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='RoSubAssy')  THEN RoSubAssy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsKitAssy')  THEN IsKitAssy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsKitAssy')  THEN IsKitAssy END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY

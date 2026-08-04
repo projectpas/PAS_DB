@@ -18,6 +18,8 @@
 );
 
 
+
+
 GO
 
 
@@ -40,3 +42,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_LegalEntityContact_LE]
+    ON [dbo].[LegalEntityContact]([LegalEntityId] ASC, [IsDefaultContact] ASC)
+    INCLUDE([ContactId]);
+

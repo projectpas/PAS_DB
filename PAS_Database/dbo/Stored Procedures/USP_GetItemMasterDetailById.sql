@@ -24,6 +24,8 @@
 	13   03-Aug-2026     Rajesh Gami	        Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
 										DiscountPurchasePercent, UnitCost, ListPrice, PriceDate,
 										InWarranty, MfgExpirationDate, IsMfgExpirationDate, IsService
+	13   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -217,7 +219,9 @@ BEGIN
 						ISNULL(iM.InWarranty,0) InWarranty,
 						iM.MfgExpirationDate,
 						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
-						ISNULL(iM.IsService,0) IsService
+						ISNULL(iM.IsService,0) IsService,
+						iM.IsKitAssy,
+						@isStocklineCreated as  IsStocklineCreated
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

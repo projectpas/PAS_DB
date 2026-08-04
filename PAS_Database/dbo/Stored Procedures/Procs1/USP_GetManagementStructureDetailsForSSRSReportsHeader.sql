@@ -4,32 +4,33 @@
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
  ** Purpose:
  ** Date:   08/12/2021
- ** PARAMETERS:         
+ ** PARAMETERS:
  @WorkOrderId BIGINT
  @WFWOId BIGINT
  ** RETURN VALUE:
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------          
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
     1    08/12/2021   Hemant Saliya		Created
     2    08/29/2024   Devendra Shekh	added new field TimeZoneDateTime
 	3	 10/29/2024	  Bhargav Saliya    Added Merge Address
 	4	 06/11/2025	  Vishal Suthar     Modified parameter data type to varchar from bigint
 	5	 27/01/2026	  Rajesh Gami		Get the MasterCompany's CompanyCode instead of LE
 	6    01/05/2026   Ayushi Patel      [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	7    03-08-2026   Kishor Makwana	[PN-17534] - Performance only. No change to output columns, calculations, business
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
-**************************************************************/ 
-CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
-(    
+**************************************************************/
+CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]
+(
 	@managementStructureId  VARCHAR(MAX) = NULL
-)    
-AS    
-BEGIN    
+)
+AS
+BEGIN
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-SET NOCOUNT ON    
+SET NOCOUNT ON
 
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -38,11 +39,15 @@ SET NOCOUNT ON
 				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO')
 				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+				-- Split the parameter ONCE. Same rows as the original IN (SELECT Item FROM DBO.SPLITSTRING(...)).
+				DECLARE @MSIds TABLE (Item VARCHAR(450) NOT NULL PRIMARY KEY);
+				INSERT INTO @MSIds (Item)
+				SELECT DISTINCT Item FROM DBO.SPLITSTRING(@managementStructureId, ',') WHERE Item IS NOT NULL;
 				SELECT DISTINCT TOP 1
-					CompanyName = CASE 
+					CompanyName = CASE
 									WHEN UPPER(MS.MasterCompanyCode) = @A2ZMasterCompanyCode
 										THEN le.CompanyName
-									ELSE 
+									ELSE
 										UPPER(le.CompanyName)
 								  END,
 					MS.MasterCompanyCode CompanyCode,
@@ -75,23 +80,23 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
 					LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
 					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
-					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
-					LEFT JOIN dbo.TimeZone TZ WITH(NOLOCK) ON TZ.TimeZoneId = le.TimeZoneId 
-				WHERE est.EntityStructureId IN (SELECT Item FROM DBO.SPLITSTRING(@managementStructureId, ','));
+					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId
+					LEFT JOIN dbo.TimeZone TZ WITH(NOLOCK) ON TZ.TimeZoneId = le.TimeZoneId
+				WHERE est.EntityStructureId IN (SELECT Item FROM @MSIds);
 			END
 		COMMIT  TRANSACTION
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetManagementStructureDetailsForReportsHeader' 
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetManagementStructureDetailsForReportsHeader'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(@managementStructureId, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-              exec spLogException 
+              exec spLogException
                        @DatabaseName			= @DatabaseName
                      , @AdhocComments			= @AdhocComments
                      , @ProcedureParameters		= @ProcedureParameters

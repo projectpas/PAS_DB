@@ -17,10 +17,11 @@
 	6    03-Aug-2026         Rajesh Gami         Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
 										DiscountPurchasePercent, UnitCost, ListPrice, PriceDate,
 										InWarranty, MfgExpirationDate, IsMfgExpirationDate, IsService
+	6    03-Aug-2026        Sahdev Saliya       Added IsKitAssy [PN-17371]
 
  -- EXEC [USP_AddItemMasterGeneralInfo]
 **************************************************************/
-CREATE       PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
+create         PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -101,7 +102,7 @@ BEGIN
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService])
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -124,7 +125,7 @@ BEGIN
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService]
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();

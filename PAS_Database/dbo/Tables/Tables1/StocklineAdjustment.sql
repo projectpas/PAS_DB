@@ -23,6 +23,8 @@
 );
 
 
+
+
 GO
 
 
@@ -47,3 +49,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_StocklineAdjustment_SL_Type]
+    ON [dbo].[StocklineAdjustment]([StocklineId] ASC, [StocklineAdjustmentDataTypeId] ASC)
+    INCLUDE([ChangedTo], [ChangedFrom]);
+

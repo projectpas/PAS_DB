@@ -154,5 +154,6 @@
     [InWarranty]                        BIT             NULL,
     [MfgExpirationDate]                 DATETIME        NULL,
     [IsMfgExpirationDate]               BIT             NULL,
-    [IsService]                         BIT             NULL);
+    [IsService]                         BIT             NULL,
+    [IsKitAssy]                         BIT             NULL);
 

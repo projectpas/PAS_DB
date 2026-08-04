@@ -18,3 +18,8 @@ CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_ItemMasterId_Perf]
 -- Added 2026-08-03: supports ProcItemMasterStockList's per-item Ranking STRING_AGG rollup (see
 -- UOM_ProcItemMasterStockList_Deploy.sql for the full review).
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_IM]
+    ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC, [RankingId] ASC);
+

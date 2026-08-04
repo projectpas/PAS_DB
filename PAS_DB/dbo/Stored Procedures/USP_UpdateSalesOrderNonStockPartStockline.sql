@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderPart]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order Non Stock part details
@@ -11,10 +10,13 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    01/08/2026   MOIN BLOCH	   Created
+
+	EXEC [dbo].[USP_UpdateSalesOrderNonStockPartStockline] 11268,12769,'ADMIN User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateSalesOrderNonStockPartStockline]
 @SalesOrderId BIGINT,
-@BillingInvoicingId BIGINT 
+@BillingInvoicingId BIGINT,
+@UpdatedBy VARCHAR(256) = ''
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -73,8 +75,16 @@ BEGIN
 						   SET [QuantityAvailable] = 0,
 						       [QuantityOnHand] = 0,
 							   [QuantityIssued] = 0,
-							   [QuantityReserved] = 0
+							   [QuantityReserved] = 0,
+							   [UpdatedBy] = @UpdatedBy,
+							   [UpdatedDate] = GETUTCDATE()
 						 WHERE [StockLineId] = @StockLineId
+
+						DECLARE @StocklineHistoryUnReserveRemoveOnHandActionEnum INT = 0
+
+						SELECT @StocklineHistoryUnReserveRemoveOnHandActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='UnReserve-RemoveOnHand';
+																			
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@SOModuleId,@SalesOrderId,NULL,NULL,@StocklineHistoryUnReserveRemoveOnHandActionEnum,0,@UpdatedBy;
 					END									   									
 						
 					SET @MinId = @MinId + 1

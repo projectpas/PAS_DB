@@ -11,6 +11,12 @@
     [IsDeleted]           BIT           CONSTRAINT [DF_ItemMasterRanking_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ItemMasterRanking] PRIMARY KEY CLUSTERED ([ItemMasterRankingId] ASC)
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_ItemMasterId_Perf]
+    ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC)
+    INCLUDE([RankingId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's per-item Ranking STRING_AGG rollup (see
+-- UOM_ProcItemMasterStockList_Deploy.sql for the full review).
 
 
 GO

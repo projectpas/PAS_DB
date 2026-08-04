@@ -136,3 +136,9 @@ BEGIN
         OR
         (m.Action = 'D' AND m.OldValue IS NOT NULL));
 END;
+GO
+CREATE NONCLUSTERED INDEX [IX_CustomerContact_CustomerId_IsDefaultContact_Perf]
+    ON [dbo].[CustomerContact]([CustomerId] ASC, [IsDefaultContact] ASC)
+    INCLUDE([ContactId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports GetCustomerList's default-contact lookup (see
+-- UOM_GetCustomerList_Deploy.sql for the full review).

@@ -1,4 +1,4 @@
-﻿ /*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetReleaseNoteDetailsList]           
  ** Author:   Bhargav Saliya 
  ** Description: This Store Procedure Use to Get Release Note Detail 
@@ -18,64 +18,80 @@
     1    22-May-2025   Bhargav Saliya		Created
     2    16-Sept-2025  Devendra Shekh		Added ReleaseNotesTitleDetails Select
 	3    27-nov-2025   Nakul Chandigara     Added a Missing colummn [TypeId]  
+    4  03-Aug-2026     Ayushi Patel         [PN-17451]Added optional paging params so the same SP also returns a paged Titles list for one Sprint (removed the old bulk "all titles for all headers" select)
+ EXEC USP_GetReleaseNoteDetailsList 2, 1, 0                     -- header list
+ EXEC USP_GetReleaseNoteDetailsList 2, 1, 0, 12, 1, 10          -- paged titles for header 12, page 1, size 10
 
-EXEC [USP_GetReleaseNoteDetailsList] 2, 1, 0
 **************************************************************/
-CREATE   PROCEDURE	[dbo].[USP_GetReleaseNoteDetailsList]
+CREATE PROCEDURE [dbo].[USP_GetReleaseNoteDetailsList]
     @EmployeeId BIGINT,
-	@IsActive bit,
-	@IsDelete bit
+    @IsActive bit,
+    @IsDelete bit,
+    @ReleaseNoteHeaderId BIGINT = NULL,   
+    @PageNumber INT = NULL,
+    @PageSize INT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-	BEGIN TRY
+    BEGIN TRY
 
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
-			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-	WHERE E.EmployeeId = @EmployeeId; 
+        IF @ReleaseNoteHeaderId IS NOT NULL
+        BEGIN
+            -- paged titles for a single Sprint 
+            DECLARE @Offset INT = (ISNULL(@PageNumber, 1) - 1) * ISNULL(@PageSize, 10);
+            DECLARE @Take INT = ISNULL(@PageSize, 10);
 
-		SELECT DISTINCT
-			RHD.ReleaseNoteHeaderId
-		   ,RHD.SprintName
-		   ,RHD.SprinDescription
-		   ,RHD.ReleaseDate
-		   ,RHD.MasterCompanyId
-		   ,RHD.CreatedBy
-		   ,RHD.UpdatedBy
-		   ,CASE WHEN CAST(RHD.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(RHD.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate
-		   ,CASE WHEN CAST(RHD.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(RHD.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate
-		   ,RHD.IsActive
-		   ,RHD.IsDeleted
-		   ,RHD.[FileName]
-		   ,RHD.DocumentPath
-		FROM [dbo].[ReleaseNoteHeadersDetails] RHD WITH(NOLOCK)
-		WHERE RHD. IsActive = @IsActive and RHD.IsDeleted = @IsDelete 
-		ORDER BY RHD.ReleaseNoteHeaderId DESC
+            SELECT
+                rtd.[TitleId],
+                rtd.[ReleaseNoteHeaderId],
+                rtd.[Title],
+                rtd.[SprintName],
+                WT.[WorkType] AS [Type],
+                rtd.[Description] AS TitleDescription,
+                rtd.TypeId,
+                COUNT(*) OVER() AS TotalRecords
+            FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK)
+            LEFT JOIN DBO.[WorkType] WT WITH (NOLOCK) ON rtd.TypeId = WT.WorkTypeId
+            WHERE rtd.ReleaseNoteHeaderId = @ReleaseNoteHeaderId
+                  AND rtd.IsActive = 1 AND rtd.IsDeleted = 0
+            ORDER BY rtd.TitleId DESC
+            OFFSET @Offset ROWS FETCH NEXT @Take ROWS ONLY;
 
-		SELECT 
-			[TitleId], [ReleaseNoteHeaderId], [Title], [SprintName], [Type], [TitleDescription],[TypeId]
-		FROM
-		(
-			SELECT 
-				rtd.[TitleId],
-				rtd.[ReleaseNoteHeaderId],
-				rtd.[Title],
-				rtd.[SprintName],
-				WT.[WorkType] AS [Type],
-				rtd.[Description] AS TitleDescription,
-				rtd.TypeId
-			FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK) 
-			INNER JOIN DBO.[ReleaseNoteHeadersDetails] rh WITH(NOLOCK) ON rtd.[ReleaseNoteHeaderId] = rh.[ReleaseNoteHeaderId]
-			LEFT JOIN DBO.[WorkType] WT WITH(NOLOCK) ON rtd.TypeId = WT.WorkTypeId
-			WHERE rh. IsActive = @IsActive and rh.IsDeleted = @IsDelete 
-		) AS Titles;
-	END TRY
-	BEGIN CATCH      
+            RETURN(0);
+        END
+
+        -- header list 
+        DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+        SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK)
+                LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+                LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+                LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+        WHERE E.EmployeeId = @EmployeeId;
+
+        SELECT DISTINCT
+            RHD.ReleaseNoteHeaderId
+           ,RHD.SprintName
+           ,RHD.SprinDescription
+           ,RHD.ReleaseDate
+           ,RHD.MasterCompanyId
+           ,RHD.CreatedBy
+           ,RHD.UpdatedBy
+           ,CASE WHEN CAST(RHD.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(RHD.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END CreatedDate
+           ,CASE WHEN CAST(RHD.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(RHD.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END UpdatedDate
+           ,RHD.IsActive
+           ,RHD.IsDeleted
+           ,RHD.[FileName]
+           ,RHD.DocumentPath
+           ,(SELECT COUNT(1) FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK)
+             WHERE rtd.ReleaseNoteHeaderId = RHD.ReleaseNoteHeaderId AND rtd.IsActive = 1 AND rtd.IsDeleted = 0) AS TitleCount
+        FROM [dbo].[ReleaseNoteHeadersDetails] RHD WITH(NOLOCK)
+        WHERE RHD.IsActive = @IsActive and RHD.IsDeleted = @IsDelete
+        ORDER BY RHD.ReleaseNoteHeaderId DESC
+
+    END TRY
+    BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;

@@ -21,6 +21,8 @@
 	8    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	9    20-11-2025  Rajesh Gami		Correct the QuoteAmount 
 	10   21-MAY-2026  Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+    12	 05-August-2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -304,8 +306,8 @@ BEGIN
       LEFT JOIN PartDescCTE PD on PD.SalesOrderQuoteId=M.SalesOrderQuoteId  
 	  LEFT JOIN PartMFCTE MF on MF.SalesOrderQuoteId=M.SalesOrderQuoteId
       LEFT JOIN PriorityCTE PR on PR.SalesOrderQuoteId=M.SalesOrderQuoteId  
-      WHERE (
-      (@GlobalFilter <>'' AND ((M.SalesOrderQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR  
+      WHERE
+      (ISNULL(@GlobalFilter, '') = '' OR ((M.SalesOrderQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR
         (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR  
         (M.Name like '%' +@GlobalFilter+'%') OR  
         (M.Status like '%' +@GlobalFilter+'%') OR  
@@ -323,8 +325,7 @@ BEGIN
 		(M.MarketplaceRef like '%' +@GlobalFilter+'%') OR
 		(M.NumberOfItemCount like '%' +@GlobalFilter+'%')
         ))  
-        OR     
-        (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber LIKE '%'+@SOQNumber+'%') AND
+        AND (ISNULL(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber LIKE '%'+@SOQNumber+'%') AND
         (ISNULL(@SalesOrderNumber,'') = '' OR M.SalesOrderNumber LIKE '%'+@SalesOrderNumber+'%') AND
         (ISNULL(@CustomerName,'') = '' OR M.Name LIKE '%'+ @CustomerName+'%') AND  
         (ISNULL(@Status,'') = ''  OR M.Status LIKE '%'+@Status+'%') AND  
@@ -345,8 +346,8 @@ BEGIN
 		(ISNULL(@MarketplaceRef,'') ='' OR M.MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND  
         (ISNULL(@CreatedDate,'') ='' OR Cast(M.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
         (ISNULL(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
-		(ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
-        )), CTE_Count AS (SELECT COUNT(SalesOrderQuoteId) AS NumberOfItems FROM Result)  
+		(ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%')
+        ), CTE_Count AS (SELECT COUNT(SalesOrderQuoteId) AS NumberOfItems FROM Result)
       SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',QuoteAmount,IsNewVersionCreated,StatusId  
       ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  
       CreatedDate,UpdatedDate,NumberOfItems,UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy',UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType',NumberOfItemCount,SourceBy,MarketplaceRef FROM Result,CTE_Count  

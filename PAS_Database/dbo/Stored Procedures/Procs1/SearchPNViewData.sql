@@ -9,21 +9,23 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date         Author             Change Description              
- ** --   --------     -------			 --------------------------------            
-    1    07/08/2023   Ekta Chandegra     Convert text into uppercase
-	2	 11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
-	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
-	4	 12-Mar-2025  Vishal Suthar		 Modified default sort column to SalesOrderQuoteId
-	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
-	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
-	7    15-07-2025  Rajesh Gami		Fixed: Getting proper status as shown as in header
-	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
-    9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
-	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
-	11   16-Apr-026  Bhargav Saliya	     UOM Changes
-	12   21-MAY-2026 Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
-    13   19/06/2026  Bhargav Saliya	     Revert UOM Changes No need to convert extended price
+ ** PR   Date               Author              Change Description              
+ ** --   --------           -------			    --------------------------------            
+    1    07/08/2023         Ekta Chandegra     Convert text into uppercase
+	2	 11/04/2024	        Vishal Suthar		 Modified to make use of new SO Part tables
+	3	 23-Jan-2025        Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
+	4	 12-Mar-2025        Vishal Suthar		 Modified default sort column to SalesOrderQuoteId
+	5	 09-APR-2025        Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
+	6    27-06-2025         Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
+	7    15-07-2025         Rajesh Gami		    Fixed: Getting proper status as shown as in header
+	8    13-08-2025         Rajesh Gami		    Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
+    9    24-09-2025         Sahdev Saliya       Added New Dropdown Filter Lead Source
+	10   20-11-2025         Rajesh Gami		    Correct the QuoteAmount
+	11   16-Apr-026         Bhargav Saliya	    UOM Changes
+	12   21-MAY-2026        Rajesh Gami		    PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+    13   19/06/2026         Bhargav Saliya	    Revert UOM Changes No need to convert extended price
+    14	 05/August/2026	    Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -174,8 +176,8 @@ BEGIN
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
 	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,NumberOfItemCount,SourceBy, MarketplaceRef,SalesOrderQuotePartId,QtyQuoted,QtyRequested,MainUnitSalesPrice from Result  
-    WHERE (  
-     (@GlobalFilter <>'' AND ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
+    WHERE     
+     (ISNULL(@GlobalFilter, '') = '' OR ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
        (CustomerName LIKE '%' +@GlobalFilter+'%') OR  
        (SalesPerson LIKE '%' +@GlobalFilter+'%') OR  
 	   (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR
@@ -192,8 +194,7 @@ BEGIN
 		(MarketplaceRef like '%' +@GlobalFilter+'%') OR
 	   (NumberOfItemCount LIKE '%' +@GlobalFilter+'%')
        ))  
-       OR     
-       (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR SalesOrderQuoteNumber LIKE  '%'+ @SOQNumber+'%') AND   
+       AND (ISNULL(@SOQNumber,'') ='' OR SalesOrderQuoteNumber LIKE  '%'+ @SOQNumber+'%') AND
        (ISNULL(@SalesOrderNumber,'') = '' OR SalesOrderNumber LIKE '%'+@SalesOrderNumber+'%') AND  
        (ISNULL(@CustomerName,'') = '' OR CustomerName LIKE  '%'+@CustomerName+'%') AND  
        (ISNULL(@Status,'') = '' OR Status LIKE  '%'+@Status+'%') AND  
@@ -213,8 +214,8 @@ BEGIN
 		(ISNULL(@MarketplaceRef,'') ='' OR MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
        (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
-	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
-       ))
+	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%')
+       )
 
      SELECT SalesOrderQuoteId,UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber',QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',isnull(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerType) 'ManufacturerType',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  

@@ -19,6 +19,7 @@
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
     4	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
     5	 02/07/2026	  Priyansh Patel	Set max quantity threshold to 0 (was 500) for StocklineDraft entries Changes [PN-16893]
+    6	 04/08/2026	  Bhargav Saliya	No need to get the WO settlement stock line. So i added ISNULL(SL.IsFinishGood, 0) = 0 case  [PN-17319]
 
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -276,7 +277,7 @@ BEGIN
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
 		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON SL.[ItemMasterId] = [itm].[ItemMasterId]
 
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsFinishGood,0) = 0
 		
 		END
 		IF(@Opr=3)

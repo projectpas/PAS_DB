@@ -152,7 +152,7 @@ BEGIN
 			asset.AssetCalibrationExpectedTolerance,
 			asset.SerialNo,
 			ISNULL(manu.Name, '') AS ManufacturerName,
-			ISNULL(asty.AssetAttributeTypeName, '') AS AssetType,
+			ISNULL(at.TangibleClassName, '') AS AssetType,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			ISNULL(curr.Code, '') AS CurrencyName,
 			ISNULL(asset.IsInsurance, 0) AS IsInsurance,
@@ -358,7 +358,8 @@ BEGIN
 		LEFT JOIN DBO.AssetAcquisitionType aacq WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
 		LEFT JOIN DBO.Asset astSrc WITH (NOLOCK) ON asset.AssetRecordId = astSrc.AssetRecordId
 		LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
-		LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
+		LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.TangibleClassId = dnta.TangibleClassId
+		LEFT JOIN DBO.TangibleClass atc WITH (NOLOCK) ON asset.TangibleClassId = atc.TangibleClassId
 		LEFT JOIN DBO.GLAccount wgla WITH (NOLOCK) ON asset.WarrantyGLAccountId = wgla.GLAccountId
 		LEFT JOIN DBO.GLAccount mgla WITH (NOLOCK) ON asset.MaintenanceGLAccountId = mgla.GLAccountId
 		LEFT JOIN DBO.AssetLocation alo WITH (NOLOCK) ON asset.AssetLocationId = alo.AssetLocationId

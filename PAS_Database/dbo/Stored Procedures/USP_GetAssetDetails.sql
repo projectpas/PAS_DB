@@ -18,6 +18,10 @@
 	                                                by its AssetAttributeTypeId FK instead of its own PK, and sourced the
 	                                                Asset Class name from the joined AssetAttributeType row since
 	                                                DeprNonDeprTangibleAssets.AssetAttributeTypeName was removed.
+    5    2026-08-04		  Abhishek Jirawala			DeprNonDeprTangibleAssets branch hardcoded ResidualPer, AssetLife,
+	                                                and DeprFrequency to NULL/empty instead of reading dnd's own columns;
+	                                                joined Percent and AssetDepreciationFrequency off dnd so the asset
+	                                                view popup shows these values for GL-calibrated tangible classes too.
 	exec [USP_GetAssetDetails] 214
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAssetDetails]
@@ -164,16 +168,16 @@ BEGIN
                     a.UpdatedBy,
                     a.UpdatedDate,
                     a.ControlNumber,
-                    CAST(NULL AS DECIMAL(18,2)) AS ResidualPercentage,
+                    dnd.ResidualPercentage,
                     ISNULL(msd.EntityMSID, 0) AS EntityStructureId,
                     ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
                     ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                     a.ManufacturerPN,
                     aat.AssetAttributeTypeName AS AssetAttributeType,
                     ISNULL(dm.AssetDepreciationMethodName, '') AS DepreciationMethod,
-                    CAST(NULL AS DECIMAL(18,2)) AS ResidualPer,
-                    CAST(NULL AS INT) AS AssetLife,
-                    '' AS DeprFrequency,
+                    per.PercentValue AS ResidualPer,
+                    dnd.AssetLife,
+                    ISNULL(df.Name, '') AS DeprFrequency,
                     ISNULL(gl1.AccountCode + '-' + gl1.AccountName, '') AS GLAccount,
                     dnd.AcquiredGLAccountId AS GLAccountId,
                     ISNULL(gl2.AccountCode + '-' + gl2.AccountName, '') AS AcquiredGL,
@@ -188,7 +192,7 @@ BEGIN
                 LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
                 LEFT JOIN DBO.Asset parent WITH (NOLOCK) ON a.AssetParentRecordId = parent.AssetRecordId
                 LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
-                LEFT JOIN DBO.DeprNonDeprTangibleAssets dnd WITH (NOLOCK) ON a.AssetAttributeTypeId = dnd.AssetAttributeTypeId
+                LEFT JOIN DBO.DeprNonDeprTangibleAssets dnd WITH (NOLOCK) ON a.TangibleClassId = dnd.TangibleClassId
                 LEFT JOIN DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
                 LEFT JOIN DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
                 LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
@@ -199,6 +203,8 @@ BEGIN
                 LEFT JOIN DBO.Shelf sh WITH (NOLOCK) ON a.ShelfId = sh.ShelfId
                 LEFT JOIN DBO.Bin bn WITH (NOLOCK) ON a.BinId = bn.BinId
                 LEFT JOIN DBO.AssetDepreciationMethod dm WITH (NOLOCK) ON dnd.AssetDeprMethodId = dm.AssetDepreciationMethodId
+                LEFT JOIN DBO.[Percent] per WITH (NOLOCK) ON dnd.ResidualPercentage = per.PercentId
+                LEFT JOIN DBO.AssetDepreciationFrequency df WITH (NOLOCK) ON dnd.DepreciationFrequencyId = df.AssetDepreciationFrequencyId
                 LEFT JOIN DBO.GLAccount gl1 WITH (NOLOCK) ON dnd.AcquiredGLAccountId = gl1.GLAccountId
                 LEFT JOIN DBO.GLAccount gl2 WITH (NOLOCK) ON dnd.AcquiredGLAccountId = gl2.GLAccountId
                 LEFT JOIN DBO.GLAccount gl3 WITH (NOLOCK) ON dnd.DeprExpenseGLAccountId = gl3.GLAccountId

@@ -34,6 +34,12 @@
 	14   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
 	15   07/07/2026  Priyansh Patel 	Added consumeuom from item master if not avilable in stock [PN-17057]
 	16   21/07/2026  Ayushi Patel       [PN-17349]Added fallback condition for Stock and Purchase UOM, same as Consume UOM.
+	17   04-Aug-2026  Rajesh Gami       [PN-17009] Merge Non-Stock Inventory into Stockline: return IsNonStock,
+									 Currency, CurrencyId, ItemNonStockClassificationId, NonStockClassification,
+									 IsService. NOTE: deliberately NOT filtered by IsNonStock here - this proc is
+									 already scoped to one exact @StockLineId, so an IsNonStock=0 filter would
+									 make migrated Non-Stock records return zero rows (BETA hit exactly this bug
+									 and had to revert it - see BETA's PN-17009 bugfix note).
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -188,6 +194,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,NULL  'PurchaseOrderPartRecord'
 			  ,ISNULL(stl.[RepairOrderExtendedCost],0) AS RepairOrderExtendedCost
               ,ISNULL(stl.[IsHazardousMaterial],0) AS IsHazardousMaterial
+              ,ISNULL(stl.[IsNonStock],0) IsNonStock
+              ,stl.[Currency]
+              ,stl.[CurrencyId]
+              ,stl.[ItemNonStockClassificationId]
+              ,stl.[NonStockClassification]
               ,ISNULL(stl.[QuantityToReceive],0) AS QuantityToReceive
               ,stl.[ManufacturingTrace]
               ,stl.[WorkOrderMaterialsId]
@@ -355,7 +366,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			ES.ExchangeSalesOrderNumber,
 			stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,
 			stl.Model,
-			stl.Note
+			stl.Note,
+			stl.IsService
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

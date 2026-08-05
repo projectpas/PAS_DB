@@ -251,7 +251,12 @@
     [TotalTSNMM]                          DECIMAL (18, 6) NULL,
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
     [Model]                               VARCHAR (200)   NULL,
-     [IsNonStock] BIT NULL, 
+     [IsNonStock] BIT NULL,
+    [Currency]                            VARCHAR (100)   NULL,
+    [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
+    [IsService]                           BIT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

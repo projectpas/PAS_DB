@@ -26,7 +26,11 @@
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
 	14   27-May-2026    Sahdev Saliya        Added Model [PN-16353]
-	15   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
+	15   03-Aug-2026    Rajesh Gami          Ported from BETA: added @IntegrationTypeId/@ItemTypeStatusId
+										 params, replaced hardcoded ItemTypeId=1 filter with
+										 @ItemTypeStatusId so this list can return Stock and/or
+										 Non-Stock rows, added IsNonStock/ItemTypeId to the result.
+	16   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
 										 (DBO.ConvertUTCtoLocal), removed unneeded SELECT DISTINCT,
 										 converted HasSubAssy/RoSubAssy COUNT(...)>0 checks to
 										 EXISTS(...), and removed #TempResult / separate COUNT
@@ -68,6 +72,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @workOrderType VARCHAR(50) = NULL,
 @RoSubAssy varchar(50) = NULL,
 @Model varchar(200) = NULL,
+@IntegrationTypeId BIGINT = NULL,
+@ItemTypeStatusId varchar(50) = NULL,
 @IsKitAssy varchar(5) = NULL
 AS
 BEGIN	
@@ -106,6 +112,7 @@ BEGIN
 						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		SET @ItemTypeStatusId = CASE WHEN ISNUMERIC(@ItemTypeStatusId) = 1 AND CAST(@ItemTypeStatusId AS INT) > 0 THEN @ItemTypeStatusId ELSE NULL END
 		IF @IsDeleted IS NULL
 		BEGIN
 			SET @IsDeleted=0
@@ -189,11 +196,16 @@ BEGIN
 					   itp.Ranking as RankingsName,
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
 					   im.Model,
-					   CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
-			   FROM dbo.ItemMaster im WITH (NOLOCK)	
+					   ISNULL(im.IsNonStock,0) IsNonStock,
+					   im.ItemTypeId,
+					    CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
+			   FROM dbo.ItemMaster im WITH (NOLOCK)
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
-					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))
+					AND im.MasterCompanyId=@MasterCompanyId
+					AND (@ItemTypeStatusId IS NULL OR im.ItemTypeId = CAST(@ItemTypeStatusId AS INT))
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
 			),
 			-- PERF FIX: filters now run directly against Result (no #TempResult heap table), and
 			-- COUNT(*) OVER() supplies NumberOfItems in the same pass that gets sorted/paged below

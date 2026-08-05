@@ -42,8 +42,9 @@
 	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
     26   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll  
 	27   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
+	28   04-Aug-2026   Rajesh Gami          [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMaster/ItemMasterNonStock PN dropdown branches now filter by IsNonStock and show a (Stock)/(Non-Stock) label suffix.
 
---select * from dbo.Employee      
+--select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
 **************************************************************/
@@ -310,28 +311,32 @@ AS BEGIN
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
-                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                              AND ISNULL(IM.IsNonStock,0) = 0
                              UNION
-                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                     FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                          AND ISNULL(IM.IsNonStock,0) = 0
                          END
 						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
 							BEGIN
 								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
 								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
-								 UNION
+								  AND ISNULL(IM.IsNonStock,0) = 0
+								  UNION
 								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
 								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-							END
+							 AND ISNULL(IM.IsNonStock,0) = 0
+							  END
                          ELSE IF(@TableName='ItemMasterALL')BEGIN
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber,IM.PartDescription AS PartDescription, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
@@ -366,11 +371,13 @@ AS BEGIN
                                   ORDER BY LotId DESC
                          END
                          ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                                  SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                                            FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                                            WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                                  FROM dbo.ItemMasterNonStock IMN
-                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                                  -- [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                                  SELECT IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                            WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                                   AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='LotConsignment')BEGIN
                                   SELECT LC.ConsignmentId AS Value, LC.ConsignmentNumber AS Label, LC.MasterCompanyId AS MasterCompanyId, LC.ConsigneeName AS ConsigneeName
@@ -653,11 +660,13 @@ AS BEGIN
                      ORDER BY LotId DESC
             END
             ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                     SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                               FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                               WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                     FROM dbo.ItemMasterNonStock IMN
-                     WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                     -- [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                     SELECT IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                               FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                               WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                     FROM dbo.ItemMaster IM
+                     WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                      AND ISNULL(IM.IsNonStock,0) = 1
             END
 			 ELSE IF(@TableName='BatchDetails')BEGIN
                      SELECT DISTINCT TOP 20 MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
@@ -690,28 +699,32 @@ AS BEGIN
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
-                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                              AND ISNULL(IM.IsNonStock,0) = 0
                              UNION
-                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                     FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                          AND ISNULL(IM.IsNonStock,0) = 0
                          END
 						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
 							BEGIN
 								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
 								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
-								 UNION
+								  AND ISNULL(IM.IsNonStock,0) = 0
+								  UNION
 								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
 								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-							END
+							 AND ISNULL(IM.IsNonStock,0) = 0
+							  END
                          ELSE IF(@TableName='ItemMasterALL')BEGIN
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber,IM.PartDescription AS PartDescription, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
@@ -726,11 +739,13 @@ AS BEGIN
                                   WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END
                          ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                                  SELECT TOP 50 IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                                                   FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                                                   WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                                  FROM dbo.ItemMasterNonStock IMN
-                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                                  -- [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                                  SELECT TOP 50 IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                                   FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                                   WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                                   AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='ConsigneeLot')BEGIN
                                   SELECT TOP 20 LotId AS Value, LotNumber AS Label

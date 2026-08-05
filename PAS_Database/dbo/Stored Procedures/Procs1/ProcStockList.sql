@@ -46,6 +46,10 @@
 	30   23/04/2026   Ayushi Patel		[PN-15958] returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
 	31   28/04/2026   Ayushi Patel      [PN-16202] Removed Round from UnitCost 
 	32   03/06/2026   Sahdev Saliya     Added Model [PN-16667]
+	33   04-Aug-2026  Rajesh Gami       [PN-17009] Merge Non-Stock Inventory into Stockline: added @IsNonStock
+									filter param (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column;
+									added computed ItemType column (Stock/Non-Stock text) plus @ItemType
+									filter param so the grid's Inventory-Type search matches by IsNonStock.
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -63,8 +67,10 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@SortColumn varchar(50)=NULL,        
 	@SortOrder int = NULL,        
 	@GlobalFilter varchar(50) = NULL,        
-	@stockTypeId int = NULL,        
-	@StocklineNumber varchar(50) = NULL,       
+	@stockTypeId int = NULL,
+	@IsNonStock bit = NULL,
+	@ItemType varchar(50) = NULL,
+	@StocklineNumber varchar(50) = NULL,
 	@MainPartNumber varchar(50) = NULL,       
 	@PartNumber varchar(50) = NULL,        
 	@PartDescription varchar(50) = NULL,        
@@ -241,7 +247,9 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,
-		stl.IsActive,                             
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
@@ -303,7 +311,7 @@ BEGIN
 		  LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
 		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND ISNULL(stl.IsParent, 0) = 1 
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
@@ -357,8 +365,9 @@ BEGIN
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
-		  (Model LIKE '%' +@GlobalFilter+'%')
-		  ))         
+		  (Model LIKE '%' +@GlobalFilter+'%') OR
+		  (ItemType LIKE '%' +@GlobalFilter+'%')
+		  ))
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -412,7 +421,8 @@ BEGIN
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
+		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
 		
@@ -557,8 +567,10 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
-		stl.ItemTypeId,       
-		stl.IsActive,                             
+		stl.ItemTypeId,
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
@@ -622,8 +634,9 @@ BEGIN
 		WHERE stl.MasterCompanyId = @MasterCompanyId 
 		AND ISNULL(stl.IsParent, 0) = 1 
 		AND ISNULL(stl.IsDeleted, 0) = 0 
-		AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) 
-		AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId)
+		AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock)
+		AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
 		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
@@ -677,8 +690,9 @@ BEGIN
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
-		(Model LIKE '%' +@GlobalFilter+'%')
-		))         
+		(Model LIKE '%' +@GlobalFilter+'%') OR
+		(ItemType LIKE '%' +@GlobalFilter+'%')
+		))
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -732,7 +746,8 @@ BEGIN
 		(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND	
-		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
+		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -881,8 +896,10 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		stl.ItemTypeId,        
-		stl.IsActive,                             
+		stl.ItemTypeId,
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
@@ -941,7 +958,7 @@ BEGIN
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
@@ -995,7 +1012,8 @@ BEGIN
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
-		  (Model LIKE '%' +@GlobalFilter+'%')))
+		  (Model LIKE '%' +@GlobalFilter+'%') OR
+		  (ItemType LIKE '%' +@GlobalFilter+'%')))
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
@@ -1049,7 +1067,8 @@ BEGIN
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
+		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -1193,8 +1212,10 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		stl.ItemTypeId,        
-		stl.IsActive,                             
+		stl.ItemTypeId,
+		ISNULL(stl.IsNonStock,0) AS IsNonStock,
+		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
@@ -1254,7 +1275,7 @@ BEGIN
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
+	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                
@@ -1311,7 +1332,8 @@ BEGIN
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
-		(Model LIKE '%' +@GlobalFilter+'%')))
+		(Model LIKE '%' +@GlobalFilter+'%') OR
+		(ItemType LIKE '%' +@GlobalFilter+'%')))
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
@@ -1365,7 +1387,8 @@ BEGIN
 		(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
+		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         

@@ -90,7 +90,6 @@ BEGIN
 						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
 						AI.CalibratedGLAccountId = DNTA.CalibratedGLAccountId,
 						AI.CalibratedGLAccountName = GLC.AccountCode +'-'+ GLC.AccountName,
-						AI.AssetAttributeTypeId = Asset.AssetAttributeTypeId,
 						AI.AssetSaleGLAccountId = DNTA.AssetSaleGLAccountId,
 						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
 						AI.AssetWriteOffGLAccountId = DNTA.AssetWriteOffGLAccountId,
@@ -104,10 +103,9 @@ BEGIN
 						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
 						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
 						AI.DepreciationFrequencyName = ISNULL(asdf.Name, '')
-
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.AssetAttributeTypeId = Asset.AssetAttributeTypeId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
 						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
 						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
 						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId
@@ -118,6 +116,7 @@ BEGIN
 						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = DNTA.AssetDeprMethodId
 						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
 						LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
+					
 					WHERE AI.AssetInventoryId = @AssetInventoryId
 				END
 				ELSE
@@ -126,38 +125,41 @@ BEGIN
 				   Update AI SET
 						AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
 						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
-						AI.ResidualPercentageId = per.PercentId,
+						AI.AssetLife = ISNULL(DNTA.AssetLife, 0),
+						AI.ResidualPercentageId = dnta.ResidualPercentage,
 						AI.ResidualPercentage = per.PercentValue,
-						AI.DepreciationFrequencyId = ATTB.DepreciationFrequencyId,
+						AI.DepreciationFrequencyId = dnta.DepreciationFrequencyId,
 						AI.DepreciationFrequencyName = Fre.Name,
 
-						AI.AcquiredGLAccountId = ATTB.AcquiredGLAccountId,
+						AI.AcquiredGLAccountId = DNTA.AcquiredGLAccountId,
 						AI.AcquiredGLAccountName = GLA.AccountCode +'-'+ GLA.AccountName,
-						AI.DeprExpenseGLAccountId = ATTB.DeprExpenseGLAccountId,
+						AI.DeprExpenseGLAccountId = DNTA.DeprExpenseGLAccountId,
 						AI.DeprExpenseGLAccountName = GLD.AccountCode +'-'+ GLD.AccountName,
-						AI.AdDepsGLAccountId = ATTB.AdDepsGLAccountId,
+						AI.AdDepsGLAccountId = DNTA.AccumDeprGLAccountId,
 						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
 
-					    AI.AssetSaleGLAccountId =ATTB.AssetSale,
+					    AI.AssetSaleGLAccountId =DNTA.AssetSaleGLAccountId,
 						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
-						AI.AssetWriteOffGLAccountId =ATTB.AssetWriteOff,
+						AI.AssetWriteOffGLAccountId =DNTA.AssetWriteOffGLAccountId,
 						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
-						AI.AssetWriteDownGLAccountId = ATTB.AssetWriteDown,
+						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
 						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
-						AI.AssetAttributeTypeId = ATTB.AssetAttributeTypeId
+						AI.TangibleClassId = DNTA.TangibleClassId
 
 				    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-						LEFT JOIN dbo.AssetAttributeType ATTB WITH (NOLOCK) ON ATTB.AssetAttributeTypeId = Asset.AssetAttributeTypeId
-						LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = ATTB.AcquiredGLAccountId
-						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = ATTB.DeprExpenseGLAccountId
-						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = ATTB.AdDepsGLAccountId
-						LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = ATTB.AssetSale
-						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = ATTB.AssetWriteOff
-						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = ATTB.AssetWriteDown
-						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = ATTB.DepreciationMethod
-						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON per.PercentId = ATTB.ResidualPercentage
-						LEFT JOIN dbo.AssetDepreciationFrequency Fre WITH (NOLOCK) ON Fre.AssetDepreciationFrequencyId = ATTB.DepreciationFrequencyId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
+
+						--LEFT JOIN dbo.AssetAttributeType ATTB WITH (NOLOCK) ON ATTB.AssetAttributeTypeId = Asset.AssetAttributeTypeId
+						LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = DNTA.AcquiredGLAccountId
+						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
+						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
+						LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = DNTA.AssetSaleGLAccountId
+						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = DNTA.AssetWriteOffGLAccountId
+						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = DNTA.AssetWriteDownGLAccountId
+						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = dnta.AssetDeprMethodId
+						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON per.PercentId = dnta.ResidualPercentage
+						LEFT JOIN dbo.AssetDepreciationFrequency Fre WITH (NOLOCK) ON Fre.AssetDepreciationFrequencyId = dnta.DepreciationFrequencyId
 					WHERE AI.AssetInventoryId = @AssetInventoryId
 				END
 			END

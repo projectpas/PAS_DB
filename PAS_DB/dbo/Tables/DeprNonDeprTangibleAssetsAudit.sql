@@ -1,10 +1,10 @@
 ﻿CREATE TABLE [dbo].[DeprNonDeprTangibleAssetsAudit] (
     [AuditDeprNonDeprTangibleAssetsId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [DeprNonDeprTangibleAssetsId]      BIGINT        NOT NULL,
-    [AssetAttributeTypeId]             BIGINT        NULL,
+    [DeprNonDeprTangibleClassTypeId]   BIGINT        NULL,
     [TangibleClassId]                  BIGINT        NOT NULL,
     [Description]                      VARCHAR (500) NULL,
-    [AssetDeprMethodId]                BIGINT        NOT NULL,
+    [AssetDeprMethodId]                BIGINT        NULL,
     [CalibratedGLAccountId]            BIGINT        NULL,
     [AcquiredGLAccountId]              BIGINT        NULL,
     [DeprExpenseGLAccountId]           BIGINT        NULL,

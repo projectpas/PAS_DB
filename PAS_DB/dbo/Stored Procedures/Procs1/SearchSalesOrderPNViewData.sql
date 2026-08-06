@@ -18,6 +18,7 @@
 ** 12   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
 ** 13   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
 ** 14   29/JUL/2026     Kishor Makwana      [PN-17466] PERFORMANCE REWRITE - Sales Order List filter slowness
+** 15	05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
   
 ***********************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]
@@ -256,13 +257,10 @@ BEGIN
 					WHERE RMS.EntityStructureId = SO.ManagementStructureId
 					  AND EUR.EmployeeId        = @EmployeeId
 				)
-
+			
 			    -- ---- per-column filters (only when no global filter) ----------
 			AND
 			(
-				@HasGlobalFilter = 1
-				OR
-				(
 					    (@SOQNumber            IS NULL OR SOQ.SalesOrderQuoteNumber LIKE '%' + @SOQNumber            + '%')
 					AND (@SalesOrderNumber     IS NULL OR SO.SalesOrderNumber       LIKE '%' + @SalesOrderNumber     + '%')
 					AND (@ContractReference    IS NULL OR SO.ContractReference      LIKE '%' + @ContractReference    + '%')
@@ -298,7 +296,6 @@ BEGIN
 					-- BUG 2 fixed: was comparing against @Status
 					AND (@NumberOfItemCount IS NULL
 					     OR CAST(ISNULL(PC.ItemCount, 0) AS VARCHAR(20)) LIKE '%' + @NumberOfItemCount + '%')
-				)
 			)
 
 			    -- ---- global "search everything" filter ------------------------

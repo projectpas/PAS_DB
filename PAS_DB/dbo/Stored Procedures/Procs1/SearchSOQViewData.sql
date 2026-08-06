@@ -25,6 +25,9 @@
  **         6. Added OPTION (RECOMPILE) — 25+ optional catch-all filters make a single
  **            cached plan wrong for most calls (parameter sniffing).
  **         7. Removed BEGIN TRAN / COMMIT around read-only work.
+
+ ** 12	05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+
  **************************************************************/
 CREATE PROCEDURE [dbo].[SearchSOQViewData]
  @PageNumber int,
@@ -161,8 +164,8 @@ BEGIN
          'Multiple' AS ManufacturerType,      -- was PartMFCTE.ManufacturerType
          M.NumberOfItemCount, M.SourceBy, M.MarketplaceRef
          FROM Main M
-      WHERE (
-      (@GlobalFilter <>'' AND ((M.SalesOrderQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR
+      WHERE      
+      (ISNULL(@GlobalFilter, '') = '' OR ((M.SalesOrderQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR
         (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR
         (M.Name like '%' +@GlobalFilter+'%') OR
         (M.Status like '%' +@GlobalFilter+'%') OR
@@ -180,8 +183,7 @@ BEGIN
         (M.MarketplaceRef like '%' +@GlobalFilter+'%') OR
         (M.NumberOfItemCount like '%' +@GlobalFilter+'%')
         ))
-        OR
-        (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber LIKE '%'+@SOQNumber+'%') AND
+        AND (ISNULL(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber LIKE '%'+@SOQNumber+'%') AND
         (ISNULL(@SalesOrderNumber,'') = '' OR M.SalesOrderNumber LIKE '%'+@SalesOrderNumber+'%') AND
         (ISNULL(@CustomerName,'') = '' OR M.Name LIKE '%'+ @CustomerName+'%') AND
         (ISNULL(@Status,'') = ''  OR M.Status LIKE '%'+@Status+'%') AND
@@ -202,8 +204,8 @@ BEGIN
         (ISNULL(@MarketplaceRef,'') ='' OR M.MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND
         (ISNULL(@CreatedDate,'') ='' OR Cast(M.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND
         (ISNULL(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
-        (ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))
-        ))
+        (ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%')
+        )
 
       /* OPTIMIZATION: COUNT(*) OVER() replaces the CTE_Count cross join.
          CTEs are not materialized — "FROM Result, CTE_Count" forced SQL Server to

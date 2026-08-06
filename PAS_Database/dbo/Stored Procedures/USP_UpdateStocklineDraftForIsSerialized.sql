@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [USP_UpdateStocklineDraftForIsSerialized]              
  ** Author:   Shrey Chandegara   
  ** Description: This stored procedure is used to Update stockline draft for timelife
@@ -15,6 +15,7 @@
  ** PR   Date         Author				Change Description                
  ** --   --------     -------			--------------------------------              
     1    11-04-2024   Shrey Chandegara		Created  
+    2    20/July/2026  RAJESH GAMI		[PN-17350] - Redirected Non-Stock branch from legacy NonStockInventoryDraft to unified StocklineDraft (ItemMasterId, StockLineId, StockLineNumber columns), filtered with ISNULL(IsNonStock,0) = 1.
 
 
 	EXEC [USP_UpdateStocklineDraftForIsSerialized] 158,0, 12084,11
@@ -53,10 +54,10 @@ BEGIN
 				END
 			IF (@ItemTypeId = @NonStockItemId)
 				BEGIN
-					UPDATE [dbo].[NonStockInventoryDraft]
+					UPDATE [dbo].[StocklineDraft]
 					SET isSerialized = @Active ,
 					IsParent = CASE WHEN IsParent = 1 THEN 0 Else 1 END
-					WHERE MasterPartId = @ItemMasterId AND NonStockInventoryId IS NULL AND NonStockInventoryNumber IS NULL AND PurchaseOrderId = @PurchaseOrderId
+					WHERE ItemMasterId = @ItemMasterId AND StockLineId IS NULL AND StockLineNumber IS NULL AND PurchaseOrderId = @PurchaseOrderId
 				END
 			IF(@ItemTypeId = @AssetItemId)
 				BEGIN

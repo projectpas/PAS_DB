@@ -14,6 +14,8 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    16/12/2024		EKTA CHANDEGRA	 Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filter from ItemMaster join.
 
  EXEC GetSalesOrderQuoteCharges 965 , 0
 ************************************************************************/  

@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
 	2    24/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ '','',1
 **************************************************************/ 
@@ -114,6 +115,7 @@ BEGIN
 				  AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				  --Get data from WOQ
+				   AND ISNULL(IM.IsNonStock,0) = 0
 				  IF(@RecordsTotal = 0)
 				  BEGIN
 					  SELECT 
@@ -134,6 +136,7 @@ BEGIN
 					  AND MONTH(WOQ.[OpenDate]) >= @Month
 					  AND YEAR(WOQ.[OpenDate]) >= @Year
 					  AND WOQ.[MasterCompanyId] = @MasterCompanyId
+				   WHERE ISNULL(IM.IsNonStock,0) = 0
 				  END
 				  
 				  IF(@RecordsTotal > 0)

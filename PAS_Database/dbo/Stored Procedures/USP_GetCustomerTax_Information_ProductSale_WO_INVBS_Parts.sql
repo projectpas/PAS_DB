@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/15/2024   Moin Bloch    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 10803,11245 
 **************************************************************/
@@ -57,7 +58,7 @@ BEGIN
 			   AND WOP.[ID] = @WorkOrderPartId
 			   AND WOP.[ID] NOT IN (SELECT WOSI.WorkOrderPartNumId FROM [dbo].[WorkOrderShipping] WOS WITH(NOLOCK)  
 							 INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId]
-	                        WHERE [WorkOrderId] = @WorkOrderId AND WOSI.[WorkOrderPartNumId] = @WorkOrderPartId);
+	                        WHERE [WorkOrderId] = @WorkOrderId AND WOSI.[WorkOrderPartNumId] = @WorkOrderPartId) AND ISNULL(ITM.IsNonStock,0) = 0 ;
 
 		SELECT @BillingOriginSiteId = ISNULL([OriginSiteId],0),@BillingShipToSiteId = ISNULL([ShipToSiteId],0) FROM #tmprwoShipDetailsbs
 				  

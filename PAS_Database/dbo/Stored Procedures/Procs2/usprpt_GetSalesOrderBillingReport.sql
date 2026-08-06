@@ -1,4 +1,4 @@
-﻿/************************************************************* 
+/************************************************************* 
  ** File:[usprpt_GetRCWReport] 
  ** Author:		HEMANT SALIYA 
  ** Description: Get Data for RCW Report
@@ -14,8 +14,9 @@
  ************************************************************** 
  ** SNO Date			Author				Change Description  
  ** --- --------		-------------		--------------------------------
-	1	15-APR-2022		HEMANT SALIYA		Created  
-	2	16-JUNE-203		Devendra Shekh		made changes to do total
+--EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
+	1	16-JUNE-203		Devendra Shekh		made changes to do total
+	2	15-APR-2022		HEMANT SALIYA		Created  
 	3	11-JULY-2023	AYESHA SULTANA		CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
 	4	19-JULY-2023	SHREY CHANDEGARA	Changes for revenue Issue
 	5	01-FEB-2024		AMIT GHEDIYA		added isperforma Flage for SO
@@ -25,10 +26,11 @@
 	9	26-DEC-2024		Abhishek Jirawla	Fixed report calculations
  	10	01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure
 	11	11/SEP/2025		Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
-
---EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
+CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -125,7 +127,7 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
 
-		SELECT @PageSizeCM=COUNT(*) 
+			 SELECT @PageSizeCM=COUNT(*) 
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 			INNER JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.BillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0  AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  
@@ -247,7 +249,7 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))  
 
-		UNION ALL  
+			 UNION ALL  
   
 		SELECT DISTINCT 
 			COUNT(1) OVER () AS TotalRecordsCount,

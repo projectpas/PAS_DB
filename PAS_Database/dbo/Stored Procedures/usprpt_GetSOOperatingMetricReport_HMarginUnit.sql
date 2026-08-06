@@ -1,4 +1,4 @@
-﻿/********************************************************************             
+/********************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_HMarginUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for SalesOrder Operating Metric Report Highest Margin to Low Margin
@@ -16,7 +16,8 @@
     1    01-Sep-2025  Rajesh Gami		Created  
 	2    04-Sep-2025  Rajesh Gami		Remove all taxes from the revenue (Sales and Other Tax)
 	3    25-Sep-2025  Vishal Suthar		Modified Revenue calculation
-
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 ***********************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_HMarginUnit] 
 @PageNumber int = 1,

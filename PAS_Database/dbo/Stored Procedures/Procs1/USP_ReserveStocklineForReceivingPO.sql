@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_ReserveStocklineForReceivingPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to reserve stocklines for receiving PO
@@ -44,7 +44,9 @@
 	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
 	29   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16128]
 	30	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-	31   21/07/2026   Ayushi Patel      [PN-17294] Resolved the issue of qty reserved from sales order
+	31   09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	32   20/July/2026	RAJESH GAMI		[PN-17271] - As a part of allow both(Stock and NonStock) for the PO(Remove IsNonStock = 0 condition)
+	33   21/07/2026   Ayushi Patel      [PN-17294] Resolved the issue of qty reserved from sales order
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -198,7 +200,7 @@ BEGIN
 			INSERT INTO #tmpStockline (StocklineId, PurchaseOrderPartId)
 			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
-			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
+			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0
 			--AND STK.ConditionId != @AsRemoveConditionId 
 			ORDER BY StocklineId DESC; 
 
@@ -422,7 +424,7 @@ BEGIN
 									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = ISNULL(Stk.Quantity, 0), @stkQuantityAvailable = ISNULL(Stk.QuantityAvailable, 0), @stkQuantityOnHand = ISNULL(Stk.QuantityOnHand, 0), @stkQuantityReserved = ISNULL(QuantityReserved, 0),
 									@stkQuantityOnOrder = ISNULL(QuantityOnOrder, 0), @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
-									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId
 
 									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
 									BEGIN

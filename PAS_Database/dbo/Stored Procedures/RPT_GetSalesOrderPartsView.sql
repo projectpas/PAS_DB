@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/10/2024>  
 ** Description: 
@@ -19,8 +19,10 @@ EXEC [RPT_GetSalesOrderPartsView]
    8	06/03/2025	Vishal Suthar	Removed truncation for PN Description Field
    9	04/03/2026  Ayushi Patel	Return ItemNo for print
    10	23/06/2026  Bhargav Saliya	UOM Changes [PN-16959]
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 EXEC RPT_GetSalesOrderPartsView 1472
-
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
 	@salesOrderId BIGINT            

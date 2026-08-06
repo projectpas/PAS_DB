@@ -19,7 +19,7 @@
 	2    12/19/2023   Devendra Shekh        changes for kit part added
  ***3    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714] 
 	4	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-
+	5    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [GetSubWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
 
@@ -55,11 +55,11 @@ BEGIN
 			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND wop.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
-			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0 
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0
 
 			UNION ALL
 
@@ -84,11 +84,11 @@ BEGIN
 			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND  wop.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
-			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0
 
 		COMMIT  TRANSACTION
 		END TRY

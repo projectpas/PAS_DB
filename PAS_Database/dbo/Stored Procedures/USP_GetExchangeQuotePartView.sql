@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetExchangeQuotePartView]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartView
@@ -16,8 +15,10 @@
  ** --   --------     -------			--------------------------------          
     1    07/11/2025   Ekta Chandegra     Created
     2    15/04/2026   RAJESH GAMI		 Getting StockUOM instead of POUOM  [PN-15903]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
   EXEC USP_GetExchangeQuotePartView @ExchangeQuoteId = 113
-
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetExchangeQuotePartView]
     @ExchangeQuoteId BIGINT
@@ -88,8 +89,8 @@ BEGIN
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON part.ConditionId = cond.ConditionId
 		INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
-		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.StockUnitOfMeasureId = uom.UnitOfMeasureId
-		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0;
+		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0 ;
 
 		-------------------------------
 		-- 2. Retrieve ExchangeQuoteScheduleBilling details

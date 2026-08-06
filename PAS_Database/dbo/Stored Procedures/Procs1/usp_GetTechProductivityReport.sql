@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetTechProductivityReport]           
  ** Author:   Swetha  
  ** Description: Get Data for TechProductivity Report  
@@ -12,12 +12,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
 	3	01/31/2024    Devendra Shekh	added isperforma Flage for WO
-     
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetTechProductivityReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetTechProductivityReport] @FirstName varchar(40) = NULL,
@@ -182,6 +182,7 @@ BEGIN
           ON WOLH.WorkOrderLaborHeaderId = WOL.WorkOrderLaborHeaderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = IM.ItemMasterId
+         AND ISNULL(IM.IsNonStock,0) = 0
         LEFT JOIN DBO.customer C WITH (NOLOCK)
           ON WO.CustomerId = C.CustomerId
         --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)

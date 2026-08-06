@@ -15,6 +15,9 @@
 	3    05/06/2026   Moin Bloch        Fix Discription
 	4    08/06/2026   Abhishek Jirawla  Adding ItemMasterId
 	5    09/06/2026   Moin Bloch        Fix For Due Date PN-16784
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch's ItemMaster join so Non-Stock invoice line items are included in the Xero SO invoice sync payload.
+	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from Exchange SO branch's ItemMaster join so Non-Stock invoice line items are included in the Xero Exchange SO invoice sync payload.
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] 12682,15,0
 ********************************************************************************************/
@@ -109,6 +112,7 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
+		 AND ISNULL(ITM.IsNonStock,0) = 0
 		END
 		IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN

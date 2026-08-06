@@ -18,10 +18,10 @@
 	5    04/04/2024   Devendra Shekh    added vendorid to select
 	6    04/10/2024   HEMANT            Updated Status Id 
 	7    06/25/2024   Moin Bloch        Updated Multiple Reson
-	8    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	9    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
+	8    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
+	9    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	10   23-Mar-2026  Sahdev Saliya     Updated to Length in UnitPrice field
-   
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
   
@@ -178,6 +178,7 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 THEN ',' ELSE '' END + I.partnumber    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       Left Join dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
+       AND ISNULL(I.IsNonStock,0) = 0
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartNumber    
@@ -194,6 +195,7 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
+       AND ISNULL(I.IsNonStock,0) = 0
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartDescription    
@@ -211,6 +213,7 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.ManufacturerName) > 0 THEN ',' ELSE '' END + I.ManufacturerName    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId    
+       AND ISNULL(I.IsNonStock,0) = 0
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') ManufacturerName    

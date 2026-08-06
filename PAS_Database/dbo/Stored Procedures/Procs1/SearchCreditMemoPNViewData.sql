@@ -16,6 +16,7 @@
 	3    09/15/2023   AMIT GHEDIYA      Updated to Cast.
 	4    09/15/2024   HEAMNT SALIYA     Updated Status ID.
 	5    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and ReturnDate based on Employee time zone
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
  -- exec SearchCreditMemoPNViewData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1	
 **************************************************************/ 
@@ -174,6 +175,7 @@ BEGIN
 		LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = CM.CreditMemoHeaderId
 		LEFT JOIN dbo.StandAloneCreditMemoDetails SACD WITH (NOLOCK)  ON SACD.CreditMemoHeaderId = CM.CreditMemoHeaderId AND SACD.IsActive = 1
 		LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CD.ItemMasterId=IM.ItemMasterId
+         AND ISNULL(IM.IsNonStock,0) = 0
         WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) 
 		AND (@StatusID IS NULL OR CM.StatusId = @StatusID)) 
 		GROUP BY   

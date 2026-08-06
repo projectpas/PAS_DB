@@ -16,6 +16,8 @@
 	3    29/05/2026    Bhargav Saliya   Added Case For PO 
     4    11/06/2026    Moin Bloch       Fixed PO Creation Issue
     5    16/06/2026    Bhargav Saliya   Fixed Description
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2768,13
 **************************************************************/ 

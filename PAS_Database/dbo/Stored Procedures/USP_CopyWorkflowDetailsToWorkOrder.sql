@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
  ** Author: HEMANT SALIYA
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -20,13 +20,12 @@
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
-	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
-	8	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
-	9	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
-	10	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
-	11	 27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
-
-
+	7	 27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
+	8	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
+	9	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
+	10	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -611,6 +610,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -621,6 +621,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -632,6 +633,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END

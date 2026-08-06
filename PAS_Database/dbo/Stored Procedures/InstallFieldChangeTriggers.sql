@@ -1,4 +1,4 @@
-﻿
+
 
 CREATE   PROCEDURE dbo.InstallFieldChangeTriggers
   @ExcludeSchemas        nvarchar(max) = N'Audit,sys,INFORMATION_SCHEMA',
@@ -119,7 +119,7 @@ BEGIN
 
      DECLARE @SQL VARCHAR(max) = N'
      
-     CREATE OR ALTER   TRIGGER [dbo].[trg_Audit_dbo_' + @TableName + ']
+     CREATE TRIGGER [dbo].[trg_Audit_dbo_' + @TableName + ']
         ON ' + QUOTENAME(@SchemaName) + N'.' + QUOTENAME(@TableName) + N'
         AFTER INSERT, UPDATE, DELETE
         AS

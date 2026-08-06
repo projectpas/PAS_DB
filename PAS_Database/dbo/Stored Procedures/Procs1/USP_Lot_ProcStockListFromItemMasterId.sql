@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_ProcStockListFromItemMasterId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to get available qty >0 stocklines from the Item Master.
@@ -12,10 +12,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/09/2023  Rajesh Gami    Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC USP_Lot_ProcStockListFromItemMasterId
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
+CREATE PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -111,8 +113,7 @@ BEGIN
 					 AND ISNULL(stl.IsCustomerStock,0) = 0 
 					 AND im.ItemTypeId  = 1
 					 AND ISNULL(stl.QuantityAvailable,0) >0
-					 AND ISNULL(stl.LotId,0) = 0
-				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
+					 AND ISNULL(stl.LotId,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResults FROM  Result
 				 WHERE ((@GlobalFilter <>'' AND 
 				       ((PartNumber LIKE '%' +@GlobalFilter+'%') OR

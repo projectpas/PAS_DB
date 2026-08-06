@@ -119,7 +119,7 @@ BEGIN
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
-		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId; 
+		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId AND ISNULL(IM.IsNonStock,0) = 0 ; 
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	
 

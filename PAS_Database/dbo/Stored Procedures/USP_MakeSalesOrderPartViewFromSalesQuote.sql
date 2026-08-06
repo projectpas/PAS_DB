@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_MakeSalesOrderPartViewFromSalesQuote]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_MakeSalesOrderPartViewFromSalesQuote
@@ -11,12 +11,13 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** -----------------------------------------------------------          
     1    09/17/2025  EKTA CHANDEGRA    Created
-	     
+    2    09/July/2026  RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3    22/July/2026  RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filter left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
+ ** -----------------------------------------------------------          
 exec [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote] @ExchangeQuotePartId=126, @ExchangeQuoteId=155, @MasterCompanyId=1
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote]
+CREATE PROCEDURE [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote]
     @ExchangeQuotePartId BIGINT,
     @ExchangeQuoteId BIGINT,
 	@MasterCompanyId INT

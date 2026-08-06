@@ -1,4 +1,4 @@
-﻿/*************************************************************                   
+/*************************************************************                   
  ** File:   [USP_GetReqQtyFromPart]                   
  ** Author:   Shrey Chandegara        
  ** Description:             
@@ -17,7 +17,9 @@
     3    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
     4    03/26/2024	  Vishal Suthar		Modified the issue with SO Part Qty and also modified Switch case to IF-ELSE
     5    20/Apr/2026  Rajesh Gami		Manaual Mapping for PO Part Qty	(UOM Conversion wise) [PN-16076]
-	4	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
+	6	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
+    7    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
  EXECUTE USP_GetReqQtyFromPart 6691, 12684, 751, 3
 **************************************************************/         
 CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
@@ -74,14 +76,14 @@ BEGIN
 		END
 		ELSE IF @ModuleId = 1
 		BEGIN
-		 ;WITH BaseDataMain AS (
+			;WITH BaseDataMain AS (
 			(SELECT DISTINCT CASE WHEN  ( (((ISNULL(SUM(DISTINCT CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END),0))  -  ((ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalReserved IS NOT NULL THEN WOM.TotalReserved ELSE WOM_A.TotalReserved END),0))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalIssued IS NOT NULL THEN WOM.TotalIssued ELSE WOM_A.TotalIssued END),0))))  +   (ISNULL(SUM(DISTINCT CASE WHEN WOMK.Quantity IS NOT NULL THEN WOMK.Quantity ELSE WOMK_A.Quantity END),0))) - (SELECT ISNULL(SUM(DISTINCT Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) )  > 0 
 			THEN ((((ISNULL(SUM(DISTINCT CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END),0))  -  ((ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalReserved IS NOT NULL THEN WOM.TotalReserved ELSE WOM_A.TotalReserved END),0))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalIssued IS NOT NULL THEN WOM.TotalIssued ELSE WOM_A.TotalIssued END),0))))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOMK.Quantity IS NOT NULL THEN WOMK.Quantity ELSE WOMK_A.Quantity END),0))) - (SELECT ISNULL(SUM(DISTINCT Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END AS 'ReqQty'
-			,uomStock.ShortName as UOMStock
-			,uom.ShortName as UOMPurchase
-			,POP.MasterCompanyId
-			FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)  
-			LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId   
+			,uomStock.ShortName AS UOMStock,
+			uom.ShortName AS UOMPurchase,
+			POP.MasterCompanyId
+			FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+			LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId
 			LEFT JOIN  DBO.ItemMaster im WITH (NOLOCK) ON POP.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId

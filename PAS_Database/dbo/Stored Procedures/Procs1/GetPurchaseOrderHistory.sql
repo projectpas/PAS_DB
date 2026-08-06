@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPurchaseOrderHistory]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get purchase order history   
@@ -17,11 +17,12 @@
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
 	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
-	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	5    07-08-2024   Sahdev Saliya     Modified For Date Filter issue
-     
+	4    07-08-2024   Sahdev Saliya     Modified For Date Filter issue
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters (poview and VendorRFQ view branches) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed). Also removed a third hard exclusion (ISNULL(ST.IsNonStock,0)=0) on the #TempStkList staging query that feeds ReceivedDate to both branches.
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
+CREATE PROCEDURE [dbo].[GetPurchaseOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

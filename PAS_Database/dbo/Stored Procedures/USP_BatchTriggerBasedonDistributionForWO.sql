@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForWO]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used for BatchTrigger Based on Distribution For WO
@@ -20,11 +20,10 @@
 	9	 28/01/2025		Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 	10	 24/04/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	11	 12/JAN/2026	Rajesh Gami			UOM Conversion Changes
-	11	 28/01/2026		Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
-	12   30/03/2026     Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
-	12   03/04/2026     HEMANT SALIYA       Resolved Batch details entry missing while Auto Post is true
-
-
+	12	 28/01/2026		Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
+	13   30/03/2026     Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
+	14   03/04/2026     HEMANT SALIYA       Resolved Batch details entry missing while Auto Post is true
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
 (
@@ -232,6 +231,7 @@ BEGIN
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 				 WHERE ItemMasterId=@ItemmasterId 
 
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -301,7 +301,7 @@ BEGIN
 				 						        
 					SELECT @PiecePN = partnumber 
 					  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
-					 WHERE [ItemMasterId]=@PieceItemmasterId;
+					 WHERE [ItemMasterId]=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 					SELECT top 1 @DistributionSetupId=ID,
 								 @DistributionName=Name,

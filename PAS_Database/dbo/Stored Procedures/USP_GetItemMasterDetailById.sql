@@ -16,15 +16,14 @@
 	4	 28-Aug-2025	Bhargav saliya		added new field Ranking
 	5	 22-Sep-2025	Divyesh Kathiriya   added new field: IsHotItem
 	6    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
-	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
-    10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
-	11   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
-	12   23-June-2026   Rajesh Gami	        Getting return IsStocklineCreated is any stockline is created or not for this part [PN-16878]
+	7    02/12/2025  Bhargav Saliya	  Revert Changes.
+	8    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+    9   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
+	10   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
+	11   23-June-2026   Rajesh Gami	        Getting return IsStocklineCreated is any stockline is created or not for this part [PN-16878]
+	12   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
 	13   03-Aug-2026     Rajesh Gami	        Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
-										DiscountPurchasePercent, UnitCost, ListPrice, PriceDate,
-										InWarranty, MfgExpirationDate, IsMfgExpirationDate, IsService
-	13   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+	14   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
@@ -208,19 +207,13 @@ BEGIN
 						iM.Landings,
 						iM.Starts,
 						iM.CalendarDate,
-						iM.Model,
-						@isStocklineCreated as  IsStocklineCreated,
-						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
-						ISNULL(iM.IsNonStock,0) IsNonStock,
+						ISNULL(IM.IsNonStock,0)IsNonStock,
 						ISNULL(iM.DiscountPurchasePercent,0) DiscountPurchasePercent,
 						ISNULL(iM.UnitCost,0) UnitCost,
 						ISNULL(iM.ListPrice,0) ListPrice,
 						iM.PriceDate,
 						ISNULL(iM.InWarranty,0) InWarranty,
-						iM.MfgExpirationDate,
-						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
-						ISNULL(iM.IsService,0) IsService,
-						iM.IsKitAssy
+						ISNULL(iM.IsService, 0) AS IsService
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

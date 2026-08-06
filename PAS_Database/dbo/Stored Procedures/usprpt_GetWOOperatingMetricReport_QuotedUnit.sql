@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_QuotedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report by Most Quoted WO
@@ -12,11 +12,13 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami   Created 
 	2    25-Mar-2024  Moin Bloch    Fixed Decimal Value Exception 
 	3    03-07-2025   Moin Bloch    Changed Old To New Billing Table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion added during the PN-17008 transitional phase so Non-Stock parts now correctly appear in this Quoted Unit report
+ ** S NO   Date            Author          Change Description              
+ ** --   --------         -------          --------------------------------            
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_QuotedUnit] 
 @PageNumber int = 1,

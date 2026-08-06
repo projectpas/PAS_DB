@@ -12,6 +12,8 @@
  ** --   --------			---------			--------------------------------          
     1   16-Sept-2025		Devendra Shekh		 Created
 	2   08-Dec-2025         Moin Bloch           Added Default Company Address For VRFQ
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items when creating Vendor RFQ Purchase Order
 
 declare @p4 dbo.VendorRFQPOPartType
 insert into @p4 values(1,5416,2,96978,N'New',1,2400)

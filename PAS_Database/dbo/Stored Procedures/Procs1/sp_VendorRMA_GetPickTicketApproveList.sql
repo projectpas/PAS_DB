@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketApproveList]           
  ** Author:   Amit Ghediya
  ** Description: Retrieve pick ticket listing data for Vendor RMA
@@ -9,7 +8,9 @@
  ** 2    07/04/2023   Amit Ghediya    Get RMANum from Part level
  ** 3    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
  ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
- ** 5    07/07/2026   Ayushi          [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** 6    07/07/2026   Ayushi          [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
+ ** 7    09/July/2026 Rajesh Gami     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
     @VendorRMAId BIGINT
@@ -118,10 +119,10 @@ BEGIN
                                                    AND cq.ItemMasterId = sop.ItemMasterId
             LEFT JOIN AvailableQty aq               ON aq.ItemMasterId = sop.ItemMasterId
             LEFT JOIN ShippedQty sq                 ON sq.VendorRMADetailId = sop.VendorRMADetailId
-            LEFT JOIN StockLine sl WITH(NOLOCK)     ON sl.StockLineId = sop.StockLineId
+            LEFT JOIN StockLine sl WITH(NOLOCK)     ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
             LEFT JOIN VendorRMA so WITH(NOLOCK)     ON so.VendorRMAId = sop.VendorRMAId
             LEFT JOIN Vendor cr WITH(NOLOCK)        ON cr.VendorId = so.VendorId
-            WHERE sop.VendorRMAId = @VendorRMAId
+            WHERE sop.VendorRMAId = @VendorRMAId AND ISNULL(imt.IsNonStock,0) = 0
         )
 
         -- Step 5: Final output

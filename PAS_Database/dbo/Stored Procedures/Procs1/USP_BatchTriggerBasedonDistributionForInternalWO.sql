@@ -17,14 +17,14 @@
 	3    25/08/2023  Moin Bloch     Modify(Added IsWorkorder Falg)
 	4    30/11/2023  Moin Bloch     Modify(Added LotId And Lot Number in CommonBatchDetails)
 	5    09/01/2024  Moin Bloch     Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
-	6    28/04/2024  HEMANT SALIYA  Modify(Remove Shiping A/C Entry)
-	7    02/05/2024  Devendra Shekh Modify(changed Distribution WOIINVENTORYTOBILL to WOIFINISHGOOD, and reading @MaterialCost details from wompncostdetails)
-	8    02/05/2024  HEMANT SALIYA  Updated Reverse Billing Entry.
-	9    20/08/2024  Moin Bloch     Added Part Wise Reverse Records
-	10   25/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
-	11	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
-	12   11/10/2024  Moin Bloch     Added Reverse Flag for Finish Good
-	13	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	7    28/04/2024  HEMANT SALIYA  Modify(Remove Shiping A/C Entry)
+	8    02/05/2024  Devendra Shekh Modify(changed Distribution WOIINVENTORYTOBILL to WOIFINISHGOOD, and reading @MaterialCost details from wompncostdetails)
+	9    02/05/2024  HEMANT SALIYA  Updated Reverse Billing Entry.
+	10    20/08/2024  Moin Bloch     Added Part Wise Reverse Records
+	11   25/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
+	12	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
+	13   11/10/2024  Moin Bloch     Added Reverse Flag for Finish Good
 	14	 13/01/2025  Devendra Shekh Modify (StockLine GL selection Changes)
 	15	 22/01/2025	 Devendra Shekh	Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	16	 28/01/2025	 Devendra Shekh	Modify (Reverse Entry Issue Resolved)
@@ -32,6 +32,7 @@
 	18	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
 	19   08-07-2025  Moin Bloch        Changed Old To New Billing Table SP NOT IN USE
 *** 20   17/Mar/2026 Rajesh Gami	 Added UOM Changes [PN-15714]
+	21    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]
@@ -176,6 +177,7 @@ BEGIN
 			[dbo].[ItemMaster] WITH(NOLOCK) 
 			WHERE ItemMasterId=@ItemmasterId 
 
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	        SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -241,6 +243,7 @@ BEGIN
 
 		        SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 

@@ -1,4 +1,4 @@
-﻿/***********************************************************************************************           
+/***********************************************************************************************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -14,10 +14,10 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/10/2022							Created
-    2	 09/12/2023  Devendra Shekh			added case condition for ExpertiseName,EmployeeName
-	3    03/10/2023  Bhargav Saliya         Employee duplicate Records issue Resolved
-	4    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case
-	5    30/11/2023  Moin Bloch             Added Lot Number 
+	2    03/10/2023  Bhargav Saliya         Employee duplicate Records issue Resolved
+	3    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case
+	4    30/11/2023  Moin Bloch             Added Lot Number 
+    5	 09/12/2023  Devendra Shekh			added case condition for ExpertiseName,EmployeeName
 	6    10/05/2024  Moin Bloch             Added IsUpdated
 	7    16/05/2024  HEMANT SALITA          Updated for Reverse A/C Entry
 	8    17/05/2024  Moin Bloch             Added Union For Invoice Entry
@@ -27,12 +27,11 @@
 	12   20/08/2024  Moin Bloch             Getting Part Wise Records
 	13   12/01/2026  Bhargav Saliya         Change Order By (Debit entry displayed first)
 	14   06/04/2026  Moin Bloch             Added Flag For [IsDeleted] PN-15893
-	
+	15   09/July/2026  RAJESH GAMI             [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [GetAccountingDetailsViewpopupById] 10206,10413
-
 *************************************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
+CREATE PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
 @WorkOrderPartNumberId bigint    
 AS    
@@ -123,7 +122,7 @@ BEGIN
 		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBH.[IsDeleted] = 0 AND JBH.[IsActive] = 1       
 		INNER JOIN  [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId       
 		LEFT JOIN  [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON  MSD.ReferenceID = WBD.MPNPartId
-		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId 
+		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId AND ISNULL(SL.IsNonStock,0) = 0 
 		LEFT JOIN  [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkOrderId=WBD.ReferenceId AND WF.WorkOrderPartNoId = WBD.MPNPartId
 		LEFT JOIN  [dbo].[WorkOrderLabor] WOL WITH(NOLOCK) ON WOL.WorkOrderLaborId=WBD.PiecePNId  
 		LEFT JOIN  [dbo].[EmployeeExpertise] EMPEX WITH(NOLOCK) ON EMPEX.EmployeeExpertiseId=WOL.ExpertiseId   
@@ -213,7 +212,7 @@ BEGIN
 		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBH.[IsDeleted] = 0 AND JBH.[IsActive] = 1      
 		INNER JOIN  [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId       
 		LEFT JOIN  [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON  MSD.ReferenceID = WBD.MPNPartId
-		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId 
+		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId AND ISNULL(SL.IsNonStock,0) = 0 
 		LEFT JOIN  [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkOrderId=WBD.ReferenceId AND WF.WorkOrderPartNoId = WBD.MPNPartId
 		LEFT JOIN  [dbo].[WorkOrderLabor] WOL WITH(NOLOCK) ON WOL.WorkOrderLaborId=WBD.PiecePNId  
 		LEFT JOIN  [dbo].[EmployeeExpertise] EMPEX WITH(NOLOCK) ON EMPEX.EmployeeExpertiseId=WOL.ExpertiseId   

@@ -1,4 +1,4 @@
-﻿/************************************************************************************           
+/************************************************************************************           
  ** File:   [GetVendorScorcardInfo]           
  ** Author: 
  ** Description: This stored procedure is used to get Vendor Audit Info Data List.
@@ -15,10 +15,11 @@
  ** PR   Date					Author				Change Description            
  ** --   --------				 -------		  --------------------------------          
 	 1    12-03-2025			Amit Ghediya		Created
-
+	 2    09/July/2026			RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	 EXEC [dbo].[GetVendorScorcardInfo] 1,225,4767
 ****************************************************************************************/
-CREATE    PROCEDURE [dbo].[GetVendorScorcardInfo]
+CREATE PROCEDURE [dbo].[GetVendorScorcardInfo]
 	@MasterCompanyId BIGINT,
 	@EmployeeId BIGINT,
 	@VendorId bigint = null

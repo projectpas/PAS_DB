@@ -1,5 +1,3 @@
-﻿-------------------------------------------------------------------------------------------------------------------
-
 /*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsList]           
  ** Author:   subhash Saliya
@@ -19,9 +17,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/05/2021   Subhash Saliya Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
  EXECUTE USP_GetRollupMaterialList 325
-
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_GetRollupMaterialList]    
@@ -69,7 +68,7 @@ SET NOCOUNT ON
 			PartQuantityOnHand = sl.QuantityOnHand,
 			PartQuantityAvailable = sl.QuantityAvailable,
 			PartQuantityReserved = (SELECT SUM(sl.QuantityReserved) FROM WorkOrderMaterialStockLine womsl 
-							JOIN StockLine sl on womsl.StockLineId = sl.StockLineId 
+							JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId 
 							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			sl.QuantityTurnIn as PartQuantityTurnIn,
@@ -109,8 +108,8 @@ SET NOCOUNT ON
 			CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
 			CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 			isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
-	        StockLineId = (SELECT top 1 sl.StockLineId
-							FROM WorkOrderMaterialStockLine womsl JOIN StockLine sl on womsl.StockLineId = sl.StockLineId
+	        StockLIneId = (SELECT top 1 sl.StockLIneId
+							FROM WorkOrderMaterialStockLine womsl JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId
 							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			wom.Quantity as QunatityRequried,

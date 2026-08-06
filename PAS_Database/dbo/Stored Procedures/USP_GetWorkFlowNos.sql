@@ -9,8 +9,8 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    12-May-2025		Devendra Shekh			Created
-	2    10-July-2026		Sumit Kumar				Selected 'WorkFlowDescription' [PN-17112]
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    10-July-2026		Sumit Kumar				Selected 'WorkFlowDescription' [PN-17112]
 EXEC [USP_GetWorkFlowNos] 3, 10, 1, 101, 23
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowNos]
@@ -50,6 +50,7 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
+				 AND ISNULL(im.IsNonStock,0) = 0
 				UNION
 
 				SELECT DISTINCT
@@ -70,6 +71,7 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
+			 AND ISNULL(im.IsNonStock,0) = 0
 			END
 			ELSE
 			BEGIN
@@ -95,6 +97,7 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
+				 AND ISNULL(im.IsNonStock,0) = 0
 				UNION
 
 				SELECT DISTINCT
@@ -115,6 +118,7 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
+			 AND ISNULL(im.IsNonStock,0) = 0
 			END
 
 		END TRY    

@@ -21,11 +21,11 @@
 	6    25/08/2023  Moin Bloch         Modify(Added IsWorkOrder Flag)
 	7    28/11/2023  Moin Bloch         Modify(Added LotId And Lot Number in CommonBatchDetails)
 	8    08/01/2024  Moin Bloch         Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
-	9    26/04/2024  Hemant Saliya      Added Re-Open WO Reverse Entry
-	10   20/08/2024  Moin Bloch         Added Part Wise Reverse Records
-	11   18/09/2024	 AMIT GHEDIYA		Added for AutoPost Batch
-	12	 08/10/2024	 Devendra Shekh		Added new fields for [CommonBatchDetails]
-	13	 11/04/2024  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	9	 11/04/2024  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	10    26/04/2024  Hemant Saliya      Added Re-Open WO Reverse Entry
+	11   20/08/2024  Moin Bloch         Added Part Wise Reverse Records
+	12   18/09/2024	 AMIT GHEDIYA		Added for AutoPost Batch
+	13	 08/10/2024	 Devendra Shekh		Added new fields for [CommonBatchDetails]
 	14	 13/01/2025  Devendra Shekh		Modify (StockLine GL selection Changes)
 	15	 22/01/2025	 Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	16	 28/01/2025	 Devendra Shekh		Modify (Reverse Entry Issue Resolved)
@@ -35,11 +35,11 @@
 	20   08/01/2026  Hemant Saliya      Uppdated for Finished Googs issue with decimal Points
 	21	 20/02/2026	 Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
 *** 22   17/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]
+	23    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,680,679,385,0,51013,1,'fff',0,90,'WOP-PartsIssued',1,'admin'
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
-
 ************************************************************************/
 
 CREATE    PROCEDURE [dbo].[USP_BatchTriggerBasedonDistribution]
@@ -205,6 +205,7 @@ BEGIN
 			  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 			 WHERE ItemMasterId=@ItemmasterId 
 
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	        SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -268,7 +269,7 @@ BEGIN
 				 						        
 				SELECT @PiecePN = partnumber 
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
-				 WHERE [ItemMasterId]=@PieceItemmasterId;
+				 WHERE [ItemMasterId]=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				 
 				SELECT top 1 @DistributionSetupId=ID,
 				             @DistributionName=Name,

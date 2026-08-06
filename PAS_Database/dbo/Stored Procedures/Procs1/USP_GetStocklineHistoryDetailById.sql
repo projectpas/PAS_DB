@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [USP_GetStocklineHistoryDetailById]              
  ** Author:   Devendra      
  ** Description: Get stockline history detail by stocklineid  
@@ -22,11 +22,11 @@
  6  11/12/2025     RajeshGami        Retunr DecimalPlaces
  7  17/03/2026     Sahdev Saliya     Added UnitOfMeasure (PN-15729)
  8  09/07/2026     Ayushi Patel      Return UnitOfMeasure FROM Stkline_History [PN-17083]
-
+ 9  09/July/2026     RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ 10  16/July/2026     RAJESH GAMI        [PN-17271] - Removed unnecessary/harmful IsNonStock=0 filter; query is already scoped to one exact @StockLineId, so it now returns history for Non-Stock stocklines too.
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
-  
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]  
  @PageNumber INT,    
@@ -116,9 +116,9 @@ BEGIN
  FROM DBO.Stkline_History StlHist   
  INNER JOIN DBO.Module M WITH (NOLOCK) ON StlHist.ModuleId = M.ModuleId  
  INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON StlHist.StocklineId = STL.StockLineId  
- LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
- LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
- WHERE StlHist.StocklineId = @StockLineId),  
+ LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId
+ LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = STL.StockUnitOfMeasureId
+ WHERE StlHist.StocklineId = @StockLineId),
    FinalResult AS (    
  SELECT  rs.ModuleName,  rs.StockLineNumber,  
  rs.RefferenceId RefferenceId,

@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Devendra Shekh>  
 ** Create date: <09/12/2024>  
 ** Description: <Tender Multiple StockLine>  
@@ -7,14 +7,14 @@
 **************************************************************   
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
-** 1	09/12/2024		Devendra Shekh			Created
-** 2	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
-** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
-** 4    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
-** 4    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
-** 5    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
-** 6    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
-
+** 1	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
+** 2	09/12/2024		Devendra Shekh			Created
+** 3    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
+** 4    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+** 5    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
+** 6    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
+** 7    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -214,6 +214,7 @@ BEGIN
 							 FROM CTE_Stockline CSTL WITH(NOLOCK)
 							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId  
 							 /* PN Manufacturer Combination Stockline logic */
+						 WHERE ISNULL(IM.IsNonStock,0) = 0
 						END
 
 						IF(ISNULL(@CurrentWOM, 0) = 1)

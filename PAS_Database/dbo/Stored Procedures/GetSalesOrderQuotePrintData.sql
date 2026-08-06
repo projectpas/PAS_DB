@@ -1,5 +1,12 @@
-﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
-CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePrintData]
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 exclusion(s) left over from the PN-17008/17009 transitional phase; Non-Stock parts were showing blank details (or being entirely excluded) when printing a Sales Order Quote/Sales Order.
+**************************************************************/
+CREATE PROCEDURE [dbo].[GetSalesOrderQuotePrintData]
     @SalesQuoteId INT
 AS
 BEGIN
@@ -50,7 +57,7 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost sopc WITH (NOLOCK) ON sopc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-    LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON sop.ConditionId = cp.ConditionId
     LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
     LEFT JOIN DBO.Address custAddress WITH (NOLOCK) ON cust.AddressId = custAddress.AddressId

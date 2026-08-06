@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 -- =============================================
 -- Author:		<Ayesha Sultana>
 -- Create date: <26-7-2023>
@@ -15,10 +15,12 @@
 ** 3    29/10/2024  RAJESH GAMI      Un Mapped WO if there is no other material link with the same workorder in the Same PO (Updated)
 ** 4    29/10/2024  Devendra Shekh   Modified (Handling Kit Material Delete)
 ** 5    04/09/2025  Moin Bloch		 Updated Added History
-
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 EXEC [dbo].[DeleteWOMaterialsOnIssuedOrReserved] 61067,'ADMIN User'
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
+CREATE PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
 @WorkFlowWorkOrderId BIGINT,
 @UpdatedBy VARCHAR(255) = NULL
 AS
@@ -119,7 +121,7 @@ BEGIN
 
 			SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
 	
-			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId ;
 							
 			SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @DeleteWOMaterial;	
 

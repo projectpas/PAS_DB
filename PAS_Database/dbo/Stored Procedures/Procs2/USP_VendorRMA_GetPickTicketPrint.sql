@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [ EXECUTE USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.
@@ -20,8 +20,9 @@
 	4    02-03-2026	  Amit Ghediya				UOM Conversion Changes [PN-15140]
 	5    02-06-2026	  Priyansh Patel			Changed the consume Uom to Purchase Uom [PN-16605]
 	6    19/06/2026	  Priyansh Patel			Add Condition to skip fn_ConvertUOM call [PN-16911]
-
-     
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 **************************************************************/
 -- EXEC [dbo].[USP_VendorRMA_GetPickTicketPrint] 262, 399, 172
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetPickTicketPrint]
@@ -85,7 +86,7 @@ BEGIN
 		WHERE 
 		so.VendorRMAId = @VendorRMAId
 		--sopt.SOPickTicketId = @SOPickTicketId;
-		AND sopt.RMAPickTicketNumber = @pickTicketNo;
+		AND sopt.RMAPickTicketNumber = @pickTicketNo ;
 
 		--SELECT DISTINCT cte.RMAPickTicketId, cte.RMAPickTicketDate, cte.VendorRMAId, cte.StockLineNumber,cte.Qty, QtyShipped,PartNumber, PartDescription,
 		--cte.RMAPickTicketNumber, cte.SerialNumber, cte.ControlNumber, cte.IdNumber, cte.ConditionDescription, cte.RMANumber, cte.UOM,

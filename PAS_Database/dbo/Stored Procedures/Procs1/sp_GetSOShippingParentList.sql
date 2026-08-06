@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetSOShippingParentList]           
  ** Author:   
  ** Description: 
@@ -16,9 +16,12 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
-	1	12/02/2024		AMIT GHEDIYA		Modified for get soPartid for expand & collapse
+	2	12/02/2024		AMIT GHEDIYA		Modified for get soPartid for expand & collapse
 	3   31/03/2026      Moin Bloch	        Modified Added UOM Changes PN-15067
     4   19/06/2026      Bhargav Saliya	    Added Case For Skip UOM Function If FROM uom and TO uom Both are Same 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter so Non-Stock ItemMaster/Stockline fields populate correctly on the shipping list.
  -- EXEC [dbo].[sp_GetSOShippingParentList] 10861
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
@@ -41,14 +44,16 @@ BEGIN
 		(ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)	- ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)) AS QtyRemaining,		
 		CASE WHEN ISNULL(SUM(sopt.[QtyToShip]), 0) = ISNULL(SUM(sosi.[QtyShipped]), 0) THEN 'Shipped'
 		ELSE 'Shipping' END AS [Status]
-		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
-		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN [dbo].[SalesOrder] so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		INNER JOIN [dbo].[SOPickTicket] sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-		LEFT JOIN [dbo].[ItemMaster] imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
-		LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId AND sosi.SOPickTicketId = sopt.SOPickTicketId
-		LEFT JOIN [dbo].[SalesOrderShipping] sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
+		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
+		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
+		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
+					AND sosi.SOPickTicketId = sopt.SOPickTicketId
+		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
+					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
 		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],so.[MasterCompanyId]
 	--END

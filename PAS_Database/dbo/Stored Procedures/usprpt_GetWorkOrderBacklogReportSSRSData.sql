@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReportSSRSData]               
  ** Author:   Devendra Shekh      
  ** Description: Get Data for WorkOrderBacklog Report  new SP 
@@ -21,11 +21,12 @@
  ** 5   18/04/2025   Ayushi  Patel          Added the condition for pn , pndescription , serialnum 
  ** 6   20-06-2025	 Devendra Shekh			Billing Table Changes
  ** 7   13-11-2025	 Moin Bloch			    Fixed For Duplicate Billing
-
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec usprpt_GetWorkOrderBacklogReportSSRSData @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 EXEC usprpt_GetWorkOrderBacklogReportSSRSData 1,'2025-11-12','2025-11-13','','','','1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
 	@id DATETIME2,
 	@id2 DATETIME2,
@@ -182,11 +183,12 @@ BEGIN
     INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN [dbo].[ItemMaster] AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
 	 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-    INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
+     AND ISNULL(RIM.IsNonStock,0) = 0
+	  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
      LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
      LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
      LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
-     LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+     LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0   
      LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
      LEFT JOIN [dbo].[WorkOrderStage] AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
      LEFT JOIN [dbo].[WorkOrderStatus] AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
@@ -218,7 +220,8 @@ BEGIN
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
      
-	 UPDATE  #TEMPWOBackLogReportRecords SET DaysInStage = tmpDaysData.DaysInStage
+	  AND ISNULL(IM.IsNonStock,0) = 0
+     UPDATE  #TEMPWOBackLogReportRecords SET DaysInStage = tmpDaysData.DaysInStage
 			FROM( SELECT WTA.WorkOrderPartNoId,
 						 CASE WHEN WTA.StatusChangedEndDate IS NULL THEN ISNULL(DATEDIFF(day, (WTA.StatusChangedDate), GETDATE()), 0) 
 								ELSE (ISNULL(((WTA.[Days])+ ((WTA.[Hours])/24)+ ((WTA.[Mins])/1440)),0)) END AS 'DaysInStage'

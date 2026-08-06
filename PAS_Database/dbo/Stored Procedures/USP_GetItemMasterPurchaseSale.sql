@@ -10,6 +10,7 @@
 ** PR     Date         Author           Change Description            
 ** --    --------     -------           -------------------------------          
 ** 1     27-Oct-2025   Bhargav Saliya      Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
@@ -35,6 +36,7 @@ BEGIN
 	SELECT TOP 1 @PartNumber = PartNumber,@MasterCompanyId = MasterCompanyId FROM DBO.ItemMaster I WITH(NOLOCK)
 	WHERE I.ItemMasterId = @ItemMasterId
 
+	 AND ISNULL(I.IsNonStock,0) = 0
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 

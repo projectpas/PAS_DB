@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AddUpdateReceiveCustomerPiecePart]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to create update Receive Customer Piece Part
@@ -10,14 +10,14 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** -----------------------------------------------------------          
     1    19/08/2024   Moin Bloch    Created
 	2    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
 	3	 18/04/2025	  ABHISHEK JIRAWLA Updated Receiving Number for Receiving Customer Work
 	4	 30/04/2025	  ABHISHEK JIRAWLA Adding IsPiecePart and IsRepairManagement to the Stockline
 	5    12/05/2026   Nakul Chandigra  Added OutGoingItemMasterId And OutGoingPartNumber
-	6    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
-	     
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
+ ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
@@ -258,8 +258,7 @@ BEGIN
 					   @IsPMA  = [IsPMA],
 					   @IsDER = [IsDER],
 					   @OEM = [IsOEM], 
-					   @RevicedPNId = [RevisedPartId],
-					   @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId]
+					   @RevicedPNId = [RevisedPartId]					  
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
@@ -379,6 +378,7 @@ BEGIN
                        
 					/* PN Manufacturer Combination Stockline logic */
 
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
 					DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
@@ -429,6 +429,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+					 AND ISNULL(iM.IsNonStock,0) = 0
 					GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   

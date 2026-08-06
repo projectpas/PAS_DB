@@ -19,6 +19,9 @@
 	2    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	3    11/14/2024	  Vishal Suthar		Fixed New table name in the Update statement
 	4    18/MAR/2025    RAJESH GAMI		Fixed QtyOnOrder update for the WorkorderMaterial and KIT
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover soft IsNonStock=0 exclusion filters (IM/AIM aliases) added during PN-17008 transitional Non-Stock merge phase.
+	7	15/July/2026			 RAJESH GAMI						[PN-17271] - Fixed: the Non-Stock branch of the PartNumber/
 	
  EXEC sp_UpdatePurchaseOrderDetail 2985
 **************************************************************/
@@ -262,8 +265,8 @@ BEGIN
 				
 		UPDATE dbo.PurchaseOrderPart
 		SET
-		   PartNumber =  CASE WHEN POP.ItemTypeId = @StockType THEN IM.partnumber WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartNumber WHEN POP.ItemTypeId = @AssetType THEN AST.AssetId END,
-		   PartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN IM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartDescription WHEN POP.ItemTypeId = @AssetType THEN AST.[Description] END,
+		   PartNumber =  CASE WHEN POP.ItemTypeId = @StockType THEN IM.partnumber WHEN POP.ItemTypeId = @NonStockType THEN IMNS.PartNumber WHEN POP.ItemTypeId = @AssetType THEN AST.AssetId END,
+		   PartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN IM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN IMNS.PartDescription WHEN POP.ItemTypeId = @AssetType THEN AST.[Description] END,
 		   AltEquiPartNumber = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartNumber WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN AAST.AssetId END,
 		   AltEquiPartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN  AAST.[Description] END, 
 		   StockType = CASE WHEN POP.ItemTypeId = @StockType THEN (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
@@ -311,7 +314,7 @@ BEGIN
 			  LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId
 			  LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId
 			  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON POP.ItemMasterId = AST.AssetRecordId	
-			  LEFT JOIN dbo.ItemMasterNonStock IMN WITH (NOLOCK) ON POP.ItemMasterId = IMN.MasterPartId	
+			  LEFT JOIN dbo.ItemMaster IMNS WITH (NOLOCK) ON POP.ItemMasterId = IMNS.ItemMasterId
 			  LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = POP.GlAccountId
 			  LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = POP.ConditionId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId			  

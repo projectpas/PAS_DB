@@ -1,4 +1,4 @@
-﻿/*************************************************************	
+/*************************************************************	
  ** File:   [sp_GetExchangePickTicketChildList]           
  ** Author:  <Unknown>
  ** Description: This stored procedure is used get exchange pick ticket child list.
@@ -12,11 +12,12 @@
  ** PR   Date			 Author					Change Description              
  ** --   --------		 -------				--------------------------------            
     1    Unknown		Unknown					Unknown
-	2    27-Mar-2025	Divyesh Kathiriya		Update PickedDate based on Employee time zone
-
+	1    27-Mar-2025	Divyesh Kathiriya		Update PickedDate based on Employee time zone
+	2    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	EXEC [dbo].[sp_GetExchangePickTicketChildList] 135,3,1,226
 ***************************************************************/
-CREATE Procedure [dbo].[sp_GetExchangePickTicketChildList]
+CREATE PROCEDURE [dbo].[sp_GetExchangePickTicketChildList]
 	@ExchangeSalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,

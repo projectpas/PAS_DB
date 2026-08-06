@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPickTicketBySalesOrderId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get GetVendorRMAPickTicketBySalesOrderId Pdf
@@ -10,12 +10,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
+    1    04-06-2025    Sahdev Saliya       Created  
+    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    04-06-2025    Sahdev Saliya       Created  
-
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
+CREATE PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
     @VendorRMAId BIGINT,
     @RMAPickTicketId BIGINT
 AS
@@ -64,7 +64,7 @@ BEGIN
 				sopkt.CreatedDate AS PTCreatedDate
 			FROM [dbo].VendorRMA soq WITH(NOLOCK)
 			LEFT JOIN [dbo].VendorRMADetail vrma WITH(NOLOCK) ON soq.VendorRMAId = vrma.VendorRMAId
-			LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON vrma.StockLineId = sl.StockLineId
+			LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON vrma.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN [dbo].RMAPickTicket sopkt WITH(NOLOCK) ON soq.VendorRMAId = sopkt.VendorRMAId AND sopkt.RMAPickTicketId = @RMAPickTicketId
 			LEFT JOIN [dbo].Vendor cust WITH(NOLOCK) ON soq.VendorId = cust.VendorId
 			LEFT JOIN [dbo].Address cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetCustomerQuoteReport]             
  ** Author:   Amit Ghediya   
  ** Description: Get Data for Customer PO Fulfilling Report   
@@ -12,11 +12,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
     1    10-10-2025	  Amit Ghediya	   Created 
 	2    11-06-2026   Ayushi Patel     [PN-16819] UOM CHNAGES
-       
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
+ ** S NO   Date            Author          Change Description              
+ ** --   --------         -------          --------------------------------            
 EXECUTE   [dbo].[usprpt_GetCustomerQuoteReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   

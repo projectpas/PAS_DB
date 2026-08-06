@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReportNew]               
  ** Author:   Devendra Shekh      
  ** Description: Get Data for WorkOrderBacklog Report  new SP 
@@ -12,13 +12,14 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
+ **	1	10-04-2022   Devendra Shekh			created    
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  ** S NO   Date         Author				Change Description                
  ** --   --------     -------			--------------------------------     
- **	1	10-04-2022   Devendra Shekh			created    
- 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReportNew] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportNew]     
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportNew]     
  @PageNumber INT = 1,    
  @PageSize INT = NULL,    
  @mastercompanyid INT,    
@@ -117,7 +118,7 @@ BEGIN
       LEFT JOIN DBO.WorkOrderStatus AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
       LEFT JOIN DBO.WorkOrderType AS WOT WITH (NOLOCK)ON WO.WorkOrderTypeId = WOT.Id            
       LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId    
-      LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1    
+      LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0   
       LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId         
        WHERE CAST(WO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
       AND WOT.Id = ISNULL(@wotype,WOT.Id) AND  ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1  AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
@@ -135,7 +136,8 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
-      END    
+       AND ISNULL(IM.IsNonStock,0) = 0
+       END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
@@ -190,7 +192,7 @@ BEGIN
     LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
     LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
     LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
-    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0   
     LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
     LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
     LEFT JOIN DBO.WorkOrderStatus AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
@@ -219,7 +221,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     )  
+      AND ISNULL(IM.IsNonStock,0) = 0 )  
     
     ,finalCTE (WorkOrderId,customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, opendate, approvedamount, unitcost, StocklineId, partscost, laborcost, overheadcost,  
     misccharge, othercost, total, wodayscount, techname, priority, workScope, quoteAmount, daysInStage, level1, level2, level3, level4, level5, level6, level7, level8,  

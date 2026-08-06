@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_Receiving_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Receiving List Details
@@ -13,7 +13,8 @@
     1    06/20/2023   Moin Bloch     Created
 	2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
 	3    19-06-2026	  Priyansh Patel	Add Condition to skip fn_ConvertUOM call [PN-16911]
-
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_VendorRMA_Receiving_DetailsById 34
 *******************************************************************************/
@@ -30,26 +31,11 @@ BEGIN
 				  ,1 AS [ItemTypeId]
 				  ,0 AS [QuantityRejected]          --> Default SET 0   
 				  --,VD.[Qty] AS [QuantityOrdered]				  
-				  ,ROUND((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS [QuantityOrdered]
-
-					,[QuantityBackOrdered] = ROUND(
-					(
-					(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END)
-					- (SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
-					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
-					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
-					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
-					),2)
-
-					,[QuantityDrafted] = ROUND((SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SD.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
-					FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) 
-					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SD.[ItemMasterId] = IM.[ItemMasterId] 
-					WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0),2)
-
-					,[QuantityReceived] = ROUND((SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
-					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
-					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
-					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1),2)
+				  ,VD.[QtyShipped] AS [QuantityOrdered]		
+  			    --,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
+				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1 AND ISNULL(SL.IsNonStock,0) = 0))
+				  ,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL(SD.[Quantity],0)),0) FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
+				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1 AND ISNULL(SL.IsNonStock,0) = 0)
 				  ,VD.[SerialNumber]
 				  ,SL.[ConditionId]
 				  ,SL.[Condition]
@@ -114,7 +100,7 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]	
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.ReferenceID = VD.StockLineId AND MS.ModuleID = 2			
-			  WHERE VD.[VendorRMAId] = @VendorRMAId;
+			  WHERE VD.[VendorRMAId] = @VendorRMAId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 	END TRY
     BEGIN CATCH
 		IF @@trancount > 0

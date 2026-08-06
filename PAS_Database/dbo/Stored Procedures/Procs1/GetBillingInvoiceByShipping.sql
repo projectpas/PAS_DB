@@ -19,6 +19,8 @@
 	9    01/july/2025 RAJESH GAMI	 Change the table as per new Billing Structure
 	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
 	11   18/06/2026   Bhargav Saliya UOM Changes with Added Case For Skip UOM Function If FROM uom and TO uom Both are Same [PN-15067]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing/invoicing lists.
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -105,7 +107,7 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
-				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId;
+				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId ;
 			END
 			ELSE
 			BEGIN
@@ -142,7 +144,7 @@ SET NOCOUNT ON;
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 
-				WHERE sop.SalesOrderPartId = @SalesOrderPartId;
+				WHERE sop.SalesOrderPartId = @SalesOrderPartId ;
 			END
 		END
 

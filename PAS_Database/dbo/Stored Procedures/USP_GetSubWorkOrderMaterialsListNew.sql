@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetSubWorkOrderMaterialsListNew]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used retrieve Work Order Sub Materials List      
@@ -16,14 +16,17 @@
 	5	 12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
 	6	 12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	7	 12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
-    9	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
-	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
-	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
-*** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
-    13   28/04/2026	    Ayushi Patel			Added condition to get UnitOfMeasure [PN-16096] 
-	12	 19/06/2026		Ayushi					[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-	14   08/05/2026     Moin Bloch              Added Part Number Filter  PN-16363
-	15   15/07/2026     Abhishek Jirawla	    Adding IsPiecePart condition in RepairOrderPart table
+    8	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	9	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
+	10   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
+*** 11   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
+    12   28/04/2026	    Ayushi Patel			Added condition to get UnitOfMeasure [PN-16096] 
+	13	 19/06/2026		Ayushi					[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	16   08/05/2026     Moin Bloch              Added Part Number Filter  PN-16363
+	17   15/07/2026     Abhishek Jirawla	    Adding IsPiecePart condition in RepairOrderPart table
+	18    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 15 leftover IsNonStock=0 exclusion filters.
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@subWOPartNoId=282,@ShowPendingToIssue=0
 **************************************************************/   
@@ -668,8 +671,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -893,8 +895,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -937,7 +938,7 @@ SET NOCOUNT ON
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
-			AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%');
+				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 		ELSE
 		BEGIN
@@ -1121,8 +1122,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1344,8 +1344,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1388,7 +1387,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
-		 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%');  
+			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;

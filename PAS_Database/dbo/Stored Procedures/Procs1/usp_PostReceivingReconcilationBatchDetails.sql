@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -39,7 +39,9 @@
 	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	28   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	29   12/06/2026   Priyansh Patel      UOM conversion issue for @InvoicedQty PN-16941
-
+	30    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	31   20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (variable population + unit-cost update/GLAccount lookups in the ReconciliationPO GRNI/Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
+	32   24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) on the Receiving-PO MPN/PiecePN lookups to allow Non-Stock items in Reconciliation Batch posting
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -515,13 +517,13 @@ BEGIN
 
 							IF(UPPER(@StockType) = 'NONSTOCK')
 							BEGIN
-								SELECT @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
-										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
+								SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
 										@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
 										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(UnitCost,0),@ROStocklineUnitPrice=ISNULL(UnitCost,0),@StocklineQtyAvail=QuantityOnHand 
-								FROM dbo.NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
 												  
-								SELECT @PieceItemmasterId=MasterPartId FROM dbo.NonStockInventory WITH(NOLOCK)  WHERE NonStockInventoryId=@StocklineId
+								SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId
 
 							END
 							IF(UPPER(@StockType) = 'ASSET')
@@ -536,7 +538,7 @@ BEGIN
 
 							END
 
-							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId;
+							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId ;
 							SELECT @VendorName =VendorName FROM dbo.Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 							SELECT @PurchaseOrderNumber=PurchaseOrderNumber FROM dbo.PurchaseOrder WITH(NOLOCK)  WHERE PurchaseOrderId= @PurchaseOrderId;
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
@@ -712,17 +714,17 @@ BEGIN
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
 										BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
-											UPDATE dbo.NonStockInventory
+											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE NonStockInventoryId=@StocklineId
+											WHERE StockLineId=@StocklineId
 										END
 
 										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
-										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
 									END
 
 									IF(UPPER(@StockType) = 'ASSET')
@@ -1019,9 +1021,9 @@ BEGIN
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
 										BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
-											UPDATE dbo.NonStockInventory
+											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE NonStockInventoryId=@StocklineId
+											WHERE StockLineId=@StocklineId
 										END
 										
 										SELECT TOP 1 @DistributionSetupId=ID, 
@@ -1036,9 +1038,9 @@ BEGIN
 										SELECT TOP 1 @GlAccountId=SL.GLAccountId,
 										             @GlAccountNumber=GL.AccountCode,
 													 @GlAccountName=GL.AccountName 
-												FROM DBO.NonStockInventory SL WITH(NOLOCK)
+												FROM DBO.Stockline SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.NonStockInventoryId=@StocklineId
+										WHERE SL.StockLineId=@StocklineId
 									END
 									IF(UPPER(@StockType) = 'ASSET')
 									BEGIN
@@ -1495,6 +1497,7 @@ BEGIN
 							SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline  WHERE StockLineId=@StocklineId
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 								
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving RO-'+@RepairOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber

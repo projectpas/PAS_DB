@@ -27,6 +27,7 @@ BEGIN
 				
 
 	
+	 AND ISNULL(IM.IsNonStock,0) = 0
 	return Isnull(@TATDaysStandard,0)
 
 

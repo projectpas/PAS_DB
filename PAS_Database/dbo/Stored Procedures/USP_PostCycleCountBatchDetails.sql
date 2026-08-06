@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: [dbo].[USP_PostCycleCountBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used create cycle count batch Details 
@@ -16,13 +16,13 @@
 	3    19/11/2024          Moin Bloch          Added @AccountingCalendarId,@LedgerId 
 	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise 
 	5    05/12/2024          Moin Bloch          Added @IsAccountByPass Flag
-	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
-	8    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
-	9    28/11/2025          Moin Bloch          Changed Logic For CR/DR
-
+	6    27/12/2024          Moin Bloch          Updated Added LegalEntityId
+	7    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
+	8    28/11/2025          Moin Bloch          Changed Logic For CR/DR
+	9    09/July/2026          RAJESH GAMI          [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
+CREATE PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
 @CycleCountId BIGINT,
 @CycleCountDetailId BIGINT,
 @StockLineId BIGINT,

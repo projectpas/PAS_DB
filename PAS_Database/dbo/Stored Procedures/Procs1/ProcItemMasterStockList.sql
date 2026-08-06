@@ -15,28 +15,20 @@
    
     2    23 Nov 2023    BHARGAV SALIYA       Add HasSubAssy  
 	3    17 July 2024   Shrey Chandegara     Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
-	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
-	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	7    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
-	8	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
-	9	 21-Aug-2025	Bhargav saliya		 added Ranking
-	10   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
-	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
-	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
-	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
-	14   27-May-2026    Sahdev Saliya        Added Model [PN-16353]
-	15   03-Aug-2026    Rajesh Gami          Ported from BETA: added @IntegrationTypeId/@ItemTypeStatusId
-										 params, replaced hardcoded ItemTypeId=1 filter with
-										 @ItemTypeStatusId so this list can return Stock and/or
-										 Non-Stock rows, added IsNonStock/ItemTypeId to the result.
-	16   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
-										 (DBO.ConvertUTCtoLocal), removed unneeded SELECT DISTINCT,
-										 converted HasSubAssy/RoSubAssy COUNT(...)>0 checks to
-										 EXISTS(...), and removed #TempResult / separate COUNT
-										 pass (now COUNT(*) OVER()). See
-										 UOM_ProcItemMasterStockList_Deploy.sql
-										 for the full before/after review.
+	1    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
+	2	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
+	3    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	4    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
+	5	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
+	6	 21-Aug-2025	Bhargav saliya		 added Ranking
+	7   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
+	8   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
+	9   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
+	10   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
+	11   27-May-2026    Sahdev Saliya        Added Model [PN-16353]
+	12   29-Jun-2026    Rajesh Gami			 Merging the NonStock Inventory to Inventory [PN-17008]
+	13   03-Aug-2026    Rajesh Gami          Ported from BETA: added @IntegrationTypeId/@ItemTypeStatusId
+	14   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
 	15   03-Aug-2026    Sahdev Saliya        Added IsKitAssy [PN-17371]
 
 **********************/
@@ -195,10 +187,10 @@ BEGIN
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
-					   im.Model,
-					   ISNULL(im.IsNonStock,0) IsNonStock,
-					   im.ItemTypeId,
-					    CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
+					    ISNULL(IM.IsNonStock,0)IsNonStock,
+						im.ItemTypeId,
+						im.Model,
+						im.IsKitAssy
 			   FROM dbo.ItemMaster im WITH (NOLOCK)
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))

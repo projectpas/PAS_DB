@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CheckDuplicatePNSNByPass]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to Check Duplicate PN - Serial Number before create stockLine(on receive Customer, PO, RO)
@@ -12,6 +12,7 @@
     1    22-May-2025   Devendra Shekh		Created
     2    28-May-2025   Devendra Shekh		Added New Param @StockLineId
     3    03-June-2025  Devendra Shekh		checking [QuantityAvailable] for ReceivingRepairOrder
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	 
 exec dbo.USP_CheckDuplicatePNSNByPass @ItemMasterId=318,@SerialNumber=N'TDGRGRDG',@ModuleId=27,@MasterCompanyId=1
 **************************************************************/

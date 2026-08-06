@@ -61,11 +61,11 @@ BEGIN
 				pop.QuantityOrdered AS 'POQtyOrder',
 				SUM(ISNULL(CV.ConvertedQty,0)) AS 'ReceivedQty',
 				pop.UnitCost AS 'POUnitCost',
-				(pop.UnitCost * CV.ConvertedRRQty) AS 'POExtCost',
-				CV.ConvertedRRQty AS 'InvoicedQty',
-				CV.ConvertedUnitCost AS 'InvoicedUnitCost',
-				(CV.ConvertedUnitCost * CV.ConvertedRRQty) AS 'InvoicedExtCost',
-				CV.ConvertedRRQty AS 'RemainingRRQty',
+				(pop.UnitCost * MAX(CV.ConvertedRRQty)) AS 'POExtCost',
+				MAX(CV.ConvertedRRQty) AS 'InvoicedQty',
+				MAX(CV.ConvertedUnitCost) AS 'InvoicedUnitCost',
+				(MAX(CV.ConvertedUnitCost) * MAX(CV.ConvertedRRQty)) AS 'InvoicedExtCost',
+				MAX(CV.ConvertedRRQty) AS 'RemainingRRQty',
 				pop.PurchaseOrderPartRecordId,
 				1 AS 'Type',
 				'STOCK' AS 'StockType',
@@ -96,7 +96,7 @@ BEGIN
 					AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0 AND ISNULL(stk.IsNonStock,0) = 0
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId,pop.UnitOfMeasure,stk.StockUnitOfMeasure
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId,pop.UnitOfMeasure,stk.StockUnitOfMeasure,po.MasterCompanyId
 
 				UNION ALL
 

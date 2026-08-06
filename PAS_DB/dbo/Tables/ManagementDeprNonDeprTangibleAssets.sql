@@ -10,7 +10,6 @@
     [IsActive]                              BIT           CONSTRAINT [DF_ManagementDeprNonDeprTangibleAssets_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                             BIT           CONSTRAINT [DF_ManagementDeprNonDeprTangibleAssets_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ManagementDeprNonDeprTangibleAssets] PRIMARY KEY CLUSTERED ([ManagementDeprNonDeprTangibleAssetsId] ASC),
-    CONSTRAINT [FK_ManagementDeprNonDeprTangibleAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_ManagementDeprNonDeprTangibleAssets_Site] FOREIGN KEY ([DeprNonDeprTangibleAssetsId]) REFERENCES [dbo].[DeprNonDeprTangibleAssets] ([DeprNonDeprTangibleAssetsId])
+    CONSTRAINT [FK_ManagementDeprNonDeprTangibleAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 

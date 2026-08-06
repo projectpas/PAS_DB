@@ -159,7 +159,7 @@ BEGIN
                 asset.AssetMaintenanceIsContract,
                 ISNULL(asset.AssetParentRecordId, '') AS AssetParentId,
                 asset.TangibleClassId,
-                ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
+                ISNULL(atc.TangibleClassName, '') AS AssetTypeName,
                 asset.AssetAttributeTypeId,
                 asset.AssetLocationId,
                 ISNULL(aloc.Code + '-' + aloc.Name, '') AS AsetLocationName,
@@ -246,7 +246,8 @@ BEGIN
             LEFT JOIN dbo.GLAccount mgla WITH (NOLOCK) ON asmai.MaintenanceGLAccountId = mgla.GLAccountId
             LEFT JOIN dbo.GLAccount wgla WITH (NOLOCK) ON asmai.WarrantyGLAccountId = wgla.GLAccountId
             LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
-            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
+            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.TangibleClassId = dnta.TangibleClassId
+            LEFT JOIN dbo.TangibleClass atc WITH (NOLOCK) ON dnta.TangibleClassId = atc.TangibleClassId
             LEFT JOIN dbo.GLAccount calGL WITH (NOLOCK) ON dnta.CalibratedGLAccountId = calGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaDeprGL WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dntaDeprGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaAdGL WITH (NOLOCK) ON dnta.AccumDeprGLAccountId = dntaAdGL.GLAccountId

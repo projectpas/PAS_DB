@@ -35,11 +35,11 @@
 										source SP it was harmless there (Im is always Stock so rp is
 										too), but here it would incorrectly null out RevisedPart for
 										every Non-Stock row, since rp IS Im.
-
+	2   05-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '100',1,50,'',18
 **************************************************************/
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerAllTypes]
+CREATE    PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerAllTypes]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -93,7 +93,7 @@ BEGIN
 			  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 			  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(Im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%'))
       UNION
 
      SELECT DISTINCT Im.ItemMasterId,
@@ -177,7 +177,7 @@ BEGIN
 			 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(Im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%')
      UNION
 
     SELECT DISTINCT TOP 50

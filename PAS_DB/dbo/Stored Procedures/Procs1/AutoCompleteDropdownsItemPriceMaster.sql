@@ -20,12 +20,12 @@
     1    06/11/2024  Ekta Chandegra     Created
     2    07/11/2024  Ekta Chandegra     Remove Static parameter value and add Isnull for IsDeleted field
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+    4    05-Aug-2026			 Bhargav Saliya                     [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 --exec [dbo].[AutoCompleteDropdownsItemPriceMaster] @SearchText=N'13',@MasterCompanyId=1
 
 ************************************************************************/
 
-CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemPriceMaster]
+CREATE      PROCEDURE [dbo].[AutoCompleteDropdownsItemPriceMaster]
 @SearchText VARCHAR(50),
 @MasterCompanyId BIGINT
 AS BEGIN
@@ -38,7 +38,7 @@ AS BEGIN
 		LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON IM.ItemMasterId  = IMPS.ItemMasterId
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = IM.ManufacturerId
 		WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0 AND
-		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%')
+		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(IM.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@SearchText, '-', ''), '/', '') + '%')
 	 AND ISNULL(IM.IsNonStock,0) = 0
 		 END TRY
 	BEGIN CATCH

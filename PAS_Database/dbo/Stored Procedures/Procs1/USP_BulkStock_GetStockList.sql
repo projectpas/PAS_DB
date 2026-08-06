@@ -11,16 +11,17 @@
  ** PR   Date					Author  			Change Description            
  ** --   --------			-------					---------------------------     
     1    02/10/2023			AMIT GHEDIYA			Created
-	2    25/10/2023			AMIT GHEDIYA			Add Management Structure wise filter list.
-	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
-	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
+	2    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
+	3    25/10/2023			AMIT GHEDIYA			Add Management Structure wise filter list.
+	4    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
 	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
 	6    12 DEc 2025		Rajesh Gami				Return DecimalPlaces from UnitOfMeasure
 	7    24/04/2026         AMIT GHEDIYA            Bulk stock adjustmet Qty Available to Qty OH on UnitCost Adjustment
 	8    24/06/2026         Moin Bloch              Allow Custome Stock As well in Quantity PN-16973
-	9    06/07/2026         BHARGAV SALIYA          Added [StockLineId] as tie-breaker in ORDER BY for stable pagination PN-17116
-	10   22/07/2026         Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
-
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    06/07/2026         BHARGAV SALIYA          Added [StockLineId] as tie-breaker in ORDER BY for stable pagination PN-17116
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   22/07/2026         Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
 *************************************************************************/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
 	@PageNumber INT = 1,
@@ -94,7 +95,7 @@ BEGIN
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsParent] = 1
-			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM  Result 
 				WHERE 
@@ -183,7 +184,7 @@ BEGIN
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsCustomerStock] = 0 AND IsParent = 1
-			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempUnitResult FROM  Result 
 				WHERE 
@@ -274,7 +275,7 @@ BEGIN
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsCustomerStock] = 0 AND SL.[IsParent] = 1 
 					AND SL.[ManagementStructureId] = @ManagementStructureId
-			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempIntraInterResult FROM  Result 
 				WHERE 
@@ -368,8 +369,7 @@ BEGIN
 					AND SL.[IsCustomerStock] = 1
 					AND SL.[QuantityAvailable] > 0
 					AND SL.CustomerId  = @CustomerId
-					AND SL.[ManagementStructureId] = @ManagementStructureId
-			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[ManagementStructureId] = @ManagementStructureId AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempCustStockResult FROM  Result 
 				WHERE 
@@ -457,7 +457,7 @@ BEGIN
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsCustomerStock] = 0 AND SL.[isSerialized] = 0 AND SL.[IsParent] = 1 
-			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempOtherResult FROM  Result 
 				WHERE 

@@ -9,22 +9,24 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date               Author              Change Description              
- ** --   --------           -------			    --------------------------------            
-    1    07/08/2023         Ekta Chandegra     Convert text into uppercase
-	2	 11/04/2024	        Vishal Suthar		 Modified to make use of new SO Part tables
-	3	 23-Jan-2025        Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
-	4	 12-Mar-2025        Vishal Suthar		 Modified default sort column to SalesOrderQuoteId
-	5	 09-APR-2025        Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
-	6    27-06-2025         Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
-	7    15-07-2025         Rajesh Gami		    Fixed: Getting proper status as shown as in header
-	8    13-08-2025         Rajesh Gami		    Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
-    9    24-09-2025         Sahdev Saliya       Added New Dropdown Filter Lead Source
-	10   20-11-2025         Rajesh Gami		    Correct the QuoteAmount
-	11   16-Apr-026         Bhargav Saliya	    UOM Changes
-	12   21-MAY-2026        Rajesh Gami		    PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
-    13   19/06/2026         Bhargav Saliya	    Revert UOM Changes No need to convert extended price
-    14	 05/August/2026	    Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+ ** PR   Date         Author             Change Description              
+ ** --   --------     -------			 --------------------------------            
+    1    07/08/2023   Ekta Chandegra     Convert text into uppercase
+	2	 11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
+	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
+	4	 12-Mar-2025  Vishal Suthar		 Modified default sort column to SalesOrderQuoteId
+	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
+	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
+	7    15-07-2025  Rajesh Gami		Fixed: Getting proper status as shown as in header
+	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
+    9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
+	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
+	11   16-Apr-026  Bhargav Saliya	     UOM Changes
+	12   21-MAY-2026 Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+    13   19/06/2026  Bhargav Saliya	     Revert UOM Changes No need to convert extended price
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+  16	 05/August/2026	    Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  

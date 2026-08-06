@@ -14,14 +14,16 @@
  **********************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
-	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
+	1    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
+    2    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
     3    02-07-2024   Sahdev Saliya     Added Global Filters and Sorting (UnitCost)
 	4    18-07-2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    01-04-2025   Amit Ghediya      Update role query for duplicate records.
 	6    19/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
-CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
+CREATE OR ALTER PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -92,7 +94,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
-			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.RepairOrderId, ST.RepairOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.RepairOrderId, 0) != 0 AND ISNULL(ST.RepairOrderPartRecordId, 0) != 0) AS Stk;
+			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.RepairOrderId, ST.RepairOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.RepairOrderId, 0) != 0 AND ISNULL(ST.RepairOrderPartRecordId, 0) != 0 AND ISNULL(ST.IsNonStock,0) = 0) AS Stk;
 
 			IF(@ViewType = 'roview')
 			BEGIN
@@ -121,7 +123,7 @@ BEGIN
 					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND EMS.EmployeeId = 	@EmployeeId
 					AND PO.MasterCompanyId = @MasterCompanyId
 					AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -191,7 +193,7 @@ BEGIN
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				  AND PO.MasterCompanyId = @MasterCompanyId
 				  AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR

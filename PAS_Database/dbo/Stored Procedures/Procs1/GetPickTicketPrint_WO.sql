@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_WO]           
  ** Author:    
  ** Description: This stored procedure is used Get Pick Ticket Details for pdf   
@@ -21,7 +21,9 @@
 	3    08/11/2023			Devendra Shekh		added qtyremaining to result
 	4    09/19/2023			Devendra Shekh		qty issue for pickticket resolved
 	5    26/Feb/2026		Rajesh Gami			Added UOM Changes - PN-14832   
-	7	 18/06/2026			Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6	 18/06/2026			Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC [GetPickTicketPrint_WO] 3792,3233,721
 **************************************************************/ 
 
@@ -110,10 +112,9 @@ BEGIN
 						INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) on wowf.WorkOrderPartNoId = wop.ID
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.WorkOrderMaterialsId = wom.WorkOrderMaterialsId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
-						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
+						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
@@ -150,10 +151,9 @@ BEGIN
 						INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) on wowf.WorkOrderPartNoId = wop.ID
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.WorkOrderMaterialsKitId = wom.WorkOrderMaterialsKitId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
-						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
+						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId

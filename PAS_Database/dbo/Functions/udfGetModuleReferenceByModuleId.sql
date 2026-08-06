@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [udfGetModuleReferenceByModuleId]            
  ** Author:   Unknown
  ** Description: This function is used to get reference number based on ModuleId and ReferenceId 
@@ -18,9 +18,9 @@
 	2    20-03-2024  Abhishek Jirawla   Adding detail regarding BulStockAdjustment Module
 	3    20-03-2024  Rajesh Gami        Added StockAdjustments 
 	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
-	
+	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
+CREATE OR ALTER FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
 (  
    @ModuleId BIGINT = NULL,
    @ReferenceId BIGINT = NULL,
@@ -55,7 +55,7 @@ BEGIN
 		END
 		IF (@ModuleName = 'StockLine' OR @ModuleName = 'StockAdjustments')
 		BEGIN
-			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId AND ISNULL(Stk.IsNonStock,0) = 0 ;
 		END
 		IF (@ModuleName = 'RepairOrder' OR @ModuleName = 'ReceivingRepairOrder')
 		BEGIN
@@ -91,7 +91,7 @@ BEGIN
 		END
 		IF (@ModuleName = 'BulkStockAdjustments')
 		BEGIN
-			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId AND ISNULL(Stk.IsNonStock,0) = 0 ;
 		END
 		IF (@ModuleName = 'StockAdjustments')
 		BEGIN
@@ -119,11 +119,11 @@ BEGIN
 		END
 		IF (@SubModuleName = 'WorkOrderMaterials')
 		BEGIN
-			SELECT @ReferenceNumber = IM.partnumber FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId WHERE WOM.WorkOrderMaterialsId = @ReferenceId;
+			SELECT @ReferenceNumber = IM.partnumber FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId WHERE WOM.WorkOrderMaterialsId = @ReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		IF (@SubModuleName = 'SubWorkOrderMaterials')
 		BEGIN
-			SELECT @ReferenceNumber = IM.partnumber FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SWOM.ItemMasterId = IM.ItemMasterId WHERE SWOM.SubWorkOrderMaterialsId = @ReferenceId;
+			SELECT @ReferenceNumber = IM.partnumber FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SWOM.ItemMasterId = IM.ItemMasterId WHERE SWOM.SubWorkOrderMaterialsId = @ReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		IF (@SubModuleName = 'SalesOrderShipping')
 		BEGIN

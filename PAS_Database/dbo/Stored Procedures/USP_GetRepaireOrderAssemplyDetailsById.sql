@@ -13,6 +13,7 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    28 jul 2025    BHARGAV SALIYA               Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRepaireOrderAssemplyDetailsById]
 @PageNumber int = NULL,
@@ -115,7 +116,7 @@ BEGIN
 
 				WHERE ((RA.IsDeleted=@IsDeleted)) AND RA.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId = @ItemMasterId
 				
-			), ResultCount AS(SELECT COUNT(RepairOrderAssemblyId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(RepairOrderAssemblyId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((Partnumber LIKE '%' +@GlobalFilter+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	

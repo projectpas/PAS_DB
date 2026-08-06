@@ -1,4 +1,4 @@
-﻿/*************************************************************                 
+/*************************************************************                 
  ** File:   [GetSOConfirmationList]                 
  ** Author:   Ayushi Patel        
  ** Description: Get Data for Sales Order Confirmation listing      
@@ -14,13 +14,14 @@
  **************************************************************                 
  ** SN   Date             Author           Change Description                  
  ** --  -----------    -------------    --------------------------------                
-    01  06/08/2024		Ayushi Patel    Created      
-	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
-	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
-	04  22/06/2026		Bhargav Saliya	Resolved Issue [PN-16940]
- 
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
-   
+    1  06/08/2024		Ayushi Patel    Created      
+	2  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
+	3  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
+	4  22/06/2026		Bhargav Saliya	Resolved Issue [PN-16940]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **************************************************************/     
 CREATE PROCEDURE [dbo].[GetSOConfirmationList]
 @PageNumber int = 1,

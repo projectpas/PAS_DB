@@ -1,4 +1,4 @@
-﻿/*************************************************************                   
+/*************************************************************                   
  ** File:   [USP_GetDataForAddMultipleSOWO]                   
  ** Author:   Shrey Chandegara      
  ** Description:       
@@ -22,7 +22,9 @@
 	8	 12/17/2024	  Ayushi Patel			Added cancel so condition in where clouse
 	9    12/30/2025   Sahdev Saliya         Implemented filtering in all spaces using the search text.
 	10   01/05/2026   Bhargav               get ItemMasterId.
-
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
 CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      

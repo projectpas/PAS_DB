@@ -12,8 +12,10 @@
  ** PR   Date         Author			Change Description            
  ** --   ----------  -----------		-------------------------------- 
 	1	 20/05/2025	  Abhishek Jirawla  Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetSubWorkOrderMPNs]
+CREATE OR ALTER PROCEDURE [dbo].[GetSubWorkOrderMPNs]
     @SubWorkOrderId BIGINT
 AS
 BEGIN
@@ -78,11 +80,12 @@ BEGIN
 		INNER JOIN DBO.WorkOrderStage stage WITH(NOLOCK)  ON wop.SubWorkOrderStageId = stage.WorkOrderStageId
 		INNER JOIN DBO.WorkOrderStatus status WITH(NOLOCK)  ON wop.SubWorkOrderStatusId = status.Id
 		INNER JOIN DBO.Priority pri WITH(NOLOCK)  ON wop.SubWorkOrderPriorityId = pri.PriorityId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK)  ON wop.StockLineId = sl.StockLineId
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK)  ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE ISNULL(wop.IsDeleted,0) = 0
 		  AND wop.SubWorkOrderId = @SubWorkOrderId
 
-	END TRY    
+	 AND ISNULL(im.IsNonStock,0) = 0
+		   END TRY    
 	BEGIN CATCH      
 		SELECT  
         ERROR_NUMBER() AS ErrorNumber  

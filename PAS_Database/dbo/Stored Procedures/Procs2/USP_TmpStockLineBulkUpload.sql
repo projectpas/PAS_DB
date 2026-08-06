@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_TmpStockLineBulkUpload]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to GetJournalBatchHeaderById
@@ -14,10 +14,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/12/2023  Amit Ghediya     Created
-     
+    2    09/July/2026  RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_TmpStockLineBulkUpload
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
+CREATE OR ALTER PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
 	@tbl_StockLineBulkUpload StockLineBulkUploadType READONLY,
 	@isDeleted INT = 0,
 	@fileName VARCHAR(100) = NULL
@@ -97,7 +97,7 @@ BEGIN
 			FROM #StockLineBulkUploadType stkbulk WHERE stkbulk.ID = @count;
 
 			SELECT TOP 1 @StockLineId = ISNULL(stk.StockLineId,0) FROM Stockline stk WITH (NOLOCK) 
-					WHERE stk.PartNumber = @partNumber AND stk.Manufacturer = @manufacturerName AND stk.Condition = @condition;
+					WHERE stk.PartNumber = @partNumber AND stk.Manufacturer = @manufacturerName AND stk.Condition = @condition AND ISNULL(stk.IsNonStock,0) = 0;
 
 			IF EXISTS(SELECT TOP 1 partNumber FROM TmpStockLineBulkUpload tmpstock WITH (NOLOCK) 
 				WHERE tmpStockLineBulkUploadId = @tmpStockLineBulkUploadId)

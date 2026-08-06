@@ -1,4 +1,3 @@
-﻿
 /*************************************************************           
  ** File:   [usp_GetReceivingLogReport]           
  ** Author:   Swetha  
@@ -13,15 +12,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
 	3	13-Dec 2021	  Hemant Added Updated for Upper Case
-     
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete Stock-only IsNonStock=0 filters on ItemMaster/Stockline joined to PurchaseOrder to allow Non-Stock items in Receiving Log Report
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetReceivingLogReport] @partnumber varchar(50) = NULL,
+CREATE OR ALTER PROCEDURE [dbo].[usp_GetReceivingLogReport] @partnumber varchar(50) = NULL,
 @Fromdate datetime2,
 @Todate datetime2,
 @mastercompanyid int,
@@ -135,8 +136,7 @@ BEGIN
       WHERE (IM.partnumber IN (@partnumber) OR ISNULL(@partnumber, '') = '')
 	  AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)
       AND STL.mastercompanyid = @mastercompanyid 
-
-    COMMIT TRANSACTION
+       COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

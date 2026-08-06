@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionNew]
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -15,6 +15,7 @@
  ** --   --------     -------		 --------------------------------          
     1    06/06/2025   Moin Bloch      Created
 *** 2   17/Mar/2026  Rajesh Gami	  Added UOM Changes [PN-15714]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_BatchTriggerBasedonDistributionNew 3
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionNew]
@@ -179,6 +180,7 @@ BEGIN
 			  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 			 WHERE ItemMasterId=@ItemmasterId 
 
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	        SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -243,7 +245,7 @@ BEGIN
 				 						        
 				SELECT @PiecePN = partnumber 
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
-				 WHERE [ItemMasterId]=@PieceItemmasterId;
+				 WHERE [ItemMasterId]=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				 
 				SELECT top 1 @DistributionSetupId=ID,
 				             @DistributionName=Name,

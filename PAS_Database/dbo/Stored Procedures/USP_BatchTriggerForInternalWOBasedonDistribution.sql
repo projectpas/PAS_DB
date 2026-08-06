@@ -22,6 +22,7 @@
 	10	02/06/2025		Abhishek Jirawla	Fixed Name concat read script
 	11  03-07-2025      Moin Bloch          Changed Old To New Billing Table
 	12  12-Jan-2026     Rajesh Gami         UOM Conversion Changes
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
 (
@@ -242,6 +243,7 @@ BEGIN
 				[dbo].[ItemMaster] WITH(NOLOCK) 
 				WHERE ItemMasterId=@ItemmasterId 
 
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -313,6 +315,7 @@ BEGIN
 
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 

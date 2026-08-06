@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    21/02/2025   Vishal Suthar		Created
 	2    16/06/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -153,6 +154,7 @@ BEGIN
 		INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId  
 		ON CSTL.StockLineId = STL.StockLineId
 
+		 WHERE ISNULL(IM.IsNonStock,0) = 0
 		INSERT INTO #tmpCodePrefix (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
 		SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
 		FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId  

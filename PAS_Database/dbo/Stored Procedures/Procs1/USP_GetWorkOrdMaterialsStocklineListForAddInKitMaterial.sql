@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial]           
  ** Author:   Vishal Suthar
  ** Description: This SP is Used to get Stockline list to add into KIT material    
@@ -13,10 +13,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    04/05/2023   Vishal Suthar		Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial 881,0,1293,0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial]
 (    
 	@WorkFlowWorkOrderId BIGINT = NULL,
 	@ItemMasterId BIGINT = NULL,
@@ -86,7 +87,8 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 					LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 					LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-					JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+					 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+					 JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 				WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 				INSERT INTO #EquPartList
@@ -95,7 +97,8 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 					LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 					LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-					JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+					 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+					 JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 				WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 				SELECT  DISTINCT WOM.WorkOrderId,
@@ -168,7 +171,8 @@ SET NOCOUNT ON
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
 
-				UNION ALL
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+						 UNION ALL
 
 				SELECT  DISTINCT WOM.WorkOrderId,
 						WOM.WorkFlowWorkOrderId,
@@ -242,7 +246,8 @@ SET NOCOUNT ON
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
 
-				UNION ALL
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+						 UNION ALL
 
 				SELECT  DISTINCT WOM.WorkOrderId,
 						WOM.WorkFlowWorkOrderId,
@@ -315,7 +320,8 @@ SET NOCOUNT ON
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+						 END
 		COMMIT  TRANSACTION
 
 		END TRY    

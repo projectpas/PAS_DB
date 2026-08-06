@@ -25,6 +25,9 @@
 	12   20-MAY-2026  RAJESH GAMI	    Fixed: Get the CustomerStatusId from ApprovalStatus Table instead of Static  [PN-16505]
 	13   29/05/2026   Ayushi Patel      [PN-16645]Added default value for @CurrencyDisplayName to handle null currency
     14   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	17    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries, StockLine join, and main WHERE clause.
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -219,19 +222,22 @@ BEGIN
             ELSE 'OEM'
         END,
         CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
-            (SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+				(SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
         ELSE
-            (SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+				(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
         END StkQtyAvailable,
-        (SELECT SUM(CASE WHEN ISNULL(Stk.[StockUnitOfMeasure],'') = ISNULL(Stk.[ConsumeUnitOfMeasure],'') THEN ISNULL(Stk.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(Stk.[QuantityAvailable], 0),Stk.[StockUnitOfMeasure],Stk.[ConsumeUnitOfMeasure],0,Stk.MasterCompanyId) END)
-         FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) QtyAvailable,
+			(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+			 QtyAvailable,
+
         CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
-            (SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+				(SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
         ELSE
-            (SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+				(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
         END StkQuantityOnHand,
-        (SELECT SUM(CASE WHEN ISNULL(Stk.[StockUnitOfMeasure],'') = ISNULL(Stk.[ConsumeUnitOfMeasure],'') THEN ISNULL(Stk.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(Stk.[QuantityOnHand], 0),Stk.[StockUnitOfMeasure],Stk.[ConsumeUnitOfMeasure],0,Stk.MasterCompanyId) END)
-         FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) QuantityOnHand,
+			
+			(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+			 QuantityOnHand,
+
         part.IsConvertedToSalesOrder,
         0 AS ItemNo,
         (CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL
@@ -263,7 +269,7 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
-    LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
     INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
     LEFT JOIN DBO.[Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
     LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId

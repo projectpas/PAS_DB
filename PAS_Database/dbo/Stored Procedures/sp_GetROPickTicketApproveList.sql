@@ -17,7 +17,8 @@
 	1    04/14/2025   Vishal Suthar		Created
 	2    06/04/2025   Vishal Suthar		If approval is enforced then pick ticket list will be visible only after approval of the part
     3    07/07/2025   Abhishek Jirawla	RO Piece Parts do not need approval
-
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [dbo].[sp_GetROPickTicketApproveList] 2651
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROPickTicketApproveList]
@@ -57,7 +58,7 @@ BEGIN
 			cr.VendorCode
 		FROM DBO.RepairOrderPart rop WITH (NOLOCK)
 			INNER JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = rop.ItemMasterId
-			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) on sl.StockLineId = rop.StockLineId
+			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) on sl.StockLineId = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) on ro.RepairOrderId = rop.RepairOrderId
 			LEFT JOIN DBO.Vendor cr WITH (NOLOCK) on cr.VendorId = ro.VendorId
 			LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
@@ -69,6 +70,7 @@ BEGIN
 			OR (ro.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
 			OR (ISNULL(rop.IsPiecePart, 0) = 1)
 		)
+		 AND ISNULL(imt.IsNonStock,0) = 0
 		GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,
 		sl.QuantityAvailable,ro.RepairOrderNumber,rop.ItemMasterId,sl.ConditionId,cr.[VendorName],cr.VendorCode,sl.isSerialized;
 	END

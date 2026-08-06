@@ -1,4 +1,4 @@
-﻿	/*************************************************************               
+﻿/*************************************************************               
  ** File:   [GetSalesQuotePartHistory]               
  ** Author:   SHREY CHANDEGARA    
  ** Description:         
@@ -15,7 +15,9 @@
     1    13/11/2024    SHREY CHANDEGARA   Created    
     2    22/04/2025    Bhargav Saliya     UOM Changes    
     3    18/06/2026   Bhargav Saliya	  Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-    
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
  EXECUTE GetSalesQuotePartHistory 958  
 **************************************************************/     
 CREATE PROCEDURE [dbo].[GetSalesQuotePartHistory]  

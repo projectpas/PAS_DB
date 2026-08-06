@@ -13,9 +13,10 @@
     3    25-Sep-2025		Devendra Shekh		  Modified (Added Merge Insert/Update Changes)
 	4    04-Nov-2025		Devendra Shekh		  Modified (Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart])
 	5    04-Dec-2025		Devendra Shekh		  Modified (added CreatedDate)
-	5    05-Dec-2025		Devendra Shekh		  Modified (defined #tmpResult for multiple insert)
-	6    09-Dec-2025		Devendra Shekh		  Modified (added [IntegrationEmailID], [HasAttachments])
-
+	6    05-Dec-2025		Devendra Shekh		  Modified (defined #tmpResult for multiple insert)
+	7    09-Dec-2025		Devendra Shekh		  Modified (added [IntegrationEmailID], [HasAttachments])
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) to allow Non-Stock items when saving Vendor RFQ Part Details
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
 	@tbl_VendorRFQPartType VendorRFQPartType READONLY,
@@ -172,7 +173,6 @@ SET NOCOUNT ON
 		FROM [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) 
 		INNER JOIN @tbl_VendorRFQPartType TMP ON VRFQ.ItemId = TMP.ItemId AND VRFQ.ItemSupplierPartId = TMP.ItemSupplierPartId AND VRFQ.ILSRFQDetailId = TMP.ILSRFQDetailId AND VRFQ.MasterCompanyId = TMP.MasterCompanyId
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
-
 		SELECT TOP 1 @ILSRFQDetailId = [ILSRFQDetailId] FROM #tmpResult;
 
 		INSERT INTO #tmpResult (

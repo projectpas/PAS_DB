@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReport]               
  ** Author:   Hemant      
@@ -15,17 +15,17 @@
  **************************************************************               
  ** S NO   Date         Author   Change Description                
  ** --   --------     -------  --------------------------------     
- 1 27-04-2022   Hemant Move Reports to Angular Side    
- 2 07-04-2023   Devendra changes stage to multiselect like tag type  
- 3 24-04-2022   Hemant Added Condition for remove Closed WO list    
- 3 16-06-2023   Hemant made changes to do total   
- 4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
- 5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
- 6 19/08/2025   Fixed the arrangement of inserted values
- 5 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
- 6 15/06/2026   Priyansh Patel      UOM changes regarding round up and removed the Freight billing cost from approvedamount  [PN-16825]
-
-
+ 1 24-04-2022   Hemant Added Condition for remove Closed WO list    
+ 2 27-04-2022   Hemant Move Reports to Angular Side    
+ 3 07-04-2023   Devendra changes stage to multiselect like tag type  
+ 4 16-06-2023   Hemant made changes to do total   
+ 5 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
+ 6 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
+ 7 19/08/2025   Fixed the arrangement of inserted values
+ 8 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
+ 9 15/06/2026   Priyansh Patel      UOM changes regarding round up and removed the Freight billing cost from approvedamount  [PN-16825]
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -127,7 +127,7 @@ BEGIN
       LEFT JOIN DBO.WorkOrderStatus AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
       LEFT JOIN DBO.WorkOrderType AS WOT WITH (NOLOCK)ON WO.WorkOrderTypeId = WOT.Id            
       LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId    
-      LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1    
+      LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0   
       LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId         
        WHERE CAST(WO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
       AND WOT.Id = ISNULL(@wotype,WOT.Id) AND  ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1  AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
@@ -146,6 +146,7 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
+       AND ISNULL(IM.IsNonStock,0) = 0
       END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
@@ -197,12 +198,13 @@ BEGIN
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
 	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
+     AND ISNULL(RIM.IsNonStock,0) = 0
     INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
     LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
     LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
     LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
-    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0   
     LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
     LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
     LEFT JOIN DBO.WorkOrderStatus AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
@@ -230,7 +232,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     )  
+      AND ISNULL(IM.IsNonStock,0) = 0 )  
     
     ,finalCTE (WorkOrderId,customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, opendate, approvedamount, unitcost, StocklineId, partscost, laborcost, overheadcost,  
     misccharge, othercost, total, netwip, transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  

@@ -9,20 +9,21 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date			Author				Change Description            
- ** --   --------		-------				--------------------------------          
-    1    04/08/2023		Ekta Chandegara		Convert text into uppercase
-	2    06/26/2024		AMIT GHEDIYA		Added orderby for RequestedDate,EstimatedShipDate
-	3    20-09-2024		Shrey Chandegara	ADD New Column in list (@ContractReference)
-	4	 22-01-2025		Ayushi Patel		converted the date into utc (created , updated) , Added a case to get timeZone
-	5	 10-04-2025		Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
-	6    27-06-2025		Bhargav Saliya		Add New Fields @NumberOfItemCount 
-	7    19-11-2025		RAJESH GAMI			Added SO Amount
-	10   20-11-2025		Rajesh Gami			Correct the SO Amount
-	11   19/JUN/2026	AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
-    12   29/JUL/2026	Kishor Makwana      PERFORMANCE ONLY - Sales Order List filter slowness.
-	13	 05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
-
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    04/08/2023  Ekta Chandegara	Convert text into uppercase
+	2    06/26/2024  AMIT GHEDIYA		Added orderby for RequestedDate,EstimatedShipDate
+	3    20-09-2024  Shrey Chandegara	ADD New Column in list (@ContractReference)
+	4	 22-01-2025  Ayushi Patel		converted the date into utc (created , updated) , Added a case to get timeZone
+	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
+	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
+	7    19-11-2025  RAJESH GAMI		Added SO Amount
+	8   20-11-2025  Rajesh Gami		Correct the SO Amount
+	9   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+** 10   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
+** 11   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
+    12   29/JUL/2026 Kishor Makwana     PERFORMANCE ONLY - Sales Order List filter slowness.
+    13	 05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 ***************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSalesOrderPNViewData]
 	@PageNumber              INT,

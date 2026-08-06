@@ -10,6 +10,8 @@
  ** SrNO	Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
     1		01-17-2024		Vishal Suthar		Created
+    2		20/July/2026		RAJESH GAMI		[PN-17350] - Eliminated legacy ItemMasterNonStock/NonStockInventory references; report now reads ItemMaster/Stockline filtered to IsNonStock = 1
+    3		20/July/2026		RAJESH GAMI		[PN-17350] - Repointed MS lookup from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @ModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
  exec usprpt_GetNonStockReportAsOfNow_SSRS @mastercompanyid=1,@id=N'1/17/2024',@id2=N'1,2,3',@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
@@ -68,7 +70,7 @@ BEGIN
         UPPER(im.partnumber) AS 'pn',
         UPPER(im.PartDescription) AS 'pndescription',
         UPPER(stl.SerialNumber) 'sernum',
-        UPPER(stl.NonStockInventoryNumber) 'nonstockinventorynumber',
+        UPPER(stl.StockLineNumber) 'nonstockinventorynumber',
         UPPER(stl.condition) 'cond',
         UPPER(stl.unitofmeasure) 'uom',
 		UPPER(IG.[Description]) 'Item_Group',
@@ -104,10 +106,10 @@ BEGIN
 		convert(VARCHAR(50), STL.receiveddate, 107) AS 'rcvddate', 
         UPPER(stl.ReceiverNumber) 'receivernum',
 		stl.MasterCompanyId
-      FROM DBO.NonStockInventory stl WITH (NOLOCK)
-	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.NonStockInventoryId
+      FROM DBO.Stockline stl WITH (NOLOCK)
+	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
-		LEFT OUTER JOIN DBO.ItemMasterNonStock im WITH (NOLOCK) ON stl.MasterPartId = im.MasterPartId
+		LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 1
 		LEFT JOIN dbo.ItemGroup IG WITH (NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 		LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId
 		LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
@@ -124,7 +126,8 @@ BEGIN
 			AND (ISNULL(@Level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 			AND (ISNULL(@Level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND (ISNULL(@Level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-			AND (ISNULL(@Level10,'') = ''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))))
+			AND (ISNULL(@Level10,'') = ''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+			AND ISNULL(stl.IsNonStock,0) = 1)
 
 		SELECT * FROM rptCTE;			
   END TRY

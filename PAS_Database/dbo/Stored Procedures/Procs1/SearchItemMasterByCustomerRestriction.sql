@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -23,6 +23,9 @@
 	7    10/04/2026   Bhargav Saliya	Change to    [StockUnitOfMeasure] to [PurchaseUnitOfMeasure] For UnitCost and UnitPost
 	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROMuom and TOuom Both are Same
 	9    24/06/2026   Bhargav Saliya	No need to convert UnitSalesPrice; it's already save to consume in Item Purchase and sales
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (ItemMaster, joined Stockline, alternate-part mapping) so Non-Stock parts are included.
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -58,9 +61,8 @@ BEGIN
 					,c.ConditionId ConditionId
 					,c.[Description] ConditionDescription
 					,ISNULL(STUFF((
-					SELECT DISTINCT ', '+ I.partnumber FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] M WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] I WITH(NOLOCK) ON I.ItemMasterId = M.ItemMasterId WHERE M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					)
+					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 AND im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -68,6 +70,7 @@ BEGIN
 						WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS Oempmader
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 					,@MappingType AS MappingType
 					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
 					,ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) AS UnitSalePrice
@@ -85,7 +88,7 @@ BEGIN
 					AND (
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
-						)
+						) 
 					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))	
 				LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN [dbo].[Manufacturer] mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
@@ -111,6 +114,7 @@ BEGIN
 					,c.ConditionId
 					,im.IsPma
 					,im.IsDER
+					,im.IsNonStock
 					,OEMPMA.partnumber
 					,sl.ItemMasterId
 					,imps.PP_UnitPurchasePrice

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_PostCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -10,26 +10,28 @@
  **************************************************************             
  ** PR   Date         Author			   Change Description              
  ** --   --------     -------			   -------------------------------            
-	2    01/06/2023   Satish Gohil		   Modify (convert GETDATE() to GETUTCDATE())
-	3    24/07/2023   Satish Gohil		   Modify(Formatted and set name to distribution code in condition and dynamic cr/dr set)
-	4    11/08/2023   Satish Gohil		   Modify(Set stock type wise distribution entry)
-	5    18/08/2023   Moin Bloch		   Modify(Added Accounting MS Entry)
-	6    23/11/2023   Moin Bloch		   Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
-	7    27/11/2023   Moin Bloch		   Modify(Added LotId and LotNumber)
-	8    14/12/2023   Moin Bloch		   Modify(Skip Record If Sockline Exists)
-	9    02/20/2024	  HEMANT SALIYA		   Updated for Restrict Accounting Entry by Master Company
-	10    07/24/2024  AMIT GHEDIYA		   Updated new Destribution.
-	11   19/09/2024	  AMIT GHEDIYA		   Added for AutoPost Batch
-	12	 09/10/2024	  Devendra Shekh	   Added new fields for [CommonBatchDetails]
-	13   10/10/2023   Moin Bloch		   Modify(Fixed combination Asset & Part Issue)
-	14	 11/04/2024   Devendra Shekh	   Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	15	 16/12/2024   Abhishek Jirawla     Updated @Amount in Asset at the time of PO Recieving (It should only give unit price and not extended price)
-	16	 30/01/2025   AMIT GHEDIYA		   Modify(get Distribution based on new settings from stockline level)
-	17	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
-	18   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
-	19   27/04/2025   Bhargav Saliya	   [PN-16170](UOM-Fixed Amount Issue)
-	20   11/06/2026   Priyansh Patel	   UOM Changes decimal to (18,6) [PN-16807]
-
+	1    01/06/2023   Satish Gohil		   Modify (convert GETDATE() to GETUTCDATE())
+	2    24/07/2023   Satish Gohil		   Modify(Formatted and set name to distribution code in condition and dynamic cr/dr set)
+	3    11/08/2023   Satish Gohil		   Modify(Set stock type wise distribution entry)
+	4    18/08/2023   Moin Bloch		   Modify(Added Accounting MS Entry)
+	5    23/11/2023   Moin Bloch		   Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
+	6    27/11/2023   Moin Bloch		   Modify(Added LotId and LotNumber)
+	7    14/12/2023   Moin Bloch		   Modify(Skip Record If Sockline Exists)
+	8    02/20/2024	  HEMANT SALIYA		   Updated for Restrict Accounting Entry by Master Company
+	9    07/24/2024  AMIT GHEDIYA		   Updated new Destribution.
+	10   19/09/2024	  AMIT GHEDIYA		   Added for AutoPost Batch
+	11	 09/10/2024	  Devendra Shekh	   Added new fields for [CommonBatchDetails]
+	12   10/10/2023   Moin Bloch		   Modify(Fixed combination Asset & Part Issue)
+	13	 11/04/2024   Devendra Shekh	   Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 16/12/2024   Abhishek Jirawla     Updated @Amount in Asset at the time of PO Recieving (It should only give unit price and not extended price)
+	15	 30/01/2025   AMIT GHEDIYA		   Modify(get Distribution based on new settings from stockline level)
+	16	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
+	17   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
+	18   27/04/2025   Bhargav Saliya	   [PN-16170](UOM-Fixed Amount Issue)
+	19   11/06/2026   Priyansh Patel	   UOM Changes decimal to (18,6) [PN-16807]
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	22    16/July/2026			 RAJESH GAMI						[PN-17271] - NONSTOCK accounting branch now reads DBO.Stockline (IsNonStock=1) instead of legacy NonStockInventory table.
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -391,12 +393,14 @@ BEGIN
 							SET @Amount = (@Qty * @Amount);
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							Set @ReferencePartId =@partId	
 
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
 							SELECT TOP 1 @DistributionSetupId=ID,
@@ -497,9 +501,9 @@ BEGIN
 							
 						IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline') AND UPPER(@StockType) = 'NONSTOCK')
 						BEGIN
-							SELECT @VendorId=VendorId,@ReferenceId=NonStockInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=NonStockInventoryNumber
-							,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf]
-							FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+							SELECT @VendorId=ST.VendorId,@ReferenceId=ST.StockLineId,@PurchaseOrderId=ST.PurchaseOrderId,@RepairOrderId=ST.RepairOrderId,@StocklineNumber=ST.StockLineNumber
+							,@SiteId=ST.[SiteId],@Site=ST.[Site],@WarehouseId=ST.[WarehouseId],@Warehouse=ST.[Warehouse],@LocationId=ST.[LocationId],@Location=ST.[Location],@BinId=ST.[BinId],@Bin=ST.[Bin],@ShelfId=ST.[ShelfId],@Shelf=ST.[Shelf]
+							FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId;
 							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
 							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
@@ -516,18 +520,20 @@ BEGIN
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
 
-							SELECT @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
+							SELECT @WorkOrderNumber=ST.StockLineNumber,@partId=ST.PurchaseOrderPartRecordId,@ItemMasterId=ST.ItemMasterId,@ManagementStructureId=ST.ManagementStructureId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
 							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							SET @ReferencePartId=@partId	
 
 
-							SELECT @PieceItemmasterId=MasterPartId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId
+							SELECT @PieceItemmasterId=ST.ItemMasterId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
 							-----NonStock - Inventory--------
@@ -549,8 +555,8 @@ BEGIN
 							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
-							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -639,16 +645,17 @@ BEGIN
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							Set @ReferencePartId=@partId	
 
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
-							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
-							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
+							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
 							DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 							SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 

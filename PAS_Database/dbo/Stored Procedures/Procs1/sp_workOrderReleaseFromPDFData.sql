@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -25,8 +25,9 @@
 	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
 	9    12/11/2025   Moin Bloch     Updated trackingNo For PAR Company
 	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]    
-	11   13/July/2026 Priyansh Patel Added missing longbook Id [PN-17081]     
-	
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13   13/July/2026 Priyansh Patel Added missing longbook Id [PN-17081]     
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
@@ -119,9 +120,11 @@ BEGIN
 					   ,0 as IsAircraftLogBook
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
+					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+					   AND ISNULL(im.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
+					   AND ISNULL(ims.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId and WorkOrderSettlementId=9
 				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id

@@ -14,6 +14,7 @@
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
     3    13/11/2025    Ayushi Patel     Sort By created Date
 	4    14/11/2025    Moin Bloch       Added Some Field
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
@@ -65,6 +66,7 @@ BEGIN
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
+             AND ISNULL(IM.IsNonStock,0) = 0
             ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
         END
     END TRY

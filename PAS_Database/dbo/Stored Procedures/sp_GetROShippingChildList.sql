@@ -18,9 +18,11 @@
 	1	04/18/2025		Vishal Suthar		Created
 	2	09/23/2025		Bhargav Saliya		Get Weight and Dimensions from ItemMaster
     3   14 OCT 2025		Rajesh Gami			Get UOM from the stockline instead of ItemMaster Weight UOM (PN-13622)
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[sp_GetROShippingChildList] 2566, 14, 7  
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetROShippingChildList]  
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetROShippingChildList]  
 	@RepairOrderId  bigint,  
 	@RepairOrderPartId bigint
 AS  
@@ -65,7 +67,8 @@ BEGIN
 		 AND ros.RepairOrderId = ropt.RepairOrderId  
 	  INNER JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId  
 	  LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = rop.ItemMasterId  
-	  LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId  
+	   AND ISNULL(imt.IsNonStock,0) = 0
+	   LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 
 	  LEFT JOIN DBO.RepairOrderCustomsInfo soc WITH (NOLOCK) ON soc.RepairOrderShippingId = ros.RepairOrderShippingId  
 	  LEFT JOIN DBO.Vendor vend WITH (NOLOCK)  on vend.VendorId = ro.VendorId
 	  LEFT JOIN DBO.RepairOrderPackaginSlipItems SPI WITH (NOLOCK) ON ropt.ROPickTicketId = SPI.ROPickTicketId  AND SPI.RepairOrderPartId = rop.RepairOrderPartRecordId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWOMPNDataByPartNumberId]           
  ** Author:   Bhargav Saliya 
  ** Description: Get Data for WO MPN Data By Part Number Id   
@@ -17,6 +17,8 @@
  ** --   --------		 -------		--------------------------------          
     1    25-April-2025   Bhargav Saliya		Created
     2    06/04/2026      Ayushi Patel	    PN-15908 Update (Added UOM Changes)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWOMPNDataByPartNumberId]
     @WorkOrderId BIGINT,
@@ -65,13 +67,14 @@ BEGIN
         stl.UnitOfMeasure AS UnitOfMeasureName,
         stl.TraceableToName
     FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
-    LEFT JOIN [dbo].[Stockline] stl WITH(NOLOCK) ON wop.StockLineId = stl.StockLineId
+    LEFT JOIN [dbo].[Stockline] stl WITH(NOLOCK) ON wop.StockLineId = stl.StockLineId AND ISNULL(stl.IsNonStock,0) = 0
     INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
     INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId AND wo.WorkOrderId = @WorkOrderId
     LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON wo.CustomerId = cust.CustomerId
     LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON wop.WorkOrderStageId = wos.WorkOrderStageId
     LEFT JOIN [dbo].[WorkOrderStatus] wostatus WITH(NOLOCK) ON wop.WorkOrderStatusId = wostatus.Id
     WHERE wop.IsDeleted = 0 AND wop.ID = @WorkOrderPartNumberId
+	 AND ISNULL(im.IsNonStock,0) = 0
 	END TRY
 	BEGIN CATCH  
    

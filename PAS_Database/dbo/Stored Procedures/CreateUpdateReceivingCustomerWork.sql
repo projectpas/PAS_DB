@@ -1,4 +1,4 @@
-﻿--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
+--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
 
 /*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
@@ -25,6 +25,7 @@
 	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
 	11   05-MAY-2026   Sahdev Saliya        Added CustReqDate Fiield In Update ReceivingCustomerWork Table (PN-16257)
 	12   23-JUN-2026   Nakul Chandigra		Added StockUnitOfMeasureId for StockLine insert and update operations.(PN-16914)
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -444,6 +445,7 @@ BEGIN
                        
 					/* PN Manufacturer Combination Stockline logic */
 
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
 					DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
@@ -494,6 +496,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+					 AND ISNULL(iM.IsNonStock,0) = 0
 					GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   

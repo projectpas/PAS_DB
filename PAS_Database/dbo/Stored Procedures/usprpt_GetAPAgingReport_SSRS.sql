@@ -16,19 +16,20 @@
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami			Created  
 	2    03 OCT 2025    Rajesh Gami			Fixed the Remaining Amount related issue
-	3    27-JAN-2026    RAJESH GAMI			Add InvoiceNumber
-	4    05-FEB-2026    Amit Ghediya		update for group by to pagesize reduce issue
-	5    09-FEB-2026    Rajesh Gami			Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
-	6	 13-Feb-2026	Devendra Shekh		Added New param @id5
-	7    16-FEB-2026    Amit Ghediya        Update NPO Invoiced date from postedate to invoiced date.
-	8    23-FEB-2026    Moin Bloch          Update Due date Getting From Direct Table.
-	9    01-MAR-2026    Hemant Saliya       Corrected Due date for Export file.
-	10   02-MAR-2026    Moin Bloch          Updated Due date For Manual JE 
-	11   11-MAR-2026    Amit Ghediya        Updated for remove MJE after full payment (PN-15631)
-	12   12-MAR-2026    Amit Ghediya        Updated for get isactive records (PN-15588)
-	13   04-MAY-2026    Hemant Saliya       Re-Structure the SP to change the days calculation
-	14   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
-	15   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	1    27-JAN-2026    RAJESH GAMI			Add InvoiceNumber
+	2    05-FEB-2026    Amit Ghediya		update for group by to pagesize reduce issue
+	3    09-FEB-2026    Rajesh Gami			Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
+	4	 13-Feb-2026	Devendra Shekh		Added New param @id5
+	5    16-FEB-2026    Amit Ghediya        Update NPO Invoiced date from postedate to invoiced date.
+	6    23-FEB-2026    Moin Bloch          Update Due date Getting From Direct Table.
+	7    01-MAR-2026    Hemant Saliya       Corrected Due date for Export file.
+	8   02-MAR-2026    Moin Bloch          Updated Due date For Manual JE 
+	9   11-MAR-2026    Amit Ghediya        Updated for remove MJE after full payment (PN-15631)
+	10   12-MAR-2026    Amit Ghediya        Updated for get isactive records (PN-15588)
+	11   04-MAY-2026    Hemant Saliya       Re-Structure the SP to change the days calculation
+	12   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
+	13   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	14   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1

@@ -16,12 +16,11 @@
     1    16/06/2026     Moin Bloch			Created
 	2    22/06/2026     Moin Bloch			Added More Fields PN-16955
 	3    24/06/2026     Moin Bloch			Added Customer Field PN-16973
-	
-       
+	4    09/July/2026     RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026     RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1
-  
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetBulkStockScrapCertificateForPDF]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetBulkStockScrapCertificateForPDF]
 @BulkStockScrapCertificateId BIGINT
 AS
 BEGIN

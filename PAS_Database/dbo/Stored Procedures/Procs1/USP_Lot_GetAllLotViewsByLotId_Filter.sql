@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId_Filter]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -14,22 +14,23 @@
     1    12/07/2023   Rajesh Gami		Created
 	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-	4    19 Nov 2024  RAJESH GAMI		Added condition for PNSoldView (If revised the invoice then show the latest on)
-    5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
-	6    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
-	7    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
-	8	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
-	9    07-07-2025   Moin Bloch        Changed Old To New Billing Table
-	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
-	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
-	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
-	13   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
-	14   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
-	15   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
-	16   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
-	17   23-JUNE-2026 Priyansh Patel    Added StockUnitOfMeasure And ConsumeUnitOfMeasure  [PN-16771]
+    4    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
+	5    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
+	6    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
+	7	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
+	8    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	9   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
+	10   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
+	11   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
+	12   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
+	13   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
+	14   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
+	15   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
+	16   23-JUNE-2026 Priyansh Patel    Added StockUnitOfMeasure And ConsumeUnitOfMeasure  [PN-16771]
+	17    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	18   08-JULY-2026 Priyansh Patel    Changed UnitSalesPrice price to NetSaleAmount for soq [PN-17130]
-
+	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	20    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 7 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -321,7 +322,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 
 				SELECT t.*
@@ -802,7 +803,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						  )
 					  )
 
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				  ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 					SELECT * INTO #PNInStockTbl FROM  Result
 					WHERE 
@@ -1371,7 +1372,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
-				 	 	), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 	 	 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 				
 				SELECT * INTO #PNSoldViewTbl FROM  Result 
 				WHERE 
@@ -1692,7 +1693,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')))
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				  ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #RepairedViewTbl FROM  Result 
 				WHERE 
@@ -2094,7 +2095,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #CommisionResult FROM  Result
 				WHERE

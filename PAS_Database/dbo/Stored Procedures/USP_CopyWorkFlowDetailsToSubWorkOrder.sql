@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [USP_CopyWorkFlowDetailsToSubWorkOrder]
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -15,7 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------   
 	1    07-02-2025   Vishal Suthar		Created
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 exec sp_executesql N'EXEC USP_CopyWorkFlowDetailsToSubWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -608,6 +608,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -618,6 +619,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -628,6 +630,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END

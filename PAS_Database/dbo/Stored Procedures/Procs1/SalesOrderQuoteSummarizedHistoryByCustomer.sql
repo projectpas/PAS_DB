@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used for SOQ Summarized History By Customer.    
@@ -16,6 +16,9 @@
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
 	3    16-Apr-026   Bhargav Saliya  UOM Changes
     4    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
 

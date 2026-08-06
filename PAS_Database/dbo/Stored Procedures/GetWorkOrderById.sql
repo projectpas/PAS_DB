@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [GetWorkOrderById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Details     
@@ -30,6 +30,8 @@
 	18   30/04/2026   Nakul Chandigra   Added  [AircraftRegistryNumber] ,[IsFromAircraft],[AircraftInstalledPartDetailsId] for Work Order (PN-16150)
 	19   07/May/2026  Rajesh Gami	   ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 	20   21/05/2026   Moin Bloch       Added  [AircraftSerialNumber] PN-16469
+	21    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -135,6 +137,7 @@ BEGIN
 			   @OutGoingItemMasterId = RC.[OutGoingItemMasterId],@OutGoingPartNumber = RC.[OutGoingPartNumber],@IncomingPartNumber = RC.[PartNumber],@OutGoingPartDescription = IM.[PartDescription]
 		  FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK)
 		  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON RC.[OutGoingItemMasterId] = IM.[ItemMasterId]
+		   AND ISNULL(IM.IsNonStock,0) = 0
 		  WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerId;
 		
 		SELECT @CustName=[Name],@CustomerAffiliationId=[CustomerAffiliationId],@ContractReference=[ContractReference],@Email=[Email],@CustomerPhone=[CustomerPhone] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
@@ -186,7 +189,7 @@ BEGIN
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[RestrictedParts] rp WITH(NOLOCK) ON rc.CustomerId = rp.ReferenceId
 			WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rp.[ModuleId] = @ModuleEnumCustomer AND rc.[ReceivingCustomerWorkId] = @ReceivingCustomerId 
-			AND rc.[ItemMasterId] = rp.ItemMasterId AND rp.[IsActive] = 1 AND rp.[IsDeleted] = 0;
+			AND rc.[ItemMasterId] = rp.ItemMasterId AND rp.[IsActive] = 1 AND rp.[IsDeleted] = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		SELECT @PMACOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'PMA';
 		SELECT @DERCOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'DER';
@@ -230,7 +233,7 @@ BEGIN
 		INNER JOIN [dbo].[Condition] cn WITH(NOLOCK) ON rc.[ConditionId] = cn.[ConditionId]
 		 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 		 LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON rc.[ReceivingCustomerWorkId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleEnumRecevingCustomer
-		WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[ReceivingCustomerWorkId] = @ReceivingCustomerId;
+		WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[ReceivingCustomerWorkId] = @ReceivingCustomerId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		--EXEC [dbo].[VerifiedItemMasterCapsByItemMasterAndWorkScope] @ItemMasterId,@WorkScopeId,@ManagementStructureId,@MasterCompanyId;
 
@@ -243,7 +246,7 @@ BEGIN
 		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId 
 		AND (wf.CustomerId IS NULL OR wf.CustomerId = @ReceivingCustomerId)
 		AND wf.[WorkScopeId] = @WorkOrderScopeId 
-		AND wf.[IsVersionIncrease] = 0;
+		AND wf.[IsVersionIncrease] = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 			   
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               
                @WorkOrderStatusId [WorkOrderStatusId],               
@@ -442,7 +445,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
 				 LEFT JOIN [dbo].[Workflow] wf WITH(NOLOCK) ON wf.[ItemMasterId] = rc.[ItemMasterId] AND wf.[WorkScopeId] = wopn.WorkOrderScopeId AND ISNULL(wf.IsVersionIncrease,0) = 0 AND rc.[IsActive] = 1 AND rc.[IsDeleted] = 0				 				 				
-				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId;
+				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId AND ISNULL(im.IsNonStock,0) = 0 ;
 			END
 			ELSE
 			BEGIN
@@ -470,7 +473,7 @@ BEGIN
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
-				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId;	
+				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId ;	
 			END
 			
 			TRUNCATE TABLE #TempTableForPartType;
@@ -566,7 +569,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 			JOIN [dbo].[RestrictedParts] rp WITH(NOLOCK) ON rc.[CustomerId] = rp.[ReferenceId]
 		WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rp.[ModuleId] = @ModuleEnumCustomer
-		AND rc.[StockLineId] = @StockLineId;
+		AND rc.[StockLineId] = @StockLineId ;
 
 		SELECT @PMACOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'PMA';
 		SELECT @DERCOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'DER';
@@ -613,7 +616,7 @@ BEGIN
 			INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON sl.[ConditionId] = con.[ConditionId]			
 			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 			LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId;			
+			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId ;
 		END
 		ELSE
 		BEGIN
@@ -657,7 +660,7 @@ BEGIN
 			LEFT JOIN [dbo].[Customer] c ON sl.[CustomerId] = c.[CustomerId]		
 			LEFT JOIN [dbo].[ItemGroup] ig ON im.[ItemGroupId] = ig.[ItemGroupId]
 			LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId;
+			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId ;
 		END
 		
 		SELECT TOP 1 @WorkFlowNo = CONCAT(wf.[WorkOrderNumber], '_', wf.[Version]),
@@ -666,7 +669,7 @@ BEGIN
 		FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0;
+		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 ;
 				
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               
                @WorkOrderStatusId [WorkOrderStatusId],               
@@ -990,7 +993,7 @@ BEGIN
 										
 					IF @RevisedPartId > 0
 					BEGIN
-						SELECT @RevisedPartNo = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @RevisedPartId;
+						SELECT @RevisedPartNo = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @RevisedPartId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 					END
 
 					IF @TechnicianId > 0
@@ -1040,7 +1043,7 @@ BEGIN
 					 LEFT JOIN [dbo].[Condition] rcon WITH(NOLOCK) ON wop.[RevisedConditionId] = rcon.[ConditionId]
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wop.[WorkOrderId] = wo.[WorkOrderId]
 					 LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON wop.[ReceivingCustomerWorkId] = rc.[ReceivingCustomerWorkId]
-					WHERE wop.[WorkOrderId] = @WorkOrderId AND wop.[ID] = @ID AND msd.[ModuleID] = @WorkOrderMPNMSModuleEnum;
+					WHERE wop.[WorkOrderId] = @WorkOrderId AND wop.[ID] = @ID AND msd.[ModuleID] = @WorkOrderMPNMSModuleEnum AND ISNULL(im.IsNonStock,0) = 0 ;
 
 					IF(@ItemMasterId > 0 AND (@SerialNumber != NULL AND @SerialNumber <> ''))
 					BEGIN  
@@ -1049,6 +1052,7 @@ BEGIN
 						LEFT JOIN [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) ON WO.WorkOrderId = WP.WorkOrderId
 						LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON WP.StockLineId = SL.StockLineId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
+						 AND ISNULL(IM.IsNonStock,0) = 0
 						WHERE WP.[ItemMasterId] = @ItemMasterId AND SL.[SerialNumber] = @SerialNumber AND WO.[MasterCompanyId] = @MasterCompanyId AND YEAR(WO.[CreatedDate]) = YEAR(DATEADD(YEAR, 0, SYSDATETIME())) 
 					
 						IF(@OldWorkOrderId > 0)

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderOnTimeReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for WorkOrderOnTime Report    
@@ -20,6 +20,7 @@
 	4    08-dec-2025   Ayushi Patel		Get one field (InvoiceDate) , changed the table name workOrderBillingInvoicing -> BillingInvoicing
 	5    11-Dec-2025   Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
 	6	 23-Dec-2025   Ayushi Patel		Get The Newly versioned invoice 
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
 @PageNumber int = 1,
@@ -97,6 +98,7 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
@@ -161,6 +163,7 @@ BEGIN
 		LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 		LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
+         AND ISNULL(IM.IsNonStock,0) = 0
         LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  

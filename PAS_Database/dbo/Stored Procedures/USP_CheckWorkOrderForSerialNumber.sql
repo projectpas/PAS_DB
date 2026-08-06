@@ -13,11 +13,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    13/12/2023   AMIT GHEDIYA     Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_CheckWorkOrderForSerialNumber 41216,'AMIT6767',1
-
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
+CREATE OR ALTER PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
 	@ItemMasterId BIGINT,
 	@SerialNumber VARCHAR(50),
 	@MasterCompanyId INT
@@ -31,9 +31,10 @@ BEGIN
 			   WO.[WorkOrderId]
 		FROM [dbo].[WorkOrder] WO WITH(NOLOCK) 
 		LEFT JOIN [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) ON WO.WorkOrderId = WP.WorkOrderId
-		LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON WP.StockLineId = SL.StockLineId
+		LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON WP.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
-		WHERE 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE 
 			  WP.[ItemMasterId] = @ItemMasterId
 			  AND SL.[SerialNumber] = @SerialNumber
 			  AND WO.[MasterCompanyId] = @MasterCompanyId

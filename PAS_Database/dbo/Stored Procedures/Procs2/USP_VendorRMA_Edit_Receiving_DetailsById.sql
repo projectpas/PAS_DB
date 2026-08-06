@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_Edit_Receiving_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Receiving List Details
@@ -13,6 +13,8 @@
     1    06/23/2023   Moin Bloch     Created
 	2    06/05/2026   Ayushi Patel   UOM Changes RMA [PN-15140]
 	3	 19/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_VendorRMA_Edit_Receiving_DetailsById 39,64,2
 *******************************************************************************/
@@ -57,9 +59,8 @@ BEGIN
 				  ,IM.[PartDescription]
 				--,VD.[Qty] AS [QuantityOrdered]
 				--,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[QtyShipped],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[QtyShipped],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS QuantityOrdered
-
-				  ,ROUND([dbo].[fn_ConvertUOM]((VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]),2) AS QuantityBackOrdered
+				  ,VD.[QtyShipped] AS [QuantityOrdered]
+				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1 AND ISNULL(SL.IsNonStock,0) = 0))
 				  ,SL.[ManufacturerId]
 				  ,SL.[Manufacturer] AS [ManufacturerName]
 				  ,SL.[ManagementStructureId]
@@ -95,7 +96,7 @@ BEGIN
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]
 			   LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON IM.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ReferenceID] = VD.[StockLineId] AND MS.[ModuleID] = @StocklineModuleId			
-			  WHERE VD.[VendorRMADetailId] IN (SELECT * FROM dbo.SplitString(@Ids,','));
+			  WHERE VD.[VendorRMADetailId] IN (SELECT * FROM dbo.SplitString(@Ids,',')) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 		END
 		ELSE IF(@Opr=2)
 		BEGIN

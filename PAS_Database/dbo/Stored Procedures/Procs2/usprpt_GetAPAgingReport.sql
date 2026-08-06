@@ -16,17 +16,18 @@
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami		   Created  
 	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
-	3    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
-	4    05-FEB-2026    Amit Ghediya       Add filter
-	5    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
-	6    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
-	7    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
-	8    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
-	9    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
-	10   12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
-	11   04-MAY-2026    Hemant Saliya      Re-Structure the SP to change the days calculation
-	12   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
-	13   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	1    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+	2    05-FEB-2026    Amit Ghediya       Add filter
+	3    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
+	4    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
+	5    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
+	6    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
+	7    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
+	8   12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
+	9   04-MAY-2026    Hemant Saliya      Re-Structure the SP to change the days calculation
+	10   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
+	11   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	12   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  

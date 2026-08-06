@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionROStockline]           
  ** Author: 
  ** Description: 
@@ -19,6 +18,8 @@
 	2    25/09/2024	  AMIT GHEDIYA	  Added for AutoPost Batch
 	3	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script.
 	4    17/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters (MPNName lookups).
 **************************************************************/
 /*************************************************************           
 EXEC [dbo].[USP_BatchTriggerBasedonDistributionROStockline] 64201,1,'10.00','ReceivingRO','deep patel',1,'STOCK',0

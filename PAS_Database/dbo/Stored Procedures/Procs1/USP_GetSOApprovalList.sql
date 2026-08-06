@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSOApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -24,7 +24,9 @@
 	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes [PN-16192]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   29/06/2026   Bhargav saliya    Already saved extended margin amt in table so no need to calculate with qty
-	11   09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock parts show full details in the SO approval list.
+	13   09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
@@ -287,15 +289,15 @@ BEGIN
 				so.EnforceEffectiveDate,
 				ISNULL(um.ShortName, '') AS UomName,
 				ISNULL(UPPER(cond.[Description]),'') AS Condition
-			FROM [dbo].[SalesOrder] so WITH(NOLOCK)
-			INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-			INNER JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
-			  LEFT JOIN [dbo].[SalesOrderApproval] sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
-			  LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-			  LEFT JOIN [dbo].[UnitOfMeasure] um WITH (NOLOCK) ON im.ConsumeUnitOfMeasureId = um.UnitOfMeasureId
-			  LEFT JOIN [dbo].[Employee] app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
-			  LEFT JOIN [dbo].[Contact] con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
-			  LEFT JOIN [dbo].[Condition] cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
+		FROM DBO.SalesOrder so WITH (NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 sop ON so.SalesOrderId = sop.SalesOrderId
+		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
+		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+		 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
+		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 			WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId;
 
 		    END

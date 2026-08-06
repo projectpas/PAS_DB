@@ -15,14 +15,14 @@
  ** --   --------     -------				--------------------------------          
     1    09-OCT-2024  Abhishek Jirawla		Created
 	2    16-OCT-2024  Abhishek Jirawla		Implemented the new tables for SalesOrderQuotePart related tables
-	3	 12 NOV 2024  HEMANT SALIYA		    Verify the count anded Roll MS details 
-	4	 21-NOV-2024  Abhishek Jirawla		Price correction with the helpp of Vishal Sir and Happy Sir
-	5	 28-NOV-2024  Vishal Suthar			Handled divide by zero exception
-	6	 02-DEC-2024  Vishal Suthar			Fixed issues with amount in most of the charts
-	7    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
-	8	 30-Jun-2025  Devendra Shekh		Modified(SO Billing Table Changes)
-	9	 02 JUNE 2026	RAJESH GAMI			Fixed : Amount related issues for the SO
-	10   20-July-2026  Ayushi Patel         [PN-17346]Return qty count as decimal insted of int
+	3	 21-NOV-2024  Abhishek Jirawla		Price correction with the helpp of Vishal Sir and Happy Sir
+	4	 28-NOV-2024  Vishal Suthar			Handled divide by zero exception
+	5	 02-DEC-2024  Vishal Suthar			Fixed issues with amount in most of the charts
+	6    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
+	7	 30-Jun-2025  Devendra Shekh		Modified(SO Billing Table Changes)
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9   20-July-2026  Ayushi Patel         [PN-17346]Return qty count as decimal insted of int
+	10    22/July/2026			RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters (Top 10 Parts Quoted/Sold) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 EXEC dbo.GetSOSOQPartsMonthlyYearlyDashboardData 1,2,'2026-07-20',10;
 ************************************************************************/
 CREATE  PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]

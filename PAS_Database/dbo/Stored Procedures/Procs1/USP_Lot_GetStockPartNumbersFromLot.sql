@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [USP_Lot_GetStockPartNumbersFromLot]           
  ** Author: Amit Ghediya
@@ -12,10 +12,12 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    12/04/2023   Amit Ghediya     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXEC USP_Lot_GetStockPartNumbersFromLot 1,1
 **************************************************************/
-Create    PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
+CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
 @LotId BIGINT =0,
 @MasterCompanyId INT
 AS
@@ -33,7 +35,7 @@ BEGIN
 		FROM [dbo].[LotTransInOutDetails] lin  WITH (NOLOCK)
 		INNER JOIN [dbo].[Stockline] stk WITH (NOLOCK) ON lin.StockLineId = stk.StockLineId
 		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stk.ItemMasterId = im.ItemMasterId
-		WHERE lin.LotId = @LotId AND stk.QuantityAvailable > 0;			
+		WHERE lin.LotId = @LotId AND stk.QuantityAvailable > 0 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stk.IsNonStock,0) = 0 ;			
 
 	END
 	COMMIT  TRANSACTION

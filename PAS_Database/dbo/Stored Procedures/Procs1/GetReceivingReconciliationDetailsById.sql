@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceivingReconciliationDetailsById]             
  ** Author:   
  ** Description: This stored procedure is used to get Receiving Reconciliation Details
@@ -10,21 +10,21 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1                 unknown       Created 
-	2    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
-	3    08/11/2023   Moin Bloch    Added ControlNumber Field
-	4    18/12/2023   Moin Bloch    Added Order By
-	5    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
-    6    03/01/2024   Moin Bloch    Added IsSerialized Field
-    7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
-	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
-	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
-	10   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
-	11   26/06/2026   Priyansh Patel  Convert All qty and cost uom for purchaseorder from Stock to Purchase uom  [PN-16941]
-	12   22/07/2026   Priyansh Patel  Added Stock Uom and poextcost fix  [PN-16941]
-
-	
+	1    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
+	2    08/11/2023   Moin Bloch    Added ControlNumber Field
+	3    18/12/2023   Moin Bloch    Added Order By
+	4    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
+    5    03/01/2024   Moin Bloch    Added IsSerialized Field
+    6    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
+	7    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
+	8    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+	9   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
+	10   26/06/2026   Priyansh Patel  Convert All qty and cost uom for purchaseorder from Stock to Purchase uom  [PN-16941]
+	11    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    20/July/2026   RAJESH GAMI   [PN-17350] - Removed IsNonStock=0 from the Stockline LEFT JOIN's ON clause. Since a Non-Stock stockline added via a PO now flows through the same 'STOCK'-tagged branch as a real Stock stockline (per the PN-17271 unification), this join was silently failing to match on reload, leaving RemainingRRQty/IsSerialized/ControlNumber null/0 for Non-Stock rows even when nothing had been reconciled yet.
+	13    20/July/2026   RAJESH GAMI   [PN-17350] - Repointed Non-Stock management-structure lookup (NMSD) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails, and resolved @NONStockModuleID dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoding 11.
+	14   22/07/2026   Priyansh Patel  Added Stock Uom and poextcost fix  [PN-16941]
 --  EXEC GetReceivingReconciliationDetailsById 136
-
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
@@ -133,9 +133,7 @@ BEGIN
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId	
-					 LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= JBD.[ItemMasterId]					 
-					 
-					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
+					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK' 						
 					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
 					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'
 					  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'STOCK'

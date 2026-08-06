@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -18,16 +18,14 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 7	04/24/2025	Devendra Shekh	 Modify (Added [IsManualText] check for DistributionSetup)
 ** 8	04/30/2025	Abhishek Jirawla In loop checked Whether it is kit or material
 ** 9    17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]
-** 9    27/03/2026  Moin Bloch	     Rename Internal To Internal Repair   PN-15850
-
+** 10    27/03/2026  Moin Bloch	     Rename Internal To Internal Repair   PN-15850
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
-
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
 INSERT INTO @p1 values(65,72,99,2093,25,6,1,14,6,N'REPAIR',N'WAT0303-01',N'70303-01 RECOGNITION LIGHT 28V 25W',3,3,2,N'CNTL-000526',N'ID_NUM-000001',N'STL-000009',N'',N'ADMIN ADMIN',1)
 INSERT INTO @p1 values(65,72,10099,510,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000308',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',1)
 INSERT INTO @p1 values(65,72,10099,512,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000310',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
 INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000311',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
-
 EXEC dbo.usp_IssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_IssueSubWorkOrderMaterialsStockline]
@@ -447,7 +445,7 @@ BEGIN
 
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId;
+						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
 						
 						SELECT @SubWorkOrderNum = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @historysUBWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

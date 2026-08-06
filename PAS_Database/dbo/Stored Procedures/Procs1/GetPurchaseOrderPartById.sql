@@ -14,6 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    29/06/2022  Subhash saliya     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
      
 -- EXEC GetPurchaseOrderPartById 303
 ************************************************************************/
@@ -35,7 +37,7 @@ BEGIN
 	 
 	SELECT pop.PartNumber,pop.ItemMasterId,pop.PurchaseOrderPartRecordId,pop.ItemTypeId,pop.ManufacturerId,
 	  pop.PartNumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK) 
-	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
+	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[PurchaseOrderPart] pop WITH (NOLOCK) 	
 	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 

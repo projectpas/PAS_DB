@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to Un Issue Stockline    
@@ -19,8 +19,9 @@
 	2    12/19/2023   Hemant Saliya		Updated for Add Kit Items
 *** 3    17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]     
     4	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForUnIssue 99,15
-
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]    
@@ -124,7 +125,9 @@ SET NOCOUNT ON
 						JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyIssued > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
@@ -134,6 +137,7 @@ SET NOCOUNT ON
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -212,7 +216,9 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
@@ -220,7 +226,8 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
-				) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				)
 				SELECT  
 					WorkOrderId,
 					SubWorkOrderId,

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetPurchaseOrderSSRSDashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for PurchaseOrderSSRSDashboard 
@@ -13,11 +13,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
-     
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetPurchaseOrderSSRSDashboard] 
 **************************************************************/
 
@@ -86,7 +87,6 @@ BEGIN
           ON PO.RequestedBy = E2.EmployeeId
 
 		  where PO.MasterCompanyId = @mastercompanyid
-
     COMMIT TRANSACTION
   END TRY
 

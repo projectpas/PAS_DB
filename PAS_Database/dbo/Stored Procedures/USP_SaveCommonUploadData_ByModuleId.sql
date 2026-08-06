@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -15,9 +15,9 @@
 	5	 28-July-2025		Ayushi Patel			Added Defaul value to NotNullable Fields of ItemMaster Table
 	6	 29-July-2025		Vishal Suthar			Added New Module "Stockline"
 	7	 01-Aug-2025		Ayushi Patel			Added functionality to handle parent table , Added New Module "Customer"
-	8	 06-Aug-2025		RAJESH GAMI				Stockline Module : Insert QuantityAvailable as same as QunatityOnHand
-	9	 07-Aug-2025		RAJESH GAMI				Fixed: Datetime upload issue
-	10	 01-Aug-2025		Bhargav Saliya			Added New Module "Vendor"
+	8	 01-Aug-2025		Bhargav Saliya			Added New Module "Vendor"
+	9	 06-Aug-2025		RAJESH GAMI				Stockline Module : Insert QuantityAvailable as same as QunatityOnHand
+	10	 07-Aug-2025		RAJESH GAMI				Fixed: Datetime upload issue
 	11	 11-Aug-2025		Ayushi Patel			inserted auto generate field into stockline
 	12	 12-Aug-2025		Ayushi Patel			Receive Date Changes
 	13	 12-Aug-2025		Ayushi Patel			ObtainFromType, OwnerType, TraceableToType Inserted as otherModuleType
@@ -34,19 +34,20 @@
 	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 	25 	 20-Nov-2025        Divyesh Kathiriya		Added new field for "ItemMaster"
 	26   26-Nov-2025        Ayushi Patel            Updated dynamic INSERT/UPDATE queries to wrap ReferenceTable, ParentTable, and ChildTable names in [ ] to prevent syntax errors when table names are reserved keywords (e.g., Percent).
-	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
-	30	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
-	31	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
-	32	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
-	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
-	35   09-APR-2026		Ayushi Patel			PN-15988 Handled QuantityOnHand As decimal 
-	35   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
-	36   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
-	37   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
-	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
-	39   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
-	40   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module
-	41	 02-JULY-2026       Ayushi Patel            Generate vendorCode and CustomerCode dynamically 
+	27	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
+	28	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
+	29	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
+	30	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
+	31	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
+	32   09-APR-2026		Ayushi Patel			PN-15988 Handled QuantityOnHand As decimal 
+	33   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
+	34   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
+	35   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
+	36   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
+	37   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
+	38   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module
+	39    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	40	 02-JULY-2026       Ayushi Patel            Generate vendorCode and CustomerCode dynamically 
   exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -383,6 +384,7 @@ BEGIN
 				ON CSTL.StockLineId = STL.StockLineId
                 /* PN Manufacturer Combination Stockline logic */
 				
+				 WHERE ISNULL(IM.IsNonStock,0) = 0
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
 				
 				IF (@currentNo <> 0)
@@ -1086,6 +1088,7 @@ BEGIN
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
 				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
 				SET @isPriceDataExist = (CASE WHEN @ItemMasterPurchaseSaleId > 0 THEN 1 ELSE 0 END);
 				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectId,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
@@ -1113,6 +1116,7 @@ BEGIN
 			DECLARE @UomId BIGINT;
 			SELECT TOP 1 @ItemClassificationId = IM.ItemClassificationId,@UomId = IM.PurchaseUnitOfMeasureId FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId=@ItemMasterId
 				
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
 
 				SET @FieldValue += '1'+',' + CAST(ISNULL(@ItemClassificationId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@UomId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkOrderId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkFlowWorkOrderId,0) AS VARCHAR(20)) + ','+ CAST(ISNULL(@WMExtendedCost,0) AS VARCHAR(20)) + ','

@@ -22,8 +22,10 @@
  **	9    19-11-2025  RAJESH GAMI		Return SO Amount
  **	10   20-11-2025  Rajesh Gami		Correct the SOAmount
  **	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
- ** 12   29/JUL/2026     Kishor Makwana      PERFORMANCE ONLY - Sales Order List filter slowness.
- ** 13	 05/Aug/2026	 Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+** 12   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
+** 13   23/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filters
+**  14   29/JUL/2026     Kishor Makwana      PERFORMANCE ONLY - Sales Order List filter slowness.
+** 15	 05/Aug/2026	 Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 
 ***********************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSOViewData]

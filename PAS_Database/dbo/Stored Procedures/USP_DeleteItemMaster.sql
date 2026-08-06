@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		 [USP_DeleteItemMaster]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Delete ItemMaster by Id.
@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    19-August-2025		Divyesh Kathiriya	Created	
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_DeleteItemMaster] @ItemMasterid=96933, @UpdatedBy=N'DANE PERK', @IsDeleted=1
 **************************************************************/

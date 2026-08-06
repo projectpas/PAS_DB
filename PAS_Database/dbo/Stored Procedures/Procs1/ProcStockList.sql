@@ -128,8 +128,9 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@UnitCost varchar(50)=NULL,
 	@GLAccount varchar(255) = NULL,
 	@PNSource varchar(20) = NULL,
-    @Model varchar(200) = NULL
-AS        
+    @Model varchar(200) = NULL,
+    @ItemType varchar(50) = NULL
+AS
 BEGIN         
      SET NOCOUNT ON;        
 	  DECLARE @RecordFROM INT;        

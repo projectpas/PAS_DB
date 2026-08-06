@@ -88,7 +88,12 @@ BEGIN
 			iM.IsReceivedDateAvailable,
 			iM.IsTagDateAvailable,
 			iM.InventoryGLSettingId,
-			iM.ItemClassificationName AS Classification
+			iM.ItemClassificationName AS Classification,
+			uom.Class AS Class,
+			uom.DecimalPlaces AS DecimalPlaces,
+			iM.StockUnitOfMeasureId,
+			iM.ConsumeUnitOfMeasureId,
+			iM.Model
 
 	    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
@@ -97,6 +102,7 @@ BEGIN
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExportInfo] imx WITH (NOLOCK) ON iM.ItemMasterId = imx.ItemMasterId
 		LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId
+		LEFT JOIN [DBO].[UnitOfMeasure] uom WITH (NOLOCK) ON iM.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
     WHERE iM.ItemMasterId = @ItemMasterId ;
     END TRY 
 

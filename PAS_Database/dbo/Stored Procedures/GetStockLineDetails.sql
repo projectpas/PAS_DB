@@ -169,7 +169,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,stl.[Condition] 'conditionType'
 			  ,im.[ItemTypeId]
 			  ,CASE WHEN stl.[PurchaseUnitOfMeasureId] > 0 then stl.[PurchaseUnitOfMeasureId] ELSE im.[PurchaseUnitOfMeasureId] END 'PurchaseUnitOfMeasureId'
-			  ,uom.ShortName as [UnitOfMeasure]	
+			  ,uom.ShortName as [UnitOfMeasure]
+			  ,uom.[Class]
+			  ,uom.[DecimalPlaces]
+			  ,CASE WHEN ISNULL(stl.[StockUnitOfMeasureId],0) > 0 THEN stl.[StockUnitOfMeasureId] ELSE im.[StockUnitOfMeasureId] END 'StockUnitOfMeasureId'
+			  ,CASE WHEN ISNULL(stl.[ConsumeUnitOfMeasureId],0) > 0 THEN stl.[ConsumeUnitOfMeasureId] ELSE im.[ConsumeUnitOfMeasureId] END 'ConsumeUnitOfMeasureId'
+			  ,uomStock.ShortName AS [StockUnitOfMeasure]
+			  ,uomConsume.ShortName AS [ConsumeUnitOfMeasure]
+			  ,stl.[PoPartUnitCost]
+			  ,stl.[Model]
               ,stl.[Manufacturer]
 			  ,'' [Code]        
               ,stl.[CreatedBy]

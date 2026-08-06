@@ -95,7 +95,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
@@ -119,7 +119,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
 			 END
 
@@ -144,7 +144,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsDER  = 1
 			 END
 
@@ -168,7 +168,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
 			 END
 
@@ -192,7 +192,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsDER  = 1
 			 END
 
@@ -222,7 +222,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE '%'+ REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 
 		--Adding DER Except Parts
 		 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType, ItemType)
@@ -250,7 +250,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE '%'+ REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 
 		--Adding Non-Stock Parts (independent of OEM/PMA/DER classification - that pedigree
 		--classification does not apply to Non-Stock items). Only run for the plain/default
@@ -277,7 +277,7 @@ CREATE      PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND ISNULL(im.IsNonStock,0) = 1
 			AND NOT EXISTS (SELECT 1 FROM #TempTable ExistingTT WHERE ExistingTT.PartId = im.ItemMasterId)
 		--END

@@ -88,7 +88,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 		--FOR PMA
 		 AND ISNULL(im.IsNonStock,0) = 0
@@ -111,7 +111,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
          AND ISNULL(im.IsNonStock,0) = 0
 			 END
@@ -136,7 +136,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsDER  = 1	
          AND ISNULL(im.IsNonStock,0) = 0
 			 END
@@ -165,7 +165,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.IsDeleted = 0
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
-		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
 		--END 
 
 		--IF( @IncludeDER = 1)
@@ -192,7 +192,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.IsDeleted = 0
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
-		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(im.partnumber, '-', ''), '/', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
+		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
 		--END
 
 INSERT INTO #Result

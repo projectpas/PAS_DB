@@ -48,7 +48,7 @@ AS
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(IM.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%'))    
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'))    
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UNION
 				SELECT DISTINCT TOP 20 
@@ -58,7 +58,7 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 					JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(IM.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%'))    
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'))    
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UNION     
 				SELECT DISTINCT TOP 20 

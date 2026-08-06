@@ -69,7 +69,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK)  ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(Im.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%'))
+					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'))
 			    AND ISNULL(Im.IsNonStock,0) = 0
 					 UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
@@ -144,7 +144,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK)  ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK)  ON Im.GLAccountId = GL.GLAccountId
-				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(Im.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@StartWith, '-', ''), '/', '') + '%'
+				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'
 				) UNION 
 				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  

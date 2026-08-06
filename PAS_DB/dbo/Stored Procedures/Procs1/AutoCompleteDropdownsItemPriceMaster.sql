@@ -38,7 +38,7 @@ AS BEGIN
 		LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON IM.ItemMasterId  = IMPS.ItemMasterId
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = IM.ManufacturerId
 		WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0 AND
-		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(IM.partnumber, '-', ''), '/', '') LIKE '%' + REPLACE(REPLACE(@SearchText, '-', ''), '/', '') + '%')
+		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(@SearchText, '-', ''), '/', '') + '%')
 	 AND ISNULL(IM.IsNonStock,0) = 0
 		 END TRY
 	BEGIN CATCH

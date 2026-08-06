@@ -10,16 +10,18 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
- ** PR   Date         Author				Change	Description                
- ** --   --------     -------   --------------------------------              
-    2    13/11/2024    SHREY CHANDEGARA      UPDATED for @SalesOrderModuleId
-	3    17/06/2025    Amit Ghediya			 UPDATED for add @PackagingSlipId
-	4    07-07-2025    Moin Bloch            Changed Old To New Billing Table
-	5    09/July/2026    RAJESH GAMI            [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	5    09-07-2026    Bhargav Saliya        Get ResaleNumber AND CustomerVATNumber
-	6    23/July/2026    RAJESH GAMI            [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
+ ** PR   Date			Author				Change	Description                
+ ** --   --------		-------				--------------------------------              
+    2    13/11/2024		SHREY CHANDEGARA    UPDATED for @SalesOrderModuleId
+	3    17/06/2025		Amit Ghediya		UPDATED for add @PackagingSlipId
+	4    07-07-2025		Moin Bloch          Changed Old To New Billing Table
+	5    09/July/2026   RAJESH GAMI         [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09-07-2026		Bhargav Saliya      Get ResaleNumber AND CustomerVATNumber
+	6    23/July/2026   RAJESH GAMI         [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
+	7    03/Aug/2026	Vishal Suthar       Fixed an issue that was always fetching shipto address from address 
+											instead of shipping if shipping is generated for Packaging Slip
          
--- EXEC [dbo].[GetPackagingLabel] 1300, 1507
+-- EXEC [dbo].[GetPackagingLabel] 5181, 12650, 4
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[GetPackagingLabel]
     @SalesOrderId BIGINT,
@@ -56,13 +58,21 @@ BEGIN
         ISNULL(cuad.PostalCode, '') AS custToPostalCode,
         ISNULL(ccnty.countries_name, '') AS custToCountry,
         ISNULL(CONCAT(cont.FirstName, ' ', cont.LastName), '') AS customerContactName,
-        ISNULL(posadd.SiteName, '') AS shipToSiteName,
-        ISNULL(posadd.Line1, '') AS shipToAddress1,
-        ISNULL(posadd.Line2, '') AS shipToAddress2,
-        ISNULL(posadd.City, '') AS shipToCity,
-        ISNULL(posadd.StateOrProvince, '') AS shipToState,
-        ISNULL(posadd.PostalCode, '') AS shipToPostalCode,
-        ISNULL(posadd.Country, '') AS shipToCountry,
+        --ISNULL(posadd.SiteName, '') AS shipToSiteName,
+        --ISNULL(posadd.Line1, '') AS shipToAddress1,
+        --ISNULL(posadd.Line2, '') AS shipToAddress2,
+        --ISNULL(posadd.City, '') AS shipToCity,
+        --ISNULL(posadd.StateOrProvince, '') AS shipToState,
+        --ISNULL(posadd.PostalCode, '') AS shipToPostalCode,
+        --ISNULL(posadd.Country, '') AS shipToCountry,
+		CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.SiteName, '') ELSE sos.ShipToSiteName END AS shipToSiteName,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.Line1, '') ELSE sos.ShipToAddress1 END AS shipToAddress1,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.Line2, '') ELSE sos.ShipToAddress2 END AS shipToAddress2,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.City, '') ELSE sos.ShipToCity END AS shipToCity,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.StateOrProvince, '') ELSE sos.ShipToState END AS shipToState,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.PostalCode, '') ELSE sos.ShipToZip END AS shipToPostalCode,
+        CASE WHEN sos.SalesOrderShippingId IS NULL THEN ISNULL(posadd.Country, '') ELSE sos.ShipToCountryName END AS shipToCountry,
+
         ISNULL(posadd.ContactName, '') AS shipToContactName,
         ISNULL(sh.Name, '') AS shipViaName,
         soq.CreatedBy createdBy,

@@ -37,7 +37,8 @@ CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
-@MasterCompanyId int  
+@MasterCompanyId int,
+@IsNonStock BIT = 0
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -128,7 +129,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -172,13 +173,13 @@ BEGIN
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
      
-	  AND ISNULL(Im.IsNonStock,0) = 0
+	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	 UNION   
 	 
      SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -221,7 +222,7 @@ BEGIN
 		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-	  AND ISNULL(Im.IsNonStock,0) = 0
+	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	 ORDER BY Label      
    End  
    ELSE  
@@ -265,7 +266,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,    
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -307,14 +308,14 @@ BEGIN
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
     
-	 AND ISNULL(Im.IsNonStock,0) = 0
+	 AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	UNION   
 
     SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,    
 		  Im.partnumber AS PartNumber,  
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -355,7 +356,7 @@ BEGIN
 		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
-     AND ISNULL(Im.IsNonStock,0) = 0
+     AND ISNULL(Im.IsNonStock,0) = @IsNonStock
     ORDER BY Label   
    END  
    UPDATE #TempTable_DropDown SET ConsumeUnitCost = CASE 

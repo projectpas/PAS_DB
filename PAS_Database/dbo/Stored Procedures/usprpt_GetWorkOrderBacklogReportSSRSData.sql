@@ -26,7 +26,7 @@
 exec usprpt_GetWorkOrderBacklogReportSSRSData @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 EXEC usprpt_GetWorkOrderBacklogReportSSRSData 1,'2025-11-12','2025-11-13','','','','1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
 	@id DATETIME2,
 	@id2 DATETIME2,

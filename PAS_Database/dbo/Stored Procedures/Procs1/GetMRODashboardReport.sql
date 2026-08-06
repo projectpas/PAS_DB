@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetMRODashboardReport]           
  ** Author:   Vishal Suthar
  ** Description: Get MRO Data for Dashboard
@@ -18,7 +18,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [GetMRODashboardReport] 1
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetMRODashboardReport]
+CREATE PROCEDURE [dbo].[GetMRODashboardReport]
 	@MasterCompanyId BIGINT = NULL
 AS
 BEGIN

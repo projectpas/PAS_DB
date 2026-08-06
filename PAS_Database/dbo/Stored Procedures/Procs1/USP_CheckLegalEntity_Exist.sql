@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CheckLegalEntity_Exist]          
  ** Author:   Bhargav Saliya
  ** Description: This stored procedure is used to get Time Zone  
@@ -25,7 +25,7 @@
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
-CREATE OR ALTER PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint,

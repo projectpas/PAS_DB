@@ -1,4 +1,4 @@
-﻿/**************************************************************           
+/**************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   	Date         Author				Change Description            
@@ -26,7 +26,7 @@
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
+CREATE PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartId BIGINT,
 	@IncludeProformaInvoice BIT

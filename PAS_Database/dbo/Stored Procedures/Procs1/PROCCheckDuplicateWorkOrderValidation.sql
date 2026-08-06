@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [PROCCheckDuplicateWorkOrderValidation]           
  ** Author:  MOIN BLOCH
  ** Description: This stored procedure is used ckeck Duplicate WorkOrder Validation
@@ -18,7 +18,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC PROCCheckDuplicateWorkOrderValidation 1122,3,'1STYOMPMO7-JD',1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[PROCCheckDuplicateWorkOrderValidation]
+CREATE PROCEDURE [dbo].[PROCCheckDuplicateWorkOrderValidation]
 @CustomerId BIGINT,
 @ItemMasterId BIGINT,
 @SerialNumber VARCHAR(50),

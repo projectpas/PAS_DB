@@ -246,11 +246,11 @@ BEGIN
 			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			UNION
 
-			SELECT sl.MasterPartId AS ItemMasterId,
+			SELECT sl.ItemMasterId AS ItemMasterId,
 				   sl.ConditionId,
-				   sl.UnitOfMeasureId AS PurchaseUnitOfMeasureId,
+				   sl.PurchaseUnitOfMeasureId AS PurchaseUnitOfMeasureId,
 				   sl.PartNumber AS partnumber,
-				   CASE WHEN LEN(sl.PartDescription) > 50 THEN SUBSTRING(sl.PartDescription, 1 , 50) + '...' ELSE sl.PartDescription END AS 'PartDescription',
+				   CASE WHEN LEN(sl.PNDescription) > 50 THEN SUBSTRING(sl.PNDescription, 1 , 50) + '...' ELSE sl.PNDescription END AS 'PartDescription',
 				   sl.Condition,
 				   sl.UnitOfMeasure,
 			       sl.StockLineId AS StockLineId,
@@ -270,7 +270,7 @@ BEGIN
 				  CASE WHEN POP.WorkOrderId >1 THEN 'WO3' when POP.SalesOrderId >1 then 'SO' ELSE 'STOCK' END as ModuleName,
 				  CASE WHEN POP.WorkOrderId >1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber,
 				  sl.Manufacturer,
-				  CAST(sl.MfgExpirationDate AS DATE) AS ExpirationDate,
+				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				   '' AS TraceableToName,
 				   '' as Inspector,
 				   NULL InspectionDate,

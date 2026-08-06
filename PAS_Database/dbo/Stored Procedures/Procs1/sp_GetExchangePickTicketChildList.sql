@@ -17,7 +17,7 @@
 	3    20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	EXEC [dbo].[sp_GetExchangePickTicketChildList] 135,3,1,226
 ***************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetExchangePickTicketChildList]
+CREATE PROCEDURE [dbo].[sp_GetExchangePickTicketChildList]
 	@ExchangeSalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,

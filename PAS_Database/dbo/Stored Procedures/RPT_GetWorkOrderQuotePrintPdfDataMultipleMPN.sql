@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -30,7 +30,7 @@
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2304,'3823,3824,3825',0  
 exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2303,@workOrderPartNoIds=N'3820,3821,3822',@isByPartIds=1
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
+CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoIds varchar(max),
  @isByPartIds INT = 0

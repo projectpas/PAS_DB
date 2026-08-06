@@ -55,6 +55,7 @@ SET NOCOUNT ON
 				DECLARE @MaterialMandatoriesId INT = 0;
 				DECLARE @WorkFlowWorkOrderId BIGINT = 0;
 				DECLARE @WorkOrderMaterialStockLineId BIGINT = 0;
+				DECLARE @WorkOrderPartNoId BIGINT = 0;
 				DECLARE @Quantity DECIMAL(18, 6) = 0;	
 				DECLARE @StlQuantity DECIMAL(18, 6) = 0;
 				DECLARE @QtyFulfilled DECIMAL(18, 6) = 0;	

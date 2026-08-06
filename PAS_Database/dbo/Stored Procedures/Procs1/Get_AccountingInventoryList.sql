@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [Get_AccountingInventoryList]             
  ** Author:   
  ** Description: This stored procedure is used to display all stockline between period 
@@ -16,7 +16,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 
-CREATE OR ALTER PROCEDURE [dbo].[Get_AccountingInventoryList]
+CREATE PROCEDURE [dbo].[Get_AccountingInventoryList]
 (
 	@PageNumber int = NULL,      
 	@PageSize int = NULL,      

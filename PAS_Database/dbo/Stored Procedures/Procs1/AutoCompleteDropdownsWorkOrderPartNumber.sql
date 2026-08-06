@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsInternalWOPartNumber]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Stockline List for WO MPN    
@@ -25,7 +25,7 @@ exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'0',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[AutoCompleteDropdownsWorkOrderPartNumber]
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsWorkOrderPartNumber]
 @StartWith VARCHAR(50) = NULL,
 @Idlist VARCHAR(max) = '0',
 @CustomerId BIGINT = NULL,

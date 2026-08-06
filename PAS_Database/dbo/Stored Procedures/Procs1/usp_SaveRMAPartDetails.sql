@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetCustomerRMAPartsDetails]           
  ** Author:   Subhash Saliya
  ** Description: Save Customer RMAPartsDetails
@@ -22,7 +22,7 @@ insert into @p1 values(3,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GP
 insert into @p1 values(4,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GPS',N'',N'',N'',7428,N'STL-000064',N'CNTL-000779',N'ID_NUM-000002',145,N'WO-000111',123,23,2829,8,N'Non Functional',N'',N'True',2,N'ADMIN ADMIN',N'ADMIN ADMIN','2022-04-22 05:20:26.5110000','2022-04-22 05:20:26.5110000',1,0)
 exec dbo.usp_SaveRMAPartDetails @tbl_CustomerRMADeatilsType=@p1  
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[usp_SaveRMAPartDetails]
+CREATE PROCEDURE [dbo].[usp_SaveRMAPartDetails]
 @tbl_CustomerRMADeatilsType CustomerRMADeatilsType READONLY,
 @ModuleId INT
 AS

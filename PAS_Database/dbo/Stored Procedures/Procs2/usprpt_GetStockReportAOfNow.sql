@@ -14,7 +14,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster/Stockline IsNonStock=0 filters (4) to allow Non-Stock items in Stock Report (As Of Now)
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetStockReportAOfNow]     
+CREATE PROCEDURE [dbo].[usprpt_GetStockReportAOfNow]     
 @PageNumber int = 1,    
 @PageSize int = NULL,    
 @mastercompanyid int,    

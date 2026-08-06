@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SOQ]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on ProductSale
@@ -25,7 +25,7 @@
 	10    12-03-2026   Hemant Saliya		Corrected Charges Calucation
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 745
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
+CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
 	@SalesOrderQuoteId bigint
 AS
 BEGIN

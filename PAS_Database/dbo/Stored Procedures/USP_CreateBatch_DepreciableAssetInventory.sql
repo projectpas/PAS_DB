@@ -179,6 +179,7 @@ BEGIN
 		DECLARE @CrDrType int=0;
 		DECLARE @isNewJENum BIT = 0;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 

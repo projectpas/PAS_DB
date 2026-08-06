@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_GetSummarisedQuotationAnalysisData]             
  ** Author:   Hemnat Saliya
  ** Description: Get WorkOrder Quote Analysis Details
@@ -22,7 +22,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
+CREATE PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
     @WorkOrderId INT
 AS
 BEGIN

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [SP_GetSubWorkOrderMPNsById]           
  ** Author: Rajesh Gami
@@ -17,7 +17,7 @@
 **************************************************************
  EXEC SP_GetSubWorkOrderMPNsById 246
  **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[SP_GetSubWorkOrderMPNsById] 
+CREATE PROCEDURE [dbo].[SP_GetSubWorkOrderMPNsById] 
 @SubWorkOrderId bigint =0
 AS
 BEGIN

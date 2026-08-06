@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateWorkOrderColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Details based in WO Id.    
@@ -28,7 +28,7 @@
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
+CREATE PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
 @WorkOrderPartNumberId int
 AS
 BEGIN

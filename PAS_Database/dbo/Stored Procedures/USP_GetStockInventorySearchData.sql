@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <BHARGAV SALIYA>  
 ** Create date: <20/11/2024>  [mm/dd/yyyy]
 ** Description: <Get The Stock/Inventory Search Data>  
@@ -14,7 +14,7 @@
 	5    23/July/2026     RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 **************************************************************/
 -----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
+CREATE PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
 	@PageNumber INT,
 	@PageSize INT,
 	@SortColumn VARCHAR(50) = NULL,

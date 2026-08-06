@@ -17,7 +17,7 @@
     2    09/July/2026  RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_TmpStockLineBulkUpload
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
+CREATE PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
 	@tbl_StockLineBulkUpload StockLineBulkUploadType READONLY,
 	@isDeleted INT = 0,
 	@fileName VARCHAR(100) = NULL

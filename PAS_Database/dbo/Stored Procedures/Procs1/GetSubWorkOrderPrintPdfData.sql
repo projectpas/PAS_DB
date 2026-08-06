@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -21,7 +21,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC GetSubWorkOrderPrintPdfData 573,559
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetSubWorkOrderPrintPdfData]              
+CREATE PROCEDURE [dbo].[GetSubWorkOrderPrintPdfData]              
 @SubWorkorderId bigint,              
 @SubWOPartNoId bigint              
 AS              

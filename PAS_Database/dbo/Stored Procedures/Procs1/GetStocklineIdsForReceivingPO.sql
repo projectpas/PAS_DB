@@ -20,7 +20,7 @@
 	4    16/July/2026   RAJESH GAMI   [PN-17271] - NonStockInventoryIds now reads DBO.Stockline (IsNonStock=1) instead of legacy DBO.NonStockInventory.
 EXEC [GetStocklineIdsForReceivingPO] 2174  
 **************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[GetStocklineIdsForReceivingPO]  
+CREATE PROCEDURE [dbo].[GetStocklineIdsForReceivingPO]  
 (    
  @PurchaseOrderId BIGINT = NULL  
 )    

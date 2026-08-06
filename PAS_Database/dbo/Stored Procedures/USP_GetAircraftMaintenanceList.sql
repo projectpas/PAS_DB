@@ -129,8 +129,7 @@ BEGIN
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
-            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ISNULL(ARH.[StockLineId], ERH.[StockLineId]) AND ISNULL(STK.IsNonStock,0) = 0      
-			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
+            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ARH.[StockLineId] AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
             LEFT JOIN (
                     SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],

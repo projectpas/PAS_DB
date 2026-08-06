@@ -17,7 +17,7 @@
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC USP_Lot_ProcStockListFromItemMasterId
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
+CREATE PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

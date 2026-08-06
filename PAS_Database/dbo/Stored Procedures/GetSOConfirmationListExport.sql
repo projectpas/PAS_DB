@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSalesOrderChargesBySOId]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Sales Order Confirmation list By SOId
@@ -18,7 +18,7 @@
 	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
  EXECUTE [GetSOConfirmationListExport] 1, pnview
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[GetSOConfirmationListExport]
+CREATE PROCEDURE [dbo].[GetSOConfirmationListExport]
     @MasterCompanyId INT,
 	@ListViewType VARCHAR(20)
 AS

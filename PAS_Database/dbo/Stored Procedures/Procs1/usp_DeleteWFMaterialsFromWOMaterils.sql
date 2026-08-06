@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <07/30/2021>  
@@ -14,7 +14,7 @@ Exec [usp_SaveWorkOrderMaterials]
 2    09/July/2026  RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC dbo.usp_DeleteWFMaterialsFromWOMaterils 54,'Admin'
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
+CREATE PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
 	@WorkFlowWorkOrderId BIGINT
 AS
 BEGIN

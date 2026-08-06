@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceivingOurchaseOrderViewById]             
  ** Author:    
  ** Description: Get Search Data for SOQ List   
@@ -20,7 +20,7 @@
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[GetReceivingPurchaseOrderViewById]
+CREATE PROCEDURE [dbo].[GetReceivingPurchaseOrderViewById]
 @PurchaseOrderId [BIGINT]
 AS
 BEGIN
@@ -215,7 +215,7 @@ BEGIN
 		'' AS 'CertifiedBy',
 		'' AS 'TagType',
 		NULL AS 'TagDate',
-		SLD.MfgExpirationDate,
+		SLD.ExpirationDate,
 		NULL AS 'CertifiedDueDate',
 		'' AS 'AircraftTailNumber',
 		SLD.GLAccountId,

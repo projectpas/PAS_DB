@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetSOShippingParentList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to get shipping parent list data.
@@ -19,7 +19,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_VendorRMA_GetSOShippingParentList 60
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_VendorRMA_GetSOShippingParentList]
+CREATE PROCEDURE [dbo].[USP_VendorRMA_GetSOShippingParentList]
 @VendorRMAId  bigint
 AS
 BEGIN

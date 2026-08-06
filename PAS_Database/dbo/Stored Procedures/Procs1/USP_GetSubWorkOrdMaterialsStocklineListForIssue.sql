@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrdMaterialsStocklineListForIssue]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to Issue Stockline    
@@ -22,7 +22,7 @@
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForIssue 28,0
 **************************************************************/ 
     
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForIssue]    
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForIssue]    
 (    
 @SubWOPartNoId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL

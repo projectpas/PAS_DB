@@ -24,7 +24,7 @@
     9    22/July/2026   RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
+CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
 AS  
 BEGIN  

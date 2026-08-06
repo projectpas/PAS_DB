@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWODashboardData]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to Get WO list By Stage
@@ -26,7 +26,7 @@ exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@Sort
 @EstMargin=0,@OpenDate=NULL,@CustReqDate=NULL,@PONumber=NULL,@RONumber=NULL,@MasterCompanyId=1
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GetWODashboardData]
+CREATE PROCEDURE [dbo].[GetWODashboardData]
 	@PageNumber INT,
 	@PageSize INT,
 	@SortColumn VARCHAR(50) = NULL,

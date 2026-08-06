@@ -100,7 +100,7 @@ BEGIN
         UPPER(stl.location) 'Location',
         UPPER(stl.shelf) 'Shelf',
         UPPER(stl.bin) 'Bin',
-        UPPER(stl.GLAccount) 'glaccount',
+        UPPER(stl.GlAccountName) 'glaccount',
         UPPER(pox.PurchaseOrderNumber) 'ponum',
         UPPER(rox.RepairOrderNumber) 'ronum',
 		convert(VARCHAR(50), STL.receiveddate, 107) AS 'rcvddate', 

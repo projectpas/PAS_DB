@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[sp_GetSalesOrderPerformaInvoiceList]          
  ** Author:   AMIT GHEDIYA
  ** Description: Get Performa Invoice Data.
@@ -15,7 +15,7 @@
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO performa invoice list.
 --   EXEC sp_GetSalesOrderPerformaInvoiceList 814
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
+CREATE PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN

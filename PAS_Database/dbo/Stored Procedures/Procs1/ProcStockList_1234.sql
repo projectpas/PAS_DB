@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************
 ** Change History
 **************************************************************
@@ -6,7 +6,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[ProcStockList_1234]
+CREATE PROCEDURE [dbo].[ProcStockList_1234]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetTeardownReasonDetails]           
  ** Author:   Devendra Shekh
  ** Description: Retrieves teardown reason details
@@ -22,7 +22,7 @@
  EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1, 0
  EXECUTE [USP_GetTeardownReasonDetails] 147, '', 0, 1, 222
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetTeardownReasonDetails]
+CREATE PROCEDURE [dbo].[USP_GetTeardownReasonDetails]
     @TeardownReasonId BIGINT = NULL,
     @PublicationIds NVARCHAR(MAX) = NULL,
 	@WOPartNoId BIGINT = NULL,

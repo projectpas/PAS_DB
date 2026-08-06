@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CycleCountDetail_GetDetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to get Cycle Count Details 
@@ -19,7 +19,7 @@
  ** -----------------------------------------------------------          
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById]  
+CREATE PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById]  
 @CycleCountId [bigint] NULL,
 @MasterCompanyId [int] NULL 
 AS    

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [CopyExistingBillingSOInvoicingDetails]           
  ** Author:   HEMANT SALIYA
  ** Description: Copy SO Billing Invoicing Details
@@ -19,7 +19,7 @@ DELETE from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
 DELETE from dbo.BillingInvoicingDetails  
 EXEC CopyExistingBillingInvoicingDetails 2
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
+CREATE PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
 @MasterCompanyId BIGINT = NULL
 AS
 BEGIN	

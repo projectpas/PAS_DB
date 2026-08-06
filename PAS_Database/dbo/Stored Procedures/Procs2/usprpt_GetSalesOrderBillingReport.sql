@@ -30,7 +30,7 @@
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
+CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  

@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomer]      
  ** Author:  Vishal Suthar
  ** Description: This stored procedure is used to Employee Commission DATA Including Customer.    
@@ -17,7 +17,7 @@
     4    16-OCT-2025    RAJESH GAMI			handle Null value
 	5    09/July/2026    RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomer]
+CREATE PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomer]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  

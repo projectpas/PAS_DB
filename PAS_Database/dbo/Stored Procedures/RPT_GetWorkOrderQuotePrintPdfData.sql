@@ -32,7 +32,7 @@
 	17    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
+CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoId bigint  
 AS  

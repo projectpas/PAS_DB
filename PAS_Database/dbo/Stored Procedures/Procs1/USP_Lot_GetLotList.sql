@@ -17,7 +17,7 @@
 	5    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 **************************************************************
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetLotList]
+CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

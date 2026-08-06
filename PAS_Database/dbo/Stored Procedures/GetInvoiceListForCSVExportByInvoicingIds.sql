@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[GetInvoiceListForCSVExportByInvoicingIds]          
  ** Author:   RAJESH GAMI
  ** Description: Get Invoice List By Invoicing Ids.
@@ -19,7 +19,7 @@
 	2	20/July/2026 RAJESH GAMI   [PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts appear on invoice CSV export.
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',1,NULL,NULL,180,20,'',''
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
+CREATE PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
 	@ModuleId INT,
 	@InvoicingIds NVARCHAR(MAX),
 	@IsSelectAllInvoice BIT = 0,

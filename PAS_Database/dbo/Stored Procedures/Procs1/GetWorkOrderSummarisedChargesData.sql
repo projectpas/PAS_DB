@@ -22,7 +22,7 @@
  EXECUTE [GetWorkOrderSummarisedChargesData] 365
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[GetWorkOrderSummarisedChargesData]
+CREATE PROCEDURE [dbo].[GetWorkOrderSummarisedChargesData]
 @WorkOrderId BIGINT
 AS
 BEGIN

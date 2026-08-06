@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [ProcStockListFromExpiredDays]               
  ** Author:  RAJESH GAMI 
  ** Description: Getting the stockline detail by expired days     
@@ -15,7 +15,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[ProcStockListFromExpiredDays]  
+CREATE PROCEDURE [dbo].[ProcStockListFromExpiredDays]  
 @PageNumber int = NULL,      
 @PageSize int = NULL,      
 @SortColumn varchar(50)=NULL,      

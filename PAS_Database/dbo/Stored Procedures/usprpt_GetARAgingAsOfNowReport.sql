@@ -28,7 +28,7 @@
 	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters on the SalesOrder-linked branches (SOP.SalesOrderId=SO.SalesOrderId). The ExchangeSalesOrder-only branches were left untouched, out of scope.
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2025-05-05 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=0,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=180,@MasterCompanyId=20
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
+CREATE PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,

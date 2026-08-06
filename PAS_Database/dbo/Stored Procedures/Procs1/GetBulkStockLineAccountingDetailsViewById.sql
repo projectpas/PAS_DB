@@ -1,4 +1,4 @@
-﻿-- Author:		<Jevik Raiyani>
+-- Author:		<Jevik Raiyani>
 -- Create date: <27-11-2023>
 -- Description:	<This stored procedure is used Get GetBulkStockLineAccountingDetailsViewById for Bulk stockline accounting list>
 -- =============================================
@@ -15,7 +15,7 @@
 EXEC GetBulkStockLineAccountingDetailsViewById 119
 ************************************************************************/   
 
-CREATE OR ALTER PROCEDURE  [dbo].[GetBulkStockLineAccountingDetailsViewById]  
+CREATE PROCEDURE  [dbo].[GetBulkStockLineAccountingDetailsViewById]  
 @ReferenceId bigint    
 AS
 BEGIN

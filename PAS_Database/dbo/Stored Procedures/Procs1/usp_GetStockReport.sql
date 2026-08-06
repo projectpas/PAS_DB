@@ -22,7 +22,7 @@
  ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetStockReport] '1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetStockReport] @mastercompanyid int,
+CREATE PROCEDURE [dbo].[usp_GetStockReport] @mastercompanyid int,
 @Level1 varchar(max) = NULL,
 @Level2 varchar(max) = NULL,
 @Level3 varchar(max) = NULL,

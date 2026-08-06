@@ -84,7 +84,6 @@ BEGIN
 	    --SD.Level2 = PMS.Level2,
 	    --SD.Level3 = PMS.Level3,
 	    --SD.Level4 = PMS.Level4,
-		PurchaseOrderNumber = PO.PurchaseOrderNumber,
 		PartNumber = POP.PartNumber,
 		PartDescription = POP.PartDescription,
 		CurrencyId = IMNS.CurrencyId,

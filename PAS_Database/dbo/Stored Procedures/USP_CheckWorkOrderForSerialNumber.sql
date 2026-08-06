@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CheckWorkOrderForSerialNumber]           
  ** Author:  AMIT GHEDIYA
  ** Description: This stored procedure is used CheckWorkOrderForSerialNumber
@@ -17,7 +17,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_CheckWorkOrderForSerialNumber 41216,'AMIT6767',1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
+CREATE PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
 	@ItemMasterId BIGINT,
 	@SerialNumber VARCHAR(50),
 	@MasterCompanyId INT

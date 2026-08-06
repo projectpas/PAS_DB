@@ -176,7 +176,7 @@ BEGIN
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ARH.[StockLineId] AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId

@@ -19,7 +19,7 @@
  ** --   --------     -------			--------------------------------     
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReportNew] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportNew]     
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportNew]     
  @PageNumber INT = 1,    
  @PageSize INT = NULL,    
  @mastercompanyid INT,    

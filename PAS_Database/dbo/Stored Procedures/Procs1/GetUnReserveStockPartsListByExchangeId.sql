@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_ReserveStocklineForReceivingPO]            
  ** Author:   Rajesh Gami  
  ** Description: This stored procedure is used to get Un Reserv eStockPartsList By ExchangeId
@@ -19,7 +19,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec dbo.GetUnReserveStockPartsListByExchangeId 120
 **************************************************************/  
-CREATE OR ALTER PROC [dbo].[GetUnReserveStockPartsListByExchangeId]
+CREATE PROC [dbo].[GetUnReserveStockPartsListByExchangeId]
 @ExchangeId  bigint
 AS
 BEGIN

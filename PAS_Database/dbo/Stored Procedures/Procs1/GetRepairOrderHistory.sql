@@ -1,4 +1,4 @@
-﻿/*********************           
+/*********************           
  ** File:   [GetRepairOrderHistory]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get repair order history   
@@ -23,7 +23,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
-CREATE OR ALTER PROCEDURE [dbo].[GetRepairOrderHistory]
+CREATE PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

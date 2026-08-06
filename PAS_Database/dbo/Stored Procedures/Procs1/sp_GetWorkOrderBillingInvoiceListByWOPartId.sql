@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [sp_GetWorkOrderBillingInvoiceListByWOPartId]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to Get WorkOrder Billing InvoiceList By WOPartId
@@ -24,7 +24,7 @@
 	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 8996, 8829
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
+CREATE PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
 @WorkOrderId  bigint,
 @workOrderPartNumberId  bigint
 AS

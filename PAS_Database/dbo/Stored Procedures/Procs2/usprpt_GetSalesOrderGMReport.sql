@@ -34,7 +34,7 @@
 	18    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 EXECUTE [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport]
+CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport]
 	@PageNumber int = 1,
 	@PageSize int = NULL,
 	@mastercompanyid int,

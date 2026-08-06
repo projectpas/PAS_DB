@@ -24,7 +24,7 @@ exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
 **************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[GetPNTileStocklineHistoryList]
+CREATE PROCEDURE [dbo].[GetPNTileStocklineHistoryList]
  @PageNumber INT,
  @PageSize INT,
  @SortColumn VARCHAR(50)=NULL,

@@ -17,7 +17,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial 881,0,1293,0
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial]
+CREATE PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial]
 (    
 	@WorkFlowWorkOrderId BIGINT = NULL,
 	@ItemMasterId BIGINT = NULL,

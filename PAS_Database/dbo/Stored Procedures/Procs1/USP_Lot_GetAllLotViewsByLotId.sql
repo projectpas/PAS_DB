@@ -20,7 +20,7 @@
 	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (9 individual checks) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- EXEC USP_Lot_GetAllLotViewsByLotId 7,'ViewAllPN',1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId]
+CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId]
 @LotId bigint, 
 @Type VARCHAR(50) = '',
 @MasterCompanyId int

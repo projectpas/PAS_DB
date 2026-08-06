@@ -1,4 +1,4 @@
-﻿ /*************************************************************           
+ /*************************************************************           
  ** File:   [USP_GetExchangeQuoteVerificationResult]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuoteVerificationResult
@@ -18,7 +18,7 @@
   EXEC USP_GetExchangeQuoteVerificationResult @ExchangeQuoteId = 10118
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetExchangeQuoteVerificationResult]
+CREATE PROCEDURE [dbo].[USP_GetExchangeQuoteVerificationResult]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN

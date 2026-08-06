@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteParts]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_GetExchangeQuoteParts
@@ -18,7 +18,7 @@
  ** -----------------------------------------------------------          
 exec [dbo].[USP_GetExchangeQuoteParts] @ExchangeQuoteId=152
 ************************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetExchangeQuoteParts]
+CREATE PROCEDURE [dbo].[USP_GetExchangeQuoteParts]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN

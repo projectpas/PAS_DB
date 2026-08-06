@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetReceivedRfqList]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Get Received Rfq List data
@@ -44,7 +44,7 @@
 	31    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetReceivedRfqList]
+CREATE PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50)=null,

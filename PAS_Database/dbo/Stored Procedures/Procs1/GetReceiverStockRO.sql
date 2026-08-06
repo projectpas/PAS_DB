@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetReceiverStockRO]
  ** Author:  MOIN BLOCH
@@ -21,7 +21,7 @@
 --  EXEC GetReceiverStockRO 1123,'0',1,1,'RecNo-000001'
 --  EXEC GetReceiverStockRO 1122,'0',1,1,'RecNo-000001'
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetReceiverStockRO]
+CREATE PROCEDURE [dbo].[GetReceiverStockRO]
 @RepairOrderId BIGINT,
 @isParentData VARCHAR(10),
 @ItemMasterId BIGINT,

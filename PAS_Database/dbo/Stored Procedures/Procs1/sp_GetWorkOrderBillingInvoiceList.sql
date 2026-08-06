@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [sp_GetWorkOrderBillingInvoiceList]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to get list of Invoices for WO Part    
@@ -22,7 +22,7 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 -- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceList] 4268, 3771
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceList]
+CREATE PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceList]
 	@WorkOrderId  bigint,
 	@workOrderPartNumberId  bigint
 AS

@@ -49,13 +49,10 @@ BEGIN
             CONCAT(empy.FirstName, ' ', empy.LastName)                      AS ConfirmedBy
         FROM RMAPickTicket sopt WITH(NOLOCK)
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId
-	
-	END
-	COMMIT  TRANSACTION
 
     END TRY
     BEGIN CATCH

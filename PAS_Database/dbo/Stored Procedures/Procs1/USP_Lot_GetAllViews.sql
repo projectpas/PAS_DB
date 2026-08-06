@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetAllViews]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -18,7 +18,7 @@
 -- EXEC USP_Lot_GetAllViews 2,'ALL',1
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetAllViews]
+CREATE PROCEDURE [dbo].[USP_Lot_GetAllViews]
 @LotId VARCHAR(max) = '0', 
 @Type VARCHAR(50) = NULL,
 @MasterCompanyId int

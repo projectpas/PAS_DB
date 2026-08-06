@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -21,7 +21,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetWorkOrderTrackingList]  
+CREATE PROCEDURE [dbo].[GetWorkOrderTrackingList]  
  -- Add the parameters for the stored procedure here  
  @PageNumber int,  
  @PageSize int,  

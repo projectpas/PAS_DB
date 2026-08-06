@@ -17,7 +17,7 @@
 --  EXEC [dbo].[GetWorkOrderBillingMPNDetails] 8800,0,'',15
 --  EXEC [dbo].[GetWorkOrderBillingMPNDetails] 8800,0,'8559,8560',15
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetWorkOrderBillingMPNDetails]
+CREATE PROCEDURE [dbo].[GetWorkOrderBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,

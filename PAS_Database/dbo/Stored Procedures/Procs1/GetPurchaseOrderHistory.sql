@@ -22,7 +22,7 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters (poview and VendorRFQ view branches) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed). Also removed a third hard exclusion (ISNULL(ST.IsNonStock,0)=0) on the #TempStkList staging query that feeds ReceivedDate to both branches.
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetPurchaseOrderHistory]
+CREATE PROCEDURE [dbo].[GetPurchaseOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

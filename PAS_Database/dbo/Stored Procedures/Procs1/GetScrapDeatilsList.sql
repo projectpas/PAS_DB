@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetScrapDeatilsById]           
  ** Author: Subhahs Saliya
  ** Description: This stored procedure is used retrieve Scrap Certificate Data userd
@@ -20,7 +20,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [GetScrapDeatilsList] 16, 10048,'STL-000030'
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetScrapDeatilsList]
+CREATE PROCEDURE [dbo].[GetScrapDeatilsList]
 	@workOrderId bigint = 0,
 	@workOrderPartNoId bigint = 0,
 	@IsSubWorkOrder bit = 0

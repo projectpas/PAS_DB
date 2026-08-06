@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -19,7 +19,7 @@
 --EXEC [AutoCompleteDropdownsItemMasterWithStockLine] '',1,200,'108,109,11'
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithStockLine]
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithStockLine]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',

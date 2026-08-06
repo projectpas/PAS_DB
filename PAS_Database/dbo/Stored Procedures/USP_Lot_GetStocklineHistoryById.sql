@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_Lot_GetStocklineHistoryById]             
  ** Author: RAJESH GAMI
  ** Description: This stored procedure is used to Get History Of particular LOT Stockline
@@ -17,7 +17,7 @@
 **************************************************************  
 EXEC USP_Lot_GetStocklineHistoryById 34,207818,1,245  
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetStocklineHistoryById]   
+CREATE PROCEDURE [dbo].[USP_Lot_GetStocklineHistoryById]   
 @LotId bigint ,
 @StockLineId bigint,
 @MasterCompanyId bigint =NULL,

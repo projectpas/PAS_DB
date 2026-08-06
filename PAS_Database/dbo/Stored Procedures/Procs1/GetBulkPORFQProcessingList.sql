@@ -6,7 +6,7 @@
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetBulkPORFQProcessingList]
+CREATE PROCEDURE [dbo].[GetBulkPORFQProcessingList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

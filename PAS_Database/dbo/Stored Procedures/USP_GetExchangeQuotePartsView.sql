@@ -18,7 +18,7 @@
  ** --    --------         -------              --------------------------------            
 exec [dbo].[USP_GetExchangeQuotePartsView] @ExchangeQuoteId = 121
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetExchangeQuotePartsView]
+CREATE PROCEDURE [dbo].[USP_GetExchangeQuotePartsView]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN

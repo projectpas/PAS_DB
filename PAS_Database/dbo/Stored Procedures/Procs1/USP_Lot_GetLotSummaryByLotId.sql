@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetLotSummaryByLotId]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot summary by lot id
@@ -17,7 +17,7 @@
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN

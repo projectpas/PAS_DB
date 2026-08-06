@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_VendorRMA_GetVendorCreditMemoList]            
  ** Author:   Shrey Chandegara
  ** Description: This stored procedure is used to listing screen of Vendor Credit Memo.  
@@ -20,7 +20,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
+CREATE PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

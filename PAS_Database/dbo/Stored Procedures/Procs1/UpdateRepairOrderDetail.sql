@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** Change History
 **************************************************************
 ** PR   Date         Author			Change Description
@@ -6,7 +6,7 @@
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (IM/AIM/ST/SL/RIM aliases) in the combined RO/PO/SO update query.
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[UpdateRepairOrderDetail]
+CREATE PROCEDURE [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
 AS
 BEGIN

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateItemMasterDetail]           
  ** Author:   Moin Bloch
  ** Description: Update Item Master All Id Wise Names
@@ -18,7 +18,7 @@
  EXEC UpdateItemMasterDetail 268
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[UpdateItemMasterDetail]
+CREATE PROCEDURE [dbo].[UpdateItemMasterDetail]
 @ItemMasterId  bigint
 AS
 BEGIN

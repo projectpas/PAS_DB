@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetSalesOrderPerformaInvoiceChildList]           
  ** Author:   AMIT GHEDIYA
  ** Description: This stored procedure is used to retrieve Invoice child listing data
@@ -23,7 +23,7 @@
 	6    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO performa invoice child list.
  EXEC [dbo].[sp_GetSalesOrderPerformaInvoiceChildList] 814, 318, 15  
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]
+CREATE PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]
 	 @SalesOrderId  bigint,  
 	 @SalesOrderPartId bigint,  
 	 @ConditionId bigint  

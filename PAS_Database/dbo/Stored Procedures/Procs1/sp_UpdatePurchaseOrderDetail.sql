@@ -265,8 +265,8 @@ BEGIN
 				
 		UPDATE dbo.PurchaseOrderPart
 		SET
-		   PartNumber =  CASE WHEN POP.ItemTypeId = @StockType THEN IM.partnumber WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartNumber WHEN POP.ItemTypeId = @AssetType THEN AST.AssetId END,
-		   PartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN IM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartDescription WHEN POP.ItemTypeId = @AssetType THEN AST.[Description] END,
+		   PartNumber =  CASE WHEN POP.ItemTypeId = @StockType THEN IM.partnumber WHEN POP.ItemTypeId = @NonStockType THEN IMNS.PartNumber WHEN POP.ItemTypeId = @AssetType THEN AST.AssetId END,
+		   PartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN IM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN IMNS.PartDescription WHEN POP.ItemTypeId = @AssetType THEN AST.[Description] END,
 		   AltEquiPartNumber = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartNumber WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN AAST.AssetId END,
 		   AltEquiPartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN  AAST.[Description] END, 
 		   StockType = CASE WHEN POP.ItemTypeId = @StockType THEN (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 

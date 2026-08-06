@@ -39,7 +39,7 @@ BEGIN
     SELECT  
         --mt.Quantity,  
         ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
-        uom.ShortName as UomName,  
+        imt.ConsumeUnitOfMeasure as UomName,
         mt.PartNumber as partnumber,  
         mt.ConditionType AS Condition,  
         mt.PartDescription as PartDescription,  

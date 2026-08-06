@@ -130,7 +130,7 @@ BEGIN
 		--FORMAT(stl.UnitCost , 'N', 'en-us') 'unitcost',
 		ISNULL(stl.UnitCost ,0) 'unitcost', 
 		--FORMAT(stl.ExtendedCost , 'N', 'en-us') 'extcost',
-		ISNULL(stl.ExtendedCost ,0) 'extcost', 
+		(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0)) 'extcost',
         UPPER(stl.manufacturer) 'mfg',
 		FORMAT(stl.UnitCost , 'N', 'en-us') 'unitprice',
 		FORMAT(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 'N', 'en-us') 'extprice',

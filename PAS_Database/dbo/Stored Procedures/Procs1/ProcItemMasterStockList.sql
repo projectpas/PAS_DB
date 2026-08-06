@@ -188,7 +188,9 @@ BEGIN
 					   itp.Ranking as RankingsName,
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
 					    ISNULL(IM.IsNonStock,0)IsNonStock,
-						im.ItemTypeId
+						im.ItemTypeId,
+						im.Model,
+						im.IsKitAssy
 			   FROM dbo.ItemMaster im WITH (NOLOCK)
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))

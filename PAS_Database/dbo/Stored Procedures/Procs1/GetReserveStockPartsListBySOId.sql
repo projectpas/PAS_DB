@@ -181,9 +181,13 @@ BEGIN
 		SOR.AltPartMasterPartId,
 		SOR.EquPartMasterPartId,
 		SL.LotId,
-		im.[IsService], 
+		im.[IsService],
 		im.[IsNonStock],
-		SOP.TotalQtyOrder)
+		SOP.TotalQtyOrder,
+		im.StockUnitOfMeasure,
+		im.ConsumeUnitOfMeasure,
+		SL.StockUnitOfMeasure,
+		SL.ConsumeUnitOfMeasure)
 
 ,FinalReserveList AS(
 		SELECT DISTINCT SOP.SalesOrderId,

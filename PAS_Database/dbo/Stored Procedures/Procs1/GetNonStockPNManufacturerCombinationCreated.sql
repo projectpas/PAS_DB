@@ -25,7 +25,7 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY 
-		;WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId) AS
+		;WITH CTE_NonStockLine (ItemMasterId, ManufacturerId, StockLineId) AS
 		(
             -- Step 1: Stage only the relevant non-stock rows for this company
             SELECT  ItemMasterId,

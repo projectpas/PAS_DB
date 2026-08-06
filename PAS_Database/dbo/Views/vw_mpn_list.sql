@@ -5,4 +5,6 @@ SELECT        dbo.MasterParts.MasterPartId, dbo.MasterParts.PartNumber, dbo.Mast
 FROM            dbo.MasterParts INNER JOIN
                          dbo.ItemMaster ON dbo.MasterParts.MasterPartId = dbo.ItemMaster.MasterPartId INNER JOIN
                          dbo.ItemGroup ON dbo.ItemMaster.ItemGroupId = dbo.ItemGroup.ItemGroupId LEFT OUTER JOIN
-                         dbo.ItemMaster AS ItemMaster_1 ON dbo.ItemMaster.RevisedPartId = ItemMaster_1.ItemMasterId
+                         dbo.ItemMaster AS ItemMaster_1 ON dbo.ItemMaster.RevisedPartId = ItemMaster_1.ItemMasterId AND ISNULL(ItemMaster_1.IsNonStock,0) = 0
+WHERE ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+GO

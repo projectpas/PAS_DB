@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetRecevingCustomerList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Receving Customer List    
@@ -33,7 +33,9 @@
 	16   13/05/2025   Hemant Saliya		Resolved Performance issue for Production
   	17   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
   	18   17/02/2026   Bhargav Saliya	Added a condition to ensure that Piece Parts do not display records when the [QuantityOnHand] is 0.
-	19   15-JUL-2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table
+	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	21   15-JUL-2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -210,6 +212,7 @@ BEGIN
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND ISNULL(ROP.IsPiecePart,0) = 0
 					LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
+					 AND ISNULL(RP.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN [dbo].[WorkOrderStage] WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
@@ -235,7 +238,7 @@ BEGIN
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
 						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
 						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))
-			), ResultCount AS(SELECT COUNT([ReceivingCustomerWorkId]) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT([ReceivingCustomerWorkId]) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (
 					(@GlobalFilter <>'' AND (([CustomerName] LIKE '%' +@GlobalFilter+'%' ) OR 

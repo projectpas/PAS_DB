@@ -18,8 +18,10 @@
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
 	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	7    19-11-2025  RAJESH GAMI		Added SO Amount
-	10   20-11-2025  Rajesh Gami		Correct the SO Amount
-	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+	8   20-11-2025  Rajesh Gami		Correct the SO Amount
+	9   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+** 10   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
+** 11   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
     12   29/JUL/2026 Kishor Makwana     PERFORMANCE ONLY - Sales Order List filter slowness.
 ***************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSalesOrderPNViewData]

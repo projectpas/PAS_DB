@@ -1,4 +1,4 @@
-﻿/*************************************************************                
+/*************************************************************                
  ** Author: Ekta Chandegra
  ** Description: This stored procedure is used to Create history of unit sales price in stockline
  ** Date:   08/01/2024
@@ -10,10 +10,11 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    08/01/2024   Ekta Chandegra    Created
+    2    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXECUTE SP_InsertUnitSalesPriceHistory  163178 , 1 , 'Admin'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[SP_InsertUnitSalesPriceHistory] 
+CREATE PROCEDURE [dbo].[SP_InsertUnitSalesPriceHistory] 
 @StockLineId bigint ,
 @MasterCompanyId int,
 @CreatedBy varchar(50)

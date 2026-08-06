@@ -18,6 +18,7 @@
 	5	 28-07-2025  Amit Ghediya	added For Check NUll IsMRO Field
 	6	 25-12-2025  Amit Ghediya	added For save PartsBase
 	7	 28-01-2026  Vishal Suthar	changed the logic to delete and save partsbase search result
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 exec USP_AddUpdateIntegrationPart @PartNumber=N'10-0114-5',@PartDescription=N'EXIT LIGHT',@RepairStation=NULL,@PhoneNumber=N'+1305-716-0128',@IntegrationPortalId=54,@IntegrationPortal=N'PartsBase',@RepairCertiNo=NULL,@LastUpdate=NULL,@QuoteDate='2026-01-16 00:00:00',@OHPrice=NULL,@OHTAT=NULL,@RepairPrice=NULL,@RepairTAT=NULL,@TestPrice=NULL,@TestTAT=NULL,@WebLink=N'http://www.gmair.com',@Location=NULL,@AltPartNumber=NULL,@Qty=4,@Cage=N'5A964',@Condition=NULL,@Distance=NULL,@ExchangeOption=NULL,@MasterCompanyId=1,@UserName=N'ADMIN User',@AddressLine1=NULL,@AddressLine2=NULL,@City=N'DORAL',@State=N'FL',@PostalCode=N'33178',@Country=N'United States',@IsMRO=0,@Index=1,@InventoryId=N'2201221029',@Currency=N'dollars',@Manufacturer=N'',@UnitPrice=0.0,@UoM=N'EA'
 
@@ -380,7 +381,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					LEFT JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					 AND ISNULL(IMS.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					 AND ISNULL(IMSC.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
@@ -526,6 +529,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					 AND ISNULL(IMS.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
@@ -673,7 +677,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					 AND ISNULL(IMS.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					 AND ISNULL(IMSC.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration) AND ISNULL(IsMRO,0) = @IsMRO
 				END  /**** End:  ILS Integration ******/
@@ -888,6 +894,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					   AND IMS.IsActive = 1
 					   AND IMS.IsDeleted = 0
 					   AND IM.MasterCompanyId = IMS.MasterCompanyId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
 					LEFT JOIN DBO.Customer CU WITH (NOLOCK)
 						ON IM.RepairStation = CU.Name
 					   AND IM.MasterCompanyId = CU.MasterCompanyId

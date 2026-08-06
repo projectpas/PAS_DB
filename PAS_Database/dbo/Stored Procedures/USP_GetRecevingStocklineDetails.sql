@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetRecevingStocklineDetails]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get RecevingStocklineDetails List
@@ -10,13 +10,15 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
+    1    05-11-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    05-11-2025    Sahdev Saliya       Created  
-
     exec [dbo].[USP_GetRecevingStocklineDetails]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetRecevingStocklineDetails]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetRecevingStocklineDetails]
     @ItemMasterId BIGINT = NULL,
     @ConditionId BIGINT = NULL
 AS
@@ -39,7 +41,7 @@ BEGIN
         WHERE st.ItemMasterId = @ItemMasterId
 	      AND st.ConditionId = @ConditionId
 		  AND st.PurchaseOrderId > 0
-        ORDER BY st.StockLineId DESC;
+		   ORDER BY st.StockLineId DESC;
 
     END TRY
     BEGIN CATCH

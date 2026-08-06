@@ -17,6 +17,8 @@
  ** --   --------     -------			--------------------------------          
     1    03/22/2023   Hemant Saliya		Created
 	2    10/17/2024   Vishal Suthar		Modified to make use of new SO tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
      
  EXECUTE USP_GetSalesOrderPartsList 254
 **************************************************************/

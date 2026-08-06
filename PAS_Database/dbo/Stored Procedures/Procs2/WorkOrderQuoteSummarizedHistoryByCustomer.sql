@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [WorkOrderQuoteSummarizedHistoryByCustomer] 295,0
 **************************************************************/
@@ -75,6 +76,7 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = WOQ.CurrencyId						
 					WHERE IM.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WOQ.createdDate, GETDATE()) < @Month 
 					--GROUP BY IM.partnumber, WOP.ItemMasterId, WS.WorkScopeCode, WS.WorkScopeId ,C.Code
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				END
 			COMMIT  TRANSACTION
 		END TRY    

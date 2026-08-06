@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSODashboardforunfulfilleddata]           
  ** Author:   Swetha  
  ** Description: Get Data for SODashboardforunfulfilleddata 
@@ -12,14 +12,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
-	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
-    4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
-	5   07-07-2025    Moin Bloch    Changed Old To New Billing Table
-
+	1	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+    2   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	3   07-07-2025    Moin Bloch    Changed Old To New Billing Table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetSODashboardforunfulfilleddata] 
 **************************************************************/
 

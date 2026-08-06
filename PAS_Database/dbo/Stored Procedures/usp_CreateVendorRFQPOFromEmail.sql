@@ -13,6 +13,8 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    02-June-2026   Vishal Suthar   Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -359,7 +361,7 @@ BEGIN
 
             SELECT TOP 1 @TemplateItemMasterId = ItemMasterId
             FROM dbo.ItemMaster WITH (NOLOCK)
-            WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+            WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 ;
 
 			------------------------------------------------------------
             -- GET DEFAULT UNIT OF MEASURE
@@ -448,7 +450,7 @@ BEGIN
                     AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
 					AND x.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
                     AND x.IsDeleted = 0
-              );
+			  );
 
             ------------------------------------------------------------
             -- RUN UpdateItemMasterDetail FOR EACH NEW ITEM MASTER
@@ -512,7 +514,8 @@ BEGIN
                   AND im.IsActive = 1 AND im.IsDeleted = 0
                   AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
                   AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-            WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '';
+				  AND im.ManufacturerId = pm.ManufacturerId
+            WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '' ;
 
             -- 7a. Save part management structure details
             DECLARE @PartId   BIGINT;

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPackagingLabelByVendorRMAId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMAPackagingLabel By VendorRMAId pdf
@@ -13,9 +13,10 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
-    2    24-07-2026    Bhargav Saliya       Added New fiels [PN-17341]  
-    3    27-07-2026    Bhargav Saliya       Get Ship ShipViaName [PN-17341]  
-
+    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026    RAJESH GAMI      [PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
+    4    24-07-2026    Bhargav Saliya       Added New fiels [PN-17341]  
+    5    27-07-2026    Bhargav Saliya       Get Ship ShipViaName [PN-17341]  
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
     @VendorRMAId BIGINT,

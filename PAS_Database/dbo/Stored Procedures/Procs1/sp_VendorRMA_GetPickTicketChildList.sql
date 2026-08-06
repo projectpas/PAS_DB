@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [sp_VendorRMA_GetPickTicketChildList]
  ** Author:   Amit Ghediya
  ** Description: Retrieve pick ticket child listing (STK details) for Vendor RMA
@@ -8,6 +8,7 @@
  ** 2    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
  ** 3    [today]      [Hemant]        Performance & readability optimization
  ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	5    09/July/2026   RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
     @VendorRMAId        BIGINT,
@@ -47,17 +48,14 @@ BEGIN
             CONCAT(emp.FirstName,  ' ', emp.LastName)                       AS PickedBy,
             CONCAT(empy.FirstName, ' ', empy.LastName)                      AS ConfirmedBy
         FROM RMAPickTicket sopt WITH(NOLOCK)
-        INNER JOIN VendorRMADetail sop  WITH(NOLOCK) ON  sop.VendorRMAId       = sopt.VendorRMAId
-                                                     AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-        LEFT  JOIN StockLine sl         WITH(NOLOCK) ON  sl.StockLineId        = sop.StockLineId
-        INNER JOIN ItemMaster im        WITH(NOLOCK) ON  im.ItemMasterId       = sl.ItemMasterId
-        INNER JOIN Employee emp         WITH(NOLOCK) ON  emp.EmployeeId        = sopt.PickedById
-        LEFT  JOIN Employee empy        WITH(NOLOCK) ON  empy.EmployeeId       = sopt.ConfirmedById
-        WHERE
-            sopt.VendorRMAId       = @VendorRMAId
-            AND sopt.VendorRMADetailId = @VendorRMADetailId
-            AND sop.ItemMasterId       = @ItemMasterId
-            AND sl.ConditionId         = @ConditionId;
+		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
+		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
+		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId
+	
+	END
+	COMMIT  TRANSACTION
 
     END TRY
     BEGIN CATCH

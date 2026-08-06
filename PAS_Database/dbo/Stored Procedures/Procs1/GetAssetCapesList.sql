@@ -1,4 +1,4 @@
-﻿  
+  
   
 /*************************************************************             
  ** File:   [GetAssetCapesList]             
@@ -18,8 +18,7 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    05/04/2020   Subhash Saliya Created  
-  
-       
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [GetAssetCapesList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  
 **************************************************************/   
   
@@ -121,7 +120,7 @@ BEGIN
      --LEFT JOIN dbo. AircraftDashNumber dn WITH(NOLOCK) ON capability.AircraftDashNumberId = dn.DashNumberId  
 	 left join dbo.Manufacturer ma with(nolock)on im.ManufacturerId =ma.ManufacturerId
     WHERE ((capability.AssetRecordId = @id) and (capability.IsDeleted = @IsDeleted)    AND (@IsActive is null or isnull(capability.IsActive,1) = @IsActive))  
-   ), ResultCount AS(SELECT COUNT(assetCapesId) AS totalItems FROM Result)  
+    AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(assetCapesId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult from  Result  
    WHERE (  
     (@GlobalFilter <>'' AND (  

@@ -11,6 +11,7 @@
  ** --    --------     -------			-------------------------------          
     1     09-07-2025   Amit Ghediya		Created
 	2     25-07-2025   Amit Ghediya		Added MasterCompanyId
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [IsExistsInventoryPartForIntegration]  'A100,5360002916111,Part9,part7'
 
@@ -27,7 +28,7 @@ BEGIN
 
 		DECLARE @AllowUser INT = 0;
 
-		IF EXISTS(SELECT TOP 1 ItemMasterId FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [MasterCompanyId] = @MasterCompanyId AND [partnumber] IN(SELECT item FROM SplitString(@PartString,',')))
+		IF EXISTS(SELECT TOP 1 ItemMasterId FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [MasterCompanyId] = @MasterCompanyId AND [partnumber] IN(SELECT item FROM SplitString(@PartString,',')) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 		BEGIN
 			 SET @AllowUser = 1;
 		END

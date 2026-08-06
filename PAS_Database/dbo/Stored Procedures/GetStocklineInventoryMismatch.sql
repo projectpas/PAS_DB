@@ -11,9 +11,9 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    26-12-2023   Ekta Chandegra		Created
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [GetStocklineInventoryMismatch]
-
 **************************************************************/
 
 CREATE PROC [dbo].[GetStocklineInventoryMismatch]
@@ -31,11 +31,16 @@ BEGIN
 			con.Description  As 'Condition',sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber ,
 			sl.IdNumber,sl.SerialNumber 
 		FROM [dbo].[StockLine] sl WITH (NOLOCK)
-		INNER JOIN ItemMaster im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
-		INNER JOIN Condition con WITH (NOLOCK) ON sl.conditionId = con.conditionId
-		WHERE sl.isActive = 1 AND sl.isDeleted = 0
-		AND (sl.QuantityOnHand + sl.QuantityIssued) <> (sl.QuantityReserved + sl.QuantityAvailable + sl.QuantityIssued)
-
+		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
+		INNER JOIN [dbo].[Condition] con WITH (NOLOCK) ON sl.conditionId = con.conditionId
+		INNER JOIN [dbo].[ChildStockline] child WITH (NOLOCK) ON sl.StockLineId = child.StockLineId
+		WHERE sl.[MasterCompanyId] = @MasterCompanyId AND sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
+		AND (ISNULL(sl.QuantityOnHand,0) + ISNULL(sl.QuantityIssued,0)) <> (ISNULL(sl.QuantityReserved,0) + ISNULL(sl.QuantityAvailable,0) + ISNULL(sl.QuantityIssued,0))
+		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+		 GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
+		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable
+		HAVING SUM(ISNULL(child.QuantityOnHand,0)) <> ISNULL(sl.QuantityOnHand,0)
+		ORDER BY sl.StockLineId DESC
 	END
 	COMMIT  TRANSACTION
 	END TRY    

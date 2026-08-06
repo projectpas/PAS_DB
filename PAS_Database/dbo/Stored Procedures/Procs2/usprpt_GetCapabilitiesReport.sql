@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetCapabilitiesReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for Capabilities Report   
@@ -17,7 +17,7 @@
     1    26-April-2022  Mahesh Sorathiya   Created 
 	2    04-SEPT-2023   Ekta Chandegra     Convert text into uppercase
 	3    29-MARCH-2024  Ekta Chandegra     IsActive and IsDeleted flag is added
-       
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetCapabilitiesReport] '','2',3,'','1','10','0'  
 **************************************************************/  
   
@@ -104,6 +104,7 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		 AND ISNULL(IM.IsNonStock,0) = 0
 		END
 	  
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
@@ -155,6 +156,7 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+	    AND ISNULL(IM.IsNonStock,0) = 0
 	   ORDER BY IM.partnumber
 	   OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
    

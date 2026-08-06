@@ -137,6 +137,7 @@ BEGIN
 								   STUFF((SELECT ',' + I.partnumber
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+										   AND ISNULL(I.IsNonStock,0) = 0
 										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') PartNumber
 							) A
@@ -150,6 +151,7 @@ BEGIN
 								   STUFF((SELECT ', ' + I.PartDescription
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+										   AND ISNULL(I.IsNonStock,0) = 0
 										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') PartDescription
 							) A
@@ -164,6 +166,7 @@ BEGIN
 								   STUFF((SELECT ', ' + I.ManufacturerName
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+										   AND ISNULL(I.IsNonStock,0) = 0
 										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') ManufacturerName
 							) A

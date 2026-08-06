@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [USP_GetWOAssignment]           
  ** Author:   Subhash Saliya
@@ -18,10 +18,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/12/2021   Subhash Saliya Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetWOAssignment 1,20,'', -1,'', '2021-07-25 18:30:00.000', '2021-09-25 18:30:00.000',5,NULL
  EXECUTE USP_GetWOAssignment 250, 0
-
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_GetWOAssignment]    
@@ -149,7 +148,7 @@ SET NOCOUNT ON
 									LEFT JOIN dbo.Employee empTech WITH (NOLOCK) ON empTech.EmployeeId = wop.TechnicianId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 								WHERE wo.MasterCompanyId= @MasterCompanyId and WOP.ID= @workOrderPartNoId 
-					), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+					 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult2 from  Result
 					WHERE (
 								(@GlobalFilter <>'' AND (
@@ -305,7 +304,7 @@ SET NOCOUNT ON
 								LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 								LEFT JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.EmployeeId = emp.EmployeeId  and EMS.ManagementStructureId =@ManagementStructureId	
 							WHERE wo.MasterCompanyId= @MasterCompanyId  and Cast(wop.ReceivedDate as date)   >= Cast(@FromRecieveddate as date)    and Cast(wop.ReceivedDate as date)  <= Cast(@ToRecieveddate as date)  
-				), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult from  Result
 				WHERE (
 									(@GlobalFilter <>'' AND (
@@ -459,7 +458,7 @@ SET NOCOUNT ON
 								LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 								LEFT JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.EmployeeId = emp.EmployeeId	and EMS.ManagementStructureId =@ManagementStructureId
 							WHERE wo.MasterCompanyId= @MasterCompanyId    and wo.WorkOrderNum =@workOrderNumber and Cast(wop.ReceivedDate as date)   >= Cast(@FromRecieveddate as date)    and Cast(wop.ReceivedDate as date)  <= Cast(@ToRecieveddate as date) 
-				), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult1 from  Result
 				WHERE (
 									(@GlobalFilter <>'' AND (

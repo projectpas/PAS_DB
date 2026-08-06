@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    23/10/2024   MOIN BLOCH    CREATED
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[USP_CycleCountDetail_UpdateColumnsWithId] 1
 **************************************************************/
@@ -53,7 +54,7 @@ BEGIN
 					 LEFT JOIN [dbo].[Bin] B WITH(NOLOCK) ON B.[BinId] = SL.[BinId]
 					 LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON UM.[UnitOfMeasureId] = SL.[UnitOfMeasureId] 	
 					 LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON  IM.[PurchaseCurrencyId] = CR.[CurrencyId]
-			   WHERE SL.[CycleCountDetailId] = @CycleCountDetailId;
+			   WHERE SL.[CycleCountDetailId] = @CycleCountDetailId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							
 			END		   
 		COMMIT  TRANSACTION

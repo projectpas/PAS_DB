@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetWOShippingChildList]           
  ** Author:   
  ** Description: This SP is Used to GetWOShippingChildList
@@ -14,16 +14,17 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			-------------------------------- 
-   
 	1    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
 	2    14/05/2024   Moin Bloch	    updated for dublicate record issue PN-7946
 	3    14/05/2024   Hemant Saliya	    updated for Shapping Status
     4    04-07-2025   Moin Bloch        Changed Old To New Billing Table
 	5    07/28/2025   Moin Bloch        Added Condition For Enforce Mpn Pick Ticket Confirmation
 	6    10/11/2025   Rajesh Gami       Added [UPSPdfPath]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC DBO.sp_GetWOShippingChildList @WorkOrderId =19769 ,@WorkOrderPartId=19892
 **************************************************************/ 
-CREATE Procedure [dbo].[sp_GetWOShippingChildList]  
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetWOShippingChildList]  
 @WorkOrderId bigint,  
 @WorkOrderPartId bigint  
 AS  
@@ -71,7 +72,8 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderShippingItem] wosi WITH (NOLOCK) ON wosi.[WorkOrderPartNumId] = wop.ID AND wosi.[WOPickTicketId] = wopt.[PickTicketId]
 			LEFT JOIN [dbo].[WorkOrderShipping] wos WITH (NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[ItemMaster] imt  WITH (NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]  
-			LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]  
+			 AND ISNULL(imt.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0 
 			LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH (NOLOCK) ON woc.[WorkOrderShippingId] = wos.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[Customer] cr WITH (NOLOCK) ON cr.[CustomerId] = wo.[CustomerId]  
 			LEFT JOIN [dbo].[WorkOrderPackaginSlipItems] wPI  WITH (NOLOCK) ON wopt.[PickTicketId] = wPI.[WOPickTicketId] AND wPI.[WOPartNoId] = wop.[id]  

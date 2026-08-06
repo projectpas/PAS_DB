@@ -1,4 +1,4 @@
-﻿ /*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CheckLegalEntity_Exist]          
  ** Author:   Bhargav Saliya
  ** Description: This stored procedure is used to get Time Zone  
@@ -20,11 +20,12 @@
 	4   24/01/2025 Bhargav Saliya Add EmployeeId
 	5   28/01/2025 Devendra Shekh	Modified (Handling Null @CurrntEmpTimeZoneDesc )
 	6   22/08/2025 Devendra Shekh	Modified (added LegalEntity join for @CurrntEmpTimeZoneDesc)
-     
+	7   09/July/2026 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8   23/July/2026 RAJESH GAMI	[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
-CREATE     PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE OR ALTER PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint,

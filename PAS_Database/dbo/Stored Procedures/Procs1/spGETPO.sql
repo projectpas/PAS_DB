@@ -55,6 +55,7 @@ BEGIN
 		LEFT join  ManagementStructure level2 WITH (NOLOCK) on level3.ParentId = level2.ManagementStructureId 
 		LEFT join  ManagementStructure level1 WITH (NOLOCK) on level2.ParentId = level1.ManagementStructureId
 		WHERE PO.Status = @status and PO.OpenDate between @Fromdate and @Todate 		
+	 AND ISNULL(IM.IsNonStock,0) = 0
 	END TRY    
 	BEGIN CATCH      
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

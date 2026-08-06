@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CreateBatch_DepreciableAssetInventory]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used TO Create Batch for Depreciable AssetInventory
@@ -13,13 +13,13 @@
 	2    07/23/2024		AMIT GHEDIYA			Update new BatchCode,J-Type Code & update New Destribution as per new distribution.
 	3    08/05/2024		Devendra Shekh			JE Number issue Resolved
 	4    19/09/2024	    AMIT GHEDIYA		    Added for AutoPost Batch
-
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (MPNName/PiecePN lookups).
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
 insert into @p1 values(619,1,60.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
 insert into @p1 values(618,1,75.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
 insert into @p1 values(617,1,110.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
-
 exec dbo.USP_CreateBatch_DepreciableAssetInventory @tbl_DepreciableInventory=@p1
 ************************************************************************/
 
@@ -402,7 +402,7 @@ BEGIN
 
 						------Depreciation Expense -----------
 
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSEDEP') 
 						AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -511,7 +511,6 @@ BEGIN
 
 					SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-
 					IF(@JournalBatchDetailId = 0)
 					BEGIN
 						INSERT INTO [dbo].[BatchDetails]
@@ -790,7 +789,7 @@ BEGIN
 					--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 					------Asset Account -----------
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 

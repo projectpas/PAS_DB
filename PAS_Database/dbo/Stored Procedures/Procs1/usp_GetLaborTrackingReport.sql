@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetLaborTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for LaborTracking Report 
@@ -12,12 +12,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author    Change Description            
- ** --   --------     -------    --------------------------------          
     1                 Swetha Created
     2				  Swetha Added Transaction & NO LOCK
 	3	01/31/2024    Devendra Shekh	added isperforma Flage for WO
-     
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date         Author    Change Description            
+ ** --   --------     -------    --------------------------------          
 EXECUTE   [dbo].[usp_GetLaborTrackingReport] '','2019-04-25','2021-07-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GetLaborTrackingReport] @itemmasterid varchar(40) = NULL,
@@ -172,6 +172,7 @@ BEGIN
           ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = im.ItemMasterId
+         AND ISNULL(IM.IsNonStock,0) = 0
         INNER JOIN DBO.Task WITH (NOLOCK)
           ON WOL.taskid = task.taskid
         LEFT JOIN DBO.EmployeeExpertise EMPEXP WITH (NOLOCK)

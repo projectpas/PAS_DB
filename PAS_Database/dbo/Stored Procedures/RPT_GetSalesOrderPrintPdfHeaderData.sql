@@ -10,17 +10,18 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA		Created
-** 2    09/04/2024  Shrey Chandegara	Updated For ItemNo (Add outer Apply for That.)
-** 3    16-Apr-2024	Bhargav Saliya		CreditTerms Changes
+** 2    16-Apr-2024	Bhargav Saliya		CreditTerms Changes
+** 3    09/04/2024  Shrey Chandegara	Updated For ItemNo (Add outer Apply for That.)
 ** 4	11/04/2024	Vishal Suthar		Modified to make use of new SO Part tables
 ** 5	29-May-2025	Devendra Shekh		Modified to get EmployeeName
 ** 6    01/05/2026  Ayushi Patel        [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 ** 7    06/23/2026  Vishal Suthar       Fixed ShipVia to populate from Address tab when Shipping is not done yet
-
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now correctly appear in this Sales Order print PDF header data
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
-
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
+CREATE OR ALTER PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -86,7 +87,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+			 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 			INNER JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			INNER JOIN dbo.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId

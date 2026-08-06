@@ -11,7 +11,9 @@
 	1    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 	2    08/12/2023   Jevik Raiyani         added @statusValue
 	3    26/02/2026   Priyansh Patel    	changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
-
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed). Also removed a soft exclusion (ISNULL(STL.IsNonStock,0)=0) on the Stockline join.
 --   EXEC [GetPNTilePurchaseOrderQuoteList]
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]

@@ -1,19 +1,17 @@
-﻿
-
-
 /***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1   	
-	2    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
-	3    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
+	1    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
+	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
 	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
-	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
-	5    26/12/2025				 Amit Ghediya						Update Part memo
-	6    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
-	7    09/07/2026				 Ayushi Patel						Chnaged Qty type from INT to DECIMAL(18,6) [PN-17152]
+	4    26/12/2025				 Amit Ghediya						Update Part memo
+	5    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	8    09/07/2026				 Ayushi Patel						Chnaged Qty type from INT to DECIMAL(18,6) [PN-17152]
 ****************************************************************************************************************************************/ 
 CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,

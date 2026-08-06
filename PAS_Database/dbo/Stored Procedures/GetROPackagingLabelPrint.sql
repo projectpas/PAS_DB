@@ -11,10 +11,10 @@
  ** PR  Date		Author			Change Description            
  ** --  --------	-------			--------------------------------          
     1	05/15/2025	VISHAL SUTHAR	Created
-	2   13/07/2026  Ayushi Patel	UOM Changes [PN-17172]
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4   13/07/2026  Ayushi Patel	UOM Changes [PN-17172]
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
-
 EXEC GetROPackagingLabelPrint 2601, 1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetROPackagingLabelPrint]
@@ -43,8 +43,9 @@ BEGIN
 		LEFT JOIN DBO.RepairOrderShippingItem SSI WITH(NOLOCK) ON SSI.ROPickTicketId = sopt.ROPickTicketId
 		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId AND ISNULL(sop.IsPiecePart,0) = 0
 		INNER JOIN RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
+		 AND ISNULL(imt.IsNonStock,0) = 0
 		LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.StockUnitOfMeasureId
 		LEFT JOIN DBO.RepairOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.RepairOrderPartId = sopt.RepairOrderPartId AND sopt.ROPickTicketId = SOSI.ROPickTicketId

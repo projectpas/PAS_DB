@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[sp_VendorRMA_SearchStockLinePickTicket]          
  ** Author:   Amit Ghediya
  ** Description: Get pick ticket stockline data to pick for Vendor RMA.
@@ -13,6 +13,9 @@
 	3    07/04/2023   Amit Ghediya   Updated for get Qty base ticket.
 	4    02-03-2026	  Amit Ghediya	 UOM Conversion Changes [PN-15140]
 	5	 19/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 330,1,42,0
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 1,1,42,1
 **************************************************************/ 

@@ -4403,6 +4403,15 @@
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNosStockSalesOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCreditMemoDetailsForXero.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCreditMemoListForCreateCreditMemo.sql" />
     <Build Include="dbo\Stored Procedures\USP_AlterColumnsToDecimal.sql" />
     <Build Include="dbo\Stored Procedures\UOMSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingRepairOrderForView.sql" />
@@ -4473,6 +4482,7 @@
     <Build Include="dbo\Tables\MaintenanceStatus.sql" />
     <Build Include="dbo\Tables\AircraftStatus.sql" />
     <Build Include="dbo\Tables\AircraftRegistryHeader.sql" />
+    <Build Include="dbo\Tables\XeroAccountingGLConfig.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftRegistryState.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryList.sql" />
     <Build Include="dbo\Tables\AircraftInstalledPartDetails.sql" />

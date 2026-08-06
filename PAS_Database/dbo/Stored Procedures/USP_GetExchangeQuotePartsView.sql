@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeQuotePartsView]             
  ** Author:  Ekta Chandegra 
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartsView
@@ -10,14 +10,15 @@
  ***************************************************************************************         
  ** Change History             
  ***************************************************************************************
- 
+    1     08/04/2025      Ekta Chandegra        Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
-    1     08/04/2025      Ekta Chandegra        Created  
-
 exec [dbo].[USP_GetExchangeQuotePartsView] @ExchangeQuoteId = 121
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuotePartsView]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetExchangeQuotePartsView]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN
@@ -83,7 +84,7 @@ BEGIN
 		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0;
+		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0 ;
 
 		-- Second Result Set: Schedule Billings
 		SELECT *

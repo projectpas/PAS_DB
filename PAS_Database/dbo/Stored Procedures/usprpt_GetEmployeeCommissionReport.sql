@@ -11,13 +11,13 @@
  **************************************************************
  ** PR   Date			Author				Change Description
  ** --   --------		-------				--------------------------------
-    1    08-SEPT-2025	Vishal Suthar		Created
-	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
-	3    16-OCT-2025    RAJESH GAMI			handle Null value
-	4    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
-
+	1    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
+    2    08-SEPT-2025	Vishal Suthar		Created
+	3	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
+	4    16-OCT-2025    RAJESH GAMI			handle Null value
+	5    09/July/2026    RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
+CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -112,7 +112,7 @@ BEGIN
 		LEFT JOIN dbo.CreditMemo CM WITH (NOLOCK) ON CM.InvoiceId = BI.BillingInvoicingId AND CM.[Status] = 'Posted'
         WHERE BI.InvoiceStatus = 'Invoiced' AND ISNULL(BI.IsVersionIncrease, 0) = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0
         AND BI.ModuleId IN (@SalesOrderModuleId, @WorkOrderModuleId)
-        AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+        AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND ISNULL(Stk.IsNonStock,0) = 0
     ),
     InvoiceWithPercentageValue AS (
 			SELECT DISTINCT

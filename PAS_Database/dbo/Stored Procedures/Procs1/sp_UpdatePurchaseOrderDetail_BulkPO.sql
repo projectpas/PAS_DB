@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [sp_UpdatePurchaseOrderDetail_BulkPO]           
  ** Author:	   
  ** Description:
@@ -12,9 +12,10 @@
  ** PR   	Date			Author					Change Description            
  ** --   	--------		-------					--------------------------------     
 	1		 
-	2		05/30/2024		Devendra Shekh			stopped updating PO status to Fulfilling
-	3		11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
-	
+	1		05/30/2024		Devendra Shekh			stopped updating PO status to Fulfilling
+	2		11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected Non-Stock branch's PartNumber/PartDescription lookup from legacy dbo.ItemMasterNonStock (aliased IMN) to unified dbo.ItemMaster (aliased IMNS, ON POP.ItemMasterId = IMNS.ItemMasterId), mirroring the equivalent fix already applied in sp_UpdatePurchaseOrderDetail.
 --- exec sp_UpdatePurchaseOrderDetail  214
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
@@ -336,8 +337,9 @@ BEGIN
 			  INNER JOIN dbo.Currency RC WITH (NOLOCK) ON RC.CurrencyId = POP.ReportCurrencyId
 			  LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId
 			  LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId
+			   AND ISNULL(IM.IsNonStock,0) = 0
 			  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON POP.ItemMasterId = AST.AssetRecordId	
-			  LEFT JOIN dbo.ItemMasterNonStock IMN WITH (NOLOCK) ON POP.ItemMasterId = IMN.MasterPartId	
+			  LEFT JOIN dbo.ItemMaster IMNS WITH (NOLOCK) ON POP.ItemMasterId = IMNS.ItemMasterId	
 			  LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = POP.GlAccountId
 			  LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = POP.ConditionId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId			  
@@ -346,6 +348,7 @@ BEGIN
 			  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = POP.AltEquiPartNumberId
+			   AND ISNULL(AIM.IsNonStock,0) = 0
 			  LEFT JOIN dbo.Asset AAST WITH (NOLOCK) ON AAST.AssetRecordId = POP.AltEquiPartNumberId 
 			  LEFT JOIN dbo.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = POP.POPartSplitUserId
 			  LEFT JOIN dbo.Vendor VEN WITH (NOLOCK) ON VEN.VendorId = POP.POPartSplitUserId

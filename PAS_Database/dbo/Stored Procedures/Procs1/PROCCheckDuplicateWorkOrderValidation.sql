@@ -14,11 +14,11 @@
  ** --   --------     -------			--------------------------------          
     1    23/05/2023   MOIN BLOCH		Created
     2    20/05/2025   VISHAL SUTHAR		Skip checking for duplicate  part and serial number for deleted work orders
-     
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC PROCCheckDuplicateWorkOrderValidation 1122,3,'1STYOMPMO7-JD',1
-
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[PROCCheckDuplicateWorkOrderValidation]
+CREATE OR ALTER PROCEDURE [dbo].[PROCCheckDuplicateWorkOrderValidation]
 @CustomerId BIGINT,
 @ItemMasterId BIGINT,
 @SerialNumber VARCHAR(50),
@@ -42,7 +42,7 @@ BEGIN
 			  AND SL.[SerialNumber] = @SerialNumber
 			  AND WP.[IsFinishGood] = 0
 			  AND WP.[IsClosed] = 0
-			  AND WO.IsDeleted = 0;
+			  AND WO.IsDeleted = 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 		  
 	END TRY 
 	BEGIN CATCH      

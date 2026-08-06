@@ -16,6 +16,8 @@
     1    27/06/2023  Devendra SHekh     Created
 	2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
     3    08-05-2026  Ayushi Patel       return Qty and UnitCost price as it is [PN-15140] 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [GetVendorCreditMemoPartsById] 30
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetVendorCreditMemoPartsById]
@@ -61,8 +63,9 @@ BEGIN
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   --LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemodId
 			   LEFT JOIN VendorRMADetail vrmd WITH (NOLOCK) ON CM.VendorRMADetailId = vrmd.[VendorRMADetailId]
-			   LEFT JOIN Stockline sl WITH (NOLOCK) ON vrmd.StockLineId = sl.StockLineId
+			   LEFT JOIN Stockline sl WITH (NOLOCK) ON vrmd.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON vrmd.ItemMasterId=IM.ItemMasterId
+			    AND ISNULL(IM.IsNonStock,0) = 0
 			   LEFT JOIN VendorRMA vr WITH (NOLOCK) ON vr.VendorRMAId = CM.VendorRMAId
 			   LEFT JOIN Vendor v WITH (NOLOCK) ON vr.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0 ;
@@ -99,8 +102,9 @@ BEGIN
 					,'' as 'RMANum'
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemoId
-			   LEFT JOIN Stockline sl WITH (NOLOCK) ON CM.StockLineId = sl.StockLineId
+			   LEFT JOIN Stockline sl WITH (NOLOCK) ON CM.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON sl.ItemMasterId=IM.ItemMasterId
+			    AND ISNULL(IM.IsNonStock,0) = 0
 			   LEFT JOIN Vendor v WITH (NOLOCK) ON vcm.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0;
 			END

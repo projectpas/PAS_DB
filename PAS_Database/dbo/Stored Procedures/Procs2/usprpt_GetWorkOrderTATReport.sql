@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetWorkOrderTATReport]             
  ** Author:   Hemant    
  ** Description: Get Data for WorkOrderTAT Report  
@@ -12,8 +12,6 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date         Author   Change Description              
- ** --   --------     -------  --------------------------------            
  1 30-APR-2022  Hemant  Convert to Angular Reports  
  2 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone      
  3 01/31/2024   Devendra Shekh	added isperforma Flage for WO 
@@ -24,6 +22,9 @@
  8 08-dec-2025  Ayushi Patel	changed the table name workOrderBillingInvoicing -> BillingInvoicing
  9 11-Dec-2025  Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
  10 23-Dec-2025  Ayushi Patel	 Get The Newly versioned invoice 
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date         Author   Change Description              
+ ** --   --------     -------  --------------------------------            
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -200,6 +201,7 @@ BEGIN
 		   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
 		   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
 		   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+		    AND ISNULL(IM.IsNonStock,0) = 0
 		   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
 		   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 		   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
@@ -270,6 +272,7 @@ BEGIN
 	   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
 	   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
 	   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+	    AND ISNULL(IM.IsNonStock,0) = 0
 	   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
 	   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 	   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  

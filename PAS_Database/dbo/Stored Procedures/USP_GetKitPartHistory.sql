@@ -13,6 +13,7 @@
  ** --   --------     -------  --------------------------------            
     1    28-02-2024   Shrey Chandegara    Created 
 	2    05/02/2025   Ayushi Patel		  converted the date into utc (created , updated) , Added a case to get timeZone
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC USP_GetKitPartHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
@@ -96,6 +97,7 @@ BEGIN
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  
@@ -168,6 +170,7 @@ BEGIN
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				WHERE wo.KitId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  

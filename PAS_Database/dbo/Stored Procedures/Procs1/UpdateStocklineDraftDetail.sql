@@ -19,6 +19,8 @@
 	3    18-04-2024   Shrey Chandegara  change for order date 
 	4    25-04-2024   Vishal Suthar		Removed field (WorkOrderId, SalesOrderId, etc.) to get updated from POP which will remove the data of receiver stock report
     5    10-APR-2025  Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
 CREATE     Procedure [dbo].[UpdateStocklineDraftDetail]

@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [ProcGetRoList]
  ** Author:   Moin Bloch
  ** Description: Get Data for Repair Order listing
@@ -14,25 +14,25 @@
  **************************************************************
  ** SN   Date           Author  		Change Description
  ** --   --------		-------------	--------------------------------
-    01	 03-July-2023	Vishal Suthar		Removed script of "MULTIPLE" hover over
-	02	 30-Dec-2024	Abhishek Jirawla	MULTIPLE checking was improper so corrected it and Performance changes implemented
-	03	 03-Mar-2025	Bhargav Saliya		Get New isStkLable value
-	04   10-March-2025  Sahdev Saliya		Added a case to get timeZone
-	05   12-03-2025     Shrey Chandegara    Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	06   18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
-	07	 30-Dec-2024	Vishal Suthar		Removed subqueries and used CTE for Performance imporvement
-	08   07-04-2025     Shrey Chandegara    Modified due to PN-12013
-	09   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
+-- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
+    1	 03-July-2023	Vishal Suthar		Removed script of "MULTIPLE" hover over
+	2	 30-Dec-2024	Abhishek Jirawla	MULTIPLE checking was improper so corrected it and Performance changes implemented
+	3	 30-Dec-2024	Vishal Suthar		Removed subqueries and used CTE for Performance imporvement
+	4	 03-Mar-2025	Bhargav Saliya		Get New isStkLable value
+	5   10-March-2025  Sahdev Saliya		Added a case to get timeZone
+	6   12-03-2025     Shrey Chandegara    Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	7   18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
+	8   07-04-2025     Shrey Chandegara    Modified due to PN-12013
+	9   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
 	10   25-04-2025     HEMANT SALIYA       Modified Fix Default Order Isuee in RO List Created By
 	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
 	13   14-05-2026     Bhargav Saliya      Remove The VendoreId Condition [PN-16416]
 	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
-	16	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
+	15	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
+	16	 09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	17	 16/07/2026		Abhishek Jirawla	Added @StrictVendorId parameter to filter RO list strictly by a single VendorId, independent of the existing @VendorId condition disabled per PN-16416 (PN-16786)
 	18	 22/07/2026		Bhargav Saliya		Changed qtyShipped/qtyRemaining temp columns to DECIMAL(18,6) so they match the decimal type expected by the API (PN-17353)
-
--- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@PageNumber int = null,
@@ -209,7 +209,7 @@ BEGIN
 				FROM #tmpReceivingRoviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
-					WHERE stk.RepairOrderId = TMP.RepairOrderId)
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0) 
 				AS result
 
 			UPDATE TMP1
@@ -378,7 +378,7 @@ BEGIN
 				FROM #tmpReceivingPnviewList TMP
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK)
-					WHERE stk.RepairOrderId = TMP.RepairOrderId
+					WHERE stk.RepairOrderId = TMP.RepairOrderId AND ISNULL(stk.IsNonStock,0) = 0 
 					) AS result
 
 			UPDATE TMP1

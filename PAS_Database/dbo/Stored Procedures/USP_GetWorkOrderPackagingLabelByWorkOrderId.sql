@@ -1,4 +1,4 @@
-﻿/************************************************************************************           
+/************************************************************************************           
  ** File:   [USP_GetWorkOrderPackagingLabelByWorkOrderId]           
  ** Author: 
  ** Description: This stored procedure is used to get USP_GetWorkOrderPackagingLabelByWorkOrderId.
@@ -17,10 +17,11 @@
 	 1    4-30-2025			Amit Ghediya			Created
 	 2    6-12-2025         MOIN BLOCH              Updated BillingInvoice Old To New Table
 	 3    13/01/2025		Amit Ghediya			Get ShippingAccountInfo field
-
+	 4    09/July/2026		RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026		RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT = NULL
 AS

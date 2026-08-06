@@ -28,9 +28,10 @@
 	12	 06/23/2025   Vishal Suthar		Handle the case of having the same stockline after repair
 	13	 10/Jul/2025  Rajesh Gami		Fixed: Added the Stockline History while reserve the stockline in the SO (Create RO from the SO and then receive the RO that time history not inserted)
 	14   17/Apr/2026  Ayushi Patel		Added UOM Conversion Changes [PN-15044]
-	15   03/Aug/2026  Bhargav Saliya	Fixed Create Stockline Issue after Receiving RO [PN-17319]
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters tied to the SalesOrder-linked branches (SalesOrderPartV1/SalesOrderStocklineV1), added during PN-17008 transitional Non-Stock merge phase. The 2 RepairOrder-only branches (lines ~201/466) were left untouched, out of scope.
+	17   03/Aug/2026  Bhargav Saliya	Fixed Create Stockline Issue after Receiving RO [PN-17319]
  EXECUTE USP_CreateSOStocklineFromRO 2667
-
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
 (
@@ -195,6 +196,7 @@ BEGIN
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
                   WHERE SL.StockLineId = @StocklineId and RP.ItemTypeId = 1
 
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				SET @SalesOrderPartId = 0;
 
 				SELECT @SalesOrderPartId = ISNULL(SalesOrderPartId, 0) FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
@@ -264,7 +266,7 @@ BEGIN
                     JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
 					LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON ime.ItemMasterId = IM.ItemMasterId
 					AND SL.IsParent = 1 AND SOP.SalesOrderId = @SalesOrderId
-                    WHERE SL.StockLineId = @StocklineId;
+                    WHERE SL.StockLineId = @StocklineId ;
 
 					SELECT @SalesOrderPartId = SCOPE_IDENTITY()
 
@@ -461,6 +463,7 @@ BEGIN
                   JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
                   WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 
+                 AND ISNULL(IM.IsNonStock,0) = 0
                 IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
 				
@@ -543,7 +546,7 @@ BEGIN
 								SELECT SOPS.StockLineId 
 								FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) 
 								LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
-								WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId);
+								WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId) ;
 
 						SELECT @NewSalesOrderStocklineId = SCOPE_IDENTITY()
 
@@ -583,7 +586,7 @@ BEGIN
 							SELECT SOPS.StockLineId 
 							FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) 
 							LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
-							WHERE SOPS.SalesOrderStocklineId = @ExSalesOrderStocklineId);
+							WHERE SOPS.SalesOrderStocklineId = @ExSalesOrderStocklineId) ;
 
 						EXEC USP_UpdateSOPartCostDetails
 							@SalesOrderId,

@@ -15,7 +15,14 @@
 	exec dbo.USP_GetSummarisedQuotationAnalysisData 8941
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
     @WorkOrderId INT
 AS
 BEGIN
@@ -95,10 +102,10 @@ BEGIN
 			INNER JOIN [dbo].WorkOrderStage s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 			INNER JOIN [dbo].WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
-			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE wo.WorkOrderId = @WorkOrderId
 		--ORDER BY wop.ID
-		)
+		 AND ISNULL(im.IsNonStock,0) = 0 )
 		SELECT *, CASE WHEN ISNULL(Margin, 0) <> 0 AND ISNULL(Revenue, 0) <> 0 THEN CAST((Margin/Revenue) AS FLOAT) * 100.00 ELSE 0 END AS MarginPercentage
 		FROM AnalysisResult ORDER BY ID;
 	END TRY      

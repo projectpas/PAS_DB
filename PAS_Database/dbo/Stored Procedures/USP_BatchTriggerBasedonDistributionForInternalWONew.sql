@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalWONew]
  ** Author:  Moin Bloch
@@ -12,7 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1	 06/06/2025   Moin Bloch     Created
-*** 22   17/Mar/2026  Rajesh Gami	Added UOM Changes [PN-15714]
+*** 2   17/Mar/2026  Rajesh Gami	Added UOM Changes [PN-15714]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew]
@@ -157,6 +158,7 @@ BEGIN
 			[dbo].[ItemMaster] WITH(NOLOCK) 
 			WHERE ItemMasterId=@ItemmasterId 
 
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	        SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -223,6 +225,7 @@ BEGIN
 
 		        SELECT @PiecePN = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 

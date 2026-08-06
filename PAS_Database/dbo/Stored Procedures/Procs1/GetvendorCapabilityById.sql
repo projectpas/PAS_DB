@@ -39,6 +39,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
+					 AND ISNULL(im.IsNonStock,0) = 0
 					LEFT JOIN dbo.Manufacturer m  WITH (NOLOCK) ON im.ManufacturerId = m.ManufacturerId
 					LEFT JOIN dbo.capabilityType ct  WITH (NOLOCK) ON vc.CapabilityTypeId = ct.CapabilityTypeId
 					WHERE vc.VendorId=@VendorId and vc.IsDeleted=0 and vc.IsActive=1

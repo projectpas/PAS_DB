@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderSummarisedChargesData]           
  ** Author:   Hemant Saliya
  ** Description: Get Work Order Summarised Chanrges Details List    
@@ -17,12 +17,12 @@
  ** --   --------     -------		--------------------------------          
     1    02/03/2020   Hemant Saliya		Created
 	2    11/07/2025   Devendra Shekh    added PartNumberLabel
-     
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [GetWorkOrderSummarisedChargesData] 365
-
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetWorkOrderSummarisedChargesData]
+CREATE OR ALTER PROCEDURE [dbo].[GetWorkOrderSummarisedChargesData]
 @WorkOrderId BIGINT
 AS
 BEGIN
@@ -64,9 +64,10 @@ BEGIN
 					JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
 					LEFT JOIN dbo.WorkOrderCharges WC WITH(NOLOCK) ON WOWF.WorkFlowWorkOrderId = WC.WorkFlowWorkOrderId
-					LEFT JOIN  [dbo].StockLine SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId
+					LEFT JOIN  [dbo].StockLine SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 				WHERE WOP.IsDeleted = 0 AND WOP.WorkOrderId = @WorkOrderId AND WC.IsDeleted = 0 AND WC.IsActive = 1
-				GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 
 			END
 		COMMIT  TRANSACTION

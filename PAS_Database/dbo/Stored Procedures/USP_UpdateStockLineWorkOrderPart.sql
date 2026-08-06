@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [USP_UpdateStockLineWorkOrderPart]            
  ** Author:    Priyansh Patel  
@@ -14,6 +14,7 @@
     1    04/11/2025   Priyansh Patel	Created
 	2    25/11/2025   Moin Bloch		Format SP
 	3    04/JUNE/2026 Rajesh Gami		Restrict decreasing the quantity when the Work Order type is Teardown.[PN-16719]
+	4    09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[USP_UpdateStockLineWorkOrderPart] 1052,'ADMIN',2,4,6,5,6,1,1
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [GetStocklineReservedIssuedReportByStocklineId]               
  ** Author: RAJESH GAMI 
  ** Description: Get Stockline Reserved/Issued Report By Stockline Id (Module wise)
@@ -23,8 +22,9 @@
 	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
 	10   13/02/2025    Ayushi Patel   converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
   	11   11-12-2025    RAJESH GAMI		Quantity Related Fields Change Type to DECIMAL
+	12	 09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
-
 **************************************************************/    
 CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
 @StocklineId BIGINT,
@@ -246,6 +246,7 @@ BEGIN
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
 					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+					AND ISNULL(ROP.IsPiecePart, 0) = 0
 						
 				--* END: RepairOrder For Reserve *--
 

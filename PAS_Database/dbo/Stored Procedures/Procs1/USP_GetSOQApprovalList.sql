@@ -20,7 +20,9 @@
 	4    22/Aug/2025  Amit Ghediya		Select Condition
 	5    10-Apr-026   Bhargav Saliya	 UOM Changes
 	6    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	7    09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock parts show full details in the SOQ approval list.
+	9    09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
@@ -188,6 +190,7 @@ BEGIN
 	        	INNER JOIN SalesOrderQuotePart sop WITH (NOLOCK) ON sop.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 	        	LEFT JOIN SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
 	        	LEFT JOIN ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
+		 AND ISNULL(im.IsNonStock,0) = 0
 	        	LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 	        	LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 	        	WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
@@ -277,7 +280,7 @@ BEGIN
                 INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
                 LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
                 LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-                LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.ConsumeUnitOfMeasureId = um.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
                 LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
                 LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
                 LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON soqp.ConditionId = cond.ConditionId

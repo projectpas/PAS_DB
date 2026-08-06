@@ -9,6 +9,7 @@
  ** --   --------					 -------						-------------------------------            
     1   08-AUG-2024				  Ekta Chandegra					Created
 	2   15-AUG-2024				  Ekta Chandegra					Retrieve CustomerId And CurrencyCode
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
 
 -- ==================================================
@@ -91,6 +92,7 @@ BEGIN
 			FROM [DBO].[SpeedQuote] SOQ WITH (NOLOCK)
 			LEFT JOIN [DBO].[SpeedQuotePart] SOQP WITH (NOLOCK) ON SOQP.SpeedQuoteId = SOQ.SpeedQuoteId
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
 			LEFT JOIN [DBO].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = SOQP.ConditionId
 			LEFT JOIN [DBO].[Status] St WITH (NOLOCK) ON St.SatusId = SOQP.StatusId 

@@ -17,9 +17,12 @@
     1    09/19/2024   Vishal Suthar		Created
     2    10/17/2024   Vishal Suthar		Modified to make use of new SOQ Part tables
     3    12/09/2024   Vishal Suthar		Fixed an issue with qty in analysis
-	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
-	5    04-May-2025  Bhargav Saliya	Get UOM name from ItemMaster
+	4    04-May-2025  Bhargav Saliya	Get UOM name from ItemMaster
+	5    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	6    19-Jun-2026  Bhargav Saliya	UOM Changes with added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 exclusions from the StockLine (qs) and ItemMaster joins; Non-Stock parts were showing blank PN/description/qty/PO-RO details in the SOQ Analysis view.
 EXEC [dbo].[USP_GetSOQAnalysisData] 1300
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQAnalysisData]

@@ -19,14 +19,16 @@
 	4    01/12/2023   Moin Bloch    Modify(Added LotId And Lot Number in CommonBatchDetails)
 	5    11/12/2023   Moin Bloch    Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
 	6    09/01/2024   Moin Bloch    Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
-	7    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
-	8	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	9	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	7	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	8    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
+	9	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	10	 23/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
 	11	 15/04/2025   Devendra Shekh Shipping Accounting Entry Issue Resolved
 	12	 17/04/2025   Devendra Shekh Invoice Accounting Entry Issue Resolved
 	13	 24/04/2025	  Devendra Shekh Modify (Added [IsManualText] check for DistributionSetup)
     14   15/04/2026	  RAJESH GAMI		Added UOM Decimal Changes  [PN-15904] 	       
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters from Exchange SO invoice GL journal-entry creation so Non-Stock items are included.
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]

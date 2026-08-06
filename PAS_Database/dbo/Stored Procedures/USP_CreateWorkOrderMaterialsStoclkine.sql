@@ -11,6 +11,7 @@
  ** 1    28-April-2025			Devendra Shekh				Created
  ** 2    27-July-2025			SUMIT						Added notes field in material list [PN-16818]
        
+ 3    09/July/2026			RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderMaterialsStoclkine]  
@@ -32,7 +33,7 @@ BEGIN
 		1, 0, STK.[UnitCost], (ISNULL(STK.UnitCost, 0) * ISNULL(StocklineQuantity, 0)), STK.[UnitCost], TMP.Figure, TMP.[Item], @CreatedMaterial,
 		CASE WHEN ISNULL([IsAltPart], 0) = 1 THEN [IsAlternatePart] ELSE [AltPartMasterPartId] END, [IsAltPart], CASE WHEN ISNULL([IsEquPart], 0) = 1 THEN [IsAlternatePart] ELSE [EquPartMasterPartId] END, [IsEquPart], TMP.[Notes]
 		FROM @tbl_WorkOrderMaterialsType TMP
-		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 		 
 	COMMIT TRANSACTION  
 	END TRY      

@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------
 	1    10/30/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetPMAPartNumbersByPartId]
@@ -28,7 +29,7 @@ BEGIN
 		FROM dbo.ItemMaster IM WITH (NOLOCK)
 		INNER JOIN dbo.ItemMaster IM1 WITH (NOLOCK) ON IM.IsOemPNId = IM1.ItemMasterId
 		WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 
-		AND IM.IsOemPNId = @PartId;
+		AND IM.IsOemPNId = @PartId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM1.IsNonStock,0) = 0 ;
 	END TRY
 	BEGIN CATCH      
 	IF @@trancount > 0

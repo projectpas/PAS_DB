@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -15,10 +15,12 @@
 	2	 01/02/2024	 AMIT GHEDIYA  added isperforma Flage for SO
 	3    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
     4    07-07-2025  Moin Bloch         Changed Old To New Billing Table 
-
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (9 individual checks) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- EXEC USP_Lot_GetAllLotViewsByLotId 7,'ViewAllPN',1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId]
+CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId]
 @LotId bigint, 
 @Type VARCHAR(50) = '',
 @MasterCompanyId int
@@ -182,7 +184,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				ORDER BY ltin.CreatedDate DESC
+				 ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNInStockView'))
 			BEGIN
@@ -289,7 +291,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(ltCal.Type) NOT IN (UPPER(@LOT_TransOut_SO), UPPER(@LOT_TransOut_RO),UPPER(@LOT_TransOut_LOT)))
-				 ORDER BY ltin.CreatedDate DESC
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNSoldView'))
 			BEGIN
@@ -403,7 +405,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
-				 ORDER BY ltin.CreatedDate DESC
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('RepairedView'))
 			BEGIN
@@ -511,7 +513,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(ltCal.Type) = UPPER(@LOT_TransIn_RO))
-				 ORDER BY ltin.CreatedDate DESC
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('OtherCost'))
 			BEGIN

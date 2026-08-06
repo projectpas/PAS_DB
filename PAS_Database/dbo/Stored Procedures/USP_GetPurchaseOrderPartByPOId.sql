@@ -12,14 +12,15 @@
 ** --   --------		-------				--------------------------------
 ** 1    18-Oct-2024		RAJESH GAMI		    CREATED
    2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
-   3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
-   4    08-DEC-2025     Rajesh Gami         Added DecimalPlaces
-   5    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
-   6    14-APR-2025     Rajesh Gami         DraftedStocklineCount added as a decimal : [PN-16065]
+   3    14-APR-2025     Rajesh Gami         DraftedStocklineCount added as a decimal : [PN-16065]
+   4    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
+   5    08-DEC-2025     Rajesh Gami         Added DecimalPlaces
+   6    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
    7    14-APR-2026     DB Review           Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
    8    28-Apr-2026	    Nakul Chandigra 	Added New Fields (PN-16150)
    9	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
-
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock branch of the PartNumber CASE (both parent-row and child-row INSERTs) now reads DBO.ItemMaster (IsNonStock=1) instead of the legacy DBO.ItemMasterNonStock table, which stopped receiving new rows after the PN-17008 merge. Fixes: after saving a Non-Stock PN on a PO part line, the PN dropdown showed blank/empty on reload (Stock PN lines were unaffected).
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 8225 ,NULL,NULL
 **************************************************************/ 
 
@@ -560,8 +561,8 @@ BEGIN
 								SalesOrderQuoteId,
 								SalesOrderQuoteNumber,Class,DecimalPlaces,AircraftRegistryNumber,IsFromAircraft,AircraftInstalledPartDetailsId,ACTailNum
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
-										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
+										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsNonStock,0) = 1 )
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,
 									(CASE WHEN @ItemTypeId = @ItemTypeIdAsset THEN (SELECT TOP 1 Description  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
@@ -672,8 +673,8 @@ BEGIN
 								POPartSplitAddress1,
 								POPartSplitUserTypeId,POPartSplitUserType,POPartSplitUserId,POPartSplitUser,POPartSplitSiteId,POPartSplitSiteName,POPartSplitCountryName,Class,DecimalPlaces
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
-										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
+										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsNonStock,0) = 1 )
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,
 									(CASE WHEN @ItemTypeId = @ItemTypeIdAsset THEN (SELECT TOP 1 Description  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
@@ -777,6 +778,7 @@ BEGIN
 						0 DiscountPerUnit,
 						IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId					
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				END
 	--------------- END : Work Order Materials ----------------
 
@@ -847,6 +849,7 @@ BEGIN
 							IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId		
 					
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				END
 	--------------- END : Sub Work Order Materials ----------------
 				

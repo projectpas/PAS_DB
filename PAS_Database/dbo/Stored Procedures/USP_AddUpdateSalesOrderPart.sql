@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderPart]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -16,18 +16,20 @@
 	5    12/07/2014   Moin Bloch		Modified to add AltOrEqType
 	6    12-12-2024   Vishal Suthar		Modified query that updates QtyOrder to Part Cost when No stockline is there
 	7    16-12-2024   Shrey Chandegara  Updated for @PriorityId in  not update proper
-	5    05-07-2015   BHARGAV SALIYA	Change the Save SOQ Order Using @SOMInID
-	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
-	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
-	8    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
-	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	10   25/06/2026   Bhargav Saliya    Resolved issue [PN-17001]
+	8    05-07-2015   BHARGAV SALIYA	Change the Save SOQ Order Using @SOMInID
+	9    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
+	10    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
+	11    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	12    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	13   25/06/2026   Bhargav Saliya    Resolved issue [PN-17001]
+	14    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	15    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SO part stockline.
+	16   30/July/2026	  MOIN BLOCH        [PN-17485] - Added [IsService],[IsNonStock] Conditions If IsNonStock then Create StockLine
+	17   01/July/2026	  MOIN BLOCH        [PN-17485] - Update QtyOnhand And Qty Reserved in Stockline on update Part Qty
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
-
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
-
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
@@ -210,7 +212,7 @@ BEGIN
 			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
 			BEGIN
 				DECLARE @CurrencyCode VARCHAR(10) = '';
-				DECLARE @CurrencyId BIGINT = 0;
+				DECLARE @CurrencyId BIGINT = 0,@IsService BIT = 0,@IsNonStock BIT = 0								 
 			
 				SELECT @CurrencyId = Curr.CurrencyId, @CurrencyCode = Curr.Code FROM [DBO].[CustomerFinancial] CF WITH (NOLOCK) 
 				LEFT JOIN [DBO].[Currency] Curr WITH (NOLOCK) ON CF.CurrencyId = Curr.CurrencyId 
@@ -244,6 +246,19 @@ BEGIN
 				@NetSalesAmt, NULL, NULL, @TaxAmount, TaxPercentage, @UnitCost, ISNULL((@UnitCost * @QtyOrder), 0), @MarginAmount, MarginPercentage, 0,
 				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM #SOPartDetails WHERE ID = @SOMInID;				
+
+				SELECT @IsService = ISNULL([IsService],0), @IsNonStock = ISNULL([IsNonStock],0) FROM [dbo].[ItemMaster] WITH (NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			
+				IF(@IsService = 1 AND @IsNonStock = 1 AND ISNULL(@StockLineId, 0) = 0)
+				BEGIN				
+					EXEC [dbo].[USP_CreateStocklineForNosStockSalesOrderPart] 
+							   @SalesOrderId = @SalesOrderId,
+							   @SalesOrderPartId = @SalesOrderPartId,
+							   @ItemMasterId = @ItemMasterId,
+							   @CreatedBy = @CreatedBy,
+							   @MasterCompanyId = @MasterCompanyId,
+							   @StockLineId = @StockLineId OUTPUT;
+				END
 			END
 			ELSE
 			BEGIN
@@ -428,6 +443,26 @@ BEGIN
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			END
 			
+			-- Update Stock Line For Non-Stock On Update
+			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) 
+			BEGIN
+				SELECT @StockLineId = [StockLineId] FROM [dbo].[SalesOrderStocklineV1] WITH(NOLOCK) WHERE [SalesOrderStocklineId] = @SalesOrderStocklineId;
+
+				SELECT @IsService = ISNULL([IsService],0), @IsNonStock = ISNULL([IsNonStock],0) FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StockLineId
+				IF(@IsService = 1 AND @IsNonStock = 1 AND ISNULL(@StockLineId, 0) > 0)
+				BEGIN				
+					UPDATE [dbo].[Stockline] 
+					   SET [QuantityOnHand] = @QtyRequested,							   
+						   [QuantityReserved] = @QtyRequested
+					 WHERE [StockLineId] = @StockLineId
+
+					UPDATE [dbo].[SalesOrderStocklineV1]
+					   SET [QtyOrder] = @QtyRequested,							   
+						   [QtyReserved] = @QtyRequested
+					 WHERE [StockLineId] = @StockLineId
+				END	
+			END
+
 			--Reset Approval Process
 			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
 			BEGIN

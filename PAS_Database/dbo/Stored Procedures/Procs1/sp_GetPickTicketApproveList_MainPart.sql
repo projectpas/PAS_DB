@@ -17,12 +17,14 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    09/16/2021   Hemant Saliya		Created
-    1    01/01/2024   Devendra Shekh	update for SerialNumber
+    2    01/01/2024   Devendra Shekh	update for SerialNumber
  	3    05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]    
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetPickTicketApproveList_MainPart]
 	@referenceId bigint,
 	@wfwoId bigint
 AS
@@ -59,13 +61,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			FROM dbo.WorkOrderWorkFlow wowf WITH (NOLOCK)
 				INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 				INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-				LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
+				LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 				LEFT JOIN WOPickTicket wopt WITH (NOLOCK) on wopt.WorkorderId = wop.WorkOrderId and wopt.OrderPartId = wop.ID
 				LEFT JOIN Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 			WHERE wowf.WorkOrderId = @referenceId AND (@IsTearDownWO = 1 OR wop.IsFinishGood = 1)
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
-			GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
+			 AND ISNULL(imt.IsNonStock,0) = 0
+				 GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
 				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.RevisedSerialNumber;
 				
 		END

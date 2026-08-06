@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetPickTicketChildList_MainPart]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket childlist data   
@@ -18,10 +18,10 @@
 	2    01/01/2024   Devendra Shekh	update for serialnumber
 	3    02/17/2025   Bhargav Saliya	UTC Date Changes
 	4    07/03/2025   Vishal Suthar		Added EnforceMpnPickTicketConfirmation column
-
+	5    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC DBO.sp_GetPickTicketChildList_MainPart @referenceId=20751,@OrderPartId =618
 **************************************************************/ 
-CREATE   Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetPickTicketChildList_MainPart]
 	@referenceId BIGINT,
 	@OrderPartId BIGINT,
 	@EmployeeId BIGINT = 0
@@ -53,7 +53,7 @@ BEGIN
 		from DBO.WOPickTicket wopt WITH (NOLOCK)
 		INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId
 		INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkorderId and wowf.WorkOrderPartNoId = wop.ID
-		LEFT JOIN DBO.StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StocklineId
+		LEFT JOIN DBO.StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN DBO.Employee emp WITH (NOLOCK) on emp.EmployeeId = wopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH (NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 		LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) on WO.WorkOrderId = wopt.WorkorderId

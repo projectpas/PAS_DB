@@ -16,6 +16,7 @@
 	3    28-11-2024   Moin Bloch        Added New Field
 	4    28-11-2024   Moin Bloch        Updated fixed Management Structuer duplicate issue
 	5	 09/04/2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
@@ -263,7 +264,7 @@ BEGIN
 					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId] AND EUR.[EmployeeId] = @EmployeeId		            
 				WHERE (CCC.[MasterCompanyId] = @MasterCompanyId AND CCC.[IsActive] = 1 AND CCC.[IsDeleted] = @IsDeleted)		
 				
-				), ResultCount AS(SELECT COUNT([CycleCountId]) AS totalItems FROM Result)
+				 AND ISNULL(ITM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([CycleCountId]) AS totalItems FROM Result)
 			SELECT * INTO #TempResult2 FROM  Result
 			WHERE ((@GlobalFilter <>'' AND (([CycleCountNumber] LIKE '%' +@GlobalFilter+'%' ) OR 					
 					([partnumber] LIKE '%' +@GlobalFilter+'%') OR

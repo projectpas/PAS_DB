@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
@@ -22,8 +22,8 @@
 	8    01/07/2025   Vishal Suthar	   Inserting EnforceMpnPickTicketConfirmation flag in WorkOrder table
 	9    24/09/2025   RAJESH GAMI		Added MPN Notes
 	10   15/10/2025   Moin Bloch        Added SalesPersion Details
-	11   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
-	12   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
+	11   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
+	12   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
 	13	 20/01/2026   Priyansh Patel  	Added CSN, TSN, CSO, TSO fields from receiving customer
 	14	 30/01/2026   Moin Bloch     	Added IncomingPartNumber
 	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
@@ -34,9 +34,9 @@
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
-	23   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
-	24   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
-
+	23   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
+	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	25   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]

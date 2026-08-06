@@ -1,4 +1,4 @@
-﻿
+
 
 /*************************************************************           
  ** File:   [UpdateItemMasterExportInfoDetails]           
@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06-Apr-2021   Moin Bloch   Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC UpdateItemMasterExportInfoDetails 351
 **************************************************************/ 

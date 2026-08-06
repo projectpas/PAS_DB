@@ -19,6 +19,7 @@
 	3	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
 	4    17/11/2024	  Ayuhi Patel			Added logic to set @ProvisionId
 	5    29/06/2026	  Ayuhi Patel			Added type decimal to qty [PN-17004]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 declare @p1 dbo.WorkOrderMaterialKitType
 insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'ADMIN User',N'ADMIN User','2023-09-05 05:42:00','2023-11-06 02:25:00',1,0)
 
@@ -191,7 +192,7 @@ BEGIN
 					END
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
-					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
+					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId ;
 					SELECT @ProvisionId = PROV.ProvisionId
 					FROM [DBO].[KitMaster] PROV
 					WHERE PROV.KitId = @KitId;

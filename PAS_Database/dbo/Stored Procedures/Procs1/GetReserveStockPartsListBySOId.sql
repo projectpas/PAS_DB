@@ -223,12 +223,13 @@ BEGIN
 		SOP.ControlNumber,
 		SOP.StockType,
 		SOP.MasterCompanyId,
-		LotId,
-		IsLotQty,
-		[IsService],
-		[IsNonStock]
+		SOP.LotId,
+		SOP.IsLotQty,
+		SOP.[IsService],
+		SOP.[IsNonStock]
 		FROM FinalSalesOrderParts SOP
-		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId AND SOP.StockLineId = Stk.StockLineId)
+		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId AND SOP.StockLineId = Stk.StockLineId
+		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON qs.StockLineId = SOP.StockLineId)
 
 		SELECT DISTINCT SalesOrderId,
 		ItemMasterId,

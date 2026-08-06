@@ -20,7 +20,7 @@
 	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
 	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE OR ALTER FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
+CREATE FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
 (  
    @ModuleId BIGINT = NULL,
    @ReferenceId BIGINT = NULL,

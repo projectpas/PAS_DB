@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_CreateSubWorkOrderMaterialsStoclkine]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create work order materials
@@ -13,7 +13,7 @@
  2    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
-CREATE OR ALTER PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]  
+CREATE PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]  
 	@tbl_SubWorkOrderMaterialsType [SubWorkOrderMaterialsType] READONLY
 AS  
 BEGIN  

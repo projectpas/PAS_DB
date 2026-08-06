@@ -21,7 +21,7 @@
 	5    23/July/2026		RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
+CREATE PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT = NULL
 AS

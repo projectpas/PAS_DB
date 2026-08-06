@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetBillingInvoicingDetails]           
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
@@ -21,7 +21,7 @@
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[GetBillingInvoicingDetails]
+CREATE PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @EmployeeId BIGINT=NULL,

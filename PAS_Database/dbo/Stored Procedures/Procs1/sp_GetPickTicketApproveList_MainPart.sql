@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList_MainPart]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get WO MPN List that are Ready to Pick.    
@@ -24,7 +24,7 @@
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetPickTicketApproveList_MainPart]
+CREATE PROCEDURE [dbo].[sp_GetPickTicketApproveList_MainPart]
 	@referenceId bigint,
 	@wfwoId bigint
 AS

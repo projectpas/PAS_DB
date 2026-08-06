@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   UPDATE CUSTOMER IN WO           
  ** Author:  HEMANT SALIYA  
  ** Description: This SP Is Used to Update Customer from WO
@@ -20,7 +20,7 @@ exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
-CREATE OR ALTER PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
+CREATE PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
 @WorkOrderId BIGINT = NULL,  
 @WorkOrderPartNoId BIGINT = NULL,
 @CustomerId BIGINT = NULL,  

@@ -26,7 +26,7 @@
  ** --   --------		-------				--------------------------------          
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
+CREATE PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,

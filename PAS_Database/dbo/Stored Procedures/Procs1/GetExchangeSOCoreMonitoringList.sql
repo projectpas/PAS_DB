@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
 --EXEC GetExchangeSOCoreMonitoringList 10075
 ************************************************************************/
 /*************************************************************
@@ -8,7 +8,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetExchangeSOCoreMonitoringList]
+CREATE PROCEDURE [dbo].[GetExchangeSOCoreMonitoringList]
 @ExchangeSalesOrderId bigint
 AS
 BEGIN

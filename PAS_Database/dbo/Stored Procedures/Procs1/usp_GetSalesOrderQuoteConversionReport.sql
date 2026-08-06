@@ -24,7 +24,7 @@
  ** --   --------     -------			--------------------------------          
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteConversionReport] '','2020-06-15','2021-06-15','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetSalesOrderQuoteConversionReport] @customername varchar(40) = NULL,
+CREATE PROCEDURE [dbo].[usp_GetSalesOrderQuoteConversionReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,

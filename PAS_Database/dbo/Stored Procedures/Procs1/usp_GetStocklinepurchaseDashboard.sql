@@ -23,7 +23,7 @@
 EXECUTE   [dbo].[usp_GetStocklinepurchaseDashboard] 
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetStocklinepurchaseDashboard]
+CREATE PROCEDURE [dbo].[usp_GetStocklinepurchaseDashboard]
 AS
 BEGIN
   SET NOCOUNT ON;

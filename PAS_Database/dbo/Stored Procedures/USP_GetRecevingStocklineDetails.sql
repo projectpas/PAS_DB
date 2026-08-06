@@ -18,7 +18,7 @@
  ** --   --------         -------          --------------------------------            
     exec [dbo].[USP_GetRecevingStocklineDetails]
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetRecevingStocklineDetails]
+CREATE PROCEDURE [dbo].[USP_GetRecevingStocklineDetails]
     @ItemMasterId BIGINT = NULL,
     @ConditionId BIGINT = NULL
 AS

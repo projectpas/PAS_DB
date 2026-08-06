@@ -31,7 +31,7 @@
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **********************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GenerateDashboardDataByMS] 
+CREATE PROCEDURE [dbo].[GenerateDashboardDataByMS] 
 	@EmployeeId BIGINT = NULL,
 	@MasterCompanyId INT = NULL,
 	@SelectedDate DATETIME = NULL

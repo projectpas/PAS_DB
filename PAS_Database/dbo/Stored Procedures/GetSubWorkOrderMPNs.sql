@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSubWorkOrderMPNs]           
  ** Author:  Abhishek Jirawla
  ** Description: This stored procedure is used to Get sub work order MPNs
@@ -15,7 +15,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetSubWorkOrderMPNs]
+CREATE PROCEDURE [dbo].[GetSubWorkOrderMPNs]
     @SubWorkOrderId BIGINT
 AS
 BEGIN

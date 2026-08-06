@@ -39,6 +39,7 @@ BEGIN
   BEGIN TRY        
       
  DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 0;
+ DECLARE @maxQtyLimit INT = 500;
 
   SELECT DISTINCT      
   part.PurchaseOrderId,      

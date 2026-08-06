@@ -1,4 +1,4 @@
-﻿/***********************************************************************************************           
+/***********************************************************************************************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -31,7 +31,7 @@
 --EXEC [GetAccountingDetailsViewpopupById] 10206,10413
 *************************************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
+CREATE PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
 @WorkOrderPartNumberId bigint    
 AS    

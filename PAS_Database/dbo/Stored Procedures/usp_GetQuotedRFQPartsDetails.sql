@@ -13,7 +13,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE [dbo].[usp_GetQuotedRFQPartsDetails] 9, 95633, 1   
 **************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetQuotedRFQPartsDetails]
+CREATE PROCEDURE [dbo].[usp_GetQuotedRFQPartsDetails]
 @CustomerRfqId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL,
 @MasterCompanyId INT = NULL

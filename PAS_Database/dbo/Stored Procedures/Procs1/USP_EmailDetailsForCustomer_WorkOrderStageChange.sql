@@ -13,7 +13,7 @@
     2    20-Feb-2025   Bhargav Saliya	Handle NULL Value
     3    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
+CREATE PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
 @WorkOrderId BIGINT,
 @WorkOrderStageId BIGINT,
 @WorkOrderPartNumberId BIGINT

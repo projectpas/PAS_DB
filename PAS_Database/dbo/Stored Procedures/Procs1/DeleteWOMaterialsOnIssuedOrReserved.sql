@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 -- =============================================
 -- Author:		<Ayesha Sultana>
 -- Create date: <26-7-2023>
@@ -20,7 +20,7 @@
 	8    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 EXEC [dbo].[DeleteWOMaterialsOnIssuedOrReserved] 61067,'ADMIN User'
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
+CREATE PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
 @WorkFlowWorkOrderId BIGINT,
 @UpdatedBy VARCHAR(255) = NULL
 AS

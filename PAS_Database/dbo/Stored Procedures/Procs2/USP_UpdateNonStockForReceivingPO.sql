@@ -214,7 +214,7 @@ BEGIN
    StkDraft.ShippingViaId = CASE WHEN TmpStkDraft.ShippingViaId > 0 THEN TmpStkDraft.ShippingViaId ELSE NULL END,    
    StkDraft.ShippingReference = TmpStkDraft.ShippingReference,    
    StkDraft.ShippingAccount = TmpStkDraft.ShippingAccount,    
-   StkDraft.MfgExpirationDate = TmpStkDraft.MfgExpirationDate,   
+   StkDraft.ExpirationDate = TmpStkDraft.MfgExpirationDate,
    StkDraft.IsSameDetailsForAllParts = TmpStkDraft.IsSameDetailsForAllParts, 
    StkDraft.TimeLifeDetailsNotProvided = TmpStkDraft.TimeLifeDetailsNotProvided,  
    StkDraft.SerialNumberNotProvided = TmpStkDraft.SerialNumberNotProvided,  

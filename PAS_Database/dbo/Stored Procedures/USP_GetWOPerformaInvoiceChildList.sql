@@ -23,7 +23,7 @@
 	EXEC [USP_GetWOPerformaInvoiceChildList] 3543,3013
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOPerformaInvoiceChildList]
+CREATE PROCEDURE [dbo].[USP_GetWOPerformaInvoiceChildList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartId BIGINT
 AS

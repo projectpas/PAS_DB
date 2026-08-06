@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [ProcStockListForBulkUnitSalesPriceUpdate]               
  ** Author:  Rajesh Gami  
  ** Description: This stored procedure is used to get stockline list fro bulk unit sales price update      
@@ -30,7 +30,7 @@
 									 (no toggle - this feature does not apply to Non-Stock/Service items).
 -- EXEC [ProcStockList] 947
 **************************************************************/   
-CREATE OR ALTER PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
+CREATE PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        

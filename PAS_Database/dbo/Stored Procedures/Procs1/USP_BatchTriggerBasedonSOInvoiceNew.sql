@@ -43,7 +43,7 @@ EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
 exec [dbo].[USP_BatchTriggerBasedonSOInvoiceNew] 7,913,0,0,3400,0,0,0,'SO',1,'RAJESH GAMI',1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
+CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 	@DistributionMasterId BIGINT = NULL,
 	@ReferenceId BIGINT = NULL,
 	@ReferencePartId BIGINT = NULL,

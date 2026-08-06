@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetItemMasterForExchange_ById]           
  ** Author:   Devendra Shekh
  ** Description: Get ItemMaster Data for Exchnage loan By Id - for exchangepart
@@ -25,7 +25,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE [USP_GetItemMasterForExchange_ById] 397, 1, NULL, -1, 0
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetItemMasterForExchange_ById]
+CREATE PROCEDURE [dbo].[USP_GetItemMasterForExchange_ById]
 @ItemMasterId BIGINT = NULL, 
 @ConditionId BIGINT = NULL,
 @CustomerId BIGINT = NULL,

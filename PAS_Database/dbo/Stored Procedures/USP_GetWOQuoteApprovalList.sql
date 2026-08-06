@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File: [USP_GetWOQuoteApprovalList]             
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get WO Quote Approval List
@@ -16,7 +16,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [dbo].[USP_GetWOQuoteApprovalList] 7832
 ************************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOQuoteApprovalList]  
+CREATE PROCEDURE [dbo].[USP_GetWOQuoteApprovalList]  
 @WorkOrderQuoteId BIGINT  
 AS  
 BEGIN  

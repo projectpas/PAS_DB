@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_Exchange_Quote]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair
@@ -20,7 +20,7 @@
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from Stockline and ItemMaster joins used for tax site lookup.
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange_Quote] 368
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote] 
+CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote] 
 @ExchangeQuoteId BIGINT
 AS
 BEGIN

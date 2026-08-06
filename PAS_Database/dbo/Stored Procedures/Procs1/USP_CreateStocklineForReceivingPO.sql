@@ -490,7 +490,6 @@ BEGIN
                         JOIN dbo.Stockline st WITH (NOLOCK) ON st.StockLineId = ls.StockLineId
                         JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId;
 
-                         WHERE ISNULL(IM.IsNonStock,0) = 0
                         DELETE FROM #tmpCodePrefixes;
 
                         INSERT INTO #tmpCodePrefixes

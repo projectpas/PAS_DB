@@ -24,7 +24,7 @@
 -- EXEC [USP_GetInternalWorkorderDeatils] 2940
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetInternalWorkorderDeatils]
+CREATE PROCEDURE [dbo].[USP_GetInternalWorkorderDeatils]
 @WorkOrderPartNoId bigint 
 AS
 BEGIN

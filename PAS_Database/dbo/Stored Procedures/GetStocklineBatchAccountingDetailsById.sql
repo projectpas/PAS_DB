@@ -1,4 +1,4 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		<AMIT GHEDIYA>
 -- Create date: <04-10-2024>
 -- Description:	<This stored procedure is used Get AccountingDetailsById for Stockline Batch>
@@ -16,7 +16,7 @@
 ************************/ 
 --[dbo].[GetStocklineBatchAccountingDetailsById] 181156
 -- =============================================
-CREATE OR ALTER PROCEDURE [dbo].[GetStocklineBatchAccountingDetailsById]
+CREATE PROCEDURE [dbo].[GetStocklineBatchAccountingDetailsById]
 @ReferenceId BIGINT ,
 @EmployeeId bigint
 AS

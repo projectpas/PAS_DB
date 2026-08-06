@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExchangeSalesOrderPackagingLabelBySalesOrderId]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to GetExchangeSalesOrderPackagingLabelBySalesOrderId
@@ -18,7 +18,7 @@
     3     24/July/2026   RAJESH GAMI     [PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- EXEC GetExchangeSalesOrderPackagingLabelBySalesOrderId @ExchangeId=157 , @SalesOrderPartId=147
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetExchangeSalesOrderPackagingLabelBySalesOrderId]
+CREATE PROCEDURE [dbo].[GetExchangeSalesOrderPackagingLabelBySalesOrderId]
     @ExchangeId BIGINT,
     @SalesOrderPartId BIGINT
 AS

@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
  ** Author:    
  ** Description: Get Search Data for ExchangeCoreTrackingList   
@@ -17,7 +17,7 @@
 **********************/   
 
 --exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
-CREATE OR ALTER PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
+CREATE PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,

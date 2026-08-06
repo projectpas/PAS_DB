@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_WorkOrderMaterials_GetStockLineList_ReserveIssue]           
  ** Author:   Devendra Shekh
  ** Description: This SP is Used to get Stockline list to reserve/issue material / kit Stockline    
@@ -17,7 +17,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec usp_WorkOrderMaterials_GetStockLineList_ReserveIssue @WorkFlowWorkOrderId=9904,@ItemMasterId=0,@WorkOrderMaterialsId=0,@KitId=0,@IncludeCustomerStock=0
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[usp_WorkOrderMaterials_GetStockLineList_ReserveIssue]
+CREATE PROCEDURE [dbo].[usp_WorkOrderMaterials_GetStockLineList_ReserveIssue]
 (    
 	@WorkFlowWorkOrderId BIGINT = NULL,
 	@ItemMasterId BIGINT = NULL,

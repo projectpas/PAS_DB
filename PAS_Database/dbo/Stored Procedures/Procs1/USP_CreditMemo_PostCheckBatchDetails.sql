@@ -38,7 +38,7 @@
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
 **************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_CreditMemo_PostCheckBatchDetails]
+CREATE PROCEDURE [dbo].[USP_CreditMemo_PostCheckBatchDetails]
 @CreditMemoHeaderId BIGINT
 AS
 BEGIN 

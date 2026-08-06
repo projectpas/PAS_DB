@@ -21,7 +21,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
  @PageNumber INT = 1,    
  @PageSize INT = NULL,    
  @mastercompanyid INT,    

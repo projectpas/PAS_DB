@@ -24,7 +24,7 @@
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetWorkOrderTrackingList_Report] 
+CREATE PROCEDURE [dbo].[GetWorkOrderTrackingList_Report] 
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,

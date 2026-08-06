@@ -20,7 +20,7 @@
  ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetGMWODashboard] 
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetGMWODashboard]
+CREATE PROCEDURE [dbo].[usp_GetGMWODashboard]
 AS
 BEGIN
   SET NOCOUNT ON;

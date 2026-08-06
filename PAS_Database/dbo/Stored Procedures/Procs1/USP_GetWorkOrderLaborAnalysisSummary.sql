@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisSummary]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -26,7 +26,7 @@
  EXECUTE USP_GetWorkOrderLaborAnalysisSummary 9752, 0,false
 **************************************************************/ 
     
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisSummary]    
+CREATE PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisSummary]    
 (    
 @WorkOrderId BIGINT = NULL,   
 @WorkOrderPartNoId BIGINT  = NULL,

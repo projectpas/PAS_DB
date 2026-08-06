@@ -18,7 +18,7 @@
 	2    09/July/2026   RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
   EXEC dbo.USP_VendorRMA_UpdateRMAStatus 60
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_VendorRMA_UpdateRMAStatus]    
+CREATE PROCEDURE [dbo].[USP_VendorRMA_UpdateRMAStatus]    
 @VendorRMAId  BIGINT = NULL,
 @UpdatedBy VARCHAR(100) = NULL
 AS    

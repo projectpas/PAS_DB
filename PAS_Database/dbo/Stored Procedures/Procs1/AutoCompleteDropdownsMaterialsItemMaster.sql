@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
@@ -21,7 +21,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[AutoCompleteDropdownsMaterialsItemMaster]
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsMaterialsItemMaster]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [USP_GetWOPerformaInvoiceList]           
  ** Author:	  Devendra Shekh
  ** Description: This SP is Used to get list of performa Invoices for WO Part    
@@ -21,7 +21,7 @@
  -- EXEC [dbo].[USP_GetWOPerformaInvoiceList] 4177, 3668, 0
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOPerformaInvoiceList]
+CREATE PROCEDURE [dbo].[USP_GetWOPerformaInvoiceList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartNumberId  BIGINT
 AS

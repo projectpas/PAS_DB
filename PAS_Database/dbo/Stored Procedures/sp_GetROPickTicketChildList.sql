@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [sp_GetROPickTicketChildList]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Pick ticket child table list
@@ -18,7 +18,7 @@
 	2    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
   EXEC [dbo].[sp_GetROPickTicketChildList] 2547, 20751, 1, 2
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetROPickTicketChildList]
+CREATE PROCEDURE [dbo].[sp_GetROPickTicketChildList]
 	@RepairOrderId BIGINT,
 	@RepairOrderPartId BIGINT,
 	@EmployeeId BIGINT

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[GetPNTilePurchaseOrderList]      
  ** Author:    
  ** Description: Get PNTile PurchaseOrderList
@@ -17,7 +17,7 @@
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Purchase Order History (PN Tile): removed IsNonStock/ItemType exclusions from part join and WHERE clause.
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
+CREATE PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

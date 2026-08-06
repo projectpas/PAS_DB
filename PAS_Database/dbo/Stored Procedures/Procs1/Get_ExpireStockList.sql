@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [CreateStocklineForFinishGoodMPN]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used Get Stockline For Expired Stockline.        
@@ -21,7 +21,7 @@
 -- EXEC [Get_ExpireStockList] 947    
 **************************************************************/    
     
-CREATE OR ALTER PROCEDURE [dbo].[Get_ExpireStockList]    
+CREATE PROCEDURE [dbo].[Get_ExpireStockList]    
 @PageNumber int = NULL,    
 @PageSize int = NULL,    
 @SortColumn varchar(50)=NULL,    

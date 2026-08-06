@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetROShippingParentList]           
  ** Author:   
  ** Description: 
@@ -20,7 +20,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  -- [dbo].[sp_GetROShippingParentList] 2561
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetROShippingParentList]
+CREATE PROCEDURE [dbo].[sp_GetROShippingParentList]
 	@RepairOrderId  bigint
 AS
 BEGIN

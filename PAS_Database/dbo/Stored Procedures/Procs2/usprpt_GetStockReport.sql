@@ -20,7 +20,7 @@
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetStockReport]     
+CREATE PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
 @PageSize int = NULL,    
 @mastercompanyid int,    

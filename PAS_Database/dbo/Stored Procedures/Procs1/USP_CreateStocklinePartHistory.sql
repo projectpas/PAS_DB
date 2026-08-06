@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CreateStocklinePartHistory]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Store Stock Line History
@@ -16,7 +16,7 @@
 *******************************************************************************
 EXEC USP_CreateStocklinePartHistory 1,0,0,2,1
 *******************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_CreateStocklinePartHistory] 
+CREATE PROCEDURE [dbo].[USP_CreateStocklinePartHistory] 
 (
 	@StocklineId BIGINT = NULL,
 	@IsPO bit=0,

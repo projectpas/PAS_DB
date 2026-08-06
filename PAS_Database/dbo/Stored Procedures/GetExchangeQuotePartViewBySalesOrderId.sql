@@ -19,7 +19,7 @@
 	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine join and WHERE clause.
  EXEC GetExchangeQuotePartViewBySalesOrderId @ExchangeSalesOrderId=165
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetExchangeQuotePartViewBySalesOrderId]
+CREATE PROCEDURE [dbo].[GetExchangeQuotePartViewBySalesOrderId]
     @ExchangeSalesOrderId BIGINT
 AS
 BEGIN

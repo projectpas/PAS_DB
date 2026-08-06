@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   [usp_GetSalesQuoteVerificationResult]             
  ** Author:  Ekta Chnadegra 
  ** Description: This stored procedure is used to GetSalesQuoteVerificationResult
@@ -18,7 +18,7 @@
     3     22/July/2026      RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 -- exec dbo.usp_GetSalesQuoteVerificationResult @SalesOrderQuoteId=937
 ************************/   
-CREATE OR ALTER PROCEDURE [dbo].[usp_GetSalesQuoteVerificationResult]
+CREATE PROCEDURE [dbo].[usp_GetSalesQuoteVerificationResult]
     @SalesOrderQuoteId BIGINT
 AS
 BEGIN

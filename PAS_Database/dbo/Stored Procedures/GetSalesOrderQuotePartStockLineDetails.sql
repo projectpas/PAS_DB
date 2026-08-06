@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [GetSalesOrderQuotePartStockLineDetails]              
  ** Author:  EKTA CHANDEGRA  
  ** Description: This stored procedure is used GetSalesOrderQuotePartStockLineDetails  
@@ -20,7 +20,7 @@
  EXEC GetSalesOrderQuotePartStockLineDetails 965  
 ************************************************************************/     
   
-CREATE OR ALTER PROCEDURE [dbo].[GetSalesOrderQuotePartStockLineDetails]  
+CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartStockLineDetails]  
     @SalesOrderQuoteId BIGINT  
 AS  
 BEGIN  

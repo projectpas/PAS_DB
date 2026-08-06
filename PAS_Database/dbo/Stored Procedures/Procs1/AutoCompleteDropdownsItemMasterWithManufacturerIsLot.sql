@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [AutoCompleteDropdownsItemMasterWithManufacturerIsLot]             
  ** Author:   Rajesh Gami  
  ** Description: This stored procedure is used retrieve Item Master List based on lot with Manufacturer detail for Auto complete Dropdown List      
@@ -21,7 +21,7 @@
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerIsLot] '',1,100,'',1  
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
 	@StartWith VARCHAR(50),  
 	@IsActive bit = true,  
 	@Count VARCHAR(10) = '0',  

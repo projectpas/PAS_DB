@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [USP_GetWOBillingPerformaInvoiceListByWOPartId]           
  ** Author:	  Devendra Shekh
  ** Description: This SP is Used to  Get WOBilling PerformaInvoiceList By WOPartId   
@@ -21,7 +21,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [USP_GetWOBillingPerformaInvoiceListByWOPartId] 3543,3013
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOBillingPerformaInvoiceListByWOPartId]
+CREATE PROCEDURE [dbo].[USP_GetWOBillingPerformaInvoiceListByWOPartId]
 @WorkOrderId  bigint,
 @workOrderPartNumberId  bigint
 AS

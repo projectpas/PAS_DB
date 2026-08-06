@@ -15,7 +15,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetExchangePickTicketApproveList]
+CREATE PROCEDURE [dbo].[sp_GetExchangePickTicketApproveList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN

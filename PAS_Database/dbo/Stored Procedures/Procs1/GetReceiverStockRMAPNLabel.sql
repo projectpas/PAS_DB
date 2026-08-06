@@ -17,7 +17,7 @@
 *******************************************************************************
 EXEC GetReceiverStockRMAPNLabel 113,1,1,1,''
 *******************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetReceiverStockRMAPNLabel]
+CREATE PROCEDURE [dbo].[GetReceiverStockRMAPNLabel]
 @VendorRMAId BIGINT,
 @IsParent VARCHAR(10),
 @ReceiverNumber VARCHAR(100)

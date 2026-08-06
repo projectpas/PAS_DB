@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetMultipleTenderedStockLineList]           
  ** Author:    Moin Bloch
  ** Description:  get  Multiple Tendered StockLine List
@@ -15,7 +15,7 @@
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4385,3908,1
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4394,3917,1
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
+CREATE PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
 @WorkOrderId BIGINT,
 @WorkFlowWorkOrderId BIGINT,
 @MasterCompanyId INT

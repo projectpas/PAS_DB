@@ -21,7 +21,7 @@
 ************************************************************************/
 -- EXEC [USP_GetSubWorkOrderMPNDetails] 1169,76771,721
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSubWorkOrderMPNDetails]  
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderMPNDetails]  
  @workOrderMaterialsId bigint,  
  @stocklineId bigint,  
  @workOrderPartNoId bigint  

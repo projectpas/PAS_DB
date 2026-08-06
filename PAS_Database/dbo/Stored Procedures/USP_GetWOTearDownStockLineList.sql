@@ -32,7 +32,7 @@ exec USP_GetWOTearDownStockLineList
 @QtyAvailable=NULL,@ExtendedCost=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3886,
 @WorkOrderPartNumberId=3372,@WorkFlowWorkOrderId=3349,@MasterCompanyId=1
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
+CREATE PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,

@@ -21,7 +21,7 @@ exec dbo.GetSalesOrderProformaInvoicingPdfData @sobillingInvoicingId=11201
 ************************************************************************/ 
 
 
-CREATE OR ALTER PROCEDURE [dbo].[GetSalesOrderProformaInvoicingPdfData]
+CREATE PROCEDURE [dbo].[GetSalesOrderProformaInvoicingPdfData]
     @sobillingInvoicingId BIGINT
 AS
 BEGIN

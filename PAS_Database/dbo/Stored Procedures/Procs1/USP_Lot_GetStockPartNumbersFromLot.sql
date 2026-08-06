@@ -17,7 +17,7 @@
 **************************************************************
  EXEC USP_Lot_GetStockPartNumbersFromLot 1,1
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
+CREATE PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
 @LotId BIGINT =0,
 @MasterCompanyId INT
 AS

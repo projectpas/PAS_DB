@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: GetPartUploadToILS
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used All part for ils upload.
@@ -19,7 +19,7 @@
  EXEC GetPartUploadToILS 1, 'PARTSBASE'
 **************************************************************/ 
     
-CREATE OR ALTER PROCEDURE [dbo].[GetPartUploadToILS]       
+CREATE PROCEDURE [dbo].[GetPartUploadToILS]       
 	@MasterCompanyId BIGINT,
 	@Portal VARCHAR(50)
 AS    

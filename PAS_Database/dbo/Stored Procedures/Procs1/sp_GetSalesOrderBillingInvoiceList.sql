@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[GetBillingInvoiceByShipping]          
  ** Author:   Deep Patel
  ** Description: Get Billing Data based on Shipping id.
@@ -24,7 +24,7 @@
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoice list.
 --   EXEC sp_GetSalesOrderBillingInvoiceList 20845
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
+CREATE PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN

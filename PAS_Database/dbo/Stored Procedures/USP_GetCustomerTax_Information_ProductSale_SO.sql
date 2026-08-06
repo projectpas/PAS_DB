@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SO]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on ProductSale
@@ -25,7 +25,7 @@
 	10    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from Stockline and ItemMaster joins used for tax site lookup.
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 608
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
+CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
 AS
 BEGIN

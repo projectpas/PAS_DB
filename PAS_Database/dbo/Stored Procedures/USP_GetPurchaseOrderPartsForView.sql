@@ -311,14 +311,14 @@ BEGIN
 			NULL [CertifiedDate],
 			'' [CertifiedBy],
 			NULL AS [TagDate],
-			--CASE WHEN SL.[MfgExpirationDate] IS NOT NULL THEN FORMAT(SL.[MfgExpirationDate], 'MM/dd/yyyy') ELSE NULL END AS [ExpirationDate],
-			SL.[MfgExpirationDate] AS [ExpirationDate],
+			--CASE WHEN SL.[ExpirationDate] IS NOT NULL THEN FORMAT(SL.[ExpirationDate], 'MM/dd/yyyy') ELSE NULL END AS [ExpirationDate],
+			SL.[ExpirationDate] AS [ExpirationDate],
 			NULL AS [CertifiedDueDate],
 			''  [AircraftTailNumber],
             NULL AS [LastCalibrationDate],
 			NULL AS [NextCalibrationDate],
 			SL.[GLAccountId],
-			SL.[GLAccount] [GLAccountText],
+			SL.[GlAccountName] [GLAccountText],
 			0 AS [ConditionId],
 			SL.[Condition] AS [ConditionText],
 			SL.[ManagementStructureId] [ManagementStructureEntityId],			
@@ -328,7 +328,7 @@ BEGIN
             SL.[ShelfId],
             SL.[BinId],
             SL.[Manufacturer] [ManufacturerText],
-            SL.[ShippingVia] [ShippingViaText],
+            SV.[Name] AS [ShippingViaText],
             SL.[Site] SiteText,
             SL.[Warehouse] WarehouseText,
             SL.[Location] LocationText,
@@ -344,7 +344,7 @@ BEGIN
 			'' [TaggedByName],
 			 0 [TaggedByType],
 		    '' [TaggedByTypeName],
-			SL.[UnitOfMeasureId],
+			SL.[PurchaseUnitOfMeasureId] AS [UnitOfMeasureId],
 			'' [UnitOfMeasure],
 			'' [TagType],
 			 0 [TagTypeId],
@@ -352,8 +352,8 @@ BEGIN
             '' [CertType],
 			'' [CertTypeId],
             SL.[UnitCost],
-			 0 [StockLineId] 
-		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+			 0 [StockLineId]
+		FROM [dbo].[Stockline] SL WITH(NOLOCK)
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StocklineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
 		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 1

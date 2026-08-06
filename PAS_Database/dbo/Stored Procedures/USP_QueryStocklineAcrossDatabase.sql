@@ -26,7 +26,7 @@
     1    2026-04-22   Claude    Created
 **********************************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_QueryStocklineAcrossDatabase]
+CREATE PROCEDURE [dbo].[USP_QueryStocklineAcrossDatabase]
     @StockLineId     BIGINT,
     @ExcludeAudit    BIT = 0,
     @ExcludeHangFire BIT = 1

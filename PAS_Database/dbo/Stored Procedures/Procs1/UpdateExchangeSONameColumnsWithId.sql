@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [UpdateExchangeSONameColumnsWithId]
  ** Author:   Deep Patel
  ** Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -21,7 +21,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --  EXEC [dbo].[UpdateExchangeSONameColumnsWithId] 338
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[UpdateExchangeSONameColumnsWithId]
+CREATE PROCEDURE [dbo].[UpdateExchangeSONameColumnsWithId]
 	@ExchangeSalesOrderId int
 AS
 BEGIN

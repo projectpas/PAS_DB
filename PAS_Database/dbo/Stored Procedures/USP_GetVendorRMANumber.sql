@@ -16,7 +16,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetVendorRMANumber]
+CREATE PROCEDURE [dbo].[USP_GetVendorRMANumber]
     @VendorRMAId BIGINT
 AS
 BEGIN

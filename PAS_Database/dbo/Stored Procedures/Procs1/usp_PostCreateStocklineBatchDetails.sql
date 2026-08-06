@@ -144,6 +144,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @AssetStockType VARCHAR(256)= 0;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @IsAutoPostForAll INT = 1;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetCommonScrapCertificateist]             
  ** Author:   SUBHASH  Saliya  
  ** Description: Get Search Data for Scrap Certificate List  
@@ -23,7 +23,7 @@
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
-CREATE OR ALTER PROCEDURE [dbo].[GetCommonScrapCertificateList]  
+CREATE PROCEDURE [dbo].[GetCommonScrapCertificateList]  
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50) = null,  

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [RPT_GetCustomerRMAPartsDetails]           
  ** Author:   Amit Ghediya 
  ** Description: Get Customer RMAPartsDetails for SSRS Report
@@ -22,7 +22,7 @@
  -- exec RPT_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
 
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetCustomerRMAPartsDetails]
+CREATE PROCEDURE [dbo].[RPT_GetCustomerRMAPartsDetails]
 	@InvoicingId bigint,
 	@IsWorkOrder  bit,
 	@RMAHeaderId  BIGINT,

@@ -21,7 +21,7 @@
 	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed; tax calc now includes Non-Stock parts)
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_Analysis] 10810,11249,77 
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_Analysis] 
+CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_Analysis] 
 @SalesOrderId BIGINT,
 @SalesOrderPartId BIGINT,
 @CustomerId BIGINT 

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Hemant Saliya
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -19,7 +19,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
- CREATE OR ALTER PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
+ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
   @CustomerId INT,
   @CustRestrictedDer BIT,
   @CustRestrictedPMA BIT,

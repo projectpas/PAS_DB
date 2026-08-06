@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForReserve]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to reserve Stockline    
@@ -22,7 +22,7 @@
  EXECUTE [USP_GetSubWorkOrdMaterialsStocklineListForReserve] 31
 **************************************************************/ 
     
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]    
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]    
 (    
 @SubWOPartNoId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL

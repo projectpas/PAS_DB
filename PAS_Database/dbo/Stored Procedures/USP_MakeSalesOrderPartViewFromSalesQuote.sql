@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_MakeSalesOrderPartViewFromSalesQuote]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_MakeSalesOrderPartViewFromSalesQuote
@@ -17,7 +17,7 @@
  ** -----------------------------------------------------------          
 exec [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote] @ExchangeQuotePartId=126, @ExchangeQuoteId=155, @MasterCompanyId=1
 ************************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote]
+CREATE PROCEDURE [dbo].[USP_MakeSalesOrderPartViewFromSalesQuote]
     @ExchangeQuotePartId BIGINT,
     @ExchangeQuoteId BIGINT,
 	@MasterCompanyId INT

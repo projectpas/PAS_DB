@@ -143,7 +143,7 @@ BEGIN
         UPPER(stl.location) 'Location',
         UPPER(stl.shelf) 'Shelf',
         UPPER(stl.bin) 'Bin',
-        UPPER(stl.GLAccount) 'glaccount',
+        UPPER(stl.GlAccountName) 'glaccount',
         UPPER(pox.PurchaseOrderNumber) 'ponum',
         UPPER(rox.RepairOrderNumber) 'ronum',
 		--FORMAT(stl.RepairOrderUnitCost , 'N', 'en-us') 'rocost',

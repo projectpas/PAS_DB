@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -21,7 +21,7 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 	10    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now correctly appear in this Sales Order print PDF header data
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
+CREATE PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              

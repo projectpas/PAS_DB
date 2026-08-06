@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** Change History
 **************************************************************
 ** PR   Date         Author			Change Description
@@ -6,7 +6,7 @@
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from alt-part subquery, StockLine join, and main WHERE clause.
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[SearchItemMasterSOQPop]
+CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 --@ConditionId BIGINT = NULL,
 @ConditionIds VARCHAR(100) = NULL,

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrderList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve Sub WorkOrder list with filters   
@@ -31,7 +31,7 @@ exec USP_GetSubWorkOrderList
 @UpdatedStockLineNumber=NULL,@CreatedBy=NULL,
 @UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=3986,@MasterCompanyId=1
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetSubWorkOrderList]
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,

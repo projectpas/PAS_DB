@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** File:        [USP_SearchInstalledComponents]
 ** Description: To search the installed components
 ** Date:        21/04/2026
@@ -16,7 +16,7 @@
 5    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
-CREATE OR ALTER PROCEDURE [dbo].[USP_SearchInstalledComponents]
+CREATE PROCEDURE [dbo].[USP_SearchInstalledComponents]
 (   
     @MasterCompanyId    INT,
     @ItemMasterId       BIGINT          = NULL,

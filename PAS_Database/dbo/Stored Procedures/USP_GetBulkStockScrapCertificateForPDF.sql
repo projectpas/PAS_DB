@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetBulkStockScrapCertificateForPDF]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Scrap Certificate Adjustment Details  
@@ -20,7 +20,7 @@
 	5    23/July/2026     RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1
 ************************************************************************/  
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetBulkStockScrapCertificateForPDF]
+CREATE PROCEDURE [dbo].[USP_GetBulkStockScrapCertificateForPDF]
 @BulkStockScrapCertificateId BIGINT
 AS
 BEGIN

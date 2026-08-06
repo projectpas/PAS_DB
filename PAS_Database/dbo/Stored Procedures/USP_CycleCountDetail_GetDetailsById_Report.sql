@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CycleCountDetail_GetDetailsById_Repot]           
  ** Author: BHARGAV SALIYA 
  ** Description: This stored procedure is used to get Cycle Count Details for the reports
@@ -16,7 +16,7 @@
  ** -----------------------------------------------------------          
 	exec [USP_CycleCountDetail_GetDetailsById_Report] 15,1
 ************************************************************************/    
-CREATE OR ALTER PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById_Report]  
+CREATE PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById_Report]  
 @CycleCountId [bigint] NULL,
 @MasterCompanyId [int] NULL 
 AS    

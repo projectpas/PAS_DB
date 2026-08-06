@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
  ** Description: Update name columns into corrosponding reference Id values from respective master table               
@@ -15,7 +15,7 @@
 	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
+CREATE PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
 	@SalesOrderQuoteId int
 AS
 BEGIN

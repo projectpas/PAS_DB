@@ -15,7 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
+CREATE PROCEDURE [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]
     @VendorRMAId BIGINT,
     @RMAPickTicketId BIGINT
 AS

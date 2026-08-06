@@ -1,4 +1,4 @@
-﻿/*************************************************************                     
+/*************************************************************                     
  ** File:   [USP_GetDataForAddMultipleSOWOForVendorRFQPO]                     
  ** Author:   Shrey Chandegara        
  ** Description:         
@@ -20,7 +20,7 @@
 	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
  EXECUTE USP_GetDataForAddMultipleSOWOForVendorRFQPO 'loadeso',7,7,2114,3765        
 **************************************************************/           
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWOForVendorRFQPO]
+CREATE PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWOForVendorRFQPO]
 	@viewType VARCHAR (50) = NULL,        
 	@ItemMasterId BIGINT,        
 	@ConditionId BIGINT,        

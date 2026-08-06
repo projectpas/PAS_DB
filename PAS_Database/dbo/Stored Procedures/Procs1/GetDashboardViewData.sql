@@ -36,7 +36,7 @@
 -- EXEC GetDashboardViewData  1,'2025-11-14',2,2,1
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GetDashboardViewData]
+CREATE PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
 	@DashboardType INT = NULL,

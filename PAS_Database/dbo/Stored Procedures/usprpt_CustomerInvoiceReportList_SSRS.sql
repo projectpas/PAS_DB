@@ -24,7 +24,7 @@ exec usprpt_CustomerInvoiceReportList @PageNumber=1,@PageSize=20,@SortColumn=N'I
 @SerialNumber=NULL,@QuoteNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,
 @level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@EmployeeId=2,@MasterCompanyId=1
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_CustomerInvoiceReportList_SSRS]
+CREATE PROCEDURE [dbo].[usprpt_CustomerInvoiceReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,

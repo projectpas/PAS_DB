@@ -96,8 +96,8 @@ BEGIN
 					AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0 AND ISNULL(stk.IsNonStock,0) = 0
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-					 
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId,pop.UnitOfMeasure,stk.StockUnitOfMeasure
+
 				UNION ALL
 
 				SELECT stk.StockLineNumber,

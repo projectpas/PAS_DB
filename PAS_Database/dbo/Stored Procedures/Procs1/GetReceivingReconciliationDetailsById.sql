@@ -132,8 +132,9 @@ BEGIN
 				(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
-					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId	
-					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK' 						
+					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId
+					  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = JBD.[ItemMasterId]
+					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'
 					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
 					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'
 					  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'STOCK'

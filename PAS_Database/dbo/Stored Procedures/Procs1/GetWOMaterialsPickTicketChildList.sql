@@ -52,8 +52,10 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
-			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0
 
 			UNION ALL
 
@@ -77,8 +79,10 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
-			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0
 		COMMIT  TRANSACTION
 		END TRY
 		BEGIN CATCH      

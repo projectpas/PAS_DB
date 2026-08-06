@@ -79,8 +79,11 @@ BEGIN
 			;WITH BaseDataMain AS (
 			(SELECT DISTINCT CASE WHEN  ( (((ISNULL(SUM(DISTINCT CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END),0))  -  ((ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalReserved IS NOT NULL THEN WOM.TotalReserved ELSE WOM_A.TotalReserved END),0))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalIssued IS NOT NULL THEN WOM.TotalIssued ELSE WOM_A.TotalIssued END),0))))  +   (ISNULL(SUM(DISTINCT CASE WHEN WOMK.Quantity IS NOT NULL THEN WOMK.Quantity ELSE WOMK_A.Quantity END),0))) - (SELECT ISNULL(SUM(DISTINCT Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) )  > 0 
 			THEN ((((ISNULL(SUM(DISTINCT CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END),0))  -  ((ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalReserved IS NOT NULL THEN WOM.TotalReserved ELSE WOM_A.TotalReserved END),0))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOM.TotalIssued IS NOT NULL THEN WOM.TotalIssued ELSE WOM_A.TotalIssued END),0))))  +  (ISNULL(SUM(DISTINCT CASE WHEN WOMK.Quantity IS NOT NULL THEN WOMK.Quantity ELSE WOMK_A.Quantity END),0))) - (SELECT ISNULL(SUM(DISTINCT Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END AS 'ReqQty'
-			FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)  
-			LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId   
+			,uomStock.ShortName AS UOMStock,
+			uom.ShortName AS UOMPurchase,
+			POP.MasterCompanyId
+			FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+			LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId
 			LEFT JOIN  DBO.ItemMaster im WITH (NOLOCK) ON POP.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId

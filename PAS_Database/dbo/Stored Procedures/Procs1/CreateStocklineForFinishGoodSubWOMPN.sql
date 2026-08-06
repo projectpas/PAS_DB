@@ -282,7 +282,7 @@ BEGIN
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife], [IntegrationPortal])  
+         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife], [IntegrationPortal],[StockUnitOfMeasureId],[StockUnitOfMeasure])
       SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ) ELSE [PartNumber] END,@StockLineNumber,[StocklineMatchKey],[ControlNumber],@ItemMasterId,1,@RevisedConditionId  
          ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
          ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  

@@ -44,29 +44,31 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 		BEGIN
 			DROP TABLE #TempTable 
 		END
-		CREATE TABLE #TempTable(      
-					PartId BIGINT,      
+		CREATE TABLE #TempTable(
+					PartId BIGINT,
 					PartNumber VARCHAR(MAX),
 					Label VARCHAR(Max),
 					PartDescription VARCHAR(MAX),
 					ManufacturerName VARCHAR(MAX),
-					StockType VARCHAR(50))
+					StockType VARCHAR(50),
+					ItemType VARCHAR(20))
 
 		IF OBJECT_ID(N'tempdb..#Result') IS NOT NULL
 		BEGIN
 			DROP TABLE #Result 
 		END
 
-		CREATE TABLE #Result(      
-						PartId BIGINT,      
+		CREATE TABLE #Result(
+						PartId BIGINT,
 						PartNumber VARCHAR(MAX),
 						Label VARCHAR(MAX),
 						PartDescription VARCHAR(MAX),
 						ManufacturerName VARCHAR(MAX),
-						StockType VARCHAR(50)) 
+						StockType VARCHAR(50),
+						ItemType VARCHAR(20))
 	
 		--- FOR OEM
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -91,7 +93,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 		--FOR PMA
 		IF( @CustRestrictedPMA <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -117,7 +119,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 		--FOR DER
 		IF( @CustRestrictedDer <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -142,7 +144,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 
 		IF( @IncludePMA = 1)
 		BEGIN 
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -167,7 +169,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 
 		IF( @IncludeDER = 1)
 		BEGIN 
-		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -191,7 +193,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 		END 
 
 		 --Adding PMA Except Parts
-		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType, ItemType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -285,7 +287,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 
 		IF(@Idlist IS NOT NULL)
 		BEGIN
-			INSERT INTO #Result(PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
+			INSERT INTO #Result(PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType, ItemType)
 			SELECT DISTINCT 
 					im.ItemMasterId AS PartId,
 					im.partnumber AS PartNumber,
@@ -308,6 +310,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			r.PartDescription,
 			r.ManufacturerName,
 			r.StockType,
+			r.ItemType,
 			r.Label
 			FROM #Result r
 

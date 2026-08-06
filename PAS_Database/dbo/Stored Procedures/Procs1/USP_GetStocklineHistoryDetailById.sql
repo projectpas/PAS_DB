@@ -116,8 +116,9 @@ BEGIN
  FROM DBO.Stkline_History StlHist   
  INNER JOIN DBO.Module M WITH (NOLOCK) ON StlHist.ModuleId = M.ModuleId  
  INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON StlHist.StocklineId = STL.StockLineId  
- LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
- WHERE StlHist.StocklineId = @StockLineId),  
+ LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId
+ LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = STL.StockUnitOfMeasureId
+ WHERE StlHist.StocklineId = @StockLineId),
    FinalResult AS (    
  SELECT  rs.ModuleName,  rs.StockLineNumber,  
  rs.RefferenceId RefferenceId,

@@ -108,18 +108,20 @@ BEGIN
 			0,VR.[ModuleId],0,
 				(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 			FROM @VendorRMADetail VR
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId] WHERE ISNULL(ST.IsNonStock,0) = 0;
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE ISNULL(ST.IsNonStock,0) = 0;
 
 			UPDATE [dbo].[Stockline]
 			SET [QuantityAvailable] -= (
-					CASE 
+					CASE
 						WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
 							THEN ISNULL(VR.[Qty],0)
 						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
 					END
 				),
 				[QuantityReserved] += (
-					CASE 
+					CASE
 						WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
 							THEN ISNULL(VR.[Qty],0)
 						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
@@ -127,8 +129,10 @@ BEGIN
 				),
 				[Memo] = 'StockLine Added into RMA ' + VR.RMANum
 			FROM @VendorRMADetail VR
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId] WHERE ISNULL(ST.IsNonStock,0) = 0
-					
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE ISNULL(ST.IsNonStock,0) = 0
+
 			SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.VendorRMASettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 
 			UPDATE [dbo].[VendorRMA] SET EnforcePickTicketConfirmation = ISNULL(@EnforcePickTicketConfirmation, 0)
@@ -256,10 +260,11 @@ BEGIN
 				  ,[ExtendedCost] = t.[ExtendedCost]
                   ,[UpdatedBy] = t.[UpdatedBy]
                   ,[UpdatedDate] = GETUTCDATE()                  
-             FROM @VendorRMADetail t 
+             FROM @VendorRMADetail t
 			 INNER JOIN [dbo].[VendorRMADetail] vc WITH (NOLOCK) ON vc.[VendorRMADetailId] = t.[VendorRMADetailId]
 			 INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = vc.[StockLineId]
-             WHERE t.[VendorRMADetailId] > 0 AND ISNULL(ST.IsNonStock,0) = 0;	
+			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+             WHERE t.[VendorRMADetailId] > 0 AND ISNULL(ST.IsNonStock,0) = 0;
 
 			INSERT INTO [dbo].[VendorRMADetail]([VendorRMAId],[RMANum],[StockLineId],[ReferenceId],[ItemMasterId],[SerialNumber],[Qty],[UnitCost],[ExtendedCost]
 											   ,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
@@ -274,8 +279,9 @@ BEGIN
 											   CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL([Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]) END,
 											   0,[ModuleId],0
 											   ,(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
-					FROM @VendorRMADetail t 
+					FROM @VendorRMADetail t
 					INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = t.[StockLineId]
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE t.[VendorRMADetailId] = 0 AND ISNULL(ST.IsNonStock,0) = 0;
 
 			-- Add New Part On Update
@@ -297,6 +303,7 @@ BEGIN
 				[Memo] = 'StockLine Added into RMA ' + VR.RMANum
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE VR.[VendorRMADetailId] = 0 AND ISNULL(ST.IsNonStock,0) = 0;
 
 			-- DELETE PART
@@ -318,6 +325,7 @@ BEGIN
 				[Memo] = 'StockLine DELETED FROM RMA ' + VR.RMANum
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE VR.[VendorRMADetailId] > 0 AND VR.[IsDeleted] = 1 AND ISNULL(ST.IsNonStock,0) = 0;
 			
 			DELETE FROM #tmpReturnVendorRMACreate;

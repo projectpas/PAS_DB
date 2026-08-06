@@ -116,7 +116,9 @@ BEGIN
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
-						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
+						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
 						LEFT JOIN totakWMSTK on totakWMSTK.WorkOrderId = wopt.WorkOrderId AND totakWMSTK.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
@@ -155,7 +157,9 @@ BEGIN
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
-						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
+						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
 						LEFT JOIN totakWMSTKit on totakWMSTKit.WorkOrderId = wopt.WorkOrderId AND totakWMSTKit.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId

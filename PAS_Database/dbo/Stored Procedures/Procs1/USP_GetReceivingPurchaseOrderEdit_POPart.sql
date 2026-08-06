@@ -136,8 +136,8 @@ BEGIN
     WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.UnitCost ELSE StkD_NonSer_Asset.UnitCost END   
    WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.UnitCost ELSE StkD_NonSer_NonStk.UnitCost END   
-    ELSE    
+  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.PurchaseOrderUnitCost ELSE StkD_NonSer_NonStk.PurchaseOrderUnitCost END
+    ELSE
      CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.PurchaseOrderUnitCost ELSE StkD_NonSer.PurchaseOrderUnitCost END     
   END AS UnitCost,      
   --part.ExtendedCost,      
@@ -146,7 +146,7 @@ BEGIN
     WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN (StkD_Ser_Asset.UnitCost * part.QuantityOrdered) ELSE (StkD_NonSer_Asset.UnitCost * part.QuantityOrdered) END    
   WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN (StkD_Ser_NonStk.UnitCost * part.QuantityOrdered) ELSE (StkD_NonSer_NonStk.UnitCost * part.QuantityOrdered) END    
+  CASE WHEN nsi.isSerialized = 1 THEN (StkD_Ser_NonStk.PurchaseOrderUnitCost * part.QuantityOrdered) ELSE (StkD_NonSer_NonStk.PurchaseOrderUnitCost * part.QuantityOrdered) END
     ELSE    
   CASE WHEN itm.isSerialized = 1 THEN (StkD_Ser.PurchaseOrderUnitCost * part.QuantityOrdered) ELSE (StkD_NonSer.PurchaseOrderUnitCost * part.QuantityOrdered) END     
   END AS ExtendedCost,      
@@ -229,8 +229,8 @@ BEGIN
    WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.AssetAcquisitionTypeId ELSE StkD_NonSer_Asset.AssetAcquisitionTypeId END    
   WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.Acquired ELSE StkD_NonSer_NonStk.Acquired END    
-   ELSE    
+  NULL
+   ELSE
   0    
  END AS AssetAcquisitionTypeId,     
    CASE WHEN part.ItemTypeId = 1 THEN    
@@ -283,7 +283,7 @@ BEGIN
    WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.SiteName ELSE StkD_NonSer_Asset.SiteName END    
    WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.Site ELSE StkD_NonSer_NonStk.Site END   
+  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.SiteName ELSE StkD_NonSer_NonStk.SiteName END
    ELSE    
   ''    
  END AS SiteText,      
@@ -310,7 +310,7 @@ BEGIN
    WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.ShelfName ELSE StkD_NonSer_Asset.ShelfName END     
   WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.Shelf ELSE StkD_NonSer_NonStk.Shelf END   
+  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.ShelfName ELSE StkD_NonSer_NonStk.ShelfName END
    ELSE    
   ''    
  END AS ShelfText,      
@@ -319,7 +319,7 @@ BEGIN
    WHEN part.ItemTypeId = 11 THEN    
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.BinName ELSE StkD_NonSer_Asset.BinName END   
    WHEN part.ItemTypeId = 2 THEN    
-  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.Bin ELSE StkD_NonSer_NonStk.Bin END   
+  CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.BinName ELSE StkD_NonSer_NonStk.BinName END
    ELSE    
   ''    
  END AS BinText,      
@@ -591,9 +591,9 @@ BEGIN
         SL.ConditionId AS ConditionId,      
         SL.SerialNumber AS SerialNumber,      
         SL.Quantity Quantity,      
-        SL.UnitCost AS PurchaseOrderUnitCost,      
-        (SL.Quantity * SL.UnitCost) AS PurchaseOrderExtendedCost,      
-        SL.ReceiverNumber AS ReceiverNumber,      
+        SL.PurchaseOrderUnitCost,
+        SL.PurchaseOrderExtendedCost,
+        SL.ReceiverNumber AS ReceiverNumber,
   '' AS WorkOrder,      
         '' AS SalesOrder,      
         '' AS SubWorkOrder,      
@@ -621,17 +621,17 @@ BEGIN
   SL.GLAccountId,      
   SL.GLAccount AS GLAccountText,      
   '' AS ConditionText,      
-  SL.ManagementStructureId AS ManagementStructureEntityId,      
-  SL.SiteId,      
-  SL.WarehouseId,      
-  SL.LocationId,      
-  SL.ShelfId,      
-  SL.BinId,      
-  SL.Site AS SiteText,      
+  SL.ManagementStructureEntityId,
+  SL.SiteId,
+  SL.WarehouseId,
+  SL.LocationId,
+  SL.ShelfId,
+  SL.BinId,
+  SL.SiteName AS SiteText,
   SL.Warehouse AS WarehouseText,      
   SL.Location AS LocationText,      
-  SL.Shelf AS ShelfText,      
-  SL.Bin AS BinText,      
+  SL.ShelfName AS ShelfText,
+  SL.BinName AS BinText,
   0 AS ObtainFrom,      
   '' AS ObtainFromName,      
   '' AS OwnerName,      
@@ -653,7 +653,7 @@ BEGIN
   '' AS CertifiedType,      
   '' AS CertTypeId,      
   '' AS CertType,      
-  SL.Acquired AS AssetAcquisitionTypeId,      
+  0 AS AssetAcquisitionTypeId,      
   0 AS IsIntangible,      
   0 LotId,      
   '' AS LotNumber,      

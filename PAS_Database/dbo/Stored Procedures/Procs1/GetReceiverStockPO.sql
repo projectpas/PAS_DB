@@ -117,10 +117,12 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
@@ -174,10 +176,12 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
@@ -190,8 +194,8 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure puom WITH (NOLOCK) ON puom.UnitOfMeasureId = ISNULL(sl.PurchaseUnitOfMeasureId, i.PurchaseUnitOfMeasureId)
 			LEFT JOIN dbo.UnitOfMeasure suom WITH (NOLOCK) ON suom.UnitOfMeasureId = ISNULL(sl.StockUnitOfMeasureId, i.StockUnitOfMeasureId)
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
-			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 
+			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0
 
 			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			UNION
@@ -225,10 +229,12 @@ BEGIN
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
 				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
-				  sl.InspectionDate
+				  sl.InspectionDate,
+				  sl.LotNumber,
+				  sl.EngineSerialNumber
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN  [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
@@ -308,8 +314,10 @@ BEGIN
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				    '' AS TraceableToName,
 					'' as Inspector,
-					NULL InspectionDate
-			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) 
+					NULL InspectionDate,
+					'' AS LotNumber,
+					'' AS EngineSerialNumber
+			FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 			LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			AND sl.ReceiverNumber = @ReceiverNumber Order by Modules desc

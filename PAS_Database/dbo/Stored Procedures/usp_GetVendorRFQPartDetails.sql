@@ -9,6 +9,8 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    09-Dec-2025		Devendra Shekh		  Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items in Vendor RFQ Part Details
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_GetVendorRFQPartDetails] (

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCommonForStocklineByItemMasterId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get CommonForStocklineByItemMasterId List
@@ -10,12 +10,13 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
 	2    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure
 	3    03-06-2026    Sahdev Saliya       Added Model [PN-16667]
-	4    04-Aug-2026   Rajesh Gami         [PN-17009] Merge Non-Stock Inventory into Stockline: added IsService
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    04-Aug-2026   Rajesh Gami         [PN-17009] Merge Non-Stock Inventory into Stockline: added IsService
+ ** S NO   Date            Author          Change Description              
+ ** --   --------         -------          --------------------------------            
 									 to the SELECT list. Deliberately NOT adding an IsNonStock filter - this
 									 proc is scoped to one exact @ItemMasterId, so filtering it would make it
 									 return zero rows (and stop auto-binding Manufacturer/GLAccount/Site/
@@ -51,14 +52,14 @@ BEGIN
 				INNER JOIN [DBO].ItemMasterIntegrationPortal mp WITH (NOLOCK) ON v.ItemMasterId = mp.ItemMasterId
 				INNER JOIN [DBO].IntegrationPortal inte WITH (NOLOCK) ON mp.IntegrationPortalId = inte.IntegrationPortalId
 				WHERE v.ItemMasterId = iM.ItemMasterId
-			) AS IntegrationPortal,
+			 AND ISNULL(v.IsNonStock,0) = 0 ) AS IntegrationPortal,
 
 			(SELECT STRING_AGG(CAST(inte.IntegrationPortalId AS VARCHAR(20)), ',')
 				FROM [DBO].[ItemMaster] v WITH (NOLOCK)
 				INNER JOIN [DBO].ItemMasterIntegrationPortal mp WITH (NOLOCK) ON v.ItemMasterId = mp.ItemMasterId
 				INNER JOIN [DBO].IntegrationPortal inte WITH (NOLOCK) ON mp.IntegrationPortalId = inte.IntegrationPortalId
 				WHERE v.ItemMasterId = iM.ItemMasterId
-			) AS IntegrationPortalIds,
+			 AND ISNULL(v.IsNonStock,0) = 0 ) AS IntegrationPortalIds,
 			iM.ShelfLife,
 			iM.ExpirationDate,
 			iM.IsSerialized,
@@ -87,21 +88,16 @@ BEGIN
 			iM.IsReceivedDateAvailable,
 			iM.IsTagDateAvailable,
 			iM.InventoryGLSettingId,
-			iM.ItemClassificationName AS Classification	,
-			ISNULL(uom.Class,'Decimal') as Class,
-			ISNULL(uom.DecimalPlaces,2) as DecimalPlaces,
-			ISNULL(iM.StockUnitOfMeasureId,0) StockUnitOfMeasureId,
-			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId,
-			iM.Model,
-			iM.IsService
+			iM.ItemClassificationName AS Classification
+
 	    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
+         AND ISNULL(rPart.IsNonStock,0) = 0
         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExportInfo] imx WITH (NOLOCK) ON iM.ItemMasterId = imx.ItemMasterId
 		LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId
-        LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON iM.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-    WHERE iM.ItemMasterId = @ItemMasterId;
+    WHERE iM.ItemMasterId = @ItemMasterId ;
     END TRY 
 
     BEGIN CATCH

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_ItemMaster_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get ItemMaster Details By ItemMasterId
@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_ItemMaster_DetailsById 41186
 *******************************************************************************/

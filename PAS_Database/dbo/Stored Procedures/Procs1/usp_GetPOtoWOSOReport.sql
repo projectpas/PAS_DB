@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usp_GetPOtoWOSOReport]               
  ** Author:       
  ** Description:         
@@ -13,7 +13,8 @@
  ** PR   Date         Author		Change Description                
  ** --   --------     -------		--------------------------------              
     1  11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
-         
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
 @vendorname varchar(40) = NULL,

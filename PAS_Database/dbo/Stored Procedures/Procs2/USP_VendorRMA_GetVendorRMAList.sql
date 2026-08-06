@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.
@@ -31,8 +31,9 @@
 	15   06-04-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]  
 	16   03-06-2026	  Priyansh Patel		UOM Conversion Changes for extended cost [PN-16610]  
 	17   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
-    
-
+	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	20    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
@@ -158,8 +159,8 @@ BEGIN
 			WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]
 			AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId]
 			AND SL.[IsParent] = 1
-			AND SL.[IsDeleted] = 0
-			) AS QuantityReceived,
+				AND SL.[IsDeleted] = 0
+			)AS QuantityReceived,
 			SL.Condition
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId

@@ -18,7 +18,8 @@
 ** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
 ** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
 ** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
-** 10    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
+   10	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+** 11    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
 
 **************************************************************/
 create     PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -242,8 +243,16 @@ BEGIN
 		,i.Landings = PST.Landings
 		,i.Starts = PST.Starts
 		,i.CalendarDate = PST.CalendarDate
-		,i.Model = PST.Model
-		,i.IsKitAssy = PST.IsKitAssy
+		
+		,i.IsAcquiredMethodBuy              = PST.IsAcquiredMethodBuy
+		,i.DiscountPurchasePercent          = PST.DiscountPurchasePercent
+		,i.UnitCost                         = PST.UnitCost
+		,i.ListPrice                        = PST.ListPrice
+		,i.PriceDate                        = PST.PriceDate
+		,i.InWarranty                       = PST.InWarranty
+		,i.MfgExpirationDate                = PST.MfgExpirationDate
+		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
+		,i.IsService						= ISNULL(PST.IsService, 0)
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

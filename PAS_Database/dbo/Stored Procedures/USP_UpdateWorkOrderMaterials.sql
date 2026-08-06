@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_UpdateWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create work order materials
@@ -10,7 +10,8 @@
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
  ** 2    27-July-2025    		SUMIT    				Added notes field in material list [PN-16818]
-       
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderMaterials]  
@@ -185,7 +186,7 @@ BEGIN
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId;
+						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0 ;
 					END
 				END
 

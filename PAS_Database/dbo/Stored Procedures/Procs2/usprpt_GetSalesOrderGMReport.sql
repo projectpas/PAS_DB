@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderGMReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SalesOrder GM Report   
@@ -17,22 +17,24 @@
     1    22-April-2022  Mahesh Sorathiya	Created 
     2    20-JUNE-2023	Devendra Shekh      made changes to do the total 
     3    11-JULY-2023	AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY
-    3    20-JULY-2023	AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY - revenue amount changes
-	4	 01-JAN-2024	AMIT GHEDIYA		added isperforma Flage for SO
-	5	 28-MAR-2024	Ekta Chandegra		IsDeleted and IsActive flag is added
-	6    10-OCT-2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
-	7    03-DEC-2024	Vishal Suthar		Fixed issue with table joins
-	8    24-DEC-2024	Vishal Suthar 		Fixed report calculations
-	9	 26-DEC-2024	Abhishek Jirawla	Fixed report calculations
- 	10   01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure  
-	11	 08/JUL/2025	Abhishek Jirawla	Changed Revenue to get Grand Total 
-	12	 30/JUL/2025	RAJESH GAMI			Fixed the DirectCost and their related issue
-	13	 11/SEP/2025	Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
-	14	 11/SEP/2025	Vishal Suthar		PN-14127 - Fixed the DirectCost to exclude Charges & Freight
-
+    4    20-JULY-2023	AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY - revenue amount changes
+	5	 01-JAN-2024	AMIT GHEDIYA		added isperforma Flage for SO
+	6	 28-MAR-2024	Ekta Chandegra		IsDeleted and IsActive flag is added
+	7    10-OCT-2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
+	8    03-DEC-2024	Vishal Suthar		Fixed issue with table joins
+	9    24-DEC-2024	Vishal Suthar 		Fixed report calculations
+	10	 26-DEC-2024	Abhishek Jirawla	Fixed report calculations
+ 	11   01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure  
+	12	 08/JUL/2025	Abhishek Jirawla	Changed Revenue to get Grand Total 
+	13	 30/JUL/2025	RAJESH GAMI			Fixed the DirectCost and their related issue
+	14	 11/SEP/2025	Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
+	15	 11/SEP/2025	Vishal Suthar		PN-14127 - Fixed the DirectCost to exclude Charges & Freight
+	16    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	17    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	18    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 EXECUTE [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport]
+CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport]
 	@PageNumber int = 1,
 	@PageSize int = NULL,
 	@mastercompanyid int,
@@ -137,7 +139,7 @@ BEGIN
 		  AND (ISNULL(@Level8, '') = '' OR MSD.[Level8Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level8, ',')))
 		  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 		  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))	
-			GROUP BY 
+		   GROUP BY 
 				C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
 				FORMAT (SO.opendate, 'MM/dd/yyyy'),SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.salestax,
 			SOQ.salesorderquotenumber,FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
@@ -275,7 +277,7 @@ BEGIN
 	  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 	  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))
 			  
-	UNION ALL
+	   UNION ALL
 
 	SELECT DISTINCT
 		COUNT(1) OVER () AS TotalRecordsCount,    

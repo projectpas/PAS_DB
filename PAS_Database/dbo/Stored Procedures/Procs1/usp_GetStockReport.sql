@@ -1,4 +1,3 @@
-﻿
 /*************************************************************           
  ** File:   [usp_GetStockReport]           
  ** Author:   Swetha  
@@ -13,16 +12,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha	Created
 	2	        	  Swetha	Added Transaction & NO LOCK
 	3	 27 Nov 2021  HEMANT	Updated Date Filter condition
-
-     
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete Stock-only IsNonStock=0 filters (ItemMaster/Stockline) on PurchaseOrder-linked rows to allow Non-Stock items in Stock Report
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetStockReport] '1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetStockReport] @mastercompanyid int,
+CREATE OR ALTER PROCEDURE [dbo].[usp_GetStockReport] @mastercompanyid int,
 @Level1 varchar(max) = NULL,
 @Level2 varchar(max) = NULL,
 @Level3 varchar(max) = NULL,
@@ -142,8 +142,7 @@ BEGIN
         UPPER(stl.ReconciliationNumber) 'Receiver Recon'
       FROM DBO.stockline stl WITH (NOLOCK)
       LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK)
-        ON stl.ItemMasterId = im.ItemMasterId
-        LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK)
+        ON stl.ItemMasterId = im.ItemMasterId LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK)
           ON stl.PurchaseOrderId = pox.PurchaseOrderId
         LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK)
           ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId

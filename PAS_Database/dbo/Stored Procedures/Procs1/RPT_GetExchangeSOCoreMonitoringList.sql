@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:     [RPT_GetExchangeSOCoreMonitoringList]
  ** Author:   Ekta Chandegra
  ** Description: 
@@ -14,10 +14,11 @@
  ** --   --------     -------		--------------------------------          
     1    12/06/2023   Ekta Chandegra  Created
 	2    16 FEB 2024  BHARGAV SALIYA  Resolved Print Issue
-
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE RPT_GetExchangeSOCoreMonitoringList 370,83
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[RPT_GetExchangeSOCoreMonitoringList]
+CREATE OR ALTER PROCEDURE [dbo].[RPT_GetExchangeSOCoreMonitoringList]
 	@ExchangeSalesOrderId BIGINT = NULL,
 	@ExchangeCoreMonitoringDetailsId BIGINT = NULL
 AS
@@ -42,11 +43,13 @@ BEGIN
 		LEFT JOIN [DBO].ExchangeCoreLetterType EXCHCT WITH (NOLOCK) ON EMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId
 		LEFT JOIN [DBO].ReceivingCustomerWork RCT WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
 		LEFT JOIN [DBO].ItemMaster IM WITH (NOLOCK) ON EXCHSOP.ItemMasterId = IM.ItemMasterId
-		LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
-		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
+		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 		LEFT JOIN [DBO].Manufacturer MN WITH (NOLOCK) ON IM.ManufacturerId = MN.ManufacturerId
 		LEFT JOIN [DBO].ItemMaster ITM WITH (NOLOCK) ON Im.ItemMasterId = RCT.RevisePartId
-		WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId AND EMD.ExchangeCoreMonitoringDetailsId = @ExchangeCoreMonitoringDetailsId;
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+		 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId AND EMD.ExchangeCoreMonitoringDetailsId = @ExchangeCoreMonitoringDetailsId;
     END TRY
 	BEGIN CATCH      
 		IF @@trancount > 0

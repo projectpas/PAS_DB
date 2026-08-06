@@ -12,10 +12,11 @@
  ** --   --------		 -------			--------------------------------            
     1    04-10-2024		AMIT GHEDIYA		Created
 	2    13/02/2025   Ayushi Patel      converted the date into utc (TransactionDate , EntryDate) , Added a case to get timeZone
+	3    09/July/2026   RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************/ 
 --[dbo].[GetStocklineBatchAccountingDetailsById] 181156
 -- =============================================
-CREATE    PROCEDURE [dbo].[GetStocklineBatchAccountingDetailsById]
+CREATE OR ALTER PROCEDURE [dbo].[GetStocklineBatchAccountingDetailsById]
 @ReferenceId BIGINT ,
 @EmployeeId bigint
 AS
@@ -119,7 +120,7 @@ BEGIN
 		LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
 		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId		
-     WHERE SBD.StocklineId = @ReferenceId     
+     WHERE SBD.StocklineId = @ReferenceId AND ISNULL(STK.IsNonStock,0) = 0     
 	 order by BD.JournalTypeNumber desc
   END    
   END TRY    

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSalesOrderBillingInvoicingPdfData]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get SalesOrder Billing Invoicing Pdf Data 
@@ -20,10 +20,11 @@
 	5    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc from item table.
     7    07-07-2025   Moin Bloch        Changed Old To New Billing Table commentd not in use
-
+    8    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    9    22/July/2026   RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
 AS  
 BEGIN  

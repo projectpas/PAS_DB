@@ -10,9 +10,10 @@
  ** --   --------				-------					--------------------------------            
  ** 1    10-MAY-2025			Devendra Shekh				Created
        
+ 2    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]  
+CREATE OR ALTER PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]  
 	@tbl_SubWorkOrderMaterialsType [SubWorkOrderMaterialsType] READONLY
 AS  
 BEGIN  
@@ -29,7 +30,7 @@ BEGIN
 		SELECT TMP.[SubWorkOrderMaterialsId], TMP.[StocklineId], TMP.[ItemMasterId], [ConditionCodeId], [ProvisionId], [StocklineQuantity], 0, 0, TMP.[MasterCompanyId], TMP.[CreatedBy], TMP.[UpdatedBy], GETUTCDATE(), GETUTCDATE(),
 		1, 0, TMP.[UnitCost], TMP.[ExtendedCost], STK.[PurchaseOrderUnitCost], TMP.Figure, TMP.[Item], @CreatedMaterial		
 		FROM @tbl_SubWorkOrderMaterialsType TMP
-		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 		 
 	COMMIT TRANSACTION  
 	END TRY      

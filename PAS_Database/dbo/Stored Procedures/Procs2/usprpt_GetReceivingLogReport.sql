@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetReceivingLogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for ReceivingLog Report    
@@ -25,10 +25,9 @@
 	 9    09-JUNE-2026      Priyansh Patel      UOM changes, Changed the decimals to 2 [PN-16778]
 	 10   16-JUNE-2026      Priyansh Patel      converted purchase order quantity to stock uom [PN-16860]
 	 11   19-JUNE-2026      Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
-	 12   15-JUL-2026       Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
-
-
-
+	 12	  09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	 13   15-JUL-2026       Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
+	 14	  24/July/2026		RAJESH GAMI	[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (4) to allow Non-Stock items in Receiving Log Report
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 

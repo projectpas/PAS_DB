@@ -13,16 +13,18 @@
  **************************************************************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		-------				--------------------------------            
-    1    03/06/2024		AMIT GHEDIYA		Created  
-	2    13/06/2024		AMIT GHEDIYA		Update for get only part which is reserve qty. 
-	3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	1    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+    2    03/06/2024		AMIT GHEDIYA		Created  
+	3    13/06/2024		AMIT GHEDIYA		Update for get only part which is reserve qty. 
 	4    07/11/2024		Devendra Shekh		added PartDescription and ShortName to select
 	5	 05-12-2024     Shrey Chandegara	add [Customer]
-	5	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
-	6    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
-	7    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
-	8	 23/06/2026     Bhargav Saliya	    UOM Changes [PN-16959]
-
+	6	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
+	7    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
+	8    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
+	9	 23/06/2026     Bhargav Saliya	    UOM Changes [PN-16959]
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from both UNION branches' StockLine and ItemMaster joins.
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
 CREATE PROCEDURE [dbo].[GetSalesOrderPartsViewById]    

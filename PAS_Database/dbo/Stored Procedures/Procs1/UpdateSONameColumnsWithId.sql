@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
  ** Description: Update name columns into corrosponding reference Id values from respective master table                 
@@ -12,7 +12,8 @@
     2    03-Apr-2024   Bhargav Saliya	Credit Terms Changes
 	3    11/05/2024	   Vishal Suthar	Modified to make use of new SO Part tables
 	4    10/04/2025	   Vishal Suthar	Modified to update value columns in SalesOrderPartV1 table
-
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	EXEC [dbo].[UpdateSONameColumnsWithId] 255
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[UpdateSONameColumnsWithId]

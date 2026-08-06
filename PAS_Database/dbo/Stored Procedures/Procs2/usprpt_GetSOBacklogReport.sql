@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSOBacklogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SOBacklog Report  
@@ -14,14 +14,16 @@
  **************************************************************             
  ** S NO   Date				Author				Change Description              
  ** --	 --------			-------				--------------------------------            
-    1    05-May-2022		Mahesh Sorathiya	Created  
-	2    20-JUNE-203		Devendra Shekh		made changes for total unitcost and extcost
+	1    20-JUNE-203		Devendra Shekh		made changes for total unitcost and extcost
+    2    05-May-2022		Mahesh Sorathiya	Created  
 	3    28-MARCH-2024		Ekta Chandegra		IsActive and IsDelete flag is added 
 	4    17-MAY-2024		Vishal Suthar		Modified Unit Cost, Ext. Cost to Unit Price and Ext. Price
 	5    10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	6    01-DEC-2024		Vishal Suthar		Fixed amount and qty issues in the report
 	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
-	3    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
+	8    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,

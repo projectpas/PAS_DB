@@ -14,52 +14,54 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------		--------------------------------            
  1    08/10/2022  Subhash Saliya		 Created  
- 2    14/07/2023  Devendra Shekh		 added new OR for module 'MSTK'  
- 3    25/07/2023  AMIT GHEDIYA			 added new OR for module 'VRMA' (Vendor RMA Accounting)  
- 4    07/08/2023  Moin Bloch			 added new module 'EXPS' (Exchange Parts Shipped)  
- 5    08/08/2023  Moin Bloch			 added new module 'EXFB' (Fee Billing on Sales Order Exchanges)  
- 6    09/08/2023  Moin Bloch			 added new module 'EXCR' (Sales Order Exchange - Core Returned)  
- 7    10/08/2023  AMIT GHEDIYA			 added new OR for module 'CMDA' (Credit Memo Accounting)  
- 8    14/08/2023  Moin Bloch			 added new module 'WRT,ACHT,CCP' VENDOR PAYMENTS
- 9	  16/08/2023  Satish Gohil			 added new module RECRO and RECPO entry condition
- 10   21/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE
- 11   23/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE fOR CREDIT MEMO
- 12   28/08/2023  Devendra Shekh		 added BatchStatus Join for JE Status
- 13   30/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE fOR CREDIT MEMO
- 14   15/09/2023  AMIT GHEDIYA			 Get SACM ms details for batch.
- 15   25/09/2023  Nainshi Joshi			 Added GLAccountClassName.
- 16   10/10/2023  Devendra Shekh		 Added new Module 'NPO'
- 17   12/10/2023  AMIT GHEDIYA			 added new SADJ-QTY (Bulk Stockline Adj Accounting) 
- 18   16/10/2023  AMIT GHEDIYA			 added new SADJ-UnitCost (Bulk Stockline Adj Accounting) 
- 19   19/10/2023  Devendra Shekh		 Added new Module 'RFD'
+ 2	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
+ 3    14/07/2023  Devendra Shekh		 added new OR for module 'MSTK'  
+ 4    25/07/2023  AMIT GHEDIYA			 added new OR for module 'VRMA' (Vendor RMA Accounting)  
+ 5    07/08/2023  Moin Bloch			 added new module 'EXPS' (Exchange Parts Shipped)  
+ 6    08/08/2023  Moin Bloch			 added new module 'EXFB' (Fee Billing on Sales Order Exchanges)  
+ 7    09/08/2023  Moin Bloch			 added new module 'EXCR' (Sales Order Exchange - Core Returned)  
+ 8    10/08/2023  AMIT GHEDIYA			 added new OR for module 'CMDA' (Credit Memo Accounting)  
+ 9    14/08/2023  Moin Bloch			 added new module 'WRT,ACHT,CCP' VENDOR PAYMENTS
+ 10	  16/08/2023  Satish Gohil			 added new module RECRO and RECPO entry condition
+ 11   21/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE
+ 12   23/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE fOR CREDIT MEMO
+ 13   28/08/2023  Devendra Shekh		 added BatchStatus Join for JE Status
+ 14   30/08/2023  Moin Bloch			 ADDED MS TABLE TO GET MS DETAILS DIRECT FROM NEWLY CREATED TABLE fOR CREDIT MEMO
+ 15   15/09/2023  AMIT GHEDIYA			 Get SACM ms details for batch.
+ 16   25/09/2023  Nainshi Joshi			 Added GLAccountClassName.
+ 17   10/10/2023  Devendra Shekh		 Added new Module 'NPO'
+ 18   12/10/2023  AMIT GHEDIYA			 added new SADJ-QTY (Bulk Stockline Adj Accounting) 
+ 19   16/10/2023  AMIT GHEDIYA			 added new SADJ-UnitCost (Bulk Stockline Adj Accounting) 
  20   16/10/2023  AMIT GHEDIYA			 added new Bulk StockLine Adjustment INTERCOTRANS LE (Bulk Stockline Adj Accounting) 
- 21   30/10/2023  Devendra Shekh	     added currency for NPO and RFD
- 22   28/11/2023  Moin Bloch	         added Lot Number in WO , WOP-PartsIssued,SOI
- 22   30/11/2023  Moin Bloch	         added Lot Number SOI
- 23   01/12/2023  Moin Bloch	         added Lot Number EXPS
- 24   06/12/2023  Moin Bloch	         added Lot Number in RPO,RRO 
- 25	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
- 26	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
- 27	  18/01/2024  AMIT GHEDIYA           added MJE For Manual Journal
- 28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE 
- 29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
- 30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
- 31	  18/04/2024  AMIT GHEDIYA			 Get MS.
- 32	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
- 33	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
- 34	  25/06/2024  Devendra Shekh		 added CustomerName for 'CMDA'
- 35	  03/07/2024  Abhishek Jirawla		 added MS level for 'CKS'
- 36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
- 37	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
- 38	  13/12/2024  Moin Bloch		     added Cycle Count Module
- 39	  26/12/2024  Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
- 40	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
- 41	  19/08/2025  BHARGAV SALIYA	     Added Case for [JournalTypeName].
- 42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
- 43	  10/02/2026  Moin Bloch		     added TWO
- 44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
- 45	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
-
+ 21   19/10/2023  Devendra Shekh		 Added new Module 'RFD'
+ 22   30/10/2023  Devendra Shekh	     added currency for NPO and RFD
+ 23   28/11/2023  Moin Bloch	         added Lot Number in WO , WOP-PartsIssued,SOI
+ 24   30/11/2023  Moin Bloch	         added Lot Number SOI
+ 25   01/12/2023  Moin Bloch	         added Lot Number EXPS
+ 26   06/12/2023  Moin Bloch	         added Lot Number in RPO,RRO 
+ 27	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
+ 28	  18/01/2024  AMIT GHEDIYA           added MJE For Manual Journal
+ 29	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE 
+ 30	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
+ 31	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
+ 32	  18/04/2024  AMIT GHEDIYA			 Get MS.
+ 33	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
+ 34	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
+ 35	  25/06/2024  Devendra Shekh		 added CustomerName for 'CMDA'
+ 36	  03/07/2024  Abhishek Jirawla		 added MS level for 'CKS'
+ 37	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
+ 38	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
+ 39	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
+ 40	  13/12/2024  Moin Bloch		     added Cycle Count Module
+ 41	  26/12/2024  Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
+ 42	  19/08/2025  BHARGAV SALIYA	     Added Case for [JournalTypeName].
+ 43	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
+ 44	  10/02/2026  Moin Bloch		     added TWO
+ 45	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
+	46    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ 47	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
+	48    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	49    20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed both NONSTOCK-branch MS lookups (RPO/RRO/AST branch @NONStockModuleID; MSTK branch @NONStockModuleIDs) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; both variables now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
 ************************************************************************/  
@@ -156,7 +158,7 @@ BEGIN
 					LEFT JOIN [dbo].[StocklineManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.ModuleID = @STKLModuleID AND SMSD.ReferenceID = WBD.StockLineId AND WBD.IsWorkOrder = 0 	       
 					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId  
 					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
-					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId   
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId AND ISNULL(SL.IsNonStock,0) = 0  
 					LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]  
 					LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
 					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
@@ -858,6 +860,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
 					 LEFT JOIN [dbo].[ExchangeBatchDetails] SBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SBD.[CommonJournalBatchDetailId]  
 					 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SBD.[ItemMasterId] = ITM.[ItemMasterId]  
+					  AND ISNULL(ITM.IsNonStock,0) = 0
 					 LEFT JOIN [dbo].[Customer] CST WITH(NOLOCK) ON SBD.[CustomerId] = CST.[CustomerId]  
 					 LEFT JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @EXSOHeaderMSModuleId AND MSD.[ReferenceID] = SBD.ExchangeSalesOrderId        
 					 LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]	
@@ -1317,7 +1320,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0 	 
 					 LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON stbd.ManagementStructureId = ESS.[EntityStructureId]
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON ESS.Level2Id = MSL2.ID
@@ -1415,7 +1418,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0 	 	 
 					 --LEFT JOIN [dbo].[StocklineManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.ModuleID = @blkSTKLEModuleID AND SMSD.ReferenceID = stbd.StockLineId 
 					 --LEFT JOIN [dbo].[EmployeeManagementStructureDetails] EMSD WITH (NOLOCK) ON EMSD.ReferenceID = stbd.EmployeeId AND EMSD.EntityMSID = stbd.ManagementStructureId AND EMSD.ModuleID = @ManagementStructureModuleLEId
 					-- LEFT JOIN [dbo].[ManagementStructureDetails] EMSD WITH (NOLOCK) ON stbd.ManagementStructureId = EMSD.[MSDetailsId]
@@ -1587,7 +1590,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0 	 	 
 					 LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON stbd.ManagementStructureId = ESS.[EntityStructureId]
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON ESS.Level3Id = MSL3.ID

@@ -22,6 +22,7 @@
 	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
 	6    02/24/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
  	7   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]       
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [sp_subworkOrderReleaseFromPDFData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
@@ -102,7 +103,9 @@ BEGIN
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+					   AND ISNULL(im.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  	
+					   AND ISNULL(ims.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkorderId = wop.WorkOrderId
 					  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id

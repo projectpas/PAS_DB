@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_WO_MainPart]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get WO MPN List that are Ready to Pick FOR PDF.    
@@ -22,7 +22,10 @@
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
     5    06/04/2026   Ayushi Patel	        PN-15908 Update (Added UOM Changes)
 	6	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-	6	 15/07/2026	  Ayushi				[PN-17288]Return Consume UOM
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9	 15/07/2026	  Ayushi				[PN-17288]Return Consume UOM
+	10    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
@@ -81,7 +84,7 @@ BEGIN
 						LEFT JOIN Bin bn WITH (NOLOCK) on bn.BinId = sl.BinId
 						LEFT JOIN PurchaseOrder po WITH (NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
-					WHERE wopt.PickTicketId = @WOPickTicketId;
+					WHERE wopt.PickTicketId = @WOPickTicketId ;
 				END
 			COMMIT  TRANSACTION
 

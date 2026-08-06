@@ -14,10 +14,11 @@
  ** --   --------     -------		--------------------------------          
     1    30-Mar-2021   Moin Bloch   Created
     2    05-Sep-2021   Rajesh Gami  Update Stockline Part Numbers and Descriptions When ItemMaster Part Number or Description Changes
+    3    09/July/2026   RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC UpdateItemMasterDetail 268
 **************************************************************/ 
 
-CREATE Procedure [dbo].[UpdateItemMasterDetail]
+CREATE OR ALTER PROCEDURE [dbo].[UpdateItemMasterDetail]
 @ItemMasterId  bigint
 AS
 BEGIN
@@ -80,7 +81,7 @@ BEGIN
 					WHERE SL.ItemMasterId = @ItemMasterId
 					  AND ISNULL(SL.QuantityOnHand,0) > 0
 					  AND (ISNULL(SL.PartNumber,'')    <> ISNULL(IM.partnumber,'')
-						OR ISNULL(SL.PNDescription,'') <> ISNULL(IM.PartDescription,''));
+						OR ISNULL(SL.PNDescription,'') <> ISNULL(IM.PartDescription,'')) AND ISNULL(SL.IsNonStock,0) = 0;
 
 				-- RevicedPNId
 				UPDATE SL
@@ -89,7 +90,7 @@ BEGIN
 				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.RevicedPNId
 				WHERE SL.RevicedPNId = @ItemMasterId
 				  AND ISNULL(SL.QuantityOnHand,0) > 0
-				  AND ISNULL(SL.RevicedPNNumber,'') <> ISNULL(IM.partnumber,'');
+				  AND ISNULL(SL.RevicedPNNumber,'') <> ISNULL(IM.partnumber,'') AND ISNULL(SL.IsNonStock,0) = 0;
 
 				-- IsOemPNId
 				UPDATE SL
@@ -98,7 +99,7 @@ BEGIN
 				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.IsOemPNId
 				WHERE SL.IsOemPNId = @ItemMasterId
 				  AND ISNULL(SL.QuantityOnHand,0) > 0
-				  AND ISNULL(SL.OEMPNNumber,'') <> ISNULL(IM.partnumber,'');
+				  AND ISNULL(SL.OEMPNNumber,'') <> ISNULL(IM.partnumber,'') AND ISNULL(SL.IsNonStock,0) = 0;
 
 				-- TLAItemMasterId
 				UPDATE SL
@@ -110,7 +111,7 @@ BEGIN
 				WHERE SL.TLAItemMasterId = @ItemMasterId
 				  AND ISNULL(SL.QuantityOnHand,0) > 0
 				  AND (ISNULL(SL.TLAPartNumber,'')      <> ISNULL(IM.partnumber,'')
-					OR ISNULL(SL.TLAPartDescription,'') <> ISNULL(IM.PartDescription,''));
+					OR ISNULL(SL.TLAPartDescription,'') <> ISNULL(IM.PartDescription,'')) AND ISNULL(SL.IsNonStock,0) = 0;
 
 				-- NHAItemMasterId
 				UPDATE SL
@@ -122,7 +123,7 @@ BEGIN
 				WHERE SL.NHAItemMasterId = @ItemMasterId
 				  AND ISNULL(SL.QuantityOnHand,0) > 0
 				  AND (ISNULL(SL.NHAPartNumber,'')      <> ISNULL(IM.partnumber,'')
-					OR ISNULL(SL.NHAPartDescription,'') <> ISNULL(IM.PartDescription,''));
+					OR ISNULL(SL.NHAPartDescription,'') <> ISNULL(IM.PartDescription,'')) AND ISNULL(SL.IsNonStock,0) = 0;
 
 		SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId ;
 		

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
 ** File:   [GetManufacturerByItemMasterId]
 ** Author:   Vishal Suthar
 ** Description: This procedre is used to get manufacturer by part id
@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   10/31/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC [dbo].[GetManufacturerByItemMasterId] 96877
 **************************************************************/

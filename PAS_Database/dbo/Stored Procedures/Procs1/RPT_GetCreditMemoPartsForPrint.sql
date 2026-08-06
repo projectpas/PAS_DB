@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [RPT_GetCreditMemoPartsForPrint]           
  ** Author: Amit Ghediya
  ** Description: Get Customer RMAPartsDetails for SSRS Report
@@ -15,7 +15,9 @@
 	4    04/12/2024   HEMANT SALIYA   Updated Status Id 
 	5	 11/04/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
 	6    26/06/2025	  AMIT GHEDIYA	  Modified to make use of new common Billing tables
-	7    08-05-2026   Rajesh Gami       UOM Conversion Changes[PN-16331]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	9    08-05-2026   Rajesh Gami       UOM Conversion Changes[PN-16331]
  --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
 

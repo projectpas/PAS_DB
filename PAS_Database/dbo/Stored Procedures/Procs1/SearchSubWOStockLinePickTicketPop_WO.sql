@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchSubWOStockLinePickTicketPop_WO]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket for sub wo   
@@ -17,11 +17,12 @@
 	1										
 	2    09/20/2023   Devendra Shekh        pick ticket qty issue resovled 
 	3    09/20/2023   Devendra Shekh        changes for partwise data
-	3    01/21/2025   HEMANT SALIYA         Updated for Get Pickticket Data
-	4    01/21/2025   Bhargav SALIYA        Get Location
- ***5    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]   
-	6	 19/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-
+	4    01/21/2025   HEMANT SALIYA         Updated for Get Pickticket Data
+	5    01/21/2025   Bhargav SALIYA        Get Location
+ ***6    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]   
+	7	 19/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchSubWOStockLinePickTicketPop_WO]
@@ -124,7 +125,7 @@ BEGIN
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(Pick.IsKitType, 0) = 0
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
@@ -136,6 +137,7 @@ BEGIN
 						AND
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				UNION ALL
 
 					SELECT DISTINCT
@@ -195,7 +197,7 @@ BEGIN
 						LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 						LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(Pick.IsKitType, 0) = 1
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
@@ -206,6 +208,7 @@ BEGIN
 						AND 
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				END
 				ELSE
 				BEGIN
@@ -270,7 +273,7 @@ BEGIN
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(Pick.IsKitType, 0) = 0
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
@@ -282,6 +285,7 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 							AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 				
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				UNION ALL
 								
 					SELECT DISTINCT
@@ -344,7 +348,7 @@ BEGIN
 						LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 						LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(Pick.IsKitType, 0) = 1
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
@@ -356,6 +360,7 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				END
 				
 			END

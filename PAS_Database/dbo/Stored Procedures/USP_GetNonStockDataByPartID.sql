@@ -10,6 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    25-DEC-2025		Divyesh Kathiriya	Created
+    2	15/July/2026		RAJESH GAMI			[PN-17271] - Fixed: this SP was still querying the legacy
+    3	23/July/2026		RAJESH GAMI			[PN-17350] - Fixed wrong currency: ItemMaster has a legacy,
     
  -- EXEC [USP_GetNonStockDataByPartID] @ItemMasterId=181
 **************************************************************/
@@ -22,7 +24,7 @@ BEGIN
 	BEGIN TRY
 	
 		SELECT TOP 1
-            [im].[ItemMasterNonStockId],
+            [im].[ItemMasterId] AS [ItemMasterNonStockId],
             [im].[PartNumber],
             [im].[ItemTypeId],
             [im].[PartDescription],
@@ -38,7 +40,7 @@ BEGIN
             [im].[DiscountPurchasePercent],
             [im].[CurrencyId],
             ISNULL([cucy].[Code], '') AS [CurrencyName]
-        FROM[DBO].[ItemMasterNonStock] AS [im] WITH(NOLOCK)
+        FROM[DBO].[ItemMaster] AS [im] WITH(NOLOCK)
         LEFT JOIN[DBO].[Manufacturer] AS [mfg] WITH(NOLOCK) ON [im].[ManufacturerId] = [mfg].[ManufacturerId]
         LEFT JOIN[DBO].[GLAccount] AS [gl] WITH(NOLOCK) ON [im].[GLAccountId] = [gl].[GLAccountId]
         LEFT JOIN[DBO].[Currency] AS [cucy] WITH(NOLOCK) ON [im].[CurrencyId] = [cucy].[CurrencyId]

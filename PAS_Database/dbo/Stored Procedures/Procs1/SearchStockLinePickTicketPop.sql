@@ -18,6 +18,9 @@
 	8    31/10/2025   Amit Ghediya		added for location
     9    30/03/2026   Moin Bloch	    Update (Added UOM Changes)
 	10	 18/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
@@ -113,17 +116,13 @@ BEGIN
 				 LEFT JOIN [dbo].[SOPickTicket] Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
 				 LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
+				    (ISNULL(im.[IsService],0) <> 1 AND ISNULL(im.[IsNonStock],0) <> 1) AND
 					so.SalesOrderId = @SalesOrderId AND 
-					--((stk.QtyReserved + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) 
-					((ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(stk.QtyReserved,0) ELSE dbo.fn_ConvertUOM(ISNULL(stk.QtyReserved,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) +
-					(SELECT ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN SUM(ISNULL(ship_item.QtyShipped,0)) ELSE dbo.fn_ConvertUOM(SUM(ISNULL(ship_item.QtyShipped,0)),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0)
-						FROM [dbo].[SalesOrderShipping] ship WITH(NOLOCK)
-						INNER JOIN [dbo].[SalesOrderShippingItem] ship_item WITH(NOLOCK) ON ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId AND ship_item.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN [dbo].[SOPickTicket] sopi WITH(NOLOCK) ON ship_item.SOPickTicketId = sopi.SOPickTicketId AND sopi.SOPickTicketId = Pick.SOPickTicketId)) -
-					--(SELECT ISNULL(SUM(QtyToShip), 0)
-					(SELECT ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN SUM(ISNULL(s.QtyToShip,0)) ELSE dbo.fn_ConvertUOM(SUM(ISNULL(s.QtyToShip,0)),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0)
-						FROM [dbo].[SOPickTicket] s WITH(NOLOCK)
-						WHERE s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
+					((stk.QtyReserved + --sor.QtyToReserve + 
+					(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
+						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
+					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
 		END
 		ELSE
 		BEGIN
@@ -185,22 +184,23 @@ BEGIN
 						(SELECT ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN SUM(ISNULL(s.QtyToShip,0)) ELSE dbo.fn_ConvertUOM(SUM(ISNULL(s.QtyToShip,0)),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0)
 						 FROM [dbo].[SOPickTicket] s WITH(NOLOCK) WHERE s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId))
 						 AS QtyToReserve
-				FROM [dbo].[ItemMaster] im  WITH(NOLOCK)
-				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
-				 LEFT JOIN [dbo].[SalesOrderStocklineV1] stk on stk.StockLineId = sl.StockLineId
-				 LEFT JOIN [dbo].[SalesOrderPartV1] sop on sop.SalesOrderPartId = stk.SalesOrderPartId
-				 LEFT JOIN [dbo].[SalesOrder] so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-				INNER JOIN [dbo].[SalesOrderReserveParts] sor WITH(NOLOCK) on sor.SalesOrderId = so.SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId
-				 LEFT JOIN [dbo].[Condition] c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
-				 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
-				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
-				 LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
-				 LEFT JOIN [dbo].[Customer] cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
-				 LEFT JOIN [dbo].[Vendor] vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
-				 LEFT JOIN [dbo].[LegalEntity] leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-				 LEFT JOIN [dbo].[SOPickTicket] Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
-				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM [dbo].[Stockline] S WITH(NOLOCK) INNER JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+				FROM DBO.ItemMaster im  WITH(NOLOCK)
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
+				LEFT JOIN DBO.SalesOrderPartV1 sop on sop.SalesOrderPartId = stk.SalesOrderPartId
+				LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
+				INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId
+				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
+				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
+				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
+				LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
+				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
+				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
+				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
+				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
+				    (ISNULL(im.[IsService],0) <> 1 AND ISNULL(im.[IsNonStock],0) <> 1 ) AND
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.SalesOrderId = @SalesOrderId AND 
 					--((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 

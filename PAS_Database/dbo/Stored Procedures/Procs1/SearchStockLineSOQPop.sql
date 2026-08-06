@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineSOQPop]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Search Data for SOQ, SO  search for from part list tab
@@ -22,6 +22,9 @@
 	6    09/06/2026			Bhargav Saliya	 Get ShortName Of UOM   
 	7    18/06/2026         Bhargav Saliya	 Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	8    18/06/2026         Bhargav Saliya   No need to convert UnitSalesPrice; it's already saved to consume in Stockline
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (both UNION branches) so Non-Stock stocklines are included.
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]

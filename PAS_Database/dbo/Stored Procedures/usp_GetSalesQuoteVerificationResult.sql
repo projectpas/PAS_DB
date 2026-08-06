@@ -14,11 +14,11 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     15/04/2025      Ekta Chandegra        Created  
-	
-
+    2     09/July/2026      RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    3     22/July/2026      RAJESH GAMI        [PN-17350] - Removed leftover IsNonStock=0 exclusion filter left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
 -- exec dbo.usp_GetSalesQuoteVerificationResult @SalesOrderQuoteId=937
 ************************/   
-CREATE   PROCEDURE [dbo].[usp_GetSalesQuoteVerificationResult]
+CREATE OR ALTER PROCEDURE [dbo].[usp_GetSalesQuoteVerificationResult]
     @SalesOrderQuoteId BIGINT
 AS
 BEGIN

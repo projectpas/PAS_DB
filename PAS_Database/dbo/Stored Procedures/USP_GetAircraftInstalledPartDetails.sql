@@ -1,4 +1,3 @@
-﻿
 /*********************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
@@ -23,15 +22,15 @@
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
-** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
-** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
-** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
-** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
-** 17   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
-
-
+** 1   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 2   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 3   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 4   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 5   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
+** 6   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 7   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+   8   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   9   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************/
 CREATE    PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -175,9 +174,9 @@ BEGIN
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
-			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
-			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ARH.[StockLineId] 
+			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
+			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
@@ -192,6 +191,7 @@ BEGIN
 					AND MasterCompanyId = @MasterCompanyId
 			) LS
             WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId) AND AIPD.MasterCompanyId = @MasterCompanyId
+			AND ISNULL(IM.IsNonStock,0) = 0
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR

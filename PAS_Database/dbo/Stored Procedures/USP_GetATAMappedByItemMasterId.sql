@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	-------------------         
 	1	 16-12-2025         Nakul Chandigra     Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetATAMappedByItemMasterId]
 @ItemMasterId BIGINT,
@@ -55,6 +56,7 @@ BEGIN
 	JOIN [DBO].ItemMaster item WITH (NOLOCK) ON iM.ItemMasterId = item.ItemMasterId
 	WHERE  iM.ItemMasterId = @ItemMasterId AND iM.IsActive = 1 AND iM.IsDeleted = @IsDeleted
 
+	 AND ISNULL(item.IsNonStock,0) = 0
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 

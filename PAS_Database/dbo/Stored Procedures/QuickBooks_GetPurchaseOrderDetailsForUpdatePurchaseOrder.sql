@@ -12,6 +12,8 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 1
 **************************************************************/ 

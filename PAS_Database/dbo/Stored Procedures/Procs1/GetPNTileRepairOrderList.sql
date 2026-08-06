@@ -15,13 +15,13 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
-	4    08/12/2023   Jevik Raiyani		    add @statusValue
-	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
-	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
-	7    26-02-2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
-
+	3    08/12/2023   Jevik Raiyani		    add @statusValue
+	4    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+	5    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
+	6    26-02-2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
-
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
@@ -128,7 +128,7 @@ BEGIN
 				GROUP BY RepairOrderPartId
 			 ) ROSI ON ROSI.RepairOrderPartId = ROP.RepairOrderPartRecordId
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0 	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1
@@ -136,7 +136,7 @@ BEGIN
 				  AND ROP.ItemMasterId = @ItemMasterId
 				  AND ROP.ItemTypeId = @ItemTypeStock
 				  AND (@ConditionId IS NULL OR ROP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

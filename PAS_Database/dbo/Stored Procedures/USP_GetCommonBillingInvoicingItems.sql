@@ -13,15 +13,17 @@
     1    19/05/2025   Moin Bloch    Created
     2    06/06/2025   Rajesh Gami   Created    
 	3    10/06/2025   Moin Bloch    Added CustomerId
-	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
-	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
-	6    19/08/2025   Moin Bloch    Added Percent value for view
-	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
-	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	10   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
-	11   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
-	12   17/07/2025   Bhargav Saliya    Revert Changes For Cost [PN-17163]
-	13   27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
+	4   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
+	5    07/07/2025   Abhishek Jirawla Updated Manufacturer
+	6   17/07/2025   Bhargav Saliya    Revert Changes For Cost [PN-17163]
+	7    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
+	8    19/08/2025   Moin Bloch    Added Percent value for view
+	9    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
+	10    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	11   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts' billing invoicing items load correctly (WorkOrder branch untouched).
+	14   27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -183,7 +185,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId] 
 
 
-			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
+			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		  		  
 		END 
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SASLES ORDER ********/
@@ -314,7 +316,7 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
 			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId]
-			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
+			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId ;
 		END
 	END TRY    
 	BEGIN CATCH      

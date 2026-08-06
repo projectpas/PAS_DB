@@ -1,4 +1,4 @@
-﻿/*************************************************************     
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
 ** Description: <This Proc Is used to Get Aircraft AircraftEffectivity>    
@@ -10,7 +10,7 @@ Exec [USP_GetAircraftEffectivity]
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
    1    05/05/2026  Amit Ghediya		Created  
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 (
@@ -72,6 +72,7 @@ BEGIN
             LEFT JOIN dbo.aircrafttype MT WITH(NOLOCK) ON AE.MakeTypeId = MT.AircraftTypeId
             LEFT JOIN dbo.AircraftModel AM WITH(NOLOCK) ON AE.AircraftModelId = AM.AircraftModelId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON AE.ItemMasterId = IM.ItemMasterId
+             AND ISNULL(IM.IsNonStock,0) = 0
             WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
 			AND AE.MasterCompanyId = @MasterCompanyId
         )

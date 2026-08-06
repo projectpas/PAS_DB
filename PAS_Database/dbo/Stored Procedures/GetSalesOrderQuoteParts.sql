@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSalesOrderQuoteParts]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get sales order quote part details for view    
@@ -21,7 +21,10 @@
 	5    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost 
 	6    16-Apr-026   Bhargav Saliya    UOM Changes
 	7    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	7    23/06/2026   Bhargav Saliya	Get Consume UOM 
+	8    23/06/2026   Bhargav Saliya	Get Consume UOM 
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderQuoteParts]

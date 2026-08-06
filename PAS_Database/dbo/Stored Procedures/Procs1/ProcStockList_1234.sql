@@ -1,5 +1,12 @@
 ﻿
-CREATE PROCEDURE [dbo].[ProcStockList_1234]
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
+CREATE OR ALTER PROCEDURE [dbo].[ProcStockList_1234]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -127,10 +134,11 @@ BEGIN
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
-		 		  WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0
+							 WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
 						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
 						AND stl.IsParent = 1
-				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResults FROM  Result
 				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 						(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
@@ -317,10 +325,11 @@ BEGIN
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
-		 		  WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0
+							 WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
 						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
 						AND stl.IsParent = 1
-				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
 				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 						(PartDescription LIKE '%' +@GlobalFilter+'%') OR	

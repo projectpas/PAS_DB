@@ -17,8 +17,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Subhash Saliya Created
-	2	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
 
@@ -49,6 +49,7 @@ BEGIN
 					 JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE (ro.IsActive = 1 AND ISNULL(ro.IsDeleted,0) = 0 AND (im.ItemMasterId = @itemmasterid)
 						AND (ro.RepairOrderNumber LIKE @StartWith + '%') )
+		 AND ISNULL(im.IsNonStock,0) = 0
 		UNION     
 		SELECT DISTINCT  
 			             ro.RepairOrderId as value,
@@ -57,6 +58,7 @@ BEGIN
                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(rop.IsPiecePart,0) = 0
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE ro.RepairOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
+				 AND ISNULL(im.IsNonStock,0) = 0
 				ORDER BY RepairOrderNumber
 
 	END TRY 

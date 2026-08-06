@@ -14,7 +14,8 @@
     1    20/03/2023   Amit Ghediya    Created  
 	2    20/03/2023   Amit Ghediya    Added DB Standards  
     3	 02/04/2025   Bhargav Saliya  UTC Date Changes 
-	3    01/09/2025   Moin Bloch	  Updated Added New Field [Activity]
+	4    01/09/2025   Moin Bloch	  Updated Added New Field [Activity]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_GetHistory]  
@@ -84,6 +85,7 @@ BEGIN
 		INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
 		 LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
 		 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+     AND ISNULL(IM.IsNonStock,0) = 0
     WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
     ),  
     FinalResult AS (  

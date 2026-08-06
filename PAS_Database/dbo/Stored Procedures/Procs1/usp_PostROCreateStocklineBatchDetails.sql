@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
@@ -11,25 +11,27 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-	2    01/06/2023   Satish Gohil  Modify (convert GETDATE() to GETUTCDATE())
-	3    20/07/2023   Hemant Saliya Formated SP and Added MasterCompany Condition
-	4    24/07/2023	  Satish Gohil  Modify(Set condition name to distribution code and dynamic setup)
-	5    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
-	6    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
-	7    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
-	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
-	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
-	10   19/09/2024	  AMIT GHEDIYA   Added for AutoPost Batch
-	11	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
-	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	14	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
-	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
-	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
-	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
-	18   27/04/2026   Bhargav Saliya [PN-16170](UOM-Fixed Amount Issue)
-	19   04/May/2026  UOM conversion related change (Decimal 18,6) [PN-16275]
-	20   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
+	1    01/06/2023   Satish Gohil  Modify (convert GETDATE() to GETUTCDATE())
+	2    20/07/2023   Hemant Saliya Formated SP and Added MasterCompany Condition
+	3    24/07/2023	  Satish Gohil  Modify(Set condition name to distribution code and dynamic setup)
+	4    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
+	5    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
+	6    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
+	7    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
+	8    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
+	9   19/09/2024	  AMIT GHEDIYA   Added for AutoPost Batch
+	10	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	11   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
+	12	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	13	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
+	14	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	15	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
+	16   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
+	17   27/04/2026   Bhargav Saliya [PN-16170](UOM-Fixed Amount Issue)
+	18   04/May/2026  UOM conversion related change (Decimal 18,6) [PN-16275]
+	19   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE      PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -418,10 +420,12 @@ BEGIN
 										  SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
@@ -448,7 +452,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @GlStocklineId;
+										WHERE SL.[StockLineId] = @GlStocklineId AND ISNULL(SL.IsNonStock,0) = 0 ;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -559,11 +563,13 @@ BEGIN
 
 										  SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										  -----Fixed Asset--------
@@ -851,12 +857,12 @@ BEGIN
 										  --SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										   
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										   SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
@@ -1083,12 +1089,13 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										 
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------

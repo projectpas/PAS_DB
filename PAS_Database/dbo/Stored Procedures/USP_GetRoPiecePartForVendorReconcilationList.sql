@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetRoPiecePartForVendorReconcilationList]             
  ** Author:   Abhishek Jirawla   
  ** Description: Get Ro PiecePart For Vendor Reconcilation List 
@@ -15,10 +15,11 @@
   ** S NO   Date            Author				Change Description              
   ** --   --------			-------				--------------------------------            
      1    22/06/2026		Abhishek Jirawla	Created
-     2    16/07/2026		Abhishek Jirawla	QtyShipped falls back to QuantityOrdered when Enforce Pick Ticket is off
-     3    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
-     4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
-     5    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+     3    16/07/2026		Abhishek Jirawla	QtyShipped falls back to QuantityOrdered when Enforce Pick Ticket is off
+     4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to '-' when RO has no attached WO
+     5    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
+     6    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PageNumber             INT,
@@ -145,7 +146,7 @@ BEGIN
 
         FROM  dbo.RepairOrderPart  rop WITH (NOLOCK)
         JOIN  dbo.RepairOrder       ro WITH (NOLOCK)  ON  ro.RepairOrderId   = rop.RepairOrderId
-        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId
+        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
         LEFT JOIN dbo.WorkOrder     wo  WITH (NOLOCK) ON  wo.WorkOrderId     = rop.WorkOrderId
         LEFT JOIN dbo.ItemMaster    im  WITH (NOLOCK) ON  im.ItemMasterId    = rop.ItemMasterId
 

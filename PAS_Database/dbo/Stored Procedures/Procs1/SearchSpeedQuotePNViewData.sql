@@ -130,6 +130,7 @@ BEGIN
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId
 				Left Join SpeedQuotePart SP WITH (NOLOCK) on SOQ.SpeedQuoteId=SP.SpeedQuoteId and SP.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left join [Percent] p WITH (NOLOCK) on P.PercentId = SOQ.ProbabilityId
 				Left join [Condition] cn WITH (NOLOCK) on cn.ConditionId = SP.ConditionId

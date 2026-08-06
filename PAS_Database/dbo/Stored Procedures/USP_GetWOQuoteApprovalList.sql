@@ -12,11 +12,11 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------		--------------------------------            
     1	 25/08/2025   Moin Bloch		 Created
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [dbo].[USP_GetWOQuoteApprovalList] 7832
-
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetWOQuoteApprovalList]  
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetWOQuoteApprovalList]  
 @WorkOrderQuoteId BIGINT  
 AS  
 BEGIN  
@@ -179,7 +179,8 @@ BEGIN
 		 LEFT JOIN [dbo].[Contact] CON1 WITH(NOLOCK) ON WAP.[CustomerRejectedbyID] = CON1.[ContactId]
 		 WHERE WOC.[WorkOrderQuoteId] = @WorkOrderQuoteId
 		   AND WOC.[IsVersionIncrease] = 0
-		 ORDER BY WOP.[ID];			
+		  AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
+		    ORDER BY WOP.[ID];			
 		END TRY  
  BEGIN CATCH        
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   

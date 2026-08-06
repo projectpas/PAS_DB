@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetKitPartsById]             
  ** Author:   
  ** Description: This stored procedure is used Create work order materials
@@ -9,9 +9,10 @@
  ** PR    Date					  Author			Change Description              
  ** --    --------				  -------			--------------------------------            
  ** 1     -			               --			      Created         
+	2    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 /* EXEC [dbo].[GetKitPartsById] 2379 */
-CREATE   PROCEDURE [dbo].[GetKitPartsById]
+CREATE OR ALTER PROCEDURE [dbo].[GetKitPartsById]
 	@KitId BIGINT = 0
 AS
 BEGIN
@@ -27,7 +28,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					KIM.UOMId,
 					KIM.Qty,
 					KIM.UnitCost,
-					ISNULL((SELECT TOP 1 ISNULL(S.UnitCost,0) FROM [dbo].[Stockline] S (NOLOCK) WHERE S.ItemMasterId = KIM.ItemMasterId AND S.ConditionId = KIM.ConditionId AND S.[IsParent] = 1 AND S.[IsCustomerStock] = 0 ORDER BY StocklineId DESC),0) AS StocklineUnitCost,
+					ISNULL((SELECT TOP 1 ISNULL(S.UnitCost,0) FROM [dbo].[Stockline] S (NOLOCK) WHERE S.ItemMasterId = KIM.ItemMasterId AND S.ConditionId = KIM.ConditionId AND S.[IsParent] = 1 AND S.[IsCustomerStock] = 0 AND ISNULL(S.IsNonStock,0) = 0 ORDER BY StocklineId DESC),0) AS StocklineUnitCost,
 					--ISNULL(select TOP 1 S.UnitCost from dbo.Stockline S WHERE S. ORDER BY StocklineId desc ,0) AS StocklineUnitCost,
 					KIM.PartNumber,
 					KIM.PartDescription,

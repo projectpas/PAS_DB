@@ -13,9 +13,9 @@
  ** PR   Date         Author			Change	Description                
  ** --   --------     -------			--------------------------------              
     1    05/15/2025   VISHAL SUTHAR     Created
-         
+	2    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    24/July/2026   RAJESH GAMI	[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
-
 -- EXEC [dbo].[GetROPackagingLabel] 2614, 4769
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetROPackagingLabel]

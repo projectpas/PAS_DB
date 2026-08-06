@@ -14,11 +14,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/15/2025   Ekta Chandegra     Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
   EXEC USP_GetExchangeQuotePrintData @ExchangeQuoteId = 113
-
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuotePrintData]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetExchangeQuotePrintData]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN
@@ -64,12 +64,13 @@ BEGIN
 		INNER JOIN [dbo].[CreditTerms] ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 		LEFT JOIN [dbo].[ExchangeQuotePart] sop WITH(NOLOCK) ON so.ExchangeQuoteId = sop.ExchangeQuoteId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON so.EmployeeId = emp.EmployeeId
 		LEFT JOIN [dbo].[Employee] sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId
 		LEFT JOIN [dbo].[Countries] cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
-		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE so.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(so.IsActive,0) = 1 AND ISNULL(so.IsDeleted,0) = 0;
 	END TRY
 	BEGIN CATCH

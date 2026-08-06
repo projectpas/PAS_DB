@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorCreditMemoDetails_ById]          
  ** Author:   Hemant  
  ** Description: Get Data to edit vendor credit memo
@@ -17,9 +17,11 @@
 	1	22-June-2023		Devendra			created
 	2    07-Nov-2023	    Devendra Shekh		added new columns for select 
     3    02-JUN-2026		Rajesh Gami			return IsAdhoc [PN-16521]   
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[USP_GetVendorCreditMemoDetails_ById] 63
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemoDetails_ById]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetVendorCreditMemoDetails_ById]
 @VendorCreditMemoId bigint
 AS
 BEGIN
@@ -69,7 +71,8 @@ BEGIN
 				LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vrm.VendorId = v.VendorId
 				LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId
-				WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
 				END
 			ELSE 
 				BEGIN
@@ -107,7 +110,8 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId
 				LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId
-				LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vcm.VendorId = v.VendorId
 				WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
 				END		

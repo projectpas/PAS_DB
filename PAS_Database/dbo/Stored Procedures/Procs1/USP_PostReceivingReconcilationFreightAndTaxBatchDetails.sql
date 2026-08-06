@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_PostReceivingReconcilationFreightAndTaxBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -16,11 +16,11 @@
 	4    12/26/2023   Moin Bloch		Change the logic of Batch Entry
 	5    13/02/2026   Amit Ghediya		Update gl to get it from line level for tax (PN-15443)
 	6    03/09/2024   Moin Bloch		Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
-	7    08/06/2026   Moin Bloch		Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
-	8    22/07/2026   Priyansh Patel    UOM Changes [PN-16941]
-
+	7    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8   20/July/2026   RAJESH GAMI    [PN-17350] - Converted legacy dbo.NonStockInventory GL-account/quantity lookups in the NONSTOCK branch to dbo.Stockline with ISNULL(SL.IsNonStock,0)=1
+	9    08/06/2026   Moin Bloch		Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
+	10    22/07/2026   Priyansh Patel    UOM Changes [PN-16941]
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
-
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails]
 @ReceivingReconciliationId BIGINT,
@@ -239,9 +239,9 @@ BEGIN
 								   @StkMatchGlAccountId = SL.[GLAccountId],
 								   @StkGlAccountNumber = GL.[AccountCode],
 								   @StkGlAccountName = GL.[AccountName] 						
-							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE [NonStockInventoryId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId;
 						END
 						ELSE
 						BEGIN
@@ -249,9 +249,9 @@ BEGIN
 								   @StkGlAccountId = SL.[GLAccountId],
 								   @StkGlAccountNumber = GL.[AccountCode],
 								   @StkGlAccountName = GL.[AccountName] 						
-							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE [NonStockInventoryId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId;
 						END
   					END
 					IF(UPPER(@StockType) = 'ASSET')

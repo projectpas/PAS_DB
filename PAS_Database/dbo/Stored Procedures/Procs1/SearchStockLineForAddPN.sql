@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -22,6 +22,9 @@
 	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function  
 	9    09/01/2026   Rajesh Gami	  Resolved Issue For Stock and Consume related (Qty and Cost)
 	10	 18/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -111,7 +114,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		);
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
-
 		SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 		INSERT INTO #ConditionGroup (ConditionId)
@@ -121,7 +123,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0;  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0 ;  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],

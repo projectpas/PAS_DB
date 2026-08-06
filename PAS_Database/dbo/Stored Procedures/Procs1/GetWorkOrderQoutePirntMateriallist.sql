@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -19,7 +19,8 @@
     2    06/17/2025    Hemant  Saliya   Check For Is deleted Condition  
     3    09/04/2026    Ayushi Patel	    PN-15909 Update (Added UOM Changes) 
     4	 18/06/2026	   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
-    5	 15/07/2026	   Ayushi			[PN-17273]Return Consume UOM
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    6	 15/07/2026	   Ayushi			[PN-17273]Return Consume UOM
 --EXEC [GetWorkOrderQoutePirntMateriallist] 10338,10476,8307
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
@@ -74,7 +75,7 @@ BEGIN
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
         LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId 
-        LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on imt.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+     AND ISNULL(imt.IsNonStock,0) = 0
     WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
@@ -117,7 +118,8 @@ BEGIN
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
 	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
 	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1   END  
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0
+	   END  
   COMMIT  TRANSACTION  
   
   END TRY      

@@ -60,6 +60,7 @@ BEGIN
 	StatusName = st.Description
 	FROM [dbo].[SpeedQuotePart] SQP WITH (NOLOCK)
 	LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON SQP.ItemMasterId = im.ItemMasterId
+	 AND ISNULL(im.IsNonStock,0) = 0
 	LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SQP.CurrencyId
 	LEFT JOIN DBO.Condition c WITH (NOLOCK) ON SQP.ConditionId = c.ConditionId
 	LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON SQP.StatusId = st.Id

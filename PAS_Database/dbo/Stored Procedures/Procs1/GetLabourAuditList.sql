@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2021   Subhash Saliya Created
 	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [GetLabourAuditList] 14
 **************************************************************/ 
@@ -105,6 +106,7 @@ BEGIN
 				LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 				WHERE wlb.WorkOrderLaborId = @WorkOrderLaborId
 
+				 AND ISNULL(im.IsNonStock,0) = 0
 				END
 			COMMIT  TRANSACTION
 		END TRY    

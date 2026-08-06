@@ -20,9 +20,12 @@
 	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   25/06/2026    Bhargav saliya   Get Consume UOM
-	11   08/07/2026    Bhargav saliya   did formatting for billing amount 
-	12   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
-	13   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12   08/07/2026    Bhargav saliya   did formatting for billing amount 
+	13    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
+	15   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
+	16    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]

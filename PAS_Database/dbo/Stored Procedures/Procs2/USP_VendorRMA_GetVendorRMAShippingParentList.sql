@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAShippingParentList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to get shipping parent list data.
@@ -17,10 +17,11 @@
     1    06/27/2023   Amit Ghediya			Created
 	2    07/04/2023   Amit Ghediya			Updated for get RMANum from PArt lavel.
 	3    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
-	3    19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
-	5    07/07/2026   Ayushi                [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
-    6    28/07/2026   Ayushi Patel          [PN-17461] Removed the uom convertion for QtyShipped Field
-	
+	4    19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    07/07/2026   Ayushi                [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    8    28/07/2026   Ayushi Patel          [PN-17461] Removed the uom convertion for QtyShipped Field
  EXECUTE USP_VendorRMA_GetVendorRMAShippingParentList 90
 **************************************************************/
 CREATE        Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingParentList]
@@ -47,7 +48,8 @@ BEGIN
 		LEFT JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
 		INNER JOIN DBO.RMAPickTicket sopt WITH (NOLOCK) ON sopt.VendorRMAId = sop.VendorRMAId AND sopt.VendorRMADetailId = sop.VendorRMADetailId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId
+			 AND ISNULL(imt.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 --AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.RMAShippingItem sosi WITH (NOLOCK) ON sosi.VendorRMADetailId = sop.VendorRMADetailId 
 					AND sosi.RMAPickTicketId = sopt.RMAPickTicketId
 		LEFT JOIN DBO.RMAShipping sos WITH (NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId 

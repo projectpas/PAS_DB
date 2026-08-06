@@ -23,6 +23,7 @@
 ** 10   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
 ** 11   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
     12   29/JUL/2026 Kishor Makwana     PERFORMANCE ONLY - Sales Order List filter slowness.
+    13	 05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 ***************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSalesOrderPNViewData]
 	@PageNumber              INT,
@@ -312,9 +313,6 @@ BEGIN
 			   
 			AND
 			(
-				@GfMode <> 0
-				OR
-				(
 					    (@SOQNumber            IS NULL OR SOQ.SalesOrderQuoteNumber LIKE '%' + @SOQNumber            + '%')
 					AND (@SoAmount             IS NULL OR ISNULL(SPC.NetSaleAmount, 0) = @SoAmount)
 					AND (@SalesOrderNumber     IS NULL OR SO.SalesOrderNumber       LIKE '%' + @SalesOrderNumber     + '%')
@@ -347,7 +345,6 @@ BEGIN
 					     OR CAST(CASE WHEN SP.SalesOrderPartId IS NULL THEN 0
 					                  ELSE ISNULL(MSDC.Cnt,0) * ISNULL(ROLEC.Cnt,0) END AS VARCHAR(20))
 					        LIKE '%' + @Status + '%')
-				)
 			)
 			 
 			AND

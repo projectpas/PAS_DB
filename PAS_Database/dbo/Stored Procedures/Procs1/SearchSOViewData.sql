@@ -25,6 +25,7 @@
 ** 12   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
 ** 13   23/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filters
 **  14   29/JUL/2026     Kishor Makwana      PERFORMANCE ONLY - Sales Order List filter slowness.
+** 15	 05/Aug/2026	 Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 
 ***********************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSOViewData]
@@ -404,9 +405,6 @@ BEGIN
 			    -- base-column filters, pushed all the way down to the tables
 			AND
 			(
-				@GfMode <> 0
-				OR
-				(
 					    (@SOQNumber         IS NULL OR SOQ.SalesOrderQuoteNumber LIKE '%' + @SOQNumber         + '%')
 					AND (@SalesOrderNumber  IS NULL OR SO.SalesOrderNumber       LIKE '%' + @SalesOrderNumber  + '%')
 					AND (@ContractReference IS NULL OR SO.ContractReference      LIKE '%' + @ContractReference + '%')
@@ -428,7 +426,6 @@ BEGIN
 					AND (@ShipFrom    IS NULL OR (SO.ShippedDate >= @ShipFrom       AND SO.ShippedDate < @ShipTo))
 					AND (@CreatedFromUtc IS NULL OR (SO.CreatedDate >= @CreatedFromUtc AND SO.CreatedDate < @CreatedToUtc))
 					AND (@UpdatedFromUtc IS NULL OR (SO.UpdatedDate >= @UpdatedFromUtc AND SO.UpdatedDate < @UpdatedToUtc))
-				)
 			)
 		),
 		Filtered AS
@@ -438,9 +435,6 @@ BEGIN
 			WHERE
 			    -- part-derived column filters
 			    (
-					@GfMode <> 0
-					OR
-					(
 						    (@PartNumberType        IS NULL OR PartNumberType        LIKE '%' + @PartNumberType        + '%')
 						AND (@PartDescriptionType   IS NULL OR PartDescriptionType   LIKE '%' + @PartDescriptionType   + '%')
 						AND (@ManufacturerType      IS NULL OR ManufacturerType      LIKE '%' + @ManufacturerType      + '%')
@@ -448,7 +442,6 @@ BEGIN
 						AND (@RequestedDateType     IS NULL OR RequestedDateType     LIKE '%' + @RequestedDateType     + '%')
 						AND (@EstimatedShipDateType IS NULL OR EstimatedShipDateType LIKE '%' + @EstimatedShipDateType + '%')
 						AND (@NumberOfItemCount     IS NULL OR CAST(NumberOfItemCount AS VARCHAR(20)) LIKE '%' + @NumberOfItemCount + '%')
-					)
 				)
 			    -- global "search everything" filter
 			AND

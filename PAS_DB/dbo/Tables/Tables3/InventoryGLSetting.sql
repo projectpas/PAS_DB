@@ -38,11 +38,15 @@
     [UpdatedDate]                       DATETIME       NOT NULL,
     [Memo]                              VARCHAR (MAX)  NULL,
     [IsActive]                          BIT            CONSTRAINT [DF__tmp_ms_xx__IsAct__5BF257F4] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]                         BIT            CONSTRAINT [DF__tmp_ms_xx__IsDel__5CE67C2D] DEFAULT ((0)) NOT NULL
+    [IsDeleted]                         BIT            CONSTRAINT [DF__tmp_ms_xx__IsDel__5CE67C2D] DEFAULT ((0)) NOT NULL,
+    [IsStock]                           BIT            CONSTRAINT [DF_InventoryGLSetting_IsStock] DEFAULT ((1)) NOT NULL
 );
 
 
+
+
 GO
+
 CREATE   TRIGGER [dbo].[Trg_InventoryGLSetting_Audit]
 ON [dbo].[InventoryGLSetting]
 AFTER INSERT, UPDATE, DELETE
@@ -56,7 +60,8 @@ BEGIN
         INSERT INTO [dbo].[InventoryGLSettingAudit]
         (
             InventoryGLSettingId,
-			StockInventoryName,
+            IsStock,
+            StockInventoryName,
             InventoryGLAccId,
             GoodsReceivedNotInvoicesGLAccId,
             WorkInProgressGLAccId,
@@ -66,7 +71,7 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
-			COGS_ExchSalesOrderGLAccId,
+            COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
@@ -77,13 +82,14 @@ BEGIN
             UpdatedBy,
             CreatedDate,
             UpdatedDate,
-			Memo,
+            Memo,
             IsActive,
             IsDeleted
         )
         SELECT
             InventoryGLSettingId,
-			StockInventoryName,
+            IsStock,
+            StockInventoryName,
             InventoryGLAccId,
             GoodsReceivedNotInvoicesGLAccId,
             WorkInProgressGLAccId,
@@ -93,7 +99,7 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
-			COGS_ExchSalesOrderGLAccId,
+            COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
@@ -104,7 +110,7 @@ BEGIN
             UpdatedBy,
             CreatedDate,
             GETUTCDATE(),
-			Memo,
+            Memo,
             IsActive,
             IsDeleted
         FROM inserted;

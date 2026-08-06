@@ -1,12 +1,8 @@
-﻿
-
-
-
-
-
-CREATE           VIEW [dbo].[vw_InventoryGLSetting]
+﻿CREATE   VIEW [dbo].[vw_InventoryGLSetting]
 AS
 SELECT IGS.InventoryGLSettingId,
+IGS.IsStock,
+CASE WHEN IGS.IsStock = 1 THEN 'Stock' ELSE 'Non-Stock' END AS StockType,
 IGS.StockInventoryName,
 IGS.InventoryGLAccId,
 GLInv.AccountName AS InventoryGLAccName,
@@ -35,10 +31,10 @@ GLUc.AccountName AS COGS_UnitCostVarianceGLAccName,
 IGS.RevenueMroGLAccId,
 GLMro.AccountName AS RevenueMroGLAccName,
 IGS.RevenueSoGLAccId,
-GLMisc.AccountName AS RevenueSoGLAccName,
+GLRso.AccountName AS RevenueSoGLAccName,
 IGS.RevenueExchGLAccId,
-GLGoods.AccountName AS RevenueExchGLAccName,
-IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
+GLMisc.AccountName AS RevenueExchGLAccName,
+IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate, IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
  LEFT JOIN [DBO].[view_GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 
  LEFT JOIN [DBO].[view_GLAccount] GLGoods WITH (NOLOCK) ON IGS.GoodsReceivedNotInvoicesGLAccId = GLGoods.GLAccountId
@@ -49,7 +45,7 @@ FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)
  LEFT JOIN [DBO].[view_GLAccount] GLRes WITH (NOLOCK) ON IGS.InventoryReserveGLAccId = GLRes.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLWo WITH (NOLOCK) ON IGS.COGS_WorkOrderGLAccId = GLWo.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLSo.GLAccountId
- LEFT JOIN [DBO].[view_GLAccount] GLExSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLExSo.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLExSo WITH (NOLOCK) ON IGS.COGS_ExchSalesOrderGLAccId = GLExSo.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLQty WITH (NOLOCK) ON IGS.COGS_QtyVarianceGLAccId = GLQty.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId

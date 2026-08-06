@@ -4607,6 +4607,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportColumns.sql" />
+    <Build Include="dbo\Tables\LeaseType.sql" />
+    <Build Include="dbo\Views\vw_LeaseType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

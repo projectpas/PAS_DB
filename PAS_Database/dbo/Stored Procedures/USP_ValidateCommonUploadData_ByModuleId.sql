@@ -1,4 +1,4 @@
-/*******  
+﻿/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -61,6 +61,8 @@
 	51   17-June-2026       Nakul Chandigra         Updated validation for ItemClassification Module  (PN-15952)
 	52    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	53	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
+	54   06-Aug-1016        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -237,6 +239,7 @@ BEGIN
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
+		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1238,6 +1241,8 @@ BEGIN
 															THEN 'Entered Maintenance Category Already Exits!'
 														WHEN @ModuleId = @RFQTraceabilityModule
 															THEN 'Entered Traceability Already Exits!'
+														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
+															THEN 'Entered Lease Type Already Exists!'	
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

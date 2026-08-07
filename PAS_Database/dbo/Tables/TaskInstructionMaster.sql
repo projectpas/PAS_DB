@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[TaskInstructionMaster] (
+CREATE TABLE [dbo].[TaskInstructionMaster] (
     [TaskInstructionId]    BIGINT         IDENTITY (1, 1) NOT NULL,
     [Title]                VARCHAR (8000) NULL,
     [Description]          VARCHAR (MAX)  NULL,
@@ -19,120 +19,43 @@
 );
 
 
+
+
 GO
-CREATE       TRIGGER [dbo].[trg_Audit_dbo_TaskInstructionMaster]
-        ON [dbo].[TaskInstructionMaster]
-        AFTER INSERT, UPDATE, DELETE
-        AS
-        BEGIN
-            SET NOCOUNT ON;
-            ;WITH
-            d AS (SELECT d.[TaskInstructionId],d.[Title],d.[Description],d.[TaskId],d.[SequenceNumber],d.[ParentId],d.[IsParent],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsDefaultInstruction],d.[IsParentInstruction] FROM deleted d),
-            i AS (SELECT i.[TaskInstructionId],i.[Title],i.[Description],i.[TaskId],i.[SequenceNumber],i.[ParentId],i.[IsParent],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsDefaultInstruction],i.[IsParentInstruction] FROM inserted i),
-            paired AS (
-                SELECT
-                    COALESCE(i.TaskInstructionId, d.TaskInstructionId ) AS TaskInstructionId,
-                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
-                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
-                    CASE
-                        WHEN i.TaskInstructionId IS NOT NULL AND d.TaskInstructionId IS NOT NULL THEN 'U'
-                        WHEN i.TaskInstructionId IS NOT NULL AND d.TaskInstructionId IS NULL     THEN 'I'
-                        WHEN i.TaskInstructionId IS NULL     AND d.TaskInstructionId IS NOT NULL THEN 'D'
-                    END AS Action,
 
-                    (SELECT COALESCE(i.TaskInstructionId, d.TaskInstructionId) AS TaskInstructionId
-                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
-                FROM d
-                FULL OUTER JOIN i
-                    ON i.TaskInstructionId = d.TaskInstructionId
-            ),
+CREATE TRIGGER [dbo].[Trg_TaskInstructionMasterAudit]
+    ON [dbo].[TaskInstructionMaster]
+    AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
 
-            oldv AS (
-                SELECT
-                    p.PKJson,
-                    p.TaskInstructionId,
-                    v.[key]  AS ColumnName,
-                    v.value  AS OldValue
-                FROM paired p
-                CROSS APPLY OPENJSON(p.old_row_json) v
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM dbo.IgnoreColumn ign WITH(NOLOCK)
-                    WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'TaskInstructionMaster'
-                      AND ign.ColumnName = N'TaskInstructionId'
-                )),
-            newv AS (
-                SELECT
-                    p.PKJson,
-                    p.TaskInstructionId ,
-                    v.[key]  AS ColumnName,
-                    v.value  AS NewValue
-                FROM paired p
-                CROSS APPLY OPENJSON(p.new_row_json) v
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM dbo.IgnoreColumn ign WITH(NOLOCK)
-                    WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'TaskInstructionMaster'
-                      AND ign.ColumnName = N'TaskInstructionId'
-                )),
-            merged AS (
-                SELECT
-                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
-                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
-                    o.OldValue,
-                    n.NewValue,
-                    p.Action
-                FROM paired p
-                LEFT JOIN oldv o
-                    ON o.TaskInstructionId = p.TaskInstructionId
-                LEFT JOIN newv n
-                    ON n.TaskInstructionId = p.TaskInstructionId
-                   AND n.ColumnName = o.ColumnName
-                UNION ALL
-                SELECT
-                    n.PKJson,
-                    n.ColumnName,
-                    NULL AS OldValue,
-                    n.NewValue,
-                    p.Action
-                FROM paired p
-                LEFT JOIN newv n
-                    ON n.TaskInstructionId = p.TaskInstructionId
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM oldv o2
-                    WHERE o2.TaskInstructionId = p.TaskInstructionId
-                      AND o2.ColumnName    = n.ColumnName
-                )
-            )
-            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
-            SELECT
-                N'dbo' AS SchemaName,
-                N'TaskInstructionMaster' AS TableName,
-                m.PKJson,
-                m.ColumnName,
-                m.Action,
-                CASE             
-                    WHEN m.ColumnName = 'TaskId' THEN TOld.[Description]
-                    ELSE m.OldValue
-                END AS OldValue,     
-                CASE 
-                    WHEN m.ColumnName = 'TaskId' THEN TNew.[Description]
-                    ELSE m.NewValue
-                END AS NewValue
-            FROM merged m
-            LEFT JOIN DBO.Task TOld WITH (NOLOCK) ON m.ColumnName = 'TaskId'AND TRY_CAST(m.OldValue AS bigint)  = TOld.TaskId
-            LEFT JOIN DBO.Task TNew WITH (NOLOCK) ON m.ColumnName = 'TaskId'AND TRY_CAST(m.NewValue AS bigint)  = TNew.TaskId
-            WHERE
-                (m.Action = 'U' AND (
-                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
-                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
-                  OR (m.OldValue <> m.NewValue)
-                ))
-                OR
-                (m.Action = 'I' AND m.NewValue IS NOT NULL)
-                OR
-                (m.Action = 'D' AND m.OldValue IS NOT NULL);
-        END;
+    INSERT INTO [dbo].[TaskInstructionMasterAudit]
+    (
+        [TaskInstructionId], [Title], [Description], [TaskId], [SequenceNumber],
+        [ParentId], [IsParent], [MasterCompanyId], [CreatedBy], [UpdatedBy],
+        [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+        [IsDefaultInstruction], [IsParentInstruction]
+    )
+    SELECT
+        i.[TaskInstructionId], i.[Title], i.[Description], i.[TaskId], i.[SequenceNumber],
+        i.[ParentId], i.[IsParent], i.[MasterCompanyId], i.[CreatedBy], i.[UpdatedBy],
+        i.[CreatedDate], i.[UpdatedDate], i.[IsActive], i.[IsDeleted],
+        i.[IsDefaultInstruction], i.[IsParentInstruction]
+    FROM inserted i
+
+    UNION ALL
+
+    SELECT
+        d.[TaskInstructionId], d.[Title], d.[Description], d.[TaskId], d.[SequenceNumber],
+        d.[ParentId], d.[IsParent], d.[MasterCompanyId], d.[CreatedBy], d.[UpdatedBy],
+        d.[CreatedDate], GETUTCDATE(), d.[IsActive], CAST(1 AS BIT),
+        d.[IsDefaultInstruction], d.[IsParentInstruction]
+    FROM deleted d
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM inserted i
+        WHERE i.[TaskInstructionId] = d.[TaskInstructionId]
+    );
+END;

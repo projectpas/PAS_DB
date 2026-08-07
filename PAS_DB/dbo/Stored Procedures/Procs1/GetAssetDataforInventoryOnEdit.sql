@@ -32,6 +32,12 @@
                                         Inventory Edit screen displays, which had no source since AssetAttributeType
                                         was dropped. ConventionType has no replacement source on TangibleClass /
                                         DeprNonDeprTangibleAssets yet, so it now always returns 0.
+    5    06/08/2026   Abhishek Jirawala Return asset.DeprNonDeprTangibleAssetsId alongside asset.TangibleClassId -
+                                        Asset now persists which specific DeprNonDeprTangibleAssets row was
+                                        resolved at selection time.
+    6    07/08/2026   Abhishek Jirawala AssetTypeName now falls back to asset.DeprNonDeprTangibleAssetsId ->
+                                        DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName when
+                                        asset.TangibleClassId doesn't resolve directly.
 
 --  EXEC [GetAssetDataforInventoryOnEdit] 221
 **************************************************************/
@@ -176,7 +182,8 @@ BEGIN
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AssetParentRecordId)
 			END AS AssetParentId,
 			asset.TangibleClassId,
-			ISNULL(at.TangibleClassName, '') AS AssetTypeName,
+			asset.DeprNonDeprTangibleAssetsId,
+			ISNULL(at.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetTypeName,
 			asset.AssetAttributeTypeId,
 			ISNULL(dndm.AssetDepreciationMethodName, '') AS DepreciationMethod,
 			ISNULL(dndper.PercentValue, 0) AS ResidualPercentage,
@@ -241,6 +248,8 @@ BEGIN
 			LEFT JOIN DBO.AssetMaintenance asmai WITH (NOLOCK) ON asset.AssetRecordId = asmai.AssetRecordId
 			LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
 			LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
+			LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON asset.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+			LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
 			LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.TangibleClassId = dnta.TangibleClassId
 			LEFT JOIN DBO.AssetDepreciationMethod dndm WITH (NOLOCK) ON dnta.AssetDeprMethodId = dndm.AssetDepreciationMethodId
 			LEFT JOIN DBO.[Percent] dndper WITH (NOLOCK) ON dnta.ResidualPercentage = dndper.PercentId

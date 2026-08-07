@@ -17,6 +17,8 @@
 	                                        override joined by its AssetAttributeTypeId FK instead of by its own PK.
 	                                        AssetAttributeTypeName removed from DeprNonDeprTangibleAssets (name now
 	                                        always comes from the joined AssetAttributeType row).
+    5	 06-AUG-2026	    Abhishek Jirawala	Return asset.DeprNonDeprTangibleAssetsId so the resolved GL-calibrated
+	                                        row carries forward when this asset is selected for a new AssetInventory.
 
 	exec [USP_GetAssetDataforInventory] 211
 ***************************************************************/
@@ -52,6 +54,7 @@ BEGIN
                 ISNULL(asset.IsDepreciable, 0) AS IsDepreciable,
                 ISNULL(asset.IsIntangible, 0) AS IsIntangible,
                 asset.TangibleClassId,
+                asset.DeprNonDeprTangibleAssetsId,
                 asset.AssetIntangibleTypeId,
                 ISNULL(aity.AssetIntangibleName, '') AS AssetIntangibleTypeName,
                 asset.ManagementStructureId,
@@ -159,6 +162,7 @@ BEGIN
                 asset.AssetMaintenanceIsContract,
                 ISNULL(asset.AssetParentRecordId, '') AS AssetParentId,
                 asset.TangibleClassId,
+                asset.DeprNonDeprTangibleAssetsId,
                 ISNULL(atc.TangibleClassName, '') AS AssetTypeName,
                 asset.AssetAttributeTypeId,
                 asset.AssetLocationId,

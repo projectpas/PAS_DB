@@ -22,12 +22,12 @@
     1    01/07/2022   HEMANT SALIYA		Created
     2    08/09/2024   Devendra Shekh	Updated for Add Kit Changes
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+    4    05-Aug-2026			 Bhargav Saliya					    [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes 
 --EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'108,109,11',1
 EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'',335
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
+CREATE      PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
@@ -49,7 +49,7 @@ AS
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'))
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UNION
 				SELECT DISTINCT TOP 20 
@@ -59,7 +59,7 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 					JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%')) 
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%')) 
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UNION     
 				SELECT DISTINCT TOP 20 

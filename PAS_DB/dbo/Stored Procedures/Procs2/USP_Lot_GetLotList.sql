@@ -1,4 +1,4 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotList.sql) =====
+﻿
 /*************************************************************           
  ** File:   [USP_Lot_GetLotList]           
  ** Author: Rajesh Gami
@@ -18,9 +18,10 @@
 	5    12 June 2026    Rajesh Gami			Fixed the Amount related issue (PN-16799)
 	6    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	8    06/08/2026		 Nakul Chnadigra		Added status Filter [PN-17566]
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList]
+CREATE    PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -222,7 +223,11 @@ BEGIN
 			INNER JOIN dbo.LotDetail LD WITH(NOLOCK) on LT.LotId = LD.LotId
 			INNER JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LT.[LotStatusId] = S.[LotStatusId]
 			LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LT.ConsignmentId = LC.ConsignmentId
-		 	WHERE ISNULL(LT.IsDeleted,0) = 0 AND ISNULL(LT.IsActive,1) = 1 And Lt.MasterCompanyId = @MasterCompanyId
+		 	WHERE ISNULL(LT.IsDeleted,0) = 0
+			  AND ISNULL(LT.IsActive,1) = 1
+			  AND LT.MasterCompanyId = @MasterCompanyId
+			  AND (UPPER(ISNULL(@StatusName, 'Open')) = 'ALL'
+			       OR UPPER(S.StatusName) = UPPER(ISNULL(@StatusName, 'Open')))
 		)
 		/*
 		 * Result2: compute RemainingCost from the intermediate columns, then drop them.

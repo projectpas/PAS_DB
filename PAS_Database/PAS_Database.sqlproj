@@ -4609,6 +4609,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportColumns.sql" />
     <Build Include="dbo\Tables\LeaseType.sql" />
     <Build Include="dbo\Views\vw_LeaseType.sql" />
+    <Build Include="dbo\Tables\LeaseStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

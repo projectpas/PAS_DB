@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -42,6 +42,8 @@
 	30    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	31   20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (variable population + unit-cost update/GLAccount lookups in the ReconciliationPO GRNI/Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
 	32   24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) on the Receiving-PO MPN/PiecePN lookups to allow Non-Stock items in Reconciliation Batch posting
+	33   06/Aug/2026  Priyansh Patel	[PN-16941] Added Order by to get the type from ReceivingReconciliationDetails 
+
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -271,7 +273,8 @@ BEGIN
 
 			SET @DisCode = (select top 1 CASE WHEN [Type] =1 THEN 'ReconciliationPO'			    
 				WHEN [Type] = 2 THEN 'ReconciliationRO' ELSE '' END
-			FROM DBO.ReceivingReconciliationDetails WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId) 
+			FROM DBO.ReceivingReconciliationDetails WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
+			ORDER BY CASE WHEN [Type] IN (1,2) THEN 0 ELSE 1 END) 
 
 			SELECT @TransactionDate = [InvoiceDate],
 			       @ReceivingReconciliationNumber = [ReceivingReconciliationNumber],

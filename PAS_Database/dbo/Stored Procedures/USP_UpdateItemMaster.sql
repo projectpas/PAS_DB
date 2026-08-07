@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
 ** File:  [USP_UpdateItemMaster]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to Update Item Master
@@ -22,7 +23,7 @@
 ** 11    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
 
 **************************************************************/
-create     PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -253,6 +254,8 @@ BEGIN
 		,i.MfgExpirationDate                = PST.MfgExpirationDate
 		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
 		,i.IsService						= ISNULL(PST.IsService, 0)
+		,i.Model = PST.Model
+		,i.IsKitAssy = PST.IsKitAssy
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

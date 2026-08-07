@@ -20,7 +20,7 @@
 
  -- EXEC [USP_AddItemMasterGeneralInfo]
 **************************************************************/
-create         PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
+CREATE         PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -95,10 +95,14 @@ BEGIN
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
 				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
-				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
-			
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],[IsService])
+
+						[IsFlightHoursAvailable],
+		[IsFlightCyclesAvailable],
+		[IsLandingsAvailable],
+		[IsStartsAvailable],
+		[IsCalendarTimeAvailable],
+		[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
+		[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -115,10 +119,13 @@ BEGIN
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
 				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
-				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
-				
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],ISNULL([IsService], 0)
+				[IsFlightHoursAvailable],
+				[IsFlightCyclesAvailable],
+				[IsLandingsAvailable],
+				[IsStartsAvailable],
+				[IsCalendarTimeAvailable],
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();

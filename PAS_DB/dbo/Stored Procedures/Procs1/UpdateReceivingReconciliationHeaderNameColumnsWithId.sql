@@ -5,6 +5,8 @@
  **************************************************************
  ** PR   Date         Author			Change Description
 	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    07/Aug/2026	Moin Bloch	  [PN-17350] - Removed obsolete Stockline IsNonStock=0 filters 
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId]
 	@ReceivingReconciliationId int
@@ -38,7 +40,7 @@ BEGIN
 		FROM [dbo].Stockline ST WITH (NOLOCK)
 		LEFT JOIN DBO.[ReceivingReconciliationDetails] RRDE WITH (NOLOCK) ON st.StockLineId = RRDE.StocklineId
 		LEFT JOIN DBO.ReceivingReconciliationHeader RRDH WITH (NOLOCK) ON RRDH.ReceivingReconciliationId = RRDE.ReceivingReconciliationId
-		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0 AND ISNULL(ST.IsNonStock,0) = 0
+		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0 --AND ISNULL(ST.IsNonStock,0) = 0
 	END
 	COMMIT  TRANSACTION
 

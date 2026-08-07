@@ -21,10 +21,10 @@
  ** --   --------     -------		--------------------------------          
     1    17/11/2021   Hemant Saliya Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+    3	 05-Aug-2026			 Bhargav Saliya						[PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes 
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
-CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]  
+CREATE     PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]  
   @CustomerId INT,
   @CustRestrictedDer BIT,
   @CustRestrictedPMA BIT,
@@ -80,7 +80,7 @@ CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
@@ -102,7 +102,7 @@ CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
          AND ISNULL(im.IsNonStock,0) = 0
 			 END
@@ -125,7 +125,7 @@ CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 			AND im.IsDER  = 1	
          AND ISNULL(im.IsNonStock,0) = 0
 			 END
@@ -154,7 +154,7 @@ CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 		 AND ISNULL(im.IsNonStock,0) = 0
 			 END 
 
@@ -182,7 +182,7 @@ CREATE   PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
 		 AND ISNULL(im.IsNonStock,0) = 0
 			 END 
 

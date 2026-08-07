@@ -38,9 +38,10 @@
 	18    15/July/2026			 RAJESH GAMI						[PN-17271] - Also insert Non-Stock PO Parts into StocklineDraft (IsNonStock = 1).
 	19    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters on ItemMaster lookups (isSerialized) that would silently fail for Non-Stock items.
 	19    15/July/2026			 RAJESH GAMI						[PN-17271] - Removed NonStockInventoryDraft insert; StocklineDraft is now the sole insert for Non-Stock PO Parts.
+	20    06/Aug/2026			 RAJESH GAMI						Resolved the MaxQty issue (Changed 200 to 500)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'
 **************************************************************/    
-CREATE      PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
+CREATE  PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
 AS    
@@ -85,7 +86,8 @@ BEGIN
 	DECLARE @TaggedBy BIGINT = NULL;
 	DECLARE @TagDate DATETIME;    
     DECLARE @ACTailNum VARCHAR(250) = NULL;
-    
+    DECLARE @MaxLimitQty INT = 500;
+		
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderParts') IS NOT NULL    
     BEGIN    
      DROP TABLE #tmpPurchaseOrderParts    
@@ -168,7 +170,7 @@ BEGIN
 	DECLARE @QuantityAvailable INT = 1;    
 	DECLARE @QuantityOnHand INT = 1;  
     
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=@MaxLimitQty
 	BEGIN
 	      
 		IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
@@ -658,7 +660,7 @@ BEGIN
 	 DECLARE @IsParent_NonStock BIT = 1;
 	 DECLARE @NewNonStockStocklineDraftId BIGINT;
 
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=@MaxLimitQty
 	BEGIN
 		
           

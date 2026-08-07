@@ -70,16 +70,16 @@ pipeline {
 
                         $diffInfo = Get-Item daily.diff
                         if ($diffInfo.Length -eq 0) {
-                            "No changes in the last 24 hours." | Out-File -Encoding utf8 review-report.md
+                            "No changes in the last 24 hours." | Out-File -Encoding utf8 sql-storedproc-reviewer.md
                             Write-Output "Empty diff, skipping Claude review."
                             exit 0
                         }
 
-                        claude -p "Review the changes in daily.diff" --agent code-reviewer | Out-File -Encoding utf8 review-report.md
+                        claude -p "Review the changes in daily.diff" --agent code-reviewer | Out-File -Encoding utf8 sql-storedproc-reviewer.md
                         if ($LASTEXITCODE -ne 0) { throw "claude review failed" }
 
-                        if ((Get-Item review-report.md).Length -eq 0) {
-                            throw "review-report.md was created but is empty"
+                        if ((Get-Item sql-storedproc-reviewer.md).Length -eq 0) {
+                            throw "sql-storedproc-reviewer.md was created but is empty"
                         }
                     '''
                 }
@@ -89,7 +89,7 @@ pipeline {
         stage('Publish Report') {
             steps {
                 archiveArtifacts artifacts: 'sql-storedproc-reviewer.md, daily.diff'
-                // optionally: emailext or Slack notifier plugin using review-report.md as body
+                // optionally: emailext or Slack notifier plugin using sql-storedproc-reviewer.md as body
             }
         }
     }
@@ -102,7 +102,7 @@ pipeline {
                        <body>
                           <p>Build Status: ${BUILD_STATUS}</p>
                           <p>Build Number: ${BUILD_NUMBER}</p>
-                          echo "Daily code review pipeline failed — check console output and daily.diff / review-report.md if archived."
+                          echo "Daily code review pipeline failed — check console output and daily.diff / sql-storedproc-reviewer.md if archived."
                        </body>
                   </html>''',
           to: "${Allmail}",

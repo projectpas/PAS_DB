@@ -50,7 +50,7 @@
     34	 30/06/2026	  Priyansh Patel	Reduced @maxQtyLimit from 499 to 0 [PN-16893]
 	35    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	36    16/July/2026			 RAJESH GAMI						[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
-    37   06/08/2026   Priyansh Patel    Added the removed code  [PN-16941]
+    37   06/08/2026   Priyansh Patel    Added the removed code  [PN-17271]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/

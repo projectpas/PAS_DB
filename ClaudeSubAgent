@@ -1,0 +1,114 @@
+pipeline {
+    agent { label 'main' } // match whatever label your PAS DEV/UAT agent uses
+
+    triggers {
+        cron('H 7 * * *')
+    }
+
+    options {
+        timestamps()
+        // keep enough git history around for the "1 day ago" lookup to work
+        skipDefaultCheckout(false)
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Ensure Full History') {
+            steps {
+                powershell '''
+                    $ErrorActionPreference = "Stop"
+
+                    # Guard against shallow clones so rev-list/diff against older commits works
+                    $isShallow = git rev-parse --is-shallow-repository
+                    if ($isShallow -eq "true") {
+                        Write-Output "Repo is shallow, unshallowing..."
+                        git fetch --unshallow origin
+                        if ($LASTEXITCODE -ne 0) { throw "git fetch --unshallow failed" }
+                    }
+                '''
+            }
+        }
+
+        stage('Generate Diff') {
+            steps {
+                powershell '''
+                    $ErrorActionPreference = "Stop"
+
+                    git fetch origin
+                    if ($LASTEXITCODE -ne 0) { throw "git fetch failed" }
+
+                    # Resolve "24h ago" from actual commit history, not reflog
+                    # (reflog won't have a day-old entry on a fresh checkout)
+                    $since = git rev-list -1 --before="1 day ago" origin/DEV
+                    if ($LASTEXITCODE -ne 0) { throw "git rev-list failed" }
+
+                    if ([string]::IsNullOrWhiteSpace($since)) {
+                        # First-ever run / branch younger than 24h: fall back to root commit
+                        $since = git rev-list --max-parents=0 origin/DEV | Select-Object -Last 1
+                        if ($LASTEXITCODE -ne 0) { throw "git rev-list --max-parents=0 failed" }
+                    }
+
+                    Write-Output "Diffing from $since to origin/DEV"
+
+                    git diff $since origin/DEV | Out-File -Encoding utf8 daily.diff
+                    if ($LASTEXITCODE -ne 0) { throw "git diff failed" }
+                '''
+            }
+        }
+
+        stage('Run Review') {
+            steps {
+                withCredentials([string(credentialsId: 'anthropic-api-key', variable: 'ANTHROPIC_API_KEY')]) {
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
+
+                        $diffInfo = Get-Item daily.diff
+                        if ($diffInfo.Length -eq 0) {
+                            "No changes in the last 24 hours." | Out-File -Encoding utf8 review-report.md
+                            Write-Output "Empty diff, skipping Claude review."
+                            exit 0
+                        }
+
+                        claude -p "Review the changes in daily.diff" --agent code-reviewer | Out-File -Encoding utf8 review-report.md
+                        if ($LASTEXITCODE -ne 0) { throw "claude review failed" }
+
+                        if ((Get-Item review-report.md).Length -eq 0) {
+                            throw "review-report.md was created but is empty"
+                        }
+                    '''
+                }
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                archiveArtifacts artifacts: 'sql-storedproc-reviewer.md, daily.diff'
+                // optionally: emailext or Slack notifier plugin using review-report.md as body
+            }
+        }
+    }
+
+    post {
+    always {
+       emailext (
+          subject: " Code Review Pipeline Status: ${BUILD_NUMBER}",
+           body: '''<html> 
+                       <body>
+                          <p>Build Status: ${BUILD_STATUS}</p>
+                          <p>Build Number: ${BUILD_NUMBER}</p>
+                          echo "Daily code review pipeline failed — check console output and daily.diff / review-report.md if archived."
+                       </body>
+                  </html>''',
+          to: "${Allmail}",
+          from: 'info.poweraerosuites@gmail.com',
+          replyTo: 'info.poweraerosuites@gmail.com',
+          mimeType: 'text/html'
+           )
+       }    
+}

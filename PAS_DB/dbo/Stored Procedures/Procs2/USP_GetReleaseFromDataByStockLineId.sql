@@ -31,7 +31,8 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	24    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/ 
+	25    07/August/2026		 Abhishek Jirawala					[PN-17260] - Added Fleet field in Section 12 Remarks
+**************************************************************/
 
 CREATE   PROC [dbo].[USP_GetReleaseFromDataByStockLineId]
 @StockLineId BIGINT,  
@@ -317,6 +318,7 @@ BEGIN
 			  --UPPER(wosc.conditionName) AS ConditionName,			  
 			  ISNULL(UPPER(sl.Condition), '') AS ConditionName,
 			  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+			  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 			  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 			  '' SecondPublicationId,
@@ -405,6 +407,7 @@ BEGIN
 			  --UPPER(wosc.conditionName) AS ConditionName,			  
 			  ISNULL(UPPER(sl.Condition), '') AS ConditionName,
 			  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+			  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 			  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
 			  ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,
@@ -490,6 +493,7 @@ BEGIN
 			  --UPPER(wosc.conditionName) AS ConditionName,
 			  ISNULL(UPPER(sl.Condition), '') AS ConditionName,
 			  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+			  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 			  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 			  '' SecondPublicationId,

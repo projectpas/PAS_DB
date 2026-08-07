@@ -28,6 +28,7 @@
     [FieldTable]          VARCHAR (100) NULL,
     [SortOrder]           INT           NULL,
     [IsMobileView]        BIT           NULL,
+    [IsCommonToAllTypes]  BIT           CONSTRAINT [DF_SingleScreenField_IsCommonToAllTypes] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_SingleScreenField] PRIMARY KEY CLUSTERED ([SingleScreenFieldId] ASC),
     CONSTRAINT [FK_SingleScreenField_SingleScreen] FOREIGN KEY ([SingleScreenId]) REFERENCES [dbo].[SingleScreen] ([SingleScreenId])
 );

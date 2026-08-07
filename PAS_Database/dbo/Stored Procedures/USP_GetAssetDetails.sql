@@ -22,6 +22,14 @@
 	                                                and DeprFrequency to NULL/empty instead of reading dnd's own columns;
 	                                                joined Percent and AssetDepreciationFrequency off dnd so the asset
 	                                                view popup shows these values for GL-calibrated tangible classes too.
+    6    2026-08-06		  Abhishek Jirawala			Asset now persists which specific DeprNonDeprTangibleAssets row was
+	                                                resolved at selection time. Return a.DeprNonDeprTangibleAssetsId
+	                                                alongside a.TangibleClassId in both non-intangible branches.
+    7    2026-08-06		  Abhishek Jirawala			AssetAttributeType (shown as "Asset Class/Attribute") now resolves
+	                                                directly off a.TangibleClassId -> TangibleClass.TangibleClassName,
+	                                                falling back to a.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets
+	                                                -> TangibleClass.TangibleClassName, and blank when neither resolves,
+	                                                instead of the AssetAttributeType table join, in both non-intangible branches.
 	exec [USP_GetAssetDetails] 214
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAssetDetails]
@@ -126,6 +134,7 @@ BEGIN
                     a.AssetParentRecordId,
                     aat.AssetAttributeTypeName AS AssetType,
                     a.TangibleClassId,
+                    a.DeprNonDeprTangibleAssetsId,
                     a.AssetLocationId,
                     loc.Name AS AssetLocationName,
                     a.SiteId,
@@ -173,7 +182,7 @@ BEGIN
                     ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
                     ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                     a.ManufacturerPN,
-                    aat.AssetAttributeTypeName AS AssetAttributeType,
+                    ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetAttributeType,
                     ISNULL(dm.AssetDepreciationMethodName, '') AS DepreciationMethod,
                     per.PercentValue AS ResidualPer,
                     dnd.AssetLife,
@@ -194,6 +203,9 @@ BEGIN
                 LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
                 LEFT JOIN DBO.DeprNonDeprTangibleAssets dnd WITH (NOLOCK) ON a.TangibleClassId = dnd.TangibleClassId
                 LEFT JOIN DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+                LEFT JOIN DBO.TangibleClass tcDirect WITH (NOLOCK) ON a.TangibleClassId = tcDirect.TangibleClassId
+                LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON a.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+                LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
                 LEFT JOIN DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
                 LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
                 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId
@@ -234,6 +246,7 @@ BEGIN
                     a.AssetParentRecordId,
                     aat.AssetAttributeTypeName AS AssetType,
                     a.TangibleClassId,
+                    a.DeprNonDeprTangibleAssetsId,
                     a.AssetLocationId,
                     loc.Name AS AssetLocationName,
                     a.SiteId,
@@ -281,7 +294,7 @@ BEGIN
                     ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
                     ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                     a.ManufacturerPN,
-                    aat.AssetAttributeTypeName AS AssetAttributeType,
+                    ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetAttributeType,
                     adm.AssetDepreciationMethodName AS DepreciationMethod,
                     per.PercentValue AS ResidualPer,
                     aat.AssetLife,
@@ -301,6 +314,9 @@ BEGIN
                 LEFT JOIN DBO.Asset parent WITH (NOLOCK) ON a.AssetParentRecordId = parent.AssetRecordId
                 LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
                 LEFT JOIN DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+                LEFT JOIN DBO.TangibleClass tcDirect WITH (NOLOCK) ON a.TangibleClassId = tcDirect.TangibleClassId
+                LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON a.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+                LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
                 LEFT JOIN DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
                 LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
                 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId

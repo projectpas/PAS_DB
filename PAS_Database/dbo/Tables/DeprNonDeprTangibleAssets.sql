@@ -40,6 +40,8 @@
 
 
 
+
+
 GO
 
 
@@ -62,6 +64,3 @@ SET NOCOUNT ON;
 
 END
 GO
-CREATE UNIQUE NONCLUSTERED INDEX [UX_DeprNonDeprTangibleAssets_TangibleClassId_MasterCompanyId]
-    ON [dbo].[DeprNonDeprTangibleAssets]([TangibleClassId] ASC, [MasterCompanyId] ASC);
-

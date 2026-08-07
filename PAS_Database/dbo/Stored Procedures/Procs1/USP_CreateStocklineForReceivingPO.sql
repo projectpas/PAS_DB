@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -567,6 +567,11 @@ BEGIN
 						GROUP BY iM.ItemMasterId
 						
 						SET @QtyToReceiveAfterConversion = ISNULL(@QtyToReceive,0);
+
+                         SELECT @DraftQty = Quantity,
+                               @DraftUnitCost = PurchaseOrderUnitCost
+                        FROM #tmpStocklineDraft
+                        WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
 
                         SET @QtyAfterConversion = ISNULL(@DraftQty,0);

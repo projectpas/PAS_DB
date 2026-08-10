@@ -20,8 +20,12 @@
 	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
 	5    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	6    17-12-2025  Bhargav Saliya    Get Asset Status
-     
---  EXEC [GetAssetInventoryList] 
+	7    07-08-2026  Abhishek Jirawala	AssetType (shown as "Asset Class") now resolves directly off
+	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
+	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
+	                                    then to the intangible type name, instead of the AssetAttributeType table join.
+
+--  EXEC [GetAssetInventoryList]
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
@@ -161,7 +165,7 @@ BEGIN
 								UPPER(CASE WHEN asm.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END) AS CalibrationRequiredNew,
 								UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'ELSE 'Intangible' END) AS AssetClass,
 								UPPER(ISNULL((CASE WHEN ISNULL(asm.IsTangible,0) = 1 and ISNULL(asm.IsDepreciable, 0) = 1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  ELSE 'No'  END),'No')) as deprAmort,
-								UPPER(CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END) AS AssetType, --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+								UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ISNULL(asti.AssetIntangibleName,'')))) AS AssetType, --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 								UPPER(asm.InventoryNumber) AS InventoryNumber,
 								UPPER(asm.EntryDate) AS EntryDate,
 								UPPER((SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId)) AS AssetStatus,
@@ -203,6 +207,9 @@ BEGIN
 								LEFT JOIN  [dbo].[WorkOrder] awo WITH(NOLOCK) ON awo.WorkOrderId = aci.WorkOrderId
 								LEFT JOIN  [dbo].[AssetAttributeType] asty WITH(NOLOCK) ON ast.AssetAttributeTypeId = asty.AssetAttributeTypeId
 								LEFT JOIN  [dbo].[AssetIntangibleType]  AS astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
+								LEFT JOIN  [dbo].[TangibleClass] tcDirect WITH(NOLOCK) ON asm.TangibleClassId = tcDirect.TangibleClassId
+								LEFT JOIN  [dbo].[DeprNonDeprTangibleAssets] dndFallback WITH(NOLOCK) ON asm.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+								LEFT JOIN  [dbo].[TangibleClass] tcViaDnd WITH(NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
 								LEFT JOIN  [dbo].[Manufacturer]  AS maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								LEFT JOIN  [dbo].[AssetCalibration] as cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	
 								LEFT JOIN  [dbo].[Vendor] AS V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId	
@@ -231,7 +238,7 @@ BEGIN
 								UPPER(CASE WHEN asm.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END),
 								UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'ELSE 'Intangible' END),
 								UPPER(ISNULL((CASE WHEN ISNULL(asm.IsTangible,0) = 1 and ISNULL(asm.IsDepreciable, 0) = 1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  ELSE 'No'  END),'No')),
-								UPPER(CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END), --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+								UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ISNULL(asti.AssetIntangibleName,'')))), --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 								UPPER(asm.InventoryNumber),
 								UPPER(asm.EntryDate),
 								UPPER(asm.InventoryStatusId),

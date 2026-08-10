@@ -174,6 +174,7 @@
     [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
     [CalibratedGLAccountId]             INT             NULL,
     [CalibratedGLAccountName]           VARCHAR (255)   NULL,
+    [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );

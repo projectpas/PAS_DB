@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetRMADetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RMA Part Details
@@ -23,7 +23,8 @@
 	8    17/07/2026   Nakul Chandigra Changed Stock UOM to Consume UOM for Qty.(PN-17257)
 	9    18/07/2026   BhargavSaliya Changed Stock UOM to Consume UOM for [PartsUnitCost].(PN-17257)
 	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
--- EXEC GetRMADetailsById 105
+	11	  10/07/2026  Nakul Chandigra  Changed Stock UOM to Consume UOM for SubTotal.(PN-17458)
+-- EXEC GetRMADetailsById 119
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[GetRMADetailsById]
 @RMAHeaderId bigint
@@ -79,7 +80,7 @@ BEGIN
 			  (SOBII.GrandTotal * -1) AS [InvoiceAmt],
 			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
 			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
-			  CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (SOBII.GrandTotal / SOBII.QtyBilled) ELSE SOBII.GrandTotal END AS UnitPrice,
+			  CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (SOBII.GrandTotal / (CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOBII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.QtyBilled, 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.MasterCompanyId) END)) ELSE SOBII.GrandTotal END AS UnitPrice,
 			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId

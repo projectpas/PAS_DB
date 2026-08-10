@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -50,6 +50,7 @@
     34	 30/06/2026	  Priyansh Patel	Reduced @maxQtyLimit from 499 to 0 [PN-16893]
 	35    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	36    16/July/2026			 RAJESH GAMI						[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
+    37   06/08/2026   Priyansh Patel    Added the removed code  [PN-17271]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -567,6 +568,11 @@ BEGIN
 						GROUP BY iM.ItemMasterId
 						
 						SET @QtyToReceiveAfterConversion = ISNULL(@QtyToReceive,0);
+
+                         SELECT @DraftQty = Quantity,
+                               @DraftUnitCost = PurchaseOrderUnitCost
+                        FROM #tmpStocklineDraft
+                        WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
 
                         SET @QtyAfterConversion = ISNULL(@DraftQty,0);

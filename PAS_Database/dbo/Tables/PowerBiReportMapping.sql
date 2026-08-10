@@ -12,6 +12,7 @@ CREATE TABLE [dbo].[PowerBiReportMapping] (
     [UpdatedDate]     DATETIME2 (7)  CONSTRAINT [DF_PowerBiReportMapping_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]        BIT            CONSTRAINT [DF_PowerBiReportMapping_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT            CONSTRAINT [DF_PowerBiReportMapping_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsMaster]        BIT            CONSTRAINT [DF_PowerBiReportMapping_IsMaster] DEFAULT ((0)) NOT NULL,
     PRIMARY KEY CLUSTERED ([PowerBiReportMappingId] ASC)
 );
 GO

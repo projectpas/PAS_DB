@@ -13,6 +13,7 @@ EXEC [[GetWorkorderQuoteCurrectiveAction]]
 ** 02   10/07/2025  Devendra Shekh  Added Changes for Other Company to Hanldle 2 CMM
 ** 03   09/23/2025  Vishal Suthar	Fixed the issue with populating publication details correctly
 ** 04   09-FEB-2026 AMIT GHEDIYA    Changes for Neo Company only to bind condition from workscope.(PN-15347)
+** 05   07-AUG-2026 Abhishek Jirawala Added Fleet field in Section 12 Remarks (PN-17260)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 9737,9847
  EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 9737,9847
@@ -123,6 +124,7 @@ BEGIN
 			IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
 			BEGIN
 				SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					   ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 					   CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
 					   		THEN UPPER(wop.[WorkScope])
 					   ELSE
@@ -157,6 +159,7 @@ BEGIN
 				  SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
 		  				  
 				  SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					   ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			             CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
 							THEN UPPER(wop.[WorkScope])
 						 ELSE
@@ -191,6 +194,7 @@ BEGIN
 			IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
 			BEGIN
 			   SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					   ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			          CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
 							THEN UPPER(wop.[WorkScope])
 					  ELSE
@@ -224,6 +228,7 @@ BEGIN
 				SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
 
 				SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					   ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 			          CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
 							THEN UPPER(wop.[WorkScope])
 					  ELSE

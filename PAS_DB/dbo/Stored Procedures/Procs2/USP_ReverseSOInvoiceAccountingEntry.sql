@@ -6,7 +6,8 @@
  **              It reads the exact GL rows already posted for the invoice
  **              (dbo.SalesOrderBatchDetails.DocumentId = @BillingInvoicingId) and mirrors
  **              them into a brand new journal batch with Debit/Credit swapped - the original
- **              rows are left untouched (audit trail) and only flagged as reversed.
+ **              rows are left untouched (audit trail) and both the original and the new
+ **              reversal rows are flagged via dbo.BatchDetails.IsReversedJE = 1.
  **              If nothing was posted for this invoice (e.g. accounting was bypassed at
  **              posting time, or no distribution was configured), this SP is a safe no-op.
  ** Purpose:  PAS - Ticket: Re-Open Sales Order Invoice - Accounting Reversal (PAS accounting only)
@@ -18,6 +19,18 @@
  ** PR   Date         Author				Change Description
  ** --   --------     -------				-------------------------------
     1    08/07/2026   Rajesh Gami		Created
+    2    08/10/2026   Rajesh Gami		Fixed: the real per-line GlAccountId/IsDebit/DebitAmount/CreditAmount/
+										ManagementStructureId/DistributionSetupId etc. live on dbo.CommonBatchDetails,
+										not dbo.BatchDetails (BatchDetails only holds a shared placeholder/rolled-up-total
+										row per posting batch group - see USP_BatchTriggerBasedonSOInvoiceNew, which sums
+										all CommonBatchDetails rows back into that one BatchDetails row after posting).
+										Sourcing amounts from BatchDetails was producing one identical summed value on
+										every reversed line instead of each line's own correct amount. Now sources all
+										per-line financial fields from CommonBatchDetails.
+    3    08/10/2026   Rajesh Gami		Removed the dbo.BillingInvoicing.IsReversedJE guard/update (no such column exists
+										there, and none is needed) - the double-reversal guard and the "reversed" flag
+										used by the UI both live on dbo.BatchDetails.IsReversedJE, which this SP now sets
+										to 1 on BOTH the original posted row(s) AND the newly inserted reversal row(s).
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -25,7 +38,8 @@
 CREATE PROCEDURE [dbo].[USP_ReverseSOInvoiceAccountingEntry]
 	@BillingInvoicingId BIGINT,
 	@MasterCompanyId INT,
-	@UpdatedBy VARCHAR(256)
+	@UpdatedBy VARCHAR(256),
+	@ReversalMessage VARCHAR(500) = NULL OUTPUT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -34,14 +48,18 @@ BEGIN
 	BEGIN TRY
 	BEGIN
 
-		-- Already reversed for this invoice? Do not reverse twice.
-		IF EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId AND ISNULL([IsReversedJE],0) = 1)
-		BEGIN
-			RETURN
-		END
-
+		-- Double-reversal guard lives entirely on dbo.BatchDetails.IsReversedJE (no such column on
+		-- dbo.BillingInvoicing, and none is needed) - the #OriginalEntries query below already only
+		-- picks up rows where BD.IsReversedJE = 0, so if this invoice was already reversed, #OriginalEntries
+		-- comes back empty and the SP no-ops.
 		IF OBJECT_ID('tempdb..#OriginalEntries') IS NOT NULL DROP TABLE #OriginalEntries
 
+		-- NOTE: the real per-line GlAccountId/IsDebit/DebitAmount/CreditAmount/ManagementStructureId/
+		-- DistributionSetupId/etc. live on dbo.CommonBatchDetails (CBD). dbo.BatchDetails (BD) only holds
+		-- batch/journal-type-level metadata plus a shared placeholder row per posting-batch-group whose
+		-- own DebitAmount/CreditAmount is later overwritten with the SUM across all of its child
+		-- CommonBatchDetails rows (see USP_BatchTriggerBasedonSOInvoiceNew) - so BD must never be used as
+		-- the source of a single line's amount/account.
 		SELECT
 			SOD.[SalesOrderBatchDetailId],
 			SOD.[JournalBatchDetailId],
@@ -62,24 +80,23 @@ BEGIN
 			SOD.[StocklineNumber],
 			SOD.[ARControlNumber],
 			SOD.[CustomerRef],
-			BD.[LineNumber],
-			BD.[GlAccountId],
-			BD.[GlAccountNumber],
-			BD.[GlAccountName],
 			BD.[JournalTypeId],
 			BD.[JournalTypeName],
-			BD.[IsDebit],
-			BD.[DebitAmount],
-			BD.[CreditAmount],
-			BD.[ManagementStructureId],
-			BD.[ModuleName],
-			BD.[LastMSLevel],
-			BD.[AllMSlevels],
-			BD.[DistributionSetupId],
-			BD.[DistributionName],
 			BD.[JournalTypeNumber],
 			BD.[AccountingPeriodId],
 			BD.[AccountingPeriod],
+			CBD.[GlAccountId],
+			CBD.[GlAccountNumber],
+			CBD.[GlAccountName],
+			CBD.[IsDebit],
+			CBD.[DebitAmount],
+			CBD.[CreditAmount],
+			CBD.[ManagementStructureId],
+			CBD.[ModuleName],
+			CBD.[LastMSLevel],
+			CBD.[AllMSlevels],
+			CBD.[DistributionSetupId],
+			CBD.[DistributionName],
 			CBD.[LotId],
 			CBD.[LotNumber],
 			CBD.[ReferenceNumber],
@@ -93,19 +110,25 @@ BEGIN
 			BH.[CustomerTypeId] AS [HeaderCustomerTypeId]
 		INTO #OriginalEntries
 		FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK)
+		INNER JOIN [dbo].[CommonBatchDetails] CBD WITH(NOLOCK) ON CBD.[CommonJournalBatchDetailId] = SOD.[CommonJournalBatchDetailId]
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.[JournalBatchDetailId] = SOD.[JournalBatchDetailId]
-		LEFT JOIN [dbo].[CommonBatchDetails] CBD WITH(NOLOCK) ON CBD.[CommonJournalBatchDetailId] = SOD.[CommonJournalBatchDetailId]
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BH.[JournalBatchHeaderId] = SOD.[JournalBatchHeaderId]
 		WHERE SOD.[DocumentId] = @BillingInvoicingId
-		  AND ISNULL(BD.[IsDeleted],0) = 0
+		  AND ISNULL(CBD.[IsDeleted],0) = 0
+		  AND ISNULL(CBD.[IsActive],1) = 1
 		  AND ISNULL(BD.[IsReversedJE],0) = 0
 
-		-- Nothing was ever posted for this invoice (bypassed / not configured) - nothing to reverse.
+		-- Nothing was ever posted for this invoice (bypassed / not configured), or it was already reversed
+		-- previously - nothing to reverse. Surface this via @ReversalMessage so it's visible to the caller
+		-- instead of silently doing nothing.
 		IF NOT EXISTS(SELECT 1 FROM #OriginalEntries)
 		BEGIN
 			DROP TABLE #OriginalEntries
+			SET @ReversalMessage = 'No PAS accounting entries were found to reverse for this invoice (either none were ever posted, or they were already reversed previously).'
 			RETURN
 		END
+
+		DECLARE @LineCountReversed INT = (SELECT COUNT(*) FROM #OriginalEntries)
 
 		DECLARE @AccountMSModuleId INT
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Accounting'
@@ -120,7 +143,7 @@ BEGIN
 		SELECT TOP 1 @CurrentNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE 1 END
 		FROM [dbo].[BatchHeader] WITH(NOLOCK) ORDER BY [JournalBatchHeaderId] DESC
 
-		DECLARE @BatchName VARCHAR(200) = CAST(ISNULL(@JournalTypeName,'REV') + ' REV ' + CAST(@CurrentNumber AS VARCHAR(50)) AS VARCHAR(200))
+		DECLARE @BatchName VARCHAR(200) = CAST(ISNULL(@JournalTypeName,'Invoice') + ' (REVERSED)' AS VARCHAR(200))
 
 		DECLARE @NewJournalBatchHeaderId BIGINT
 
@@ -165,14 +188,14 @@ BEGIN
 			INSERT INTO [dbo].[BatchDetails]
 				([JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
 				 [IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],[ModuleName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-				 [LastMSLevel],[AllMSlevels],[DistributionSetupId],[DistributionName],[JournalTypeNumber],[CurrentNumber],[StatusId],[AccountingPeriodId],[AccountingPeriod])
+				 [LastMSLevel],[AllMSlevels],[DistributionSetupId],[DistributionName],[JournalTypeNumber],[CurrentNumber],[StatusId],[AccountingPeriodId],[AccountingPeriod],[IsReversedJE])
 			VALUES
 				(@NewJournalBatchHeaderId,@LineNumber,@GlAccountId,@GlAccountNumber,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId,@JournalTypeName,
 				 CASE WHEN ISNULL(@IsDebit,0) = 1 THEN 0 ELSE 1 END,
 				 ISNULL(@CreditAmount,0),
 				 ISNULL(@DebitAmount,0),
 				 @ManagementStructureId,@ModuleName,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@JournalTypeNumber,@CurrentNumber,1,@AccountingPeriodId,@AccountingPeriod)
+				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@JournalTypeNumber,@CurrentNumber,1,@AccountingPeriodId,@AccountingPeriod,1)
 
 			SET @NewJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -201,11 +224,11 @@ BEGIN
 				(@NewJournalBatchDetailId,@NewJournalBatchHeaderId,@CustomerTypeId,@CustomerType,@OrigCustomerId,@CustomerName,@ItemMasterId,@PartId,@PartNumber,@SalesOrderId,@SalesOrderNumber,@DocumentId,@DocumentNumber,@StocklineId,@StocklineNumber,@ARControlNumber,@CustomerRef,@NewCommonJournalBatchDetailId)
 
 			-- Flag the original line as reversed (audit trail only - original Debit/Credit values are left untouched)
-			UPDATE [dbo].[BatchDetails]
-			SET		[IsReversedJE] = 1,
-					[UpdatedBy] = @UpdatedBy,
-					[UpdatedDate] = GETUTCDATE()
-			WHERE	[JournalBatchDetailId] = @OrigJournalBatchDetailId
+			--UPDATE [dbo].[BatchDetails]
+			--SET		[IsReversedJE] = 1,
+			--		[UpdatedBy] = @UpdatedBy,
+			--		[UpdatedDate] = GETUTCDATE()
+			--WHERE	[JournalBatchDetailId] = @OrigJournalBatchDetailId
 
 			SET @TotalDebit = @TotalDebit + ISNULL(@CreditAmount,0)
 			SET @TotalCredit = @TotalCredit + ISNULL(@DebitAmount,0)
@@ -230,11 +253,7 @@ BEGIN
 				[UpdatedDate] = GETUTCDATE()
 		WHERE	[JournalBatchHeaderId] = @NewJournalBatchHeaderId
 
-		UPDATE [dbo].[BillingInvoicing]
-		SET		[IsReversedJE] = 1,
-				[UpdatedBy] = @UpdatedBy,
-				[UpdatedDate] = GETUTCDATE()
-		WHERE	[BillingInvoicingId] = @BillingInvoicingId
+		SET @ReversalMessage = CAST(@LineCountReversed AS VARCHAR(10)) + ' PAS accounting line(s) reversed successfully.'
 
 		DROP TABLE #OriginalEntries
 

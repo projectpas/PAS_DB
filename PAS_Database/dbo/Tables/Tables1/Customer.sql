@@ -205,3 +205,10 @@ BEGIN
         OR
         (m.Action = 'D' AND m.OldValue IS NOT NULL);
 END;
+GO
+CREATE NONCLUSTERED INDEX [IX_Customer_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[Customer]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([CustomerTypeId], [CustomerAffiliationId], [AddressId], [Name], [CustomerCode], [Email], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [QuickBooksReferenceId], [LastSyncDate], [IsCustomerAlsoVendor], [IsUpdated], [IsTrackScoreCard], [ResaleNumber], [VatNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports GetCustomerList's tenant/soft-delete/active filter (see
+-- UOM_GetCustomerList_Deploy.sql for the full review).
+GO

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetSalesOrderPartsView]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used GetSalesOrderPartsView
@@ -15,10 +15,12 @@
  ** --   --------		-------			--------------------------------            
     1    12/12/2024		EKTA CHANDEGRA	 Created  
     2    16/12/2024		EKTA CHANDEGRA	 Handled divided by zero exception for UnitSalesPricePerUnit   
-
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine and ItemMaster joins.
  EXEC GetSalesOrderPartsView 1555 , 0
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetSalesOrderPartsView]
+CREATE PROCEDURE [dbo].[GetSalesOrderPartsView]
     @SalesOrderId BIGINT,
     @CurrencyId BIGINT
 AS
@@ -104,7 +106,7 @@ BEGIN
 		LEFT JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON part.SalesOrderPartId = sopc.SalesOrderPartId
 		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON sops.StockLineId = qs.StockLineId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+		 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].[SalesOrderQuotePartV1] soqps WITH(NOLOCK) ON part.SalesOrderQuotePartId = soqps.SalesOrderQuotePartId
 		LEFT JOIN [dbo].[SalesOrderQuote] q WITH(NOLOCK) ON soqps.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

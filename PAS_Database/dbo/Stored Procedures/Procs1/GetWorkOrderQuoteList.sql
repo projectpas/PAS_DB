@@ -12,13 +12,14 @@
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    07/08/2023   Ekta Chandegra		Convert text into uppercase   
-	2    06/29/2024   Abhishek Jirawla		Adding flag to return only specified status for pending Approval
-	3    18 July 2024 Shrey Chandegara		Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	4    05/08/2024   HEMANT SALIYA			Serial Number Changes
-	5    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
-	6    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
+	2    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
+	3    05/08/2024   HEMANT SALIYA			Serial Number Changes
+	4    06/29/2024   Abhishek Jirawla		Adding flag to return only specified status for pending Approval
+	5    18 July 2024 Shrey Chandegara		Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	6    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
 	7    20-March-2025   Ekta Chandegra        Convert date using dbo.ConvertUTCtoLocal
 	8    4 Apr 2025   RAJESH GAMI			Resolved issue: Need to display latest record on the top
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -169,7 +170,7 @@ BEGIN
 			LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
 			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON woq.workorderquoteid = WOQD.workorderquoteid AND wopn.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 		WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND (wopp.ApprovalActionId IN (0, 1, 2, 4) OR wopp.ApprovalActionId IS NULL)))
-			 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
+			  AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
 			  SELECT * INTO #TempResult FROM  Result  
 			  WHERE (  
 			  (@GlobalFilter <>'' AND (  

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPartsViewBySalesOrderId]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO analysis data
@@ -27,7 +27,9 @@
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
 	12   12-MAY-2026   Bhargav Saliya	UOM Changes [PN-15067]
 	13   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	16    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from part join and WHERE clause.
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
@@ -243,7 +245,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
-		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
+		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0 ;
 	END
 COMMIT TRANSACTION
 

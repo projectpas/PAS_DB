@@ -1,7 +1,13 @@
-﻿
+
 ---------------------------------------------------------------------------------------------------
 
-CREATE view [dbo].[StocklinePurchaseHistory] as
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
+CREATE VIEW [dbo].[StocklinePurchaseHistory] as
 select distinct
 IT.Description as ItemType,
 PO.purchaseordernumber as #ofPO,
@@ -19,4 +25,4 @@ LEFT JOIN PurchaseOrderPart POP ON PO.PurchaseOrderId=POP.PurchaseOrderId AND PO
 LEFT JOIN Vendor VNDR ON STL.VendorId=VNDR.VendorId
 LEFT JOIN Condition CNDN ON STL.ConditionId=CNDN.ConditionId
 LEFT JOIN ClassificationMapping CM ON VNDR.VendorId=CM.ModuleId
-LEFT JOIN VendorClassification VNDRCLS ON CM.ClasificationId=VNDRCLS.VendorClassificationId
+LEFT JOIN VendorClassification VNDRCLS ON CM.ClasificationId=VNDRCLS.VendorClassificationId WHERE ISNULL(STL.IsNonStock,0) = 0

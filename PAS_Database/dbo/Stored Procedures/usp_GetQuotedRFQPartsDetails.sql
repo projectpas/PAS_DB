@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetQuotedRFQPartsDetails]             
  ** Author:   Devendra Shekh    
  ** Description: Get Data of quoted RFQ for Speed Quote
@@ -9,10 +9,11 @@
  ** S NO	Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
  **	1		31-July-2025	Devendra Shekh		Created
- 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE [dbo].[usp_GetQuotedRFQPartsDetails] 9, 95633, 1   
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_GetQuotedRFQPartsDetails]
+CREATE PROCEDURE [dbo].[usp_GetQuotedRFQPartsDetails]
 @CustomerRfqId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL,
 @MasterCompanyId INT = NULL
@@ -93,8 +94,8 @@ SET NOCOUNT ON
 				,c.Code
 				,ISNULL(STUFF((
 				SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M WITH (NOLOCK) INNER JOIN ItemMaster I WITH (NOLOCK) ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-				FOR XML PATH('')
-				)
+				AND ISNULL(I.IsNonStock,0) = 0
+				FOR XML PATH(''))
 				,1,1,''), '') AlternateFor
 				,CASE 
 					WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER' --'PMA&DER'
@@ -116,7 +117,7 @@ SET NOCOUNT ON
 				ELSE 0 END AS TAT
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId IN (SELECT ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId)
-			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND sl.IsDeleted = 0  AND sl.isActive = 1
+			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND sl.IsDeleted = 0  AND sl.isActive = 1 AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -124,7 +125,8 @@ SET NOCOUNT ON
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId AND imps.ConditionId = c.ConditionId
 			WHERE	im.ItemMasterId = @ItemMasterId
 					AND c.ConditionId IN (@OHCondition, @REPCondition, @BCCondition)
-			GROUP BY	im.PartNumber, im.PurchaseUnitOfMeasureId, im.PurchaseUnitOfMeasure, im.ItemMasterId, im.PartDescription, ig.Description, mf.Name, im.ManufacturerId
+			 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY	im.PartNumber, im.PurchaseUnitOfMeasureId, im.PurchaseUnitOfMeasure, im.ItemMasterId, im.PartDescription, ig.Description, mf.Name, im.ManufacturerId
 						,ic.ItemClassificationCode, ic.Description, ic.ItemClassificationId, c.Description, c.ConditionId, im.IsPma, im.IsDER, OEMPMA.partnumber, sl.ItemMasterId
 						,imps.PP_UnitPurchasePrice, imps.SP_CalSPByPP_UnitSalePrice, im.TurnTimeOverhaulHours, im.TurnTimeRepairHours, im.turnTimeBenchTest, c.Code
 			ORDER	BY CASE WHEN c.ConditionId = @OHCondition THEN 1

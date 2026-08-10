@@ -1,4 +1,4 @@
-﻿/*****************************************************************************************
+/*****************************************************************************************
  ** File:        [USP_CreateSalesOrderQuoteFromAI]
  ** Author:      Amit Ghediya
  ** Description: This stored procedure is used to create SO quote automatically from AI
@@ -19,6 +19,7 @@
     6    28/08/2025      Devendra Shekh      removed Text (Created From AI)
     7    09/06/2026      Amit Ghediya        Get latest from mgn stc table [PN-16491]
     8    19/06/2026      Hemant Saliya       Corrected MS details Name
+    9    09/July/2026      RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
     @tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,

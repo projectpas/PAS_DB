@@ -1,5 +1,4 @@
-﻿
-/*********************************************************************************************           
+﻿/*********************************************************************************************           
  ** File:   [GetStockLineDetails]           
  ** Author:  MOIN BLOCH
  ** Description: This stored procedure is used GET Stockline Details By StockLineId
@@ -18,23 +17,30 @@
     1    09/09/2024  MOIN BLOCH 		Created
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
     3    21-01-25    Bhavesh Raval   Remove Name and Notes Columns 
-	4	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
-	5	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
+	4	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
+	5	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
 	6    21/04/2025  Abhishek Jirawla Added Integration portal changes
 	7    23/07/2025  MOIN BLOCH 	  Added BatchNumber
 	8    24/09/2025  Sahdev Saliya    Added Classification
-	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
-	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-	9    10/12/2025  Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
-	10   22/04/2026  Ayushi Patel	 Removed ROUND function [PN-16034]	
-	11   07/05/2026  Nakul Chandigra	Added new field 'AircraftSN '(PN-16315)
-	11   22/05/2026  Nakul Chandigra	Added new field 'ExchangeSalesOrderNumber '(PN-16315)
-	12   26/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
-	13   03/06/2026  Sahdev Saliya      Added new field Model [PN-16667]
-	14   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
-	15   07/07/2026  Priyansh Patel 	Added consumeuom from item master if not avilable in stock [PN-17057]
-	16   21/07/2026  Ayushi Patel       [PN-17349]Added fallback condition for Stock and Purchase UOM, same as Consume UOM.
-
+	9    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
+	10    02/12/2025  Bhargav Saliya	  Revert Changes.
+	11    10/12/2025  Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
+	12   22/04/2026  Ayushi Patel	 Removed ROUND function [PN-16034]	
+	13   07/05/2026  Nakul Chandigra	Added new field 'AircraftSN '(PN-16315)
+	14   22/05/2026  Nakul Chandigra	Added new field 'ExchangeSalesOrderNumber '(PN-16315)
+	15   26/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
+	16   03/06/2026  Sahdev Saliya      Added new field Model [PN-16667]
+	17   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
+	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	19   07/07/2026  Priyansh Patel 	Added consumeuom from item master if not avilable in stock [PN-17057]
+	20   21/07/2026  Ayushi Patel       [PN-17349]Added fallback condition for Stock and Purchase UOM, same as Consume UOM.
+	21    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 more leftover soft IsNonStock=0 exclusions (oempnpart/rPart aliases) missed by the earlier PN-17009 bugfix pass.
+	22   04-Aug-2026  Rajesh Gami       [PN-17009] Merge Non-Stock Inventory into Stockline: return IsNonStock,
+									 Currency, CurrencyId, ItemNonStockClassificationId, NonStockClassification,
+									 IsService. NOTE: deliberately NOT filtered by IsNonStock here - this proc is
+									 already scoped to one exact @StockLineId, so an IsNonStock=0 filter would
+									 make migrated Non-Stock records return zero rows (BETA hit exactly this bug
+									 and had to revert it - see BETA's PN-17009 bugfix note).
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -163,7 +169,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,stl.[Condition] 'conditionType'
 			  ,im.[ItemTypeId]
 			  ,CASE WHEN stl.[PurchaseUnitOfMeasureId] > 0 then stl.[PurchaseUnitOfMeasureId] ELSE im.[PurchaseUnitOfMeasureId] END 'PurchaseUnitOfMeasureId'
-			  ,uom.ShortName as [UnitOfMeasure]	
+			  ,uom.ShortName as [UnitOfMeasure]
+			  ,uom.[Class]
+			  ,uom.[DecimalPlaces]
+			  ,CASE WHEN ISNULL(stl.[StockUnitOfMeasureId],0) > 0 THEN stl.[StockUnitOfMeasureId] ELSE im.[StockUnitOfMeasureId] END 'StockUnitOfMeasureId'
+			  ,CASE WHEN ISNULL(stl.[ConsumeUnitOfMeasureId],0) > 0 THEN stl.[ConsumeUnitOfMeasureId] ELSE im.[ConsumeUnitOfMeasureId] END 'ConsumeUnitOfMeasureId'
+			  ,uomStock.ShortName AS [StockUnitOfMeasure]
+			  ,uomConsume.ShortName AS [ConsumeUnitOfMeasure]
+			  ,stl.[PoPartUnitCost]
+			  ,stl.[Model]
               ,stl.[Manufacturer]
 			  ,'' [Code]        
               ,stl.[CreatedBy]
@@ -186,9 +200,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[RepairOrderPartRecordId]
               ,ISNULL(stl.[WorkOrderExtendedCost],0) AS WorkOrderExtendedCost
               ,NULL  'PurchaseOrderPartRecord'
-			  ,ISNULL(stl.[RepairOrderExtendedCost],0) AS RepairOrderExtendedCost
-              ,ISNULL(stl.[IsHazardousMaterial],0) AS IsHazardousMaterial
-              ,ISNULL(stl.[QuantityToReceive],0) AS QuantityToReceive
+			  ,ISNULL(stl.[RepairOrderExtendedCost],0) RepairOrderExtendedCost
+              ,ISNULL(stl.[IsHazardousMaterial],0) IsHazardousMaterial
+              ,ISNULL(stl.[IsNonStock],0) IsNonStock
+              ,stl.[Currency]
+              ,stl.[CurrencyId]
+              ,stl.[ItemNonStockClassificationId]
+              ,stl.[NonStockClassification]
+              ,ISNULL(stl.[QuantityToReceive],0) QuantityToReceive
               ,stl.[ManufacturingTrace]
               ,stl.[WorkOrderMaterialsId]
               ,stl.[ShippingAccount]
@@ -343,19 +362,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
 			,ISNULL(stl.[IsBatchStock],0) IsBatchStock
 			,stl.[BatchNumber]
-			,im.ItemClassificationName AS Classification,
-			ISNULL(uom.Class,'Decimal')Class,
-			ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
-    		CASE WHEN stl.StockUnitOfMeasureId > 0 then stl.StockUnitOfMeasureId ELSE im.StockUnitOfMeasureId END 'StockUnitOfMeasureId',
-			CASE WHEN stl.ConsumeUnitOfMeasureId > 0 then stl.ConsumeUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END 'ConsumeUnitOfMeasureId',
-			uomConsume.ShortName as ConsumeUnitOfMeasure,
-			uomStock.ShortName as StockUnitOfMeasure,
-			ISNULL(stl.[PoPartUnitCost],0)PoPartUnitCost,
-			stl.AircraftSN,
-			ES.ExchangeSalesOrderNumber,
-			stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,
-			stl.Model,
-			stl.Note
+			,im.ItemClassificationName AS Classification
+			,stl.AircraftSN
+			,ES.ExchangeSalesOrderNumber
+			,	stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,stl.Note,stl.IsService
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
@@ -404,7 +414,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 THEN stl.ConsumeUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
-
 	END TRY    
 	BEGIN CATCH 
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

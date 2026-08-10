@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [GetSalesOrderPartStocklineDetailsBySOId]           
  ** Author:	  Rajesh Gami
  ** Description: This SP is Used to Get SalesOrder Part Stockline Details
@@ -12,9 +12,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------     
 	1    29/May/2025   Rajesh Gami		Created
+	2    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    22/July/2026   RAJESH GAMI		[PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 	[dbo].[GetSalesOrderPartStocklineDetailsBySOId] 846
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetSalesOrderPartStocklineDetailsBySOId]
+CREATE PROCEDURE [dbo].[GetSalesOrderPartStocklineDetailsBySOId]
     @SalesOrderId BIGINT
 AS
 BEGIN

@@ -180,7 +180,12 @@
     [CalendarDate]                      DATETIME2 (7)   NULL,
     [Model]                             VARCHAR (200)   NULL,
     [IntegrationTypeId]                 INT             NULL,
-    [IsNonStock] BIT NULL, 
+    [IsNonStock] BIT NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL,
+      [IsKitAssy]                         BIT             NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

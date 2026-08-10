@@ -16,6 +16,7 @@
 	4    24/06/2025   Moin Bloch    Fix For Duplicate Part
     5	 27/02/2026   Ayushi Patel  PN-15602 PN-15604 return ItemNo for WoInvoice Report 
 	6    17/03/2026   Ayushi Patel  PN-15746 Return CustomerReference partwise 
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 89,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
@@ -109,6 +110,7 @@ BEGIN
 		   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 		   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		   LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = ITM.[ItemMasterId]
+		    AND ISNULL(ITM.IsNonStock,0) = 0
 		   LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH(NOLOCK) ON [ITM].[PurchaseUnitOfMeasureId] = UOM.[UnitOfMeasureId]
 		   --LEFT JOIN [dbo].[WorkOrderCharges] WOC WITH(NOLOCK) ON BII.[WorkFlowWorkOrderId] = WOC.[WorkFlowWorkOrderId] AND woc.[IsDeleted] = 0  AND BII.ModuleId = @WOModuleId
 		  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND BII.ModuleId = @WOModuleId

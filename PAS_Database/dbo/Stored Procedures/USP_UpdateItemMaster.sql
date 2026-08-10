@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
 ** File:  [USP_UpdateItemMaster]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to Update Item Master
@@ -18,8 +19,11 @@
 ** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
 ** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
 ** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
+   10	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+** 11    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
+
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -240,7 +244,18 @@ BEGIN
 		,i.Landings = PST.Landings
 		,i.Starts = PST.Starts
 		,i.CalendarDate = PST.CalendarDate
+		
+		,i.IsAcquiredMethodBuy              = PST.IsAcquiredMethodBuy
+		,i.DiscountPurchasePercent          = PST.DiscountPurchasePercent
+		,i.UnitCost                         = PST.UnitCost
+		,i.ListPrice                        = PST.ListPrice
+		,i.PriceDate                        = PST.PriceDate
+		,i.InWarranty                       = PST.InWarranty
+		,i.MfgExpirationDate                = PST.MfgExpirationDate
+		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
+		,i.IsService						= ISNULL(PST.IsService, 0)
 		,i.Model = PST.Model
+		,i.IsKitAssy = PST.IsKitAssy
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

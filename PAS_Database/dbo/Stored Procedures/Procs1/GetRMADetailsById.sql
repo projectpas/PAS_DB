@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetRMADetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RMA Part Details
@@ -19,8 +19,10 @@
     4    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables 
 	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.  
 	6    12/01/2026   Vishal Suthar   Fixed ambiguous column SerialNumber issue
-	7    17/07/2026   Nakul Chandigra Changed Stock UOM to Consume UOM for Qty.(PN-17257)
-	8    18/07/2026   BhargavSaliya Changed Stock UOM to Consume UOM for [PartsUnitCost].(PN-17257)
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    17/07/2026   Nakul Chandigra Changed Stock UOM to Consume UOM for Qty.(PN-17257)
+	9    18/07/2026   BhargavSaliya Changed Stock UOM to Consume UOM for [PartsUnitCost].(PN-17257)
+	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 -- EXEC GetRMADetailsById 105
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[GetRMADetailsById]

@@ -12,3 +12,9 @@
     CONSTRAINT [PK_AttachmentModule] PRIMARY KEY CLUSTERED ([AttachmentModuleId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AttachmentModule_Name]
+    ON [dbo].[AttachmentModule]([Name] ASC)
+    INCLUDE([AttachmentModuleId]);
+

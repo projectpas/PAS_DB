@@ -21,6 +21,8 @@
 );
 
 
+
+
 GO
 
 
@@ -47,3 +49,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_AttachmentDetails_Att]
+    ON [dbo].[AttachmentDetails]([AttachmentId] ASC, [IsActive] ASC, [IsDeleted] ASC)
+    INCLUDE([Link], [FileName], [AttachmentDetailId]);
+

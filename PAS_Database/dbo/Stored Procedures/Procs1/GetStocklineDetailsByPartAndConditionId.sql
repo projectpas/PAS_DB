@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetStocklineDetailsByPartAndConditionId]           
  ** Author:  MOIN BLOCH
@@ -17,6 +17,8 @@
  ** --   --------     -------		--------------------------------          
     1    08/05/2023  MOIN BLOCH 		Created
     2    12/01/2026  Rajesh Gami 		Return StockUnitOfMeasureId 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC GetStocklineDetailsByPartAndConditionId 25319,182
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetStocklineDetailsByPartAndConditionId]
@@ -56,11 +58,12 @@ BEGIN
 			   ISNULL(S.UnitCost,0) AS UnitCost
 		FROM [dbo].[ItemMaster] I WITH(NOLOCK)
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON I.[ManufacturerId] = M.[ManufacturerId]
-		LEFT JOIN [dbo].[Stockline] S WITH(NOLOCK) ON I.[ItemMasterId] = S.[ItemMasterId]   
+		LEFT JOIN [dbo].[Stockline] S WITH(NOLOCK) ON I.[ItemMasterId] = S.[ItemMasterId] AND ISNULL(S.IsNonStock,0) = 0  
 		WHERE S.[ItemMasterId] = @ItemMasterId 
 		  AND S.[ConditionId] = @ConditionId 
 		  AND S.[IsParent] = 1 
-	      AND S.[IsCustomerStock] = 0 ORDER BY [StocklineId] DESC
+	      AND S.[IsCustomerStock] = 0  AND ISNULL(I.IsNonStock,0) = 0
+	       ORDER BY [StocklineId] DESC
 
 		DECLARE @StockLineCount INT = 0;
 
@@ -101,6 +104,7 @@ BEGIN
 		 LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON I.[ManufacturerId] = M.[ManufacturerId]		 
 		 WHERE I.[ItemMasterId] = @ItemMasterId 
 			
+		  AND ISNULL(I.IsNonStock,0) = 0
 		 SELECT * FROM #StocklineDetailsByPartAndCondition2;
 
 		END

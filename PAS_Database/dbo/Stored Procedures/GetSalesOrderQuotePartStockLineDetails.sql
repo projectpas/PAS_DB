@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [GetSalesOrderQuotePartStockLineDetails]              
  ** Author:  EKTA CHANDEGRA  
  ** Description: This stored procedure is used GetSalesOrderQuotePartStockLineDetails  
@@ -13,12 +13,14 @@
  **************************************************************               
  ** PR   Date    Author   Change Description                
  ** --   --------  -------   --------------------------------              
-    1    09/12/2024  EKTA CHANDEGRA  Created    
-    2    22/06/2024  Kishor Makwana  Added ModuleName [PN-16937]
+    1    22/06/2024  Kishor Makwana  Added ModuleName [PN-16937]
+    2    09/12/2024  EKTA CHANDEGRA  Created    
+    3    09/July/2026  RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    4    22/July/2026  RAJESH GAMI  [PN-17350] - Removed leftover IsNonStock=0 exclusion filter from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
  EXEC GetSalesOrderQuotePartStockLineDetails 965  
 ************************************************************************/     
   
-CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartStockLineDetails]  
+CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartStockLineDetails]  
     @SalesOrderQuoteId BIGINT  
 AS  
 BEGIN  

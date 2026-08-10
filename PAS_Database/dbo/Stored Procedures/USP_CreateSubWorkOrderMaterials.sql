@@ -9,8 +9,10 @@
  **************************************************************             
  ** PR   Date					Author						Change Description              
  ** --   --------				-------					--------------------------------            
- ** 1    28-April-2025			Devendra Shekh				Created
- ** 2    16-Mar-2025			Rajesh Gami					UOM Changes [PN-15714]
+ ** 1    16-Mar-2025			Rajesh Gami					UOM Changes [PN-15714]
+ ** 2    28-April-2025			Devendra Shekh				Created
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
 CREATE     PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterials]  
@@ -102,7 +104,8 @@ BEGIN
 				TMP.UpdatedDate =  GETUTCDATE()
 			FROM #tmpSubWorkOrderMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 
 			SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpSubWorkOrderMaterial;
 
@@ -129,7 +132,8 @@ BEGIN
 						TMP.UnitOfMeasureId = CASE WHEN ISNULL(TMP.UnitOfMeasureId, 0) = 0 THEN CASE WHEN ISNULL(TMP.StockLineId, 0) > 0 THEN STK.PurchaseUnitOfMeasureId ELSE IM.PurchaseUnitOfMeasureId END ELSE TMP.UnitOfMeasureId END
 					FROM #tmpSubWorkOrderMaterial TMP 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-					LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 					WHERE [RowId] = @CurrentRowId;
 					
 					SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId

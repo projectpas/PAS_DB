@@ -253,7 +253,12 @@
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
     [Model]                               VARCHAR (200)   NULL,
     [Note]                                NVARCHAR (MAX)  NULL,
-     [IsNonStock] BIT NULL, 
+    [IsNonStock]                          BIT             NULL,
+    [Currency]                            VARCHAR (100)   NULL,
+    [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
+    [IsService]                           BIT             CONSTRAINT [DF_Stockline_IsService] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -270,6 +275,10 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
+
+
 
 
 
@@ -489,3 +498,38 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL));
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPart_Date]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPart_CreatedDate]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_Date]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_CreatedDate]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_StockReport]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [IsCustomerStock] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
+    ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([CreatedDate]);
+

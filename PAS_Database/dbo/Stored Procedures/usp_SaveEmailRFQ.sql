@@ -23,7 +23,8 @@
 	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
 	13	 10 Dec 2025	Devendra Shekh		Modified (Duplicate RFQ Issue Resolved)
 	14	 07 JAN 2026	Amit Ghediya		Modified for add contact details for existing customer diffrent email & phone.
-
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16   01 Aug 2026	Kishor Makwana		[PN-17515] -Customer RFQ: SOQ creation from Email fails due to missing Contact information and null Content data
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
@@ -239,6 +240,7 @@ BEGIN
 			FROM #tmpQuote TMP
 			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
 			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
 
 			SELECT @TotalQuoteRow = MAX(RowId), @CurrentQuoteRow = MIN(RowId) FROM #tmpQuote;
@@ -325,6 +327,9 @@ BEGIN
 							  @CreatedBy,
 							  @CreatedBy,
 							  @NewCustomerContactId OUTPUT;
+					END
+					BEGIN
+						SELECT TOP 1 @NewCustomerContactId = CustomerContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK) WHERE CCNT.CustomerId = @CustomerId AND ISNULL(CCNT.IsDefaultContact,0) =1;
 					END
 
 					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;

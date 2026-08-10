@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExchangeBillingDetailsById]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to GetExchangeBillingDetailsById
@@ -14,10 +14,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    06/06/2025   Ekta Chandegra     Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC GetExchangeBillingDetailsById @ExchangeSalesOrderId=150
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetExchangeBillingDetailsById]
+CREATE PROCEDURE [dbo].[GetExchangeBillingDetailsById]
     @ExchangeSalesOrderId BIGINT
 AS
 BEGIN
@@ -77,7 +78,8 @@ BEGIN
 		FROM [dbo].[ExchangeSalesOrder] soq WITH(NOLOCK)
 		LEFT JOIN  [dbo].[ExchangeSalesOrderPart] exp WITH(NOLOCK) ON soq.ExchangeSalesOrderId = exp.ExchangeSalesOrderId
 		LEFT JOIN  [dbo].[ItemMaster] im WITH(NOLOCK) ON exp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN  [dbo].[StockLine] sl WITH(NOLOCK) ON exp.StockLineId = sl.StockLineId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN  [dbo].[StockLine] sl WITH(NOLOCK) ON exp.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN  [dbo].[Manufacturer] mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN  [dbo].[Condition] cn WITH(NOLOCK) ON exp.ConditionId = cn.ConditionId
 		LEFT JOIN  [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId

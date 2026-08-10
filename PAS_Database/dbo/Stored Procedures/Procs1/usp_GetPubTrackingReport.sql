@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetPubTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for PubTracking Report  
@@ -12,11 +12,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
-     
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------          
 EXECUTE   [dbo].[usp_GetPubTrackingReport] '2020-06-15','2021-06-15','1'
 **************************************************************/
 
@@ -75,6 +75,7 @@ BEGIN
           ON PUB.MasterCompanyId = MC.MasterCompanyId
       WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate)
       AND PUB.MasterCompanyId = @mastercompanyid
+     AND ISNULL(IM.IsNonStock,0) = 0
     COMMIT TRANSACTION
   END TRY
   BEGIN CATCH

@@ -1,4 +1,11 @@
-﻿CREATE PROCEDURE [dbo].[GetExchangePackagingLabelPrint]
+﻿/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
+CREATE PROCEDURE [dbo].[GetExchangePackagingLabelPrint]
 	@ExchangeSalesOrderId bigint=0,
 	@PackagingSlipId bigint=3
 AS
@@ -22,12 +29,13 @@ BEGIN
 		LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
 		LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.SalesOrderShippingItem SSI WITH(NOLOCK) ON SSI.SOPickTicketId = sopt.SOPickTicketId
-		INNER JOIN dbo.ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
-		INNER JOIN dbo.ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
-		LEFT JOIN dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
-		LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN dbo.Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
-		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.StockUnitOfMeasureId
+		INNER JOIN ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
+		INNER JOIN ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
+		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
+		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.ExchangeSalesOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId
 		LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH(NOLOCK) ON SOS.ExchangeSalesOrderShippingId = SOSI.ExchangeSalesOrderShippingId AND SOS.ExchangeSalesOrderId = @ExchangeSalesOrderId
 		Where SPI.PackagingSlipId = @PackagingSlipId AND SPB.ExchangeSalesOrderId = @ExchangeSalesOrderId

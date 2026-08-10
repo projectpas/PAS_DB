@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetRFQPriceSuggestionDetails]             
  ** Author:   Devendra Shekh    
  ** Description: Get RFQ Price Suggetion Based on Invoices
@@ -11,7 +11,7 @@
  **	1		31-July-2025	Devendra Shekh		Created
  **	2		12-Aug-2025		Devendra Shekh		changed @RfqId dataType to NVARCHAR(400)
  **	3		13-Aug-2025		Devendra Shekh		Added Changes for @CustomerRfqPartMappingId Param
- 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
@@ -117,6 +117,7 @@ SET NOCOUNT ON
 				AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				--Get data from WOQ
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				IF(@RecordsTotal = 0)
 				BEGIN
 					SELECT 
@@ -137,6 +138,7 @@ SET NOCOUNT ON
 					AND MONTH(WOQ.[OpenDate]) >= @Month
 					AND YEAR(WOQ.[OpenDate]) >= @Year
 					AND WOQ.[MasterCompanyId] = @MasterCompanyId
+				 WHERE ISNULL(IM.IsNonStock,0) = 0
 				END
 				  
 				IF(@RecordsTotal > 0)

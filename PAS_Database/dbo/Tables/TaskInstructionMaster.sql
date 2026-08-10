@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[TaskInstructionMaster] (
+CREATE TABLE [dbo].[TaskInstructionMaster] (
     [TaskInstructionId]    BIGINT         IDENTITY (1, 1) NOT NULL,
     [Title]                VARCHAR (8000) NULL,
     [Description]          VARCHAR (MAX)  NULL,
@@ -20,3 +20,42 @@
 
 
 
+
+GO
+
+CREATE TRIGGER [dbo].[Trg_TaskInstructionMasterAudit]
+    ON [dbo].[TaskInstructionMaster]
+    AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO [dbo].[TaskInstructionMasterAudit]
+    (
+        [TaskInstructionId], [Title], [Description], [TaskId], [SequenceNumber],
+        [ParentId], [IsParent], [MasterCompanyId], [CreatedBy], [UpdatedBy],
+        [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+        [IsDefaultInstruction], [IsParentInstruction]
+    )
+    SELECT
+        i.[TaskInstructionId], i.[Title], i.[Description], i.[TaskId], i.[SequenceNumber],
+        i.[ParentId], i.[IsParent], i.[MasterCompanyId], i.[CreatedBy], i.[UpdatedBy],
+        i.[CreatedDate], i.[UpdatedDate], i.[IsActive], i.[IsDeleted],
+        i.[IsDefaultInstruction], i.[IsParentInstruction]
+    FROM inserted i
+
+    UNION ALL
+
+    SELECT
+        d.[TaskInstructionId], d.[Title], d.[Description], d.[TaskId], d.[SequenceNumber],
+        d.[ParentId], d.[IsParent], d.[MasterCompanyId], d.[CreatedBy], d.[UpdatedBy],
+        d.[CreatedDate], GETUTCDATE(), d.[IsActive], CAST(1 AS BIT),
+        d.[IsDefaultInstruction], d.[IsParentInstruction]
+    FROM deleted d
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM inserted i
+        WHERE i.[TaskInstructionId] = d.[TaskInstructionId]
+    );
+END;

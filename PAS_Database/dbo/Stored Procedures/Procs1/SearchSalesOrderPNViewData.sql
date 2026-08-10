@@ -18,9 +18,12 @@
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
 	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	7    19-11-2025  RAJESH GAMI		Added SO Amount
-	10   20-11-2025  Rajesh Gami		Correct the SO Amount
-	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+	8   20-11-2025  Rajesh Gami		Correct the SO Amount
+	9   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
+** 10   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
+** 11   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
     12   29/JUL/2026 Kishor Makwana     PERFORMANCE ONLY - Sales Order List filter slowness.
+    13	 05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 ***************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSalesOrderPNViewData]
 	@PageNumber              INT,
@@ -310,9 +313,6 @@ BEGIN
 			   
 			AND
 			(
-				@GfMode <> 0
-				OR
-				(
 					    (@SOQNumber            IS NULL OR SOQ.SalesOrderQuoteNumber LIKE '%' + @SOQNumber            + '%')
 					AND (@SoAmount             IS NULL OR ISNULL(SPC.NetSaleAmount, 0) = @SoAmount)
 					AND (@SalesOrderNumber     IS NULL OR SO.SalesOrderNumber       LIKE '%' + @SalesOrderNumber     + '%')
@@ -345,7 +345,6 @@ BEGIN
 					     OR CAST(CASE WHEN SP.SalesOrderPartId IS NULL THEN 0
 					                  ELSE ISNULL(MSDC.Cnt,0) * ISNULL(ROLEC.Cnt,0) END AS VARCHAR(20))
 					        LIKE '%' + @Status + '%')
-				)
 			)
 			 
 			AND

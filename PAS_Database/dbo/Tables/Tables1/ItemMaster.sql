@@ -179,7 +179,12 @@
     [CalendarDate]                      DATETIME2 (7)   NULL,
     [Model]                             VARCHAR (200)   NULL,
     [IntegrationTypeId]                 INT             NULL,
-    [IsNonStock] BIT NULL, 
+    [IsNonStock] BIT NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             CONSTRAINT [DF_ItemMaster_IsService] DEFAULT ((0)) NULL,
+    [IsKitAssy]                         BIT             NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -213,6 +218,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -358,3 +365,11 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMaster_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[ItemMaster]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([ItemTypeId], [IsHazardousMaterial], [IsUpdated], [partnumber], [ManufacturerName], [ItemClassificationName], [ItemGroup], [NationalStockNumber], [isSerialized], [isTimeLife], [IsPma], [IsDER], [IsOEM], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [WorkOrderFormTypeId], [Model]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's tenant/soft-delete/active/hazmat filter
+-- (see UOM_ProcItemMasterStockList_Deploy.sql for the full review).
+GO
+

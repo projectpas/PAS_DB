@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExpireDaysStockline]           
  ** Author:   Subhash Saliya
  ** Description: Save stockline expire days
@@ -12,8 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Subhash Saliya Created
-	
-
+    2    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [dbo].[GetExpireDaysStockline] 68,1
 **************************************************************/ 
 

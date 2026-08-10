@@ -18,8 +18,15 @@
 	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 	6    03/06/2026    Sahdev Saliya    Added new field Model [PN-16667]
 	7    29/06/2026    Nakul Chandigra  Added new field 'Note' [Note] [PN-17012]
-
---   EXEC [USP_CreateStockLine] 
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    04-Aug-2026   Rajesh Gami      [PN-17009] Merge Non-Stock Inventory into Stockline: added @IsNonStock,
+									 @Currency, @CurrencyId, @ItemNonStockClassificationId,
+									 @NonStockClassification, @IsService params; persist on Insert/Update.
+									 NOTE: the @UniqItemMasterId/@IsTimeLife lookup is already scoped to the
+									 unique @ItemMasterId, so no IsNonStock filter is added there (same reasoning
+									 as GetStockLineDetails and USP_GetCommonForStocklineByItemMasterId) - it
+									 would otherwise silently skip setting @IsStkTimeLife for Non-Stock stocklines.
+--   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @StockLineId BIGINT = NULL,
@@ -272,9 +279,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TotalCSN DECIMAL(18,2) = NULL,
 @TotalTSNMM DECIMAL(18,6) = NULL,
 @TotalCSNMM DECIMAL(18,6) = NULL,
-@Model VARCHAR(200) = NULL,
-@Note NVARCHAR(MAX) = NULL
-
+@Note NVARCHAR(MAX) = NULL,
+@Model VARCHAR(200) = NULL
 AS
 BEGIN
 
@@ -333,7 +339,7 @@ BEGIN
 			RETURN;
 		END
 
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = @IsTimeLife;
@@ -559,7 +565,7 @@ BEGIN
 	  BEGIN
 	    DECLARE @OldUnitCost DECIMAL(18,2) = 0
         SELECT @OldUnitCost = ISNULL([UnitCost],0) FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = CASE WHEN @IsStkTimeLife IS NOT NULL THEN @IsStkTimeLife ELSE @IsTimeLife END;

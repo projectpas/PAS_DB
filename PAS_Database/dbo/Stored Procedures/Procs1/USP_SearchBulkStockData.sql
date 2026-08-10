@@ -18,8 +18,9 @@
 	5    22/04/2026     Rajesh Gami				Getting proper value of Quantity and UnitCost for the details type [PN-15728]
 	6    09/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
     7    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
-	8    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
-
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
 CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
@@ -198,7 +199,7 @@ BEGIN
                     bsadj.MasterCompanyId = @MasterCompanyId
                     AND ISNULL(BSAD.IsDeleted, 0) = 0
                     AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
-            ),
+             AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0),
             FinalResult AS
             (
                 SELECT

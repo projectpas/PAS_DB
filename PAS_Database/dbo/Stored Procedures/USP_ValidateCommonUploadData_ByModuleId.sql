@@ -59,7 +59,9 @@
 	49   21-May-2026        Bhargav Saliya          Fixed the parameter sequence issue and add and add case  @MaintenanceCategoryModule
 	50   11-June-2026       Nakul Chandigra         Added validation for RFQTraceability table.(PN-16803)
 	51   17-June-2026       Nakul Chandigra         Updated validation for ItemClassification Module  (PN-15952)
-	52	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
+	52    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	53	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
+	54   06-Aug-1016        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -76,7 +78,6 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "SalesCurrencyId": "USD",
   "SiteId": "MESA"
 }')					
-
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
 CREATE    PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
@@ -238,6 +239,7 @@ BEGIN
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
+		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -407,7 +409,7 @@ BEGIN
 								SELECT COUNT(*)
 								FROM ItemMaster
 								WHERE UPPER(TRIM(partnumber)) = UPPER(TRIM(@DropdownLFieldValue))
-							) > 1
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ) > 1
 							BEGIN
 								SET @DropdownLFieldValue = CONCAT(@DropdownLFieldValue, ' - ', @wManufacturerId)
 							END
@@ -472,7 +474,7 @@ BEGIN
 									  AND ISNULL(IM.IsDeleted,0) = 0 
 									  AND ISNULL(IM.IsActive,0) = 1
 									  AND IM.MasterCompanyId = @MasterCompanyId
-							)
+							 AND ISNULL(IM.IsNonStock,0) = 0 )
 							BEGIN
 								-- Case 1: @ManufacturerId is actually a ManufacturerName
 								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
@@ -484,7 +486,7 @@ BEGIN
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
 								  AND IM.MasterCompanyId = @MasterCompanyId
-								  AND IM.ManufacturerName = @ManufacturerId;
+								  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							END
 							ELSE
 							BEGIN
@@ -497,7 +499,7 @@ BEGIN
 								  AND IMF.DropdownListValue = 'PartNumber'
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
-								  AND IM.MasterCompanyId = @MasterCompanyId;
+								  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							END
 
 							Update IMF SET IMF.DropdownListValueId = MNF.PartNumberId FROM #ImportFields IMF 
@@ -507,7 +509,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							
 					--  Check how many different manufacturers were found
 					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
@@ -932,6 +934,7 @@ BEGIN
 					BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 					END
 					SET @IsDuplicate = 0;
 					IF(@ModuleId=@StocklineModule)
@@ -1238,6 +1241,8 @@ BEGIN
 															THEN 'Entered Maintenance Category Already Exits!'
 														WHEN @ModuleId = @RFQTraceabilityModule
 															THEN 'Entered Traceability Already Exits!'
+														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
+															THEN 'Entered Lease Type Already Exists!'	
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -1269,7 +1274,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted,0) = 0 
 						  AND ISNULL(IM.IsActive,0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-				)
+				 AND ISNULL(IM.IsNonStock,0) = 0 )
 				BEGIN
 					-- Case 1: @ManufacturerId is actually a ManufacturerName
 					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName, partnumber, PartNumberId)
@@ -1281,7 +1286,7 @@ BEGIN
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
 					  AND IM.MasterCompanyId = @MasterCompanyId
-					  AND IM.ManufacturerName = @ManufacturerId;
+					  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 				ELSE
 				BEGIN
@@ -1294,7 +1299,7 @@ BEGIN
 					  AND IMF.DropdownListValue = 'PartNumber'
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
-					  AND IM.MasterCompanyId = @MasterCompanyId;
+					  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 				
@@ -1305,7 +1310,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							
 
 					--  Check how many different manufacturers were found
@@ -1429,7 +1434,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted, 0) = 0
 						  AND ISNULL(IM.IsActive, 0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-					)
+					 AND ISNULL(IM.IsNonStock,0) = 0 )
 					BEGIN
 						SET @ManufacturerName = @InputManufacturerName;
 					END
@@ -1442,6 +1447,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted, 0) = 0
 						  AND ISNULL(IM.IsActive, 0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
+						 AND ISNULL(IM.IsNonStock,0) = 0
 						ORDER BY IM.ManufacturerName ASC;
 					END
 

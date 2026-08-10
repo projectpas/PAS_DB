@@ -1,4 +1,3 @@
-﻿
 /*************************************************************           
  ** File:   [usp_GetSalesOrderOnTimeReport]           
  ** Author:   Swetha  
@@ -14,17 +13,19 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  		Change Description            
- ** --   --------     -------			--------------------------------          
     1                 Swetha			 Created
 	2	        	  Swetha			 Added Transaction & NO LOCK
-	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
-    4    11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
-	5    07-07-2025   Moin Bloch         Changed Old To New Billing Table
-
+	1	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
+    2    11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
+	3    07-07-2025   Moin Bloch         Changed Old To New Billing Table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters left over from the PN-17008/PN-17009 transitional phase, now that Non-Stock is fully merged into ItemMaster/Stockline
+ ** S NO   Date         Author  		Change Description            
+ ** --   --------     -------			--------------------------------          
 EXECUTE   [dbo].[usp_GetSalesOrderOnTimeReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE      PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
+CREATE PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -163,7 +164,7 @@ BEGIN
         --LEFT OUTER JOIN DBO.WorkOrder AS WO WITH(NOLOCK) ON STl.WorkOrderId = WO.WorkOrderId           
         LEFT OUTER JOIN dbo.itemmaster WITH (NOLOCK)
           ON SOP.itemmasterid = itemmaster.itemmasterid
-        LEFT OUTER JOIN dbo.billinginvoicing AS SOBI WITH (NOLOCK)
+         LEFT OUTER JOIN dbo.billinginvoicing AS SOBI WITH (NOLOCK)
           ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
         LEFT OUTER JOIN dbo.condition AS CDTN WITH (NOLOCK)
           ON SOP.conditionid = CDTN.conditionid

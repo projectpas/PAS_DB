@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrderList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve Sub WorkOrder list with filters   
@@ -15,22 +15,23 @@
     3    01/09/2024   Devendra Shekh			added new column
 	4    01/16/2024   Hemant Saliya				Updated For Reopen Sub WO
 	5    01/16/2024   Devendra Shekh			delete disabled issue resolved
-	6    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
-	7    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
-	8    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
-	9 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
-	10 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
-	11	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
+	6 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
+	7 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
+	8	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
+	9    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
+	10    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
+	11    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
     12	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
 @SubWOStatus=NULL,@OriginalCondition=NULL,@UpdatedCondition=NULL,@IsTransferredToParentWO=NULL,@OriginalStockLineNumber=NULL,
 @UpdatedStockLineNumber=NULL,@CreatedBy=NULL,
 @UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=3986,@MasterCompanyId=1
-
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderList]
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -235,11 +236,11 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderStatus] STS WITH (NOLOCK) ON SWPT.SubWorkOrderStatusId = STS.Id
 				LEFT JOIN #tempSubWO tmpSub WITH (NOLOCK) ON SWO.SubWorkOrderId = tmpSub.SubWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.StockLineId = SWPT.RevisedStockLineId 
-				LEFT JOIN [dbo].[Stockline] RSL WITH (NOLOCK) ON SWPT.RevisedStockLineId = RSL.StockLineId
+				LEFT JOIN [dbo].[Stockline] RSL WITH (NOLOCK) ON SWPT.RevisedStockLineId = RSL.StockLineId AND ISNULL(RSL.IsNonStock,0) = 0
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	AND SWO.WorkOrderPartNumberId = @WorkOrderPartNumberId
-			), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([SubWorkOrderNo] LIKE '%' +@GlobalFilter+'%') OR
 			        ([MasterPartNo] LIKE '%' + @GlobalFilter+'%') OR	

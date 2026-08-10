@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoiceNew]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to enter acounting entry for SO
@@ -18,29 +18,32 @@
 	3    24/07/2023	 Satish GOhil   Modify(Change Name to distribution seeup code in condition)
 	4    18/08/2023  Moin Bloch     Modify(Added Accounting MS Entry)
 	5    18/08/2023  Hemant Saliya  Corrected For MS entry not Saved.
-	7    30/11/2023  Moin Bloch     Modify(Added LotId And Lot Number in CommonBatchDetails)
-	8    11/12/2023  Moin Bloch     Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
-	9    08/01/2024  Moin Bloch     Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
-    10	 01/02/2024	 AMIT GHEDIYA	added isperforma Flage for SO
-	11   02/04/2024  HEMANT SALIYA  Added LE Params to Get Correct Accounting Cal Id
-	12   19/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
-	13	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
-	14	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	15	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
-	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
-	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
-	18	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
-	19	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level with single bill)
-	20	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
-	21	 02/06/2025	 Abhishek Jirawla Fixed Name concat read script
-  	22	 16/06/2025	 RAJESH GAMI	Implement new BILLING INVOICING table structure 
-	23	 31/07/2025	 RAJESH GAMI	Fixed : Getting Freight and Charges Amount from the invoice table instead of SO Part table
+	6    30/11/2023  Moin Bloch     Modify(Added LotId And Lot Number in CommonBatchDetails)
+	7    11/12/2023  Moin Bloch     Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
+	8    08/01/2024  Moin Bloch     Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
+    9	 01/02/2024	 AMIT GHEDIYA	added isperforma Flage for SO
+	10   02/04/2024  HEMANT SALIYA  Added LE Params to Get Correct Accounting Cal Id
+	11   19/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
+	12	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
+	13	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
+	15	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
+	16	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
+	17	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
+	18	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level with single bill)
+	19	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	20	 02/06/2025	 Abhishek Jirawla Fixed Name concat read script
+  	21	 16/06/2025	 RAJESH GAMI	Implement new BILLING INVOICING table structure 
+	22	 31/07/2025	 RAJESH GAMI	Fixed : Getting Freight and Charges Amount from the invoice table instead of SO Part table
+	23    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	24    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	25    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters from SO invoice GL journal-entry creation (COGS/Revenue/Inventory distribution lookups) so Non-Stock items are included.
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
 exec [dbo].[USP_BatchTriggerBasedonSOInvoiceNew] 7,913,0,0,3400,0,0,0,'SO',1,'RAJESH GAMI',1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
+CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 	@DistributionMasterId BIGINT = NULL,
 	@ReferenceId BIGINT = NULL,
 	@ReferencePartId BIGINT = NULL,
@@ -189,7 +192,8 @@ BEGIN
 	        
 			SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 	        
-			SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
+
+			 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
 			
 			SELECT @StocklineNumber= STK.[StockLineNumber],
 			       @LotId = STK.[LotId], 
@@ -328,7 +332,8 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SubReferenceId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
-					WHERE soi.BillingInvoicingId = @InvoiceId 
+
+					 WHERE soi.BillingInvoicingId = @InvoiceId 
 					AND soit.SubReferenceId = @ReferencePartId
 					AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND soi.ModuleId = @soModuleId
 
@@ -898,7 +903,8 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					     LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]
-						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
+
+					      WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT @STKGlAccountId=SL.GLAccountId,
 						       @STKGlAccountNumber=GL.AccountCode,

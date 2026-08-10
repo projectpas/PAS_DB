@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_NhaTlaAltEquPartList]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get NhaTlaAltEquPart List
@@ -13,7 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     exec [dbo].[USP_NhaTlaAltEquPartList]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_NhaTlaAltEquPartList]
@@ -75,7 +75,7 @@ BEGIN
         AND alt.MappingItemMasterId = ISNULL(@MappingItemMasterId,alt.MappingItemMasterId)
 		AND	(@Description IS NULL OR @Description = '' OR im.PartDescription LIKE '%' + @Description + '%')
         AND (@ManufacturerId = 0 OR im.ManufacturerId = @ManufacturerId)
-	    AND (@ItemClassificationId = 0 OR im.ItemClassificationId = @ItemClassificationId);
+	    AND (@ItemClassificationId = 0 OR im.ItemClassificationId = @ItemClassificationId) AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0 ;
 
      SELECT alt.ItemMappingId,
             im.PartNumber,
@@ -110,7 +110,7 @@ BEGIN
 			AND alt.MappingItemMasterId = ISNULL(@MappingItemMasterId,alt.MappingItemMasterId)
 			AND	(@Description IS NULL OR @Description = '' OR im1.PartDescription LIKE '%' + @Description + '%')
 			AND (@ManufacturerId = 0 OR im1.ManufacturerId = @ManufacturerId)
-			AND (@ItemClassificationId = 0 OR im1.ItemClassificationId = @ItemClassificationId);
+			AND (@ItemClassificationId = 0 OR im1.ItemClassificationId = @ItemClassificationId) AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0 ;
 	END
 	IF (@Opr = 2)
 	BEGIN

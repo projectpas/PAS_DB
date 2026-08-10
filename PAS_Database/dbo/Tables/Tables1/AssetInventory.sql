@@ -116,7 +116,7 @@
     [Level4]                            VARCHAR (200)   NULL,
     [ManufactureName]                   VARCHAR (100)   NULL,
     [LocationName]                      VARCHAR (100)   NULL,
-    [Qty]                               INT             NULL,
+    [Qty]                               DECIMAL (18, 6) NULL,
     [StklineNumber]                     VARCHAR (100)   NULL,
     [AvailStatus]                       VARCHAR (100)   NULL,
     [PartNumber]                        VARCHAR (100)   NULL,
@@ -191,6 +191,10 @@
 
 
 
+
+
+
+
 GO
 
 
@@ -217,3 +221,26 @@ BEGIN
   
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPart_CreatedDate]
+    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPart_CreatedDate]
+    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Asset_ROPart_Date]
+    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Asset_POPart_Date]
+    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+

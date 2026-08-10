@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    25/04/2022  Moin Bloch     Created
 	2    28/03/2024  HEMANT SALIYA  Updated for Add Billing Level Details
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
@@ -77,6 +78,7 @@ BEGIN
 	FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
 	   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
+	 AND ISNULL(IM.IsNonStock,0) = 0
 	WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    

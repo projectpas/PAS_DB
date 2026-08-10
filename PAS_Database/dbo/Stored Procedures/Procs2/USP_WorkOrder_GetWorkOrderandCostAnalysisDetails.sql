@@ -25,7 +25,8 @@
 	9    04/25/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
 	10   02/05/2026   Hemant Saliya		Handle -ve Adjustment cost issue
 	11   30/Mar/2026  Rajesh Gami		UOM Changes [PN-15741]
-
+	12   09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13   23/July/2026   RAJESH GAMI		[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
 **************************************************************/

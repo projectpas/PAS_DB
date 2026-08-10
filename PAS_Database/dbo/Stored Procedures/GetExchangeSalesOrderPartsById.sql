@@ -12,9 +12,12 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** ----------------------------------------------------------          
     1    06/05/2025  EKTA CHANDEGRA    Created
     2    15/04/2026  RAJESH GAMI	   Getting StockUOM instead of POUOM  [PN-15904] 	     
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine and ItemMaster joins.
+ ** ----------------------------------------------------------          
  EXEC GetExchangeSalesOrderPartsById @ExchangeSalesOrderId = 150 
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetExchangeSalesOrderPartsById]

@@ -1,6 +1,3 @@
-﻿
--- =============================================
--- Author:		Vishal Suthar
 /*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
@@ -13,7 +10,9 @@
  ** --   --------     -------		--------------------------------          
     1    23-Dec-2020   Vishal Suthar   Created         
     2    04-Apr-2024   Bhargav Saliya	Credit Terms Changes
-
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
@@ -74,7 +73,7 @@ BEGIN
 		FROM [dbo].[SalesOrderQuotePartV1] soqp WITH (NOLOCK)
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = soqp.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON soqp.ConditionId = c.ConditionId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON soqp.StatusId = st.Id

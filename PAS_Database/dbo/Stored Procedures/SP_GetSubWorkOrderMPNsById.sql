@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [SP_GetSubWorkOrderMPNsById]           
  ** Author: Rajesh Gami
@@ -12,10 +12,12 @@
  ** PR   Date          Author  		 Change Description            
  ** --   --------      -------		 ---------------------------     
     1    21 MAR 2025   Rajesh Gami     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXEC SP_GetSubWorkOrderMPNsById 246
  **************************************************************/
-CREATE     PROCEDURE [dbo].[SP_GetSubWorkOrderMPNsById] 
+CREATE PROCEDURE [dbo].[SP_GetSubWorkOrderMPNsById] 
 @SubWorkOrderId bigint =0
 AS
 BEGIN
@@ -87,14 +89,14 @@ BEGIN
 				JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 				JOIN dbo.Condition con WITH(NOLOCK) ON wop.ConditionId = con.ConditionId
 				LEFT JOIN dbo.Itemgroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN dbo.Site ssi WITH(NOLOCK) ON sl.SiteId = ssi.SiteId
 				LEFT JOIN dbo.Warehouse wh WITH(NOLOCK) ON sl.WarehouseId = wh.WarehouseId
 				LEFT JOIN dbo.Location lo WITH(NOLOCK) ON sl.LocationId = lo.LocationId
 				LEFT JOIN dbo.Shelf sh WITH(NOLOCK) ON sl.ShelfId = sh.ShelfId
 				LEFT JOIN dbo.Bin bi WITH(NOLOCK) ON sl.BinId = bi.BinId
 				LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON wop.TechnicianId = emp.EmployeeId
-				WHERE wop.SubWorkOrderId = @SubWorkOrderId;
+				WHERE wop.SubWorkOrderId = @SubWorkOrderId AND ISNULL(im.IsNonStock,0) = 0 ;
 		END
 		
 	END

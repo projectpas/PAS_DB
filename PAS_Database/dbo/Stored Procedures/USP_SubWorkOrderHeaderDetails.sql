@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_SubWorkOrderHeaderDetails]           
  ** Author:   Bhargav Saliya 
  ** Description: Get Data for SubWork Order Header Details    
@@ -17,8 +17,10 @@
  ** --   --------		 -------		--------------------------------          
     1    25-April-2025   Bhargav Saliya		Created
 	2    11-July-2025    Devendra Shekh     added PartNumberLabel
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SubWorkOrderHeaderDetails]
+CREATE PROCEDURE [dbo].[USP_SubWorkOrderHeaderDetails]
     @WorkOrderId INT,
     @WorkOrderPartNumberId INT
 AS
@@ -80,7 +82,8 @@ BEGIN
 		LEFT JOIN [dbo].[Currency] fcu WITH(NOLOCK) ON wo.FunctionalCurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		LEFT JOIN [dbo].[Currency] rcu WITH(NOLOCK) ON wo.ReportCurrencyId = rcu.CurrencyId AND rcu.IsActive = 1 AND rcu.IsDeleted = 0
 		WHERE wo.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartNumberId
-	END TRY
+	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+		 END TRY
 	BEGIN CATCH  
    
     DECLARE @ErrorLogID int,  

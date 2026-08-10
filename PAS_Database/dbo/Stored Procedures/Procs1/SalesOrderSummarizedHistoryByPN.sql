@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SalesOrderSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SO Summarized History By PN.    
@@ -20,7 +20,8 @@
 	4    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	5    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
 	6    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter is no longer needed)
 --  EXEC [SalesOrderSummarizedHistoryByPN] 115640,1
 **************************************************************/
 CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
@@ -64,7 +65,7 @@ BEGIN
 						LEFT JOIN dbo.SalesOrderCharges Charges WITH (NOLOCK) ON Charges.SalesOrderId = SO.SalesOrderId AND Charges.ItemMasterId = SOP.ItemMasterId
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = SO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
-					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month)
+					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month )
 
 					SELECT PartNumber,PartDescription,ItemMasterId, Condition, CurrencyName, SUM(Revenue) AS Revenue,(SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) AS AvgRevenue,
 					--SUM(DirectCost) AS DirectCost,

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrint]
  ** Author: unknown
  ** Description:
@@ -11,10 +11,13 @@
  ** PR   Date          Author		Change Description            
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
-	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-	3	10/15/2024		VISHAL SUTHAR	Modified to make use of new SO part tables
-	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
-	5   24-06-2026      Bhargav Saliya  UOM Changes [PN-16967]
+	1	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	2	10/15/2024		VISHAL SUTHAR	Modified to make use of new SO part tables
+	3   07-07-2025      Moin Bloch      Changed Old To New Billing Table
+	4   24-06-2026      Bhargav Saliya  UOM Changes [PN-16967]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
 	@SalesOrderId bigint,

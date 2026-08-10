@@ -12,6 +12,7 @@
 ** PR   Date			Author			Change Description
 ** --   --------		-------			--------------------------------
    1   19-JUN-2025    AYUSHI PATEL	    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
    exec USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID 214,57,'247,251',null,1001145
 ***************************************************************/
@@ -99,7 +100,7 @@ BEGIN
                 AND (
                     NOT EXISTS (SELECT 1 FROM #DashNumber) OR imap.DashNumberId IN (SELECT Id FROM #DashNumber)
                 )
-        )
+         AND ISNULL(im.IsNonStock,0) = 0 )
         SELECT
             ItemMasterId,
             AssetId,

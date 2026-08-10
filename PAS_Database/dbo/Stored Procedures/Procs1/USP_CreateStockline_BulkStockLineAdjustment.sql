@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_CreateStockline_BulkStockLineAdjustment]            
  ** Author:   AMIT GHEDIYA  
  ** Description: This stored procedure is used to Crate stocklines for BulkStockLineAdjustment
@@ -21,6 +20,8 @@
     4    09/24/2024   RAJESH GAMI    	Added BulkAdjustment Reference number while create new stockline.
     5    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
 	6    12/11/2025   SAHDEV SALIYA     Modified - Fixed the unit of measure error when creating a new stock line.
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
@@ -53,7 +54,7 @@ BEGIN
 
 			SELECT @ItemMasterId_Part = ItemMasterId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
-			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
+			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part ;
 
 			IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN

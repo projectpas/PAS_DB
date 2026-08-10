@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteApprovalListNew]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuoteApprovalListNew
@@ -14,9 +14,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/03/2025   Ekta Chandegra     Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock parts show full details in the Exchange SOQ approval list.
   EXEC USP_GetExchangeQuoteApprovalListNew @ExchangeQuoteId = 113, @InternalApprove = 1, @EmployeeId = 237
-
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteApprovalListNew]

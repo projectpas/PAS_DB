@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetNonStockPNManufacturerCombinationCreated]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to get CurrentStlNo
@@ -16,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/02/2022  Moin Bloch     Created
+    2    24/July/2026  RAJESH GAMI    [PN-17350] - Converted legacy dbo.NonStockInventory/dbo.ItemMasterNonStock references to dbo.Stockline/dbo.ItemMaster with ISNULL(IsNonStock,0)=1
      
 -- EXEC [GetNonStockPNManufacturerCombinationCreated] 179
 ************************************************************************/
@@ -26,28 +25,39 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY 
-		;WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId) AS
+		;WITH CTE_NonStockLine (ItemMasterId, ManufacturerId, StockLineId) AS
 		(
-			SELECT ItemMasterId = ac.MasterPartId, 
-				   ac.ManufacturerId, 
-				MAX(ac.NonStockInventoryId) StockLineId
-			FROM (SELECT DISTINCT MasterPartId FROM DBO.NonStockInventory WITH (NOLOCK)) ac1 CROSS JOIN
-				(SELECT DISTINCT ManufacturerId FROM DBO.NonStockInventory WITH (NOLOCK)) ac2 LEFT JOIN
-				DBO.NonStockInventory ac WITH (NOLOCK)
-				ON ac.MasterPartId = ac1.MasterPartId AND ac.ManufacturerId = ac2.ManufacturerId
-			WHERE ac.MasterCompanyId = @MasterCompanyId
-			GROUP BY ac.MasterPartId, ac.ManufacturerId
-			HAVING COUNT(ac.MasterPartId) > 0
+            -- Step 1: Stage only the relevant non-stock rows for this company
+            SELECT  ItemMasterId,
+                    ManufacturerId,
+                    StockLineId
+            FROM    dbo.Stockline WITH (NOLOCK)
+            WHERE   ISNULL(IsNonStock, 0) = 1
+              AND   MasterCompanyId = @MasterCompanyId
+        ),
+        CTE_Stockline AS
+        (
+            -- Step 2: Latest StockLineId per ItemMaster / Manufacturer combination
+            SELECT  ItemMasterId,
+                    ManufacturerId,
+                    MAX(StockLineId) AS StockLineId
+            FROM    CTE_NonStockLine
+            GROUP BY ItemMasterId, ManufacturerId
 		)
 
 		SELECT CSTL.ItemMasterId, 
 				CSTL.ManufacturerId, 
-				StockLineNumber = STL.NonStockInventoryNumber, 
+                StockLineNumber = STL.StockLineNumber,
 				ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo, 
 				IM.isSerialized
-		FROM CTE_Stockline CSTL INNER JOIN DBO.NonStockInventory STL WITH (NOLOCK) 
-		INNER JOIN DBO.ItemMasterNonStock IM ON STL.MasterPartId = IM.MasterPartId AND STL.ManufacturerId = IM.ManufacturerId
-		ON CSTL.StockLineId = STL.NonStockInventoryId
+        FROM    CTE_Stockline CSTL
+                INNER JOIN dbo.Stockline STL WITH (NOLOCK)
+                    ON  STL.StockLineId = CSTL.StockLineId
+                    AND ISNULL(STL.IsNonStock, 0) = 1
+                INNER JOIN dbo.ItemMaster IM WITH (NOLOCK)
+                    ON  IM.ItemMasterId   = STL.ItemMasterId
+                    AND IM.ManufacturerId = STL.ManufacturerId
+                    AND ISNULL(IM.IsNonStock, 0) = 1;
 
 	END TRY
 	BEGIN CATCH

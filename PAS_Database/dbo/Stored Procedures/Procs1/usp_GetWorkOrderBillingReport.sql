@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderBillingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderBillingReport
@@ -12,13 +12,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  		Change Description            
- ** --   --------     -------			--------------------------------          
     1					Swetha			Created
 	2	        		Swetha			Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant			Updated Managment Structure Details and Date filter Condition
 	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
-     
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date         Author  		Change Description            
+ ** --   --------     -------			--------------------------------          
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetWorkOrderBillingReport] @name varchar(40) = NULL,
@@ -136,6 +136,7 @@ BEGIN
           ON WOBI.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOBI.ItemMasterId = IM.ItemMasterId
+         AND ISNULL(IM.IsNonStock,0) = 0
         LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WO.WorkOrderId = WOS.WorkOrderId
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK)

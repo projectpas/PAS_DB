@@ -14,6 +14,9 @@
  ** PR   Date           Author		    Change Description            
  ** --   --------       -------		    --------------------------------          
     1    12-Aug-2024    Rajesh Gami  Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/v.IsNonStock,0) = 0"
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 more leftover soft IsNonStock=0 exclusion (rPart alias) missed by the earlier PN-17009 bugfix pass.
      
 	 EXEC [dbo].[GetStocklineAuditById] 178385
 **************************************************************/ 
@@ -201,7 +204,7 @@ BEGIN
 				 INNER JOIN ItemMasterIntegrationPortal mp ON v.ItemMasterId = mp.ItemMasterId
 				 INNER JOIN IntegrationPortal inte ON mp.IntegrationPortalId = inte.IntegrationPortalId
 				 WHERE v.MasterCompanyId = @masteCompnayID AND v.ItemMasterId = im.ItemMasterId
-				 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '') AS integrationPortal,
+				 FOR XML PATH(''), TYPE ).value('.', 'NVARCHAR(MAX)'), 1, 1, '') AS integrationPortal,
 			rPart.PartNumber AS RevisedPart,
 			im.RevisedPartId,
 			stl.WorkOrderNumber,

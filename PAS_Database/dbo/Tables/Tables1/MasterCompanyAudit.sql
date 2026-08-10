@@ -30,6 +30,7 @@
     [TokenUserName]            VARCHAR (100)  NULL,
     [TokenPassword]            VARCHAR (100)  NULL,
     [IsXeroAccountingEnabled]  BIT            NULL,
+    [DBName]                   VARCHAR (255)  NULL,
     CONSTRAINT [PK_MasterCompanyAudit] PRIMARY KEY CLUSTERED ([MasterCompanyAuditId] ASC)
 );
 

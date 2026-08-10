@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetCustomerPOFulfillingReport]             
  ** Author:   Amit Ghediya   
  ** Description: Get Data for Customer PO Fulfilling Report   
@@ -17,8 +17,10 @@
     1    26-Sep-2025	  Amit Ghediya	   Created 
     2    11-06-2026       Ayushi Patel     [PN-16811] UOM CHNAGES
 	3	 17-06-2026		  Ayushi Patel	   Revert The UOM Changes
-	4	 15-07-2026		  Abhishek Jirawla Adding IsPiecePart condition in RepairOrderPart table
-
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6	 15-07-2026		  Abhishek Jirawla Adding IsPiecePart condition in RepairOrderPart table
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 EXECUTE   [dbo].[usprpt_GetCustomerPOFulfillingReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   

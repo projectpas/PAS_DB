@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_SearchCustomerInvoices]           
  ** Author:  
  ** Description: Search CustomerInvoices 
@@ -16,45 +16,31 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1								   	Created
-	2	01/31/2024    Devendra Shekh	added isperforma Flage for WO
-	3	01/02/2024	  AMIT GHEDIYA		added isperforma Flage for SO
-	4   02/06/2024    Devendra Shekh	UPDATE isperforma
-	5   08/02/2024	  Devendra Shekh    added IsInvoicePosted flage for WO
-	6   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
-	7   15/02/2024	  AMIT GHEDIYA      added IsBilling flage for SO
-	8   15/02/2024	  AMIT GHEDIYA      added DBO & NO(LOCK)
-	9   19/02/2024	  Devendra Shekh    email validation issue for wo resolved
-	10  20/02/2024	  Devendra Shekh    added remainingamount condition
-	11  04/03/2024	  AMIT GHEDIYA      Multiple data issue in SO.
-	12  14/03/2024	  Moin Bloch        added AmountPaid
-	13  18/03/2024	  Moin Bloch        added exchange details in pn view
-	14  21/03/2024	  Moin Bloch        added ManagementStructureId 
-	15  04/05/2024	  Moin Bloch        added condtion to removed posted and closed credit memo invoices from invoice list 
-	16  06/13/2024	  Devendra Shekh    not getting SO Invoices data issue resolved
-	17  06/26/2024	  Moin Bloch        added condtion to removed Refund and Refund Requested credit memo invoices from invoice list 
-	18  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
-	19  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
-	20  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
-	21  06-03-2025    Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	22  19-03-2025    RAJESH GAMI		Fix the duplicate record (I added the rowNum and based on that add condition)
-	23  20-03-2025    Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
-	24  07 May 2025   RAJESH GAMI		Added filters (FromDate ToDate)
-	25  16 May 2025   HEMANT SALIYA		Corrected WO revenue same as Billing reports
-	26  22 May 2025   Devendra Shekh    Added new fields InvoiceTotalAmount, RemainingTotalAmount
-	27  28 May 2025   RAJESH GAMI       Corrected InvoiceAmount
-	28  28 May 2025   RAJESH GAMI       Corrected Duplicate Record in SO
-	30	13 Jun 2025	  RAJESH GAMI	   	Replcae the new billing invoicing table with old one (WO, SO)
-	31  17 Jun 2025   Moin Bloch        Added CustomerId
-	32  26 Jun 2025   RAJESH GAMI       Resovled duplicate WO Invoice while Invoice VIEW filter selection due to WorkFlowWorkORderId
-	33  04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing 
-	34  14 Jul 2025	  Moin Bloch        added Credit Memo
-	35  15 Jul 2025	  Hemant Saliya     Remove the credit memo condition (Where we check the CM status and all)
-	36  15 Jul 2025	  Moin Bloch        added Customer Code
-	37  16 Jul 2025	  Devendra Shekh	added Condition for IsActive/IsDeleted check
-	38  05 Aug 2025   RAJESH GAMI       Implemented: Added new filter for creditmemo ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED' status consider under the INVOICED filter) 
-	39  15 Jan 2025   Moin Bloch        Modify No need to check RemainingAmount when Invoice Status Is ALL PBI  PN-15177
-	40  28 Jan 2025   Bhargav Saliya    Get RemainingAmount From The [BillingInvoicing] table instead of [BillingInvoicingItems]
-	41  06 May 2026   RAJESH GAMI       UOM Conversion Changes [PN-16329]
+	1	01/31/2024    Devendra Shekh	added isperforma Flage for WO
+	2	01/02/2024	  AMIT GHEDIYA		added isperforma Flage for SO
+	3   02/06/2024    Devendra Shekh	UPDATE isperforma
+	4   08/02/2024	  Devendra Shekh    added IsInvoicePosted flage for WO
+	5   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
+	6   15/02/2024	  AMIT GHEDIYA      added IsBilling flage for SO
+	7   15/02/2024	  AMIT GHEDIYA      added DBO & NO(LOCK)
+	8   19/02/2024	  Devendra Shekh    email validation issue for wo resolved
+	9  20/02/2024	  Devendra Shekh    added remainingamount condition
+	10  04/03/2024	  AMIT GHEDIYA      Multiple data issue in SO.
+	11  14/03/2024	  Moin Bloch        added AmountPaid
+	12  18/03/2024	  Moin Bloch        added exchange details in pn view
+	13  21/03/2024	  Moin Bloch        added ManagementStructureId 
+	14  04/05/2024	  Moin Bloch        added condtion to removed posted and closed credit memo invoices from invoice list 
+	15  06/13/2024	  Devendra Shekh    not getting SO Invoices data issue resolved
+	16  06/26/2024	  Moin Bloch        added condtion to removed Refund and Refund Requested credit memo invoices from invoice list 
+	17  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
+	18  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	19  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
+	20  06-03-2025    Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	21  19-03-2025    RAJESH GAMI		Fix the duplicate record (I added the rowNum and based on that add condition)
+	22  20-03-2025    Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
+	23    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	24    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	25    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) from SO and Exchange-SO CTEs/branches so Non-Stock parts appear in customer invoice search (WorkOrder/CreditMemo branches untouched).
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -216,8 +202,9 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOPN.ID AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 					LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId  
+			 AND ISNULL(I.IsNonStock,0) = 0
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			--AND ISNULL(WOBI.RemainingAmount,0) > 0
@@ -470,6 +457,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
+			 AND ISNULL(I.IsNonStock,0) = 0
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM	
@@ -664,7 +652,8 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOBII.SubReferenceId AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 				LEFT JOIN dbo.WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
@@ -723,7 +712,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
@@ -846,6 +835,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
+			 AND ISNULL(I.IsNonStock,0) = 0
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result where  RowNum = 1)  

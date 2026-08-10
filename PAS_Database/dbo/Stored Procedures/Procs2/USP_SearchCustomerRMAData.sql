@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [USP_SearchCustomerRMAData]             
  ** Author:   Subhash Saliya  
@@ -18,8 +18,7 @@
 	5	 09/07/2024	  AMIT GHEDIYA		Update for uppercase response.
 	6    24-Mar-2025  Divyesh Kathiriya	Update CreditMemoDate based on Employee time zone
 	7    02-Apr-2026  Priyansh Patel	UOM Conversion Changes [PN-15882]
-
-
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SearchCustomerRMAData]
@@ -178,6 +177,7 @@ BEGIN
         ON CM.RMAHeaderId = CRH.RMAHeaderId
       LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)
         ON CRD.ItemMasterId = IM.ItemMasterId
+       AND ISNULL(IM.IsNonStock,0) = 0
       WHERE ((CRH.MasterCompanyId = @MasterCompanyId)
       AND (CRH.IsDeleted = @IsDeleted)
       AND (@StatusID = 0
@@ -483,6 +483,7 @@ BEGIN
           END + I.partnumber
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
+         AND ISNULL(I.IsNonStock,0) = 0
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') PartNumber) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId AND ISNULL(CRH.IsDeleted, 0) = 0
@@ -500,6 +501,7 @@ BEGIN
           END + I.PartDescription
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
+         AND ISNULL(I.IsNonStock,0) = 0
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') PartDescription) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId
@@ -521,6 +523,7 @@ BEGIN
           END + I.ManufacturerName
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
+         AND ISNULL(I.IsNonStock,0) = 0
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0 
 		FOR xml PATH ('')), 1, 1, '') ManufacturerName) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId

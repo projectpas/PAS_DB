@@ -18,9 +18,10 @@
 	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 	4	 02/14/2025   BHARGAV SALIYA	UTC Date Changes
-	5	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
-	6    03/07/2025   Moin Bloch        Changed Old To New Billing Table
-	7    09/04/2026   RAJESH GAMI       UOM Changes [PN-15738]
+	5    03/07/2025   Moin Bloch        Changed Old To New Billing Table
+	6	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/04/2026   RAJESH GAMI       UOM Changes [PN-15738]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChange]
 	@WorkorderId bigint,
@@ -203,6 +204,7 @@ BEGIN
 		FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 			LEFT JOIN dbo.WorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 			LEFT JOIN ItemMaster IM ON IM.ItemMasterId = wosd.RevisedPartId
+		 AND ISNULL(IM.IsNonStock,0) = 0
 		WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
 		END
 	COMMIT  TRANSACTION

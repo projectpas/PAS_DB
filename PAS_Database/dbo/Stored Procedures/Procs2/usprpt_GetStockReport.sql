@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetNonStockReport]
  ** Author:   
  ** Description: Get Data for Stock Report
@@ -9,15 +9,18 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
+    1    
+    1    22-JUNE-2023     Devendra Shekh    made changes for total unitcost and extcost
+	2    22-JULY-2025     Moin Bloch        added Some New Fields
+	3    23-JULY-2025     Moin Bloch        modified Currency
+	4    06-Aug-2025      Sahdev Saliya     Added New Fields(TagType,TaggedBy,TagDate)
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster/Stockline IsNonStock=0 filters (4) to allow Non-Stock items in Stock Report
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    
-    2    22-JUNE-2023     Devendra Shekh    made changes for total unitcost and extcost
-	3    22-JULY-2025     Moin Bloch        added Some New Fields
-	4    23-JULY-2025     Moin Bloch        modified Currency
-	5    06-Aug-2025      Sahdev Saliya     Added New Fields(TagType,TaggedBy,TagDate)
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetStockReport]     
+CREATE PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
 @PageSize int = NULL,    
 @mastercompanyid int,    
@@ -110,8 +113,7 @@ BEGIN TRY
     FROM [dbo].[Stockline] stl WITH (NOLOCK)    
    INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
     LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
-   LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId   
-   LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
+   LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
    LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
    LEFT OUTER JOIN [dbo].PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
    LEFT OUTER JOIN [dbo].PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
@@ -221,8 +223,7 @@ BEGIN TRY
       FROM [dbo].[Stockline] stl WITH (NOLOCK)    
      INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
 	  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
-	 LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId  
-	 LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
+	 LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
 	 LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
 	 LEFT OUTER JOIN [dbo].[PurchaseOrder] pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
 	 LEFT OUTER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    

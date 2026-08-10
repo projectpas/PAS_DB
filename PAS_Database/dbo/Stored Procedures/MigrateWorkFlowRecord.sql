@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [MigrateWorkFlowRecord]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Work Flow (Templates) Records
@@ -15,8 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    06/03/2025   Vishal Suthar		Created
-  
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 declare @p5 int
 set @p5=NULL
 declare @p6 int
@@ -90,7 +89,7 @@ BEGIN
 				SELECT @PartId = TRIM(PartId), @CustomerCode = [CustomerName], @Parnum = Parnum FROM #TempDistinctParts WHERE ID = @LoopID;
 				SELECT @CustomerId = C.CustomerId, @CustomerName = C.[Name] FROM DBO.Customer C WITH (NOLOCK) WHERE UPPER(C.Name) = UPPER(@CustomerCode) AND MasterCompanyId = @FromMasterComanyID;
 
-				IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.Workflow WF WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WF.ItemMasterId = IM.ItemMasterId WHERE UPPER(IM.partnumber) = UPPER(@PartId) AND CustomerId = @CustomerId AND WF.MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.Workflow WF WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WF.ItemMasterId = IM.ItemMasterId WHERE UPPER(IM.partnumber) = UPPER(@PartId) AND CustomerId = @CustomerId AND WF.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 )
 				BEGIN
 					DECLARE @InsertedWorkflowId BIGINT = 0;
 					DECLARE @WorkScopeId BIGINT = 0;
@@ -102,7 +101,7 @@ BEGIN
 
 					SELECT @WorkScopeId = WS.WorkScopeId FROM DBO.WorkScope WS WITH (NOLOCK) WHERE WorkScopeCode = 'OVERHAUL' AND MasterCompanyId = @FromMasterComanyID;
 					SELECT @CurrencyId = Curr.CurrencyId FROM DBO.Currency Curr WITH (NOLOCK) WHERE Curr.Code = 'USD' AND MasterCompanyId = @FromMasterComanyID;
-					SELECT @ItemMasterId = IM.ItemMasterId FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@PartId) AND MasterCompanyId = @FromMasterComanyID;
+					SELECT @ItemMasterId = IM.ItemMasterId FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@PartId) AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 					SELECT @CustomerId = C.CustomerId, @CustomerName = C.[Name] FROM DBO.Customer C WITH (NOLOCK) WHERE UPPER(C.Name) = UPPER(@CustomerCode) AND MasterCompanyId = @FromMasterComanyID;
 
 					DECLARE @CurrentNummber BIGINT;
@@ -163,7 +162,7 @@ BEGIN
 						DECLARE @DefaultSiteId BIGINT;
 						SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('NEO-NEOSOURCE INC.') AND MasterCompanyId = @FromMasterComanyID;
 
-						IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE TRIM([partnumber]) = TRIM(@PartId) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
+						IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE TRIM([partnumber]) = TRIM(@PartId) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 						BEGIN
 							INSERT INTO [MasterParts]
 							([PartNumber], [Description], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [ManufacturerId], [PartType])
@@ -208,7 +207,7 @@ BEGIN
 						END
 						ELSE
 						BEGIN
-							SELECT @ItemMasterId = ItemMasterId FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER(TRIM([partnumber])) = UPPER(TRIM(@PartId)) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID;
+							SELECT @ItemMasterId = ItemMasterId FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER(TRIM([partnumber])) = UPPER(TRIM(@PartId)) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 						END
 					END
 

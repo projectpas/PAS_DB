@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSOBacklogReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SOBacklog Report  
@@ -12,12 +12,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author			Change Description            
- ** --   --------		-------			--------------------------------          
     1					Swetha			Created
     2					Swetha			Added Transaction & NO LOCK
-	3	11/05/2024		Vishal Suthar	Modified to make use of new SOQ-SO new tables
-
+	1	11/05/2024		Vishal Suthar	Modified to make use of new SOQ-SO new tables
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+ ** S NO   Date         Author			Change Description            
+ ** --   --------		-------			--------------------------------          
 EXECUTE   [dbo].[usp_GetSOBacklogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 CREATE      PROCEDURE [dbo].[usp_GetSOBacklogReport] @Customername varchar(40) = NULL,

@@ -9,6 +9,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------		--------------------------------          
 	1    12/16/2024   BHARGAV SALIA	     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 exclusion(s) left over from the PN-17008/17009 transitional phase; Non-Stock parts were showing blank details (or being entirely excluded) when printing a Sales Order Quote/Sales Order.
 **************************************************************/ 
 CREATE   PROCEDURE [USP_GetSalesOrderQuotePrintData]
     @SalesOrderId INT

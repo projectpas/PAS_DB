@@ -18,6 +18,7 @@
     1    18/10/2024   AMIT GHEDIYA		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
+	4   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
      
 --EXEC [AutoCompleteDropdownsSalesorderItemMaster] '5',20,'',1110
 **************************************************************/
@@ -60,7 +61,7 @@ AS
 				AND SOP.SalesOrderId = @SalesOrderId 
           AND (
                 IM.PartNumber LIKE @StartWith + '%'
-             OR IM.PartNumber LIKE '%' + @StartWith + '%'
+             OR IM.PartNumber LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'
           )
         ORDER BY Label;
 

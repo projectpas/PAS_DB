@@ -23,6 +23,7 @@
     3    08/07/2026   Rajesh Gami		Replaced DepositAmount check with real Payment guard (InvoicePayments),
 										added PAS accounting reversal (USP_ReverseSOInvoiceAccountingEntry),
 										added Sales Order status revert (Closed -> Open)
+    4    08/10/2026   Rajesh Gami		Sales Order status revert now also applies when SO status is Invoiced (not just Closed)
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
@@ -81,7 +82,7 @@ BEGIN
 			  AND ISNULL([PaymentAmount],0) > 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice cannot be Re-Opened because a payment has been received against it. Please resolve the payment before re-opening the invoice.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can’t be Re-Opened because a payment has been received against it.' AS Message
 			RETURN
 		END
 
@@ -117,15 +118,16 @@ BEGIN
 			EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = @BillingInvoicingId, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy
 		END
 
-		-- Sales Order status update: if the Sales Order was Closed, revert it back to Open
-		DECLARE @ClosedStatusId INT, @OpenStatusId INT
+		-- Sales Order status update: if the Sales Order was Closed or Invoiced, revert it back to Open
+		DECLARE @ClosedStatusId INT, @OpenStatusId INT, @InvoicedStatusId INT
 		SELECT @ClosedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] = 'Closed'
 		SELECT @OpenStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] = 'Open'
+		SELECT @InvoicedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] = 'Invoiced'
 
-		IF EXISTS (SELECT 1 FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId AND [StatusId] = @ClosedStatusId)
+		IF EXISTS (SELECT 1 FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId AND [StatusId] IN (@ClosedStatusId,@InvoicedStatusId))
 		BEGIN
 			UPDATE [dbo].[SalesOrder]
-			SET		[StatusId] = @OpenStatusId,
+			SET		[StatusId] = @InvoicedStatusId,
 					[StatusChangeDate] = GETUTCDATE(),
 					[UpdatedDate] = GETUTCDATE(),
 					[UpdatedBy] = @UpdatedBy

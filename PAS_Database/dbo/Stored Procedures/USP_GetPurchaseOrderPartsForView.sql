@@ -20,9 +20,9 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     6	 02/07/2026	  Priyansh Patel	Set max quantity threshold to 0 (was 500) for StocklineDraft entries Changes [PN-16893]
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-    8	 04/08/2026	  Bhargav Saliya	No need to get the WO settlement stock line. So i added ISNULL(SL.IsFinishGood, 0) = 0 case  [PN-17319]
-	9    20/July/2026			 RAJESH GAMI						[PN-17350] - Cleanup: removed dead duplicate legacy-table UNION branch and redirected remaining legacy-table joins to the unified ItemMaster/Stockline tables (IsNonStock flag)
-	10    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock MS lookup (Opr=3, MD join) repointed from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; reused the already-dynamic @StocklineMSID ('Stockline' module) instead of the separate hardcoded-lookup @NonStocklineMSID ('NonStockStockline' module), which was removed as dead code
+	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Cleanup: removed dead duplicate legacy-table UNION branch and redirected remaining legacy-table joins to the unified ItemMaster/Stockline tables (IsNonStock flag)
+	9    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock MS lookup (Opr=3, MD join) repointed from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; reused the already-dynamic @StocklineMSID ('Stockline' module) instead of the separate hardcoded-lookup @NonStocklineMSID ('NonStockStockline' module), which was removed as dead code
+    10	 04/08/2026	  Bhargav Saliya	No need to get the WO settlement stock line. So i added ISNULL(SL.IsFinishGood, 0) = 0 case  [PN-17319]
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -274,7 +274,7 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0 AND ISNULL(SL.IsFinishGood, 0) = 0
 		
 		END
 		IF(@Opr=3)

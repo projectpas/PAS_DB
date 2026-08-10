@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetItemMasterDetailById]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Item Master detail by Id
@@ -213,7 +214,14 @@ BEGIN
 						ISNULL(iM.ListPrice,0) ListPrice,
 						iM.PriceDate,
 						ISNULL(iM.InWarranty,0) InWarranty,
-						ISNULL(iM.IsService, 0) AS IsService
+						ISNULL(iM.IsService, 0) AS IsService,
+						iM.Model,
+						@isStocklineCreated as  IsStocklineCreated,
+						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
+						iM.MfgExpirationDate,
+						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
+						ISNULL(iM.IsService,0) IsService,
+						iM.IsKitAssy
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

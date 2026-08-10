@@ -13,39 +13,40 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
- ** PR   Date         Author			Change Description                
- ** --   --------     -------			--------------------------------              
-	1    23/05/2023   Hemant Saliya		Created    
-	2    30/05/2023   Amit Ghediya		Alternate part selected with main part.    
-	3    31/05/2023   Amit Ghediya		Filter with ALT part.    
-	4    02/06/2023   Amit Ghediya		Resolved ALT part stk mismatch.    
-	5    12/06/2023   Devendra Shekh	Added work order num filter  
-	6    13/06/2023   Devendra Shekh	Added new field 'isTimeLife' for list
-	7    06/07/2023   Vishal Suthar		Added new field 'lotNumber' for list
-	8    23/08/2023   Amit Ghediya		Updated filter list as per ManagementStructureId
-	9    16/10/2023   Devendra Shekh	timelife issue resolved
-	10   02/02/2024	  Bhargav Saliya    Filter with 'CustomerName'.
-	11   18/04/2024	  Moin Bloch        Added new field 'IsTurnIn' for list
-	12   17/07/2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	13   22/07/2024   Vishal Suthar     Commented above change as for the performance issue
-	14   22/07/2024   Rajesh Gami       Optimized for Performance Issue
-	15   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
-	16   21/01/2025   Abhishek Jirawala Stockline listing SP optimisation
-	17   12/02/2025   Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
-	18   08/04/2025   Amit Ghediya		Added new field 'PoNumber,RoNumber & ReceiverNumber' for list
-	19   09/04/2025   Devendra Shekh	Added new field 'QuantityAdjustment, IsDocument' for list
-	20   13/05/2025   Hemant Saliya		Remove 'PoNumber, RoNumber, IsDocument join to Improve Performance.
-	21   16/05/2025   Devendra Shekh    reading RepairOrderNumber, PurchaseOrderNumber, IsDocument from StockLine Table
-	22   22/05/2025   Abhishek Jirawala Added new field Repair Management for list
-	23   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
-	24   02/12/2025   Bhargav Saliya	Added Unit Cost
-	25   01/20/2026   Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
-	26   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
-	27   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
-	28    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	29    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Added @IsNonStock filter (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column, no new joins added
-	30    08/July/2026			 RAJESH GAMI						[PN-17009] - Added computed 'Type' column (Stock/Non-Stock text) for the FieldMaster-driven grid column
-	31    08/July/2026			 RAJESH GAMI						[PN-17009] - Renamed computed column 'Type' to 'ItemType'; Added @ItemType filter param + GlobalFilter/specific-filter support so searching 'Stock'/'Non-Stock' matches by IsNonStock flag
+ ** PR   Date			Author				Change Description                
+ ** --   --------		-------				--------------------------------              
+	1    23/05/2023		Hemant Saliya		Created    
+	2    30/05/2023		Amit Ghediya		Alternate part selected with main part.    
+	3    31/05/2023		Amit Ghediya		Filter with ALT part.    
+	4    02/06/2023		Amit Ghediya		Resolved ALT part stk mismatch.    
+	5    12/06/2023		Devendra Shekh		Added work order num filter  
+	6    13/06/2023		Devendra Shekh		Added new field 'isTimeLife' for list
+	7    06/07/2023		Vishal Suthar		Added new field 'lotNumber' for list
+	8    23/08/2023		Amit Ghediya		Updated filter list as per ManagementStructureId
+	9    16/10/2023		Devendra Shekh		timelife issue resolved
+	10   02/02/2024		Bhargav Saliya		Filter with 'CustomerName'.
+	11   18/04/2024		Moin Bloch			Added new field 'IsTurnIn' for list
+	12   17/07/2024		Shrey Chandegara	Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	13   22/07/2024		Vishal Suthar		Commented above change as for the performance issue
+	14   22/07/2024		Rajesh Gami			Optimized for Performance Issue
+	15   25/07/2024		Rajesh Gami			Remove inner query for the get WorkOrderStage due to performance issue
+	16   21/01/2025		Abhishek Jirawala	Stockline listing SP optimisation
+	17   12/02/2025		Ayushi Patel		converted the date into utc (updated) , Added a case to get timeZone
+	18   08/04/2025		Amit Ghediya		Added new field 'PoNumber,RoNumber & ReceiverNumber' for list
+	19   09/04/2025		Devendra Shekh		Added new field 'QuantityAdjustment, IsDocument' for list
+	20   13/05/2025		Hemant Saliya		Remove 'PoNumber, RoNumber, IsDocument join to Improve Performance.
+	21   16/05/2025		Devendra Shekh		reading RepairOrderNumber, PurchaseOrderNumber, IsDocument from StockLine Table
+	22   22/05/2025		Abhishek Jirawala	Added new field Repair Management for list
+	23   16/07/2025		Moin Bloch			Added IsBatchStock And Batch Number
+	24   02/12/2025		Bhargav Saliya		Added Unit Cost
+	25   01/20/2026		Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
+	26   26/01/2026		Divyesh Kathiriya	Added new field 'GLAccount' for list
+	27   21/04/2026		Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
+	28    01/July/2026	RAJESH GAMI			[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	29    07/July/2026	RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory into Stockline : Added @IsNonStock filter (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column, no new joins added
+	30    08/July/2026	RAJESH GAMI			[PN-17009] - Added computed 'Type' column (Stock/Non-Stock text) for the FieldMaster-driven grid column
+	31    08/July/2026	RAJESH GAMI			[PN-17009] - Renamed computed column 'Type' to 'ItemType'; Added @ItemType filter param + GlobalFilter/specific-filter support so searching 'Stock'/'Non-Stock' matches by IsNonStock flag
+	32    07/Aug/2026	Vishal Suthar		Added filter for Warehouse
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -126,7 +127,8 @@ CREATE         PROCEDURE [dbo].[ProcStockList]
 	@BatchNumber varchar(50)=NULL,
 	@UnitCost varchar(50)=NULL,
 	@GLAccount varchar(255) = NULL,
-	@PNSource varchar(20) = NULL
+	@PNSource varchar(20) = NULL,
+	@WareHouse varchar(100) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -268,6 +270,8 @@ BEGIN
 	    stl.LocationId,
 	    Stl.Site,
 	    Stl.SiteId,
+		stl.WareHouse,      
+	    stl.WareHouseId,
 	    Stl.LotNumber,
 	    Stl.CustomerName 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
@@ -372,6 +376,7 @@ BEGIN
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND    
+		  (ISNULL(@WareHouse,'') ='' OR WareHouse LIKE '%' + @WareHouse + '%') AND    
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and   
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
@@ -487,6 +492,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,    
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='WareHouse')  THEN WareHouse END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='WareHouse')  THEN WareHouse END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
@@ -576,7 +583,9 @@ BEGIN
 		stl.WorkOrderId,        
 		stl.WorkOrderNumber,      
 		stl.Location,    
-		stl.LocationId,   
+		stl.LocationId,
+		stl.WareHouse,
+		stl.WareHouseId,
 		stl.LotNumber,
 		Stl.Site,
 		Stl.SiteId,
@@ -688,6 +697,7 @@ BEGIN
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
+		(ISNULL(@WareHouse,'') ='' OR WareHouse LIKE '%' + @WareHouse + '%') AND        
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -804,6 +814,8 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='WareHouse')  THEN WareHouse END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='WareHouse')  THEN WareHouse END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
@@ -897,6 +909,8 @@ BEGIN
 		stl.WorkOrderNumber,        
 	   stl.Location,      
 	   stl.LocationId,
+	   stl.WareHouse,
+	   stl.WareHouseId,
 	   stl.LotNumber,
 	    Stl.Site,
 	   Stl.SiteId,
@@ -1005,6 +1019,7 @@ BEGIN
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND   
+		  (ISNULL(@WareHouse,'') ='' OR WareHouse LIKE '%' + @WareHouse + '%') AND   
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
@@ -1121,6 +1136,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,    
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='WareHouse')  THEN WareHouse END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='WareHouse')  THEN WareHouse END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
@@ -1209,6 +1226,8 @@ BEGIN
 		stl.WorkOrderNumber,      
 		stl.Location,    
 		stl.LocationId,    
+		stl.WareHouse,
+		stl.WareHouseId,    
 		stl.LotNumber,
 		Stl.Site,
 		Stl.SiteId,
@@ -1320,6 +1339,7 @@ BEGIN
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND  
+		(ISNULL(@WareHouse,'') ='' OR WareHouse LIKE '%' + @WareHouse + '%') AND  
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -1437,6 +1457,8 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='WareHouse')  THEN WareHouse END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='WareHouse')  THEN WareHouse END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
@@ -1533,6 +1555,7 @@ BEGIN
 				,'@Parameter51 = ', ISNULL(CAST(@IsCStock AS VARCHAR(200)), '')
 				,'@Parameter52 = ', ISNULL(CAST(@Site AS VARCHAR(200)), '')
 				,'@Parameter53 = ', ISNULL(CAST(@Location AS VARCHAR(200)), '')
+				,'@Parameter53 = ', ISNULL(CAST(@WareHouse AS VARCHAR(200)), '')
 				,'@Parameter54 = ', ISNULL(CAST(@IsALTStock AS VARCHAR(200)), '')
 				,'@Parameter55 = ', ISNULL(CAST(@WorkOrderNumber AS VARCHAR(200)), '')
 				,'@Parameter56 = ', ISNULL(CAST(@IsTimeLife AS VARCHAR(200)), '')

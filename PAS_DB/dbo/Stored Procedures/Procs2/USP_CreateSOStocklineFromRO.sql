@@ -1,4 +1,7 @@
-﻿/*************************************************************           
+﻿-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateSOStocklineFromRO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSOStocklineFromRO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_CreateSOStocklineFromRO]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Crate A Stockline from SO Parts
@@ -27,12 +30,12 @@
 	11	 06/18/2025   AMIT GHEDIYA		Updated the sp USP_UpdateSOPartCostDetails for SalesOrderPartV1 table.
 	12	 06/23/2025   Vishal Suthar		Handle the case of having the same stockline after repair
 	13	 10/Jul/2025  Rajesh Gami		Fixed: Added the Stockline History while reserve the stockline in the SO (Create RO from the SO and then receive the RO that time history not inserted)
-	14   17/Apr/2026  Ayushi Patel		Added UOM Conversion Changes [PN-15044]
-	15   03/Aug/2026  Bhargav Saliya	Fixed Create Stockline Issue after Receiving RO [PN-17319]
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters tied to the SalesOrder-linked branches (SalesOrderPartV1/SalesOrderStocklineV1), added during PN-17008 transitional Non-Stock merge phase. The 2 RepairOrder-only branches (lines ~201/466) were left untouched, out of scope.
  EXECUTE USP_CreateSOStocklineFromRO 2667
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
+CREATE      PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
 (
 	@RepairOrderId bigint = NULL
 )
@@ -47,8 +50,8 @@ BEGIN
       BEGIN
         DECLARE @RowCount int = 0;
         DECLARE @StocklineId bigint;
-        DECLARE @Quantity DECIMAL(18, 6) = 0;
-        DECLARE @QtyFulfilled DECIMAL(18, 6) = 0;
+        DECLARE @Quantity int = 0;
+        DECLARE @QtyFulfilled int = 0;
         DECLARE @SalesOrderPartId bigint = 0;
 		DECLARE @SalesOrderStockLineId BIGINT = 0;
         DECLARE @ExSalesOrderPartId bigint;
@@ -58,7 +61,7 @@ BEGIN
         DECLARE @LoopID AS int;
 		DECLARE @MasterLoopID AS INT;
 		DECLARE @RepairOrderPartId BIGINT;
-		DECLARE @StlQuantity DECIMAL(18, 6) = 0;
+		DECLARE @StlQuantity BIGINT;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
 		DECLARE @RPUpdatedBy VARCHAR(256) = '';
@@ -195,7 +198,8 @@ BEGIN
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
                   WHERE SL.StockLineId = @StocklineId and RP.ItemTypeId = 1
 
-				SET @SalesOrderPartId = 0;
+				 AND ISNULL(IM.IsNonStock,0) = 0
+                   SET @SalesOrderPartId = 0;
 
 				SELECT @SalesOrderPartId = ISNULL(SalesOrderPartId, 0) FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
 						JOIN #ROStockLineRevisedPart ROS ON ROS.SalesOrderId = SOP.SalesOrderId
@@ -264,7 +268,7 @@ BEGIN
                     JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
 					LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON ime.ItemMasterId = IM.ItemMasterId
 					AND SL.IsParent = 1 AND SOP.SalesOrderId = @SalesOrderId
-                    WHERE SL.StockLineId = @StocklineId;
+                    WHERE SL.StockLineId = @StocklineId ;
 
 					SELECT @SalesOrderPartId = SCOPE_IDENTITY()
 
@@ -389,7 +393,6 @@ BEGIN
 
                 IF (@QtyFulfilled <= 0)
                 BEGIN
-				  DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -416,7 +419,6 @@ BEGIN
 
                 IF ((SELECT COUNT(1) FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE [SalesOrderPartId] = @ExSalesOrderPartId) = 0)
                 BEGIN
-				  DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -461,7 +463,8 @@ BEGIN
                   JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
                   WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 
-                IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
+                 AND ISNULL(IM.IsNonStock,0) = 0
+                   IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
 				
 					DECLARE @OldConditionId BIGINT = 0;
@@ -470,8 +473,8 @@ BEGIN
 					DECLARE @NewItemMasterId BIGINT = 0;
 					DECLARE @NewSalesOrderPartId BIGINT = 0;
 					DECLARE @NewSalesOrderStocklineId BIGINT = 0;
-					DECLARE @UnitCost DECIMAL(18, 6) = 0;
-					DECLARE @NewQtyRequested DECIMAL(18, 6) = 0;
+					DECLARE @UnitCost DECIMAL(20, 2) = 0;
+					DECLARE @NewQtyRequested INT = 0;
 					DECLARE @SalesOrderNumber VARCHAR(100) = NULL;
 					DECLARE @RepairOrderNumber VARCHAR(100) = NULL;
 
@@ -492,7 +495,7 @@ BEGIN
 					WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId 
 					AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
 					
-					DECLARE @TotalQty DECIMAL(18, 6) = 0,@SoId BIGINT,@RevQty DECIMAL(18, 6) = 0;
+					DECLARE @TotalQty INT,@SoId BIGINT,@RevQty INT
 
 					IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderStocklineV1 WITH (NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId AND StockLineId = @StockLineId)
 					BEGIN
@@ -543,7 +546,7 @@ BEGIN
 								SELECT SOPS.StockLineId 
 								FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) 
 								LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
-								WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId);
+								WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId) ;
 
 						SELECT @NewSalesOrderStocklineId = SCOPE_IDENTITY()
 
@@ -583,7 +586,7 @@ BEGIN
 							SELECT SOPS.StockLineId 
 							FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) 
 							LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
-							WHERE SOPS.SalesOrderStocklineId = @ExSalesOrderStocklineId);
+							WHERE SOPS.SalesOrderStocklineId = @ExSalesOrderStocklineId) ;
 
 						EXEC USP_UpdateSOPartCostDetails
 							@SalesOrderId,
@@ -655,7 +658,6 @@ BEGIN
 
 						IF (@QtyFulfilled <= 0)
 						BEGIN
-						    DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 							DELETE SOSTL FROM [dbo].[SalesOrderStocklineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 							DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 
@@ -756,7 +758,6 @@ BEGIN
 													
 								IF(@TotalQty = @RevQty)
 								BEGIN
-									DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderPartId = @ExSalesOrderStocklineId;
 									DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 									DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;
@@ -932,7 +933,6 @@ BEGIN
 													
 								IF(@TotalQty = @RevQty)
 								BEGIN
-								    DELETE SOSC FROM [dbo].[SalesOrderStockLineCost] SOSC WHERE SOSC.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOSTL FROM [dbo].[SalesOrderStockLineV1] SOSTL WHERE SOSTL.SalesOrderStocklineId = @ExSalesOrderStocklineId;
 									DELETE SOA   FROM [dbo].[SalesOrderApproval] SOA WHERE SOA.SalesOrderPartId = @ExSalesOrderPartId;
 									DELETE SORS  FROM [dbo].[SalesOrderReservedStock] SORS WHERE SORS.SalesOrderPartId = @ExSalesOrderPartId;

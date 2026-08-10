@@ -15,8 +15,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    04/23/2025   Vishal Suthar		Created
+    2    08/06/2026   Vishal Suthar		Fixed the incorrect join to get the ShipToSiteName
 
--- EXEC [dbo].[GetRepairOrderShippingDetails] 4
+-- EXEC [dbo].[GetRepairOrderShippingDetails] 10
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderShippingDetails]
     @RepairOrderShippingId BIGINT
@@ -25,7 +26,8 @@ BEGIN
     SET NOCOUNT ON;
 	BEGIN TRY
 		SELECT TOP 1
-        shcu.CompanyName AS shipToCustomer,
+        --shcu.CompanyName AS shipToCustomer,
+        sos.ShipToName AS shipToCustomer,
         sos.ShipToCustomerId shipToCustomerId,
         sos.SoldToSiteId soldToSiteId,
         sos.SoldToSiteName soldToSiteName,
@@ -111,7 +113,7 @@ BEGIN
     INNER JOIN dbo.Countries org WITH (NOLOCK) ON sos.OriginCountryId = org.countries_id
     INNER JOIN dbo.ShippingStatus ss WITH (NOLOCK) ON sos.ROShippingStatusId = ss.ShippingStatusId
     INNER JOIN dbo.ShippingVia sv WITH (NOLOCK) ON sos.ShipviaId = sv.ShippingViaId
-    INNER JOIN dbo.LegalEntity shcu WITH (NOLOCK) ON sos.ShipToCustomerId = shcu.LegalEntityId
+    --INNER JOIN dbo.LegalEntity shcu WITH (NOLOCK) ON sos.ShipToCustomerId = shcu.LegalEntityId
     LEFT JOIN dbo.RepairOrderCustomsInfo wci WITH (NOLOCK) ON sos.RepairOrderShippingId = wci.RepairOrderShippingId
     WHERE sos.RepairOrderShippingId = @RepairOrderShippingId;
 	END TRY

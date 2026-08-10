@@ -38,3 +38,14 @@
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BatchDetails_Status]
+    ON [dbo].[BatchDetails]([JournalBatchDetailId] ASC, [StatusId] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BatchDetails_JBD_Status]
+    ON [dbo].[BatchDetails]([JournalBatchDetailId] ASC)
+    INCLUDE([StatusId]);
+

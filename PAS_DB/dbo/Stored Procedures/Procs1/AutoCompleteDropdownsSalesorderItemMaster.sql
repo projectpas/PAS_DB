@@ -22,10 +22,10 @@
     1    18/10/2024   AMIT GHEDIYA		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
-     
+    4    05-Aug-2026             Bhargav Saliya                     [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 --EXEC [AutoCompleteDropdownsSalesorderItemMaster] '5',20,'',1110
 **************************************************************/
-CREATE       PROCEDURE [dbo].[AutoCompleteDropdownsSalesorderItemMaster]
+CREATE    PROCEDURE [dbo].[AutoCompleteDropdownsSalesorderItemMaster]
 	@StartWith VARCHAR(50),
 	@Count VARCHAR(10) = '0',
 	@Idlist VARCHAR(max) = '0',
@@ -65,6 +65,7 @@ AS
           AND (
                 IM.PartNumber LIKE @StartWith + '%'
              OR IM.PartNumber LIKE '%' + @StartWith + '%'
+             OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'
           )
         ORDER BY Label;
 

@@ -17,6 +17,8 @@
 	                                        override joined by its AssetAttributeTypeId FK instead of by its own PK.
 	                                        AssetAttributeTypeName removed from DeprNonDeprTangibleAssets (name now
 	                                        always comes from the joined AssetAttributeType row).
+    5	 06-AUG-2026	    Abhishek Jirawala	Return asset.DeprNonDeprTangibleAssetsId so the resolved GL-calibrated
+	                                        row carries forward when this asset is selected for a new AssetInventory.
 
 	exec [USP_GetAssetDataforInventory] 211
 ***************************************************************/
@@ -52,6 +54,7 @@ BEGIN
                 ISNULL(asset.IsDepreciable, 0) AS IsDepreciable,
                 ISNULL(asset.IsIntangible, 0) AS IsIntangible,
                 asset.TangibleClassId,
+                asset.DeprNonDeprTangibleAssetsId,
                 asset.AssetIntangibleTypeId,
                 ISNULL(aity.AssetIntangibleName, '') AS AssetIntangibleTypeName,
                 asset.ManagementStructureId,
@@ -159,7 +162,8 @@ BEGIN
                 asset.AssetMaintenanceIsContract,
                 ISNULL(asset.AssetParentRecordId, '') AS AssetParentId,
                 asset.TangibleClassId,
-                ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
+                asset.DeprNonDeprTangibleAssetsId,
+                ISNULL(atc.TangibleClassName, '') AS AssetTypeName,
                 asset.AssetAttributeTypeId,
                 asset.AssetLocationId,
                 ISNULL(aloc.Code + '-' + aloc.Name, '') AS AsetLocationName,
@@ -246,7 +250,8 @@ BEGIN
             LEFT JOIN dbo.GLAccount mgla WITH (NOLOCK) ON asmai.MaintenanceGLAccountId = mgla.GLAccountId
             LEFT JOIN dbo.GLAccount wgla WITH (NOLOCK) ON asmai.WarrantyGLAccountId = wgla.GLAccountId
             LEFT JOIN dbo.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
-            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
+            LEFT JOIN dbo.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.TangibleClassId = dnta.TangibleClassId
+            LEFT JOIN dbo.TangibleClass atc WITH (NOLOCK) ON dnta.TangibleClassId = atc.TangibleClassId
             LEFT JOIN dbo.GLAccount calGL WITH (NOLOCK) ON dnta.CalibratedGLAccountId = calGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaDeprGL WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dntaDeprGL.GLAccountId
             LEFT JOIN dbo.GLAccount dntaAdGL WITH (NOLOCK) ON dnta.AccumDeprGLAccountId = dntaAdGL.GLAccountId

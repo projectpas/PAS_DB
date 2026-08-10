@@ -19,14 +19,14 @@
  **************************************************************
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
-	1    15/July/2026  RAJESH GAMI		[PN-17009] - Created. Stock + Non-Stock unified variant of
+	1    15/July/2026  RAJESH GAMI		[PN-17271] - Created. Stock + Non-Stock unified variant of
 										AutoCompleteDropdownsItemMasterWithManufacturer for the PO
 										Setup "Add PN" / "Add Multiple PN" flows (ItemMasterNonStock
 										has been merged into ItemMaster / IsNonStock flag). Adds
 										ItemTypeId to the result set (1=Stock, 2=Non-Stock) so the
 										Angular side can route to the correct detail-fetch API after
 										selection, and suffixes the Label with ' (Stock)' /
-										' (Non-Stock)' per the PN-17009 label convention. Restricted
+										' (Non-Stock)' per the PN-17271 label convention. Restricted
 										to ItemTypeId IN (1,2) only - Equipment/Asset item types are
 										intentionally excluded (handled by the separate "Add Asset"
 										button/flow). Also dropped the "AND ISNULL(rp.IsNonStock,0)=0"
@@ -35,6 +35,7 @@
 										source SP it was harmless there (Im is always Stock so rp is
 										too), but here it would incorrectly null out RevisedPart for
 										every Non-Stock row, since rp IS Im.
+	2   05-Aug-2026   Bhargav Saliya    [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '100',1,50,'',18
@@ -93,7 +94,7 @@ BEGIN
 			  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 			  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))
       UNION
 
      SELECT DISTINCT Im.ItemMasterId,
@@ -177,7 +178,7 @@ BEGIN
 			 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
      UNION
 
     SELECT DISTINCT TOP 50

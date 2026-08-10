@@ -1,14 +1,15 @@
 ﻿
 
 
+
 CREATE VIEW [dbo].[vw_DeprNonDeprTangibleAssetsAudit]
 AS
 SELECT
 	AAT.[AuditDeprNonDeprTangibleAssetsId] AS PkID
 	,AAT.[DeprNonDeprTangibleAssetsId] AS ID
-	,AAT.[AssetAttributeTypeId]
-	  ,ATC.[DeprNonDeprTangibleClassTypeName] 'TangibleClassName'
-	  ,AT2.[AssetAttributeTypeName]
+	,AAT.[DeprNonDeprTangibleClassTypeId]
+      ,ATC.[TangibleClassName] 'TangibleClassName'
+	  ,AT2.[DeprNonDeprTangibleClassTypeName]
 	  ,AAT.[Description] AS [Description]
 	  ,ADM.[AssetDepreciationMethodName] 'DepreciationMethodName'
 
@@ -32,9 +33,8 @@ SELECT
       ,AAT.[IsActive]
       ,AAT.[IsDeleted]
 FROM dbo.DeprNonDeprTangibleAssetsAudit AAT WITH(NOLOCK)
-	LEFT JOIN [dbo].[AssetAttributeType] AT2 WITH (NOLOCK) ON AAT.AssetAttributeTypeId = AT2.AssetAttributeTypeId
-  --LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
-  LEFT JOIN [dbo].[DeprNonDeprTangibleClassTypes] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.DeprNonDeprTangibleClassTypeId
+	LEFT JOIN [dbo].[DeprNonDeprTangibleClassTypes] AT2 WITH (NOLOCK) ON AAT.DeprNonDeprTangibleClassTypeId = AT2.DeprNonDeprTangibleClassTypeId
+  LEFT JOIN [dbo].[TangibleClass] ATC WITH (NOLOCK) ON AAT.TangibleClassId = ATC.TangibleClassId
   LEFT JOIN [dbo].[AssetDepreciationMethod] ADM WITH (NOLOCK) ON AAT.AssetDeprMethodId = ADM.AssetDepreciationMethodId
   LEFT JOIN [dbo].[Percent] PER WITH (NOLOCK) ON AAT.ResidualPercentage = PER.PercentId
   LEFT JOIN [dbo].[AssetDepreciationFrequency] FI WITH (NOLOCK) ON AAT.DepreciationFrequencyId = FI.AssetDepreciationFrequencyId

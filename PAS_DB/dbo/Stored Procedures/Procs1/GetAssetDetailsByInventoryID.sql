@@ -23,6 +23,14 @@
 											AssetAttributeTypeId FK instead of its own PK. Dropped the
 											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
 											always joined so its name always resolves.
+	6	 06-08-2026	  Abhishek Jirawala		AssetInventory now persists which specific DeprNonDeprTangibleAssets
+											row was resolved at TangibleClassId selection time. Return
+											asset.DeprNonDeprTangibleAssetsId alongside asset.TangibleClassId.
+	7	 07-08-2026	  Abhishek Jirawala		AssetType now falls back to asset.DeprNonDeprTangibleAssetsId ->
+											DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName when
+											asset.TangibleClassId doesn't resolve directly. Removed the dead
+											dnta/atc joins (declared but never referenced) that were left over
+											from an earlier, reverted fallback attempt.
 
 --  EXEC [GetAssetDetailsByInventoryID] 1123
 **************************************************************/
@@ -89,6 +97,7 @@ BEGIN
 			ISNULL(asset.DepreciationMethodName, '') AS AmortizationMethod,
 			ISNULL(asset.DepreciationFrequencyName, '') AS AmortizationFrequency,
 			ISNULL(asty.IntangibleLifeYears, 0) AS IntangibleLife,
+			--ISNULL(asset.CalibrationGLAccountName, '') AS IntangibleGLAccount,
 			ISNULL(asset.IntangibleGLAccountName, '') AS IntangibleGLAccount,
 			ISNULL(asset.AmortExpenseGLAccountName, '') AS AmortExpenseGLAccount,
 			ISNULL(asset.AccAmortDeprGLAccountName, '') AS AccAmortDeprGLAccount,
@@ -151,7 +160,7 @@ BEGIN
 			asset.AssetCalibrationExpectedTolerance,
 			asset.SerialNo,
 			ISNULL(manu.Name, '') AS ManufacturerName,
-			ISNULL(asty.AssetAttributeTypeName, '') AS AssetType,
+			ISNULL(at.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetType,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			ISNULL(curr.Code, '') AS CurrencyName,
 			ISNULL(asset.IsInsurance, 0) AS IsInsurance,
@@ -173,6 +182,7 @@ BEGIN
 			asset.UnitOfMeasureId,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			asset.TangibleClassId,
+			asset.DeprNonDeprTangibleAssetsId,
 			asset.AssetLocationId,
 			CASE
 				WHEN alo.AssetLocationId IS NULL THEN ''
@@ -183,7 +193,10 @@ BEGIN
 			asset.CalibrationDefaultVendorId,
 			asset.CalibrationFrequencyDays,
 			asset.CalibrationFrequencyMonths,
-			asset.CalibrationGlAccountId,
+			asset.CalibratedGLAccountId CalibrationGlAccountId,
+			ISNULL(asset.CalibratedGLAccountName, '') AS CalibrationGlAccount,
+			--asset.CalibrationGlAccountId,
+			--ISNULL(CalibrationGL.AccountName, '') AS CalibrationGlAccount,
 			ISNULL(asset.CalibrationMemo, '') AS CalibrationMemo,
 			ISNULL(asset.CalibrationRequired, 0) AS CalibrationRequired,
 			asset.CertificationCurrencyId,
@@ -354,7 +367,8 @@ BEGIN
 		LEFT JOIN DBO.AssetAcquisitionType aacq WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
 		LEFT JOIN DBO.Asset astSrc WITH (NOLOCK) ON asset.AssetRecordId = astSrc.AssetRecordId
 		LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
-		LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.AssetAttributeTypeId = dnta.AssetAttributeTypeId
+		LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON asset.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+		LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
 		LEFT JOIN DBO.GLAccount wgla WITH (NOLOCK) ON asset.WarrantyGLAccountId = wgla.GLAccountId
 		LEFT JOIN DBO.GLAccount mgla WITH (NOLOCK) ON asset.MaintenanceGLAccountId = mgla.GLAccountId
 		LEFT JOIN DBO.AssetLocation alo WITH (NOLOCK) ON asset.AssetLocationId = alo.AssetLocationId

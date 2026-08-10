@@ -16,6 +16,7 @@
 ** 1     27-Oct-2025   Bhargav Saliya      Created  
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter on the ItemMaster lookup - this proc's pricing data (PartNumber/MasterCompanyId, which the entire rest of the proc depends on) was returning NULL/empty for every Non-Stock item.
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
@@ -40,7 +41,6 @@ BEGIN
 	SELECT TOP 1 @PartNumber = PartNumber,@MasterCompanyId = MasterCompanyId FROM DBO.ItemMaster I WITH(NOLOCK)
 	WHERE I.ItemMasterId = @ItemMasterId
 
-	 AND ISNULL(I.IsNonStock,0) = 0
 	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 

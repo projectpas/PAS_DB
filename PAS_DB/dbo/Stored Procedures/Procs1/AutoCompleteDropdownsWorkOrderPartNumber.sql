@@ -113,7 +113,7 @@ BEGIN
 													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
 													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
-						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID
+						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID   
 						JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = RCW.StockLineId
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = RCW.ItemMasterId
 						JOIN dbo.Customer C WITH(NOLOCK) ON C.CustomerId = RCW.CustomerId
@@ -125,7 +125,7 @@ BEGIN
 						LEFT JOIN dbo.ItemMaster OIM WITH(NOLOCK) ON RCW.OutGoingItemMasterId = OIM.ItemMasterId
 					 AND ISNULL(OIM.IsNonStock,0) = 0
 						 WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND ISNULL(RCW.WorkOrderId, 0) = 0 AND SL.CustomerId = @CustomerId AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
-					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%') 
+					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%') 
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					   UNION 
@@ -244,7 +244,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(SL.QuantityAvailable, 0) > 0
-						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%')
+						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION
@@ -360,7 +360,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.QuantityAvailable, 0) > 0
-					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%')
+					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					  UNION

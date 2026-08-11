@@ -30,6 +30,7 @@
    14	 09/15/2025	  Devendra Shekh	Added Missing Columns for [CommonBatchDetails] Insert
    15	 12/03/2025	  AMIT GHEDIYA		Added Missing accounting for Written Off
    16	 07/07/2026	  Moin Bloch         Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+   17	 08/10/2026	  Abhishek Jirawala  Added WrittenDownReverse accounting (reverses the WrittenDown Dr/Cr) via new @Amount param
 
 **************************************************************/
 
@@ -495,8 +496,8 @@ BEGIN
 					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'LOSSGAINONWRITEOFFSALE' AND MasterCompanyId = @MasterCompanyId
 
-					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteDownGLAccountId
-					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteDownGLAccountId;
+					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetSaleGLAccountId
+					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetSaleGLAccountId;
 
 					IF(@IsBypassAccounting = 0)
 					BEGIN
@@ -537,8 +538,8 @@ BEGIN
 					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'LOSSGAINONWRITEOFFSALE' AND MasterCompanyId = @MasterCompanyId
 
-					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteDownGLAccountId
-					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteDownGLAccountId;
+					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetSaleGLAccountId
+					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetSaleGLAccountId;
 
 					IF(@IsBypassAccounting = 0)
 					BEGIN

@@ -121,7 +121,7 @@
 							AND rpPMA.IsActive = 1 AND rpPMA.IsDeleted = 0
 					LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				WHERE im.IsActive = 1 AND im.IsDeleted = 0 AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
-					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', '') +'%')
+					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 					 AND (
 						(@CustRestrictedDer = CONVERT(BIT, 0) AND @CustRestrictedPMA = CONVERT(BIT, 0))
 						OR 

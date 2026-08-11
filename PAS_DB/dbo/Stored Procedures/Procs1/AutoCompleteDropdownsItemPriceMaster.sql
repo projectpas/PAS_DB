@@ -35,10 +35,10 @@ AS BEGIN
 		SELECT DISTINCT IM.ItemMasterId,
 		IM.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId  AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS partnumber
 		FROM [dbo].[ItemMaster] IM WITH(NOLOCK)
-		LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON IM.ItemMasterId  = IMPS.ItemMasterId
+		LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON IM.ItemMasterId  = IMPS.ItemMasterId  
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = IM.ManufacturerId
 		WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0 AND
-		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(@SearchText, '-', ''), '/', '') + '%')
+		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@SearchText, '-', ''), '/', ''), '_', ''), '\', '') + '%')
 	 AND ISNULL(IM.IsNonStock,0) = 0
 		 END TRY
 	BEGIN CATCH

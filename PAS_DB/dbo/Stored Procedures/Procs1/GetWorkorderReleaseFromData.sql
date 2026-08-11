@@ -34,6 +34,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 23   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
 ** 24   16/07/2026  Vishal Suthar    Added new tags to get replaced (#PublishedBy and #PublicationType)
 ** 25   17/07/2026  Vishal Suthar    Fixed an issue with Multiple CMM case for tags to get replaced (#PublishedBy and #PublicationType)
+** 26   07/08/2026  Abhishek Jirawala Added Fleet field in Section 12 Remarks [PN-17260]
 
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
@@ -334,8 +335,9 @@ BEGIN
 					  --UPPER(wosc.conditionName) AS ConditionName,
 					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
-					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
+					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
 					  '' SecondPublicationId,
 					  '' SecondRevisionNum,
 					  '' SecondRevisionDate,		
@@ -447,6 +449,11 @@ BEGIN
 				STRING_AGG(UPPER(pub.PublicationId), ', ') AS PublicationId,
 
 				STRING_AGG(
+					ISNULL(UPPER(pub.Fleet), '-'),
+					', '
+				) AS Fleet,
+
+				STRING_AGG(
 					ISNULL(CONVERT(VARCHAR(20), pub.RevisionNum), '-'),
 					', '
 				) AS RevisionNum,
@@ -532,8 +539,11 @@ BEGIN
 										REPLACE(
 											REPLACE(
 												REPLACE(
-													ISNULL(PT.EmailBody,''),
-													'#PublicationByName', 
+													REPLACE(
+														ISNULL(PT.EmailBody,''),
+														'#Fleet', ISNULL(UPPER(pub.Fleet),'-')
+													),
+													'#PublicationByName',
 													CASE 
 														WHEN pub.PublishedById = 2 THEN ISNULL(ven.VendorName,'-')
 														WHEN pub.PublishedById = 3 THEN ISNULL(mf.Name,'-')
@@ -643,8 +653,9 @@ BEGIN
 					  @IsMultiple AS IsMultiple,				 					  
 					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+					  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
-					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
+					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
 					  '' SecondPublicationId,
 					  '' SecondRevisionNum,
 					  '' SecondRevisionDate,		

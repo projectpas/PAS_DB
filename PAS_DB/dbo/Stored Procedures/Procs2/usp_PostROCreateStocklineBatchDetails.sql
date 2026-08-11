@@ -31,7 +31,8 @@
 	20   08/07/2026   Abhishek Jirawla Including RO Num in Batch details
 	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/  
+	22    08/06/2026			 Abhishek Jirawla					PN-16823 - For Asset acquisition, use AssetInventory.CalibratedGLAccountId when the received RepairOrderPart.IsForCalibration is true, else fall back to the normal AcquiredGLAccountId
+**************************************************************/
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId int,
@@ -81,6 +82,7 @@ BEGIN
 					DECLARE @cogs_WorkOrderGLAccId BIGINT = 0;
 					DECLARE @RepairOrderPartRecordId BIGINT = 0;
 					DECLARE @GlStocklineId BIGINT = 0;
+					DECLARE @IsForCalibrationPart BIT = 0;
 
 					IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 					BEGIN    
@@ -581,10 +583,26 @@ BEGIN
 										WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND DistributionMasterId = @DistributionMasterId
 										AND MasterCompanyId = @MasterCompanyId
 
-										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
+										SET @IsForCalibrationPart = 0;
+										SELECT TOP 1 @IsForCalibrationPart = ISNULL(ROP.IsForCalibration, 0)
 										FROM DBO.AssetInventory SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
-										WHERE AssetInventoryId=@StocklineId;
+										LEFT JOIN DBO.RepairOrderPart ROP WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
+										WHERE SL.AssetInventoryId=@StocklineId;
+
+										IF(@IsForCalibrationPart = 1)
+										BEGIN
+											SELECT TOP 1 @GlAccountId=SL.CalibratedGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
+											FROM DBO.AssetInventory SL WITH(NOLOCK)
+											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.CalibratedGLAccountId=GL.GLAccountId
+											WHERE AssetInventoryId=@StocklineId;
+										END
+										ELSE
+										BEGIN
+											SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
+											FROM DBO.AssetInventory SL WITH(NOLOCK)
+											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId
+											WHERE AssetInventoryId=@StocklineId;
+										END
 
 										--Check is allow to AutoPost
 										IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -1119,10 +1137,26 @@ BEGIN
 										WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND DistributionMasterId = @DistributionMasterId
 										AND MasterCompanyId = @MasterCompanyId
 
-										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
+										SET @IsForCalibrationPart = 0;
+										SELECT TOP 1 @IsForCalibrationPart = ISNULL(ROP.IsForCalibration, 0)
 										FROM DBO.AssetInventory SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
-										WHERE AssetInventoryId=@StocklineId;
+										LEFT JOIN DBO.RepairOrderPart ROP WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
+										WHERE SL.AssetInventoryId=@StocklineId;
+
+										IF(@IsForCalibrationPart = 1)
+										BEGIN
+											SELECT TOP 1 @GlAccountId=SL.CalibratedGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
+											FROM DBO.AssetInventory SL WITH(NOLOCK)
+											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.CalibratedGLAccountId=GL.GLAccountId
+											WHERE AssetInventoryId=@StocklineId;
+										END
+										ELSE
+										BEGIN
+											SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
+											FROM DBO.AssetInventory SL WITH(NOLOCK)
+											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId
+											WHERE AssetInventoryId=@StocklineId;
+										END
 
 										--Check is allow to AutoPost
 										IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)

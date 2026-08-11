@@ -65,7 +65,7 @@ AS
           AND (
                 IM.PartNumber LIKE @StartWith + '%'
              OR IM.PartNumber LIKE '%' + @StartWith + '%'
-             OR REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', '') LIKE '%' + REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', '') + '%'
+             OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'
           )
         ORDER BY Label;
 

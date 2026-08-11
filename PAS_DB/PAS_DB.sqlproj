@@ -4779,6 +4779,12 @@
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypesAudit.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />
+    <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
+    <Build Include="dbo\Tables\LeaseHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseHeaderState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LeaseHeaderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

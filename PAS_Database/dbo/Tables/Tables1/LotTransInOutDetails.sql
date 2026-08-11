@@ -31,3 +31,13 @@
     CONSTRAINT [FK_LotTransInOutDetails_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
 
+
+GO
+-- Added to fix USP_Lot_GetAllLotViewsByLotId_Filter timeouts on high-volume lots: this table is filtered
+-- by LotId (both to build #commonTemp and again per-branch) with no supporting index, forcing a full
+-- clustered-index scan of the whole table on every call. This makes that filter a seek and covers the
+-- StockLineId join plus the few other columns the SP selects directly from this table.
+CREATE NONCLUSTERED INDEX [IX_LotTransInOutDetails_LotId]
+    ON [dbo].[LotTransInOutDetails]([LotId] ASC)
+    INCLUDE([StockLineId], [QtyToTransIn], [QtyToTransOut], [ReferenceNumber]);
+

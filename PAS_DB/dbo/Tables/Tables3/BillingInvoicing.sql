@@ -58,3 +58,13 @@
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
 
+
+GO
+-- Added to fix USP_Lot_GetAllLotViewsByLotId_Filter timeouts: this table has no index besides the PK,
+-- so the LEFT JOIN on ReferenceId/ModuleId (e.g. "so.SalesOrderId = sobi.ReferenceId ... AND
+-- sobi.ModuleId = @SOModuleId") forces a full scan of this (system-wide, likely very large) table for
+-- every matching Sales Order row. This makes that lookup a seek.
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_ReferenceId_ModuleId]
+    ON [dbo].[BillingInvoicing]([ReferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([InvoiceNo], [InvoiceDate], [IsVersionIncrease], [IsPerformaInvoice], [MasterCompanyId]);
+

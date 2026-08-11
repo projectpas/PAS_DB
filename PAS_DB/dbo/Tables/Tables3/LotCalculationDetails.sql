@@ -48,3 +48,15 @@
     CONSTRAINT [FK_LotCalculationDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+GO
+-- Added to fix USP_Lot_GetAllLotViewsByLotId_Filter timeouts on high-volume lots: every branch of that
+-- SP inner-joins this table on LotTransInOutId with no supporting index, forcing a full clustered-index
+-- scan of the whole table (across ALL lots/companies) on every call. This makes that join a seek and
+-- covers the columns the SP actually selects/filters on (Type, ReferenceId, ChildId - used as extra join
+-- predicates for PO/RO branches) so it avoids key lookups back to the wide clustered row.
+CREATE NONCLUSTERED INDEX [IX_LotCalculationDetails_LotTransInOutId]
+    ON [dbo].[LotCalculationDetails]([LotTransInOutId] ASC)
+    INCLUDE([Type], [ReferenceId], [ChildId], [Qty], [TransferredInCost], [TransferredOutCost],
+            [SalesUnitPrice], [ExtSalesUnitPrice], [MarginAmount], [CommissionExpense], [CreatedDate]);
+

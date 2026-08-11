@@ -71,6 +71,7 @@
     <Folder Include="Snapshots" />
   </ItemGroup>
   <ItemGroup>
+    <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
     <Build Include="dbo\Tables\Tables1\AccountingBatchManagementStructureDetails.sql" />
     <Build Include="dbo\Tables\Tables1\AccountingCalendar.sql" />
@@ -2595,6 +2596,7 @@
     <Build Include="dbo\Stored Procedures\Procs2\usprpt_GetWorkOrderQuotesReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\usprpt_GetWorkOrderStageMonitoringReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\usprpt_GetWorkOrderTATReport.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\usprpt_GetWorkOrderTATReportPowerBI.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\VendorPaymentList.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\VendorPositivePayExportACHLegalEntityList.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\VendorPositivePayExportACHList.sql" />
@@ -4633,6 +4635,7 @@
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationById.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWorkOrderTATReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

@@ -55,6 +55,13 @@
     [IsStandardInvoicePosted]     BIT             NULL,
     [CreditMemoHeaderId]          BIGINT          NULL,
     [IntegrationTypeId]           INT             NULL,
+    -- Set to 1 by USP_ReOpenSalesOrderInvoice when a posted invoice is re-opened. Unlike IsInvoicePosted/
+    -- PostedDate (which get cleared on re-open so the invoice looks editable again), this flag is never
+    -- cleared - it's the only reliable "this invoice was posted at least once" signal once InvoiceStatus/
+    -- IsInvoicePosted have been reset back to Reviewed. Used by the UI to keep "Print Invoice" enabled
+    -- for a re-opened invoice even though its current status alone would otherwise suggest it's a brand
+    -- new, never-posted draft with nothing to print.
+    [IsReOpened]                  BIT             CONSTRAINT [DF_BillingInvoicing_IsReOpened] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
 

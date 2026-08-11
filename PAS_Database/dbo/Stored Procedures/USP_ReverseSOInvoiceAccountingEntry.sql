@@ -1,4 +1,4 @@
-/*********************
+﻿/*********************
  ** File:   [USP_ReverseSOInvoiceAccountingEntry]
  ** Author:   Rajesh Gami
  ** Description: This stored procedure reverses the PAS accounting (GL) entries that were
@@ -35,7 +35,7 @@
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
 **********************/
-CREATE PROCEDURE [dbo].[USP_ReverseSOInvoiceAccountingEntry]
+CREATE   PROCEDURE [dbo].[USP_ReverseSOInvoiceAccountingEntry]
 	@BillingInvoicingId BIGINT,
 	@MasterCompanyId INT,
 	@UpdatedBy VARCHAR(256),

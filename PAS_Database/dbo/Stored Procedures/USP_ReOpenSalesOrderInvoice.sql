@@ -1,4 +1,4 @@
-/*********************
+﻿/*********************
  ** File:   [USP_ReOpenSalesOrderInvoice]
  ** Author:   Rajesh Gami
  ** Description: This stored procedure is used to Re-Open a posted (Invoiced) Sales Order
@@ -28,7 +28,7 @@
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
 **********************/
-CREATE PROCEDURE [dbo].[USP_ReOpenSalesOrderInvoice]
+CREATE   PROCEDURE [dbo].[USP_ReOpenSalesOrderInvoice]
 	@BillingInvoicingId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS
@@ -82,7 +82,7 @@ BEGIN
 			  AND ISNULL([PaymentAmount],0) > 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice can�t be Re-Opened because a payment has been received against it.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can’t be Re-Opened because a payment has been received against it.' AS Message
 			RETURN
 		END
 

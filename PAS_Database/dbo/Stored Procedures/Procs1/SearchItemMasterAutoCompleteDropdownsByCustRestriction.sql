@@ -17,6 +17,7 @@
     1    02-April-2020		Hemant Saliya	Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
  CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
@@ -120,7 +121,7 @@
 							AND rpPMA.IsActive = 1 AND rpPMA.IsDeleted = 0
 					LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				WHERE im.IsActive = 1 AND im.IsDeleted = 0 AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
-					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 					 AND (
 						(@CustRestrictedDer = CONVERT(BIT, 0) AND @CustRestrictedPMA = CONVERT(BIT, 0))
 						OR 

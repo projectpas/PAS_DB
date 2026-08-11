@@ -500,6 +500,7 @@ AS BEGIN
 							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
                              FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                             ORDER BY Label
                          END
 						  ELSE IF(@TableName='PublicationType')BEGIN
                                   SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate

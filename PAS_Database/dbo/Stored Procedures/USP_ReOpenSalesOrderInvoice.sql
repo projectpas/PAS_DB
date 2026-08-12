@@ -1,4 +1,4 @@
-ï»¿/*********************
+/*********************
  ** File:   [USP_ReOpenSalesOrderInvoice]
  ** Author:   Rajesh Gami
  ** Description: This stored procedure is used to Re-Open a posted (Invoiced) Sales Order
@@ -24,6 +24,21 @@
 										added PAS accounting reversal (USP_ReverseSOInvoiceAccountingEntry),
 										added Sales Order status revert (Closed -> Open)
     4    08/10/2026   Rajesh Gami		Sales Order status revert now also applies when SO status is Invoiced (not just Closed)
+    5    11-Aug-2026  Rajesh Gami		[PN-17636] Fixed a real bug found during review: the SO status revert was setting
+										StatusId = @InvoicedStatusId instead of @OpenStatusId (the @OpenStatusId
+										variable was declared but never used) - re-opening a Closed/Invoiced SO
+										was putting it BACK to Invoiced instead of Open. Also fixed a mangled
+										apostrophe in the payment-guard message, and added [IsReOpened] = 1 to
+										the update (new persistent BillingInvoicing.IsReOpened column) so the UI
+										can keep "Print Invoice" enabled after re-open even though InvoiceStatus/
+										IsInvoicePosted get reset to look like a fresh, never-posted draft.
+    6    12-Aug-2026  Rajesh Gami		[PN-17636] Added a Credit Memo guard, same pattern as the existing payment guard: blocks
+										re-open if a Credit Memo already exists against any line item on this invoice.
+										Deliberately does NOT use BillingInvoicing.CreditMemoHeaderId (an unreliable,
+										sticky flag) - instead checks CreditMemoDetails.BillingInvoicingItemId against
+										BillingInvoicingItems.BillingInvoicingId for this invoice directly. (This copy of
+										the SP was found out of sync with dbo.Stored Procedures.Procs3 copy - missing
+										changes #5 and #6 entirely - brought back to parity as part of this change.)
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
@@ -82,7 +97,24 @@ BEGIN
 			  AND ISNULL([PaymentAmount],0) > 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice canâ€™t be Re-Opened because a payment has been received against it.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can’t  be Re-Opened because a payment has been received against it.' AS Message
+			RETURN
+		END
+
+		-- Credit Memo guard: block re-open if a Credit Memo already exists against any line item on this invoice.
+		-- BillingInvoicing.CreditMemoHeaderId is NOT used here - it's a sticky flag that isn't reliably maintained.
+		-- Instead this checks the real relationship: CreditMemoDetails.BillingInvoicingItemId -> BillingInvoicingItems
+		-- (whose BillingInvoicingId is this invoice) - i.e. does any credited line item actually belong to this invoice.
+		IF EXISTS (
+			SELECT 1
+			FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK)
+			INNER JOIN [dbo].[CreditMemoDetails] CD WITH(NOLOCK) ON CD.[BillingInvoicingItemId] = BII.[BillingInvoicingItemId]
+			WHERE BII.[BillingInvoicingId] = @BillingInvoicingId
+			  AND ISNULL(CD.[IsActive],1) = 1
+			  AND ISNULL(CD.[IsDeleted],0) = 0
+		)
+		BEGIN
+			SELECT 0 AS IsSuccess, 'This invoice can’t  be Re-Opened because a Credit Memo already exists against it.' AS Message
 			RETURN
 		END
 
@@ -95,6 +127,10 @@ BEGIN
 				[InvoiceStatus] = @ReviewedStatus,
 				[IsInvoicePosted] = 0,
 				[PostedDate] = NULL,
+				-- IsReOpened is never cleared back to 0 - it's the one flag that survives this reset,
+				-- so the UI can still tell this invoice was posted/printed before even after
+				-- IsInvoicePosted/PostedDate/InvoiceStatus are reverted to look like a fresh draft.
+				[IsReOpened] = 1,
 				[UpdatedBy] = @UpdatedBy
 		WHERE	[BillingInvoicingId] = @BillingInvoicingId
 

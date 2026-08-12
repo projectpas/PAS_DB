@@ -31,6 +31,12 @@
 										there, and none is needed) - the double-reversal guard and the "reversed" flag
 										used by the UI both live on dbo.BatchDetails.IsReversedJE, which this SP now sets
 										to 1 on BOTH the original posted row(s) AND the newly inserted reversal row(s).
+    4    12-Aug-2026  Rajesh Gami		[PN-17569] Stopped hardcoding Batch Ref as '<JournalTypeName> (REVERSED)' - it was showing up
+										on the grid even for non-reversal rows once a same-day re-invoice reused this
+										batch header (see the companion fix in USP_BatchTriggerBasedonSOInvoiceNew).
+										Batch Ref is now generated the same dynamic way normal posting does (JournalTypeCode
+										+ running number, e.g. 'SOI 1637'); the "(Reverse)" label is added client-side from
+										BatchDetails.IsReversedJE instead.
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -139,11 +145,38 @@ BEGIN
 		DECLARE @StatusId BIGINT, @StatusName VARCHAR(200)
 		SELECT @StatusId = [Id], @StatusName = [Name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE [Name] = 'Open'
 
-		DECLARE @CurrentNumber BIGINT
+		-- Batch Ref used to be generated for these reversal batches as a hardcoded literal,
+		-- '<JournalTypeName> (REVERSED)' (e.g. 'SO Invoice (REVERSED)') - this bled through into
+		-- the UI even on rows that were NOT reversal lines, because a later same-day re-invoice
+		-- would end up reusing this same batch header (see the matching fix in
+		-- USP_BatchTriggerBasedonSOInvoiceNew). Whether a line is a reversal is already tracked
+		-- correctly and independently via BatchDetails.IsReversedJE, so the raw Batch Ref no
+		-- longer needs to carry that information - it's now generated the exact same dynamic way
+		-- normal posting does (e.g. 'SOI 1637'), and the UI adds its own "(Reverse)" label from
+		-- the IsReversedJE flag.
+		DECLARE @JournalTypeCode VARCHAR(50)
+		SELECT @JournalTypeCode = [JournalTypeCode] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeId
+
+		DECLARE @CurrentNumber BIGINT, @PaddedBatchNumber VARCHAR(100)
 		SELECT TOP 1 @CurrentNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE 1 END
 		FROM [dbo].[BatchHeader] WITH(NOLOCK) ORDER BY [JournalBatchHeaderId] DESC
 
-		DECLARE @BatchName VARCHAR(200) = CAST(ISNULL(@JournalTypeName,'Invoice') + ' (REVERSED)' AS VARCHAR(200))
+		-- Same zero-padding convention as normal posting (USP_BatchTriggerBasedonSOInvoiceNew):
+		-- 3 digits while <= 99, unpadded once past 99.
+		IF (CAST(@CurrentNumber AS BIGINT) > 99)
+		BEGIN
+			SET @PaddedBatchNumber = CAST(@CurrentNumber AS VARCHAR(100))
+		END
+		ELSE IF (CAST(@CurrentNumber AS BIGINT) > 9)
+		BEGIN
+			SET @PaddedBatchNumber = CONCAT('0', CAST(@CurrentNumber AS VARCHAR(50)))
+		END
+		ELSE
+		BEGIN
+			SET @PaddedBatchNumber = CONCAT('00', CAST(@CurrentNumber AS VARCHAR(50)))
+		END
+
+		DECLARE @BatchName VARCHAR(200) = CAST(ISNULL(@JournalTypeCode,'JE') + ' ' + @PaddedBatchNumber AS VARCHAR(200))
 
 		DECLARE @NewJournalBatchHeaderId BIGINT
 

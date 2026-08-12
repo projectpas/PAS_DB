@@ -17,6 +17,8 @@
 	4    28/11/2025   Devendra Shekh	Passed '0' as [TagType]
 	5    13/02/2026   Devendra Shekh	Added IsRunDaily
 	6    18/02/2026   Devendra Shekh	Added NextDayDate
+	7    12/08/2026   Vishal Suthar		Avoid NULL RunDate/NextDayDate in None branch (was causing "Nullable object must have a value" in app)
+
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
@@ -110,18 +112,26 @@ BEGIN
 			IF(@IsWeeklyOrMonthly = @None)
 			BEGIN
 			    SET @StartDate = NULL;
-				SET @RunDate = NULL;
+				SET @RunDate = GETUTCDATE();
 				SET @NextMonthDate = NULL;
-				SET @NextDayDate = NULL;
+				SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());
 				SET @HasJobSetting = 0;
 			END
+		END
+		ELSE
+		BEGIN
+			SET @RunDate = GETUTCDATE();
+			SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());
+			SET @HasJobSetting = 0;
 		END
 
 		SELECT @StartDate [StartDate],
 		       @RunDate [RunDate],
 			   @NextMonthDate [NextRunDate],
 			   @HasJobSetting [HasJobSetting],
-			   CASE WHEN CAST(@RunDate AS DATE) = CAST(GETUTCDATE() AS DATE) THEN 1 ELSE 0 END [IsRunJob],
+			   CASE WHEN @IsWeeklyOrMonthly IN (@Monthly, @Weekly)
+			             AND CAST(@RunDate AS DATE) = CAST(GETUTCDATE() AS DATE)
+			        THEN 1 ELSE 0 END [IsRunJob],
 			   @ExcludedLocations [ExcludedLocations],
 			   @MSLevel [MSLevel],
 			   @Location [Location],

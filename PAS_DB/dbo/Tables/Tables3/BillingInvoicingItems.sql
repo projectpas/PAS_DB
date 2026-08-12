@@ -61,3 +61,12 @@
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
 
+
+GO
+-- Added to fix USP_Lot_GetAllLotViewsByLotId_Filter timeouts: this table has no index besides the PK,
+-- so the LEFT JOIN on BillingInvoicingId/SubReferenceId forces a full scan for every matching invoice
+-- line. This makes that lookup a seek.
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicingItems_BillingInvoicingId_SubReferenceId]
+    ON [dbo].[BillingInvoicingItems]([BillingInvoicingId] ASC, [SubReferenceId] ASC)
+    INCLUDE([ModuleId], [IsPerformaInvoice]);
+

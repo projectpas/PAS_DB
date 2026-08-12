@@ -100,7 +100,8 @@
 											Also appended ' (Stock)'/' (Non-Stock)' to the Label output for the ItemMaster and
 											ItemMasterNonStock branches so callers can distinguish item type in the dropdown text.
     28   31/July/2026  Ayushi Patel         [PN-17489][Item Accounting Type filter] Added dedicated @TableName='InventoryGLSetting'(IsStock=1) and @TableName='InventoryGLSettingNonStock' (IsStock=0)
-    28   05-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
+    29   05-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
+    30   05-Aug-2026   Bhargav Saliya       [PN-17609] Added Oreder By For Site DATA
 
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0
@@ -500,6 +501,7 @@ AS BEGIN
 							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
                              FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                             ORDER BY Label
                          END
 						  ELSE IF(@TableName='PublicationType')BEGIN
                                   SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate

@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SearchShippingDashboardData]
  ** Author: unknown
  ** Description: 
@@ -17,12 +17,13 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	8    12-Aug-2026			 Nakul								Added CustomerReference column/filter/sort for Customer Reference # column on Shipping Dashboard
 
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
-											@Status=NULL,@timeHrs=NULL,@RefNumber=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=212,@QtyShipped=NULL,@QtyRemaining=NULL,@AirwayBill=N''
+											@Status=NULL,@timeHrs=NULL,@RefNumber=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=212,@QtyShipped=NULL,@QtyRemaining=NULL,@AirwayBill=N'',@CustomerReference=NULL
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[SearchShippingDashboardData]
+CREATE PROCEDURE [dbo].[SearchShippingDashboardData]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -47,7 +48,8 @@ CREATE    PROCEDURE [dbo].[SearchShippingDashboardData]
 	@EmployeeId bigint = 1,
 	@QtyShipped varchar(50) = NULL,
 	@QtyRemaining varchar(50) = NULL,
-	@AirwayBill varchar(50) = NULL
+	@AirwayBill varchar(50) = NULL,
+	@CustomerReference varchar(100) = NULL
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -101,8 +103,9 @@ BEGIN
 						ISNULL(WOSI.QtyShipped,0) AS QtyShipped,
 						ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0)  AS QtyRemaining,
 						wo.CreatedDate AS CreatedDate,
-						WOS.AirwayBill AS AirwayBill
-					    FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
+						WOS.AirwayBill AS AirwayBill,
+						Max(wop.CustomerReference) as CustomerReference
+					    FROM DBO.WOPickTicket wopt WITH (NOLOCK)
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 						INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN DBO.ItemMaster imt  WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
@@ -135,7 +138,8 @@ BEGIN
 						ISNULL(SOSI.QtyShipped,0) AS QtyShipped,
 						ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0)  AS QtyRemaining,
 						so.CreatedDate AS CreatedDate,
-						SOS.AirwayBill AS AirwayBill
+						SOS.AirwayBill AS AirwayBill,
+						Max(so.CustomerReference) as CustomerReference
 				        FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
@@ -171,7 +175,8 @@ BEGIN
 						ISNULL(EOSI.QtyShipped,0) AS QtyShipped,
 						ISNULL(sop.QtyRequested,0) - ISNULL(EOSI.QtyShipped,0)  AS QtyRemaining,
 						so.CreatedDate AS CreatedDate,
-						EOS.AirwayBill AS AirwayBill
+						EOS.AirwayBill AS AirwayBill,
+						Max(so.CustomerReference) as CustomerReference
 					from DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 						LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 						INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
@@ -207,7 +212,8 @@ BEGIN
 						ISNULL(ROSI.QtyShipped,0) AS QtyShipped,
 						ISNULL(ropt.QtyToShip,0) - ISNULL(ROSI.QtyShipped,0) AS QtyRemaining,
 						ro.CreatedDate AS CreatedDate,
-						ROS.AirwayBill AS AirwayBill
+						ROS.AirwayBill AS AirwayBill,
+						CAST(NULL as varchar(100)) as CustomerReference
 				        FROM DBO.ROPickTicket ropt WITH (NOLOCK)
 						INNER JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON ropt.RepairOrderId = rop.RepairOrderId AND ropt.RepairOrderPartId = rop.RepairOrderPartRecordId AND ropt.StocklineId = rop.StockLineId
 						INNER JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
@@ -240,7 +246,8 @@ BEGIN
 						ISNULL(RMSI.QtyShipped,0) AS QtyShipped,
 						ISNULL(rmpt.QtyToShip,0) - ISNULL(RMSI.QtyShipped,0) AS QtyRemaining,
 						rma.CreatedDate AS CreatedDate,
-						RMS.AirwayBill AS AirwayBill
+						RMS.AirwayBill AS AirwayBill,
+						Max(CASE WHEN SLR.PurchaseOrderId > 0 THEN POR.PurchaseOrderNumber WHEN SLR.RepairOrderId > 0 THEN ROR.RepairOrderNumber ELSE NULL END) as CustomerReference
 				        FROM DBO.RMAPickTicket rmpt WITH (NOLOCK)
 						INNER JOIN DBO.VendorRMADetail rmad WITH (NOLOCK) ON rmpt.VendorRMAId = rmad.VendorRMAId AND rmpt.VendorRMADetailId = rmad.VendorRMADetailId
 						INNER JOIN DBO.VendorRMA rma WITH (NOLOCK) ON rma.VendorRMAId = rmad.VendorRMAId
@@ -249,15 +256,18 @@ BEGIN
 						 LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = rma.VendorId and VS.IsPrimary=1
 						LEFT JOIN DBO.RMAShippingItem RMSI WITH (NOLOCK) ON RMSI.VendorRMADetailId = rmpt.VendorRMADetailId AND RMSI.RMAPickTicketId = rmpt.RMAPickTicketId
 						LEFT JOIN DBO.RMAShipping RMS WITH (NOLOCK) ON RMSI.RMAShippingId = RMS.RMAShippingId
+						LEFT JOIN DBO.Stockline SLR WITH (NOLOCK) ON SLR.StockLineId = rmad.StockLineId
+						LEFT JOIN DBO.PurchaseOrder POR WITH (NOLOCK) ON SLR.PurchaseOrderId = POR.PurchaseOrderId
+						LEFT JOIN DBO.RepairOrder ROR WITH (NOLOCK) ON SLR.RepairOrderId = ROR.RepairOrderId
 				        WHERE rmpt.IsDeleted = 0 and rmpt.MasterCompanyId= @MasterCompanyId and rma.IsDeleted = 0 and rmpt.IsConfirmed=1
 						GROUP BY rmpt.RMAPickTicketId,rma.VendorId,rma.RMANumber,rmad.VendorRMADetailId,imt.partnumber,
 						imt.PartDescription,rma.VendorRMAId,RMSI.QtyShipped,rmpt.QtyToShip,rma.CreatedDate,RMS.AirwayBill
 				),
 				FinalResult AS (
-				SELECT Module, RefId, RefPartId, RefNumber,PickTicketId,Customer,CustomerId, PartNumber, PartDescription, Carrier, ShippingMethod, 
-				timeHrs,QtyShipped,QtyRemaining,CreatedDate, PromisedDate, Status,Priority, AirwayBill FROM Result
+				SELECT Module, RefId, RefPartId, RefNumber,PickTicketId,Customer,CustomerId, PartNumber, PartDescription, Carrier, ShippingMethod,
+				timeHrs,QtyShipped,QtyRemaining,CreatedDate, PromisedDate, Status,Priority, AirwayBill, CustomerReference FROM Result
 				where (
-					(@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR 
+					(@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR
 							(RefNumber like '%' + @GlobalFilter +'%') OR
 							(Customer like '%' + @GlobalFilter +'%') OR
 							(PartNumber like '%' + @GlobalFilter +'%') OR
@@ -270,11 +280,12 @@ BEGIN
 							(QtyRemaining  LIKE '%' +@GlobalFilter+'%') OR
 							(PromisedDate like '%' + @GlobalFilter +'%') OR
 							(Status like '%' + @GlobalFilter +'%') OR
-							(AirwayBill like '%' + @GlobalFilter +'%')
+							(AirwayBill like '%' + @GlobalFilter +'%') OR
+							(CustomerReference like '%' + @GlobalFilter +'%')
 							))
-							OR   
-							(@GlobalFilter = '' AND 
-							(IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and 
+							OR
+							(@GlobalFilter = '' AND
+							(IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and
 							(IsNull(@RefNumber, '') = '' OR RefNumber like  '%'+ @RefNumber +'%') and
 							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
 							(IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
@@ -288,12 +299,13 @@ BEGIN
 							(ISNULL(@QtyShipped,'') ='' OR QtyShipped like '%'+@QtyShipped+'%') AND
 							(ISNULL(@QtyRemaining,'') ='' OR QtyRemaining like '%'+@QtyRemaining+'%') AND
 							(IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') AND
-							(IsNull(@AirwayBill,'') ='' OR AirwayBill like  '%'+@AirwayBill+'%')
+							(IsNull(@AirwayBill,'') ='' OR AirwayBill like  '%'+@AirwayBill+'%') AND
+							(IsNull(@CustomerReference,'') ='' OR CustomerReference like  '%'+@CustomerReference+'%')
 							))),
 					ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
-					SELECT Module, RefId, RefPartId, RefNumber,PickTicketId, Customer,CustomerId,PartNumber, PartDescription, Carrier, ShippingMethod, 
-				timeHrs,QtyShipped,QtyRemaining, PromisedDate, Status,Priority, AirwayBill, NumberOfItems FROM FinalResult, ResultCount
+					SELECT Module, RefId, RefPartId, RefNumber,PickTicketId, Customer,CustomerId,PartNumber, PartDescription, Carrier, ShippingMethod,
+				timeHrs,QtyShipped,QtyRemaining, PromisedDate, Status,Priority, AirwayBill, CustomerReference, NumberOfItems FROM FinalResult, ResultCount
 				ORDER BY  
 				CASE WHEN (@SortOrder=1 and ISNULL(@SortColumn, '') = '') THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='MODULE')  THEN Module END ASC,
@@ -311,6 +323,7 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='Status')  THEN Status END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN Priority END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='AirwayBill')  THEN AirwayBill END ASC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='CustomerReference')  THEN CustomerReference END ASC,
 
 				CASE WHEN (@SortOrder=-1 and @SortColumn='MODULE')  THEN Module END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
@@ -326,9 +339,10 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='PROMISEDDATE')  THEN PromisedDate END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN Priority END DESC,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='AirwayBill')  THEN AirwayBill END DESC
+				CASE WHEN (@SortOrder=-1 and @SortColumn='AirwayBill')  THEN AirwayBill END DESC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC
 
-				OFFSET @RecordFrom ROWS 
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
 		COMMIT  TRANSACTION

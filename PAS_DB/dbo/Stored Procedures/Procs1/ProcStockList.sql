@@ -47,6 +47,7 @@
 	30    08/July/2026	RAJESH GAMI			[PN-17009] - Added computed 'Type' column (Stock/Non-Stock text) for the FieldMaster-driven grid column
 	31    08/July/2026	RAJESH GAMI			[PN-17009] - Renamed computed column 'Type' to 'ItemType'; Added @ItemType filter param + GlobalFilter/specific-filter support so searching 'Stock'/'Non-Stock' matches by IsNonStock flag
 	32    07/Aug/2026	Vishal Suthar		Added filter for Warehouse
+	33    11/08/2026    Sahdev Saliya       Added EngineSerialNumber [PN-17607]
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -128,7 +129,8 @@ CREATE         PROCEDURE [dbo].[ProcStockList]
 	@UnitCost varchar(50)=NULL,
 	@GLAccount varchar(255) = NULL,
 	@PNSource varchar(20) = NULL,
-	@WareHouse varchar(100) = NULL
+	@WareHouse varchar(100) = NULL,
+	@EngineSerialNumber varchar(50) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -293,7 +295,8 @@ BEGIN
 			WHEN stl.[IsDER] = 1 THEN 'DER'
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
-		END AS 'PNSource'
+		END AS 'PNSource',
+		stl.EngineSerialNumber
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -355,7 +358,8 @@ BEGIN
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
-		  (ItemType LIKE '%' +@GlobalFilter+'%')
+		  (ItemType LIKE '%' +@GlobalFilter+'%') OR
+		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		  ))
 		  OR
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
@@ -411,7 +415,8 @@ BEGIN
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults
 		
@@ -519,7 +524,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
 	  END        
@@ -609,7 +616,8 @@ BEGIN
 			WHEN stl.[IsDER] = 1 THEN 'DER'
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
-		END AS 'PNSource'
+		END AS 'PNSource',
+		stl.EngineSerialNumber
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -676,7 +684,8 @@ BEGIN
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
-		(ItemType LIKE '%' +@GlobalFilter+'%')
+		(ItemType LIKE '%' +@GlobalFilter+'%') OR
+		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		))
 		OR
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
@@ -732,7 +741,8 @@ BEGIN
 		AND (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult
         
@@ -841,7 +851,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC   
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -933,7 +945,8 @@ BEGIN
 			WHEN stl.[IsDER] = 1 THEN 'DER'
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
-		END AS 'PNSource'
+		END AS 'PNSource',
+		stl.EngineSerialNumber
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -998,7 +1011,8 @@ BEGIN
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
-		  (ItemType LIKE '%' +@GlobalFilter+'%')))
+		  (ItemType LIKE '%' +@GlobalFilter+'%') OR
+		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		  OR
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
@@ -1053,7 +1067,8 @@ BEGIN
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults
         
@@ -1161,7 +1176,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC		  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -1250,7 +1267,8 @@ BEGIN
 			WHEN stl.[IsDER] = 1 THEN 'DER'
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
-		END AS 'PNSource'
+		END AS 'PNSource',
+		stl.EngineSerialNumber
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1318,7 +1336,8 @@ BEGIN
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
-		(ItemType LIKE '%' +@GlobalFilter+'%')))
+		(ItemType LIKE '%' +@GlobalFilter+'%') OR
+		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		OR
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
@@ -1373,7 +1392,8 @@ BEGIN
 		(IsNull(@UnitCost,'') =''  OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
-		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         
@@ -1482,7 +1502,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        

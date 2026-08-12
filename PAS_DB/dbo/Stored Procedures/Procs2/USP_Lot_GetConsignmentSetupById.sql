@@ -1,29 +1,30 @@
-﻿/*************************************************************           
- ** File:   [USP_Lot_GetConsignmentSetupById]           
+﻿
+/*************************************************************
+ ** File:   [USP_Lot_GetConsignmentSetupById]
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot Setup By Id
  ** Date:   01/08/2023
- ** PARAMETERS:           
+ ** PARAMETERS:
  ** RETURN VALUE:
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author  		Change Description
+ ** --   --------     -------		---------------------------
     1   01/08/2023  Rajesh Gami     Created
+    2   11/08/2026  Nakul           Added MarginPercentId and MarginConsignorPercentId to output
 **************************************************************
 EXEC USP_Lot_GetConsignmentSetupById 2
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetConsignmentSetupById] 
+CREATE PROCEDURE [dbo].[USP_Lot_GetConsignmentSetupById]
 @ConsignmentId bigint =0
 AS
 BEGIN
---[dbo].[USP_Lot_GetConsignmentSetupById]  10
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
   BEGIN TRANSACTION
-	BEGIN			   		
+	BEGIN
 		IF (@ConsignmentId >0)
 		BEGIN
 		SELECT DISTINCT
@@ -44,12 +45,14 @@ BEGIN
 			,ISNULL(LT.ConsigneeId,0)ConsigneeId
 			,ISNULL(LT.IsRevenueSplit,0)IsRevenueSplit
 			,ISNULL(LT.ConsignorPercentId,0)ConsignorPercentId
+			,ISNULL(LT.MarginPercentId,0)MarginPercentId
+			,ISNULL(LT.MarginConsignorPercentId,0)MarginConsignorPercentId
             FROM dbo.LotConsignment LT WITH (NOLOCK)
 			INNER JOIN dbo.LOT L WITH(NOLOCK) on LT.LotId = L.LotId
-			
+
 		 WHERE LT.ConsignmentId = @ConsignmentId AND ISNULL(LT.IsDeleted,0) = 0 AND ISNULL(LT.IsActive,1) = 1
-		  
-		END		
+
+		END
 	END
 	COMMIT  TRANSACTION
   END TRY

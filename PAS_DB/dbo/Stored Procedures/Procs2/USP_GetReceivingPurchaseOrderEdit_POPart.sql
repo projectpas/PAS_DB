@@ -369,7 +369,14 @@ BEGIN
   LEFT JOIN DBO.StocklineDraft StkD_Ser WITH (NOLOCK) ON StkD_Ser.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser.isSerialized = 1 AND StkD_Ser.IsParent = 0 AND ISNULL(StkD_Ser.IsNonStock,0) = 0
   LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND ( StkD_NonSer.IsParent = 1 OR ISNULL(StkD_NonSer.StockLineId,0) = 0 OR StkD_NonSer.Quantity > @maxQtyLimit) AND ISNULL(StkD_NonSer.IsNonStock,0) = 0
   LEFT JOIN DBO.AssetInventoryDraft StkD_Ser_Asset WITH (NOLOCK) ON StkD_Ser_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_Asset.isSerialized = 1 AND StkD_Ser_Asset.IsParent = 0
-  LEFT JOIN DBO.AssetInventoryDraft StkD_NonSer_Asset WITH (NOLOCK) ON StkD_NonSer_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_Asset.isSerialized = 0 AND (StkD_NonSer_Asset.IsParent = 1 OR ISNULL(StkD_NonSer_Asset.AssetInventoryId,0) = 0 OR StkD_NonSer_Asset.Qty > @maxQtyLimit)
+  OUTER APPLY (
+      SELECT TOP 1 AID.*
+      FROM DBO.AssetInventoryDraft AID WITH (NOLOCK)
+      WHERE AID.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId
+        AND AID.isSerialized = 0
+        AND (AID.IsParent = 1 OR ISNULL(AID.AssetInventoryId,0) = 0 OR AID.Qty > @maxQtyLimit)
+      ORDER BY AID.IsParent DESC, AID.AssetInventoryDraftId ASC
+  ) StkD_NonSer_Asset
   LEFT JOIN DBO.StocklineDraft StkD_Ser_NonStk WITH (NOLOCK) ON StkD_Ser_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_NonStk.isSerialized = 1 AND StkD_Ser_NonStk.IsParent = 0 AND ISNULL(StkD_Ser_NonStk.IsNonStock,0) = 1
   LEFT JOIN DBO.StocklineDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND (StkD_NonSer_NonStk.IsParent = 1  OR ISNULL(StkD_NonSer_NonStk.StockLineId,0) = 0 OR StkD_NonSer_NonStk.Quantity > @maxQtyLimit ) AND ISNULL(StkD_NonSer_NonStk.IsNonStock,0) = 1
   WHERE part.PurchaseOrderId = @PurchaseOrderId

@@ -55,6 +55,23 @@
     [IsStandardInvoicePosted]     BIT             NULL,
     [CreditMemoHeaderId]          BIGINT          NULL,
     [IntegrationTypeId]           INT             NULL,
+    -- Set to 1 by USP_ReOpenSalesOrderInvoice when a posted invoice is re-opened. Unlike IsInvoicePosted/
+    -- PostedDate (which get cleared on re-open so the invoice looks editable again), this flag is never
+    -- cleared - it's the only reliable "this invoice was posted at least once" signal once InvoiceStatus/
+    -- IsInvoicePosted have been reset back to Reviewed. Used by the UI to keep "Print Invoice" enabled
+    -- for a re-opened invoice even though its current status alone would otherwise suggest it's a brand
+    -- new, never-posted draft with nothing to print.
+    [IsReOpened]                  BIT             CONSTRAINT [DF_BillingInvoicing_IsReOpened] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
+GO
+-- Added to fix USP_Lot_GetAllLotViewsByLotId_Filter timeouts: this table has no index besides the PK,
+-- so the LEFT JOIN on ReferenceId/ModuleId (e.g. "so.SalesOrderId = sobi.ReferenceId ... AND
+-- sobi.ModuleId = @SOModuleId") forces a full scan of this (system-wide, likely very large) table for
+-- every matching Sales Order row. This makes that lookup a seek.
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_ReferenceId_ModuleId]
+    ON [dbo].[BillingInvoicing]([ReferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([InvoiceNo], [InvoiceDate], [IsVersionIncrease], [IsPerformaInvoice], [MasterCompanyId]);
 

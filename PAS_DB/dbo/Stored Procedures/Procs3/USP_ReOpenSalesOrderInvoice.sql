@@ -24,6 +24,14 @@
 										added PAS accounting reversal (USP_ReverseSOInvoiceAccountingEntry),
 										added Sales Order status revert (Closed -> Open)
     4    08/10/2026   Rajesh Gami		Sales Order status revert now also applies when SO status is Invoiced (not just Closed)
+    5    11-Aug-2026  Rajesh Gami		[PN-17636] Fixed a real bug found during review: the SO status revert was setting
+										StatusId = @InvoicedStatusId instead of @OpenStatusId (the @OpenStatusId
+										variable was declared but never used) - re-opening a Closed/Invoiced SO
+										was putting it BACK to Invoiced instead of Open. Also fixed a mangled
+										apostrophe in the payment-guard message, and added [IsReOpened] = 1 to
+										the update (new persistent BillingInvoicing.IsReOpened column) so the UI
+										can keep "Print Invoice" enabled after re-open even though InvoiceStatus/
+										IsInvoicePosted get reset to look like a fresh, never-posted draft.
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
@@ -95,6 +103,10 @@ BEGIN
 				[InvoiceStatus] = @ReviewedStatus,
 				[IsInvoicePosted] = 0,
 				[PostedDate] = NULL,
+				-- IsReOpened is never cleared back to 0 - it's the one flag that survives this reset,
+				-- so the UI can still tell this invoice was posted/printed before even after
+				-- IsInvoicePosted/PostedDate/InvoiceStatus are reverted to look like a fresh draft.
+				[IsReOpened] = 1,
 				[UpdatedBy] = @UpdatedBy
 		WHERE	[BillingInvoicingId] = @BillingInvoicingId
 

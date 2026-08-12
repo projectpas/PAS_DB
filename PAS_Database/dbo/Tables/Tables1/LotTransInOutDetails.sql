@@ -30,4 +30,11 @@
     CONSTRAINT [FK_LotTransInOutDetails_Lot] FOREIGN KEY ([LotId]) REFERENCES [dbo].[Lot] ([LotId]),
     CONSTRAINT [FK_LotTransInOutDetails_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_LotTransInOutDetails_LotId]
+    ON [dbo].[LotTransInOutDetails]([LotId] ASC)
+    INCLUDE([StockLineId], [QtyToTransIn], [QtyToTransOut], [ReferenceNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-11: supports USP_Lot_GetAllLotViewsByLotId_Filter's "WHERE ltin.LotId = @LotId"
+-- filter used to build #commonTemp and again in every @Type branch (see
+-- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
 

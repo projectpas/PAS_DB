@@ -19,6 +19,7 @@
 	2    03/27/2023   HEMANT SALIYA		Updated for Add Kit Changes
 	3    03/28/2023   VISHAL SUTHAR		Updated for Add Kit Changes
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 --EXEC [AutoCompleteDropdownsWorkOrderItemMaster] '',20,'',816,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsWorkOrderItemMaster]
@@ -43,7 +44,7 @@ AS
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))    
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))    
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				UNION
 				SELECT DISTINCT TOP 20 
@@ -53,7 +54,7 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 					JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))    
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))    
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				UNION     
 				SELECT DISTINCT TOP 20 

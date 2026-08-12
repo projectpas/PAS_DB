@@ -19,6 +19,7 @@
     2    06/14/2024   Vishal Suthar Increased Limit of records from 20 to 50 for Item Master Module
 	3    08/27/2024   Hemant Saliya Updated for Include Non - Serialize part as well
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
      
 -- EXEC AutoCompleteDropdownsItemMasterKit 'ItemMaster','ItemMasterId','PartNumber','',1,'20','0',1
 **************************************************************/
@@ -54,7 +55,7 @@ BEGIN
 			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId,im.ManufacturerName As ManufacturerName 
-			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
+			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND (Im.PartNumber like '%'+ @Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
 		   AND ISNULL(IM.IsNonStock,0) = 0
 		  END		  	 
      END    
@@ -82,7 +83,7 @@ BEGIN
 			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName
-			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
+			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND (Im.PartNumber like '%'+ @Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
 		  
 		 AND ISNULL(IM.IsNonStock,0) = 0
 		END		 		  

@@ -31,6 +31,16 @@
 	18   08-JULY-2026 Priyansh Patel    Changed UnitSalesPrice price to NetSaleAmount for soq [PN-17130]
 	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	20    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 7 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	21   11-Aug-2026	 RAJESH GAMI						Perf fix (timeout on lots with high LotCalculationDetails volume, e.g. 22k+ rows):
+														(a) Added supporting indexes on LotTransInOutDetails.LotId, LotCalculationDetails.LotTransInOutId,
+														    BillingInvoicing.(ReferenceId,ModuleId) and BillingInvoicingItems.(BillingInvoicingId,SubReferenceId) -
+														    these joins/filters had no index besides each table's PK, forcing full scans.
+														(b) ViewAllPN branch: the PN-14039 dedup-by-StockLineId join referenced the "Result" CTE twice
+														    (once as t, once for the MAX(CreatedDate) subquery). SQL Server could not spool/reuse it because
+														    the LotManagementStructureDetails join calls the multi-statement SplitString() function, so the
+														    entire join was silently running TWICE per call. Materialized Result into a #Result temp table
+														    (built once, with a clustered index on StockLineId+CreatedDate) so it's computed once and read twice.
+														    See UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full before/after review.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -200,7 +210,17 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN
-				;WITH Result AS (SELECT DISTINCT 
+				-- PERF FIX: Result used to be a CTE referenced twice below (once for t, once for the
+				-- MAX(CreatedDate) dedup subquery). SQL Server does not cache/share a CTE's result
+				-- across multiple references in the same statement - especially here, since the
+				-- LotManagementStructureDetails join calls the multi-statement SplitString() function,
+				-- which blocks the optimizer from spooling/reusing it. That meant the entire ~10-way
+				-- join below was actually running TWICE per call. Materializing it into #Result once
+				-- (with a supporting clustered index) and reading that twice instead cuts this
+				-- branch's work roughly in half. See
+				-- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full before/after review.
+				IF OBJECT_ID('tempdb..#Result') IS NOT NULL DROP TABLE #Result
+				SELECT DISTINCT
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -307,6 +327,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(sobi.InvoiceDate AS DATE) InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
+				INTO #Result
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -320,17 +341,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
-					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
+					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
+				-- PERF FIX: see comment above the #Result build for why this is materialized instead
+				-- of a doubly-referenced CTE.
+				CREATE CLUSTERED INDEX IX_Result_StockLineId_CreatedDate ON #Result(StockLineId, CreatedDate)
 
 				SELECT t.*
 						INTO #TempResult
-						FROM Result t
+						FROM #Result t
 						JOIN (
 							SELECT StockLineId, MAX(CreatedDate) AS MaxDate
-							FROM Result
+							FROM #Result
 							GROUP BY StockLineId
 						) x ON t.StockLineId = x.StockLineId
 						   AND t.CreatedDate = x.MaxDate

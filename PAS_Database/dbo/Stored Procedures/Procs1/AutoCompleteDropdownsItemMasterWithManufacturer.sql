@@ -25,6 +25,7 @@
 	10   18/06/2026   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12   04-Aug-2026  Rajesh Gami		[PN-17009] Merge Non-Stock Inventory into Stockline: added @IsNonStock
+	13   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 									BIT = 0 param (default 0 preserves existing Stock-only behavior for all
 									current callers). Filters rows by ISNULL(Im.IsNonStock,0) = @IsNonStock
 									and appends ' (Stock)'/' (Non-Stock)' to the Label so the Stockline PN
@@ -171,7 +172,7 @@ BEGIN
 		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))      
      
 	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	 UNION   
@@ -306,7 +307,7 @@ BEGIN
 		LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')  
     
 	 AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	UNION   

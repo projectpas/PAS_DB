@@ -4635,6 +4635,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWorkOrderTATReport.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

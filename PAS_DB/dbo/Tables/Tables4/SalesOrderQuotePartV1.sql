@@ -33,10 +33,13 @@
     [StatusName]               VARCHAR (100)   NULL,
     [OldSalesOrderQuotePartId] BIGINT          NULL,
     [UnitSalesPrice]           DECIMAL (18, 2) NULL,
+    [SequenceNumber]           BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuotePartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 
 
 

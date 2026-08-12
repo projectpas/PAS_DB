@@ -38,5 +38,6 @@
     [CreatedBy]                  VARCHAR (100)   NULL,
     [IsNoQuote]                  BIT             NULL,
     [IsLotAssigned]              BIT             NULL,
-    [LotId]                      BIGINT          NULL);
+    [LotId]                      BIGINT          NULL,
+    [SequenceNumber]             INT             NULL);
 

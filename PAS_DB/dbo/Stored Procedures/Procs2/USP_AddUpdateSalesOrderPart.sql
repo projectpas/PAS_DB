@@ -24,6 +24,7 @@
 	9    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SO part stockline.
 	10   30/July/2026	  MOIN BLOCH        [PN-17485] - Added [IsService],[IsNonStock] Conditions If IsNonStock then Create StockLine
 	11   01/July/2026	  MOIN BLOCH        [PN-17485] - Update QtyOnhand And Qty Reserved in Stockline on update Part Qty
+	12   05/Aug/2026	  KISHOR MAKWANA    [PN-17439] - Added SequenceNumber to persist user-editable Item No on Sales Order parts
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -31,7 +32,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE    PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -91,19 +92,20 @@ BEGIN
 		Weight decimal(18,4),
 		SizeLength decimal(18,4),
 		SizeWidth decimal(18,4),
-		SizeHeight decimal(18,4)
+		SizeHeight decimal(18,4),
+		SequenceNumber BIGINT
 	)
 
 	INSERT INTO #SOPartDetails (SalesOrderPartId,SalesOrderId,ItemMasterId,ConditionId,PriorityId,StocklineId,SalesOrderStocklineId,StatusId,
 	QtyRequested,QtyOrder,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
 	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,
-	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,SequenceNumber)
 	SELECT SalesOrderPartId,SalesOrderId,ItemMasterId,ConditionId,PriorityId,StocklineId,SalesOrderStocklineId,StatusId,
 	QtyRequested,QtyOrder,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
 	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,
-	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight
+	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,SequenceNumber
 	FROM @tbl_SalesOrderPartList;
 
 	SELECT @SOPartLoopID = MAX(ID) FROM #SOPartDetails;
@@ -140,21 +142,23 @@ BEGIN
 		DECLARE @SizeLength AS decimal(18,4);
 		DECLARE @SizeWidth AS decimal(18,4);
 		DECLARE @SizeHeight AS decimal(18,4);
+		DECLARE @SequenceNumber AS BIGINT;
 		DECLARE @PriorityId BIGINT = 0, @StocklineCount int = 0;
 
 		SELECT @SalesOrderPartId = SalesOrderPartId, @SalesOrderId = SalesOrderId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
-		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
+		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes,
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
-		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight,@PriorityId = PriorityId
+		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight,@PriorityId = PriorityId,
+		@SequenceNumber = SequenceNumber
 		FROM #SOPartDetails WHERE ID = @SOMInID;
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
 			SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';
 
-			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
+			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND ISNULL(SequenceNumber,0) = ISNULL(@SequenceNumber,0))
 			BEGIN
 				DECLARE @CurrencyCode VARCHAR(10) = '';
 				DECLARE @CurrencyId BIGINT = 0,@IsService BIT = 0,@IsNonStock BIT = 0								 
@@ -164,8 +168,8 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = CF.CustomerId
 				WHERE SO.SalesOrderId = @SalesOrderId;
 
-				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType],UnitSalesPrice)
-				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType],UnitSalesPrice
+				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType],UnitSalesPrice,SequenceNumber)
+				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType],UnitSalesPrice,SequenceNumber
 				FROM #SOPartDetails WHERE ID = @SOMInID;
 
 				SET @SalesOrderPartId = SCOPE_IDENTITY();
@@ -207,7 +211,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				SELECT @SalesOrderPartId = SalesOrderPartId FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND SalesOrderId = @SalesOrderId;
+				SELECT @SalesOrderPartId = SalesOrderPartId FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND SalesOrderId = @SalesOrderId AND ISNULL(SequenceNumber,0) = ISNULL(@SequenceNumber,0);
 			END
 
 			IF (@StockLineId IS NOT NULL AND @StockLineId > 0) -- Added at Stockline Level
@@ -247,7 +251,7 @@ BEGIN
 			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;
 			DECLARE @ExistingQtyReq INT,@ExistingPriority INT,@ExistingUnitSales DECIMAL;
 
-			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = PriorityId  FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = PriorityId  FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId  AND SOP.SequenceNumber = @SequenceNumber;
 			IF(@SalesOrderStocklineId > 0)
 			BEGIN
 				 SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderStocklineId = @SalesOrderStocklineId;
@@ -271,7 +275,8 @@ BEGIN
 			SizeWidth = @SizeWidth,
 			SizeHeight = @SizeHeight,
 			PriorityId = @PriorityId,
-			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END)
+			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END),
+			SequenceNumber = @SequenceNumber
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			UPDATE [DBO].[SalesOrderPartV1]
@@ -361,18 +366,18 @@ BEGIN
 				SOP.QtyOrder = QS.TotalQtyQuoted
 			FROM [DBO].[SalesOrderPartV1] SOP
 				INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
-			WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			WHERE SOP.SalesOrderPartId = @SalesOrderPartId  AND SOP.SequenceNumber =@SequenceNumber;
 
 
-			IF EXISTS(SELECT * FROM #SOPartDetails WHERE  SalesOrderPartId = @SalesOrderPartId)
+			IF EXISTS(SELECT * FROM #SOPartDetails WHERE  SalesOrderPartId = @SalesOrderPartId  AND SequenceNumber = @SequenceNumber)
 			BEGIN
 				;WITH QuotedSumsNoStockline AS (
-					SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
+					SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted ,SOP.SequenceNumber
 					FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
-						INNER JOIN #SOPartDetails AS SPD  WITH (NOLOCK) ON  SPD.SalesOrderPartId = SOP.SalesOrderPartId
+						INNER JOIN #SOPartDetails AS SPD  WITH (NOLOCK) ON  SPD.SalesOrderPartId = SOP.SalesOrderPartId  and SPD.SequenceNumber= SOP.SequenceNumber
 						LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
 					WHERE SOS.SalesOrderPartId IS NULL
-					GROUP BY SOP.SalesOrderPartId
+					GROUP BY SOP.SalesOrderPartId ,SOP.SequenceNumber
 				)
 
 				UPDATE SOP
@@ -380,7 +385,7 @@ BEGIN
 					SOP.QtyOrder = CASE WHEN QS.TotalQtyQuoted > 0 THEN QS.TotalQtyQuoted ELSE SOP.QtyOrder END
 				FROM [DBO].[SalesOrderPartV1] SOP
 					INNER JOIN QuotedSumsNoStockline QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
-				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+				WHERE SOP.SalesOrderPartId = @SalesOrderPartId  AND SOP.SequenceNumber = @SequenceNumber;
 			END
 
 			IF NOT EXISTS (SELECT TOP 1 1 FROM [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
@@ -388,7 +393,7 @@ BEGIN
 				UPDATE SOP
 				SET SOP.QtyOrder = CASE WHEN @IsQtyRequestedModified = 1 THEN @QtyRequested ELSE @QtyOrder END
 				FROM [DBO].[SalesOrderPartV1] SOP
-				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+				WHERE SOP.SalesOrderPartId = @SalesOrderPartId AND SOP.SequenceNumber= @SequenceNumber;;
 			END
 			
 			-- Update Stock Line For Non-Stock On Update

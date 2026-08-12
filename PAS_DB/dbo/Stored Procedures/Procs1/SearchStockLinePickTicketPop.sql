@@ -21,14 +21,16 @@
 	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	12    31/July/2026			 MOIN BLOCH	  					    [PN-17513] - Added IsNonStock=1 filters so Non-Stock parts not appear on the pick ticket.
 	12    03/Aug/2026			 MOIN BLOCH	  					    [PN-17542] - Fix For Non-Stock Non-Service data need to come
+	13    05/Aug/2026			 KISHOR MAKWANA					    [PN-17439] - Added @SalesOrderPartId so duplicate part+condition lines (different SequenceNumber) don't collide in the single-line popup
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 103607, 7, 11269, 0
-**************************************************************/ 
-CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
-	@ItemMasterIdlist bigint, 
+**************************************************************/
+CREATE    PROCEDURE [dbo].[SearchStockLinePickTicketPop]
+	@ItemMasterIdlist bigint,
 	@ConditionId BIGINT,
 	@SalesOrderId bigint,
-	@IsMultiplePickTicket bit = 0
+	@IsMultiplePickTicket bit = 0,
+	@SalesOrderPartId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -180,13 +182,15 @@ BEGIN
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
-				WHERE 				    
+				WHERE
 					(ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1) AND
-					im.ItemMasterId = @ItemMasterIdlist AND 
-					so.SalesOrderId = @SalesOrderId AND 
-					((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
+					im.ItemMasterId = @ItemMasterIdlist AND
+					sop.ConditionId = @ConditionId AND
+					(@SalesOrderPartId IS NULL OR sop.SalesOrderPartId = @SalesOrderPartId) AND
+					so.SalesOrderId = @SalesOrderId AND
+					((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK)
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
+						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) -
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)
 					) > 0
 					 END

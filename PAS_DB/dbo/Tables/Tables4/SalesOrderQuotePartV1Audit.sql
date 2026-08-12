@@ -34,6 +34,7 @@
     [StatusName]                 VARCHAR (100)   NULL,
     [OldSalesOrderQuotePartId]   BIGINT          NULL,
     [UnitSalesPrice]             DECIMAL (18, 2) NULL,
+    [SequenceNumber]             BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
 

@@ -28,10 +28,10 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from part join and WHERE clause.
-
+	15    06/Aug/2026			 KISHOR MAKWANA						[PN-17439] - Concate Sequence Number With Part.
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
+CREATE    PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
 AS
 BEGIN
@@ -126,7 +126,7 @@ BEGIN
 			part.CreatedDate createdDate,
 			part.UpdatedBy updatedBy,
 			part.UpdatedDate updatedDate,
-			itemMaster.PartNumber partNumber,
+			CAST(part.SequenceNumber AS VARCHAR(10)) +' - '+ itemMaster.PartNumber AS partNumber,
 			itemMaster.PartDescription partDescription,
 			itemMaster.IsOEM isOEM,
 			itemMaster.IsPMA AS isPMA,
@@ -199,7 +199,7 @@ BEGIN
 			--						AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
 			--		END
 			--	END AS freight,
-			ISNULL((SELECT SUM(b.Amount) FROM DBO.SalesOrderFreight b WITH (NOLOCK) WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0 AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0) AS freight,
+			ISNULL((SELECT SUM(b.Amount) FROM DBO.SalesOrderFreight b WITH (NOLOCK) WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0 AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId AND b.SalesOrderPartId=part.SalesOrderPartId), 0) AS freight,
 			0 AS sobillingInvoicingItemId,
 			@IsInvoiceGenerated isInvoiceGenerated,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOPC.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
@@ -225,7 +225,7 @@ BEGIN
 	    LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON part.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId AND sp.IsDeleted = 0 AND sp.IsActive =1
 		LEFT JOIN DBO.BillingInvoicingItems sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SubReferenceId AND stk.StockLineId = sob.StockLineId AND ISNULL(sob.IsVersionIncrease,0) = 0 AND ISNULL(sob.IsPerformaInvoice,0) = 0  AND sob.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.BillingInvoicing sbi WITH (NOLOCK) ON sob.BillingInvoicingId = sbi.BillingInvoicingId AND sbi.ReferenceId = @SalesOrderId AND ISNULL(sbi.IsPerformaInvoice,0) = 0 AND sbi.[ModuleId] =@SOModuleId
-		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
+		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.SalesOrderPartId = part.SalesOrderPartId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
 		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0 ;

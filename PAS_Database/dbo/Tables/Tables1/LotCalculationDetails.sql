@@ -47,4 +47,11 @@
     CONSTRAINT [PK_LotCalculationDetails] PRIMARY KEY CLUSTERED ([LotCalculationId] ASC),
     CONSTRAINT [FK_LotCalculationDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_LotCalculationDetails_LotTransInOutId]
+    ON [dbo].[LotCalculationDetails]([LotTransInOutId] ASC)
+    INCLUDE([Type], [ReferenceId], [ChildId], [Qty], [TransferredInCost], [TransferredOutCost], [SalesUnitPrice], [ExtSalesUnitPrice], [MarginAmount], [CommissionExpense], [CreatedDate]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-11: this was the primary fix for the USP_Lot_GetAllLotViewsByLotId_Filter timeout -
+-- supports "INNER JOIN ... ltCal ON ltin.LotTransInOutId = ltCal.LotTransInOutId" used in every
+-- @Type branch (see UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
 

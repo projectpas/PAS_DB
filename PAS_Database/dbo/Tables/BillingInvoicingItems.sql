@@ -60,4 +60,11 @@
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicingItems_BillingInvoicingId_SubReferenceId]
+    ON [dbo].[BillingInvoicingItems]([BillingInvoicingId] ASC, [SubReferenceId] ASC)
+    INCLUDE([ModuleId], [IsPerformaInvoice]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-11: supports USP_Lot_GetAllLotViewsByLotId_Filter's LEFT JOIN
+-- "sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId"
+-- (see UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
 

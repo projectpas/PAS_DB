@@ -57,4 +57,11 @@
     [IntegrationTypeId]           INT             NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_ReferenceId_ModuleId]
+    ON [dbo].[BillingInvoicing]([ReferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([InvoiceNo], [InvoiceDate], [IsVersionIncrease], [IsPerformaInvoice], [MasterCompanyId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-11: supports USP_Lot_GetAllLotViewsByLotId_Filter's LEFT JOIN
+-- "so.SalesOrderId = sobi.ReferenceId ... AND sobi.ModuleId = @SOModuleId" (see
+-- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
 

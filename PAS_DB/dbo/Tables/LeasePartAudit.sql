@@ -6,11 +6,9 @@
     [PN]                NVARCHAR (100) NULL,
     [PNDescription]     NVARCHAR (500) NULL,
     [UOM]               NVARCHAR (50)  NULL,
-    [QtyRequested]      INT            NOT NULL,
     [QtyOrder]          INT            NOT NULL,
     [QtyReserved]       INT            NOT NULL,
     [ConditionId]       BIGINT         NOT NULL,
-    [OEMPMA]            NVARCHAR (100) NULL,
     [AircraftSectionId] BIGINT         NULL,
     [StartDate]         DATE           NULL,
     [EndDate]           DATE           NULL,
@@ -20,9 +18,9 @@
     [IsActive]          BIT            NOT NULL,
     [IsDeleted]         BIT            NOT NULL,
     [MasterCompanyId]   INT            NOT NULL,
-    [CreatedBy]         BIGINT         NULL,
+    [CreatedBy]         VARCHAR (256)  NOT NULL,
     [CreatedDate]       DATETIME       NULL,
-    [UpdatedBy]         BIGINT         NULL,
+    [UpdatedBy]         VARCHAR (256)  NOT NULL,
     [UpdatedDate]       DATETIME       NULL,
     CONSTRAINT [PK_LeasePartAudit] PRIMARY KEY CLUSTERED ([LeasePartAuditId] ASC)
 );

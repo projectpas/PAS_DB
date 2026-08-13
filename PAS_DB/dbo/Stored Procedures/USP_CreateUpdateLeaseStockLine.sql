@@ -45,8 +45,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@RepairOrderId BIGINT = NULL,
 	@WorkOrderId BIGINT = NULL,
 	@MasterCompanyId INT,
-	@CreatedBy BIGINT,
-	@UpdatedBy BIGINT
+	@CreatedBy VARCHAR(256),
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -110,7 +110,7 @@ BEGIN
 				WorkOrderId           = @WorkOrderId,
 				WorkOrderNo           = @WorkOrderNo,
 				UpdatedBy             = @UpdatedBy,
-				UpdatedDate           = SYSDATETIME()
+				UpdatedDate           = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 		END
 		ELSE
@@ -129,7 +129,7 @@ BEGIN
 				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
 				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo,
-				@MasterCompanyId, @CreatedBy, @UpdatedBy, SYSDATETIME(), SYSDATETIME(), 1, 0
+				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 
 			SET @LeaseStocklineId = SCOPE_IDENTITY();

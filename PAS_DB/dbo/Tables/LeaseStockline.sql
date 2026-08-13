@@ -32,10 +32,10 @@
     [IsActive]             BIT             CONSTRAINT [DF_LeaseStockline_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT             CONSTRAINT [DF_LeaseStockline_IsDeleted] DEFAULT ((0)) NOT NULL,
     [MasterCompanyId]      INT             NOT NULL,
-    [CreatedBy]            BIGINT          NULL,
-    [CreatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_CreatedDate] DEFAULT (sysdatetime()) NULL,
-    [UpdatedBy]            BIGINT          NULL,
-    [UpdatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_UpdatedDate] DEFAULT (sysdatetime()) NULL,
+    [CreatedBy]            VARCHAR (256)   NOT NULL,
+    [CreatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_CreatedDate] DEFAULT (getutcdate()) NULL,
+    [UpdatedBy]            VARCHAR (256)   NOT NULL,
+    [UpdatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [RateUnit]             NVARCHAR (50)   NULL,
     [BillingMethod]        NVARCHAR (50)   NULL,
     [MaintenancePer]       NVARCHAR (50)   NULL,
@@ -44,6 +44,8 @@
     CONSTRAINT [PK_LeaseStockline] PRIMARY KEY CLUSTERED ([LeaseStocklineId] ASC),
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

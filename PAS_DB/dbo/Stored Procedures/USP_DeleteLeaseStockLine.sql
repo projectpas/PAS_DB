@@ -11,11 +11,11 @@
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked to check QtyReserved directly (no ledger table)
 
-exec USP_DeleteLeaseStockLine @LeaseStocklineId=1,@UpdatedBy=1
+exec USP_DeleteLeaseStockLine @LeaseStocklineId=1,@UpdatedBy=''
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DeleteLeaseStockLine]
 	@LeaseStocklineId BIGINT,
-	@UpdatedBy BIGINT
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -35,7 +35,7 @@ BEGIN
 		END
 
 		UPDATE [dbo].[LeaseStockline]
-		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = SYSDATETIME()
+		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		SELECT 1 AS Status, 'Removed successfully' AS Message;

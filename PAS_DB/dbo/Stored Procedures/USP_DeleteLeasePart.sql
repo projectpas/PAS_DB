@@ -15,7 +15,7 @@ exec USP_DeleteLeasePart @LeasePartId=1,@UpdatedBy=1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DeleteLeasePart]
 	@LeasePartId BIGINT,
-	@UpdatedBy BIGINT
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -35,11 +35,11 @@ BEGIN
 		END
 
 		UPDATE [dbo].[LeaseStockline]
-		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = SYSDATETIME()
+		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 		WHERE LeasePartId = @LeasePartId;
 
 		UPDATE [dbo].[LeasePart]
-		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = SYSDATETIME()
+		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 		WHERE LeasePartId = @LeasePartId;
 
 		SELECT 1 AS Status, 'Removed successfully' AS Message;

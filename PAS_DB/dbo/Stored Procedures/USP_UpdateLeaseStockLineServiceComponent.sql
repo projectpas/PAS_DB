@@ -23,7 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_UpdateLeaseStockLineServiceComponent]
 	@InsurancePer NVARCHAR(50) = NULL,
 	@Taxes DECIMAL(18,2) = NULL,
 	@TaxesPer NVARCHAR(50) = NULL,
-	@UpdatedBy BIGINT
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -39,7 +39,7 @@ BEGIN
 			Taxes          = @Taxes,
 			TaxesPer       = @TaxesPer,
 			UpdatedBy      = @UpdatedBy,
-			UpdatedDate    = SYSDATETIME()
+			UpdatedDate    = GETUTCDATE()
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		SELECT * FROM [dbo].[LeaseStockline] WITH (NOLOCK) WHERE LeaseStocklineId = @LeaseStocklineId;

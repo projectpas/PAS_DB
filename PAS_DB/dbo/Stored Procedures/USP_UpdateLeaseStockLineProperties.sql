@@ -15,7 +15,7 @@
 exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@PricingMethod=N'FlatRate',@OutrightPrice=NULL,
 @FlatRate=500,@RateUnit=N'Cycle',@BillingMethod=N'FlatRatePlusOverrun',@BillingInterval=N'Monthly',
 @MinimumCycles=100,@MinimumTimes=50,@MaximumCycles=400,@MaximumTimes=200,
-@UsagePerUnitCycles=12,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=18,@OverrunPerUnitTimes=NULL,@UpdatedBy=1
+@UsagePerUnitCycles=12,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=18,@OverrunPerUnitTimes=NULL,@UpdatedBy=''
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@LeaseStocklineId BIGINT,
@@ -33,7 +33,7 @@ CREATE   PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@UsagePerUnitTimes DECIMAL(18,2) = NULL,
 	@OverrunPerUnitCycles DECIMAL(18,2) = NULL,
 	@OverrunPerUnitTimes DECIMAL(18,2) = NULL,
-	@UpdatedBy BIGINT
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -57,7 +57,7 @@ BEGIN
 			OverrunPerUnitCycles  = @OverrunPerUnitCycles,
 			OverrunPerUnitTimes   = @OverrunPerUnitTimes,
 			UpdatedBy             = @UpdatedBy,
-			UpdatedDate           = SYSDATETIME()
+			UpdatedDate           = GETUTCDATE()
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		SELECT * FROM [dbo].[LeaseStockline] WITH (NOLOCK) WHERE LeaseStocklineId = @LeaseStocklineId;

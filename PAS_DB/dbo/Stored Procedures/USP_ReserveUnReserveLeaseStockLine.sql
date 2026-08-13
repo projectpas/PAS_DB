@@ -12,13 +12,13 @@
  ** --   --------       -------                 --------------------------------
     1    10/08/2026     Amit Ghediya            Created
 
-exec USP_ReserveUnReserveLeaseStockLine @LeaseStocklineId=1,@Qty=1,@IsReserve=1,@UpdatedBy=1
+exec USP_ReserveUnReserveLeaseStockLine @LeaseStocklineId=1,@Qty=1,@IsReserve=1,@UpdatedBy=''
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReserveUnReserveLeaseStockLine]
 	@LeaseStocklineId BIGINT,
 	@Qty INT,
 	@IsReserve BIT,
-	@UpdatedBy BIGINT
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -53,7 +53,7 @@ BEGIN
 			SET QtyOrder = QtyOrder - @Qty,
 				QtyReserved = QtyReserved + @Qty,
 				UpdatedBy = @UpdatedBy,
-				UpdatedDate = SYSDATETIME()
+				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 
 			UPDATE [dbo].[Stockline]
@@ -64,7 +64,7 @@ BEGIN
 			UPDATE [dbo].[LeasePart]
 			SET QtyReserved = QtyReserved + @Qty,
 				UpdatedBy = @UpdatedBy,
-				UpdatedDate = SYSDATETIME()
+				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
 		END
 		ELSE
@@ -80,7 +80,7 @@ BEGIN
 			SET QtyReserved = QtyReserved - @Qty,
 				QtyOrder = QtyOrder + @Qty,
 				UpdatedBy = @UpdatedBy,
-				UpdatedDate = SYSDATETIME()
+				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 
 			UPDATE [dbo].[Stockline]
@@ -91,7 +91,7 @@ BEGIN
 			UPDATE [dbo].[LeasePart]
 			SET QtyReserved = QtyReserved - @Qty,
 				UpdatedBy = @UpdatedBy,
-				UpdatedDate = SYSDATETIME()
+				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
 		END
 

@@ -12,7 +12,7 @@
 exec USP_CreateUpdateLeasePart
 @LeasePartId=0,@LeaseHeaderId=1,@ItemMasterId=1,@ConditionId=1,@QtyRequested=1,@QtyOrder=1,@AircraftSectionId=NULL,
 @StartDate=NULL,@EndDate=NULL,@POId=NULL,@PONumber=NULL,@StatusId=1,
-@MasterCompanyId=1,@CreatedBy=1,@UpdatedBy=1
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy=''
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeasePart]
 	@LeasePartId BIGINT = 0,
@@ -28,8 +28,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeasePart]
 	@PONumber VARCHAR(256) = NULL,
 	@StatusId INT = 1,
 	@MasterCompanyId INT,
-	@CreatedBy BIGINT,
-	@UpdatedBy BIGINT
+	@CreatedBy VARCHAR(256),
+	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -65,7 +65,7 @@ BEGIN
 				PONumber          = @PONumber,
 				StatusId          = @StatusId,
 				UpdatedBy         = @UpdatedBy,
-				UpdatedDate       = SYSDATETIME()
+				UpdatedDate       = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
 		END
 		ELSE
@@ -80,7 +80,7 @@ BEGIN
 			(
 				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @UOM, @QtyRequested, @QtyOrder, 0,
 				@ConditionId, @OEMPMA, @AircraftSectionId, @StartDate, @EndDate, @POId, @PONumber, @StatusId,
-				@MasterCompanyId, @CreatedBy, @UpdatedBy, SYSDATETIME(), SYSDATETIME(), 1, 0
+				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 
 			SET @LeasePartId = SCOPE_IDENTITY();

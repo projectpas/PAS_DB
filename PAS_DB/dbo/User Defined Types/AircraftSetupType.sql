@@ -18,5 +18,6 @@
     [ItemgroupId]          BIGINT        NULL,
     [SiteId]               BIGINT        NULL,
     [WorkScopeId]          BIGINT        NULL,
-    [ConditionId]          BIGINT        NULL);
+    [ConditionId]          BIGINT        NULL,
+    [IsAllowWorksheets]    BIT           NULL);
 

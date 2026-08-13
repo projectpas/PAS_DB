@@ -4787,6 +4787,14 @@
     <Build Include="dbo\Stored Procedures\USP_LeaseHeaderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
+    <Build Include="dbo\Tables\ILSConditionMapping.sql" />
+    <Build Include="dbo\Views\vw_ILSConditions.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionMapping.sql" />
+    <Build Include="dbo\Views\vw_ILSConditions.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

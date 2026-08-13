@@ -18,9 +18,20 @@ EXEC [USP_GetNonPOInvoiceEditData_ById]
 ** 7    12/27/2024		AMIT GHEDIYA		 Modify(Added ControlNumber Field)
 ** 8    01-Jan-2025		AYUSHI PATEL		 Get TotalPartCount
 ** 9    28-Jan-2026		SAHDEV SALIYA		 Added DueDate
+** 10   12-Aug-2026		RAJESH GAMI		 Improve Performance : the @totalPartCount subquery now
+									 benefits from IX_NonPOInvoicePartDetails_NonPOInvoiceId_Perf
+									 (added on NonPOInvoicePartDetails.NonPOInvoiceId under this
+									 same ticket for USP_GetNonPOInvoiceList) - previously it was
+									 a full table scan on every single call to this API. Also
+									 removed SELECT DISTINCT (the query is already a single-row
+									 lookup by NonPOInvoiceId's clustered PK, joined 1:1 to two
+									 small lookup tables, so DISTINCT had nothing to deduplicate)
+									 and removed the explicit BEGIN/COMMIT TRANSACTION wrapper
+									 around what is a pure read with no writes - it added
+									 transaction-management overhead for no benefit. [PN-17634]
 
 exec dbo.USP_GetNonPOInvoiceEditData_ById 1,1
-*****************************************************************************************/   
+*****************************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceEditData_ById]
 @NonPOInvoiceId bigint,
@@ -31,10 +42,14 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN 
+			BEGIN
+				-- PERF FIX: this subquery now seeks IX_NonPOInvoicePartDetails_NonPOInvoiceId_Perf
+				-- instead of scanning the whole NonPOInvoicePartDetails table (see history #10).
 				DECLARE @totalPartCount int = (SELECT COUNT(1) FROM dbo.NOnPOInvoicePartDetails WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId)
-				SELECT DISTINCT
+				-- PERF FIX: removed SELECT DISTINCT - this is a single-row lookup by the
+				-- NonPOInvoiceId clustered PK, joined 1:1 to two small lookup tables, so there is
+				-- nothing for DISTINCT to deduplicate.
+				SELECT
 						NPH.[NonPOInvoiceId],
 						NPH.[VendorId],
 						NPH.[VendorName],
@@ -71,14 +86,10 @@ BEGIN
 				 LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
                 WHERE NPH.NonPOInvoiceId = @NonPOInvoiceId AND NPH.MasterCompanyId = @MasterCompanyId
 			END
-		COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
-			IF @@trancount > 0
-				--PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+		END TRY
+		BEGIN CATCH
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_GetNonPOInvoiceEditData_ById' 

@@ -21,6 +21,7 @@
 											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
 											always joined so its name always resolves.
 	3	01-08-2026	  Sumit Kumar			Added required fields [PN-17523]
+	4	 29-07-2026	  Abhishek Jirawala		Adding Tangible Class Id
 
 --  EXEC [UpdateAssetInventoryAttributeColumns] 1123
 **************************************************************/

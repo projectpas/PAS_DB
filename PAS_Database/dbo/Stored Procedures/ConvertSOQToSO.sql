@@ -35,6 +35,7 @@
 	19   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	20   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
 	21   01/Aug/2024   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
+	22   13/Aug/2026   Ayushi Patel		[PN-17604] @ReservedQty/@ReservedQty2 declared decimal 
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -373,7 +374,7 @@ BEGIN
 				BEGIN
 					DECLARE @InsertedReservePartId BIGINT = NULL;
 					DECLARE @StocklineId BIGINT = NULL;
-					DECLARE @ReservedQty INT = NULL;
+					DECLARE @ReservedQty DECIMAL(18,6) = NULL;
 
 					--Set RefrenceNumber
 					SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;
@@ -520,7 +521,7 @@ BEGIN
 					BEGIN
 						DECLARE @InsertedReservePartId2 BIGINT = NULL;
 						DECLARE @StocklineId2 BIGINT = NULL;
-						DECLARE @ReservedQty2 INT = NULL;
+						DECLARE @ReservedQty2 DECIMAL(18,6) = NULL;
 
 						--Set RefrenceNumber
 						SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;

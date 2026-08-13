@@ -4787,6 +4787,20 @@
     <Build Include="dbo\Stored Procedures\USP_LeaseHeaderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineAudit.sql" />
+    <Build Include="dbo\Tables\LeaseStockline.sql" />
+    <Build Include="dbo\Tables\LeasePartAudit.sql" />
+    <Build Include="dbo\Tables\LeasePart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineProperties.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReserveUnReserveLeaseStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReservedLeaseStockPartsListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePartsByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLeaseStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLeasePart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeasePart.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

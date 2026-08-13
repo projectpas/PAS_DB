@@ -30,7 +30,8 @@
 	17   03/Aug/2026  Moin Bloch		[PN-17540] - Fix For Duplicate Issue
 	18   11-Aug-2026  Rajesh Gami		[PN-17636] Added IsReOpen Flag to handle the Reopen Invoice
 	19   05/Aug/2026  Kishor Makwana	[PN-17439] - Modify SO & SOQ Part Grid logic to allow duplicate PN + Condition rows (uniqueness by PN + Condition + SalesOrderPartId, displayed via Sequence Number)
-	
+	20   13/Aug/2026  Kishor Makwana	[PN-17439] - Fixed Billing/Invoicing tab not showing all old and new invoice lines: StockLineRank's PARTITION BY was missing BillingInvoicingId, so it collapsed every invoice/version billed against the same StockLine/Shipment down to only the newest BillingInvoicingId, silently dropping legitimate "Old Version" invoice rows.
+
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -1400,7 +1401,7 @@ BEGIN
 					SELECT DISTINCT
 						   ROW_NUMBER() OVER (PARTITION BY SalesOrderPartId, IsProformaInvoice ORDER BY SalesOrderPartId, IsVersionIncrease DESC) AS IndexColumn,
 						   ROW_NUMBER() OVER (PARTITION BY SalesOrderPartId, IsProformaInvoice, ISNULL(BillingInvoicingId,-1), ISNULL(StockLineId,-1), ISNULL(SalesOrderShippingItemId,-1) ORDER BY IsVersionIncrease DESC, QtyBilled DESC, TotalSales DESC) AS DupRank,
-						   ROW_NUMBER() OVER (PARTITION BY SalesOrderPartId, IsProformaInvoice, StockLineId, SalesOrderShippingId, SalesOrderShippingItemId ORDER BY ISNULL(BillingInvoicingId,-1) DESC, IsVersionIncrease DESC, QtyBilled DESC, TotalSales DESC) AS StockLineRank,
+						   ROW_NUMBER() OVER (PARTITION BY SalesOrderPartId, IsProformaInvoice, ISNULL(BillingInvoicingId,-1), StockLineId, SalesOrderShippingId, SalesOrderShippingItemId ORDER BY ISNULL(BillingInvoicingId,-1) DESC, IsVersionIncrease DESC, QtyBilled DESC, TotalSales DESC) AS StockLineRank,
 						   SalesOrderShippingId,
 						   SalesOrderShippingItemId,
 						   BillingInvoicingId,

@@ -115,7 +115,7 @@ BEGIN
 			  AND ISNULL(CD.[IsDeleted],0) = 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice can’t  be Re-Opened because a Credit Memo already exists against it.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can not be Re-Opened because a Credit Memo already exists against it.' AS Message
 			RETURN
 		END
 

@@ -20,6 +20,7 @@
 											AssetAttributeTypeId FK instead of its own PK. Dropped the
 											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
 											always joined so its name always resolves.
+	3	 29-07-2026	  Abhishek Jirawala		Adding Tangible Class Id
 
 --  EXEC [UpdateAssetInventoryAttributeColumns] 1123
 **************************************************************/

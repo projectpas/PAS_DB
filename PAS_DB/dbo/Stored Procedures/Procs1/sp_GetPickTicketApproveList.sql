@@ -27,7 +27,8 @@
 	10   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11   20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	12   05/Aug/2026			 Kishor Makwana						[PN-17439] - Fixed SalesOrderPartId (was hardcoded to 0) and scoped the per-line Qty/QtyToShip/ReadyToPick/TotalReadyToPick subqueries to SalesOrderPartId instead of ItemMasterId+ConditionId, so duplicate Part+Condition lines (different SequenceNumber) no longer merge into a single Pick Ticket summary row.
-	
+	13   08/Aug/2026			 Divyesh Kathiriya					[PN-17554] - Added Non-Stock and Service flags to disable Pick Ticket creation for Non-Stock Service parts.
+
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
 CREATE     PROCEDURE [dbo].[sp_GetPickTicketApproveList]
@@ -41,6 +42,7 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 		;WITH CTE AS (select DISTINCT sop.SalesOrderPartId AS SalesOrderPartId, sop.ItemMasterId, sop.SalesOrderId,CAST(sop.SequenceNumber as VARCHAR(10))+' - '+imt.PartNumber as PartNumber,imt.PartDescription,
+		ISNULL(imt.[IsNonStock], 0) AS [IsNonStock], ISNULL(imt.[IsService], 0) AS [IsService],
 		(SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK)
 			Where SalesOrderId = @SalesOrderId AND SalesOrderPartId = sop.SalesOrderPartId) AS Qty,
 		'' AS SerialNumber, 
@@ -131,9 +133,9 @@ BEGIN
          group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
-		,sl.isSerialized, imt.ItemMasterId, sop.SalesOrderPartId,sop.SequenceNumber)
+		,sl.isSerialized, imt.ItemMasterId, sop.SalesOrderPartId,sop.SequenceNumber, imt.[IsNonStock], imt.[IsService])
 
-		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
+		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.[IsNonStock], cte.[IsService], cte.Qty,
 		SerialNumber, QuantityAvailable,
 		SalesOrderNumber, SalesOrderQuoteNumber, SUM(cte.QtyToShip) QtyToShip, (cte.Qty - SUM(cte.QtyToShip)) QtyToPick, ConditionId, 
 		(CASE WHEN SUM(ReadyToPick) > (cte.Qty - SUM(cte.QtyToShip)) THEN (cte.Qty - SUM(cte.QtyToShip)) ELSE 
@@ -142,7 +144,7 @@ BEGIN
 		cte.[Status], CustomerName, CustomerCode 
 		,CASE WHEN SUM(cte.TotalReadyToPick) < 0 THEN 0 ELSE SUM(cte.TotalReadyToPick) END AS TotalReadyToPick 
 		FROM CTE
-		GROUP BY cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
+		GROUP BY cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.[IsNonStock], cte.[IsService], cte.Qty,
 		SerialNumber, QuantityAvailable, cte.[Status], SalesOrderNumber, SalesOrderQuoteNumber, ConditionId, CustomerName, CustomerCode--,cte.TotalReadyToPick 
 	END
 	COMMIT  TRANSACTION

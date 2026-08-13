@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[LeasePartAudit] (
+    [LeasePartAuditId]  BIGINT         IDENTITY (1, 1) NOT NULL,
+    [LeasePartId]       BIGINT         NOT NULL,
+    [LeaseHeaderId]     BIGINT         NOT NULL,
+    [ItemMasterId]      BIGINT         NOT NULL,
+    [PN]                NVARCHAR (100) NULL,
+    [PNDescription]     NVARCHAR (500) NULL,
+    [UOM]               NVARCHAR (50)  NULL,
+    [QtyOrder]          INT            NOT NULL,
+    [QtyReserved]       INT            NOT NULL,
+    [ConditionId]       BIGINT         NOT NULL,
+    [AircraftSectionId] BIGINT         NULL,
+    [StartDate]         DATE           NULL,
+    [EndDate]           DATE           NULL,
+    [POId]              BIGINT         NULL,
+    [PONumber]          VARCHAR (256)  NULL,
+    [StatusId]          INT            NOT NULL,
+    [IsActive]          BIT            NOT NULL,
+    [IsDeleted]         BIT            NOT NULL,
+    [MasterCompanyId]   INT            NOT NULL,
+    [CreatedBy]         VARCHAR (256)  NOT NULL,
+    [CreatedDate]       DATETIME       NULL,
+    [UpdatedBy]         VARCHAR (256)  NOT NULL,
+    [UpdatedDate]       DATETIME       NULL,
+    CONSTRAINT [PK_LeasePartAudit] PRIMARY KEY CLUSTERED ([LeasePartAuditId] ASC)
+);
+

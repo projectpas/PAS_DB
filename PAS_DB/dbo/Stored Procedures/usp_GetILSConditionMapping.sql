@@ -23,7 +23,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
-		SELECT ILSConditionMappingId, ConditionId, ILSConditionId, MasterCompanyId
+		SELECT ILSConditionMappingId, ConditionId, ILSConditionId, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate
 		FROM dbo.ILSConditionMapping WITH (NOLOCK)
 		WHERE MasterCompanyId = @MasterCompanyId AND IsDeleted = 0
 	END TRY

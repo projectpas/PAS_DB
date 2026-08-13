@@ -26,6 +26,7 @@
 	14   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
 	15   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
 	16    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	17    11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -92,7 +93,9 @@ BEGIN
 					UPPER(ISNULL(sl.StockLineNumber,''))StockLineNumber,
 					UPPER(ISNULL(sl.ControlNumber,''))ControlNumber,
 					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
-					ShipViaDetails = CASE 
+					ISNULL(im.IsNonStock, 0) AS IsNonStock,
+					ISNULL(im.IsService, 0) AS IsService,
+					ShipViaDetails = CASE
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
@@ -167,6 +170,8 @@ BEGIN
 						StockLineNumber,
 						ControlNumber,
 						IdNumber,
+						IsNonStock,
+						IsService,
 						ShipViaDetails,
 						MiscChargesDetails,
 						BillingInvoicingId,

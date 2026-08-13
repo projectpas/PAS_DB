@@ -1,20 +1,22 @@
-﻿/*************************************************************           
- ** File:   [USP_Lot_AddUpdateConsignmentSetup]           
+﻿
+/*************************************************************
+ ** File:   [USP_Lot_AddUpdateConsignmentSetup]
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Create or update Consignment Setup Screen
  ** Date:   31/07/2023
- ** PARAMETERS:           
+ ** PARAMETERS:
  ** RETURN VALUE:
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author  		Change Description
+ ** --   --------     -------		---------------------------
     1    31/07/2023   Rajesh Gami     Created
+    2    11/08/2026   Nakul           Added MarginPercentId and MarginConsignorPercentId parameters for independent Margin share persistence
 **************************************************************
- EXEC USP_Lot_AddUpdateConsignmentSetup 
+ EXEC USP_Lot_AddUpdateConsignmentSetup
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateConsignmentSetup] 
+CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateConsignmentSetup]
 @ConsignmentId bigint OUTPUT,
 @ConsignmentNumber varchar(100)= null,
 @ConsigneeName varchar(100),
@@ -23,14 +25,16 @@ CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateConsignmentSetup]
 @IsRevenue bit = null,
 @IsMargin bit = null,
 @IsFixedAmount bit= null,
-@PercentId bigint= null, 
+@PercentId bigint= null,
 @PerAmount decimal(10,2)= null,
 @MasterCompanyId int,
 @CreatedBy varchar(50),
 @ConsigneeTypeId int,
 @ConsigneeId bigint,
 @IsRevenueSplit bit = null,
-@ConsignorPercentId bigint= null
+@ConsignorPercentId bigint= null,
+@MarginPercentId bigint= null,
+@MarginConsignorPercentId bigint= null
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -38,7 +42,7 @@ BEGIN
   BEGIN TRY
   BEGIN TRANSACTION
 	BEGIN
-			   		
+
 		DECLARE @AppModuleId INT = 0;
 		DECLARE @AppModuleCustomerId INT = 0;
 		DECLARE @AppModuleVendorId INT = 0;
@@ -66,16 +70,16 @@ BEGIN
 		BEGIN
 		  INSERT INTO [dbo].[LotConsignment]
             ([ConsignmentNumber],[ConsigneeName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ConsignmentName],[LotId]
-            ,[IsRevenue],[IsMargin],[IsFixedAmount],[PercentId],[PerAmount],ConsigneeTypeId,ConsigneeId,IsRevenueSplit,ConsignorPercentId)
+            ,[IsRevenue],[IsMargin],[IsFixedAmount],[PercentId],[PerAmount],ConsigneeTypeId,ConsigneeId,IsRevenueSplit,ConsignorPercentId,MarginPercentId,MarginConsignorPercentId)
 		    VALUES
             (@ConsignmentNumber,@ConsigneeName,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE(),GETUTCDATE(),1 ,0 ,@ConsignmentName ,@LotId
-            ,@IsRevenue ,@IsMargin ,@IsFixedAmount ,@PercentId ,@PerAmount,@ConsigneeTypeId,@ConsigneeId,@IsRevenueSplit,@ConsignorPercentId)
+            ,@IsRevenue ,@IsMargin ,@IsFixedAmount ,@PercentId ,@PerAmount,@ConsigneeTypeId,@ConsigneeId,@IsRevenueSplit,@ConsignorPercentId,@MarginPercentId,@MarginConsignorPercentId)
      	    SET @ConsignmentId = SCOPE_IDENTITY();
 			--Print @ConsignmentId
 			Update DBO.LOT SET ConsignmentId = @ConsignmentId WHERE LotId = @LotId
 		END
 		ELSE
-		BEGIN			
+		BEGIN
 			UPDATE [dbo].[LotConsignment]
 			   SET [ConsignmentNumber] = @ConsignmentNumber
 			      ,[ConsigneeName] = @ConsigneeName
@@ -84,18 +88,20 @@ BEGIN
 			      ,[IsRevenue] = @IsRevenue
 			      ,[IsMargin] = @IsMargin
 				  ,[PercentId] = @PercentId
-			      ,[IsFixedAmount] = @IsFixedAmount	
+			      ,[IsFixedAmount] = @IsFixedAmount
 				  ,[PerAmount] = @PerAmount
- 			      ,[UpdatedBy] = @CreatedBy			     
+ 			      ,[UpdatedBy] = @CreatedBy
 			      ,[UpdatedDate] = GETUTCDATE()
 				  ,ConsigneeTypeId = @ConsigneeTypeId
 				  ,ConsigneeId = @ConsigneeId
 				  ,IsRevenueSplit = @IsRevenueSplit
 				  ,ConsignorPercentId = @ConsignorPercentId
-			 WHERE ConsignmentId = @ConsignmentId; 		 
+					  ,MarginPercentId = @MarginPercentId
+					  ,MarginConsignorPercentId = @MarginConsignorPercentId
+			 WHERE ConsignmentId = @ConsignmentId;
 		END
 
-		Select @ConsignmentId AS ConsignmentId 
+		Select @ConsignmentId AS ConsignmentId
 	END
 	COMMIT  TRANSACTION
   END TRY
@@ -109,7 +115,7 @@ BEGIN
             ,@AdhocComments varchar(150) = '[USP_Lot_AddUpdateConsignmentSetup]',
             @ProcedureParameters varchar(3000) = '@ConsignmentId = ''' + CAST(ISNULL(@ConsignmentId, '') AS varchar(100))
             + '@ConsignmentNumber = ''' + CAST(ISNULL(@ConsignmentNumber, '') AS varchar(100))
-            + '@ConsigneeName = ''' + CAST(ISNULL(@ConsigneeName, '') AS varchar(100))             
+            + '@ConsigneeName = ''' + CAST(ISNULL(@ConsigneeName, '') AS varchar(100))
             + '@ConsignmentName = ''' + CAST(ISNULL(@ConsignmentName, '') AS varchar(100))
             + '@LotId = ''' + CAST(ISNULL(@LotId, '') AS varchar(100))
             + '@IsRevenue = ''' + CAST(ISNULL(@IsRevenue, '') AS varchar(100))

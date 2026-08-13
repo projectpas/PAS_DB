@@ -15,10 +15,6 @@
     [IsFromWorkFlow]        BIT             NULL,
     [WOPartNoId]            BIGINT          NOT NULL,
     [TaskId]                BIGINT          CONSTRAINT [DF__WorkOrder__TaskI__147B6C43] DEFAULT ((1)) NOT NULL,
-    [ToolName]              VARCHAR (256)   NOT NULL,
-    [ToolId]                VARCHAR (256)   NOT NULL,
-    [ToolDescription]       VARCHAR (256)   NULL,
-    [ToolClass]             VARCHAR (256)   NOT NULL,
     CONSTRAINT [PK_WorkOrderAssetsAudit] PRIMARY KEY CLUSTERED ([WorkOrderAssetAuditId] ASC)
 );
 

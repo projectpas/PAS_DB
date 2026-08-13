@@ -322,8 +322,13 @@ BEGIN
 			-- get NumberOfItems - Result was being referenced twice via ResultData/ResultCount,
 			-- which SQL Server does not guarantee to compute only once. Filtering directly against
 			-- Result and adding COUNT(*) OVER() computes everything in a single materialized pass.
+			-- Named #TempResultPnView (not #TempResult) - the npoview branch above also builds a
+			-- #TempResult; SQL Server's temp-table caching does not allow two SELECT...INTO
+			-- statements targeting the same temp table name in different branches of one
+			-- procedure (raises "There is already an object named '#TempResult'..." on the branch
+			-- that runs second within a session), even though only one branch executes per call.
 			SELECT *, COUNT(*) OVER() AS NumberOfItems
-			INTO #TempResult
+			INTO #TempResultPnView
 			FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
@@ -353,12 +358,12 @@ BEGIN
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 
-			SELECT * FROM #TempResult
+			SELECT * FROM #TempResultPnView
 			ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN VendorCode END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN VendorCode END DESC,	
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN VendorCode END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NonPoInvoiceStatus')  THEN NonPoInvoiceStatus END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NonPoInvoiceStatus')  THEN NonPoInvoiceStatus END DESC,	
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PaymentTerms')  THEN PaymentTerms END ASC,

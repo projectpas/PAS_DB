@@ -12,20 +12,20 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date           Author		    Change Description            
- ** --   --------       -------		    --------------------------------          
-    1    12-Aug-2024    Rajesh Gami  Created
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	3    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/v.IsNonStock,0) = 0"
-	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 more leftover soft IsNonStock=0 exclusion (rPart alias) missed by the earlier PN-17009 bugfix pass.
-										 filters on the Stockline's own ItemMaster join and its self-correlated integration-
-										 portal subquery. This SP is already scoped to one exact @stocklineId, so these
-										 filters were silently blanking ItemMaster-derived fields for migrated Non-Stock
-										 Stockline records.
+ ** PR   Date           Author				Change Description            
+ ** --   --------       -------				--------------------------------          
+    1    12-Aug-2024    Rajesh Gami			Created
+	2    01/July/2026	RAJESH GAMI			[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    13/July/2026	RAJESH GAMI			[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/v.IsNonStock,0) = 0"
+	4    23/July/2026	RAJESH GAMI			[PN-17350] - Removed 1 more leftover soft IsNonStock=0 exclusion (rPart alias) missed by the earlier PN-17009 bugfix pass.
+											 filters on the Stockline's own ItemMaster join and its self-correlated integration-
+											 portal subquery. This SP is already scoped to one exact @stocklineId, so these
+											 filters were silently blanking ItemMaster-derived fields for migrated Non-Stock
+											 Stockline records.
+	5   12-August-2026	Divyesh Kathiriya	[PN-17557] - Remove wrong aliases [BETA_Logs].[dbo].[StockLineAudit] stl.
 
 	 EXEC [dbo].[GetStocklineAuditById] 178385
-**************************************************************/ 
-
+**************************************************************/
 CREATE   PROCEDURE [dbo].[GetStocklineAuditById]
 @stocklineId BIGINT = null
 AS
@@ -237,7 +237,7 @@ BEGIN
 			msd.LastMSLevel,
 			msd.AllMSlevels
 		FROM 
-			[BETA_Logs].[dbo].[StockLineAudit] stl WITH(NOLOCK)
+			[dbo].[StockLineAudit] stl WITH(NOLOCK)
 			INNER JOIN  StocklineManagementStructureDetailsAudit msd ON stl.StockLineId = msd.ReferenceID AND msd.ModuleID = @msModuleId
 			LEFT JOIN [dbo].ItemMaster im  WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			 LEFT JOIN [dbo].ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId

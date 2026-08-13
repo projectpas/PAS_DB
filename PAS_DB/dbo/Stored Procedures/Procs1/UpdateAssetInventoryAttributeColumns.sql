@@ -102,7 +102,8 @@ BEGIN
 						AI.ResidualPercentageId = dnta.ResidualPercentage,
 						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
 						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
-						AI.DepreciationFrequencyName = ISNULL(asdf.Name, '')
+						AI.DepreciationFrequencyName = ISNULL(asdf.Name, ''),
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
 						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
@@ -144,7 +145,7 @@ BEGIN
 						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
 						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
 						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
-						AI.TangibleClassId = DNTA.TangibleClassId
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
 
 				    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId

@@ -16,6 +16,15 @@
     3    07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
 	4    03-June-2026  RAJESH GAMI      [PN-16687] Original Cost Should Include All PO-Received Stocklines
 	4    17-June-2026  Priyansh Patel     uom changes  [PN-16771]
+	5    12-Aug-2026  Rajesh Gami      [PN-17647] Fixed: reposting the same SO invoice (e.g. after Re-Open) was
+									   inserting a brand-new 'Trans Out (SO)' row into LotCalculationDetails every
+									   single time, instead of finding the one already created for this
+									   LotTransInOutId and updating it - producing duplicate rows with identical
+									   ReferenceId/ChildId on every repost. Now checks for an existing row (LotId +
+									   Type + LotTransInOutId) first: if found, updates its cost/amount fields
+									   instead of inserting; if not, inserts as before. Also skips the
+									   Stockline.LOTQty decrement on repost (it already ran the first time -
+									   re-running it on every repost was double/triple decrementing LOTQty).
 
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
@@ -40,6 +49,10 @@ BEGIN
 		DECLARE @LastLotTransInOutId BIGINT =NULL, @LastStockLineId BIGINT =NULL,@LastQty int =NULL;
 		DECLARE @IsMaintainStkLine bit = 0,@IsUseMargin bit = 0,@IsInitialPO bit = 0,@InitialPOCost DECIMAL(18,2),@InitialPOId BIGINT = 0;
 		DECLARE @MarginPercentageId BIGINT = 0,@PercentValue DECIMAL(18,2),@Qty INT = 0, @lotNumber varchar(20) ='', @lotDesc varchar(max);
+		-- [PN-17647] Used by the 'Trans Out (SO)' branch to dedup on repost after Re-Open: if a row already
+		-- exists for this LotTransInOutId + Type, update it instead of inserting a duplicate. NULL = not
+		-- checked yet / no existing row found for the current loop iteration.
+		DECLARE @ExistingLotCalculationId BIGINT = NULL;
 		Select @lotNumber = LotNumber, @lotDesc = LotName from dbo.Lot WITH(NOLOCK) WHERE LotId = @LotId
 		DECLARE @ConsignmentPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
 		SET @count = 1;
@@ -263,24 +276,60 @@ BEGIN
 					
 				Set @Qty = (SELECT ISNULL(Qty,0) FROM #tmpLotCalculationDetailsType WHERE ID= @count)
 
-				INSERT INTO [DBO].[LotCalculationDetails]([LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
-												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
-												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-												  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice,ExtSalesUnitPrice
-												  ,Margin
-												  ,MarginAmount
-												  ,COGS)
-				SELECT [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
-												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
-												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-												  @MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice, ISNULL(SalesUnitPrice,0) * Qty
-												  ,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE @PercentValue END)
-												  ,(CASE WHEN @IsUseMargin = 0 THEN (ISNULL(SalesUnitPrice,0) * Qty) - ((SELECT TOP 1 SPC.UnitCost FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0 WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId])*lot.Qty) ELSE  (ISNULL(SalesUnitPrice,0) * Qty) - (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
-												  ,(CASE WHEN @IsUseMargin = 0 THEN ISNULL((SELECT TOP 1 ISNULL(SPC.UnitCost,0) FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0  WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]),0)* Qty ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
-				FROM #tmpLotCalculationDetailsType lot 
-				WHERE lot.ID = @count;
+				-- [PN-17647] Dedup for repost-after-Re-Open: if a 'Trans Out (SO)' row already exists for
+				-- this LotTransInOutId, this SO invoice line was already posted once before - update that
+				-- existing row (below) instead of inserting a brand-new duplicate every time the invoice
+				-- is reposted. First-time posting (no existing row) falls through to the normal insert.
+				SET @ExistingLotCalculationId = NULL
+				SELECT TOP 1 @ExistingLotCalculationId = LotCalculationId
+				FROM [DBO].[LotCalculationDetails] WITH (NOLOCK)
+				WHERE LotId = @LotId
+				  AND Type = @Type
+				  AND LotTransInOutId = (SELECT LotTransInOutId FROM #tmpLotCalculationDetailsType WHERE ID = @count)
+				ORDER BY LotCalculationId DESC
 
-				SELECT @LatestId = SCOPE_IDENTITY();	
+				IF (@ExistingLotCalculationId IS NULL)
+				BEGIN
+					INSERT INTO [DBO].[LotCalculationDetails]([LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
+													  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
+													  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
+													  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice,ExtSalesUnitPrice
+													  ,Margin
+													  ,MarginAmount
+													  ,COGS)
+					SELECT [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
+													  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
+													  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
+													  @MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice, ISNULL(SalesUnitPrice,0) * Qty
+													  ,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE @PercentValue END)
+													  ,(CASE WHEN @IsUseMargin = 0 THEN (ISNULL(SalesUnitPrice,0) * Qty) - ((SELECT TOP 1 SPC.UnitCost FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0 WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId])*lot.Qty) ELSE  (ISNULL(SalesUnitPrice,0) * Qty) - (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
+													  ,(CASE WHEN @IsUseMargin = 0 THEN ISNULL((SELECT TOP 1 ISNULL(SPC.UnitCost,0) FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0  WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]),0)* Qty ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
+					FROM #tmpLotCalculationDetailsType lot
+					WHERE lot.ID = @count;
+
+					SELECT @LatestId = SCOPE_IDENTITY();
+				END
+				ELSE
+				BEGIN
+					-- [PN-17647] Already posted once before (repost after Re-Open) - refresh the existing
+					-- row's cost/amount fields from the freshly-recalculated values instead of inserting.
+					UPDATE LCD
+					SET LCD.[ReferenceId] = lot.[ReferenceId], LCD.[ChildId] = lot.[ChildId], LCD.[OriginalCost] = lot.[OriginalCost],
+						LCD.[RepairCost] = lot.[RepairCost], LCD.[AdjustedLotCost] = lot.[AdjustedLotCost], LCD.[RepCost] = lot.[RepCost], LCD.[Qty] = lot.[Qty],
+						LCD.[TransferredInCost] = lot.[TransferredInCost], LCD.[TransferredOutCost] = lot.[TransferredOutCost], LCD.[RemainingCost] = lot.[RemainingCost],
+						LCD.[OtherCost] = lot.[OtherCost], LCD.[TotalLotCost] = lot.[TotalLotCost], LCD.[Revenue] = lot.[Revenue],
+						LCD.[CogsPartsCost] = lot.[CogsPartsCost], LCD.[CommissionExpense] = lot.[CommissionExpense], LCD.[TotalExpense] = lot.[TotalExpense],
+						LCD.[MarginAmt] = lot.[MarginAmt], LCD.[MarginPercent] = lot.[MarginPercent],
+						LCD.[UpdatedBy] = @UpdatedBy, LCD.[UpdatedDate] = GETUTCDATE(),
+						LCD.[FreightCost] = lot.[FreightCost], LCD.[InsuranceCost] = lot.[InsuranceCost], LCD.[HandlingCost] = lot.[HandlingCost],
+						LCD.[TeardownCost] = lot.[TeardownCost], LCD.[SoldCost] = lot.[SoldCost], LCD.[SalesUnitPrice] = lot.[SalesUnitPrice],
+						LCD.[ExtSalesUnitPrice] = ISNULL(lot.[SalesUnitPrice],0) * lot.[Qty]
+					FROM [DBO].[LotCalculationDetails] LCD
+					INNER JOIN #tmpLotCalculationDetailsType lot ON lot.ID = @count
+					WHERE LCD.LotCalculationId = @ExistingLotCalculationId
+
+					SELECT @LatestId = @ExistingLotCalculationId
+				END
 
 				SELECT @UpdatedUnitCost = ISNULL(COGS,0),@LastLotTransInOutId = ISNULL(LotTransInOutId,0), @LastQty = Qty FROM [DBO].[LotCalculationDetails] WITH (NOLOCK) WHERE LotCalculationId = @LatestId;
 				Select @LastStockLineId = ISNULL(StockLineId,0) From DBO.LotTransInOutDetails Where LotTransInOutId = @LastLotTransInOutId
@@ -322,19 +371,23 @@ BEGIN
 				END
 				UPDATE [DBO].[LotCalculationDetails] SET CommissionExpense =@CommissionCost WHERE LotCalculationId = @LatestId; 
 
-				IF(UPPER(@Type) = UPPER('Trans Out (SO)'))
+				-- [PN-17647] Skip on repost (@ExistingLotCalculationId was found above) - this
+				-- Stockline.LOTQty decrement already ran the first time this line was posted;
+				-- re-running it on every repost after Re-Open would double (or triple, per repost)
+				-- decrement LOTQty.
+				IF(UPPER(@Type) = UPPER('Trans Out (SO)') AND @ExistingLotCalculationId IS NULL)
 				BEGIN
 					IF(@Qty = 1)
 					BEGIN
-						Update dbo.Stockline set RepairOrderUnitCost = 0, 
-						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost, 
+						Update dbo.Stockline set RepairOrderUnitCost = 0,
+						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost,
 						LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
 					END
 					ELSE
 					BEGIN
 						Update dbo.Stockline set LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) , LotId =@LotId, IsLotAssigned = 1 WHERE StockLineId = @LastStockLineId
 					END
-					
+
 				END
 				
 				SET @count = @count + 1;

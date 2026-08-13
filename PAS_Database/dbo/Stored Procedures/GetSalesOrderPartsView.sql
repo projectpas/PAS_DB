@@ -18,6 +18,8 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from StockLine and ItemMaster joins.
+	6    11/August/2026			 Priyansh Patel						[PN-17573] SOQ/SO/Invoice Print: Added IsNonStock and IsService so SO Print can hide Stockline Number/Serial Number for Non-Stock Service Items.
+
  EXEC GetSalesOrderPartsView 1555 , 0
 ************************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderPartsView]
@@ -55,6 +57,8 @@ BEGIN
 			ISNULL(qs.OEM,0) AS IsOEM,
 			itemMaster.IsPma AS IsPMA,
 			itemMaster.IsDER AS IsDER,
+			ISNULL(itemMaster.IsNonStock, 0) AS IsNonStock,
+			ISNULL(itemMaster.IsService, 0) AS IsService,
 			'' AS MethodType,
 			'' AS Method,
 			ISNULL(qs.SerialNumber, '') AS SerialNumber,

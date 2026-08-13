@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   07/02/2026   Sumit Kumar		Created
+	2   13-AUG-2026   Sumit Kumar		Added PartNumber by joining ItemMaster [PN-17661] [WO Template Manager improvements]
 
 EXEC [USP_GetTasksByWorkflowIds] 
 **************************************************************/
@@ -33,11 +34,14 @@ BEGIN
             ws.WorkScopeId,
             ws.WorkScopeCode AS WorkScope,
             w.WorkOrderNumber as WorkFlowNo,
+            im.PartNumber AS PartNumber, -- Added PartNumber from ItemMaster
             CAST(CASE WHEN wot.TaskId IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS AlreadyInWO
         FROM dbo.WorkflowTask wt WITH(NOLOCK)
         INNER JOIN dbo.Workflow w WITH(NOLOCK) ON wt.WorkflowId = w.WorkflowId
         INNER JOIN dbo.Task t WITH(NOLOCK) ON wt.TaskId = t.TaskId
         LEFT JOIN dbo.WorkScope ws WITH(NOLOCK) ON w.WorkScopeId = ws.WorkScopeId
+        -- Join ItemMaster to retrieve PartNumber associated with the template workflow
+        LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON w.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock, 0) = 0
         LEFT JOIN (SELECT DISTINCT TaskId FROM dbo.WorkOrderTask WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId 
                     AND WorkOrderPartNumberId = @WorkOrderPartNumberId
                     AND ISNULL(IsActive, 1) = 1

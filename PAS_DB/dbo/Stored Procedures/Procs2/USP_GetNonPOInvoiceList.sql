@@ -27,7 +27,27 @@
 	12   21/01/2026     AMIT GHEDIYA                    Added InvoiceDate
     13   27/01/2026     Sahdev Saliya                   Added DueDate
 	14   11/03/2026     AMIT GHEDIYA                    Updated for get isactive records (PN-15588)
-	15    07-07-2026   Bhargav Saliya                   Added @IntegrationTypeId [PN-16810] 
+	15    07-07-2026   Bhargav Saliya                   Added @IntegrationTypeId [PN-16810]
+	16   12-08-2026    Rajesh Gami                      Improve Performance : Added indexes on the
+														columns actually filtered/joined (NonPOInvoiceHeader,
+														NonPOInvoicePartDetails, VendorPaymentDetails,
+														VendorReadyToPayDetails), resolved the timezone
+														offset in a single query instead of two, removed
+														redundant SELECT DISTINCT (GROUP BY / join shape
+														already guarantee uniqueness), and removed the
+														#TempResult+separate COUNT pass / ResultData+
+														ResultCount cross-join pattern in favor of
+														COUNT(*) OVER() computed in the same pass. [PN-17634]
+	17   12-08-2026    Rajesh Gami                      Fix: the pnview branch's temp table was
+													also named #TempResult, colliding with the
+													npoview branch's #TempResult (SQL Server does
+													not allow two SELECT...INTO statements to the
+													same temp table name in different branches of
+													one procedure - raised "There is already an
+													object named '#TempResult'..." on whichever
+													branch ran second in a session). Renamed the
+													pnview branch's temp table to
+													#TempResultPnView. [PN-17634]
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -75,18 +95,21 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
+		-- PERF FIX: previously resolved @CurrntEmpTimeZoneDesc here, then ran a SECOND separate
+		-- query against dbo.TimeZone (matched by Description text) just to get @BaseUtcOffsetSec.
+		-- Resolving both in the same query (by TimeZoneId, via the same joins) removes that extra
+		-- round trip and avoids re-matching TimeZone by a non-unique Description string.
 		SELECT
 				@CurrntEmpTimeZoneDesc = COALESCE(
 					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-				)
+				),
+				@BaseUtcOffsetSec = COALESCE(ETZ.BaseUtcOffsetSec, LTZ.BaseUtcOffsetSec, 0)
 			FROM dbo.Employee E WITH (NOLOCK)
 			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 			WHERE E.EmployeeId = @EmployeeId;
-
-			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -122,7 +145,10 @@ BEGIN
 		IF(@ViewType = 'npoview')
 		BEGIN
 			;WITH Result AS(
-				SELECT DISTINCT
+				-- PERF FIX: removed SELECT DISTINCT - GROUP BY NPH.NonPOInvoiceId (the driving PK)
+				-- below already yields exactly one row per invoice, so DISTINCT on top was a pure
+				-- extra sort/hash pass over every output column for no benefit.
+				SELECT
 						NPH.NonPOInvoiceId,
 						NPH.VendorId,
 						NPH.VendorName,
@@ -186,8 +212,12 @@ BEGIN
 					NPH.NPONumber,
 					NPH.InvoiceNumber,
 					NPH.ControlNumber
-			), ResultCount AS(SELECT COUNT(NonPOInvoiceId) AS totalItems FROM Result)
-			SELECT * INTO #TempResult FROM  Result
+			)
+			-- PERF FIX: ResultCount CTE removed (it was computed but never referenced anywhere -
+			-- dead code). COUNT(*) OVER() below supplies NumberOfItems in the same pass that
+			-- builds #TempResult, replacing the old #TempResult + separate "SELECT @Count =
+			-- COUNT(...)" scan with a single pass.
+			SELECT *, COUNT(*) OVER() AS NumberOfItems INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
 					(NonPoInvoiceStatus LIKE '%' +@GlobalFilter+'%') OR
@@ -217,9 +247,7 @@ BEGIN
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 
-			SELECT @Count = COUNT(NonPOInvoiceId) FROM #TempResult			
-
-			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
+			SELECT * FROM #TempResult ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN VendorCode END ASC,
@@ -257,8 +285,12 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			-- PERF FIX: removed SELECT DISTINCT - the only 1:many join here (NonPOInvoicePartDetails)
+			-- is the intended fan-out for this "multiple part" view, and every other join
+			-- (NonPOInvoiceHeaderStatus, CreditTerms, GLAccount) is 1:1 by its own PK, so no
+			-- unintended duplication is possible; DISTINCT was a pure extra sort/hash pass.
 			;WITH Result AS(
-				SELECT DISTINCT
+				SELECT
 						NPH.NonPOInvoiceId,
 						NPH.VendorId,
 						NPH.VendorName,
@@ -296,11 +328,22 @@ BEGIN
 				LEFT JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) ON NPD.NonPOInvoiceId = NPH.NonPOInvoiceId
 				LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON NPD.GlAccountId = GL.GlAccountId
 
-		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)		     
-					AND NPH.MasterCompanyId=@MasterCompanyId	
-			),ResultData AS( Select NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-						IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber,IsAlreadyPayment
-						FROM Result
+		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)
+					AND NPH.MasterCompanyId=@MasterCompanyId
+			)
+			-- PERF FIX: dropped the ResultData passthrough CTE (it selected the exact same columns
+			-- as Result, just re-applying the filter) and the ResultCount CTE + cross-join used to
+			-- get NumberOfItems - Result was being referenced twice via ResultData/ResultCount,
+			-- which SQL Server does not guarantee to compute only once. Filtering directly against
+			-- Result and adding COUNT(*) OVER() computes everything in a single materialized pass.
+			-- Named #TempResultPnView (not #TempResult) - the npoview branch above also builds a
+			-- #TempResult; SQL Server's temp-table caching does not allow two SELECT...INTO
+			-- statements targeting the same temp table name in different branches of one
+			-- procedure (raises "There is already an object named '#TempResult'..." on the branch
+			-- that runs second within a session), even though only one branch executes per call.
+			SELECT *, COUNT(*) OVER() AS NumberOfItems
+			INTO #TempResultPnView
+			FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
 					(NonPoInvoiceStatus LIKE '%' +@GlobalFilter+'%') OR
@@ -328,12 +371,9 @@ BEGIN
 				    (ISNULL(@DueDate,'') ='' OR CAST(DueDate AS date)=CAST(@DueDate AS date)) AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
-			), ResultCount AS (Select COUNT(NonPOInvoiceId) AS NumberOfItems FROM ResultData)
 
-			SELECT	NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-				IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId,
-				NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber,IsAlreadyPayment, NumberOfItems FROM ResultData,ResultCount
-			ORDER BY		
+			SELECT * FROM #TempResultPnView
+			ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN VendorCode END ASC,

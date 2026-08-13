@@ -38,6 +38,16 @@
 														#TempResult+separate COUNT pass / ResultData+
 														ResultCount cross-join pattern in favor of
 														COUNT(*) OVER() computed in the same pass. [PN-17634]
+	17   12-08-2026    Rajesh Gami                      Fix: the pnview branch's temp table was
+													also named #TempResult, colliding with the
+													npoview branch's #TempResult (SQL Server does
+													not allow two SELECT...INTO statements to the
+													same temp table name in different branches of
+													one procedure - raised "There is already an
+													object named '#TempResult'..." on whichever
+													branch ran second in a session). Renamed the
+													pnview branch's temp table to
+													#TempResultPnView. [PN-17634]
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -326,8 +336,13 @@ BEGIN
 			-- get NumberOfItems - Result was being referenced twice via ResultData/ResultCount,
 			-- which SQL Server does not guarantee to compute only once. Filtering directly against
 			-- Result and adding COUNT(*) OVER() computes everything in a single materialized pass.
+			-- Named #TempResultPnView (not #TempResult) - the npoview branch above also builds a
+			-- #TempResult; SQL Server's temp-table caching does not allow two SELECT...INTO
+			-- statements targeting the same temp table name in different branches of one
+			-- procedure (raises "There is already an object named '#TempResult'..." on the branch
+			-- that runs second within a session), even though only one branch executes per call.
 			SELECT *, COUNT(*) OVER() AS NumberOfItems
-			INTO #TempResult
+			INTO #TempResultPnView
 			FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
@@ -357,7 +372,7 @@ BEGIN
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 
-			SELECT * FROM #TempResult
+			SELECT * FROM #TempResultPnView
 			ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,

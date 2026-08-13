@@ -41,7 +41,21 @@
 	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	27    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters from SO invoice GL journal-entry creation (COGS/Revenue/Inventory distribution lookups) so Non-Stock items are included.
-EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
+	28    12-Aug-2026			 RAJESH GAMI						[PN-17569] Fixed: the existing-BatchHeader lookup (both the SOI and SOS blocks) was matching purely on
+																	JournalTypeId/MasterCompanyId/EntryDate/StatusId/CustomerTypeId, which a Re-Open accounting
+																	reversal's batch header (see USP_ReverseSOInvoiceAccountingEntry) also satisfies same-day -
+																	so re-invoicing after a Re-Open was gluing its fresh (non-reversal) lines onto that reversal's
+																	batch header instead of starting a new one. Both the existence check and the header lookup now
+																	exclude any BatchHeader that has a BatchDetails row with IsReversedJE = 1.
+	29    12-Aug-2026			 RAJESH GAMI						[PN-17569] Fixed: re-posting a Sales Order invoice after Re-Open (same BillingInvoicingId,
+																no version increase) was silently creating NO accounting entries at all. The SOINVOICE
+																duplicate-post guard only checked "does ANY SalesOrderBatchDetails row already exist for
+																this DocumentId" - Re-Open's reversal leaves the original rows in place (it reverses them,
+																it doesn't delete them), so that guard always found rows and skipped posting entirely on
+																every subsequent re-invoice of the same document. It now only blocks when an entry exists
+																that is newer (by JournalBatchDetailId) than the most recent reversal for this document, so
+																a genuine duplicate post is still blocked but a post-after-Re-Open now creates fresh entries.
+EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
 exec [dbo].[USP_BatchTriggerBasedonSOInvoiceNew] 7,913,0,0,3400,0,0,0,'SO',1,'RAJESH GAMI',1
@@ -258,8 +272,19 @@ BEGIN
 
 
 			IF(UPPER(@DistributionCode) = UPPER('SOINVOICE'))
-			BEGIN 
-				IF NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK) WHERE SOD.[SalesOrderId] = @ReferenceId AND SOD.[DocumentId] = @InvoiceId)
+			BEGIN
+
+				IF NOT EXISTS (
+					SELECT 1 FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK)
+					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.[JournalBatchDetailId] = SOD.[JournalBatchDetailId]
+					WHERE SOD.[SalesOrderId] = @ReferenceId AND SOD.[DocumentId] = @InvoiceId
+					  AND SOD.[JournalBatchDetailId] > ISNULL(
+							(SELECT MAX(SOD2.[JournalBatchDetailId])
+							 FROM [dbo].[SalesOrderBatchDetails] SOD2 WITH(NOLOCK)
+							 INNER JOIN [dbo].[BatchDetails] BD2 WITH(NOLOCK) ON BD2.[JournalBatchDetailId] = SOD2.[JournalBatchDetailId]
+							 WHERE SOD2.[SalesOrderId] = @ReferenceId AND SOD2.[DocumentId] = @InvoiceId AND ISNULL(BD2.[IsReversedJE],0) = 1),
+							0)
+				)
 				BEGIN
 
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
@@ -395,7 +420,11 @@ BEGIN
 						WHERE [GLAccountId] = @RevenueSoGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 							
-						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND CustomerTypeId=@CustomerTypeId)
+						-- Exclude batch headers that only hold a Re-Open accounting reversal (see USP_ReverseSOInvoiceAccountingEntry) -
+					-- those match the same Type/Company/Date/Status/CustomerType keys as a normal day's posting batch, so
+					-- without this exclusion a same-day re-invoice after a Re-Open was gluing its fresh (non-reversal) lines
+					-- onto the reversal's batch header instead of getting its own new sequential batch.
+					IF NOT EXISTS(SELECT BH.JournalBatchHeaderId FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.MasterCompanyId=@MasterCompanyId and  CAST(BH.EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and BH.StatusId=@StatusId AND BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1))
 						BEGIN
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 							BEGIN
@@ -442,7 +471,7 @@ BEGIN
 						END
 						ELSE 
 						BEGIN
-							SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId and CustomerTypeId=@CustomerTypeId
+							SELECT @JournalBatchHeaderId=BH.JournalBatchHeaderId,@CurrentPeriodId=isnull(BH.AccountingPeriodId,0) FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.StatusId=@StatusId and BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1)
 							SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
 				   									FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc 
 				    
@@ -866,7 +895,11 @@ BEGIN
 					
 					IF(@PartUnitSalesPrices > 0)
 					BEGIN
-						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND CustomerTypeId=@CustomerTypeId)
+						-- Exclude batch headers that only hold a Re-Open accounting reversal (see USP_ReverseSOInvoiceAccountingEntry) -
+					-- those match the same Type/Company/Date/Status/CustomerType keys as a normal day's posting batch, so
+					-- without this exclusion a same-day re-invoice after a Re-Open was gluing its fresh (non-reversal) lines
+					-- onto the reversal's batch header instead of getting its own new sequential batch.
+					IF NOT EXISTS(SELECT BH.JournalBatchHeaderId FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.MasterCompanyId=@MasterCompanyId and  CAST(BH.EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and BH.StatusId=@StatusId AND BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1))
 						BEGIN
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 							BEGIN
@@ -915,7 +948,7 @@ BEGIN
 						END
 						ELSE 
 						BEGIN
-							SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId and CustomerTypeId=@CustomerTypeId
+							SELECT @JournalBatchHeaderId=BH.JournalBatchHeaderId,@CurrentPeriodId=isnull(BH.AccountingPeriodId,0) FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.StatusId=@StatusId and BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1)
 							SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
 				   									FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc 
 				    

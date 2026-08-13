@@ -21,6 +21,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
+	13    11/August/2026		Priyansh Patel                      [PN-17573]  Added IsNonStock/IsService so SO Print (SalesOrder.rdl) can hide Stockline Number / Serial Number for Non-Stock Service Items
 EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
@@ -75,6 +76,8 @@ BEGIN
 			CASE WHEN sl.OEM = 1 THEN 1 ELSE 0 END AS IsOEM,
 			CASE WHEN im.IsPma = 1 THEN 1 ELSE 0 END AS IsPMA,
 			CASE WHEN im.IsDER = 1 THEN 1 ELSE 0 END AS IsDER,
+			ISNULL(im.IsNonStock, 0) AS IsNonStock,
+			ISNULL(im.IsService, 0) AS IsService,
 			ISNULL(UPPER(im.ManufacturerName), '') AS ManufacturerName,
 			--sp.MethodType,
 			--sp.Method,

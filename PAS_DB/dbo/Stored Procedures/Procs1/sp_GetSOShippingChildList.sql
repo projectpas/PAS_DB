@@ -26,9 +26,10 @@
 	8	25 APR 2026     RAJESH GAMI         Added MastercompanyId in the condition 
 	9	09/July/2026 RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
- EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
+	11	05/Aug/2026 Kishor Makwana   [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
+ EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **************************************************************/
-CREATE   PROCEDURE [dbo].[sp_GetSOShippingChildList]  
+CREATE    PROCEDURE [dbo].[sp_GetSOShippingChildList]  
  @SalesOrderId  bigint,  
  @SalesOrderPartId bigint,  
  @ConditionId bigint  
@@ -45,7 +46,7 @@ BEGIN
 	  SELECT DISTINCT sopt.SOPickTicketId, sos.SalesOrderShippingId, CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 			 CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.SOShippingNum ELSE NULL END AS SOShippingNum,  
 			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
-			 sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, 0 AS ItemNo,-- sop.ItemNo,  
+			 sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, sop.SequenceNumber AS ItemNo,
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 			 CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
@@ -82,9 +83,9 @@ BEGIN
 		WHERE SOBI.ShippingId = sosi.SalesOrderShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0
 		ORDER BY BI.BillingInvoicingId DESC
 	  ) InvoiceData
-	  WHERE sopt.SalesOrderId = @SalesOrderId  
-	  AND sop.ItemMasterId = @SalesOrderPartId  
-	  AND sop.ConditionId = @ConditionId  
+	  WHERE sopt.SalesOrderId = @SalesOrderId
+	  AND sop.SalesOrderPartId = @SalesOrderPartId
+	  AND sop.ConditionId = @ConditionId
 	  AND ISNULL(sopt.IsConfirmed,0) = 1  AND sopt.MasterCompanyId = @masterCompanyId
  END  
  COMMIT  TRANSACTION  

@@ -26,12 +26,12 @@
     10      02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
     11      11-JUN-2026     DIVYESH KATHIRIYA       Add New 'WorksheetHeader' Module.[PN-16806]
     12 	    18-JUN-2026	    DIVYESH KATHIRIYA       Handle 'Engine' wise data in "AircraftCycleTimeMappings". [PN-16870]
+    13      12-AUG-2026     DIVYESH KATHIRIYA       Merged related Stockline audit statements into one NonStockLine history event. [PN-17557]
 
 
     EXEC usp_Get_CommonAuditLogHistory @ModuleId=94, @PK_Key=N'WorksheetHeaderId', @PK_Value=36,@EmployeeId=212, @SubModuleId=95, @SubPK_Key = 'WorksheetPartId', @SubPK_Value=29
-**********************/ 
-
-CREATE     PROCEDURE [dbo].[usp_Get_CommonAuditLogHistory]
+**********************/
+CREATE PROCEDURE [dbo].[usp_Get_CommonAuditLogHistory]
     @ModuleId     BIGINT       = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
     @PK_Key     nvarchar(128) = NULL,       -- e.g. 'CustomerId'
     @PK_Value   nvarchar(128) = NULL,       -- e.g. '7' (compared as NVARCHAR)
@@ -57,6 +57,7 @@ BEGIN
     DECLARE @DetailId VARCHAR(100);
     DECLARE @AircraftCycleTimeModule AS INT;
     DECLARE @AircraftWorksheetHeaderModule AS INT;
+    DECLARE @NonStockLineModule AS INT;
 
 
     -- Validate sort dir
@@ -67,6 +68,12 @@ BEGIN
     
     SET @AircraftCycleTimeModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
     SET @AircraftWorksheetHeaderModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'WorksheetHeader');
+    SET @NonStockLineModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'NonStockLine');
+
+    IF (@ModuleId = @NonStockLineModule)
+    BEGIN
+        SET @Module = 'Stockline';
+    END
 
 
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
@@ -452,9 +459,9 @@ BEGIN
               
                         ),'
         END
-        ELSE
+        ELSE 
         BEGIN
-            SET @sql = N';WITH S AS
+            SET @sql = N';WITH RawS AS
                         (
                             SELECT
                                 AuditId,
@@ -468,7 +475,7 @@ BEGIN
                                 ChangedAt
                             FROM [dbo].[AuditLog] AL WITH (NOLOCK)
                             WHERE 1=1
-                                AND (@Module  IS NULL OR TableName = @Module)
+                                AND (@Module IS NULL OR TableName = @Module)
                                 AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                                 AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
                                 AND (
@@ -476,8 +483,69 @@ BEGIN
                                     OR TRY_CONVERT(nvarchar(128), JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
                                     )
                                 AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
+                        ),
+                        EventAnchors AS
+                        (
+                            SELECT DISTINCT
+                                TableName,
+                                PKJson,
+                                ChangedAt AS EventAt
+                            FROM RawS
+                            WHERE ColumnName IN (''CreatedDate'', ''UpdatedDate'')
+                        ),
+                        S AS
+                        (
+                            SELECT
+                                RS.AuditId,
+                                RS.TableName,
+                                RS.PKJson,
+                                RS.ColumnName,
+                                RS.[Action],
+                                RS.OldValue,
+                                RS.NewValue,
+                                RS.ChangedBy,
+                                RS.ChangedAt,
+                                COALESCE(NearestEvent.EventAt, RS.ChangedAt) AS EventAt
+                            FROM RawS RS
+                            OUTER APPLY
+                            (
+                                SELECT TOP (1)
+                                    EA.EventAt
+                                FROM EventAnchors EA
+                                WHERE EA.TableName = RS.TableName
+                                  AND EA.PKJson = RS.PKJson
+                                  AND EA.EventAt <= RS.ChangedAt
+                                  AND DATEDIFF(second, EA.EventAt, RS.ChangedAt) BETWEEN 0 AND 10
+                                ORDER BY EA.EventAt DESC
+                            ) NearestEvent
                         ),'
-        END   
+        END
+        --ELSE
+        --BEGIN
+        --    SET @sql = N';WITH S AS
+        --                (
+        --                    SELECT
+        --                        AuditId,
+        --                        TableName,
+        --                        PKJson,
+        --                        ColumnName,
+        --                        [Action],
+        --                        OldValue,
+        --                        NewValue,
+        --                        ChangedBy,
+        --                        ChangedAt
+        --                    FROM [dbo].[AuditLog] AL WITH (NOLOCK)
+        --                    WHERE 1=1
+        --                        AND (@Module  IS NULL OR TableName = @Module)
+        --                        AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+        --                        AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+        --                        AND (
+        --                            @PK_Key IS NULL OR @PK_Value IS NULL
+        --                            OR TRY_CONVERT(nvarchar(128), JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
+        --                            )
+        --                        AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
+        --                ),'
+        --END   
 
 
 
@@ -554,8 +622,8 @@ BEGIN
                 AND a.PKJson    = p.PKJson
                 AND a.EventAt = p.EventAt
             ORDER BY a.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
-		END              
-        ELSE
+		END 
+        ELSE IF (@ModuleId = @AircraftWorksheetHeaderModule)
         BEGIN
             SET @sql += N'Dedup AS
             (
@@ -624,7 +692,144 @@ BEGIN
                 AND a.PKJson    = p.PKJson
                 AND a.ChangedAt = p.ChangedAt
             ORDER BY p.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
-        END     
+        END
+        ELSE
+        BEGIN
+            SET @sql += N'Dedup AS
+            (
+                SELECT
+                    TableName, PKJson, EventAt, ChangedAt, ColumnName,
+                    CONVERT(nvarchar(max), ' + @valExpr + N') AS ValToPivot,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY TableName, PKJson, EventAt, ColumnName
+                        ORDER BY AuditId ' + CASE WHEN @UseOld = 1 THEN N'ASC' ELSE N'DESC' END + N'
+                    ) AS rn
+                FROM S
+            ),
+            FinalSource AS
+            (
+                SELECT TableName, PKJson, EventAt, ColumnName, ValToPivot
+                FROM Dedup
+                WHERE rn = 1
+            ),
+            Agg AS
+            (
+                SELECT
+                    TableName,
+                    PKJson,
+                    EventAt,
+                    MAX(ChangedAt) AS ChangedAt
+                FROM S
+                GROUP BY TableName, PKJson, EventAt
+            )
+            SELECT
+                CASE
+                    WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                            THEN COALESCE(p.[UpdatedDate], p.EventAt, a.ChangedAt)
+                    WHEN TRY_CAST(p.[UpdatedDate] AS datetime2(3)) IS NULL
+                            OR TRY_CAST(p.[UpdatedDate] AS date) = ''0001-01-01''
+                            THEN CAST(dbo.ConvertUTCtoLocal(COALESCE(p.EventAt, a.ChangedAt), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                    ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                END AS UpdatedDate,
+
+                CASE
+                    WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                            THEN p.[CreatedDate]
+                    WHEN TRY_CAST(p.[CreatedDate] AS datetime2(3)) IS NULL
+                            OR TRY_CAST(p.[CreatedDate] AS date) = ''0001-01-01''
+                            THEN NULL
+                    ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[CreatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                END AS CreatedDate'
+                + CASE WHEN ISNULL(@cols_out, N'') <> N'' THEN
+                        N', ' + REPLACE(@cols_out, '],[', '], p.[')
+                    ELSE N''
+                    END
+                + N'
+            FROM
+            (
+                SELECT TableName, PKJson, EventAt, ColumnName, ValToPivot
+                FROM FinalSource
+            ) AS src
+            PIVOT
+            (
+                MAX(ValToPivot) FOR ColumnName IN (' + @cols + N')
+            ) AS p
+            JOIN Agg a
+                ON a.TableName = p.TableName
+                AND a.PKJson = p.PKJson
+                AND a.EventAt = p.EventAt
+            ORDER BY a.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
+        END
+        --ELSE
+        --BEGIN
+        --    SET @sql += N'Dedup AS
+        --    (
+        --        -- If multiple rows for same (Table,PKJson,ChangedAt,ColumnName), take latest by AuditId
+        --        SELECT
+        --            TableName, PKJson, ChangedAt, ChangedBy, ColumnName, [Action],
+        --            CONVERT(nvarchar(max), ' + @valExpr + N') AS ValToPivot,
+        --            ROW_NUMBER() OVER (
+        --                PARTITION BY TableName, PKJson, ChangedAt, ColumnName, [Action]
+        --                ORDER BY AuditId DESC
+        --            ) AS rn
+        --        FROM S
+        --    ),
+        --    FinalSource AS
+        --    (
+        --        SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, [Action], ValToPivot
+        --        FROM Dedup
+        --        WHERE rn = 1
+        --    ),
+        --    Agg AS
+        --    (
+        --        SELECT
+        --            TableName,
+        --            PKJson,
+        --            ChangedAt,
+        --            MIN(ChangedBy) AS AnyChangedBy,               -- usually 1 user per event
+        --            [Action] AS Actions
+        --            --STRING_AGG(DISTINCT Action, '''') AS Actions   -- e.g. I/U/D compressed
+        --        FROM S
+        --        GROUP BY TableName, PKJson, ChangedAt, [Action]
+        --    )
+        --    SELECT
+        --        CASE 
+        --            WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+        --                    THEN COALESCE(p.[UpdatedDate], p.ChangedAt)
+        --            WHEN TRY_CAST(p.[UpdatedDate] AS datetime2(3)) IS NULL
+        --                    OR TRY_CAST(p.[UpdatedDate] AS date) = ''0001-01-01''
+        --                    THEN CAST(dbo.ConvertUTCtoLocal(p.ChangedAt, @CurrntEmpTimeZoneDesc) AS datetime2(3))
+        --            ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+        --        END AS UpdatedDate,
+
+        --        CASE 
+        --            WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+        --                    THEN p.[CreatedDate]
+        --            WHEN TRY_CAST(p.[CreatedDate] AS datetime2(3)) IS NULL
+        --                    OR TRY_CAST(p.[CreatedDate] AS date) = ''0001-01-01''
+        --                    THEN NULL
+        --            ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[CreatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+        --        END AS CreatedDate'
+        --        + CASE WHEN ISNULL(@cols_out, N'') <> N'' THEN
+        --                N', ' + REPLACE(@cols_out, '],[', '], p.[')
+        --            ELSE N''
+        --            END
+        --        + N'
+        --    FROM
+        --    (
+        --        SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, ValToPivot
+        --        FROM FinalSource
+        --    ) AS src
+        --    PIVOT
+        --    (
+        --        MAX(ValToPivot) FOR ColumnName IN (' + @cols + N')
+        --    ) AS p
+        --    JOIN Agg a
+        --        ON a.TableName = p.TableName
+        --        AND a.PKJson    = p.PKJson
+        --        AND a.ChangedAt = p.ChangedAt
+        --    ORDER BY p.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
+        --END     
 
     EXEC sp_executesql
         @sql,

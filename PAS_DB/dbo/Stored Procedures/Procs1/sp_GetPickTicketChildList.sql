@@ -26,7 +26,8 @@ CREATE   PROCEDURE [dbo].[sp_GetPickTicketChildList]
 	@SalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@SalesOrderPartId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -70,7 +71,7 @@ BEGIN
 		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
-		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId
+		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId AND sop.SalesOrderPartId =@SalesOrderPartId
 	
 	END
 	COMMIT  TRANSACTION

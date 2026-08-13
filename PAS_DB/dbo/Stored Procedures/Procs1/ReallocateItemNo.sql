@@ -37,23 +37,25 @@ BEGIN
 			  ConditionId bigint,
 			  QtyRequested INT,
 			  qty INT,
+			  SequenceNumber BIGINT,
 			  LineId int NULL default 0
 			)
 
-			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId,QtyRequested,qty)
-			SELECT SalesOrderPartId,ItemMasterId,ConditionId,QtyRequested,QtyOrder FROM dbo.SalesOrderPartV1 WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
+			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId,QtyRequested,qty,SequenceNumber)
+			SELECT SalesOrderPartId,ItemMasterId,ConditionId,QtyRequested,QtyOrder,SequenceNumber FROM dbo.SalesOrderPartV1 WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
 
 			DECLARE  @MasterLoopID as BIGINT  = 0;
 			DECLARE  @ConditionID as BIGINT  = 0;
 			DECLARE  @ItemMasterID as BIGINT  = 0;
 			DECLARE  @RankID as BIGINT  = 0;
 			DECLARE  @QtyRequested as BIGINT  = 0;
+			DECLARE @SequenceNumber AS BIGINT =0;
 			
 			SELECT @MasterLoopID = MAX(ID) FROM #tmpSalesOrderPart
 
 			WHILE (@MasterLoopID > 0)
 			BEGIN	 
-				 SELECT  @ConditionID = ConditionId, @ItemMasterID = ItemMasterId, @QtyRequested = QtyRequested FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
+				 SELECT  @ConditionID = ConditionId, @ItemMasterID = ItemMasterId, @QtyRequested = QtyRequested,@SequenceNumber =SequenceNumber  FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
 
 				 IF EXISTS (SELECT ID FROM #tmpSalesOrderPart wHERE LineId = 0 AND ID = @MasterLoopID) 
 				 BEGIN
@@ -64,18 +66,19 @@ BEGIN
 				      SET LineId =  @RankID 
 					  FROM #tmpSalesOrderPart WHERE ConditionId = @ConditionID 
 					                          AND ItemMasterId = @ItemMasterID
+											  AND SequenceNumber = @SequenceNumber
 											  AND LineId = 0
 
-				If( (SELECT SUM(ISNULL(qty, 0)) FROM #tmpSalesOrderPart WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId) > @QtyRequested)
+				If( (SELECT SUM(ISNULL(qty, 0)) FROM #tmpSalesOrderPart WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId AND SequenceNumber= @SequenceNumber) > @QtyRequested)
 				BEGIN
 					UPDATE SalesOrderPartV1
 					SET QtyRequested = tmp.QtyRequested
 					FROM(
-						SELECT SUM(ISNULL(SOP.QtyOrder, 0)) AS QtyRequested, SalesOrderId, ConditionId, ItemMasterID
+						SELECT SUM(ISNULL(SOP.QtyOrder, 0)) AS QtyRequested, SalesOrderId, ConditionId, ItemMasterID,SequenceNumber
 						   FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK) 
-						   WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId AND SalesOrderId = @SalesOrderId
-						   GROUP BY SalesOrderId, ConditionId, ItemMasterID
-					)tmp WHERE tmp.SalesOrderId = SalesOrderPartV1.SalesOrderId AND tmp.ItemMasterID = SalesOrderPartV1.ItemMasterID AND tmp.ConditionId = SalesOrderPartV1.ConditionId
+						   WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId AND SalesOrderId = @SalesOrderId AND SequenceNumber=@SequenceNumber
+						   GROUP BY SalesOrderId, ConditionId, ItemMasterID,SequenceNumber
+					)tmp WHERE tmp.SalesOrderId = SalesOrderPartV1.SalesOrderId AND tmp.ItemMasterID = SalesOrderPartV1.ItemMasterID AND tmp.ConditionId = SalesOrderPartV1.ConditionId AND tmp.SequenceNumber= SalesOrderPartV1.SequenceNumber
 				END
 				
 				SET @MasterLoopID = @MasterLoopID - 1;

@@ -20,6 +20,7 @@
     1    16/12/2024		EKTA CHANDEGRA	 Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filter from ItemMaster join.
+	4    11/Aug/2026			 Kishor Makwana						[PN-17439]  - Concate Sequence Number in  ItemNo 
 
  EXEC GetSalesOrderQuoteCharges 965 , 0
 ************************************************************************/  
@@ -62,7 +63,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			im.PartNumber,
 			soc.ItemMasterId,
 			--part.ItemNo,
-			(im.PartNumber + ' - ' + cond.Description) AS ItemNo,
+			(CAST(part.SequenceNumber as VARCHAR(10))  + ' - ' +im.PartNumber + ' - ' + cond.Description) AS ItemNo,
 			im.PartNumber AS Pn,
 			part.ConditionId,
 			ISNULL(uom.ShortName, '') AS UOMName,

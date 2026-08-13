@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderQuotePartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -26,9 +26,10 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries, StockLine join, and main WHERE clause.
+    15   10/Aug/2026			 KISHOR MAKWANA						[PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
  EXEC [DBO].[GetSalesOrderQuotePartView] 1653, 'USD'
 **************************************************************/
-CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
+CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
     @CurrencyDisplayName NVARCHAR(100) = ''
 AS
@@ -152,8 +153,7 @@ BEGIN
 			 QuantityOnHand,
 
 			part.IsConvertedToSalesOrder,
-			--ISNULL(part.ItemNo, 0) AS ItemNo,
-			0 AS ItemNo,
+			part.SequenceNumber AS ItemNo,
 			(CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN SC.UnitSalesPrice ELSE PS.UnitSalesPrice END) UnitSalesPricePerUnit,
 			itemMaster.ItemClassificationName AS ItemClassification,
 			itemMaster.ItemGroup,

@@ -21,10 +21,11 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter so Non-Stock ItemMaster/Stockline fields populate correctly on the shipping list.
-     
+	5    05/Aug/2026			 Kishor Makwana						[PN-17439] - Stopped hardcoding ItemNo to 0 (now uses sop.SequenceNumber) so duplicate Part+Condition lines are distinguishable on the shipping list, matching the real per-line SalesOrderPartId (SOPartId) that this SP already groups by.
+
  -- [dbo].[sp_GetSOShippingParentList] 1269
 **************************************************************/
-CREATE   PROCEDURE [dbo].[sp_GetSOShippingParentList]
+CREATE    PROCEDURE [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
 AS
 BEGIN
@@ -34,7 +35,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
+		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, sop.SequenceNumber AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
 		SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
 		SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
 		sop.SalesOrderId,
@@ -52,7 +53,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
 					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
-		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId
+		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId, sop.SequenceNumber
 	END
 	COMMIT  TRANSACTION
 

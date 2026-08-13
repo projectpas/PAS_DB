@@ -19,6 +19,7 @@
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderQuotePartV1 table
 	8    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SOQ part stockline.
+	10   05/Aug/2026	  KISHOR MAKWANA    [PN-17439] - Added SequenceNumber to persist user-editable Item No on Sales Order parts
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -26,7 +27,7 @@ insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.0000
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
 ***************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
+CREATE    PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
 	@tbl_SalesOrderQuotePartList SOQPartListType READONLY
 	--@tbl_SalesOrderQuoteStocklineList SOQStockLineListType READONLY
 AS
@@ -85,17 +86,18 @@ BEGIN
 		CreatedBy varchar(100),
 		IsNoQuote BIT NULL,
 		IsLotAssigned BIT NULL,
-		LotId BIGINT NULL
+		LotId BIGINT NULL,
+		SequenceNumber BIGINT NULL
 	)
 
 	INSERT INTO #SOQPartDetails (SalesOrderQuotePartId,SalesOrderQuoteId,ItemMasterId,ConditionId,PriorityId,StocklineId,QuantityQuote,SalesOrderQuoteStocklineId,StatusId,
 	QtyRequested,QtyQuoted,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote,IsLotAssigned,LotId)
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote,IsLotAssigned,LotId,SequenceNumber)
 	SELECT SalesOrderQuotePartId,SalesOrderQuoteId,ItemMasterId,ConditionId,PriorityId,StocklineId,QuantityQuote,SalesOrderQuoteStocklineId,StatusId,
 	QtyRequested,QtyQuoted,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote,IsLotAssigned,LotId 
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote,IsLotAssigned,LotId,SequenceNumber
 	FROM @tbl_SalesOrderQuotePartList;
 
 	SELECT @SOQPartLoopID = MAX(ID) FROM #SOQPartDetails;
@@ -129,14 +131,15 @@ BEGIN
 		DECLARE @IsNoQuote AS BIT = NULL;
 		DECLARE @IsLotAssigned AS BIT = NULL;
 		DECLARE @LotId AS BIGINT = 0;
+		DECLARE @SequenceNumber AS BIGINT;
 		DECLARE @PriorityId BIGINT = 0,@StocklineCount INT =0;
 
 		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @SalesOrderQuoteId = SalesOrderQuoteId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderQuoteStocklineId = SalesOrderQuoteStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyQuoted = QtyQuoted,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
-		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes, 
+		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes,
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@IsNoQuote = IsNoQuote,
-		@IsLotAssigned = IsLotAssigned,@LotId = LotId,@PriorityId = PriorityId
+		@IsLotAssigned = IsLotAssigned,@LotId = LotId,@PriorityId = PriorityId,@SequenceNumber = SequenceNumber
 		FROM #SOQPartDetails WHERE ID = @MinsoqId;
 		
 		IF (ISNULL(@SalesOrderQuotePartId, 0) = 0) -- Add New Part
@@ -144,7 +147,7 @@ BEGIN
 			DECLARE @SOQPartStatus BIGINT;
 			SELECT @SOQPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';
 
-			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
+			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND ISNULL(SequenceNumber,0) = ISNULL(@SequenceNumber,0))
 			BEGIN
 				DECLARE @CurrencyCode VARCHAR(10) = '';
 				DECLARE @CurrencyId BIGINT = 0;
@@ -154,8 +157,8 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SOQ.CustomerId = CF.CustomerId
 				WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
-				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId],UnitSalesPrice)
-				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId,UnitSalesPrice
+				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId],UnitSalesPrice,SequenceNumber)
+				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId,UnitSalesPrice,SequenceNumber
 				FROM #SOQPartDetails WHERE ID = @MinsoqId;
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
@@ -184,7 +187,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND SalesOrderQuoteId = @SalesOrderQuoteId;
+				SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND SalesOrderQuoteId = @SalesOrderQuoteId AND ISNULL(SequenceNumber,0) = ISNULL(@SequenceNumber,0);
 			END
 
 			IF (@StockLineId IS NOT NULL AND @StockLineId > 0) -- Added at Stockline Level
@@ -247,7 +250,8 @@ BEGIN
 			IsNoQuote = @IsNoQuote,
 			QtyRequested = @QtyRequested,
 			QtyQuoted = @QtyQuoted,
-			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END)
+			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END),
+			SequenceNumber = @SequenceNumber
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

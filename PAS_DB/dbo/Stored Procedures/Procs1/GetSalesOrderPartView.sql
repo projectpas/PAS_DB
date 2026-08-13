@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -37,6 +37,7 @@
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	25    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	26    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries and StockLine/ItemMaster joins.
+    27    05/Aug/2026			 KISHOR MAKWANA						[PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -53,17 +54,127 @@ BEGIN
 	DECLARE @DefaultStatusId INT = 1;
 	DECLARE @DefaultStatusName VARCHAR(50) = 'OPEN';
 	DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
-	DECLARE @LOTNumber VARCHAR(100)= ISNULL((SELECT LotNumber FROM dbo.LOT WITH(NOLOCK) WHERE LotId = (SELECT ISNULL(LotId,0) FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)),'')
+	DECLARE @LotId BIGINT = ISNULL((SELECT TOP 1 ISNULL(LotId,0) FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId),0)
+	DECLARE @LOTNumber VARCHAR(100)= ISNULL((SELECT TOP 1 LotNumber FROM dbo.LOT WITH(NOLOCK) WHERE LotId = @LotId),'')
 	--Set SoPart null for all part for salesordor otherwise for perticular part only.
 	IF(ISNULL(@SoPartId,0) = 0)
 	BEGIN
 		SET @SoPartId = NULL;
 	END
-
 		IF OBJECT_ID(N'tempdb..#tmpSOPartTblV1') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpSOPartTblV1
 		END
+		IF OBJECT_ID(N'tempdb..#SOPartKey')   IS NOT NULL DROP TABLE #SOPartKey
+		IF OBJECT_ID(N'tempdb..#StkRollup')   IS NOT NULL DROP TABLE #StkRollup
+		IF OBJECT_ID(N'tempdb..#PickTicket')  IS NOT NULL DROP TABLE #PickTicket
+		IF OBJECT_ID(N'tempdb..#FreightAgg')  IS NOT NULL DROP TABLE #FreightAgg
+		IF OBJECT_ID(N'tempdb..#MiscAgg')     IS NOT NULL DROP TABLE #MiscAgg
+		IF OBJECT_ID(N'tempdb..#ApprovedPart') IS NOT NULL DROP TABLE #ApprovedPart
+		IF OBJECT_ID(N'tempdb..#ShippedAgg')  IS NOT NULL DROP TABLE #ShippedAgg
+		IF OBJECT_ID(N'tempdb..#ShipRef')     IS NOT NULL DROP TABLE #ShipRef
+		IF OBJECT_ID(N'tempdb..#BillingAgg')  IS NOT NULL DROP TABLE #BillingAgg
+		IF OBJECT_ID(N'tempdb..#LotStk')      IS NOT NULL DROP TABLE #LotStk
+
+	/****** PRE-AGGREGATION : each block replaces a correlated sub-query that previously ran once PER ROW ******/
+
+	-- Scope key for this execution
+	SELECT DISTINCT p.SalesOrderPartId, p.ItemMasterId, p.ConditionId,p.SequenceNumber
+	INTO #SOPartKey
+	FROM DBO.SalesOrderPartV1 p WITH (NOLOCK)
+	WHERE p.SalesOrderId = @SalesOrderId
+	  AND (@SoPartId IS NULL OR p.SalesOrderPartId = @SoPartId)
+	  AND (p.IsDeleted IS NULL OR p.IsDeleted = 0)
+	OPTION (RECOMPILE);
+	CREATE CLUSTERED INDEX IX_SOPartKey ON #SOPartKey (ItemMasterId, ConditionId, SalesOrderPartId,SequenceNumber);
+
+	-- Stockline roll-up by ItemMasterId + ConditionId  (was written 4x and executed 4x per row)
+	SELECT k.ItemMasterId, k.ConditionId,k.SequenceNumber, s.QtyAvailable, s.QtyOnHand
+	INTO #StkRollup
+	FROM (SELECT DISTINCT ItemMasterId, ConditionId,SequenceNumber FROM #SOPartKey) k
+	CROSS APPLY (SELECT SUM(Stk.QuantityAvailable) AS QtyAvailable, SUM(Stk.QuantityOnHand) AS QtyOnHand
+				 FROM DBO.Stockline Stk WITH (NOLOCK)
+				 WHERE Stk.ItemMasterId = k.ItemMasterId AND Stk.ConditionId = k.ConditionId AND Stk.IsParent = 1
+				   AND ((Stk.IsRepairManagement = 1) OR ((Stk.IsRepairManagement = 0 OR Stk.IsRepairManagement IS NULL) AND Stk.IsCustomerStock = 0))) s;
+	CREATE CLUSTERED INDEX IX_StkRollup ON #StkRollup (ItemMasterId, ConditionId,SequenceNumber);
+
+	-- QtyToShip
+	SELECT SalesOrderPartId, QtyToShip = SUM(QtyToShip)
+	INTO #PickTicket
+	FROM DBO.SOPickTicket WITH (NOLOCK)
+	WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0
+	GROUP BY SalesOrderPartId;
+	CREATE CLUSTERED INDEX IX_PickTicket ON #PickTicket (SalesOrderPartId);
+
+	-- Freight
+	SELECT ItemMasterId, ConditionId, Freight = SUM(BillingAmount)
+	INTO #FreightAgg
+	FROM DBO.SalesOrderFreight WITH (NOLOCK)
+	WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0
+	GROUP BY ItemMasterId, ConditionId;
+	CREATE CLUSTERED INDEX IX_FreightAgg ON #FreightAgg (ItemMasterId, ConditionId);
+
+	-- Misc charges
+	SELECT ItemMasterId, ConditionId, Misc = SUM(BillingAmount)
+	INTO #MiscAgg
+	FROM DBO.SalesOrderCharges WITH (NOLOCK)
+	WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0
+	GROUP BY ItemMasterId, ConditionId;
+	CREATE CLUSTERED INDEX IX_MiscAgg ON #MiscAgg (ItemMasterId, ConditionId);
+
+	-- IsApproved  (was EXISTS per row)
+	SELECT DISTINCT sa.SalesOrderPartId
+	INTO #ApprovedPart
+	FROM DBO.SalesOrderApproval sa WITH (NOLOCK)
+	INNER JOIN #SOPartKey k ON k.SalesOrderPartId = sa.SalesOrderPartId
+	WHERE sa.IsDeleted = 0 AND sa.CustomerStatusId = @ApprovedStatus;
+	CREATE CLUSTERED INDEX IX_ApprovedPart ON #ApprovedPart (SalesOrderPartId);
+
+	-- qtyShipped
+	SELECT sopt.SalesOrderPartStocklineId, qtyShipped = SUM(sosi.QtyShipped)
+	INTO #ShippedAgg
+	FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
+	INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+	INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SOPickTicketId = sosi.SOPickTicketId
+	WHERE sos.SalesOrderId = @SalesOrderId AND sos.IsActive = 1 AND sos.IsDeleted = 0
+	GROUP BY sopt.SalesOrderPartStocklineId;
+	CREATE CLUSTERED INDEX IX_ShippedAgg ON #ShippedAgg (SalesOrderPartStocklineId);
+
+	-- shipReference
+	SELECT r.SalesOrderPartId, r.SOShippingNum
+	INTO #ShipRef
+	FROM (SELECT sosi.SalesOrderPartId, sos.SOShippingNum,
+				 rn = ROW_NUMBER() OVER (PARTITION BY sosi.SalesOrderPartId ORDER BY sos.SalesOrderShippingId)
+		  FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
+		  INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+		  WHERE sos.SalesOrderId = @SalesOrderId AND sos.IsActive = 1 AND sos.IsDeleted = 0) r
+	WHERE r.rn = 1;
+	CREATE CLUSTERED INDEX IX_ShipRef ON #ShipRef (SalesOrderPartId);
+
+	-- qtyInvoiced / invoiceDate / invoiceNumber  (was 3 separate scans per row)
+	SELECT b.StocklineId, b.SubReferenceId,
+		   qtyInvoiced   = SUM(b.QtyBilled),
+		   invoiceDate   = MAX(CASE WHEN b.rn = 1 THEN b.InvoiceDate END),
+		   invoiceNumber = MAX(CASE WHEN b.rn = 1 THEN b.InvoiceNo   END)
+	INTO #BillingAgg
+	FROM (SELECT sobi.StocklineId, sobi.SubReferenceId, sobi.QtyBilled, sob.InvoiceDate, sob.InvoiceNo,
+				 rn = ROW_NUMBER() OVER (PARTITION BY sobi.StocklineId, sobi.SubReferenceId ORDER BY sob.BillingInvoicingId)
+		  FROM DBO.BillingInvoicing sob WITH (NOLOCK)
+		  INNER JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
+		  WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId
+			AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0
+			AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) b
+	GROUP BY b.StocklineId, b.SubReferenceId;
+	CREATE CLUSTERED INDEX IX_BillingAgg ON #BillingAgg (StocklineId, SubReferenceId);
+
+	-- LotNumber
+	CREATE TABLE #LotStk (StockLineId BIGINT NOT NULL PRIMARY KEY);
+	IF (@LOTNumber <> '' AND @LotId > 0)
+	BEGIN
+		INSERT INTO #LotStk (StockLineId)
+		SELECT DISTINCT LTI.StockLineId FROM dbo.LotTransInOutDetails LTI WITH (NOLOCK)
+		WHERE LTI.LotId = @LotId AND LTI.StockLineId IS NOT NULL;
+	END
 
     SELECT DISTINCT
         part.SalesOrderId,
@@ -122,10 +233,7 @@ BEGIN
         --ISNULL(qs.QuantityOnHand, 0) AS QuantityOnHand,
         ISNULL(iu.ShortName, '') AS UOM,
         ISNULL(Stk.QtyReserved, NULL) AS QtyReserved,
-        CASE 
-            WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderApproval WITH (NOLOCK) WHERE SalesOrderPartId = part.SalesOrderPartId AND IsDeleted = 0 AND CustomerStatusId = @ApprovedStatus) 
-            THEN 1 ELSE 0 
-        END AS IsApproved,
+        CASE WHEN appr.SalesOrderPartId IS NOT NULL THEN 1 ELSE 0 END AS IsApproved,
         ISNULL(SO.SalesOrderQuoteId, '') AS CustomerReference,
         --ISNULL(imx.ExportECCN, '') AS ECCN,
         ISNULL(imx.ITARNumber, '') AS ITAR,
@@ -136,8 +244,8 @@ BEGIN
 		CASE WHEN Stk.PriorityId IS NOT NULL THEN Stk.PriorityId ELSE ISNULL(part.PriorityId, @DefaultPriorityId) END AS PriorityId,
 		CASE WHEN Stk.PriorityId IS NOT NULL THEN prit.Description ELSE ISNULL(pri.Description, @DefaultPriorityName) END AS PriorityName,
 		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END StatusId,
-		ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = (CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END )), @DefaultStatusName) AS StatusName,
-        ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
+		ISNULL(sps.Description, @DefaultStatusName) AS StatusName,
+        ISNULL(pkt.QtyToShip, 0) AS QtyToShip,
         CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.Notes ELSE part.Notes END Notes,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(stk.QtyOrder,0) >0 THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyOrder) ELSE 0 END) ELSE(CASE WHEN ISNULL(part.QtyOrder,0) > 0 THEN (ISNULL(PS.MarkUpAmount, 0) / part.QtyOrder) ELSE 0 END)END MarkupPerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePricePerUnit,
@@ -145,16 +253,16 @@ BEGIN
         0 AS TaxPercentage,
         '' TaxType,
         ISNULL(PS.TaxAmount, 0) AS TaxAmount,
-        ISNULL(part.AltOrEqType,'') AltOrEqType,		
-        ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight WHERE SalesOrderId = part.SalesOrderId AND ItemMasterId = part.ItemMasterId AND ConditionId = part.ConditionId AND IsActive = 1 AND IsDeleted = 0), 0) AS Freight,
-        ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges WHERE SalesOrderId = part.SalesOrderId AND ItemMasterId = part.ItemMasterId AND ConditionId = part.ConditionId AND IsActive = 1 AND IsDeleted = 0), 0) AS Misc,
-        CASE 
+        ISNULL(part.AltOrEqType,'') AltOrEqType,
+        ISNULL(frt.Freight, 0) AS Freight,
+        ISNULL(msc.Misc, 0) AS Misc,
+        CASE
             WHEN itemMaster.IsPma = 1 AND itemMaster.IsDER = 1 THEN 'PMA&DER'
             WHEN itemMaster.IsPma = 1 THEN 'PMA'
             WHEN itemMaster.IsDER = 1 THEN 'DER'
             ELSE 'OEM'
         END AS StockType,
-        0 AS ItemNo,
+        part.SequenceNumber AS ItemNo,
         part.POId,
         part.PONumber,
         part.PONextDlvrDate,
@@ -166,50 +274,43 @@ BEGIN
         itemMaster.ItemGroup,
         rop.EstRecordDate AS roNextDlvrDate,
 		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-			(SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+			ISNULL(qs.QuantityAvailable, 0)
 		ELSE
-			(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND ((Stk.IsRepairManagement = 1) OR ((Stk.IsRepairManagement = 0 OR Stk.IsRepairManagement IS NULL) AND Stk.IsCustomerStock = 0))) 
+			ISNULL(srl.QtyAvailable, 0)
 		END StkQtyAvailable,
-		(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND ((Stk.IsRepairManagement = 1) OR ((Stk.IsRepairManagement = 0 OR Stk.IsRepairManagement IS NULL) AND Stk.IsCustomerStock = 0)))
+		ISNULL(srl.QtyAvailable, 0)
 		 QtyAvailable,
 		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-			(SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+			ISNULL(qs.QuantityOnHand, 0)
 		ELSE
-			(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND ((Stk.IsRepairManagement = 1) OR ((Stk.IsRepairManagement = 0 OR Stk.IsRepairManagement IS NULL) AND Stk.IsCustomerStock = 0))) 
+			ISNULL(srl.QtyOnHand, 0)
 		END StkQuantityOnHand,
-		(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND ((Stk.IsRepairManagement = 1) OR ((Stk.IsRepairManagement = 0 OR Stk.IsRepairManagement IS NULL) AND Stk.IsCustomerStock = 0)))
+		ISNULL(srl.QtyOnHand, 0)
 		 QuantityOnHand,
-		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
-		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
-		LEFT JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SOPickTicketId = sosi.SOPickTicketId
-		WHERE sos.SalesOrderId = @SalesOrderId AND sopt.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
-		
-		(SELECT SUM(sobi.QtyBilled) FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
-		
-		(SELECT TOP 1 sob.InvoiceDate FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND  sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
-		
-		(SELECT TOP 1 sob.InvoiceNo FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
-		
-		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
-		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference,
+		shp.qtyShipped qtyShipped,
+
+		bil.qtyInvoiced qtyInvoiced,
+
+		bil.invoiceDate invoiceDate,
+
+		bil.invoiceNumber invoiceNumber,
+
+		sref.SOShippingNum shipReference,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.ECCN ELSE part.ECCN END ECCN,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.HSCODE ELSE part.HSCODE END HSCODE,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.[Weight] ELSE part.[Weight] END [Weight],
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeLength ELSE part.SizeLength END SizeLength,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeWidth ELSE part.SizeWidth END SizeWidth,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight,
-
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
-		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,
+		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN lts.StockLineId IS NOT NULL THEN @LOTNumber ELSE '' END) END  AS LotNumber,
 		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
 		part.UnitSalesPrice MainUnitSalesPrice,
-		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
-
-		INTO #tmpSOPartTblV1 
+		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart,
+		ISNULL(imps.SP_CalSPByPP_UnitSalePrice,0) AS ItemMasterUnitCost,
+		ISNULL(PS.NetSaleAmount,0) AS TotalPartCost
+		INTO #tmpSOPartTblV1
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId
@@ -217,43 +318,55 @@ BEGIN
     LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
     LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON Stk.StockLineId = qs.StockLineId
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-     LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
-    LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
+    LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
 	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-    LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
-    LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId AND ISNULL(ROP.[IsPiecePart], 0) = 0
+    LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId AND (ROP.[IsPiecePart] IS NULL OR ROP.[IsPiecePart] = 0)
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
-    WHERE part.SalesOrderId = @SalesOrderId 
+	/****** pre-aggregated lookups (replace the old per-row correlated sub-queries) ******/
+	LEFT JOIN #ApprovedPart appr ON appr.SalesOrderPartId = part.SalesOrderPartId
+	LEFT JOIN #PickTicket   pkt  ON pkt.SalesOrderPartId  = part.SalesOrderPartId
+	LEFT JOIN #FreightAgg   frt  ON frt.ItemMasterId = part.ItemMasterId AND frt.ConditionId = part.ConditionId
+	LEFT JOIN #MiscAgg      msc  ON msc.ItemMasterId = part.ItemMasterId AND msc.ConditionId = part.ConditionId
+	LEFT JOIN #StkRollup    srl  ON srl.ItemMasterId = part.ItemMasterId AND srl.ConditionId = part.ConditionId
+	LEFT JOIN #ShippedAgg   shp  ON shp.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId
+	LEFT JOIN #ShipRef      sref ON sref.SalesOrderPartId = part.SalesOrderPartId
+	LEFT JOIN #BillingAgg   bil  ON bil.StocklineId = Stk.StockLineId AND bil.SubReferenceId = part.SalesOrderPartId
+	LEFT JOIN #LotStk       lts  ON lts.StockLineId = Stk.StockLineId
+	LEFT JOIN DBO.SOPartStatus sps WITH (NOLOCK) ON sps.SOPartStatusId = CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END
+    LEFT JOIN ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = itemMaster.ItemMasterId and imps.ConditionId=part.ConditionId
+	WHERE part.SalesOrderId = @SalesOrderId
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
-    AND ISNULL(part.IsDeleted,0) = 0
-    AND ISNULL(rop.isAsset, 0) = 0
-	ORDER BY part.SalesOrderPartId;
+    AND (part.IsDeleted IS NULL OR part.IsDeleted = 0)
+    AND (rop.isAsset IS NULL OR rop.isAsset = 0)
+	ORDER BY part.SalesOrderPartId
+	OPTION (RECOMPILE);
+
+	CREATE CLUSTERED INDEX IX_tmpSOPartTblV1 ON #tmpSOPartTblV1 (SalesOrderPartId);
 
 	/****** Total Part Wise COST Calculation ******/
 	;WITH CTE_Cost AS (
-			SELECT 
+			SELECT
 				SalesOrderPartId,
 				SUM(ISNULL(Qty, 0)) AS TotalQtyQuoted,
 				SUM(ISNULL(NetSalePriceExtendedPart, 0)) AS TotalNetSalePriceExtended
 			FROM #tmpSOPartTblV1
 			GROUP BY SalesOrderPartId
 		)
-
 	/****** Final Table Return *******/
-		SELECT 
-			main.*,
-			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
-			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
+		SELECT
+			main.*
+			--,
+			--(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
+			--  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
 		FROM #tmpSOPartTblV1 main
-		LEFT JOIN CTE_Cost c ON main.SalesOrderPartId = c.SalesOrderPartId;
-
+		--LEFT JOIN CTE_Cost c ON main.SalesOrderPartId = c.SalesOrderPartId;
   END TRY
   BEGIN CATCH
   SELECT
@@ -271,7 +384,6 @@ BEGIN
                         @ProcedureParameters = @ProcedureParameters,
                         @ApplicationName = @ApplicationName,
                         @ErrorLogID = @ErrorLogID OUTPUT;
-
     RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
     RETURN (1);
   END CATCH

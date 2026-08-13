@@ -40,5 +40,6 @@
     [Weight]                DECIMAL (18, 4) NULL,
     [SizeLength]            DECIMAL (18, 4) NULL,
     [SizeWidth]             DECIMAL (18, 4) NULL,
-    [SizeHeight]            DECIMAL (18, 4) NULL);
+    [SizeHeight]            DECIMAL (18, 4) NULL,
+    [SequenceNumber]        BIGINT          NULL);
 

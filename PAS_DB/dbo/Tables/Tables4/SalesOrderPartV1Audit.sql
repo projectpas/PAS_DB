@@ -43,6 +43,7 @@
     [SizeHeight]            DECIMAL (10, 2) NULL,
     [AltOrEqType]           VARCHAR (50)    NULL,
     [UnitSalesPrice]        DECIMAL (18, 2) NULL,
+    [SequenceNumber]        BIGINT          DEFAULT (NULL) NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
 

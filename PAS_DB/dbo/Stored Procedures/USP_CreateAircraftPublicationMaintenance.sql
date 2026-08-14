@@ -15,6 +15,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    09/07/2026  Amit Ghediya		Created
 ** 2    14/07/2026  Amit Ghediya		Allow to create maintanace for allow except ser num [PN-17223]
+** 3    14/08/2026  Amit Ghediya		Update new code for get default Maintenance category
 ************************************************************/
 CREATE       PROCEDURE [dbo].[USP_CreateAircraftPublicationMaintenance]
     @AircraftPublicationId BIGINT,
@@ -32,7 +33,7 @@ BEGIN
                 @PubNum VARCHAR(50) = NULL,
                 @OldSequenceNum INT = NULL;
 
-        SELECT @MtcCategoryId = [MtcCategoryId] FROM DBO.MaintenanceCategory WITH(NOLOCK) WHERE [MaintenanceCode] = 'unscheduled' AND [MasterCompanyId] = @MasterCompanyId;
+        SELECT @MtcCategoryId = [MtcCategoryId] FROM DBO.MaintenanceCategory WITH(NOLOCK) WHERE [MaintenanceCode] = 'MAJOR_OVERHAUL' AND [MasterCompanyId] = @MasterCompanyId;
 
         SELECT @PubNum = [PubNum] FROM [dbo].[AircraftPublication] WITH (NOLOCK) WHERE [AircraftPublicationId] = @AircraftPublicationId;
 

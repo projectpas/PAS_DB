@@ -12,11 +12,14 @@
     [SequenceNo]      INT            NOT NULL,
     [Code]            VARCHAR (100)  NULL,
     [GroupCode]       VARCHAR (20)   NULL,
+    [IsILSCondition]  BIT            NULL,
     CONSTRAINT [PK_Condition] PRIMARY KEY CLUSTERED ([ConditionId] ASC),
     CONSTRAINT [FK_Condition_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_ConditionSeqNo] UNIQUE NONCLUSTERED ([SequenceNo] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [UQ_Condition_codes] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

@@ -47,15 +47,19 @@
     [IntegrationTypeId]         INT            NULL,
     [ResaleNumber]              VARCHAR (200)  NULL,
     [VatNumber]                 VARCHAR (50)   NULL,
+    [LegalEntityId]             BIGINT         NULL,
     CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED ([CustomerId] ASC),
     CONSTRAINT [FK_Customer_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Customer_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_Customer_CustomerAffiliation] FOREIGN KEY ([CustomerAffiliationId]) REFERENCES [dbo].[CustomerAffiliation] ([CustomerAffiliationId]),
     CONSTRAINT [FK_Customer_CustomerType] FOREIGN KEY ([CustomerTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
+    CONSTRAINT [FK_Customer_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_Customer_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_Customer_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Customer]
 ON [dbo].[Customer]

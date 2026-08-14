@@ -14,6 +14,7 @@
 	3    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
 	4    02-07-2026       Sahdev Saliya             Added Resale Number [PN-17018]
     5    06-07-2026       Divyesh Kathitiya         Added VAT Number [PN-17124] 
+	6    12-AUG-2026      Moin Bloch                Added LegalEntityId PN-17651
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -65,6 +66,8 @@ BEGIN
             cont.countries_name AS Country,
             cont.countries_id AS CountryId,
             v.VendorParentId,
+            v.LegalEntityId,            			
+			CASE WHEN le.[CompanyCode] IS NULL THEN '' ELSE le.[CompanyCode] + '-' + le.[Name] END AS LegalEntityName,
 			v.Notes,
 			v.ResaleNumber,
             v.VatNumber,
@@ -109,6 +112,7 @@ BEGIN
 		LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
 		LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
 		LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+		LEFT JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON v.LegalEntityId = le.LegalEntityId
 
         WHERE v.VendorId = @VendorId
 

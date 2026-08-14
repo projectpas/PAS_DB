@@ -22,7 +22,20 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover soft IsNonStock=0 exclusion filters (IM/AIM aliases) added during PN-17008 transitional Non-Stock merge phase.
 	7	15/July/2026			 RAJESH GAMI						[PN-17271] - Fixed: the Non-Stock branch of the PartNumber/
-	
+									PartDescription CASE expression still joined the legacy
+									dbo.ItemMasterNonStock table (aliased IMN, ON POP.ItemMasterId
+									= IMN.MasterPartId). Since Non-Stock inventory was merged into
+									ItemMaster, that table is no longer populated for items created
+									post-merge, so PartNumber/PartDescription silently went NULL on
+									every newly created Non-Stock PO Part. Replaced with a join to
+									dbo.ItemMaster (aliased IMNS, ON POP.ItemMasterId =
+									IMNS.ItemMasterId - already scoped to the exact row, no extra
+									IsNonStock filter needed) and updated both CASE branches to
+									reference IMNS instead of IMN.
+	8   13-Aug-2026    Rajesh Gami   [PN-17271] - Entry #7 above was truncated mid-sentence (documentation only;
+									the IMNS join/CASE fix itself was already correctly applied). Completed the
+									description text to match what was actually shipped.
+
  EXEC sp_UpdatePurchaseOrderDetail 2985
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail]

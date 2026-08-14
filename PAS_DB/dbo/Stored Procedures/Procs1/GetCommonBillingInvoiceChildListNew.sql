@@ -31,6 +31,7 @@
 	18   11-Aug-2026  Rajesh Gami		[PN-17636] Added IsReOpen Flag to handle the Reopen Invoice
 	19   05/Aug/2026  Kishor Makwana	[PN-17439] - Modify SO & SOQ Part Grid logic to allow duplicate PN + Condition rows (uniqueness by PN + Condition + SalesOrderPartId, displayed via Sequence Number)
 	20   13/Aug/2026  Kishor Makwana	[PN-17439] - Fixed Billing/Invoicing tab not showing all old and new invoice lines: StockLineRank's PARTITION BY was missing BillingInvoicingId, so it collapsed every invoice/version billed against the same StockLine/Shipment down to only the newest BillingInvoicingId, silently dropping legitimate "Old Version" invoice rows.
+	21   14/Aug/2026  Kishor Makwana	[PN-17666] - Fixed Stockline Number not displayed for posted Standard Invoice (only Proforma showed it): the Service/NonStock UNION ALL arm hardcoded StockLineNumber/SerialNumber to NULL for every row, even when the BillingInvoicingItems row actually had a real StockLineId. Now resolved directly off sobii2.StockLineId via a dedicated Stockline join.
 
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
@@ -700,8 +701,8 @@ BEGIN
 					im.ItemMasterId,
 					sop2.ConditionId,
 					im.PartDescription,
-					NULL AS StockLineNumber,
-					NULL AS SerialNumber,
+					sl2.StockLineNumber,
+					sl2.SerialNumber AS SerialNumber,
 					cr2.[Name] as CustomerName,
 					NULL AS StockLineId,
 					ISNULL(sobii2.QtyBilled,0) AS QtyBilled,
@@ -746,6 +747,7 @@ BEGIN
 					INNER JOIN [DBO].[ItemMaster] im WITH (NOLOCK) ON sop2.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) = 1 AND ISNULL(im.[IsNonStock],0) = 1)
 					LEFT JOIN DBO.BillingInvoicingItems sobii2 WITH (NOLOCK) ON sobii2.SubReferenceId = sop2.SalesOrderPartId AND ISNULL(sobii2.IsPerformaInvoice,0) = 0 AND sobii2.ModuleId = @SOModuleId
 					LEFT JOIN DBO.BillingInvoicing sobi2 WITH (NOLOCK) ON sobi2.BillingInvoicingId = sobii2.BillingInvoicingId AND ISNULL(sobi2.IsPerformaInvoice,0) = 0 AND sobi2.ReferenceId = @ReferenceId AND sobi2.ModuleId = @SOModuleId
+					LEFT JOIN DBO.Stockline sl2 WITH (NOLOCK) ON sl2.StockLineId = sobii2.StockLineId
 					LEFT JOIN DBO.Customer cr2 WITH (NOLOCK) ON cr2.CustomerId = so2.CustomerId
 					LEFT JOIN DBO.Condition cond2 WITH (NOLOCK) ON cond2.ConditionId = sop2.ConditionId
 					LEFT JOIN DBO.Currency curr2 WITH (NOLOCK) ON curr2.CurrencyId = so2.FunctionalCurrencyId

@@ -14,6 +14,7 @@
 ** 5    29/05/2026   Sahdev Saliya   Removed TotalCSNHHMM [PN-16621]
 ** 5    01/06/2026   Ayushi Patel    GET CustomerName from stockline [PN-16660]
 ** 6    20/07/2026   Amit Ghediya    Added filter params for SLNum/CntrlNum/Cond/Site/Warehouse/Location [PN-17344]
+** 7    14/08/2026   Divyesh Kathiriya  Added Third Party Own Only filter for external customers. [PN-17626]
 
 ********************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
@@ -48,13 +49,16 @@ CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @Cond               VARCHAR(100)    = NULL,
     @Site               VARCHAR(50)     = NULL,
     @Warehouse          VARCHAR(100)    = NULL,
-    @Location           VARCHAR(50)     = NULL
+    @Location           VARCHAR(50)     = NULL,
+    @ThirdPartyOwnOnly  BIT             = 0
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 
     BEGIN TRY
+
+    DECLARE @AccountType VARCHAR(20) = 'External';
 
         WITH CTE AS
         (
@@ -94,6 +98,7 @@ BEGIN
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
             --LEFT JOIN [dbo].[StockLine] SL WITH (NOLOCK) ON AR.StockLineId = SL.StockLineId
             LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON AR.CustomerId = C.CustomerId
+            LEFT JOIN [dbo].[CustomerAffiliation] CA WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
             LEFT JOIN [dbo].[StockLine] STK WITH (NOLOCK) ON AR.StockLineId = STK.StockLineId
             LEFT JOIN [dbo].[Site] SITE WITH (NOLOCK) ON STK.SiteId = SITE.SiteId
             LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON STK.WarehouseId = WH.WarehouseId
@@ -135,6 +140,7 @@ BEGIN
                 AND (@Site              IS NULL OR SITE.[Name]         LIKE '%' + @Site      + '%')
                 AND (@Warehouse         IS NULL OR WH.[Name]           LIKE '%' + @Warehouse + '%')
                 AND (@Location          IS NULL OR LOC.[Name]          LIKE '%' + @Location  + '%')
+                AND (ISNULL(@ThirdPartyOwnOnly, 0) = 0 OR CA.[AccountType] = @AccountType)
         )
         SELECT
             AircraftRegistryId,

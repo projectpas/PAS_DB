@@ -24,9 +24,10 @@
 									   inserts as before. Also skips the Stockline.LOTQty decrement on repost (it
 									   already ran the first time - re-running it on every repost was double/triple
 									   decrementing LOTQty).
+	6   14-Aug-2026   RAJESH GAMI      PN-17673 : Update LOT Commission Cost Calculation for Multiple Commission Methods (% Of Revenue, % Of Margin OR Fixed Commision Amount)
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
+CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
 	@tbl_LotCalculationDetailsType LotCalculationDetailsType READONLY,
 	@LotCalculationId BIGINT = NULL,
 	@LotId BIGINT = NULL,
@@ -52,7 +53,7 @@ BEGIN
 		-- yet / no existing row found for the current loop iteration.
 		DECLARE @ExistingLotCalculationId BIGINT = NULL;
 		Select @lotNumber = LotNumber, @lotDesc = LotName from dbo.Lot WITH(NOLOCK) WHERE LotId = @LotId
-		DECLARE @ConsignmentPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
+		DECLARE @ConsignmentRevenuePercent DECIMAL(18,2),@ConsignmentMarginPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
 		SET @count = 1;
 		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0),@IsUseMargin =ISNULL(IsUseMargin,0)  ,@MarginPercentageId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
 		IF OBJECT_ID(N'tempdb..#tmpLotCalculationDetailsType') IS NOT NULL
@@ -263,7 +264,7 @@ BEGIN
 						FROM @tbl_LotCalculationDetailsType
 		
 			SELECT @TotalCounts = COUNT(ID) FROM #tmpLotCalculationDetailsType;
-			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0), @ConsignmentPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)   FROM DBO.LotConsignment LC WHERE LotId = @LotId
+			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent  = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0) , @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)   FROM DBO.LotConsignment LC WHERE LotId = @LotId
 
 			WHILE @count<= @TotalCounts
 			BEGIN	
@@ -345,29 +346,34 @@ BEGIN
 
 				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost,
 						--TransferredOutCost = COGS , 
-						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentPercent END)  WHERE LotCalculationId = @LatestId; 
+						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END)  WHERE LotCalculationId = @LatestId; 
 
-				IF(@IsRevenue =1)
-				BEGIN
-					SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
-					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentPercent)/100)),0)
-				END
-				ELSE IF(@IsMargin = 1)
-				BEGIN
-					SET @TotalMarginCost = ISNULL((SELECT ISNULL(MarginAmount,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
-					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalMarginCost * @ConsignmentPercent)/100)),0)
-				END
-				ELSE IF(@IsFixedAmount = 1)
+				IF(@IsFixedAmount = 1)
 				BEGIN
 					SET @QtyLot = ISNULL((SELECT ISNULL(Qty,0) FROM DBO.LotCalculationDetails where LotCalculationId = @LatestId),0)
 						SET @CommissionCost = CONVERT(Decimal(18,2),ISNULL((@ConsignmentFixedAmt * @QtyLot),0))
 					--SET @CommissionCost =ISNULL(CONVERT(Decimal(18,2),(ISNULL(CONVERT(Decimal(18,2),@ConsignmentFixedAmt),0) * @QtyLot)),0);
 				END
-				ELSE IF(@IsRevenueSplit =1)
+				ELSE IF(@IsRevenue =1 OR @IsMargin = 1)
 				BEGIN
-					SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
-					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentPercent)/100)),0)
+					DECLARE @RevenueCommissionCost Decimal(18,2) = 0,  @MarginCommissionCost Decimal(18,2) = 0;
+						IF(@IsRevenue =1)
+						BEGIN
+							SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
+							SET @RevenueCommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentRevenuePercent)/100)),0)
+						END					
+						IF(@IsMargin = 1)
+						BEGIN
+							SET @TotalMarginCost = ISNULL((SELECT ISNULL(MarginAmount,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
+							SET @MarginCommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalMarginCost * @ConsignmentMarginPercent)/100)),0)
+						END
+						SET @CommissionCost = ISNULL(@RevenueCommissionCost,0) + ISNULL(@MarginCommissionCost,0);
 				END
+				--ELSE IF(@IsRevenueSplit =1)
+				--BEGIN
+				--	SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
+				--	SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentRevenuePercent)/100)),0)
+				--END
 				UPDATE [DBO].[LotCalculationDetails] SET CommissionExpense =@CommissionCost WHERE LotCalculationId = @LatestId; 
 
 				-- Skip on repost (@ExistingLotCalculationId was found above) - this Stockline.LOTQty

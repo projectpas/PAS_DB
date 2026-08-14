@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -46,11 +46,13 @@
 	29   23/04/2026   Ayushi Patel		[PN-15958] returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
 	30   28/04/2026   Ayushi Patel      [PN-16202] Removed Round from UnitCost 
 	31   03/06/2026   Sahdev Saliya     Added Model [PN-16667]
-	32    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	32   01/July/2026 RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	33   04-Aug-2026  Rajesh Gami       [PN-17009] Merge Non-Stock Inventory into Stockline: added @IsNonStock
-									filter param (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column;
-									added computed ItemType column (Stock/Non-Stock text) plus @ItemType
-									filter param so the grid's Inventory-Type search matches by IsNonStock.
+										filter param (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column;
+										added computed ItemType column (Stock/Non-Stock text) plus @ItemType
+										filter param so the grid's Inventory-Type search matches by IsNonStock.
+	34   13/08/2026   Sahdev Saliya     Added EngineSerialNumber [PN-17607]
+
 	(Do Not add any new join or In Query in Stockline list SP)
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
 @PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
@@ -60,7 +62,7 @@
 @LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
 @CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL,@PNSource=NULL
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[ProcStockList]
+CREATE    PROCEDURE [dbo].[ProcStockList]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -130,7 +132,8 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@GLAccount varchar(255) = NULL,
 	@PNSource varchar(20) = NULL,
     @Model varchar(200) = NULL,
-    @ItemType varchar(50) = NULL
+    @ItemType varchar(50) = NULL,
+	@EngineSerialNumber varchar(50) = NULL
 AS
 BEGIN         
      SET NOCOUNT ON;        
@@ -301,7 +304,8 @@ BEGIN
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
 		END AS 'PNSource',
-		stl.Model
+		stl.Model,
+		stl.EngineSerialNumber
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -365,7 +369,8 @@ BEGIN
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
 		  (Model LIKE '%' +@GlobalFilter+'%') OR
-		  (ItemType LIKE '%' +@GlobalFilter+'%')
+		  (ItemType LIKE '%' +@GlobalFilter+'%') OR
+		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		  ))
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -421,7 +426,8 @@ BEGIN
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
 		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
-		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
 		
@@ -529,7 +535,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -621,7 +629,8 @@ BEGIN
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
 		END AS 'PNSource',
-		stl.Model
+		stl.Model,
+		stl.EngineSerialNumber
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -687,7 +696,8 @@ BEGIN
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
 		(Model LIKE '%' +@GlobalFilter+'%') OR
-		(ItemType LIKE '%' +@GlobalFilter+'%')
+		(ItemType LIKE '%' +@GlobalFilter+'%') OR
+		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		))
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -743,7 +753,8 @@ BEGIN
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND	
 		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
-		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -852,7 +863,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -943,7 +956,8 @@ BEGIN
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
 		END AS 'PNSource',
-		stl.Model
+		stl.Model,
+		stl.EngineSerialNumber
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1009,7 +1023,8 @@ BEGIN
 		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		  (PNSource LIKE '%' +@GlobalFilter+'%') OR
 		  (Model LIKE '%' +@GlobalFilter+'%') OR
-		  (ItemType LIKE '%' +@GlobalFilter+'%')))
+		  (ItemType LIKE '%' +@GlobalFilter+'%') OR
+		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
@@ -1064,7 +1079,8 @@ BEGIN
 		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
 		  (ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
-		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -1172,7 +1188,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC	
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -1260,7 +1278,8 @@ BEGIN
 			WHEN stl.[OEM] = 1 THEN 'OEM'
 			ELSE ''
 		END AS 'PNSource',
-		stl.Model
+		stl.Model,
+		stl.EngineSerialNumber
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1329,7 +1348,8 @@ BEGIN
 		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 		(PNSource LIKE '%' +@GlobalFilter+'%') OR
 		(Model LIKE '%' +@GlobalFilter+'%') OR
-		(ItemType LIKE '%' +@GlobalFilter+'%')))
+		(ItemType LIKE '%' +@GlobalFilter+'%') OR
+		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
@@ -1384,7 +1404,8 @@ BEGIN
 		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
 		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%') AND
 		(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
-		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%'))
+		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
+		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         
@@ -1493,7 +1514,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        

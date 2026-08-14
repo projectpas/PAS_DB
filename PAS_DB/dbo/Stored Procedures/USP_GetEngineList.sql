@@ -7,12 +7,14 @@
 ********************
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
-** 1    29/06/2026   Amit Ghediya  Created [PN-17037]
-** 2    09/07/2026   Amit Ghediya  Get Engine name for list
-** 3    19/07/2026   Amit Ghediya  Added SLNum, CntrlNum, Cond, Site, Warehouse from Stockline [PN-17344]
+** 1    29/06/2026   Amit Ghediya       Created [PN-17037]
+** 2    09/07/2026   Amit Ghediya       Get Engine name for list
+** 3    19/07/2026   Amit Ghediya       Added SLNum, CntrlNum, Cond, Site, Warehouse from Stockline [PN-17344]
+** 4    14/08/2026   Divyesh Kathiriya  Get AC Tail Num from the aircraft linked through EngineRegistryIds. [PN-17626]
+** 5    14/08/2026   Divyesh Kathiriya  Added AC Tail Num And Third Party Own Only filter for external customers. [PN-17626]
 
 ********************/
-CREATE     PROCEDURE [dbo].[USP_GetEngineList]
+CREATE PROCEDURE [dbo].[USP_GetEngineList]
     @PageNumber         INT             = 1,
     @PageSize           INT             = 10,
     @SortColumn         VARCHAR(100)    = 'EngineRegistryId',
@@ -45,13 +47,16 @@ CREATE     PROCEDURE [dbo].[USP_GetEngineList]
     @Cond               VARCHAR(100)    = NULL,
     @Site               VARCHAR(50)     = NULL,
     @Warehouse          VARCHAR(100)    = NULL,
-    @Location           VARCHAR(50)     = NULL
+    @Location           VARCHAR(50)     = NULL,
+    @ThirdPartyOwnOnly  BIT             = 0
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 
     BEGIN TRY
+
+    DECLARE @AccountType VARCHAR(20) = 'External';
 
         WITH CTE AS
         (
@@ -62,7 +67,7 @@ BEGIN
                 AR.EngineModel,
                 AR.EngineSubModel,
                 AR.NumOfEngines,
-                AR.TailNum,
+                AIRCRAFT.[TailNum],
                 AR.SerialNum,
                 AR.ManufacturedDate,
                 AR.PlaceInServiceDate,
@@ -89,10 +94,22 @@ BEGIN
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[EngineStatusId] = ASS.[AircraftStatusId]
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
             LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON AR.CustomerId = C.CustomerId
+            LEFT JOIN [dbo].[CustomerAffiliation] CA WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
             LEFT JOIN [dbo].[StockLine] STK WITH (NOLOCK) ON AR.StockLineId = STK.StockLineId
             LEFT JOIN [dbo].[Site] SITE WITH (NOLOCK) ON STK.SiteId = SITE.SiteId
             LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON STK.WarehouseId = WH.WarehouseId
             LEFT JOIN [dbo].[Location] LOC WITH (NOLOCK) ON STK.LocationId = LOC.LocationId
+            OUTER APPLY
+            (
+                SELECT TOP (1)
+                    AIRCRAFT_HEADER.[TailNum]
+                FROM [dbo].[AircraftRegistryHeader] AIRCRAFT_HEADER WITH (NOLOCK)
+                CROSS APPLY STRING_SPLIT(AIRCRAFT_HEADER.[EngineRegistryIds], ',') ENGINE_ID
+                WHERE AIRCRAFT_HEADER.[MasterCompanyId] = AR.[MasterCompanyId]
+                    AND AIRCRAFT_HEADER.[IsDeleted] = 0
+                    AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(ENGINE_ID.[value]))) = AR.[EngineRegistryId]
+                ORDER BY AIRCRAFT_HEADER.[AircraftRegistryId] DESC
+            ) AIRCRAFT
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)
@@ -100,7 +117,7 @@ BEGIN
                     @GlobalFilter IS NULL
                     OR AR.MakeType       LIKE '%' + @GlobalFilter + '%'
                     OR AR.EngineModel  LIKE '%' + @GlobalFilter + '%'
-                    OR AR.TailNum        LIKE '%' + @GlobalFilter + '%'
+                    OR AIRCRAFT.[TailNum] LIKE '%' + @GlobalFilter + '%'
                     OR AR.SerialNum      LIKE '%' + @GlobalFilter + '%'
                     OR AR.EngineStatus LIKE '%' + @GlobalFilter + '%'
                     OR C.[Name] LIKE '%' + @GlobalFilter + '%'
@@ -109,7 +126,7 @@ BEGIN
 				AND (@EngineName          IS NULL OR AR.EngineName LIKE '%' + @EngineName + '%')
                 AND (@EngineModel     IS NULL OR AR.EngineModel    LIKE '%' + @EngineModel    + '%')
                 AND (@EngineSubModel  IS NULL OR AR.EngineSubModel LIKE '%' + @EngineSubModel + '%')
-                AND (@TailNum           IS NULL OR AR.TailNum          LIKE '%' + @TailNum          + '%')
+                AND (@TailNum           IS NULL OR AIRCRAFT.[TailNum] LIKE '%' + @TailNum + '%')
                 AND (@SerialNum         IS NULL OR AR.SerialNum        LIKE '%' + @SerialNum        + '%')
                 AND (@EngineStatus    IS NULL OR AR.EngineStatus   LIKE '%' + @EngineStatus   + '%')
                 AND (@IsActive          IS NULL OR AR.IsActive         = @IsActive)
@@ -131,6 +148,7 @@ BEGIN
                 AND (@Site              IS NULL OR SITE.[Name]         LIKE '%' + @Site      + '%')
                 AND (@Warehouse         IS NULL OR WH.[Name]           LIKE '%' + @Warehouse + '%')
                 AND (@Location          IS NULL OR LOC.[Name]          LIKE '%' + @Location  + '%')
+                AND (ISNULL(@ThirdPartyOwnOnly, 0) = 0 OR CA.[AccountType] = @AccountType)
         )
         SELECT
             EngineRegistryId,

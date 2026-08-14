@@ -47,6 +47,7 @@
     [SyncToken]                 VARCHAR (200)  NULL,
     [IntegrationTypeId]         INT            NULL,
     [ResaleNumber]              VARCHAR (200)  NULL,
+    [LegalEntityId]             BIGINT         NULL,
     CONSTRAINT [PK_CustomerAudit] PRIMARY KEY CLUSTERED ([AuditCustomerId] ASC),
     CONSTRAINT [FK_CustomerAudit_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );

@@ -57,18 +57,22 @@
     [Notes]                   NVARCHAR (MAX)  NULL,
     [ResaleNumber]            VARCHAR (200)   NULL,
     [VatNumber]               VARCHAR (50)    NULL,
+    [LegalEntityId]           BIGINT          NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
     CONSTRAINT [FK_Vendor_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Vendor_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_Vendor_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_Vendor_Customer] FOREIGN KEY ([RelatedCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_Vendor_Discount] FOREIGN KEY ([DiscountId]) REFERENCES [dbo].[Discount] ([DiscountId]),
+    CONSTRAINT [FK_Vendor_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_Vendor_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_Vendor_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Vendor_Vendor] FOREIGN KEY ([VendorParentId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_Vendor_VendorType] FOREIGN KEY ([VendorTypeId]) REFERENCES [dbo].[VendorType] ([VendorTypeId]),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Vendor]
 ON [dbo].[Vendor]

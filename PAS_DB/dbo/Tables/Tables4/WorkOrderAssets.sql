@@ -21,6 +21,8 @@
 );
 
 
+
+
 GO
 CREATE   TRIGGER [dbo].[Trg_WorkOrderAssetsAudit]
 
@@ -33,36 +35,9 @@ AS
 BEGIN
 
 
-
-	DECLARE @AssetRecordId BIGINT 
-
-
-
-	DECLARE @ToolName VARCHAR(256),@ToolId VARCHAR(256),@ToolDescription VARCHAR(256),@ToolClass VARCHAR(256)
-
-	
-
-
-
-	SELECT @AssetRecordId= AssetRecordId FROM INSERTED
-
-	
-
-	SELECT  @ToolName=Name,@ToolId=AssetId,@ToolDescription=A.Description,@ToolClass=TY.TangibleClassName
-
-	FROM Asset A
-
-	JOIN AssetAttributeType AAT ON A.AssetAttributeTypeId = AAT.AssetAttributeTypeId
-
-	JOIN TangibleClass TY ON AAT.TangibleClassId=TY.TangibleClassId
-
-	WHERE AssetRecordId=@AssetRecordId
-
-
-
 	INSERT INTO [dbo].[WorkOrderAssetsAudit] 
 
-    SELECT *, @ToolName,@ToolId,@ToolDescription,@ToolClass
+    SELECT *
 
 	FROM INSERTED 
 

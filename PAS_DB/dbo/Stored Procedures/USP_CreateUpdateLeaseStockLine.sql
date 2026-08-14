@@ -15,7 +15,7 @@ exec USP_CreateUpdateLeaseStockLine
 @PricingMethod=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
 @UsagePerUnitCycles=NULL,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=NULL,@OverrunPerUnitTimes=NULL,
 @Maintenance=NULL,@Insurance=NULL,@Taxes=NULL,@RepairOrderId=NULL,@WorkOrderId=NULL,
-@MasterCompanyId=1,@CreatedBy=1,@UpdatedBy=1
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy=''
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@LeaseStocklineId BIGINT = 0,
@@ -129,7 +129,7 @@ BEGIN
 				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
 				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo,
-				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 
 			SET @LeaseStocklineId = SCOPE_IDENTITY();

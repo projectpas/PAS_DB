@@ -353,7 +353,7 @@ BEGIN
 						WHERE imd.ItemMasterId = sop.ItemMasterId AND imd.SubReferenceId = sop.SalesOrderPartId AND imd.ReferenceId = sop.SalesOrderId
 					)
 					GROUP BY so.SalesOrderNumber, im.partnumber,im.ItemMasterId, im.PartDescription,
-					sop.SalesOrderId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId)
+					sop.SalesOrderId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId,sop.SequenceNumber)
 				END
 				ELSE
 				BEGIN

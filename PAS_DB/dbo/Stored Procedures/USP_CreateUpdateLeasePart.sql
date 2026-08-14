@@ -19,7 +19,6 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeasePart]
 	@LeaseHeaderId BIGINT,
 	@ItemMasterId BIGINT,
 	@ConditionId BIGINT,
-	@QtyRequested INT,
 	@QtyOrder INT,
 	@AircraftSectionId BIGINT = NULL,
 	@StartDate DATE = NULL,
@@ -54,10 +53,8 @@ BEGIN
 				PN                = @PN,
 				PNDescription     = @PNDescription,
 				UOM               = @UOM,
-				QtyRequested      = @QtyRequested,
 				QtyOrder          = @QtyOrder,
 				ConditionId       = @ConditionId,
-				OEMPMA            = @OEMPMA,
 				AircraftSectionId = @AircraftSectionId,
 				StartDate         = @StartDate,
 				EndDate           = @EndDate,
@@ -72,14 +69,14 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[LeasePart]
 			(
-				LeaseHeaderId, ItemMasterId, PN, PNDescription, UOM, QtyRequested, QtyOrder, QtyReserved,
-				ConditionId, OEMPMA, AircraftSectionId, StartDate, EndDate, POId, PONumber, StatusId,
+				LeaseHeaderId, ItemMasterId, PN, PNDescription, UOM, QtyOrder, QtyReserved,
+				ConditionId, AircraftSectionId, StartDate, EndDate, POId, PONumber, StatusId,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
 			)
 			VALUES
 			(
-				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @UOM, @QtyRequested, @QtyOrder, 0,
-				@ConditionId, @OEMPMA, @AircraftSectionId, @StartDate, @EndDate, @POId, @PONumber, @StatusId,
+				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @UOM, @QtyOrder, 0,
+				@ConditionId, @AircraftSectionId, @StartDate, @EndDate, @POId, @PONumber, @StatusId,
 				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 
@@ -93,12 +90,10 @@ BEGIN
 			LP.PN,
 			LP.PNDescription,
 			LP.UOM,
-			LP.QtyRequested,
 			LP.QtyOrder,
 			LP.QtyReserved,
 			LP.ConditionId,
 			C.Description AS ConditionDescription,
-			LP.OEMPMA,
 			LP.AircraftSectionId,
 			ACS.Section AS AcSection,
 			LP.StartDate,

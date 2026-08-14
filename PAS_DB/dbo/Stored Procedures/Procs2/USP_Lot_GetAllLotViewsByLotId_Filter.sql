@@ -2097,7 +2097,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName
-			    ,(CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE-MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
+			    ,(CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId

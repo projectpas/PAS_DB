@@ -4806,6 +4806,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetILSConditionMapping.sql" />
     <Build Include="dbo\Views\vw_ILSConditions.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionCodeMap.sql" />
     <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
   </ItemGroup>
   <ItemGroup>

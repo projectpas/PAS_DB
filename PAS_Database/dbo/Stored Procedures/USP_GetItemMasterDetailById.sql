@@ -25,6 +25,7 @@
 	12   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
 	13   03-Aug-2026     Rajesh Gami	        Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
 	14   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+	15   13-Aug-2026    Rajesh Gami         Removed duplicate IsService column from the SELECT list (it was selected twice - once after InWarranty and again after IsMfgExpirationDate); now selected only once [PN-17008]
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
@@ -220,7 +221,6 @@ BEGIN
 						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
 						iM.MfgExpirationDate,
 						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
-						ISNULL(iM.IsService,0) IsService,
 						iM.IsKitAssy
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId

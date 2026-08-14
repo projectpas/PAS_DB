@@ -523,13 +523,64 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_CreatedDate]
 
 
 GO
+-- Ported from BETA for PN-17009 (2026-08-13): IsCustomerStock moved from key into INCLUDE,
+-- and IsNonStock added to INCLUDE, so non-stock stocklines are covered by this index too.
 CREATE NONCLUSTERED INDEX [IX_Stockline_StockReport]
-    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [IsCustomerStock] ASC, [CreatedDate] ASC)
-    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [IsNonStock], [IsCustomerStock], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
 
 
 GO
+-- Ported from BETA for PN-17009 (2026-08-13): added IsNonStock to INCLUDE.
 CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
     ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
-    INCLUDE([CreatedDate]);
+    INCLUDE([IsNonStock], [CreatedDate]);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (RepairOrderPartRecordId lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate], [RepairOrderUnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (RepairOrderPartRecordId + IsNonStock + CreatedDate lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Created_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (PurchaseOrderPartRecordId lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (PurchaseOrderPartRecordId + IsNonStock + CreatedDate lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Created_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (CreatedDate + RepairOrderPartRecordId ordering).
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_ROPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (CreatedDate + PurchaseOrderPartRecordId ordering).
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_POPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): new index added in BETA to support reporting
+-- queries (Stock + Non-Stock) filtered by MasterCompanyId/IsParent/isDeleted/CreatedDate.
+CREATE NONCLUSTERED INDEX [IX_Stockline_Report]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [PurchaseOrderId], [RepairOrderId], [VendorId], [CustomerId], [GLAccountId], [IsCustomerStock], [IsNonStock]);
 

@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   07/02/2026   Sumit Kumar		Created
+    2   13-AUG-2026   Sumit Kumar		Changes to show all WO templates regardless wheather its have pn num or not [PN-17659]
 
 EXEC [USP_GetGenericWorkFlowTemplates] 
 **************************************************************/
@@ -20,7 +21,7 @@ CREATE PROCEDURE [dbo].[USP_GetGenericWorkFlowTemplates]
 AS
 BEGIN
     BEGIN TRY
-        SELECT
+        SELECT DISTINCT
             w.WorkflowId,
             w.WorkScopeId,
             w.WorkflowDescription,
@@ -31,7 +32,8 @@ BEGIN
             w.CreatedBy,
             w.CreatedDate,
             w.WorkOrderNumber as WorkFlowNo,
-            ISNULL(wt.TaskCount, 0) AS TaskCount
+            ISNULL(wt.TaskCount, 0) AS TaskCount,
+            CASE WHEN w.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE w.IsVersionIncrease END AS IsVersionIncrease
         FROM dbo.Workflow w WITH (NOLOCK)
         LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON w.ItemMasterId = im.ItemMasterId AND ISNULL(im.IsNonStock,0) = 0
         LEFT JOIN (SELECT WorkflowId, COUNT(DISTINCT TaskId) AS TaskCount FROM dbo.WorkflowTask WITH (NOLOCK) WHERE ISNULL(IsDeleted, 0) = 0 GROUP BY WorkflowId) wt
@@ -39,9 +41,10 @@ BEGIN
         WHERE w.MasterCompanyId = @MasterCompanyId
             AND w.IsActive = 1
             AND ISNULL(w.IsDeleted, 0) = 0
-            AND w.ItemMasterId IS NULL -- Only Generic WO Templates
+            -- AND w.ItemMasterId IS NULL -- Show all templates regardless wheather the pn num have or not.
             AND w.TemplateType = 1 -- WO Template only
             AND TaskCount > 0
+            AND IsVersionIncrease = 0 -- Fetch only latest version templates
         ORDER BY w.WorkflowDescription;
     END TRY
     BEGIN CATCH

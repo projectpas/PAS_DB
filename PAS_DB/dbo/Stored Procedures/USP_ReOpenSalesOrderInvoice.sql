@@ -39,6 +39,7 @@
 										BillingInvoicingItems.BillingInvoicingId for this invoice directly. (This copy of
 										the SP was found out of sync with dbo.Stored Procedures.Procs3 copy - missing
 										changes #5 and #6 entirely - brought back to parity as part of this change.)
+										And change the word can't to can not in the message to match the payment guard message.
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
@@ -97,7 +98,7 @@ BEGIN
 			  AND ISNULL([PaymentAmount],0) > 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice can’t  be Re-Opened because a payment has been received against it.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can not be Re-Opened because a payment has been received against it.' AS Message
 			RETURN
 		END
 
@@ -114,7 +115,7 @@ BEGIN
 			  AND ISNULL(CD.[IsDeleted],0) = 0
 		)
 		BEGIN
-			SELECT 0 AS IsSuccess, 'This invoice can’t  be Re-Opened because a Credit Memo already exists against it.' AS Message
+			SELECT 0 AS IsSuccess, 'This invoice can not be Re-Opened because a Credit Memo already exists against it.' AS Message
 			RETURN
 		END
 

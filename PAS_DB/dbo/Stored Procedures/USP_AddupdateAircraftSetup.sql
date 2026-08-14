@@ -14,9 +14,10 @@
     3    22/05/2026          Bhargav Saliya     Added field [SiteId] 
     4    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
     5    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
-    
+    6    13/08/2026          Bhargav Saliya     Added field [AllowWorksheets]. [PN-17630]
+
 **************************************************************/
-Create   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
+Create    PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
     @tblType_AircraftSetupType [AircraftSetupType] READONLY,
     @AircraftSetupId BIGINT,
@@ -46,7 +47,8 @@ BEGIN
                 T.UpdatedDate = GETUTCDATE(),
                 T.SiteId = S.SiteId,
                 T.[WorkScopeId] = S.[WorkScopeId],
-                T.[ConditionId] = S.[ConditionId]
+                T.[ConditionId] = S.[ConditionId],
+                T.[IsAllowWorksheets] = S.[IsAllowWorksheets]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -64,7 +66,8 @@ BEGIN
                     UpdatedBy,
                     SiteId,
                     [WorkScopeId],
-                    [ConditionId]
+                    [ConditionId],
+                    [IsAllowWorksheets]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -92,7 +95,8 @@ BEGIN
                 MasterCompanyId,
                 SiteId,
                 [WorkScopeId],
-                [ConditionId]
+                [ConditionId],
+                [IsAllowWorksheets]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -114,7 +118,8 @@ BEGIN
                 MasterCompanyId,
                 SiteId,
                 [WorkScopeId],
-                [ConditionId]
+                [ConditionId],
+                [IsAllowWorksheets]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

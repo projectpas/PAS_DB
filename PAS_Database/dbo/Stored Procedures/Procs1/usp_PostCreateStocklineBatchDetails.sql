@@ -372,7 +372,7 @@ BEGIN
 								  ,@LotNumber = LO.LotNumber
 							FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 							     LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-							WHERE ST.[StockLineId] = @StocklineId;
+							WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 
 							IF NOT EXISTS(SELECT 1 FROM [dbo].[StocklineBatchDetails] SLBD WITH(NOLOCK) WHERE SLBD.[PoId] = @PurchaseOrderId AND SLBD.[StocklineId] = @StocklineId)
 							BEGIN
@@ -419,7 +419,7 @@ BEGIN
 							--GET STOCKLINE GLACCOUNT.
 							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId;
+						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],
@@ -430,7 +430,7 @@ BEGIN
 							AND [MasterCompanyId] = @MasterCompanyId;
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -504,7 +504,7 @@ BEGIN
 						BEGIN
 							SELECT @VendorId=ST.VendorId,@ReferenceId=ST.StockLineId,@PurchaseOrderId=ST.PurchaseOrderId,@RepairOrderId=ST.RepairOrderId,@StocklineNumber=ST.StockLineNumber
 							,@SiteId=ST.[SiteId],@Site=ST.[Site],@WarehouseId=ST.[WarehouseId],@Warehouse=ST.[Warehouse],@LocationId=ST.[LocationId],@Location=ST.[Location],@BinId=ST.[BinId],@Bin=ST.[Bin],@ShelfId=ST.[ShelfId],@Shelf=ST.[Shelf]
-							FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId;
+							FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
 							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
 							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
@@ -521,7 +521,7 @@ BEGIN
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
 
-							SELECT @WorkOrderNumber=ST.StockLineNumber,@partId=ST.PurchaseOrderPartRecordId,@ItemMasterId=ST.ItemMasterId,@ManagementStructureId=ST.ManagementStructureId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId;
+							SELECT @WorkOrderNumber=ST.StockLineNumber,@partId=ST.PurchaseOrderPartRecordId,@ItemMasterId=ST.ItemMasterId,@ManagementStructureId=ST.ManagementStructureId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
 							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
@@ -532,7 +532,7 @@ BEGIN
 							SET @ReferencePartId=@partId	
 
 
-							SELECT @PieceItemmasterId=ST.ItemMasterId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId
+							SELECT @PieceItemmasterId=ST.ItemMasterId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
@@ -546,7 +546,7 @@ BEGIN
 							--GET STOCKLINE GLACCOUNT.
 							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId;
+						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],
@@ -557,7 +557,7 @@ BEGIN
 							AND [MasterCompanyId] = @MasterCompanyId;
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)

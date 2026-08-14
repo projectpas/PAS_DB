@@ -21,6 +21,11 @@
 	6    16/July/2026				 RAJESH GAMI						[PN-17350] - Allow Non-Stock parts in this PN search (removed ItemTypeId=1 / IsNonStock=0
 	7    20/July/2026				 RAJESH GAMI						[PN-17350] - Added a dedicated Non-Stock section (guarded by @CustRestrictedDer=0 AND @IncludeDER=0 AND @IncludePMA=0) since Non-Stock items have no meaningful OEM/PMA/DER classification and were never matched by any of the 8 existing blocks' IsOEM/IsPma/IsDER conditions (e.g. searching 'NS-15022022' returned nothing). Guarded with NOT EXISTS against #TempTable so no part can appear twice in the grid.
 	8   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
+	9   13-Aug-2026   Rajesh Gami          [PN-17350] Entry #6 above claimed ItemTypeId=1 was removed from all 8 blocks, but only
+										 the DER Except Parts and Non-Stock blocks were actually fixed - the OEM, PMA, DER,
+										 Include-PMA, Include-DER, and PMA Except Parts blocks still had "AND im.ItemTypeId = 1
+										 -- ItemMasterStockTypeEnum.Stock" left in. Removed the remaining 6 filters so Non-Stock
+										 parts can surface through all search paths, not just the dedicated Non-Stock branch.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -86,7 +91,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
@@ -111,7 +115,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
@@ -137,7 +140,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsDER  = 1	
@@ -162,7 +164,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
@@ -187,7 +188,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsDER  = 1	
@@ -218,7 +218,6 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 							AND rpDER.IsDeleted = 0
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 

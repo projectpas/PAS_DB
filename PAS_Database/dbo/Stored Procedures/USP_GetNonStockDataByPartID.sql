@@ -11,8 +11,27 @@
  ** --   -------------		----------------	--------------------------------          
     1    25-DEC-2025		Divyesh Kathiriya	Created
     2	15/July/2026		RAJESH GAMI			[PN-17271] - Fixed: this SP was still querying the legacy
+											[dbo].[ItemMasterNonStock] table by MasterPartId. Since
+											[PN-17008]/[PN-17009] merged Non-Stock inventory into
+											[dbo].[ItemMaster] (IsNonStock flag), any Non-Stock item
+											selected via the new unified "Add PN" (which sources
+											ItemMasterId directly from ItemMaster) has NO matching row
+											in the old ItemMasterNonStock table - the SELECT TOP 1
+											returned zero rows, so the API silently returned
+											GlAccountId/ManufacturerId/PurchaseUnitOfMeasureId = 0.
+											Redirected the query to [dbo].[ItemMaster] (already scoped
+											to the exact @ItemMasterId, so no extra IsNonStock filter
+											is needed) and kept the ItemMasterNonStockId output column
+											(aliased from ItemMasterId) since the API layer still reads
+											that column name.
     3	23/July/2026		RAJESH GAMI			[PN-17350] - Fixed wrong currency: ItemMaster has a legacy,
-    
+    4   13-Aug-2026    Rajesh Gami         [PN-17271] - Entry #2 above changed the FROM clause to [dbo].[ItemMaster]
+											but left the WHERE clause filtering on [im].[MasterPartId] (a legacy
+											column on ItemMaster, distinct from ItemMasterId), so the SELECT TOP 1
+											still matched the wrong row (or none) for Non-Stock items post-merge.
+											Fixed the WHERE clause to filter on [im].[ItemMasterId] = @ItemMasterId
+											as originally intended by entry #2.
+
  -- EXEC [USP_GetNonStockDataByPartID] @ItemMasterId=181
 **************************************************************/
 CREATE   PROCEDURE [DBO].[USP_GetNonStockDataByPartID]
@@ -45,7 +64,7 @@ BEGIN
         LEFT JOIN[DBO].[GLAccount] AS [gl] WITH(NOLOCK) ON [im].[GLAccountId] = [gl].[GLAccountId]
         LEFT JOIN[DBO].[Currency] AS [cucy] WITH(NOLOCK) ON [im].[CurrencyId] = [cucy].[CurrencyId]
         LEFT JOIN[DBO].[UnitOfMeasure] AS [ipuom] WITH(NOLOCK) ON [im].[PurchaseUnitOfMeasureId] = [ipuom].[UnitOfMeasureId]
-        WHERE [im].[MasterPartId] = @ItemMasterId;			  		 	   			   	  
+        WHERE [im].[ItemMasterId] = @ItemMasterId;
 	
 	END TRY 
 	BEGIN CATCH

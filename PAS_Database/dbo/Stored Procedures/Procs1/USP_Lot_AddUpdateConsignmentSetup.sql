@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    31/07/2023   Rajesh Gami     Created
+    2    11/08/2026   Nakul           Added MarginPercentId and MarginConsignorPercentId parameters for independent Margin share persistence
 **************************************************************
  EXEC USP_Lot_AddUpdateConsignmentSetup 
 **************************************************************/
@@ -30,7 +31,9 @@ CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateConsignmentSetup]
 @ConsigneeTypeId int,
 @ConsigneeId bigint,
 @IsRevenueSplit bit = null,
-@ConsignorPercentId bigint= null
+@ConsignorPercentId bigint= null,
+@MarginPercentId bigint= null,
+@MarginConsignorPercentId bigint= null
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -66,10 +69,10 @@ BEGIN
 		BEGIN
 		  INSERT INTO [dbo].[LotConsignment]
             ([ConsignmentNumber],[ConsigneeName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ConsignmentName],[LotId]
-            ,[IsRevenue],[IsMargin],[IsFixedAmount],[PercentId],[PerAmount],ConsigneeTypeId,ConsigneeId,IsRevenueSplit,ConsignorPercentId)
+            ,[IsRevenue],[IsMargin],[IsFixedAmount],[PercentId],[PerAmount],ConsigneeTypeId,ConsigneeId,IsRevenueSplit,ConsignorPercentId,MarginPercentId,MarginConsignorPercentId)
 		    VALUES
             (@ConsignmentNumber,@ConsigneeName,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE(),GETUTCDATE(),1 ,0 ,@ConsignmentName ,@LotId
-            ,@IsRevenue ,@IsMargin ,@IsFixedAmount ,@PercentId ,@PerAmount,@ConsigneeTypeId,@ConsigneeId,@IsRevenueSplit,@ConsignorPercentId)
+            ,@IsRevenue ,@IsMargin ,@IsFixedAmount ,@PercentId ,@PerAmount,@ConsigneeTypeId,@ConsigneeId,@IsRevenueSplit,@ConsignorPercentId,@MarginPercentId,@MarginConsignorPercentId)
      	    SET @ConsignmentId = SCOPE_IDENTITY();
 			--Print @ConsignmentId
 			Update DBO.LOT SET ConsignmentId = @ConsignmentId WHERE LotId = @LotId
@@ -92,7 +95,9 @@ BEGIN
 				  ,ConsigneeId = @ConsigneeId
 				  ,IsRevenueSplit = @IsRevenueSplit
 				  ,ConsignorPercentId = @ConsignorPercentId
-			 WHERE ConsignmentId = @ConsignmentId; 		 
+				  ,MarginPercentId = @MarginPercentId
+				  ,MarginConsignorPercentId = @MarginConsignorPercentId
+			 WHERE ConsignmentId = @ConsignmentId;
 		END
 
 		Select @ConsignmentId AS ConsignmentId 

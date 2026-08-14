@@ -33,6 +33,7 @@
 											#TempResult / separate COUNT (now COUNT(*) OVER()).
 											See UOM_GetCustomerList_Deploy.sql for the full
 											before/after review.
+	12   08-13-2026   Sahdev Saliya		    Added CreditTerms and CreditLimit [PN-17608]
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -70,7 +71,9 @@ CREATE PROCEDURE [dbo].[GetCustomerList]
 	@VendorName varchar(100)=null,
 	@Memo varchar(max) = NULL,
 	@ResaleNumber varchar(200) = null,
-	@VatNumber VARCHAR(50) = NULL
+	@VatNumber VARCHAR(50) = NULL,
+	@CreditLimit VARCHAR(30) = NULL,
+	@CreditTerms VARCHAR(30) = NULL
 AS
 BEGIN
 
@@ -177,7 +180,9 @@ BEGIN
 					VApply.VendorName,
 					C.Memo,
 					C.ResaleNumber,
-					C.VatNumber
+					C.VatNumber,
+					CF.CreditLimit,
+					CTS.[Name] AS CreditTerms
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -196,6 +201,8 @@ BEGIN
 						ORDER BY CC.CustomerContactId
 					) CCApply
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CCApply.ContactId=Contact.ContactId
+					LEFT JOIN  dbo.CustomerFinancial CF WITH (NOLOCK) ON C.CustomerId=CF.CustomerId
+					LEFT JOIN  dbo.CreditTerms CTS WITH (NOLOCK) ON CF.CreditTermsId=CTS.CreditTermsId
 					-- PERF FIX: same reasoning as above - Vendor.RelatedCustomerId also has no
 					-- uniqueness guarantee in the schema.
 					OUTER APPLY (
@@ -233,7 +240,9 @@ BEGIN
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(Memo LIKE '%' +@GlobalFilter+'%') OR
 					(ResaleNumber LIKE '%' +@GlobalFilter+'%') OR
-					(VatNumber LIKE '%' +@GlobalFilter+'%')
+					(VatNumber LIKE '%' +@GlobalFilter+'%') OR
+					(CreditLimit LIKE '%' +@GlobalFilter+'%') OR
+					(CreditTerms LIKE '%' +@GlobalFilter+'%')
 					))
 					OR
 					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
@@ -257,7 +266,9 @@ BEGIN
 					(ISNULL(@ResaleNumber,'') ='' OR ResaleNumber LIKE '%' + @ResaleNumber+'%') AND
 					(ISNULL(@VatNumber,'') ='' OR VatNumber LIKE '%' + @VatNumber+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)) AND
+					(ISNULL(@CreditLimit,'') ='' OR CreditLimit LIKE '%' + @CreditLimit+'%') AND
+					(ISNULL(@CreditTerms,'') ='' OR CreditTerms LIKE '%' + @CreditTerms+'%'))
 					)
 			)
 			SELECT *
@@ -285,6 +296,8 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='Memo')  THEN Memo END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='VATNUMBER')  THEN VatNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CREDITLIMIT')  THEN CreditLimit END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CREDITTERMS')  THEN CreditTerms END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -307,7 +320,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC,
 		    CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='VATNUMBER')  THEN VatNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VATNUMBER')  THEN VatNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREDITLIMIT')  THEN CreditLimit END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREDITTERMS')  THEN CreditTerms END DESC
 
 			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY

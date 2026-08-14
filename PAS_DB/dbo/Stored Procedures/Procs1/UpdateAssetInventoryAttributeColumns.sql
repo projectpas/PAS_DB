@@ -21,6 +21,7 @@
 											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
 											always joined so its name always resolves.
 	3	01-08-2026	  Sumit Kumar			Added required fields [PN-17523]
+	4	 29-07-2026	  Abhishek Jirawala		Adding Tangible Class Id
 
 --  EXEC [UpdateAssetInventoryAttributeColumns] 1123
 **************************************************************/
@@ -102,7 +103,8 @@ BEGIN
 						AI.ResidualPercentageId = dnta.ResidualPercentage,
 						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
 						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
-						AI.DepreciationFrequencyName = ISNULL(asdf.Name, '')
+						AI.DepreciationFrequencyName = ISNULL(asdf.Name, ''),
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
 						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
@@ -144,7 +146,7 @@ BEGIN
 						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
 						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
 						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
-						AI.TangibleClassId = DNTA.TangibleClassId
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
 
 				    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId

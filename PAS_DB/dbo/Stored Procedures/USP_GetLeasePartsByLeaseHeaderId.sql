@@ -30,12 +30,10 @@ BEGIN
 			LP.PNDescription,
 			LP.UOM,
 			IM.ManufacturerName,
-			LP.QtyRequested,
 			LP.QtyOrder,
 			LP.QtyReserved,
 			LP.ConditionId,
 			C.Description AS ConditionDescription,
-			LP.OEMPMA,
 			LP.AircraftSectionId,
 			ACS.Section AS AcSection,
 			LP.StartDate,
@@ -43,7 +41,6 @@ BEGIN
 			LP.POId,
 			LP.PONumber,
 			LP.StatusId,
-
 			LSL.LeaseStocklineId,
 			LSL.StockLineId,
 			LSL.PNDescription AS StockLinePNDescription,
@@ -78,7 +75,6 @@ BEGIN
 			LSL.RONumber,
 			LSL.WorkOrderId,
 			LSL.WorkOrderNo,
-
 			LP.MasterCompanyId,
 			LP.CreatedBy,
 			LP.UpdatedBy,

@@ -55,5 +55,6 @@
     [AircraftModelId]              BIGINT          NULL,
     [MakeTypeId]                   INT             NULL,
     [TemplateType]                 INT             NULL,
-    [MaintenanceTypeId]            BIGINT          NULL);
+    [MaintenanceTypeId]            BIGINT          NULL,
+    [MaintenanceType]              VARCHAR (MAX)   NULL);
 

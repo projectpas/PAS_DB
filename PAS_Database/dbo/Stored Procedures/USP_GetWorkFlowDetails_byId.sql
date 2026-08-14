@@ -15,6 +15,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6	 15-July-2026		Ayushi Patel			Uom Changes [PN-17248]
 	7	 27-July-2026		SUMIT					Added notes field in material list [PN-16818]
+	8	 29-JUN-2026		Moin Bloch				Added MaintenanceType PN-17043
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
@@ -47,7 +48,7 @@ BEGIN
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
 					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId],
-					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],   CAST(NULL AS VARCHAR(256)) AS [MaintenanceType]  
+					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],[MaintenanceType]
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
 			UPDATE	TMP
@@ -57,8 +58,8 @@ BEGIN
 				TMP.CurrencySymbol = CY.[Symbol],
 				TMP.CurrencyText = CY.[Code],
 				TMP.AircraftModel = ACM.[ModelName],
-				TMP.AircraftMake = ACT.[Description],
-				TMP.MaintenanceType = MT.[Description]
+				TMP.AircraftMake = ACT.[Description]
+				--,TMP.MaintenanceType = MT.[Description]
 			FROM #tmpWorkFLow TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 			 AND ISNULL(IM.IsNonStock,0) = 0
@@ -67,8 +68,8 @@ BEGIN
 			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON TMP.CurrencyId = CY.CurrencyId
 			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
 			LEFT JOIN [dbo].[AircraftType] ACT WITH (NOLOCK) on ACT.AircraftTypeId =  TMP.MakeTypeId
-			LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
-			
+			--LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
+
 			SELECT @WFItemMasterId = [ItemMasterId], @WFWorkScopeId = [WorkScopeId] FROM #tmpWorkFLow WHERE [WorkflowId] = @WorkflowId;
 
 			-- Getting ItemMaster Details

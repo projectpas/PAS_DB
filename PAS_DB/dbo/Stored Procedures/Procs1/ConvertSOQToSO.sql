@@ -34,8 +34,8 @@
 	17   19/JUN/2026  AMIT GHEDIYA	    Save [SourceBy],[MarketplaceRef] data move soq to so [PN-16922]
 	18   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	19   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
-	20   01/Aug/2024   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
-	
+	20   01/Aug/2026   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
+	21   15/Ayg/2026   Kishor Makwana	[PN-17439] - Add SequenceNumber
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -222,7 +222,8 @@ BEGIN
         [ItemMasterId] [bigint] NULL,
         [ConditionId] [bigint] NULL,
 		[CreatedBy] [varchar](100) NULL,
-		[MasterCompanyId] [int] NULL
+		[MasterCompanyId] [int] NULL,
+		[SequenceNumber] [bigint] NULL
     )
 
 	INSERT INTO #soqpList
@@ -231,10 +232,11 @@ BEGIN
         [ItemMasterId],
         [ConditionId],
 		[CreatedBy],
-		[MasterCompanyId]
+		[MasterCompanyId],
+		[SequenceNumber]
     )
 	SELECT DISTINCT SOQP.SalesOrderQuotePartId, 
-	SOQP.ItemMasterId, SOQP.ConditionId, SOQP.CreatedBy, SOQP.MasterCompanyId
+	SOQP.ItemMasterId, SOQP.ConditionId, SOQP.CreatedBy, SOQP.MasterCompanyId,SOQP.SequenceNumber
 	FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 	INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
 			ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
@@ -256,10 +258,11 @@ BEGIN
 		DECLARE @MasterCompanyId BIGINT = 0;
 		DECLARE @SOPStocklineId BIGINT = 0;
 		DECLARE @IsService BIT = 0;
-		DECLARE @IsNonStock BIT = 0;			
+		DECLARE @IsNonStock BIT = 0;	
+		DECLARE @CurrentSequenceNumber BIGINT = NULL;
 
 		SELECT @CurrentSOQPartId = SOQP.SalesOrderQuotePartId,
-		@CurrentItemMasterId = SOQP.ItemMasterId, @CurrentConditionId = SOQP.ConditionId , @CreatedBy = SOQP.CreatedBy, @MasterCompanyId = SOQP.MasterCompanyId
+		@CurrentItemMasterId = SOQP.ItemMasterId, @CurrentConditionId = SOQP.ConditionId , @CreatedBy = SOQP.CreatedBy, @MasterCompanyId = SOQP.MasterCompanyId, @CurrentSequenceNumber = SOQP.SequenceNumber
 		FROM #soqpList SOQP WHERE SOQP.ID = @SOQLoopID;
 
 		/* Transfer Part Data */
@@ -269,14 +272,14 @@ BEGIN
 			[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],
 			[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],
 			[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderQuotePartId],
-			[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
-		SELECT @SalesOrderId,
+			[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[SequenceNumber])
+		SELECT DISTINCT @SalesOrderId,
 			sop.[ItemMasterId],sop.[ConditionId],sop.[QtyRequested],sop.[QtyRequested],sop.[CurrencyId],
 			0,
 			sop.[PriorityId],sop.[StatusId],sop.[FxRate],sop.[CustomerRequestDate],sop.[PromisedDate],
 			sop.[EstimatedShipDate],sop.[Notes],sop.[MasterCompanyId],sop.[CreatedBy],GETUTCDATE(),
 			sop.[UpdatedBy],GETUTCDATE(),sop.[IsActive],sop.[IsDeleted],sop.[SalesOrderQuotePartId],
-			ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight]
+			ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight],sop.[SequenceNumber]
 		FROM DBO.SalesOrderQuotePartV1 sop WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
 			ON sop.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId

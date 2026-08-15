@@ -117,10 +117,6 @@ BEGIN
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 			GROUP BY SOQ.StatusId
 
-		-- [PN-17439] Charges/Freight now summed from the live SalesOrderQuoteCharges/SalesOrderQuoteFreight
-		-- tables (matching SOQSODashboardData.sql's grid calculation) instead of the cached
-		-- SalesOrderQuotePartCost.MiscCharges/Freight columns, which were found out of sync with the
-		-- live charge/freight line data - causing this tile's Amount to disagree with the grid total.
 		SELECT @SOQReceivedAmount = SUM(ISNULL(SOQPC.NetSaleAmount,0))
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -144,7 +140,6 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-	  -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
 	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -167,7 +162,6 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-       -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
    SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -213,7 +207,6 @@ BEGIN
 		WHERE ISNULL(RO.IsDeleted, 0) = 0  AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId
 
-	  -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
 	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -236,7 +229,6 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId
 
 
-	 -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
 	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -259,7 +251,6 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderShippingItem WITH (NOLOCK))
 
-	 -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
 	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM
@@ -286,7 +277,6 @@ BEGIN
 				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 
 
-	 -- [PN-17439] Charges/Freight now summed from the live tables - see @SOQReceivedAmount note above.
 	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount)
 				+ SUM(ISNULL(BFC.Charges,0))
 				+ SUM(ISNULL(BFF.Freight,0)) FROM

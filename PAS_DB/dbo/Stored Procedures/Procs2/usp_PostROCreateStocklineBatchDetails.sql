@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -591,6 +591,8 @@ BEGIN
 
 										IF(@IsForCalibrationPart = 1)
 										BEGIN
+											SELECT @JournalTypeId = ID, @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE JournalTypeName = 'ASSET CALIBRATION' and JournalTypeCode = 'AST-CA'
+
 											SELECT TOP 1 @GlAccountId=SL.CalibratedGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
 											FROM DBO.AssetInventory SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.CalibratedGLAccountId=GL.GLAccountId

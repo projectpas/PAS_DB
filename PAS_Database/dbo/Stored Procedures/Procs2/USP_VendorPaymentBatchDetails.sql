@@ -26,12 +26,14 @@
 	10	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	11	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	12	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
+	13	 07/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_VendorPaymentBatchDetails]
+CREATE    PROCEDURE [dbo].[USP_VendorPaymentBatchDetails]
 @ReadyToPayId BIGINT,
 @ReadyToPayDetailsId BIGINT
 AS
@@ -113,6 +115,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 
 		DECLARE @legalEntityId BIGINT = NULL;
 		DECLARE @LEGLAccountId BIGINT = 0;
@@ -554,7 +557,8 @@ BEGIN
 							     @GlAccountId = [GlAccountId],
 							     @GlAccountNumber = [GlAccountNumber],
 							     @GlAccountName = [GlAccountName],
-							     @CrDrType = CRDRType 
+							     @CrDrType = CRDRType,
+							     @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 						    FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
 						   WHERE [DistributionSetupCode] = CASE WHEN @PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire THEN 'WRT-ACCOUNTSPAYABLE' 
 						                                        WHEN @PaymentMethodId = @ACHTransfer THEN 'ACHT-ACCOUNTSPAYABLE'
@@ -599,6 +603,9 @@ BEGIN
 						  SET @GlAccountName = @LEGlAccountName;
 						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 							   ([JournalBatchDetailId]
@@ -683,6 +690,8 @@ BEGIN
 							   ,@CheckDate
 							   ,@CommonBatchDetailId)
 
+					END
+
 					-----Account Payable End--------
 
 					-----Bank Account Start--------
@@ -694,7 +703,8 @@ BEGIN
 									 @IsAutoPost = ISNULL(IsAutoPost,0),
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
-									 @GlAccountName = [GlAccountName]
+									 @GlAccountName = [GlAccountName],
+									 @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 							  FROM [dbo].[DistributionSetup] WITH(NOLOCK)							
 							 WHERE [DistributionSetupCode] = CASE WHEN @PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire THEN 'WRT-BANKACCOUNT' 
 						                                        WHEN @PaymentMethodId = @ACHTransfer THEN 'ACHT-BANKACCOUNT'
@@ -715,6 +725,9 @@ BEGIN
 							  SET @GlAccountName = @LEGlAccountName;
 							  SET @GlAccountNumber = @LEGlAccountCode;
 						END
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							       ([JournalBatchDetailId]
@@ -799,6 +812,8 @@ BEGIN
 							   ,@VendorId
 							   ,@CheckDate
 							   ,@CommonBatchDetailId)
+
+						END
 					END
 
 					-----Bank Account End--------
@@ -813,7 +828,8 @@ BEGIN
 								     @GlAccountId = [GlAccountId],
 								     @GlAccountNumber = [GlAccountNumber],
 								     @GlAccountName = [GlAccountName],
-								     @CrDrType = [CRDRType]
+								     @CrDrType = [CRDRType],
+								     @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 						        FROM [dbo].[DistributionSetup] WITH(NOLOCK)						     
 							   WHERE [DistributionSetupCode] = CASE WHEN @PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire THEN 'WRT-DISCOUNTTAKEN' 
 						                                        WHEN @PaymentMethodId = @ACHTransfer THEN 'ACHT-DISCOUNTTAKEN'
@@ -828,6 +844,9 @@ BEGIN
 							  SET @GlAccountName = @LEGlAccountName;
 							  SET @GlAccountNumber = @LEGlAccountCode;
 						END
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							        ([JournalBatchDetailId]
@@ -911,6 +930,8 @@ BEGIN
 							       ,@VendorId
 							       ,@CheckDate
 							       ,@CommonBatchDetailId);
+
+						END
 					END
 					
 					-----Discount Taken End--------

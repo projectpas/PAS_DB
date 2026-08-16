@@ -16,6 +16,7 @@
 	3    22/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level Scrap Certificate Generation
 	4    27/07/2026   Moin Bloch 	 Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
 	5    28/07/2026   Moin Bloch 	 Added ScrapCertificateId For Line Level PN-17434
+	6    06/08/2026   Moin Bloch 	 Added MaterialOrKitAvailFlagAgg Flag For Check Material Or Kit Avail Or Not
 
 
 	EXEC [dbo].[GetSubWorkOrderSettlementDetailsNew] 3827,170,2
@@ -76,6 +77,46 @@ BEGIN
 						JOIN [dbo].[SubWorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.[SubWOPartNoId] = swf.[SubWOPartNoId]
 					WHERE WOMK.[WorkOrderId] = @WorkorderId AND WOMK.[SubWorkOrderId] = @SubWorkOrderId
 					GROUP BY WOMK.[SubWOPartNoId]
+				),
+				MaterialOrKitAvailFlagAgg AS (
+					SELECT swf.[SubWOPartNoId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[SubWorkOrderMaterials] WOM WITH(NOLOCK)
+								WHERE WOM.[SubWOPartNoId] = swf.[SubWOPartNoId]
+								  AND WOM.[WorkOrderId] = @WorkorderId AND WOM.[SubWorkOrderId] = @SubWorkOrderId
+								  AND ISNULL(WOM.[IsDeleted],0) = 0
+							)
+							OR EXISTS (
+								SELECT 1 FROM [dbo].[SubWorkOrderMaterialsKit] WOMK WITH(NOLOCK)
+								WHERE WOMK.[SubWOPartNoId] = swf.[SubWOPartNoId]
+								  AND WOMK.[WorkOrderId] = @WorkorderId AND WOMK.[SubWorkOrderId] = @SubWorkOrderId
+								  AND ISNULL(WOMK.[IsDeleted],0) = 0
+							)
+						THEN 1 ELSE 0 END AS IsMaterialOrKitAvailable
+					FROM SWFList swf
+				),
+				LaborAvailFlagAgg AS (
+					SELECT swf.[SubWOPartNoId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[SubWorkOrderLaborHeader] WLH2 WITH(NOLOCK)
+								INNER JOIN [dbo].[SubWorkOrderLabor] WL WITH(NOLOCK) ON WL.[SubWorkOrderLaborHeaderId] = WLH2.[SubWorkOrderLaborHeaderId]
+								WHERE WLH2.[SubWOPartNoId] = swf.[SubWOPartNoId]
+								  AND WLH2.[SubWorkOrderId] = @SubWorkOrderId
+								  AND WLH2.[WorkOrderId] = @WorkorderId
+							)
+						THEN 1 ELSE 0 END AS IsLaborAvailable
+					FROM SWFList swf
+				),
+				ToolsAvailFlagAgg AS (
+					SELECT swf.[SubWOPartNoId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[SubWOCheckInCheckOutWorkOrderAsset] COCI2 WITH(NOLOCK)
+								WHERE COCI2.[SubWOPartNoId] = swf.[SubWOPartNoId]
+								  AND COCI2.[SubWorkOrderId] = @SubWorkOrderId
+								  AND COCI2.[WorkOrderId] = @WorkorderId
+							)
+						THEN 1 ELSE 0 END AS IsToolsAvailable
+					FROM SWFList swf
 				),
 				KitIssueAgg AS (
 					SELECT WOM.[SubWOPartNoId], SUM(ISNULL(WOMS.[QtyIssued],0)) AS kitqtyissue
@@ -159,7 +200,10 @@ BEGIN
 						ISNULL(qi.[qtyissue],0) + ISNULL(ki.[kitqtyissue],0) + ISNULL(op.[OtherProvisionQty],0) + ISNULL(opk.[OtherProvisionKitQty],0) AS qtyissued,
 						ISNULL(lc.[IsLaborCompleled], 0) AS IsLaborCompleled,
 						ISNULL(lf.[IsLaborTrackingTurnedOff], 0) AS IsLaborTrackingTurnedOff,
-						ISNULL(ta.[AllToolsAreCheckOut], 0) AS AllToolsAreCheckOut
+						ISNULL(ta.[AllToolsAreCheckOut], 0) AS AllToolsAreCheckOut,
+						ISNULL(mka.[IsMaterialOrKitAvailable], 0) AS IsMaterialOrKitAvailable,
+						ISNULL(nla.[IsLaborAvailable], 0) AS IsLaborAvailable,
+						ISNULL(tav.[IsToolsAvailable], 0) AS IsToolsAvailable
 					FROM SWFList swf
 						LEFT JOIN MatAgg ma ON ma.[SubWOPartNoId] = swf.[SubWOPartNoId]
 						LEFT JOIN KitAgg ka ON ka.[SubWOPartNoId] = swf.[SubWOPartNoId]
@@ -172,6 +216,9 @@ BEGIN
 						LEFT JOIN LaborFlagAgg lf ON lf.[SubWOPartNoId] = swf.[SubWOPartNoId]
 						LEFT JOIN LaborCountAgg lc ON lc.[SubWOPartNoId] = swf.[SubWOPartNoId]
 						LEFT JOIN ToolsAgg ta ON ta.[SubWOPartNoId] = swf.[SubWOPartNoId]
+						LEFT JOIN MaterialOrKitAvailFlagAgg mka ON mka.[SubWOPartNoId] = swf.[SubWOPartNoId]
+						LEFT JOIN LaborAvailFlagAgg nla ON nla.[SubWOPartNoId] = swf.[SubWOPartNoId]
+						LEFT JOIN ToolsAvailFlagAgg tav ON tav.[SubWOPartNoId] = swf.[SubWOPartNoId]
 				)
 				SELECT  wosd.[WorkOrderId], 
 						wos.[WorkOrderSettlementName], 
@@ -196,7 +243,10 @@ BEGIN
 						ISNULL(sop.[IsFinishGood],0) AS [IsFinishGood],
 						ISNULL(sop.[IsClosed],0) AS [IsWOClose],
 						ISNULL(SL.[ControlNumber],'') [ControlNumber],
-						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId]
+						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId],
+						CASE WHEN ISNULL(c.[IsMaterialOrKitAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsMaterialOrKitAvailable],
+						CASE WHEN ISNULL(c.[IsLaborAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsLaborAvailable],
+						CASE WHEN ISNULL(c.[IsToolsAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsToolsAvailable]
 				INTO #SubSettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
@@ -240,7 +290,10 @@ BEGIN
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
 					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],
 					MAX([ControlNumber]) AS [ControlNumber],
-					MAX([ScrapCertificateId]) AS [ScrapCertificateId]'
+					MAX([ScrapCertificateId]) AS [ScrapCertificateId],
+					MAX(CAST([IsMaterialOrKitAvailable] AS INT)) AS [IsMaterialOrKitAvailable],
+					MAX(CAST([IsLaborAvailable] AS INT)) AS [IsLaborAvailable],
+					MAX(CAST([IsToolsAvailable] AS INT)) AS [IsToolsAvailable]'
 					+ @cols + N'
 				FROM #SubSettlementRows
 				GROUP BY [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId]';

@@ -14,10 +14,11 @@
     1    10/07/2026   Moin Bloch 	    Created
 	2    21/07/2026   Moin Bloch 	    added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 	3    27/07/2026   Moin Bloch 	    Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
+	4    06/08/2026   Moin Bloch 	    Added MaterialOrKitAvailFlagAgg Flag For Check Material Or Kit Avail Or Not
 
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 4345,2
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 14353,2
-  EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 4291,2
+  EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 4406,2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChangeNew]
 @WorkorderId BIGINT,
@@ -114,6 +115,42 @@ BEGIN
 					FROM WFList wf
 						JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
 					GROUP BY WOMK.[WorkFlowWorkOrderId]
+				),
+				MaterialOrKitAvailFlagAgg AS (
+					SELECT wf.[WorkFlowWorkOrderId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
+								WHERE WOM.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
+								  AND ISNULL(WOM.[IsDeleted],0) = 0
+							)
+							OR EXISTS (
+								SELECT 1 FROM [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
+								WHERE WOMK.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
+								AND ISNULL(WOMK.[IsDeleted],0) = 0
+							)
+						THEN 1 ELSE 0 END AS IsMaterialOrKitAvailable
+					FROM WFList wf
+				),
+				LaborAvailFlagAgg AS (
+					SELECT wf.[WorkFlowWorkOrderId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WLH2 WITH(NOLOCK)
+								INNER JOIN [dbo].[WorkOrderLabor] WL WITH(NOLOCK) ON WL.[WorkOrderLaborHeaderId] = WLH2.[WorkOrderLaborHeaderId]
+								WHERE WLH2.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
+								  AND WLH2.[WorkOrderId] = @WorkorderId
+							)
+						THEN 1 ELSE 0 END AS IsLaborAvailable
+					FROM WFList wf
+				),
+				ToolsAvailFlagAgg AS (
+					SELECT wf.[workOrderPartNoId],
+						CASE WHEN EXISTS (
+								SELECT 1 FROM [dbo].[CheckInCheckOutWorkOrderAsset] COCI2 WITH(NOLOCK)
+								WHERE COCI2.[workOrderPartNoId] = wf.[workOrderPartNoId]
+								  AND COCI2.[WorkOrderId] = @WorkorderId
+							)
+						THEN 1 ELSE 0 END AS IsToolsAvailable
+					FROM WFList wf
 				),
 				OtherMatProvKitAgg AS (
 					SELECT WOMK.[WorkFlowWorkOrderId],
@@ -215,7 +252,10 @@ BEGIN
 						ISNULL(ta.[AllToolsAreCheckOut], 0) AS AllToolsAreCheckOut,
 						ISNULL(sa.[IsShippingCompleled], 0) AS IsShippingCompleled,
 						ISNULL(ba.[IsBillingCompleled], 0) AS IsBillingCompleled,
-						CASE WHEN ISNULL(pa.[IsPaymentReceived], 0) = 1 THEN 0 ELSE 1 END AS IsAllowReopenWO
+						CASE WHEN ISNULL(pa.[IsPaymentReceived], 0) = 1 THEN 0 ELSE 1 END AS IsAllowReopenWO,
+						ISNULL(mka.[IsMaterialOrKitAvailable], 0) AS IsMaterialOrKitAvailable,
+						ISNULL(nla.[IsLaborAvailable], 0) AS IsLaborAvailable,
+						ISNULL(tav.[IsToolsAvailable], 0) AS IsToolsAvailable
 					FROM WFList wf
 						LEFT JOIN MatAgg ma ON ma.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
 						LEFT JOIN OtherMatProvAgg omp ON omp.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
@@ -231,6 +271,9 @@ BEGIN
 						LEFT JOIN ShippingAgg sa ON sa.[workOrderPartNoId] = wf.[workOrderPartNoId]
 						LEFT JOIN BillingAgg ba ON ba.[workOrderPartNoId] = wf.[workOrderPartNoId]
 						LEFT JOIN PaymentAgg pa ON pa.[workOrderPartNoId] = wf.[workOrderPartNoId]
+						LEFT JOIN MaterialOrKitAvailFlagAgg mka ON mka.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
+						LEFT JOIN LaborAvailFlagAgg nla ON nla.[WorkFlowWorkOrderId] = wf.[WorkFlowWorkOrderId]
+						LEFT JOIN ToolsAvailFlagAgg tav ON tav.[workOrderPartNoId] = wf.[workOrderPartNoId]
 				)
 				SELECT  wosd.[WorkOrderId], 
 						wos.[WorkOrderSettlementName], 
@@ -271,7 +314,10 @@ BEGIN
 						ISNULL(WOP.[IsFinishGood],0) AS IsFinishGood,
 						ISNULL(WOP.[IsClosed],0) AS IsWOClose,
 						ISNULL(SL.[ControlNumber],'') [ControlNumber],
-						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId]
+						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId],
+						CASE WHEN ISNULL(c.[IsMaterialOrKitAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsMaterialOrKitAvailable],
+						CASE WHEN ISNULL(c.[IsLaborAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsLaborAvailable],
+						CASE WHEN ISNULL(c.[IsToolsAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsToolsAvailable]
 				INTO #SettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
@@ -330,7 +376,10 @@ BEGIN
 					MAX(CAST([IsFinishGood] AS INT)) AS [IsFinishGood],
 					MAX(CAST([IsWOClose] AS INT)) AS [IsWOClose],
 					MAX([ControlNumber]) AS [ControlNumber],
-					MAX([ScrapCertificateId]) AS [ScrapCertificateId]'
+					MAX([ScrapCertificateId]) AS [ScrapCertificateId],
+					MAX(CAST([IsMaterialOrKitAvailable] AS INT)) AS [IsMaterialOrKitAvailable],
+					MAX(CAST([IsLaborAvailable] AS INT)) AS [IsLaborAvailable],
+					MAX(CAST([IsToolsAvailable] AS INT)) AS [IsToolsAvailable]'
 					+ @cols + N'
 				FROM #SettlementRows
 				GROUP BY [WorkOrderId], [WorkFlowWorkOrderId], [workOrderPartNoId]';

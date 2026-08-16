@@ -16,6 +16,8 @@
 	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	5    14/02/2023	  Moin Bloch	Updated Used Distribution Setup Code Insted of Name 
 	6    11/26/2023	  HEMANT SALIYA Updated Journal Type Id and Name in Batch Details
+	7	 06/07/2026	  Moin Bloch    Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+
 
 **************************************************************/  
 
@@ -113,6 +115,7 @@ BEGIN
 		  DECLARE @TotalBalance decimal(18,2)=0
 		  DECLARE @CurrentManagementStructureId INT = 0
 		  DECLARE @CreatedDate DATETIME2 = NULL
+		  DECLARE @IsBypassAccounting BIT = 0;		
 
 		  DECLARE @AccountMSModuleId INT = 0
 		  SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -290,7 +293,7 @@ BEGIN
 						SET @Amount = CASE WHEN ISNULL(@QtyDiffenece,0) <> 0 AND ISNULL(@UnitPriceDiffenece,0) <> 0 THEN ABS(ABS(@UnitPrice * @QtyAvl) - ABS(@UnitPriceDiffenece * @QtyDiffenece))
 						WHEN ISNULL(@QtyDiffenece,0) = 0 THEN ABS(@QtyAvl * @Amount) ELSE ABS(@QtyDiffenece * @Amount) END;	
 						
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId , @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 						from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('ADJSPEC') 
 						AND DistributionMasterId=@DistributionMasterId
 						
@@ -314,6 +317,9 @@ BEGIN
 
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 								VALUES
@@ -336,13 +342,15 @@ BEGIN
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,NULL,NULL,NULL,NULL,@StockLineId,
 							@StocklineNumber,'','Adjust Inventory Stock',@SiteId,'',@WarehouseId,'',@LocationId,'',@BinId,'',@ShelfId,'','STOCK',@CommonJournalBatchDetailId)
 
-
+						END
 						-----Existing Stockline--------
 
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
 						from dbo.DistributionSetup WITH(NOLOCK)  
 						where UPPER(DistributionSetupCode) =UPPER('ADJSPEC') AND DistributionMasterId=@DistributionMasterId
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 								VALUES
@@ -364,6 +372,8 @@ BEGIN
 							VALUES
 								(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,NULL,NULL,NULL,NULL,@StockLineId,
 								@StocklineNumber,'','Adjust Inventory Stock',@SiteId,'',@WarehouseId,'',@LocationId,'',@BinId,'',@ShelfId,'','STOCK',@CommonJournalBatchDetailId)
+
+						END
 
 						SET @TotalDebit=0;
 						SET @TotalCredit=0;

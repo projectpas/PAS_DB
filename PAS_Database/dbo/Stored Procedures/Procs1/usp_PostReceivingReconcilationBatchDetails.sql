@@ -42,7 +42,8 @@
 	30    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	31   20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (variable population + unit-cost update/GLAccount lookups in the ReconciliationPO GRNI/Stock-Inventory branches) to dbo.Stockline with ISNULL(IsNonStock,0)=1
 	32   24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) on the Receiving-PO MPN/PiecePN lookups to allow Non-Stock items in Reconciliation Batch posting
-	33   06/Aug/2026  Priyansh Patel	[PN-16941] Added Order by to get the type from ReceivingReconciliationDetails 
+	33   06/Aug/2026  Priyansh Patel	[PN-16941] Added Order by to get the type from ReceivingReconciliationDetails
+	34	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -120,6 +121,7 @@ BEGIN
 			DECLARE @count INT = 0;		
 			DECLARE @TotalCounts INT = 0;
 			DECLARE @VendorProformaStatusId INT = 0;
+			DECLARE @IsBypassAccounting BIT = 0
 
 			SELECT @VendorProformaStatusId = VendorProformaInvoiceHeaderStatusId FROM dbo.VendorProformaInvoiceHeaderStatus WITH(NOLOCK) WHERE UPPER([Description]) = 'CLOSED'		
 
@@ -564,7 +566,8 @@ BEGIN
 												 @GlAccountId=GlAccountId,
 									             @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') 
 									AND DistributionMasterId=@DistributionMasterId 
@@ -572,6 +575,9 @@ BEGIN
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
 
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+										
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -616,6 +622,8 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
+
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 
@@ -627,12 +635,17 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber,
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 									
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -676,6 +689,8 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
+
 									END
 									------- Accounts Payable --------
 
@@ -698,7 +713,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType= CRDRType
+													 @CrDrType= CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOSTKINV') 
 										  AND DistributionMasterId=@DistributionMasterId 
@@ -722,7 +738,7 @@ BEGIN
 											WHERE StockLineId=@StocklineId
 										END
 
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType
+										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
@@ -740,7 +756,7 @@ BEGIN
 											WHERE AssetInventoryId=@StocklineId
 										END
 														     
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType
+										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 										
@@ -752,6 +768,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											       ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											        [IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -796,10 +815,14 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											       ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											        [IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -844,6 +867,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
+										
+										END
 
 									END
 									------- Stock - Inventory -----
@@ -861,7 +886,8 @@ BEGIN
 												 @GlAccountId=GlAccountId,
 									             @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') 
 									  AND DistributionMasterId=@DistributionMasterId 
@@ -869,6 +895,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 										(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 										[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -914,6 +943,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 									------- Goods Received Not Invoiced (GRNI)------
 
@@ -925,7 +955,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType= CRDRType
+												 @CrDrType= CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') 
 									  AND DistributionMasterId=@DistributionMasterId 
@@ -933,6 +964,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -978,6 +1012,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 									------- Accounts Payable -------
 							END
@@ -1005,7 +1040,8 @@ BEGIN
 													 @GlAccountId=GlAccountId, 
 													 @GlAccountNumber=GlAccountNumber, 
 													 @GlAccountName=GlAccountName,
-													 @CrDrType=CRDRType
+													 @CrDrType=CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOSTKINV') 
 										  AND DistributionMasterId=@DistributionMasterId 
@@ -1032,7 +1068,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType=CRDRType
+													 @CrDrType=CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										        FROM dbo.DistributionSetup WITH(NOLOCK)
 										       WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') 
 											   AND DistributionMasterId=@DistributionMasterId 
@@ -1058,7 +1095,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType = CRDRType
+													 @CrDrType = CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										        FROM dbo.DistributionSetup WITH(NOLOCK)
 										        WHERE UPPER(DistributionSetupCode)=UPPER('RECPOASSETINV') 
 												AND DistributionMasterId=@DistributionMasterId 
@@ -1077,6 +1115,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1121,11 +1162,15 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1171,6 +1216,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 									PRINT '1.9' 
 									PRINT GETUTCDATE();
@@ -1185,7 +1231,8 @@ BEGIN
 												 @JournalTypeId=JournalTypeId, 
 												 @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
-												 @GlAccountName=GlAccountName
+												 @GlAccountName=GlAccountName,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOVARCOGS') 
 									  AND DistributionMasterId=@DistributionMasterId 
@@ -1194,6 +1241,9 @@ BEGIN
 									IF(ABS(@QtyVariance) > 0)
 									BEGIN
 										SET @APTotalPrice = (@APTotalPrice + (@QtyVariance));
+
+										IF(@IsBypassAccounting = 0)
+										BEGIN
 											
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1239,7 +1289,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 
 									IF(ABS(@PriceVariance) > 0)
@@ -1251,11 +1302,15 @@ BEGIN
 												@JournalTypeId=JournalTypeId, 
 												@GlAccountId=GlAccountId, 
 												@GlAccountNumber=GlAccountNumber, 
-												@GlAccountName=GlAccountName
+												@GlAccountName=GlAccountName,
+												@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOVARCOGSUNITCOST') 
 											AND DistributionMasterId=@DistributionMasterId 
 											AND MasterCompanyId = @MasterCompanyId;
+
+										IF(@IsBypassAccounting = 0)
+										BEGIN
 											
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1302,7 +1357,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 
 									PRINT '1.10' 
@@ -1320,7 +1376,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') 
 									  AND DistributionMasterId=@DistributionMasterId 
@@ -1328,6 +1385,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1373,6 +1433,8 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
+
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 									------- Accounts Payable ------
@@ -1383,7 +1445,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') 
 									  AND DistributionMasterId=@DistributionMasterId 
@@ -1394,6 +1457,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1438,7 +1504,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 									PRINT '1.12' 
 									PRINT GETUTCDATE();
@@ -1452,7 +1519,7 @@ BEGIN
 						ELSE IF(UPPER(@ModuleName)=UPPER('ReconciliationRO'))
 						BEGIN
 							--SELECT 'ReconciliationRO'
-							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROGRNI') 
 											  AND DistributionMasterId=@DistributionMasterId 
@@ -1515,7 +1582,8 @@ BEGIN
 												 @GlAccountId=GlAccountId, 
 									             @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROGRNI') 
 											  AND DistributionMasterId=@DistributionMasterId 
@@ -1523,6 +1591,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1567,7 +1638,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 									------- Goods Received Not Invoiced (GRNI)------
 
@@ -1578,7 +1650,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType=CRDRType
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM dbo.DistributionSetup WITH(NOLOCK)
 									       WHERE UPPER(DistributionSetupCode)=UPPER('RECROACCPAYABLE') 
 										     AND DistributionMasterId=@DistributionMasterId 
@@ -1586,6 +1659,9 @@ BEGIN
 									
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1629,7 +1705,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 									------- Accounts Payable -------
 
@@ -1649,7 +1726,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType=CRDRType
+													 @CrDrType=CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 										        WHERE UPPER(DistributionSetupCode) = UPPER('RECROSTKINV') 
 												AND DistributionMasterId=@DistributionMasterId 
@@ -1675,7 +1753,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType=CRDRType
+													 @CrDrType=CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										        FROM dbo.DistributionSetup WITH(NOLOCK)
 										       WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -1687,6 +1766,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1732,10 +1814,14 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1780,7 +1866,8 @@ BEGIN
 											[ReferenceId] = @ReceivingReconciliationId,
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
+										
+										END
 									END
 
 									------- Goods Received Not Invoiced (GRNI)-------
@@ -1793,7 +1880,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber,
 												 @GlAccountName=GlAccountName,
-												 @CrDrType=CRDRType
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode) = UPPER('RECROGRNI') 
 											  AND DistributionMasterId = @DistributionMasterId 
@@ -1801,6 +1889,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1846,6 +1937,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 
@@ -1859,7 +1951,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType=CRDRType
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROACCPAYABLE') 
 											AND DistributionMasterId=@DistributionMasterId 
@@ -1867,6 +1960,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN 
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -1912,6 +2008,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 									------- Accounts Payable ------
 							END
@@ -1935,7 +2032,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId = ID, 
 										             @DistributionName = [Name], 
 													 @JournalTypeId = JournalTypeId,
-													 @CrDrType = CRDRType
+													 @CrDrType = CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										        FROM dbo.DistributionSetup WITH(NOLOCK)
 										        WHERE UPPER(DistributionSetupCode)=UPPER('RECROSTKINV') 
 												AND DistributionMasterId=@DistributionMasterId 
@@ -1958,7 +2056,8 @@ BEGIN
 										SELECT TOP 1 @DistributionSetupId=ID, 
 										             @DistributionName=Name, 
 													 @JournalTypeId=JournalTypeId,
-													 @CrDrType=CRDRType
+													 @CrDrType=CRDRType,
+													 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') 
 										AND DistributionMasterId=@DistributionMasterId 
@@ -1974,6 +2073,9 @@ BEGIN
 									END
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -2019,10 +2121,14 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
 									BEGIN
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -2068,6 +2174,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 
 									------- Stock - Inventory -----
@@ -2081,7 +2188,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType=CRDRType
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM dbo.DistributionSetup WITH(NOLOCK)
 									       WHERE UPPER(DistributionSetupCode)=UPPER('RECROVARCOGS') 
 										   AND DistributionMasterId=@DistributionMasterId 
@@ -2090,6 +2198,9 @@ BEGIN
 									IF(ABS(@QtyVariance) > 0)
 									BEGIN
 										SET @APTotalPrice = @APTotalPrice + (@QtyVariance);
+
+										IF(@IsBypassAccounting = 0)
+										BEGIN
 
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -2136,6 +2247,7 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
+										END
 									END
 
 									IF(ABS(@PriceVariance) > 0)
@@ -2148,11 +2260,15 @@ BEGIN
 												@GlAccountId=GlAccountId, 
 												@GlAccountNumber=GlAccountNumber, 
 												@GlAccountName=GlAccountName,
-												@CrDrType=CRDRType
+												@CrDrType=CRDRType,
+												@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 										FROM dbo.DistributionSetup WITH(NOLOCK)
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECROVARCOGSUNITCOST') 
 											AND DistributionMasterId=@DistributionMasterId 
 											AND MasterCompanyId = @MasterCompanyId;
+
+										IF(@IsBypassAccounting = 0)
+										BEGIN
 
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -2202,6 +2318,7 @@ BEGIN
 										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
 										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+										END									
 									END
 									
 									------- VAR - Cost/Qty - COGS ------
@@ -2217,7 +2334,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType = CRDRType
+												 @CrDrType = CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode) = UPPER('RECROGRNI') 
 											AND DistributionMasterId=@DistributionMasterId 
@@ -2225,6 +2343,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN 
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -2273,6 +2394,7 @@ BEGIN
 
 										--INSERT INTO [StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+										END
 									END
 									
 									------- Goods Received Not Invoiced (GRNI)-----
@@ -2287,7 +2409,8 @@ BEGIN
 									             @GlAccountId=GlAccountId, 
 												 @GlAccountNumber=GlAccountNumber, 
 												 @GlAccountName=GlAccountName,
-												 @CrDrType=CRDRType
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROACCPAYABLE') 
 											AND DistributionMasterId=@DistributionMasterId 
@@ -2295,6 +2418,9 @@ BEGIN
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN 
+										IF(@IsBypassAccounting = 0)
+										BEGIN
+
 										INSERT INTO #TMPCommonBatchDetail
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -2343,6 +2469,7 @@ BEGIN
 
 										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+										END
 									END
 									------- Accounts Payable ------
 								END
@@ -2490,11 +2617,15 @@ BEGIN
 								 @GlAccountId=GlAccountId, 
 								 @GlAccountNumber=GlAccountNumber, 
 								 @GlAccountName=GlAccountName,
-								 @CrDrType=CRDRType
+								 @CrDrType=CRDRType,
+								 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					  FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					  WHERE UPPER(DistributionSetupCode)=UPPER('VPI-DEPOSIT') 
 						AND DistributionMasterId=@ProformaDistributionMasterId 
 						AND MasterCompanyId = @MasterCompanyId
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO #TMPCommonBatchDetail
 						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
@@ -2616,7 +2747,8 @@ BEGIN
 							JOIN #TMPVendorProformaInv TMPVP ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
 						) GROUPtmp 
 					WHERE TMPBatchId = @CommonJournalBatchDetailId;
-				
+
+					END				
 				END
 
 				PRINT '1.18.1'

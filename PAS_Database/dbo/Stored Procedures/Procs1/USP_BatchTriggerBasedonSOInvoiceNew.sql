@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoiceNew]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to enter acounting entry for SO
@@ -52,6 +52,7 @@
 																every subsequent re-invoice of the same document. It now only blocks when an entry exists
 																that is newer (by JournalBatchDetailId) than the most recent reversal for this document, so
 																a genuine duplicate post is still blocked but a post-after-Re-Open now creates fresh entries.
+	28	 23/06/2026	 Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
@@ -155,6 +156,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'SO';
+		DECLARE @IsBypassAccounting  BIT = 0;
 
 		DECLARE @GLStocklineId BIGINT = 0;
 		DECLARE @InventoryToBillGLAccId BIGINT = 0;
@@ -393,12 +395,21 @@ BEGIN
 					PRINT @SalesTotal
 					IF(@SalesTotal > 0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
-						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUESALESORDER') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
-							PRINT @GlAccountId 			
-							PRINT 'Before Set @GlAccountId'
-							PRINT @RevenueSoGLAccId
-							PRINT '@RevenueSoGLAccId'
+						SELECT TOP 1 @DistributionSetupId=ID,
+						             @DistributionName=Name,
+									 @JournalTypeId =JournalTypeId,
+									 @GlAccountId=GlAccountId,
+									 @GlAccountNumber=GlAccountNumber,
+									 @GlAccountName=GlAccountName,
+									 @CrDrType = CRDRType,
+									 @IsAutoPost = ISNULL(IsAutoPost,0),
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+						FROM dbo.DistributionSetup WITH(NOLOCK)  
+						WHERE UPPER(DistributionSetupCode) =UPPER('REVENUESALESORDER') 
+						AND DistributionMasterId=@DistributionMasterId 
+						AND MasterCompanyId = @MasterCompanyId;
+
+						
 						--GET GL Accounting Data from GLAccout based on stockline
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
@@ -469,13 +480,15 @@ BEGIN
 
 							SET @IsBatchGenerated = 1;
 						END
-							PRINT @GlAccountId 			
-							PRINT 'After Set @GlAccountId: Before Table'
+							
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 						[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
 							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -497,14 +510,29 @@ BEGIN
 						VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
 
+						END
+					
 					END
 					-----Revenue - SO------
 
 					-----Misc Charges------
 					IF(@MiscChargesCost >0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
-						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUEMISCCHARGE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId				 
+						SELECT top 1 @DistributionSetupId=ID,
+						             @DistributionName=Name,
+									 @JournalTypeId =JournalTypeId,
+									 @GlAccountId=GlAccountId,
+									 @GlAccountNumber=GlAccountNumber,
+									 @GlAccountName=GlAccountName,
+									 @CrDrType = CRDRType,
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+						FROM dbo.DistributionSetup WITH(NOLOCK)  
+						WHERE UPPER(DistributionSetupCode) = UPPER('REVENUEMISCCHARGE') 
+						AND DistributionMasterId=@DistributionMasterId
+						AND MasterCompanyId = @MasterCompanyId	
+						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -526,15 +554,24 @@ BEGIN
 							(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 						VALUES
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
+						
+						END					
 					END
 					-----Misc Charges------
 
 					-----Freight------
 					IF(@FreightCost >0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+						SELECT top 1 @DistributionSetupId=ID,
+						             @DistributionName=Name,
+									 @JournalTypeId =JournalTypeId,
+									 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUEFREIGHT') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -556,6 +593,8 @@ BEGIN
 							(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 						VALUES
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
+						
+						END
 
 					END
 
@@ -564,9 +603,13 @@ BEGIN
 					-----Sales Tax------
 					IF(@SalesTax > 0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+					                 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('SALESTAXPAYABLE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -587,15 +630,21 @@ BEGIN
 							(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 						VALUES
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
+					
+						END
 					END
 					-----Sales Tax------
 
 					-----Other Tax------
 					IF(@OtherTax > 0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+					                 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('TAXPAYABLEOTHER') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -616,6 +665,8 @@ BEGIN
 							(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 						VALUES
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
+					
+						END
 					END
 					-----Other Tax------
 
@@ -623,9 +674,13 @@ BEGIN
 
 					IF(@AccountsReceivablesAmount >0)
 					BEGIN
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+					                 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ACCOUNTSRECEIVABLESTRADE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -646,7 +701,7 @@ BEGIN
 							(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 						VALUES
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
-
+						END
 					END
 
 					----Accounts Receivables - Trade----------
@@ -696,9 +751,11 @@ BEGIN
 						IF(@PartUnitSalesPrices >0)
 						BEGIN	
 						
-							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+					                     @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 							
+
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],
 								   @GlAccountNumber = [AccountCode],
@@ -706,6 +763,9 @@ BEGIN
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @COGSSalesOrderGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
+
+							IF(@IsBypassAccounting = 0)
+							BEGIN
 
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -728,12 +788,15 @@ BEGIN
 							VALUES
 								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
 
+							END
+						
 						END
 						----COGS - Parts----
 						----Inventory - Parts----
 						IF(@PartUnitSalesPrices >0)
 						BEGIN
-							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
+							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+					                     @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYPARTS') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 							 
 							--GET GL Accounting Data from GLAccout based on stockline
@@ -743,6 +806,9 @@ BEGIN
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryToBillGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
+
+							IF(@IsBypassAccounting = 0)
+							BEGIN
 
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -764,6 +830,8 @@ BEGIN
 								(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 							VALUES
 								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
+						
+							END
 						END
 						----Inventory - Parts----
 
@@ -806,11 +874,12 @@ BEGIN
 				END
 				IF(@ValidDistribution = 1)
 				BEGIN	
-					SELECT top 1 @IsAutoPost = ISNULL(IsAutoPost,0)
-							        FROM dbo.DistributionSetup WITH(NOLOCK)  
-									WHERE UPPER(DistributionSetupCode) = UPPER('INVENTORYTOBILLSO') 
-									 AND DistributionMasterId=@DistributionMasterId 
-									 AND MasterCompanyId = @MasterCompanyId;
+					SELECT TOP 1 @IsAutoPost = ISNULL([IsAutoPost],0),
+								 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+						    FROM dbo.DistributionSetup WITH(NOLOCK)  
+						   WHERE UPPER(DistributionSetupCode) = UPPER('INVENTORYTOBILLSO') 
+							 AND DistributionMasterId=@DistributionMasterId 
+							 AND MasterCompanyId = @MasterCompanyId;
 
 
 					SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCost, 0) * ISNULL(soit.QtyShipped, 0))
@@ -959,7 +1028,8 @@ BEGIN
 										 @GlAccountId=GlAccountId,
 										 @GlAccountNumber=GlAccountNumber,
 										 @GlAccountName=GlAccountName,
-										 @CrDrType = CRDRType
+										 @CrDrType = CRDRType,
+										 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYTOBILLSO') 
 									 AND DistributionMasterId=@DistributionMasterId 
@@ -972,6 +1042,9 @@ BEGIN
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryToBillGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
+
+							IF(@IsBypassAccounting = 0)
+							BEGIN
 							
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -994,6 +1067,7 @@ BEGIN
 							VALUES
 								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
 
+							END
 						END
 						----Inventory to Bill------
 						----Inventory - Parts-----
@@ -1005,7 +1079,8 @@ BEGIN
 										 @GlAccountId=GlAccountId,
 										 @GlAccountNumber=GlAccountNumber,
 										 @GlAccountName=GlAccountName,
-										 @CrDrType = CRDRType
+										 @CrDrType = CRDRType,
+										 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('PARTSINVENTORY') 
 									AND DistributionMasterId=@DistributionMasterId 
@@ -1018,6 +1093,9 @@ BEGIN
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
+
+							IF(@IsBypassAccounting = 0)
+							BEGIN
 				            
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1039,7 +1117,8 @@ BEGIN
 								(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],[SalesOrderId] ,[SalesOrderNumber],[DocumentId],[DocumentNumber] ,[StocklineId] ,StocklineNumber,ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 							VALUES
 								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,@ItemmasterId,@partId,@MPNName ,@ReferenceId,@SalesOrderNumber ,@InvoiceId,@InvoiceNo,@StocklineId,@StocklineNumber,NULL,@CustRefNumber,@CommonJournalBatchDetailId)
-				    	 
+				    		
+							END
 						END
 						----Inventory - Parts-----
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor1 INTO @PartGLAccountId
@@ -1094,8 +1173,8 @@ BEGIN
 		--ROLLBACK TRAN;
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerBasedonSOInvoice' 
-        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''
+        , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerBasedonSOInvoiceNew'         
+		, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@DistributionMasterId, 0) AS VARCHAR(100)) 
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         exec spLogException 

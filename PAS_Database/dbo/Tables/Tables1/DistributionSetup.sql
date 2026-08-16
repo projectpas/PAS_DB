@@ -28,12 +28,6 @@
 
 
 
-
-
-
-
-
-
 GO
 CREATE   TRIGGER [dbo].[Trg_DistributionSetupAudit]
 

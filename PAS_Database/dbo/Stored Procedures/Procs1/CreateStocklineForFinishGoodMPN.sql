@@ -41,6 +41,7 @@
 	24   27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
 	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	26   15/07/2026   Priyansh Patel	Added missing [StockUnitOfMeasureId],[StockUnitOfMeasure] for new stockline [PN-17283]
+	27   23/06/2026   Moin Bloch	    Replace To Common Accounting SP PN-16871
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -428,6 +429,10 @@ BEGIN
 	DECLARE @IsRestrict BIT;
 	DECLARE @IsAccountByPass BIT;
 
+	DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
+	DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
+
+
 	EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
 	IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
@@ -435,8 +440,15 @@ BEGIN
 		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 		BEGIN
 
-			EXEC [dbo].[USP_BatchTriggerBasedonDistribution]   
-			@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy  
+			INSERT INTO @WOBatchTriggerType VALUES (@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,1,@ModuleName,@MasterCompanyId,@UpdateBy)
+					
+			IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+			BEGIN
+				EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+			END	
+
+			--EXEC [dbo].[USP_BatchTriggerBasedonDistribution]   
+			--@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy  
 
 		END
 	END
@@ -445,10 +457,14 @@ BEGIN
 	BEGIN
 		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 		BEGIN
-
-			EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]  
-			@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy  
-
+			INSERT INTO @IWOBatchTriggerType VALUES (@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,1,@ModuleName,@MasterCompanyId,@UpdateBy)
+								
+			IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+			BEGIN
+				EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+			END	
+			--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]  
+			--@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy  
 		END
 	END
   
@@ -479,7 +495,7 @@ BEGIN
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'CreateStocklineForFinishGoodMPN'                
-			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderPartNumberId, '') AS VARCHAR(100))  
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderPartNumberId, 0) AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

@@ -21,6 +21,8 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
+	14    31/July/2026			 MOIN BLOCH	  					    [PN-17513] - Added IsNonStock=1 filters so Non-Stock parts not appear on the pick ticket.
+
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]

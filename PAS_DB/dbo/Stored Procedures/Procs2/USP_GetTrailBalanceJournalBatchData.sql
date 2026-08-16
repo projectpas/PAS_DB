@@ -20,10 +20,25 @@
 	9    03/04/2026   Moin Bloch      Added Pagination PN-15886
 	10   06/04/2026   Moin Bloch      Added @Balance Field PN-15886
 	11   06/04/2026   Moin Bloch      Fix For Future data comming PN-15990
+	12   08/16/2026   <You>           Replaced single @id with @StartAccountingPeriodId /
+	                                   @EndAccountingPeriodId. Class-aware balance window,
+	                                   aligned to USP_GetTrailBalanceReportData_MultiplePerod
+	                                   so drill-down detail reconciles to the report cell:
+	                                     Balance Sheet (Asset/Liabilities/Owners Equity)
+	                                        = all periods with ToDate <= End period (from beginning)
+	                                     Income Statement (Revenue/Expense)
+	                                        = current fiscal year (End period FiscalYear) to End period
+	                                     Other/unclassified = full history (report fallback)
 
  **************************************************************
 
- EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134', 2, @xmlFilter = N'
+ EXEC [USP_GetTrailBalanceJournalBatchData]
+      @PageSize = 10, @PageNumber = 1, @SortColumn = NULL, @SortOrder = 2,
+      @masterCompanyId = '1', @managementStructureId = '1',
+      @StartAccountingPeriodId = '318',   -- start of the selected range
+      @EndAccountingPeriodId   = '329',   -- end / "current" period selected
+      @GlAccId = 134,
+      @xmlFilter = N'
  <?xml version="1.0" encoding="utf-16"?>
  <ArrayOfFilter xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
    <Filter><FieldName>Level1</FieldName><FieldValue>5</FieldValue></Filter>
@@ -45,18 +60,19 @@ CREATE PROCEDURE [dbo].[USP_GetTrailBalanceJournalBatchData]
 	@PageNumber INT,
 	@SortColumn VARCHAR(50) = NULL,
 	@SortOrder INT,
-	@GlobalFilter VARCHAR(50) = NULL,	
+	@GlobalFilter VARCHAR(50) = NULL,
 	@JournalNumber VARCHAR(100) = NULL,
 	@JournalTypeName VARCHAR(150) = NULL,
 	@GLAccount VARCHAR(100) = NULL,
 	@PeriodNames VARCHAR(100) = NULL,
 	@ReferenceNumber VARCHAR(150) = NULL,
 	@Balance VARCHAR(50) = NULL,
-    @masterCompanyId       VARCHAR(50)  = NULL,
-    @managementStructureId VARCHAR(50)  = NULL,
-    @id                    VARCHAR(50)  = NULL,
-    @GlAccId               BIGINT,
-    @xmlFilter             XML,
+    @masterCompanyId         VARCHAR(50)  = NULL,
+    @managementStructureId   VARCHAR(50)  = NULL,
+    @StartAccountingPeriodId VARCHAR(50)  = NULL,   -- was @id : start of the selected period range
+    @EndAccountingPeriodId   VARCHAR(50)  = NULL,   -- NEW    : end / "current" period selected
+    @GlAccId                 BIGINT,
+    @xmlFilter               XML,
 	@EmployeeId BIGINT = NULL
 )
 AS
@@ -76,6 +92,19 @@ BEGIN
         DECLARE @PostedBatchStatusId BIGINT;
         DECLARE @PeriodName          VARCHAR(100);
 		DECLARE @FromDate DATETIME = NULL,@ToDate DATETIME = NULL,@PeriodEndDate DATETIME = NULL;
+
+        -- Account-class driven balance window (mirrors USP_GetTrailBalanceReportData_MultiplePerod)
+        DECLARE @EndFiscalYear     VARCHAR(20) = NULL;  -- fiscal year of the selected (End) period
+        DECLARE @AccountClassId    BIGINT      = NULL;  -- GLAccount.GLAccountTypeId of @GlAccId
+        DECLARE @IsBalanceSheet    BIT         = 0;     -- 1 = Asset / Liabilities / Owners Equity
+        DECLARE @IsIncomeStatement BIT         = 0;     -- 1 = Revenue / Expense
+
+        -- Class IDs resolved by name, scoped to MasterCompany (IDs are company-scoped).
+        DECLARE @AssetClassId        BIGINT;
+        DECLARE @LiabilityClassId    BIGINT;
+        DECLARE @OwnersEquityClassId BIGINT;
+        DECLARE @RevenueClassId      BIGINT;
+        DECLARE @ExpenseClassId      BIGINT;
 
         DECLARE
             @level1  VARCHAR(MAX) = NULL,
@@ -148,7 +177,7 @@ BEGIN
         IF ISNULL(@level10, '') <> '' INSERT INTO #L10 SELECT Item FROM DBO.SPLITSTRING(@level10, ',');
 
         ---------------------------------------------------------------------------
-        -- Build Accounting Period Table for the selected period across all Level1 LEs
+        -- Build Accounting Period Table for the selected window across all Level1 LEs
         ---------------------------------------------------------------------------
         IF OBJECT_ID(N'tempdb..#AccPeriodTable') IS NOT NULL DROP TABLE #AccPeriodTable;
 
@@ -161,41 +190,81 @@ BEGIN
             ToDate               DATETIME     NULL
         );
 
-        -- Resolve period name from the supplied accounting calendar ID
-		SELECT @PeriodName    = UPPER(PeriodName),
-               @PeriodEndDate = [ToDate]               
+        ---------------------------------------------------------------------------
+        -- 1) Resolve the END (selected / drilled) period: its ToDate is the upper
+        --    bound of the window, its FiscalYear scopes the income-statement window.
+        --    (Mirrors #SelectedPeriods.PeriodEndDate / FiscalYear in the TB report.)
+        ---------------------------------------------------------------------------
+        SELECT @PeriodName    = UPPER(PeriodName),
+               @PeriodEndDate = [ToDate],
+               @EndFiscalYear = [FiscalYear]
         FROM [dbo].[AccountingCalendar] WITH (NOLOCK)
-        WHERE [AccountingCalendarId] = @id;
+        WHERE [AccountingCalendarId] = @EndAccountingPeriodId;
 
-		SELECT @FromDate = MIN([FromDate]) 
-		FROM [dbo].[AccountingCalendar] WITH(NOLOCK) 
-		WHERE [MasterCompanyId] = @MasterCompanyId 
-		  AND [LegalEntityId] IN
-              (
-                  SELECT MSL.[LegalEntityId]
-                  FROM   [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK)
-                  WHERE  MSL.ID IN (SELECT Item FROM #L1)
-              ) AND [IsDeleted] = 0 
+        ---------------------------------------------------------------------------
+        -- 2) Resolve the GL-account-class IDs by name (MasterCompany scoped),
+        --    exactly as USP_GetTrailBalanceReportData_MultiplePerod does.
+        --      Balance sheet   = Asset / Liabilities / Owners Equity
+        --      Income statement = Revenue / Expense
+        ---------------------------------------------------------------------------
+        SELECT
+            @AssetClassId        = MAX(CASE WHEN UPPER(GLAccountClassName) = 'ASSET'         THEN GLAccountClassId END),
+            @LiabilityClassId    = MAX(CASE WHEN UPPER(GLAccountClassName) = 'LIABILITIES'   THEN GLAccountClassId END),
+            @OwnersEquityClassId = MAX(CASE WHEN UPPER(GLAccountClassName) = 'OWNERS EQUITY' THEN GLAccountClassId END),
+            @RevenueClassId      = MAX(CASE WHEN UPPER(GLAccountClassName) = 'REVENUE'       THEN GLAccountClassId END),
+            @ExpenseClassId      = MAX(CASE WHEN UPPER(GLAccountClassName) = 'EXPENSE'       THEN GLAccountClassId END)
+        FROM   dbo.GLAccountClass WITH (NOLOCK)
+        WHERE  MasterCompanyId      = @masterCompanyId
+          AND  ISNULL(IsDeleted, 0) = 0
+          AND  ISNULL(IsActive,  0) = 1;
 
+        SET @AssetClassId        = ISNULL(@AssetClassId,        -1);
+        SET @LiabilityClassId    = ISNULL(@LiabilityClassId,    -1);
+        SET @OwnersEquityClassId = ISNULL(@OwnersEquityClassId, -1);
+        SET @RevenueClassId      = ISNULL(@RevenueClassId,      -1);
+        SET @ExpenseClassId      = ISNULL(@ExpenseClassId,      -1);
+
+        -- Class of the requested account (single account per call).
+        SELECT @AccountClassId = GL.GLAccountTypeId
+        FROM   dbo.GLAccount GL WITH (NOLOCK)
+        WHERE  GL.GLAccountId     = @GlAccId
+          AND  GL.MasterCompanyId = @masterCompanyId;
+
+        SET @IsBalanceSheet    = CASE WHEN @AccountClassId IN (@AssetClassId, @LiabilityClassId, @OwnersEquityClassId) THEN 1 ELSE 0 END;
+        SET @IsIncomeStatement = CASE WHEN @AccountClassId IN (@RevenueClassId, @ExpenseClassId)                       THEN 1 ELSE 0 END;
+
+        ---------------------------------------------------------------------------
+        -- 3) Materialise the class-aware period window (period IDs, like the TB
+        --    report's #AllPeriodsForYTD for TargetPeriodId = @EndAccountingPeriodId):
+        --
+        --      Balance sheet  -> every period with ToDate <= End period ToDate
+        --                        (cumulative from the very beginning).
+        --      Income stmt    -> same, but restricted to the End period's FiscalYear
+        --                        (current-fiscal-year-to-date).
+        --      Anything else  -> full history (same fallback as the report).
+        --
+        --    @StartAccountingPeriodId is intentionally NOT used here: the report's
+        --    window depends only on the target period, so the drill-down must too.
+        ---------------------------------------------------------------------------
         INSERT INTO #AccPeriodTable (AccountingCalendarId, PeriodName, FromDate, ToDate)
         SELECT DISTINCT
-            AccountingCalendarId,
-            REPLACE(PeriodName, ' - ', ''),
-            MIN(FromDate),
-            MAX(ToDate)
+            AC.AccountingCalendarId,
+            REPLACE(AC.PeriodName, ' - ', ''),
+            AC.FromDate,
+            AC.ToDate
         FROM dbo.AccountingCalendar AC WITH (NOLOCK)
-        WHERE --PeriodName  = @PeriodName
-              AC.IsDeleted   = 0
+        WHERE AC.MasterCompanyId           = @masterCompanyId
+          AND AC.IsDeleted                 = 0
+          AND ISNULL(AC.IsAdjustPeriod, 0) = 0
           AND AC.LegalEntityId IN
               (
                   SELECT MSL.LegalEntityId
                   FROM   dbo.ManagementStructureLevel MSL WITH (NOLOCK)
                   WHERE  MSL.ID IN (SELECT Item FROM #L1)
               )
-		  AND CAST(AC.Fromdate AS DATE) >= CAST(@FromDate AS DATE)
-          AND CAST(AC.ToDate   AS DATE) <= CAST(@PeriodEndDate   AS DATE)
-          AND ISNULL(AC.IsAdjustPeriod, 0) = 0
-        GROUP BY AccountingCalendarId, REPLACE(PeriodName, ' - ', ''), [Period];
+          AND CAST(AC.ToDate AS DATE) <= CAST(@PeriodEndDate AS DATE)
+          -- Income statement accounts reset each fiscal year; balance sheet / other keep full history.
+          AND (@IsIncomeStatement = 0 OR AC.FiscalYear = @EndFiscalYear);
 
         ---------------------------------------------------------------------------
         -- Final Result Set
@@ -205,7 +274,7 @@ BEGIN
 			CBD.ReferenceId,
 			CBD.ReferenceModule,
 			CM.IsStandAloneCM,
-            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,            
+            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,
 			ISNULL(SUM(CBD.DebitAmount), 0)  - ISNULL(SUM(CBD.CreditAmount),  0)  AS Balance,
             BD.AccountingPeriod                         AS PeriodName,
             BD.JournalTypeNumber                        AS JournalNumber,
@@ -219,10 +288,10 @@ BEGIN
         INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD WITH (NOLOCK) ON MSD.ReferenceId                = CBD.CommonJournalBatchDetailId
                                                                                         AND MSD.ModuleId                  = @BatchMSModuleId
         INNER JOIN dbo.GLAccount                                       GL  WITH (NOLOCK) ON CBD.GlAccountId                = GL.GLAccountId
-		LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CMBD.JournalBatchDetailId 		
+		LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CMBD.JournalBatchDetailId
 		LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
 		(
-			SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) 
+			SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK)
 			WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
 		) AND CMBD.ModuleId = @CustomerRefundModuleId
 		LEFT JOIN  dbo.CreditMemo CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
@@ -234,11 +303,11 @@ BEGIN
           AND BD.IsDeleted                       = 0
           AND B.IsDeleted                        = 0
           AND ISNULL(CBD.IsVersionIncrease, 0)   = 0
-		  AND (ISNULL(@JournalNumber,'') ='' OR BD.JournalTypeNumber  LIKE '%' + @JournalNumber+'%') 
+		  AND (ISNULL(@JournalNumber,'') ='' OR BD.JournalTypeNumber  LIKE '%' + @JournalNumber+'%')
 		  AND (ISNULL(@JournalTypeName,'') ='' OR CBD.JournalTypeName LIKE '%' + @JournalTypeName+'%')
-		  AND (ISNULL(@GLAccount,'') ='' OR (UPPER(GL.AccountCode) + '-' + UPPER(GL.AccountName)) LIKE '%' + @GLAccount+'%') 
-		  AND (ISNULL(@PeriodNames,'') ='' OR BD.AccountingPeriod LIKE '%' + @PeriodNames+'%') 
-		  AND (ISNULL(@ReferenceNumber,'') ='' OR CBD.ReferenceNumber LIKE '%' + @ReferenceNumber+'%') 
+		  AND (ISNULL(@GLAccount,'') ='' OR (UPPER(GL.AccountCode) + '-' + UPPER(GL.AccountName)) LIKE '%' + @GLAccount+'%')
+		  AND (ISNULL(@PeriodNames,'') ='' OR BD.AccountingPeriod LIKE '%' + @PeriodNames+'%')
+		  AND (ISNULL(@ReferenceNumber,'') ='' OR CBD.ReferenceNumber LIKE '%' + @ReferenceNumber+'%')
           AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
           AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
           AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -265,13 +334,13 @@ BEGIN
 				CAST(ISNULL(@Balance,'') AS VARCHAR) = ''
 				OR CAST(ISNULL(SUM(CBD.DebitAmount), 0) - ISNULL(SUM(CBD.CreditAmount), 0) AS VARCHAR) LIKE '%' + CAST(ISNULL(@Balance,'') AS VARCHAR) + '%'
 			)
-		
-		SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);			   
 
-		SELECT *, @TotalRecordsCount as NumberOfItems  
-		FROM #TempResults	
+		SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);
+
+		SELECT *, @TotalRecordsCount as NumberOfItems
+		FROM #TempResults
 		ORDER BY JournalNumber DESC
-		OFFSET @RecordFrom ROWS 
+		OFFSET @RecordFrom ROWS
 		FETCH NEXT @PageSize ROWS ONLY
 
     END

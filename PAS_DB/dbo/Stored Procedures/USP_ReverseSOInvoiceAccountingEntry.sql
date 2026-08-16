@@ -37,6 +37,15 @@
 										Batch Ref is now generated the same dynamic way normal posting does (JournalTypeCode
 										+ running number, e.g. 'SOI 1637'); the "(Reverse)" label is added client-side from
 										BatchDetails.IsReversedJE instead.
+    5    13-Aug-2026  Rajesh Gami		[PN-17635] Fixed two more issues found on the Batch Detail screen for a reversal batch:
+										(1) JE Number was just copying the ORIGINAL entry's JournalTypeNumber verbatim onto
+										every reversal line, so the reversal showed the exact same JE Number as the invoice
+										it was reversing - now generates a genuinely new one via the same CodeTypeId=74/
+										CodePrefixes/udfGenerateCodeNumber mechanism USP_BatchTriggerBasedonSOInvoiceNew uses
+										for normal posting. (2) AccountingPeriod/AccountingPeriodId were never set on the
+										reversal BatchHeader at all (only on the line-item BatchDetails rows), so the Batch
+										Detail screen showed Accounting Period as blank/'--Select--' - now captured once from
+										the original entries and included on the BatchHeader insert.
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -142,8 +151,35 @@ BEGIN
 		DECLARE @JournalTypeId BIGINT, @JournalTypeName VARCHAR(200), @Module VARCHAR(50), @HeaderCustomerTypeId INT
 		SELECT TOP 1 @JournalTypeId = [JournalTypeId], @JournalTypeName = [JournalTypeName], @Module = [Module], @HeaderCustomerTypeId = [HeaderCustomerTypeId] FROM #OriginalEntries
 
+		-- [PN-17635] Accounting Period was never being set on the reversal BatchHeader (only on the line-item
+		-- BatchDetails rows), so the Batch Detail screen showed it blank ('--Select--') for the reversal batch.
+		-- Capture it once here (same accounting period as the original transaction) and include it on the
+		-- BatchHeader insert below.
+		DECLARE @HeaderAccountingPeriodId BIGINT, @HeaderAccountingPeriod VARCHAR(100)
+		SELECT TOP 1 @HeaderAccountingPeriodId = [AccountingPeriodId], @HeaderAccountingPeriod = [AccountingPeriod] FROM #OriginalEntries
+
 		DECLARE @StatusId BIGINT, @StatusName VARCHAR(200)
 		SELECT @StatusId = [Id], @StatusName = [Name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE [Name] = 'Open'
+
+		-- [PN-17635] JE Number for the reversal batch used to just copy the ORIGINAL entry's JournalTypeNumber
+		-- verbatim (via the cursor below), so the reversal showed the exact same JE Number as the invoice it was
+		-- reversing. Generate a genuinely new one here, using the same CodeTypeId/CodePrefixes/
+		-- udfGenerateCodeNumber mechanism USP_BatchTriggerBasedonSOInvoiceNew uses for normal posting - one new
+		-- number for the whole reversal event, applied to every line inserted below.
+		DECLARE @JECodeTypeId BIGINT = 74
+		DECLARE @JECurrentNo BIGINT, @NewJournalTypeNumber VARCHAR(50)
+		SELECT @JECurrentNo = CASE WHEN CP.[CurrentNummber] > 0 THEN CAST(CP.[CurrentNummber] AS BIGINT) + 1 ELSE CAST(CP.[StartsFrom] AS BIGINT) + 1 END
+		FROM [dbo].[CodePrefixes] CP WITH(NOLOCK)
+		INNER JOIN [dbo].[CodeTypes] CT WITH(NOLOCK) ON CP.[CodeTypeId] = CT.[CodeTypeId]
+		WHERE CT.[CodeTypeId] = @JECodeTypeId AND CP.[MasterCompanyId] = @MasterCompanyId AND CP.[IsActive] = 1 AND CP.[IsDeleted] = 0
+
+		IF (@JECurrentNo IS NOT NULL)
+		BEGIN
+			SELECT @NewJournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@JECurrentNo,
+				(SELECT CP.[CodePrefix] FROM [dbo].[CodePrefixes] CP WITH(NOLOCK) WHERE CP.[CodeTypeId] = @JECodeTypeId AND CP.[MasterCompanyId] = @MasterCompanyId AND CP.[IsActive] = 1 AND CP.[IsDeleted] = 0),
+				(SELECT CP.[CodeSufix] FROM [dbo].[CodePrefixes] CP WITH(NOLOCK) WHERE CP.[CodeTypeId] = @JECodeTypeId AND CP.[MasterCompanyId] = @MasterCompanyId AND CP.[IsActive] = 1 AND CP.[IsDeleted] = 0)))
+			UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @JECurrentNo WHERE [CodeTypeId] = @JECodeTypeId AND [MasterCompanyId] = @MasterCompanyId
+		END
 
 		-- Batch Ref used to be generated for these reversal batches as a hardcoded literal,
 		-- '<JournalTypeName> (REVERSED)' (e.g. 'SO Invoice (REVERSED)') - this bled through into
@@ -181,9 +217,9 @@ BEGIN
 		DECLARE @NewJournalBatchHeaderId BIGINT
 
 		INSERT INTO [dbo].[BatchHeader]
-			([BatchName],[CurrentNumber],[EntryDate],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
+			([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],[AccountingPeriodId],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
 		VALUES
-			(@BatchName,@CurrentNumber,GETUTCDATE(),@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@Module,@HeaderCustomerTypeId)
+			(@BatchName,@CurrentNumber,GETUTCDATE(),@HeaderAccountingPeriod,@HeaderAccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@Module,@HeaderCustomerTypeId)
 
 		SET @NewJournalBatchHeaderId = SCOPE_IDENTITY()
 
@@ -228,7 +264,7 @@ BEGIN
 				 ISNULL(@CreditAmount,0),
 				 ISNULL(@DebitAmount,0),
 				 @ManagementStructureId,@ModuleName,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@JournalTypeNumber,@CurrentNumber,1,@AccountingPeriodId,@AccountingPeriod,1)
+				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@NewJournalTypeNumber,@CurrentNumber,1,@AccountingPeriodId,@AccountingPeriod,1)
 
 			SET @NewJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -242,7 +278,7 @@ BEGIN
 				 ISNULL(@CreditAmount,0),
 				 ISNULL(@DebitAmount,0),
 				 @ManagementStructureId,@ModuleName,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@JournalTypeNumber,@LotId,@LotNumber,@ReferenceNumber,@ReferenceName,@LocalCurrency,@FXRate,@ForeignCurrency,@ReferenceId,@ReferenceModule)
+				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@NewJournalTypeNumber,@LotId,@LotNumber,@ReferenceNumber,@ReferenceName,@LocalCurrency,@FXRate,@ForeignCurrency,@ReferenceId,@ReferenceModule)
 
 			SET @NewCommonJournalBatchDetailId = SCOPE_IDENTITY()
 

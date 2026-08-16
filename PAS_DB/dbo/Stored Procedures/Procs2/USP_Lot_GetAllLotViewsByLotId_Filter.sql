@@ -39,10 +39,11 @@
 														    the LotManagementStructureDetails join calls the multi-statement SplitString() function, so the
 														    entire join was silently running TWICE per call. Materialized Result into a #Result temp table
 														    (built once, with a clustered index on StockLineId+CreatedDate) so it's computed once and read twice.
+	20   14-Aug-2026   RAJESH GAMI      PN-17673 : REVENUE-MARGIN Added if IsRevenue & IsMargin selected in the Consingment Setup (ConsignMent Tab)
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
+CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -2096,7 +2097,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName
-			    ,(CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
+			    ,(CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId

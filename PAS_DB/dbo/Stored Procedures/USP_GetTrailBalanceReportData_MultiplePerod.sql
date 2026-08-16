@@ -34,10 +34,20 @@
                                       end date. #AccPAll now filters purely on ToDate with no
                                       FromDate lower bound so cross-fiscal-year history is
                                       always included.
+    15   08/13/2026   -               Class-aware balance window:
+                                      * Balance sheet accounts (Asset, Liabilities, Owners
+                                        Equity) keep the from-the-beginning cumulative window.
+                                      * Income statement accounts (Revenue, Expense) now
+                                        accumulate from the CURRENT FISCAL YEAR start only,
+                                        through each selected period's end date.
+                                      Implemented via new #AllPeriodsForYTD.IsCurrentFY flag
+                                      (AC.FiscalYear = target period FiscalYear) and a
+                                      class-based period filter in the YTD and Monthly blocks.
+                                      Statistical accounts remain excluded as before.
  **************************************************************
  -- Pivoted multi-period example (Mar-2026 to May-2026):
  exec dbo.USP_GetTrailBalanceReportData_MultiplePerod @masterCompanyId=21, @managementStructureId=41,
-      @StartAccountingPeriodId=322, @EndAccountingPeriodId=325,
+      @StartAccountingPeriodId=326, @EndAccountingPeriodId=330,
       @IsSupressZero=1, @IsShortMS=1, @strFilter=N'70!71'
 
  exec dbo.USP_GetTrailBalanceReportDataAll @masterCompanyId=21, @managementStructureId=41,
@@ -79,6 +89,15 @@ BEGIN
         DECLARE @PostedBatchStatusId        BIGINT;
         DECLARE @StatisticalGLAccountTypeId BIGINT;
         DECLARE @PeriodReportLayOutId       BIGINT;
+
+        -- PR15: GL account class IDs used to decide the balance window per account.
+        --       Looked up by name so they survive across companies (class IDs are
+        --       MasterCompany-scoped). Default -1 so IN / NOT IN never see a NULL.
+        DECLARE @AssetClassId        BIGINT;
+        DECLARE @LiabilityClassId    BIGINT;
+        DECLARE @OwnersEquityClassId BIGINT;
+        DECLARE @RevenueClassId      BIGINT;
+        DECLARE @ExpenseClassId      BIGINT;
 
         ---------------------------------------------------------------------------
         -- Lookup: Period Report Layout ID
@@ -155,6 +174,29 @@ BEGIN
           AND  ISNULL(IsActive,  0)      = 1;
 
         ---------------------------------------------------------------------------
+        -- PR15: Resolve balance-sheet vs income-statement class IDs (by name).
+        --       Balance sheet  = Asset, Liabilities, Owners Equity
+        --       Income stmt    = Revenue, Expense
+        ---------------------------------------------------------------------------
+        SELECT
+            @AssetClassId        = MAX(CASE WHEN UPPER(GLAccountClassName) = 'ASSET'         THEN GLAccountClassId END),
+            @LiabilityClassId    = MAX(CASE WHEN UPPER(GLAccountClassName) = 'LIABILITIES'   THEN GLAccountClassId END),
+            @OwnersEquityClassId = MAX(CASE WHEN UPPER(GLAccountClassName) = 'OWNERS EQUITY' THEN GLAccountClassId END),
+            @RevenueClassId      = MAX(CASE WHEN UPPER(GLAccountClassName) = 'REVENUE'       THEN GLAccountClassId END),
+            @ExpenseClassId      = MAX(CASE WHEN UPPER(GLAccountClassName) = 'EXPENSE'       THEN GLAccountClassId END)
+        FROM   dbo.GLAccountClass WITH (NOLOCK)
+        WHERE  MasterCompanyId      = @masterCompanyId
+          AND  ISNULL(IsDeleted, 0) = 0
+          AND  ISNULL(IsActive,  0) = 1;
+
+        -- Guard against NULLs so the IN / NOT IN predicates stay deterministic.
+        SET @AssetClassId        = ISNULL(@AssetClassId,        -1);
+        SET @LiabilityClassId    = ISNULL(@LiabilityClassId,    -1);
+        SET @OwnersEquityClassId = ISNULL(@OwnersEquityClassId, -1);
+        SET @RevenueClassId      = ISNULL(@RevenueClassId,      -1);
+        SET @ExpenseClassId      = ISNULL(@ExpenseClassId,      -1);
+
+        ---------------------------------------------------------------------------
         -- Legal entities covered by the MS filter (used in every period loop)
         ---------------------------------------------------------------------------
         IF OBJECT_ID(N'tempdb..#FilteredLegalEntities') IS NOT NULL DROP TABLE #FilteredLegalEntities;
@@ -201,28 +243,34 @@ BEGIN
         -- Pre-build the COMPLETE accounting period ID list for each selected
         -- period's YTD window.
         --
-        -- KEY FIX: No lower-date filter at all — we include every calendar
-        -- period from the dawn of time up to each period's ToDate.
-        -- This means Jan-2020 transactions ARE included when running Mar-2026.
+        -- Balance-sheet window: No lower-date filter at all — include every
+        -- calendar period up to each period's ToDate (Jan-2020 → selected end).
         --
-        -- One row per (AccountingCalendarId, TargetPeriodId) — the join column
-        -- TargetPeriodId lets the YTD query filter by period using a simple
-        -- IN (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId=@CurPeriodId)
+        -- PR15: IsCurrentFY marks the periods that fall in the SAME fiscal year
+        -- as the selected/target period. Income statement accounts use only the
+        -- IsCurrentFY = 1 rows so they reset each fiscal year; balance-sheet
+        -- accounts ignore the flag and use the whole history.
+        --
+        -- One row per (AccountingCalendarId, TargetPeriodId) — TargetPeriodId
+        -- lets the aggregation filter by period with a simple IN (...) lookup.
         ---------------------------------------------------------------------------
         IF OBJECT_ID(N'tempdb..#AllPeriodsForYTD') IS NOT NULL DROP TABLE #AllPeriodsForYTD;
         CREATE TABLE #AllPeriodsForYTD
         (
             TargetPeriodId  BIGINT,   -- the selected period this row belongs to
-            AccountcalID    BIGINT    -- calendar period to include in that YTD window
+            AccountcalID    BIGINT,   -- calendar period to include in that YTD window
+            IsCurrentFY     BIT       -- PR15: 1 = same fiscal year as the target period
         );
 
         -- For every selected period, collect ALL calendar periods whose ToDate
         -- falls on or before that selected period's PeriodEndDate.
         -- No FromDate restriction — cross-fiscal-year history included automatically.
-        INSERT INTO #AllPeriodsForYTD (TargetPeriodId, AccountcalID)
+        -- IsCurrentFY flags those in the target period's fiscal year (for P&L accounts).
+        INSERT INTO #AllPeriodsForYTD (TargetPeriodId, AccountcalID, IsCurrentFY)
         SELECT DISTINCT
             SP.AccountingPeriodId   AS TargetPeriodId,
-            AC.AccountingCalendarId AS AccountcalID
+            AC.AccountingCalendarId AS AccountcalID,
+            CASE WHEN AC.FiscalYear = SP.FiscalYear THEN 1 ELSE 0 END AS IsCurrentFY
         FROM #SelectedPeriods SP
         JOIN dbo.AccountingCalendar AC WITH (NOLOCK)
             ON  AC.MasterCompanyId             = @masterCompanyId
@@ -354,9 +402,12 @@ BEGIN
 
             -----------------------------------------------------------------------
             -- YTD aggregation
-            -- Uses #AllPeriodsForYTD filtered to this period's TargetPeriodId.
-            -- This includes ALL calendar periods from Jan-2020 (or whenever the
-            -- first period exists) through @CurPeriodEndDate — no fiscal boundary.
+            -- PR15: the period window now depends on the account's class:
+            --   * Balance sheet (Asset/Liabilities/Owners Equity) -> ALL history
+            --     up to this period (every #AllPeriodsForYTD row for this target).
+            --   * Income statement (Revenue/Expense) -> CURRENT FISCAL YEAR only
+            --     (IsCurrentFY = 1 rows only).
+            --   * Any other/unclassified class -> defaults to ALL history.
             -----------------------------------------------------------------------
             SELECT
                 CB.GlAccountId,
@@ -406,14 +457,31 @@ BEGIN
               AND ISNULL(BD.IsDeleted,         0) = 0
               AND ISNULL(B.IsDeleted,          0) = 0
               AND ISNULL(CB.IsVersionIncrease, 0) = 0
-              AND CB.MasterCompanyId             = @masterCompanyId
-              -- <<< KEY FIX: use pre-built YTD period list — includes all history
-              AND BD.AccountingPeriodId IN
+              AND CB.MasterCompanyId             = @masterCompanyId			  
+              -- <<< PR15: class-aware period window
+              AND
+              (
+                  -- Balance sheet accounts: cumulative from the very beginning.
                   (
-                      SELECT AccountcalID
-                      FROM   #AllPeriodsForYTD
-                      WHERE  TargetPeriodId = @CurPeriodId
+                      GL.GLAccountTypeId IN (@AssetClassId, @LiabilityClassId, @OwnersEquityClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId)
                   )
+                  OR
+                  -- Income statement accounts: current fiscal year only.
+                  (
+                      GL.GLAccountTypeId IN (@RevenueClassId, @ExpenseClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId AND IsCurrentFY = 1)
+                  )
+                  OR
+                  -- Any other/unclassified class: fall back to full-history behavior.
+                  (
+                      GL.GLAccountTypeId NOT IN (@AssetClassId, @LiabilityClassId, @OwnersEquityClassId, @RevenueClassId, @ExpenseClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId)
+                  )
+              )
               AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
               AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
               AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -434,8 +502,11 @@ BEGIN
                 GC.SequenceNumber;
 
             -----------------------------------------------------------------------
-            -- Monthly aggregation — current period only
-            -- Filters strictly to @CurPeriodId so "this month" column is exact.
+            -- Monthly aggregation
+            -- PR15: mirrors the same class-aware window as the YTD block so the
+            -- per-period display column is consistent:
+            --   * Balance sheet -> from beginning through this period.
+            --   * Income stmt   -> current fiscal year through this period.
             -----------------------------------------------------------------------
             SELECT
                 CB.GlAccountId,
@@ -462,15 +533,31 @@ BEGIN
               AND ISNULL(BD.IsDeleted,         0) = 0
               AND ISNULL(B.IsDeleted,          0) = 0
               AND ISNULL(CB.IsVersionIncrease, 0) = 0
-              AND CB.MasterCompanyId             = @masterCompanyId
-              --AND BD.AccountingPeriodId          = @CurPeriodId   -- this month only
-			  AND BD.AccountingPeriodId IN
+              AND CB.MasterCompanyId             = @masterCompanyId			  
+              -- <<< PR15: class-aware period window (same rules as YTD block)
+              AND
+              (
+                  -- Balance sheet accounts: cumulative from the very beginning.
                   (
-                      SELECT AccountcalID
-                      FROM   #AllPeriodsForYTD
-                      WHERE  TargetPeriodId = @CurPeriodId
+                      GL.GLAccountTypeId IN (@AssetClassId, @LiabilityClassId, @OwnersEquityClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId)
                   )
-
+                  OR
+                  -- Income statement accounts: current fiscal year only.
+                  (
+                      GL.GLAccountTypeId IN (@RevenueClassId, @ExpenseClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId AND IsCurrentFY = 1)
+                  )
+                  OR
+                  -- Any other/unclassified class: fall back to full-history behavior.
+                  (
+                      GL.GLAccountTypeId NOT IN (@AssetClassId, @LiabilityClassId, @OwnersEquityClassId, @RevenueClassId, @ExpenseClassId)
+                      AND BD.AccountingPeriodId IN
+                          (SELECT AccountcalID FROM #AllPeriodsForYTD WHERE TargetPeriodId = @CurPeriodId)
+                  )
+              )
               AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
               AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
               AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))

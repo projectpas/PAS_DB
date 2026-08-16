@@ -44,8 +44,9 @@
 	32   24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (2) on the Receiving-PO MPN/PiecePN lookups to allow Non-Stock items in Reconciliation Batch posting
 	33   06/Aug/2026  Priyansh Patel	[PN-16941] Added Order by to get the type from ReceivingReconciliationDetails
 	34	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	35   07/08/2026   Moin Bloch          Fix For Receiving Reconciliation Entry
 
-**************************************************************/  
+**************************************************************/
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
 @MasterCompanyId int
@@ -273,10 +274,10 @@ BEGIN
 			SELECT @CurrentManagementStructureId = ManagementStructureId, @UpdateBy = CONCAT(TRIM(FirstName),' ',TRIM(LastName)) FROM dbo.Employee 
 			WITH(NOLOCK)  WHERE EmployeeId = @EmployeeId and MasterCompanyId=@MasterCompanyId
 
-			SET @DisCode = (select top 1 CASE WHEN [Type] =1 THEN 'ReconciliationPO'			    
+			SET @DisCode = (select top 1 CASE WHEN [Type] =1 THEN 'ReconciliationPO'
 				WHEN [Type] = 2 THEN 'ReconciliationRO' ELSE '' END
-			FROM DBO.ReceivingReconciliationDetails WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
-			ORDER BY CASE WHEN [Type] IN (1,2) THEN 0 ELSE 1 END) 
+			FROM DBO.ReceivingReconciliationDetails WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId AND ISNULL([IsManual],0) = 0
+			ORDER BY CASE WHEN [Type] IN (1,2) THEN 0 ELSE 1 END)
 
 			SELECT @TransactionDate = [InvoiceDate],
 			       @ReceivingReconciliationNumber = [ReceivingReconciliationNumber],

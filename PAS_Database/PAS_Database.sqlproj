@@ -1430,6 +1430,7 @@
     <Build Include="dbo\Views\vw_managementstructurelevel.sql" />
     <Build Include="dbo\Views\vw_location.sql" />
     <Build Include="dbo\Views\vw_ledger.sql" />
+    <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Views\vw_itemmaster_list_main.sql" />
     <Build Include="dbo\Views\vw_ItemClassification.sql" />
     <Build Include="dbo\Views\vw_EmailTemplate.sql" />

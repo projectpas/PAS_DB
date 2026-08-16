@@ -33,6 +33,7 @@
 	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	22    16/July/2026			 RAJESH GAMI						[PN-17271] - NONSTOCK accounting branch now reads DBO.Stockline (IsNonStock=1) instead of legacy NonStockInventory table.
 	23	 24/06/2026	  Moin Bloch    	   Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	24	 23/Aug/2026	  Moin Bloch   	           [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings)
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -146,6 +147,9 @@ BEGIN
 		DECLARE @AssetStockType VARCHAR(256)= 0;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBypassAccounting BIT = 0;
+		DECLARE @VendorAffiliateTypeId INT = 3  -- Affiliate
+		DECLARE @VendorTypeId INT = 0
+		DECLARE @VendorLegalEntityId BIGINT = 0
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @IsAutoPostForAll INT = 1;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
@@ -378,18 +382,18 @@ BEGIN
 							IF NOT EXISTS(SELECT 1 FROM [dbo].[StocklineBatchDetails] SLBD WITH(NOLOCK) WHERE SLBD.[PoId] = @PurchaseOrderId AND SLBD.[StocklineId] = @StocklineId)
 							BEGIN
 
-							SELECT @VendorName = VendorName FROM dbo.Vendor V WITH(NOLOCK) WHERE VendorId= @VendorId;
+							SELECT @VendorName = VendorName, @VendorTypeId = [VendorTypeId],@VendorLegalEntityId = V.[LegalEntityId] FROM [dbo].[Vendor] V WITH(NOLOCK) WHERE [VendorId] = @VendorId;
 
-							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
+							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber,
 									@LocalCurrencyCode = ISNULL(CF.Code, ''),
 									@ForeignCurrencyCode = ISNULL(CL.Code, ''),
 									@FXRate = ISNULL(PO.ForeignExchangeRate, @FXRate)
-							FROM [DBO].PurchaseOrder PO WITH(NOLOCK)
+							FROM [DBO].[PurchaseOrder] PO WITH(NOLOCK)
 							LEFT JOIN [DBO].[Currency] CL WITH(NOLOCK) ON CL.CurrencyId = PO.ReportCurrencyId
 							LEFT JOIN [DBO].[Currency] CF WITH(NOLOCK) ON CF.CurrencyId = PO.FunctionalCurrencyId
 							WHERE PurchaseOrderId= @PurchaseOrderId;
-							
-							SELECT @RepairOrderNumber=RepairOrderNumber FROM RepairOrder WITH(NOLOCK)  WHERE RepairOrderId= @RepairOrderId;
+
+							SELECT @RepairOrderNumber=RepairOrderNumber FROM dbo.RepairOrder WITH(NOLOCK)  WHERE RepairOrderId= @RepairOrderId;
 
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
@@ -405,34 +409,94 @@ BEGIN
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
-							SELECT TOP 1 @DistributionSetupId=ID,
-							             @DistributionName=Name,
-										 @JournalTypeId =JournalTypeId,
-										 @GlAccountId=GlAccountId,
-							             @GlAccountNumber=GlAccountNumber,
-										 @GlAccountName=GlAccountName,
-										 @CrDrType =CRDRType,
-										 @IsAutoPost = ISNULL(IsAutoPost,0),
-										 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-							        FROM dbo.DistributionSetup WITH(NOLOCK)  
-									WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV') 
-							        AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
-							
-							--GET STOCKLINE GLACCOUNT.
-							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
-						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
+							 IF(@VendorTypeId = @VendorAffiliateTypeId)
+							 BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @STKGlAccountId=GlAccountId,
+											 @STKGlAccountNumber=GlAccountNumber,
+											 @STKGlAccountName=GlAccountName,
+											 @CrDrType =CRDRType,
+											 @IsAutoPost = ISNULL(IsAutoPost,0),
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+										FROM dbo.DistributionSetup WITH(NOLOCK)
+										WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY')
+										AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
 
-							--GET GL Accounting Data from GLAccout based on stockline
-							SELECT @GlAccountId = [GLAccountId],
-								   @GlAccountNumber = [AccountCode],
-								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @InventoryGLAccId
-							AND [MasterCompanyId] = @MasterCompanyId;
+									IF(@VendorLegalEntityId > 0)
+									BEGIN
+									  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
+										FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
+										INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
+										INNER JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON MSL.[LegalEntityId] = LE.[LegalEntityId]
+										WHERE ess.[IsActive] = 1
+										  AND ess.[IsDeleted] = 0
+										  AND MSL.[LegalEntityId] = @VendorLegalEntityId AND MSL.[MasterCompanyId] = @MasterCompanyId
 
-							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
+										IF(@ManagementStructureId > 0)
+										BEGIN
+											IF OBJECT_ID(N'tempdb..#tmpMSDetails') IS NOT NULL
+												DROP TABLE #tmpMSDetails;
+
+											CREATE TABLE #tmpMSDetails
+											(
+												[EntityStructureId] BIGINT,
+												[MasterCompanyId] INT,
+												[Level1Id] BIGINT, [Level1Name] VARCHAR(200),
+												[Level2Id] BIGINT, [Level2Name] VARCHAR(200),
+												[Level3Id] BIGINT, [Level3Name] VARCHAR(200),
+												[Level4Id] BIGINT, [Level4Name] VARCHAR(200),
+												[Level5Id] BIGINT, [Level5Name] VARCHAR(200),
+												[Level6Id] BIGINT, [Level6Name] VARCHAR(200),
+												[Level7Id] BIGINT, [Level7Name] VARCHAR(200),
+												[Level8Id] BIGINT, [Level8Name] VARCHAR(200),
+												[Level9Id] BIGINT, [Level9Name] VARCHAR(200),
+												[Level10Id] BIGINT, [Level10Name] VARCHAR(200),
+												[AllMSlevels] NVARCHAR(MAX),
+												[LastMSName] VARCHAR(200)
+											);
+
+											INSERT INTO #tmpMSDetails
+											EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
+
+											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetails;
+
+											DROP TABLE #tmpMSDetails;
+										END
+								  END
+							END
+							ELSE
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @GlAccountId=GlAccountId,
+											 @GlAccountNumber=GlAccountNumber,
+											 @GlAccountName=GlAccountName,
+											 @CrDrType =CRDRType,
+											 @IsAutoPost = ISNULL(IsAutoPost,0),
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+										FROM dbo.DistributionSetup WITH(NOLOCK)
+										WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV')
+										AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
+
+								--GET STOCKLINE GLACCOUNT.
+								SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+								FROM [dbo].[Stockline] SL WITH(NOLOCK)
+								WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
+
+								--GET GL Accounting Data from GLAccout based on stockline
+								SELECT @GlAccountId = [GLAccountId],
+									   @GlAccountNumber = [AccountCode],
+									   @GlAccountName = [AccountName]
+								FROM [dbo].[GLAccount] WITH(NOLOCK)
+								WHERE [GLAccountId] = @InventoryGLAccId
+								AND [MasterCompanyId] = @MasterCompanyId;
+
+								SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
+							END
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -470,10 +534,26 @@ BEGIN
 
 								END
 								-----Goods Received Not Invoiced (GRNI)--------
-								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-								@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
-								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOGRNI')
-								AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								IF(@VendorTypeId = @VendorAffiliateTypeId)
+								BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,
+												 @DistributionName=Name,
+												 @JournalTypeId =JournalTypeId,
+												 @GlAccountId=GlAccountId,
+												 @GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+											FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES')
+											 AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
+								ELSE
+								BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,
+												 @DistributionName=Name,
+												 @JournalTypeId =JournalTypeId,
+												 @GlAccountId=GlAccountId,
+												 @GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+											FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOGRNI')
+											 AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
 
 								IF(@IsBypassAccounting = 0)
 								BEGIN
@@ -515,9 +595,10 @@ BEGIN
 							SELECT @VendorId=ST.VendorId,@ReferenceId=ST.StockLineId,@PurchaseOrderId=ST.PurchaseOrderId,@RepairOrderId=ST.RepairOrderId,@StocklineNumber=ST.StockLineNumber
 							,@SiteId=ST.[SiteId],@Site=ST.[Site],@WarehouseId=ST.[WarehouseId],@Warehouse=ST.[Warehouse],@LocationId=ST.[LocationId],@Location=ST.[Location],@BinId=ST.[BinId],@Bin=ST.[Bin],@ShelfId=ST.[ShelfId],@Shelf=ST.[Shelf]
 							FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
-							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
-							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
+							SELECT @VendorName = [VendorName], @VendorTypeId = [VendorTypeId],@VendorLegalEntityId = [LegalEntityId] FROM [dbo].[Vendor] WITH(NOLOCK)  WHERE VendorId= @VendorId;
+
+							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber,
 									@LocalCurrencyCode = ISNULL(CF.Code, ''),
 									@ForeignCurrencyCode = ISNULL(CL.Code, ''),
 									@FXRate = ISNULL(PO.ForeignExchangeRate, @FXRate)
@@ -526,48 +607,116 @@ BEGIN
 							LEFT JOIN [DBO].[Currency] CF WITH(NOLOCK) ON CF.CurrencyId = PO.FunctionalCurrencyId
 							WHERE PurchaseOrderId= @PurchaseOrderId;
 
-							SELECT @RepairOrderNumber=RepairOrderNumber FROM RepairOrder WITH(NOLOCK)  WHERE RepairOrderId= @RepairOrderId;
-								
+							SELECT @RepairOrderNumber=RepairOrderNumber FROM [dbo].[RepairOrder] WITH(NOLOCK)  WHERE RepairOrderId= @RepairOrderId;
+
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
 
 							SELECT @WorkOrderNumber=ST.StockLineNumber,@partId=ST.PurchaseOrderPartRecordId,@ItemMasterId=ST.ItemMasterId,@ManagementStructureId=ST.ManagementStructureId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1;
-							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							
+							SELECT @MPNName = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
+
 							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
-							SET @ReferencePartId=@partId	
+							SET @ReferencePartId=@partId
 
 
 							SELECT @PieceItemmasterId=ST.ItemMasterId FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[StockLineId]=@StocklineId AND ISNULL(ST.IsNonStock,0) = 1
-							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
-							
+
 							-----NonStock - Inventory--------
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-							@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPONONSTKINV')
-							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
+							IF(@VendorTypeId = @VendorAffiliateTypeId)
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @STKGlAccountId=GlAccountId,
+											 @STKGlAccountNumber=GlAccountNumber,
+											 @STKGlAccountName=GlAccountName,
+											 @CrDrType=CRDRType,
+											 @IsAutoPost = ISNULL(IsAutoPost,0),
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)
+									WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY')
+									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
 
-							--GET STOCKLINE GLACCOUNT.
-							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
-						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
+								IF(@VendorLegalEntityId > 0)
+								BEGIN
+								  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
+									FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
+									INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
+									INNER JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON MSL.[LegalEntityId] = LE.[LegalEntityId]
+									WHERE ess.[IsActive] = 1
+									  AND ess.[IsDeleted] = 0
+									  AND MSL.[LegalEntityId] = @VendorLegalEntityId AND MSL.[MasterCompanyId] = @MasterCompanyId
 
-							--GET GL Accounting Data from GLAccout based on stockline
-							SELECT @GlAccountId = [GLAccountId],
-								   @GlAccountNumber = [AccountCode],
-								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @InventoryGLAccId
-							AND [MasterCompanyId] = @MasterCompanyId;
+									IF(@ManagementStructureId > 0)
+									BEGIN
+										IF OBJECT_ID(N'tempdb..#tmpMSDetailsNONSTOCK') IS NOT NULL
+											DROP TABLE #tmpMSDetailsNONSTOCK;
 
-							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1
+										CREATE TABLE #tmpMSDetailsNONSTOCK
+										(
+											[EntityStructureId] BIGINT,
+											[MasterCompanyId] INT,
+											[Level1Id] BIGINT, [Level1Name] VARCHAR(200),
+											[Level2Id] BIGINT, [Level2Name] VARCHAR(200),
+											[Level3Id] BIGINT, [Level3Name] VARCHAR(200),
+											[Level4Id] BIGINT, [Level4Name] VARCHAR(200),
+											[Level5Id] BIGINT, [Level5Name] VARCHAR(200),
+											[Level6Id] BIGINT, [Level6Name] VARCHAR(200),
+											[Level7Id] BIGINT, [Level7Name] VARCHAR(200),
+											[Level8Id] BIGINT, [Level8Name] VARCHAR(200),
+											[Level9Id] BIGINT, [Level9Name] VARCHAR(200),
+											[Level10Id] BIGINT, [Level10Name] VARCHAR(200),
+											[AllMSlevels] NVARCHAR(MAX),
+											[LastMSName] VARCHAR(200)
+										);
+
+										INSERT INTO #tmpMSDetailsNONSTOCK
+										EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
+
+										SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetailsNONSTOCK
+
+										DROP TABLE #tmpMSDetailsNONSTOCK;
+									END
+							  END
+							END
+							ELSE
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @GlAccountId=GlAccountId,
+											 @GlAccountNumber=GlAccountNumber,
+											 @GlAccountName=GlAccountName,
+											 @CrDrType=CRDRType,
+											 @IsAutoPost = ISNULL(IsAutoPost,0),
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)
+									WHERE UPPER(DistributionSetupCode) =UPPER('RPONONSTKINV')
+									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
+
+								--GET STOCKLINE GLACCOUNT.
+								SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+								FROM [dbo].[Stockline] SL WITH(NOLOCK)
+								WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
+
+								--GET GL Accounting Data from GLAccout based on stockline
+								SELECT @GlAccountId = [GLAccountId],
+									   @GlAccountNumber = [AccountCode],
+									   @GlAccountName = [AccountName]
+								FROM [dbo].[GLAccount] WITH(NOLOCK)
+								WHERE [GLAccountId] = @InventoryGLAccId
+								AND [MasterCompanyId] = @MasterCompanyId;
+
+								SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
+								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1
+							END
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -605,10 +754,20 @@ BEGIN
 
 								END
 								-----Goods Received Not Invoiced (GRNI)--------
-								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-								@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)  
-								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOGRNI') AND 
-								DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								IF(@VendorTypeId = @VendorAffiliateTypeId)
+							    BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
+									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES') AND
+									DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
+								ELSE
+								BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
+									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOGRNI') AND
+									DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
 
 								IF(@IsBypassAccounting = 0)
 								BEGIN
@@ -646,9 +805,9 @@ BEGIN
 						BEGIN
 							SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 							,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
-							FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
+							FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 
-							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber, 
+							SELECT	@PurchaseOrderNumber=PurchaseOrderNumber,
 									@LocalCurrencyCode = ISNULL(CF.Code, ''),
 									@ForeignCurrencyCode = ISNULL(CL.Code, ''),
 									@FXRate = ISNULL(PO.ForeignExchangeRate, @FXRate)
@@ -657,30 +816,84 @@ BEGIN
 							LEFT JOIN [DBO].[Currency] CF WITH(NOLOCK) ON CF.CurrencyId = PO.FunctionalCurrencyId
 							WHERE PurchaseOrderId= @PurchaseOrderId;
 
-							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
+							SELECT @VendorName = [VendorName], @VendorTypeId = [VendorTypeId],@VendorLegalEntityId = [LegalEntityId] FROM [dbo].[Vendor] WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
 							SET @UnitPrice = @Amount;
 							--SET @Amount = (@Qty * @Amount);
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
-							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
+							SELECT @MPNName = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
-							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							 SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
-							Set @ReferencePartId=@partId	
+							Set @ReferencePartId=@partId
 
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
-							
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
-							DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
-							SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
-							FROM DBO.AssetInventory SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
-							WHERE AssetInventoryId=@StocklineId;
+							IF(@VendorTypeId = @VendorAffiliateTypeId)
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0),
+											 @GlAccountId=GlAccountId,
+											 @GlAccountNumber=GlAccountNumber,
+											 @GlAccountName=GlAccountName
+									    FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY') AND
+											 DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+
+								IF(@VendorLegalEntityId > 0)
+								BEGIN
+									  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
+										FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
+										INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
+										INNER JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON MSL.[LegalEntityId] = LE.[LegalEntityId]
+										WHERE ess.[IsActive] = 1
+										  AND ess.[IsDeleted] = 0
+										  AND MSL.[LegalEntityId] = @VendorLegalEntityId AND MSL.[MasterCompanyId] = @MasterCompanyId
+
+										IF(@ManagementStructureId > 0)
+										BEGIN
+											IF OBJECT_ID(N'tempdb..#tmpMSDetailsASSET') IS NOT NULL
+												DROP TABLE #tmpMSDetailsASSET;
+
+											CREATE TABLE #tmpMSDetailsASSET
+											(
+												[EntityStructureId] BIGINT,
+												[MasterCompanyId] INT,
+												[Level1Id] BIGINT, [Level1Name] VARCHAR(200),
+												[Level2Id] BIGINT, [Level2Name] VARCHAR(200),
+												[Level3Id] BIGINT, [Level3Name] VARCHAR(200),
+												[Level4Id] BIGINT, [Level4Name] VARCHAR(200),
+												[Level5Id] BIGINT, [Level5Name] VARCHAR(200),
+												[Level6Id] BIGINT, [Level6Name] VARCHAR(200),
+												[Level7Id] BIGINT, [Level7Name] VARCHAR(200),
+												[Level8Id] BIGINT, [Level8Name] VARCHAR(200),
+												[Level9Id] BIGINT, [Level9Name] VARCHAR(200),
+												[Level10Id] BIGINT, [Level10Name] VARCHAR(200),
+												[AllMSlevels] NVARCHAR(MAX),
+												[LastMSName] VARCHAR(200)
+											);
+
+											INSERT INTO #tmpMSDetailsASSET
+											EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
+
+											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetailsASSET;
+
+											DROP TABLE #tmpMSDetailsASSET;
+										END
+								  END
+							END
+							ELSE
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
+								DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+
+								SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName
+								FROM DBO.AssetInventory SL WITH(NOLOCK)
+								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId
+								WHERE AssetInventoryId=@StocklineId;
+							END
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -716,10 +929,20 @@ BEGIN
 
 								END
 								-----Goods Received Not Invoiced (GRNI)--------
-								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-								@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
-								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED') 
-								AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								IF(@VendorTypeId = @VendorAffiliateTypeId)
+								BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
+									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES')
+									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
+								ELSE
+								BEGIN
+									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
+									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED')
+									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+								END
 
 								IF(@IsBypassAccounting = 0)
 								BEGIN

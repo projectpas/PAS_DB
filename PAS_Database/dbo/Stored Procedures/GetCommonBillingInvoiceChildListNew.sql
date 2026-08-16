@@ -29,6 +29,8 @@
 	16   09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	17   20/July/2026 RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoice child list (WorkOrder branch untouched).
 	18   05/Aug/2026 Moin Bloch		[PN-17513] - Added UNION ALL arm in SO @AllowBillingBeforeShipping=0 branch to include Service/Non-Stock parts even when no shipment has been done, since these items are never physically shipped.
+	19   03/Aug/2026  Moin Bloch		[PN-17540] - Fix For Duplicate Issue
+
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
 CREATE PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
@@ -550,7 +552,7 @@ BEGIN
 			    SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 				BEGIN 
-					PRINT '1'
+
 					;WITH CTE (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
@@ -688,7 +690,7 @@ BEGIN
 					(ISNULL(sop2.QtyOrder,0) - ISNULL((SELECT SUM(ISNULL(b.QtyBilled,0)) FROM dbo.BillingInvoicing a WITH (NOLOCK)
 						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId
 						WHERE a.ReferenceId = @ReferenceId AND a.ModuleId = @SOModuleId AND b.SubReferenceId = sop2.SalesOrderPartId
-						AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0), 0)) AS QtyToBill,
+						AND ISNULL(a.[IsVersionIncrease],0) = 0  AND  ISNULL(b.[IsVersionIncrease],0) = 0 AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0), 0)) AS QtyToBill,
 					so2.SalesOrderNumber,
 					im.partnumber,
 					im.ItemMasterId,
@@ -713,10 +715,11 @@ BEGIN
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK)
 						WHERE socg.SalesOrderId = @ReferenceId AND socg.ItemMasterId = sop2.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0) AS TotalCharges,
 					(SELECT TOP 1 ISNULL(SO2.TotalCharges,0) FROM [dbo].[SalesOrder] SO2 WITH(NOLOCK) WHERE SO2.SalesOrderId = @ReferenceId AND SO2.ChargesBilingMethodId = @FlateBilingMethodId) AS TotalFlatCharges,
-					(SELECT TOP 1 a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK)
-						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId
-						WHERE a.ReferenceId = @ReferenceId AND b.SubReferenceId = sop2.SalesOrderPartId AND a.ModuleId = @SOModuleId
-						AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0 ORDER BY a.InvoiceDate DESC) AS InvoiceStatus,
+					--(SELECT TOP 1 a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK)
+					--	INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId
+					--	WHERE a.ReferenceId = @ReferenceId AND b.SubReferenceId = sop2.SalesOrderPartId AND a.ModuleId = @SOModuleId
+					--	AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0 ORDER BY a.InvoiceDate DESC) AS InvoiceStatus,
+					sobi2.InvoiceStatus,
 					0 AS 'SmentNo',
 					sobii2.VersionNo,
 					(CASE WHEN sobi2.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,

@@ -22,6 +22,7 @@
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	14    31/July/2026			 MOIN BLOCH	  					    [PN-17513] - Added IsNonStock=1 filters so Non-Stock parts not appear on the pick ticket.
+	15    03/Aug/2026			 MOIN BLOCH	  					    [PN-17542] - Fix For Non-Stock Non-Service data need to come
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
@@ -118,7 +119,7 @@ BEGIN
 				 LEFT JOIN [dbo].[SOPickTicket] Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
 				 LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
-				    (ISNULL(im.[IsService],0) <> 1 AND ISNULL(im.[IsNonStock],0) <> 1) AND
+					(ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1) AND
 					so.SalesOrderId = @SalesOrderId AND 
 					((stk.QtyReserved + --sor.QtyToReserve + 
 					(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
@@ -202,7 +203,7 @@ BEGIN
 				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId and stk.SalesOrderStocklineId = pick.SalesOrderPartStocklineId
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
-				    (ISNULL(im.[IsService],0) <> 1 AND ISNULL(im.[IsNonStock],0) <> 1 ) AND
+					(ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1) AND
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.SalesOrderId = @SalesOrderId AND 
 					--((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 

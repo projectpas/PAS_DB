@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderQuoteParts]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get sales order quote part details for view    
@@ -23,6 +23,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
+	10   14/Aug/2026       Kishor Makwana      [PN-17666] - Added Sequence Number As a ItemNo. 
 
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
@@ -123,6 +124,7 @@ BEGIN
 				 WHERE SalesOrderQuoteId = @SalesQuoteId
 				   AND ItemMasterId = part.ItemMasterId
 				   AND ConditionId = part.ConditionId
+				   AND SalesOrderQuotePartId = part.SalesOrderQuotePartId
 				   AND IsActive = 1
 				   AND IsDeleted = 0), 0) AS Freight,
 			COALESCE(
@@ -131,6 +133,7 @@ BEGIN
 				 WHERE SalesOrderQuoteId = @SalesQuoteId
 				   AND ItemMasterId = part.ItemMasterId
 				   AND ConditionId = part.ConditionId
+				   AND SalesOrderQuotePartId = part.SalesOrderQuotePartId
 				   AND IsActive = 1
 				   AND IsDeleted = 0), 0) AS Misc,
 			CASE
@@ -142,7 +145,7 @@ BEGIN
 			stk.QtyAvailable,
 			qs.QuantityOnHand,
 			part.IsConvertedToSalesOrder,
-			0 AS ItemNo,
+			part.SequenceNumber AS ItemNo,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SOQSC.NetSaleAmount, 0) / ISNULL(Stk.QtyQuoted, 1)) ELSE (ISNULL(SOQPC.NetSaleAmount, 0) / ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 1)) END UnitSalesPricePerUnit,
 			itemMaster.ItemClassificationName,
 			itemMaster.ItemGroup,

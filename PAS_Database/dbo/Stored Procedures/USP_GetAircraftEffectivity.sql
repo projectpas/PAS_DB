@@ -1,3 +1,6 @@
+﻿-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAircraftEffectivity   (source: PAS_DB/dbo/Stored Procedures/USP_GetAircraftEffectivity.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
@@ -9,10 +12,14 @@ Exec [USP_GetAircraftEffectivity]
 **************************************************************     
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
-   1    05/05/2026  Amit Ghediya		Created  
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
+   1    05/05/2026  Amit Ghediya		Created
+   2    27/05/2026  Code Review		Apply IsActive and IsDeleted filters
+   3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   4    14/07/2026  Amit Ghediya	Return ACPSectionId, ComponentSerialNum, ComponentToSerialNum for displayed component serial number [PN-17223]
+										
+
+**************************************************************/
+CREATE     PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 (
     @PageNumber INT,
     @PageSize INT,
@@ -26,6 +33,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 	@Notes VARCHAR(MAX) = NULL,
     @PartNumber VARCHAR(100) = NULL,
     @PartDescription VARCHAR(200) = NULL,
+	@ComponentSerialNum VARCHAR(100) = NULL,
     @IsDeleted BIT = NULL,
     @IsActive BIT = NULL,
     @MasterCompanyId BIGINT,
@@ -51,6 +59,7 @@ BEGIN
             SELECT
                 AE.AircraftEffectivityId,
                 AE.AircraftPublicationId,
+                AE.ACPSectionId,
                 AE.MakeTypeId,
                 MT.Description AS AircraftType,
                 AE.AircraftModelId,
@@ -60,6 +69,8 @@ BEGIN
                 AE.ItemMasterId,
                 IM.PartNumber,
                 IM.PartDescription,
+                AE.ComponentSerialNum,
+                AE.ComponentToSerialNum,
                 AE.Notes,
                 AE.MasterCompanyId,
                 AE.IsActive,
@@ -73,8 +84,9 @@ BEGIN
             LEFT JOIN dbo.AircraftModel AM WITH(NOLOCK) ON AE.AircraftModelId = AM.AircraftModelId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON AE.ItemMasterId = IM.ItemMasterId
              AND ISNULL(IM.IsNonStock,0) = 0
-            WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
+             WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
 			AND AE.MasterCompanyId = @MasterCompanyId
+			AND ISNULL(AE.IsDeleted, 0) = ISNULL(@IsDeleted, 0)
         )
 
         SELECT * INTO #TempResult
@@ -89,6 +101,7 @@ BEGIN
 				Notes LIKE '%' + @GlobalFilter + '%' OR
                 PartNumber LIKE '%' + @GlobalFilter + '%' OR
                 PartDescription LIKE '%' + @GlobalFilter + '%' OR
+				ComponentSerialNum LIKE '%' + @GlobalFilter + '%' OR
 				CreatedBy LIKE '%' + @GlobalFilter + '%' OR
 				UpdatedBy LIKE '%' + @GlobalFilter + '%'
             ))
@@ -103,12 +116,13 @@ BEGIN
 				(ISNULL(@Notes,'')='' OR Notes LIKE '%' + @Notes + '%') AND
                 (ISNULL(@PartNumber,'')='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
                 (ISNULL(@PartDescription,'')='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+				(ISNULL(@ComponentSerialNum,'')='' OR ComponentSerialNum LIKE '%' + @ComponentSerialNum + '%') AND
 				(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as DATE)=Cast(@CreatedDate as DATE)) AND  
 				  (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATE)=Cast(@UpdatedDate as DATE)) and  
-				  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-				  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')  
+				  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+				  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')
             )
-        );
+        )
 
         -- Total count
         SELECT @Count = COUNT(*) FROM #TempResult;
@@ -137,6 +151,9 @@ BEGIN
 
 			CASE WHEN @SortOrder = 1 AND @SortColumn = 'PartDescription' THEN PartDescription END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartDescription' THEN PartDescription END DESC,
+
+			CASE WHEN @SortOrder = 1 AND @SortColumn = 'ComponentSerialNum' THEN ComponentSerialNum END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'ComponentSerialNum' THEN ComponentSerialNum END DESC,
 
             CASE WHEN @SortOrder = 1 AND @SortColumn = 'CREATEDDATE' THEN CreatedDate END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CREATEDDATE' THEN CreatedDate END DESC,

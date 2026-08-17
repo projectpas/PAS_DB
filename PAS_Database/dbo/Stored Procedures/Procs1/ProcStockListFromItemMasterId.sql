@@ -20,6 +20,8 @@
     7    07/16/2026   Bhargav Saliya  Apply UOM conversion (fn_ConvertUOM) on Qty & UnitCost columns (stock -> consume). UnitSalesPrice left as-is (already stored in consume UOM).
 	8    07/20/2026   Ayushi Patel    [PN-17343]Revert UOM conversion (fn_ConvertUOM) from Qty & UnitCost columns when @IsFromSOSOQ = 0
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	10   29/July/2026  MOIN BLOCH						PN-17465 - Removed ItemTypeId due to that we not able to get Non-Stock List
+
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  

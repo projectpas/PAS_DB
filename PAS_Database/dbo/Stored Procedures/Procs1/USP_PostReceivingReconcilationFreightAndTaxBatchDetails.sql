@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_PostReceivingReconcilationFreightAndTaxBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -20,8 +20,9 @@
 	8   20/July/2026   RAJESH GAMI    [PN-17350] - Converted legacy dbo.NonStockInventory GL-account/quantity lookups in the NONSTOCK branch to dbo.Stockline with ISNULL(SL.IsNonStock,0)=1
 	9    08/06/2026   Moin Bloch		Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
 	10    22/07/2026   Priyansh Patel    UOM Changes [PN-16941]
+	11	 29/06/2026	  Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
-**************************************************************/  
+**************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails]
 @ReceivingReconciliationId BIGINT,
 @JournalBatchHeaderId BIGINT,
@@ -96,6 +97,7 @@ BEGIN
 			DECLARE @StkFlag INT = 0;
 			DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 			DECLARE @ReferenceModule VARCHAR(100) = 'RECONCILIATION';
+			DECLARE @IsBypassAccounting BIT = 0
 
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 					
@@ -337,7 +339,8 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
@@ -350,6 +353,9 @@ BEGIN
 					 
 				IF(@TotalFreight > 0 AND @FreightCogs <> @FreightAllCogs)
 				BEGIN
+					IF(@IsBypassAccounting = 0)
+					BEGIN
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -380,6 +386,8 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+
+					END
 					
 					-----  RECONCILIATION PO STOCK INVENTORY  -----			
 
@@ -411,12 +419,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 															 														 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -445,6 +456,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					
 					END
 					-------  COGS - FREIGHT - INVENTORY  --------
@@ -454,12 +466,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOFREIGHTINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -490,11 +505,14 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END			
 				END
 				-------  All COGS  --------
 				IF(@TotalFreight > 0 AND @FreightCogs = @FreightAllCogs)
 				BEGIN
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -525,18 +543,22 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 
 					-------  COGS - FREIGHT - INVENTORY  --------	
 
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOFREIGHTINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -565,6 +587,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 				END
 				
 				IF(@TotalTax > 0 AND @TaxCogs <> @TaxAllCogs)
@@ -577,12 +600,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 					 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -613,6 +639,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 
 					-----  RECONCILIATION PO STOCK - INVENTORY  -----	
 					
@@ -644,12 +671,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 														 								 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -678,6 +708,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END		
 					
 					-------  RECONCILIATION PO COGS - TAX - INVENTORY  --------
@@ -687,12 +718,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOTAXINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -723,6 +757,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END	
 				END		
 				-------  All COGS  --------
@@ -736,12 +771,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 					 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -772,18 +810,22 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 
 					-----  RECONCILIATION PO COGS - TAX - INVENTORY  -----	
 										
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOTAXINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 														 								 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -811,7 +853,8 @@ BEGIN
 					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
-								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);															
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END															
 				END							   				 
 
 				IF(@TotalMisc > 0) 
@@ -822,12 +865,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 					 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -858,6 +904,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 
 					--- MISC VAR COGS-----
 					SELECT TOP 1 @DistributionSetupId=[ID], 
@@ -866,12 +913,15 @@ BEGIN
 									 @GlAccountId=[GlAccountId], 
 									 @GlAccountNumber=[GlAccountNumber], 
 									 @GlAccountName=[GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER([DistributionSetupCode])=UPPER('RECPOVARCOGS') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -902,6 +952,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 				END
 							   				 
 				SET @TotalDebit=0;
@@ -952,7 +1003,8 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
@@ -966,6 +1018,8 @@ BEGIN
 					 
 				IF(@TotalFreight > 0 AND @FreightCogs <> @FreightAllCogs)
 				BEGIN
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -996,6 +1050,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 							
 					-----  RECONCILIATION RO STOCK - INVENTORY  -----		
 					
@@ -1027,12 +1082,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;								 						
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1061,6 +1119,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END
 
 					-------  RECONCILIATION RO COGS - FREIGHT - INVENTORY --------
@@ -1070,12 +1129,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId=[ID], 
 									 @DistributionName=[Name], 
 									 @JournalTypeId=[JournalTypeId], 									
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROFREIGHTINV') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1106,12 +1168,15 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END			
 				END	
 				-------  All COGS  --------
 				IF(@TotalFreight > 0 AND @FreightCogs = @FreightAllCogs)
 				BEGIN
 					----- RECONCILIATION RO ACCPAYABLE -----				
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1142,18 +1207,22 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 							
 					-------  RECONCILIATION RO COGS - FREIGHT - INVENTORY --------		
 					
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROFREIGHTINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
-						
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1181,7 +1250,8 @@ BEGIN
 					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
-								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);									
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END									
 				END				
 
 				IF(@TotalTax > 0 AND @TaxCogs <> @TaxAllCogs)
@@ -1193,12 +1263,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
 					 INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1229,6 +1302,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					 END
 
 					-----  RECONCILIATION RO STOCK - INVENTORY  -----	
 					
@@ -1260,12 +1334,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1294,6 +1371,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END
 					
 					-------  RECONCILIATION RO COGS - TAX - INVENTORY  --------
@@ -1303,12 +1381,15 @@ BEGIN
 						SELECT TOP 1 @DistributionSetupId=[ID], 
 									 @DistributionName=[Name], 
 									 @JournalTypeId=[JournalTypeId], 									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROTAXINV') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1339,6 +1420,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END
 					END	
 				END
 				-------  All COGS  --------
@@ -1352,12 +1434,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
 					 INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1388,18 +1473,22 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					 END
 
 					-------  RECONCILIATION RO COGS - TAX - INVENTORY  --------
 										
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
 									 @JournalTypeId = [JournalTypeId],									 
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROTAXINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 								 					
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1427,7 +1516,8 @@ BEGIN
 					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
-								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);															
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+						END															
 				END
 
 				IF(@TotalMisc > 0)
@@ -1438,12 +1528,15 @@ BEGIN
 							 @GlAccountId = [GlAccountId], 
 							 @GlAccountNumber = [GlAccountNumber], 
 							 @GlAccountName = [GlAccountName],
-							 @CrDrType = [CRDRType]
+							 @CrDrType = [CRDRType],
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
 
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
 					 INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1474,6 +1567,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					 END
 
 				    -------  RECONCILIATION VARIABLE COGS  --------
 
@@ -1483,12 +1577,15 @@ BEGIN
 									 @GlAccountId=[GlAccountId], 
 									 @GlAccountNumber=[GlAccountNumber], 
 									 @GlAccountName=[GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROVARCOGS') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -1519,6 +1616,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+					END
 				END
 
 				SET @TotalDebit=0;

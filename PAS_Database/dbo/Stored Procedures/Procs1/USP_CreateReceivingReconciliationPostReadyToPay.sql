@@ -14,6 +14,7 @@
 	3    10/04/2025   Amit Ghediya  Added new field (LastMSLevel,LegalEntityId)
 	4    16/02/2026   Amit Ghediya  update to get due date from ReceivingReconciliation duedate (PN-15444)
 	5    26/02/2026   HEMANT SALIYA UPDATE TO SET IS Active and IS Delete default values
+	6    07/08/2026   Moin Bloch     Fix For Receiving Reconciliation Entry
 
 EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
@@ -34,7 +35,7 @@ BEGIN
 					@ROMSModuleID INT = 24,
 					@IsPOType INT=0;
 
-			SET @IsPOType = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId);
+			SET @IsPOType = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId  AND ISNULL([IsManual],0) = 0);
 
 			IF(@IsPOType = 1)
 			BEGIN

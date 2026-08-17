@@ -11,7 +11,7 @@
     [PostalCode]               VARCHAR (100) NULL,
     [InActive]                 BIT           NOT NULL,
     [IsDefault]                BIT           NOT NULL,
-    [ExpirationDate]           DATETIME2 (7) NOT NULL,
+    [ExpirationDate]           DATETIME2 (7) NULL,
     [MasterCompanyId]          INT           NOT NULL,
     [CreatedBy]                VARCHAR (256) NOT NULL,
     [CreatedDate]              DATETIME2 (7) CONSTRAINT [DF_CreditCardPaymentAudit_CreatedDate] DEFAULT (getutcdate()) NOT NULL,

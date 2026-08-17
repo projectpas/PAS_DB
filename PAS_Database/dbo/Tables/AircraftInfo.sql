@@ -13,6 +13,7 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_AircraftInfo_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [IsActive]        BIT           CONSTRAINT [DF_AircraftInfo_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [DF_AircraftInfo_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsAircraft]      BIT           NULL,
     CONSTRAINT [PK_AircraftInfo] PRIMARY KEY CLUSTERED ([AircraftInfoId] ASC)
 );
 

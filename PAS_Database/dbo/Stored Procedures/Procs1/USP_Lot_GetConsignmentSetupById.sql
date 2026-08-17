@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1   01/08/2023  Rajesh Gami     Created
+    2   11/08/2026  Nakul           Added MarginPercentId and MarginConsignorPercentId to output
 **************************************************************
 EXEC USP_Lot_GetConsignmentSetupById 2
 **************************************************************/
@@ -44,6 +45,8 @@ BEGIN
 			,ISNULL(LT.ConsigneeId,0)ConsigneeId
 			,ISNULL(LT.IsRevenueSplit,0)IsRevenueSplit
 			,ISNULL(LT.ConsignorPercentId,0)ConsignorPercentId
+			,ISNULL(LT.MarginPercentId,0)MarginPercentId
+			,ISNULL(LT.MarginConsignorPercentId,0)MarginConsignorPercentId
             FROM dbo.LotConsignment LT WITH (NOLOCK)
 			INNER JOIN dbo.LOT L WITH(NOLOCK) on LT.LotId = L.LotId
 			

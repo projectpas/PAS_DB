@@ -267,6 +267,7 @@
     <Build Include="dbo\Tables\Tables1\CompanyEmailConfiguration.sql" />
     <Build Include="dbo\Tables\Tables1\Condition.sql" />
     <Build Include="dbo\Tables\Tables1\ConditionAudit.sql" />
+    <Build Include="dbo\Tables\ILSConditionMapping.sql" />
     <Build Include="dbo\Tables\Tables1\Contact.sql" />
     <Build Include="dbo\Tables\Tables1\ContactAudit.sql" />
     <Build Include="dbo\Tables\Tables1\ContactTag.sql" />
@@ -1412,6 +1413,7 @@
     <Build Include="dbo\Tables\Tables2\WorkScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcess.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcessAudit.sql" />
+    <Build Include="dbo\Views\vw_ILSConditions.sql" />
     <Build Include="dbo\Views\vw_WorkOrderStage.sql" />
     <Build Include="dbo\Views\vw_WOInspectionConditions.sql" />
     <Build Include="dbo\Views\vw_warehouse.sql" />
@@ -2807,6 +2809,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO.sql" />
     <Build Include="dbo\Tables\KitMasterHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveKITMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionCodeMap.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKitPartHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateGLLeafNodeSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_New.sql" />
@@ -4624,6 +4630,25 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateLeaseSetting.sql" />
     <Build Include="dbo\Tables\LeaseStatus.sql" />
+    <Build Include="dbo\Tables\WorksheetMapping.sql" />
+    <Build Include="dbo\Tables\EngineRegistryHeader.sql" />
+    <Build Include="dbo\Tables\AircraftHistoryTemplate.sql" />
+    <Build Include="dbo\Tables\AircraftHistory.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivitySerialDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEngineRegistryState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LinkPartToExistingWorksheet.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

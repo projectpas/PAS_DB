@@ -12,8 +12,9 @@
  **************************************************************             
  ** PR   Date         Author    Change Description              
  ** --   --------     -------  ---------------------------       
-    1   01/08/2023  Shrey Chandegara     Created  
-**************************************************************  
+    1   01/08/2023  Shrey Chandegara     Created
+    2   11/08/2026  Nakul               Replaced HowCalculate/CalculateValue with per-method columns (IsRevenue/RevenuePercentage, IsMargin/MarginPercentage, IsFixedAmount/Amount) so each audit entry is a single row showing all configured methods
+**************************************************************
 EXEC USP_Lot_GetConsignmentHistoryById 12  
 **************************************************************/  
 CREATE      PROCEDURE [dbo].[USP_Lot_GetConsignmentHistoryById]   
@@ -58,16 +59,17 @@ BEGIN
       ,UPPER(LT.LotName) LotName  
       --,LC.[CreatedDate] CreatedDate
 	  ,case when CAST(LC.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LC.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
-      , (CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' ELSE '' END) HowCalculate  
-      --,ISNULL(LC.PerAmount,0.00)CalculateValue  
-      ,(CASE WHEN ISNULL(LC.IsFixedAmount,0) = 1 THEN ISNULL(LC.PerAmount,0.00) ELSE (SELECT ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)) END) AS CalculateValue  
-      ,UPPER(LC.ConsignmentNumber)ConsignmentNumber  
-      ,UPPER(LC.ConsigneeName)ConsigneeName  
-       ,UPPER(LC.ConsignmentName)ConsignmentName  
-      ,LC.[MasterCompanyId]  
-      ,LC.[CreatedBy]  
-      ,ISNULL(lc.IsFixedAmount,0)AS IsFixedAmount
-	  --,LC.[UpdatedDate] UpdatedDate
+      ,ISNULL(LC.IsMargin,0) AS IsMargin
+      ,(CASE WHEN ISNULL(LC.IsMargin,0) = 1 THEN (SELECT ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)) ELSE NULL END) AS MarginPercentage
+      ,ISNULL(LC.IsRevenue,0) AS IsRevenue
+      ,(CASE WHEN ISNULL(LC.IsRevenue,0) = 1 THEN (SELECT ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)) ELSE NULL END) AS RevenuePercentage
+      ,ISNULL(LC.IsFixedAmount,0) AS IsFixedAmount
+      ,(CASE WHEN ISNULL(LC.IsFixedAmount,0) = 1 THEN ISNULL(LC.PerAmount,0.00) ELSE NULL END) AS Amount
+      ,UPPER(LC.ConsignmentNumber)ConsignmentNumber
+      ,UPPER(LC.ConsigneeName)ConsigneeName
+       ,UPPER(LC.ConsignmentName)ConsignmentName
+      ,LC.[MasterCompanyId]
+      ,LC.[CreatedBy]
 	  ,case when CAST(LC.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LC.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
 	  ,LC.[updatedBy]  
     FROM   

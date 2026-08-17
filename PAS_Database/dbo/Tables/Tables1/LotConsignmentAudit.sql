@@ -21,6 +21,8 @@
     [ConsigneeId]        BIGINT          NULL,
     [IsRevenueSplit]     BIT             NULL,
     [ConsignorPercentId] BIGINT          NULL,
+    [MarginPercentId]    BIGINT          NULL,
+    [MarginConsignorPercentId] BIGINT    NULL,
     CONSTRAINT [PK_LotConsignmentAudit] PRIMARY KEY CLUSTERED ([ConsignmentAuditId] ASC)
 );
 

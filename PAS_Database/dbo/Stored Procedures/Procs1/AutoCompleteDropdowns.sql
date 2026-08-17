@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -40,11 +40,12 @@
     23   08/04/2026   Nakul Chandigra       Added order Order By Sequenceno ASC for AircraftStatus and MaintenanceStatus (PN-15946)
 	24   10/04/2026   AMIT GHEDIYA			Added NumberOfEngines (PN-15987)
 	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
-    26   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll  
-	27   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
-	28   13/July/2026  RAJESH GAMI			[PN-17009] Retired dbo.ItemMasterNonStock table lookups (@TableName='ItemMasterNonStock', 3 branches):
-	29   04-Aug-2026   Rajesh Gami          [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMaster/ItemMasterNonStock PN dropdown branches now filter by IsNonStock and show a (Stock)/(Non-Stock) label suffix.
-	30   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
+	26   09/07/2026   AMIT GHEDIYA			Get for EngineRegistryHeader table merge for dropdown
+    27   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll  
+	28   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
+	29  13/July/2026  RAJESH GAMI			[PN-17009] Retired dbo.ItemMasterNonStock table lookups (@TableName='ItemMasterNonStock', 3 branches):
+	30   04-Aug-2026   Rajesh Gami          [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMaster/ItemMasterNonStock PN dropdown branches now filter by IsNonStock and show a (Stock)/(Non-Stock) label suffix.
+	31   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -99,6 +100,27 @@ AS BEGIN
                     SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
                     FROM dbo.Employee WITH(NOLOCK)
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			ELSE IF(@TableName='EngineRegistryHeader')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                    ORDER BY SerialNum+' '+EngineName+' '+EngineModel
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
 			ELSE IF (@TableName='EmpTrainer')
@@ -560,6 +582,26 @@ AS BEGIN
                     SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
                     FROM dbo.Employee WITH(NOLOCK)
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			ELSE IF(@TableName='EngineRegistryHeader')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT top 20 EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT top 20 EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%')
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
 			ELSE IF (@TableName='EmpTrainer')

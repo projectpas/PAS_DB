@@ -15,7 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    10/12/2023   Vishal Suthar		Created
-     
+    2    17/08/2026   Rajesh Gami		PN-17680- Added condition POId and POPart Id while Decrease the part QTY (Remove from the StocklineDraft table)    
  -- EXEC [dbo].[sp_UpdateStocklineDraftForPurchaseOrder] 1950
 **************************************************************/
 CREATE   Procedure [dbo].[sp_UpdateStocklineDraftForPurchaseOrder]
@@ -117,7 +117,7 @@ BEGIN
 				DELETE FROM DD
 				FROM (
 					SELECT *, ROW = ROW_NUMBER() OVER (ORDER BY StockLineDraftId DESC)
-					FROM DBO.StocklineDraft WITH (NOLOCK)
+					FROM DBO.StocklineDraft WITH (NOLOCK) WHERE  PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId
 				) DD
 				WHERE ROW <= @QtyToRemove;
 			END

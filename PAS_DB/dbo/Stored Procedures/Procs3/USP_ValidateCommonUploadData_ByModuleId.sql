@@ -58,7 +58,8 @@
 	44   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
 	45   28-may-2026        Nakul Chandigra         Sync the stored procedure from UAT.
 	46   11-June-2026       Nakul Chandigra         Added validation for RFQTraceability table.(PN-16803)
-	47    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	47   01/July/2026		RAJESH GAMI				[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	48	 14-Aug-2026        Ayushi Patel			Fixed: Stockline duplicate check call to USP_ChekDuplicateValueForUpload was missing Ref3/Value3 params , causing type clash error for serialized parts. Fixed by using named parameters.
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -924,7 +925,17 @@ BEGIN
 					BEGIN
 						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
 						BEGIN
-						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						EXEC [dbo].[USP_ChekDuplicateValueForUpload] 
+								@ChekDuplticateRef1  = @ChekDuplticateRef1,
+								@ChekDuplticateRef2  = @ChekDuplticateRef2,
+								@DuplicateRefeValue1 = @DuplicateRefeValue1,
+								@DuplicateRefeValue2 = @DuplicateRefeValue2,
+								@ReferenceTable      = @ReferenceTable,
+								@MasterCompanyId     = @MasterCompanyId,
+								@ModuleId            = @ModuleId,
+								@UploadData          = @UploadData,
+								@UploadRecord        = @UploadRecord,
+								@IsDuplicate         = @IsDuplicate OUTPUT;
 						END
 					END
 					ELSE IF(@ModuleId=@WorkOrderMaterialsModule)

@@ -1,4 +1,4 @@
-﻿ /*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_commonDeleteReleaseNoteById]      
  ** Author:   Bhargav Saliya 
  ** Description: This Store Procedure Use to Updated or Delete Record Of Release Note Listing Page
@@ -16,7 +16,8 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    02-June-2025   Bhargav Saliya		Created
-
+    2    10-Aug-2026    Ayushi Patel        [PN-17583] handled empty filename , delete the child before deleting parent
+	exec USP_commonDeleteReleaseNoteById 1,0,''
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_commonDeleteReleaseNoteById]
 	@ReleaseNoteHeaderId bigint = 0,
@@ -27,10 +28,14 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		IF((ISNULL(@ReleaseNoteHeaderId,0) > 0) AND (@FileName IS NULL))
-		BEGIN
-			DELETE [DBO].[ReleaseNoteHeadersDetails] WHERE  ReleaseNoteHeaderId = ISNULL(@ReleaseNoteHeaderId,0) AND ISNULL(IsDeleted,0) = 0;
-		END
+		IF ISNULL(@ReleaseNoteHeaderId, 0) > 0 AND NULLIF(LTRIM(RTRIM(@FileName)), '') IS NULL
+        BEGIN
+            DELETE [DBO].[ReleaseNotesTitleDetails] 
+            WHERE ReleaseNoteHeaderId = ISNULL(@ReleaseNoteHeaderId,0) AND ISNULL(IsDeleted,0) = 0;
+
+            DELETE [DBO].[ReleaseNoteHeadersDetails] 
+            WHERE ReleaseNoteHeaderId = ISNULL(@ReleaseNoteHeaderId,0) AND ISNULL(IsDeleted,0) = 0;
+        END
 		ELSE IF(ISNULL(@TitleId,0) > 0)
 		BEGIN
 			DELETE [DBO].[ReleaseNotesTitleDetails] WHERE  TitleId = ISNULL(@TitleId,0) AND ISNULL(IsDeleted,0) = 0;

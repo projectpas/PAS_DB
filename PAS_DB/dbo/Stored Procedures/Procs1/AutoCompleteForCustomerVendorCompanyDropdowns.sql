@@ -17,6 +17,7 @@
  ** --   --------     -------		 --------------------------------          
     1    05/22/2025   Abhishek Jirawla		Created
     2    04/06/2026   Bhargav saliya		[PN-16717]:Resolved OwnerName,TracableToName,ObtainFromName Data Binding Issue
+	3    14/08/2026   Amit Ghediya		    Default top 20 records only due to multiple records [PN-17528]
 
 --select * from dbo.Employee    
  exec [AutoCompleteForCustomerVendorCompanyDropdowns] null,"1287,1,2460",1
@@ -81,7 +82,7 @@ AS BEGIN
            ROW_NUMBER() OVER (PARTITION BY Label, ModuleId ORDER BY (SELECT NULL)) AS rn
 			FROM #TempTable
 		)
-		SELECT Value, Label, ModuleId, MasterCompanyId
+		SELECT TOP 20 Value, Label, ModuleId, MasterCompanyId
 		FROM Ranked
 		WHERE rn = 1
 		ORDER BY Label, ModuleId;

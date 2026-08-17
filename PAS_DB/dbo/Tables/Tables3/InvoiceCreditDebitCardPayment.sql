@@ -8,9 +8,9 @@
     [CurrencyId]               INT             NOT NULL,
     [CardNumber]               VARCHAR (20)    NOT NULL,
     [CardTypeId]               BIGINT          NOT NULL,
-    [ExpirationDate]           DATETIME        NOT NULL,
-    [SecurityCode]             VARCHAR (50)    NOT NULL,
-    [CardholderName]           VARCHAR (100)   NOT NULL,
+    [ExpirationDate]           DATETIME        NULL,
+    [SecurityCode]             VARCHAR (50)    NULL,
+    [CardholderName]           VARCHAR (100)   NULL,
     [BillingAddress]           VARCHAR (200)   NULL,
     [PhoneNo]                  VARCHAR (20)    NULL,
     [ApprovalRef]              VARCHAR (50)    NULL,
@@ -33,6 +33,8 @@
     CONSTRAINT [FK_InvoiceCreditDebitCardPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceCreditDebitCardPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

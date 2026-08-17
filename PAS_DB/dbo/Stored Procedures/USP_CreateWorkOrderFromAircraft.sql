@@ -21,6 +21,7 @@
 	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
 	9    01/July/2026	RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10   20/July/2026	Amit Ghediya		Get properly serial num & registor num
+	11   14/08/2026	    Amit Ghediya		Customerid 0 issue.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -73,7 +74,14 @@ BEGIN
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 			IF(ISNULL(@CustomerId,0) = 0)
 			BEGIN
-				 SELECT @CustomerId = ACH.CustomerId  FROM dbo.AircraftRegistryHeader ACH WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+				 IF(ISNULL(@IsFromAircraft,0) = 0)
+				 BEGIN
+					  SELECT @CustomerId = ERH.CustomerId  FROM dbo.EngineRegistryHeader ERH WITH(NOLOCK) WHERE ERH.[EngineRegistryId] = @AircraftRegistryId
+				 END
+				 ELSE
+				 BEGIN
+				      SELECT @CustomerId = ARH.CustomerId  FROM dbo.AircraftRegistryHeader ARH WITH(NOLOCK) WHERE ARH.[AircraftRegistryId] = @AircraftRegistryId
+				 END
 			END
 
 			SELECT @CustomerName=[Name], @CustomerAffiliationId = [CustomerAffiliationId], @CustomerTypeId = CustomerTypeId FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;

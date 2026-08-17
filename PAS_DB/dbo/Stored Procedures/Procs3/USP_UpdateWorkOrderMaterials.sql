@@ -14,6 +14,7 @@
        
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5	 17/AUG/2026			 Sumit Kumar			[PN-17684] Provide Ability to Add/Edit Notes for WO Materials at Part/Stockline Level
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderMaterials]  
@@ -116,7 +117,7 @@ BEGIN
 						WOM.ExtendedCost = TMP.ExtendedCost,
 						WOM.Memo = TMP.Memo,
 						-- Update Notes column in WorkOrderMaterials
-						WOM.Notes = TMP.Notes,
+						WOM.Notes =  CASE WHEN ISNULL(TMP.IsStocklineEdit, 0) = 0 THEN TMP.Notes ELSE WOM.Notes END,
 						WOM.ProvisionId = CASE WHEN ISNULL(TMP.IsStocklineEdit, 0) = 0 THEN TMP.ProvisionId ELSE WOM.ProvisionId END,
 						WOM.TaskId = TMP.TaskId,
 						WOM.MaterialMandatoriesId = TMP.MaterialMandatoriesId,
@@ -184,7 +185,8 @@ BEGIN
 							WOMS.UnitCost = STK.UnitCost,
 							WOMS.ExtendedCost = ISNULL(TMP.StocklineQuantity, 0) * ISNULL(STK.UnitCost, 0),
 							WOMS.Figure = TMP.Figure,
-							WOMS.Item = TMP.Item
+							WOMS.Item = TMP.Item,
+							WOMS.Notes = TMP.Notes
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId

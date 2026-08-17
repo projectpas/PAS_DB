@@ -20,6 +20,8 @@
 	4    20/09/2024	         AMIT GHEDIYA		 Added for AutoPost Batch
 	5	 18/10/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
 	6	 11/04/2024			 Devendra Shekh		 Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	7	 21/07/2026	         Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
@@ -103,6 +105,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'ASSET';
+		DECLARE @IsBypassAccounting BIT = 0;		
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -384,9 +387,13 @@ BEGIN
 			             @GlAccountId = [GlAccountId],
 						 @GlAccountNumber = [GlAccountNumber],
 						 @GlAccountName = [GlAccountName] ,
-						 @IsAutoPost = ISNULL(IsAutoPost,0)
+						 @IsAutoPost = ISNULL(IsAutoPost,0),
+						 @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('GOODSRECEIPTNOTINVOICED') 
 			         AND [DistributionMasterId] = @DistributionMasterId;
+
+			IF(@IsBypassAccounting = 0)
+			BEGIN
 					 
 			INSERT INTO [dbo].[CommonBatchDetails]
 				        ([JournalBatchDetailId],
@@ -511,18 +518,24 @@ BEGIN
 				            @StockType,
 							@CommonBatchDetailId)
 
+			END
+
 			 -----Fixed Asset--------
 			 				
 			 SELECT TOP 1 @DistributionSetupId = [ID],
 			              @DistributionName = [Name],
 						  @JournalTypeId = [JournalTypeId], 
-						  @CRDRType = [CRDRType]
+						  @CRDRType = [CRDRType],
 			              --@GlAccountId = [GlAccountId],
 						  --@GlAccountNumber = [GlAccountNumber],
 						  --@GlAccountName = GlAccountName 
+						  @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)					
 					WHERE UPPER([DistributionSetupCode]) = UPPER('FIXEDASSETAC')
 			          AND [DistributionMasterId] = @DistributionMasterId;
+
+			IF(@IsBypassAccounting = 0)
+			BEGIN
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				        ([JournalBatchDetailId],
@@ -646,6 +659,8 @@ BEGIN
 							@Shelf, 
 				            @StockType,
 							@CommonBatchDetailId)
+
+			END
 
 			 -----Fixed Asset--------
 

@@ -18,7 +18,8 @@
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateSalesOrderNonStockPartStockline]
 @SalesOrderId BIGINT,
-@BillingInvoicingId BIGINT
+@BillingInvoicingId BIGINT,
+@UpdatedBy VARCHAR(256) = ''
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -77,8 +78,16 @@ BEGIN
 						   SET [QuantityAvailable] = 0,
 						       [QuantityOnHand] = 0,
 							   [QuantityIssued] = 0,
-							   [QuantityReserved] = 0
+							   [QuantityReserved] = 0,
+							   [UpdatedBy] = @UpdatedBy,
+							   [UpdatedDate] = GETUTCDATE()
 						 WHERE [StockLineId] = @StockLineId
+
+						DECLARE @StocklineHistoryUnReserveRemoveOnHandActionEnum INT = 0
+
+						SELECT @StocklineHistoryUnReserveRemoveOnHandActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='UnReserve-RemoveOnHand';
+
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@SOModuleId,@SalesOrderId,NULL,NULL,@StocklineHistoryUnReserveRemoveOnHandActionEnum,0,@UpdatedBy;
 					END
 
 					SET @MinId = @MinId + 1

@@ -24,7 +24,8 @@
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing/invoicing lists (WorkOrder branch untouched).
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
-**************************************************************/ 
+	14    31/July/2026			 Moin Bloch							[PN-17513] - Include Service/Non-Stock parts in SO billing list even when @AllowBillingBeforeShipping = 0 and no shipment has been done, since these items are never physically shipped.
+**************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 1162, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
 @ReferenceId BIGINT = NULL,

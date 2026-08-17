@@ -29,9 +29,10 @@
 	13	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	14	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
 	15	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
+	16	 07/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
+CREATE    PROCEDURE [dbo].[USP_PostCheckBatchDetails]
 @ReadyToPayId BIGINT,
 @ReadyToPayDetailsId BIGINT,
 @VendorId BIGINT
@@ -95,6 +96,7 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CHECK';
 		DECLARE @legalEntityId BIGINT = NULL;
+		DECLARE @IsBypassAccounting BIT = 0;
 
 		DECLARE @LEGLAccountId BIGINT = 0;
 		DECLARE	@LEGlAccountName VARCHAR(200) = NULL,
@@ -277,8 +279,8 @@ BEGIN
 			 -----Account Payable--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0)
-			 from DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSACCPAYBLE'
+			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL(IsBypassAccounting,0)
+			 from dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSACCPAYBLE'
 			 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 			 IF(ISNULL(@GlAccountId,0) = 0)
@@ -287,6 +289,9 @@ BEGIN
 				  SET @GlAccountName = @LEGlAccountName;
 				  SET @GlAccountNumber = @LEGlAccountCode;
 			 END
+
+			 IF(@IsBypassAccounting = 0)
+			 BEGIN
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -311,14 +316,15 @@ BEGIN
 				INSERT INTO [dbo].[VendorPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 
+			  END
 			 -----Account Payable--------
 
 			 -----Bank Account--------
 
 				IF(@CheckAmount > 0)
 				BEGIN
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
-					 FROM DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSBANKACCOUNT' 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL(IsBypassAccounting,0)
+					 FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSBANKACCOUNT' 
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 				
 
@@ -328,8 +334,8 @@ BEGIN
 					--LEFT JOIN GLAccount G WITH(NOLOCK) ON LB.GLAccountId = G.GLAccountId
 					--WHERE ReadyToPayId= @ReadyToPayId
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0)
-					from DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSBANKACCOUNT'
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL(IsBypassAccounting,0)
+					from dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSBANKACCOUNT'
 					AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
 					--SELECT @GLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND IsPrimary = 1;
@@ -345,6 +351,9 @@ BEGIN
 						  SET @GlAccountName = @LEGlAccountName;
 						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -366,6 +375,8 @@ BEGIN
 								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
+
+					END
 				END
 			 -----Bank Account--------
 
@@ -374,8 +385,8 @@ BEGIN
 				IF(@DiscountAmount > 0)
 				BEGIN
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
-					 from DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSDISCOUNTTAKEN' 
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsBypassAccounting = ISNULL(IsBypassAccounting,0)
+					 from dbo.DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSDISCOUNTTAKEN' 
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 	
 
@@ -385,6 +396,9 @@ BEGIN
 						  SET @GlAccountName = @LEGlAccountName;
 						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -406,6 +420,8 @@ BEGIN
 								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
+
+					END
 				END
 			 -----Discount Taken--------
 

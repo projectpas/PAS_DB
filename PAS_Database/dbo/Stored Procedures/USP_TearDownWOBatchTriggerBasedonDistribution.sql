@@ -17,6 +17,7 @@
 	2    20/02/2026  Moin Bloch     Tender Stockline Multiply by Tendered Quantity PN-15505
 	3    24/04/2026  Moin Bloch     Tender Stockline GLAccount Fix
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5	 23/06/2026	 Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
    EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
@@ -125,6 +126,7 @@ BEGIN
 		DECLARE @FXRate DECIMAL(18,2) = 1;	
 		DECLARE @ReferenceModule VARCHAR(100) = 'TWO';
 		DECLARE @ModuleName VARCHAR(50) = 'TWO';
+		DECLARE @IsBypassAccounting BIT = 0;		
 
 		IF((@JournalTypeCode ='WTD' OR @JournalTypeCode ='WTDTS' OR @JournalTypeCode ='WTDIL') AND @IsAccountByPass=0)
 		BEGIN 
@@ -213,7 +215,8 @@ BEGIN
 							 @GlAccountNumber = [GlAccountNumber],
 							 @GlAccountName = [GlAccountName],
 							 @CrDrType = [CRDRType],
-							 @IsAutoPost = ISNULL([IsAutoPost],0)
+							 @IsAutoPost = ISNULL([IsAutoPost],0),
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
 				WHERE UPPER([DistributionSetupCode]) =UPPER('TDWOWIPPARTS') 
 				  AND [DistributionMasterId] = @DistributionMasterId 
@@ -301,6 +304,9 @@ BEGIN
 
 					SET @JournalBatchDetailId = SCOPE_IDENTITY()
 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 						([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId]
 						,[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -320,10 +326,13 @@ BEGIN
 					INSERT INTO [dbo].[WorkOrderBatchDetails]([JournalBatchDetailId],[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,[Qty],[UnitPrice],[LaborHrs],[DirectLaborCost],[OverheadCost],[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[IsWorkOrder])
 					VALUES (@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,0,NULL,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@StocklineId,@StocklineNumber,1)
 						
+					END
+
 					SELECT TOP 1 @DistributionSetupId=ID,
 					             @DistributionName=Name,
 								 @JournalTypeId =JournalTypeId,
-								 @CrDrType = CRDRType 
+								 @CrDrType = CRDRType, 
+								 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							FROM dbo.DistributionSetup WITH(NOLOCK)  
 						   WHERE UPPER(DistributionSetupCode) =UPPER('TDWOINVENTORYPARTS') 
 						     AND [DistributionMasterId] = @DistributionMasterId 
@@ -337,7 +346,10 @@ BEGIN
 					       @GlAccountName=AccountName 
 					  FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId=@GlAccountId
 
-					SET @GlAccountId = ISNULL(@GlAccountId,0) 
+					SET @GlAccountId = ISNULL(@GlAccountId,0)
+					
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails](JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
@@ -353,6 +365,8 @@ BEGIN
 										
 					INSERT INTO [dbo].[WorkOrderBatchDetails](JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,[Qty],[UnitPrice],[LaborHrs],[DirectLaborCost],[OverheadCost],[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[IsWorkOrder])
 					VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,0,NULL,@CustomerId ,@CustomerName,NULL ,NULL,NULL,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@StocklineId,@StocklineNumber,1)
+
+					END
 
 					SET @TotalDebit=0;
 					SET @TotalCredit=0;
@@ -405,7 +419,8 @@ BEGIN
 							 @GlAccountNumber = [GlAccountNumber],
 							 @GlAccountName = [GlAccountName],
 							 @CrDrType = [CRDRType],
-							 @IsAutoPost = ISNULL([IsAutoPost],0)
+							 @IsAutoPost = ISNULL([IsAutoPost],0),
+							 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
 				WHERE UPPER([DistributionSetupCode]) =UPPER('TDSWOINVENTORYPARTS') 
 				  AND [DistributionMasterId] = @DistributionMasterId 
@@ -493,6 +508,9 @@ BEGIN
 
 					SET @JournalBatchDetailId = SCOPE_IDENTITY()
 
+					IF(@IsBypassAccounting = 0)
+					BEGIN
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 						([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId]
 						,[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -511,11 +529,14 @@ BEGIN
 										
 					INSERT INTO [dbo].[WorkOrderBatchDetails]([JournalBatchDetailId],[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,[Qty],[UnitPrice],[LaborHrs],[DirectLaborCost],[OverheadCost],[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[IsWorkOrder])
 					VALUES (@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,0,NULL,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@StocklineId,@StocklineNumber,1)
-						
+					
+					END
+
 					SELECT TOP 1 @DistributionSetupId=ID,
 					             @DistributionName=Name,
 								 @JournalTypeId =JournalTypeId,
-								 @CrDrType = CRDRType 
+								 @CrDrType = CRDRType, 
+								 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							FROM dbo.DistributionSetup WITH(NOLOCK)  
 						   WHERE UPPER(DistributionSetupCode) =UPPER('TDSWOWIPPARTS') 
 						     AND [DistributionMasterId] = @DistributionMasterId 
@@ -528,6 +549,9 @@ BEGIN
 					  FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId=@GlAccountId
 
 					SET @GlAccountId = ISNULL(@GlAccountId,0) 
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails](JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
@@ -543,6 +567,8 @@ BEGIN
 										
 					INSERT INTO [dbo].[WorkOrderBatchDetails](JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,[Qty],[UnitPrice],[LaborHrs],[DirectLaborCost],[OverheadCost],[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[IsWorkOrder])
 					VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,0,NULL,@CustomerId ,@CustomerName,NULL ,NULL,NULL,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@StocklineId,@StocklineNumber,1)
+
+					END
 
 					SET @TotalDebit=0;
 					SET @TotalCredit=0;
@@ -597,7 +623,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_TearDownWOBatchTriggerBasedonDistribution' 
-			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@DistributionMasterId, '') AS VARCHAR(100))  
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@DistributionMasterId, 0) AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

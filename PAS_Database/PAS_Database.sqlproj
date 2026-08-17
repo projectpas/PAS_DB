@@ -1432,6 +1432,7 @@
     <Build Include="dbo\Views\vw_managementstructurelevel.sql" />
     <Build Include="dbo\Views\vw_location.sql" />
     <Build Include="dbo\Views\vw_ledger.sql" />
+    <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Views\vw_itemmaster_list_main.sql" />
     <Build Include="dbo\Views\vw_ItemClassification.sql" />
     <Build Include="dbo\Views\vw_EmailTemplate.sql" />
@@ -2618,6 +2619,9 @@
     <Build Include="Database Triggers\backup_objects.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialListType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialKitType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderSettlementDetailsUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\SubWorkOrderSettlementDetailType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowPublicationType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowMeasurementType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowMaterialListType.sql" />
@@ -2881,6 +2885,7 @@
     <Build Include="dbo\Stored Procedures\USP_Audit_AuditHistory.sql" />
     <Build Include="dbo\User Defined Types\AuditFields.sql" />
     <Build Include="dbo\Stored Procedures\USP_ValidateTenderStocklineCostDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ValidateDistributionSetup.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteTenderStocklineDetail.sql" />
     <Build Include="dbo\Tables\ReportUrlParams_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveReportUrlParamsData_1.sql" />
@@ -4341,6 +4346,7 @@
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageListByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyCode.sql" />
@@ -4415,6 +4421,9 @@
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCreditMemoDetailsForXero.sql" />

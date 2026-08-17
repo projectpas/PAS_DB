@@ -16,7 +16,8 @@
 ** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
 ** 6     02-July-2026  Sahdev Saliya     Added Resale Number [PN-17018]
 ** 7     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
-** 8     06-July-2026  Divyesh Kathitiya Added VAT Number [PN-17124] 
+** 8     06-July-2026  Divyesh Kathitiya Added VAT Number [PN-17124]
+** 9     12-AUG-2026   Moin Bloch        Added LegalEntityId PN-17651
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -43,6 +44,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @IsAddressForBilling BIT,
     @IsAddressForShipping BIT,
     @VendorParentId BIGINT = NULL,
+    @LegalEntityId BIGINT = NULL,
     @IsTradeRestricted BIT = 0,
     @TradeRestrictedMemo NVARCHAR(MAX) = NULL,
     @IsTrackScoreCard BIT = 0,
@@ -119,7 +121,7 @@ BEGIN
 			IsParent, IsVendorAlsoCustomer, VendorEmail, VendorCode, VendorContractReference,
 			DoingBusinessAsName, VendorURL, IsCertified, VendorAudit, MasterCompanyId, IsActive,
 			IsDeleted, CreditTermsId, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,
-			IsAddressForBilling, IsAddressForShipping, VendorParentId, AddressId,
+			IsAddressForBilling, IsAddressForShipping, VendorParentId, LegalEntityId, AddressId,
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
@@ -130,7 +132,7 @@ BEGIN
 			@IsParent, @IsVendorAlsoCustomer, @VendorEmail, @VendorCode, @VendorContractReference,
 			@DoingBusinessAsName, @VendorURL, @IsCertified, @VendorAudit, @MasterCompanyId, @IsActive,
 			@IsDeleted, @CreditTermsId, GETUTCDATE(), GETUTCDATE(), @CreatedBy, @UpdatedBy,
-			@IsAddressForBilling, @IsAddressForShipping, @VendorParentId, @AddressId,
+			@IsAddressForBilling, @IsAddressForShipping, @VendorParentId, @LegalEntityId, @AddressId,
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,

@@ -267,6 +267,7 @@
     <Build Include="dbo\Tables\Tables1\CompanyEmailConfiguration.sql" />
     <Build Include="dbo\Tables\Tables1\Condition.sql" />
     <Build Include="dbo\Tables\Tables1\ConditionAudit.sql" />
+    <Build Include="dbo\Tables\ILSConditionMapping.sql" />
     <Build Include="dbo\Tables\Tables1\Contact.sql" />
     <Build Include="dbo\Tables\Tables1\ContactAudit.sql" />
     <Build Include="dbo\Tables\Tables1\ContactTag.sql" />
@@ -1412,6 +1413,7 @@
     <Build Include="dbo\Tables\Tables2\WorkScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcess.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcessAudit.sql" />
+    <Build Include="dbo\Views\vw_ILSConditions.sql" />
     <Build Include="dbo\Views\vw_WorkOrderStage.sql" />
     <Build Include="dbo\Views\vw_WOInspectionConditions.sql" />
     <Build Include="dbo\Views\vw_warehouse.sql" />
@@ -2803,6 +2805,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO.sql" />
     <Build Include="dbo\Tables\KitMasterHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveKITMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionCodeMap.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKitPartHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateGLLeafNodeSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_New.sql" />

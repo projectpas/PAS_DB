@@ -13,6 +13,7 @@
     [SequenceNo]       VARCHAR (256)  NOT NULL,
     [Code]             VARCHAR (100)  NULL,
     [GroupCode]        VARCHAR (20)   NULL,
+    [IsILSCondition]   BIT            NULL,
     CONSTRAINT [PK_ConditionAudit] PRIMARY KEY CLUSTERED ([ConditionAuditId] ASC)
 );
 

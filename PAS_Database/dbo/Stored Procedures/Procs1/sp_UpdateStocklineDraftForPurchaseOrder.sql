@@ -38,7 +38,7 @@ BEGIN
 			ID BIGINT NOT NULL IDENTITY,
 			[PurchaseOrderId] [bigint] NULL,
 			[PurchaseOrderPartId] [bigint] NULL,
-			[QuantityOrdered] [INT] NULL
+			[QuantityOrdered] DECIMAL(18,6) NULL
 		)
 
 		INSERT INTO #tmpPurchaseOrderPart ([PurchaseOrderId],[PurchaseOrderPartId],[QuantityOrdered])

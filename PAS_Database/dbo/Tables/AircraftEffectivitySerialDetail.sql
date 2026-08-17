@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[AircraftEffectivitySerialDetail] (
+    [AircraftEffectivitySerialDetailId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [AircraftEffectivityId]             BIGINT        NOT NULL,
+    [AircraftPublicationId]             BIGINT        NOT NULL,
+    [ACPSectionId]                      BIGINT        NULL,
+    [MakeTypeId]                        BIGINT        NOT NULL,
+    [AircraftModelId]                   BIGINT        NULL,
+    [AircraftSubModel]                  VARCHAR (100) NULL,
+    [ItemMasterId]                      BIGINT        NULL,
+    [IsAircraftSerialNum]               BIT           NOT NULL,
+    [IsAffect]                          BIT           NOT NULL,
+    [SerialType]                        VARCHAR (20)  NOT NULL,
+    [FromSerial]                        VARCHAR (100) NOT NULL,
+    [ToSerial]                          VARCHAR (100) NULL,
+    [MasterCompanyId]                   INT           NOT NULL,
+    [CreatedBy]                         VARCHAR (256) NOT NULL,
+    [UpdatedBy]                         VARCHAR (256) NOT NULL,
+    [CreatedDate]                       DATETIME2 (7) CONSTRAINT [DF_AESD_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedDate]                       DATETIME2 (7) CONSTRAINT [DF_AESD_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsDeleted]                         BIT           CONSTRAINT [DF_AESD_IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_AircraftEffectivitySerialDetail] PRIMARY KEY CLUSTERED ([AircraftEffectivitySerialDetailId] ASC),
+    CONSTRAINT [CK_AESD_SerialType] CHECK ([SerialType]='Range' OR [SerialType]='Individual'),
+    CONSTRAINT [FK_AESD_AircraftEffectivity] FOREIGN KEY ([AircraftEffectivityId]) REFERENCES [dbo].[AircraftEffectivity] ([AircraftEffectivityId]),
+    CONSTRAINT [FK_AESD_AircraftPublication] FOREIGN KEY ([AircraftPublicationId]) REFERENCES [dbo].[AircraftPublication] ([AircraftPublicationId]),
+    CONSTRAINT [FK_AESD_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+);
+

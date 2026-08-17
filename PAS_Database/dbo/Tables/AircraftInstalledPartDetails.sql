@@ -39,8 +39,16 @@
     [InstallFlightTime]              DECIMAL (18, 6) NULL,
     [InstallCycles]                  DECIMAL (18, 6) NULL,
     [LastFlownDate]                  DATETIME2 (7)   NULL,
+    [PurchaseOrderNumber]            VARCHAR (50)    NULL,
+    [RepairOrderNumber]              VARCHAR (50)    NULL,
+    [WorksheetNumber]                VARCHAR (50)    NULL,
+    [WorkOrderNum]                   VARCHAR (30)    NULL,
+    [IsFromAircraft]                 BIT             NULL,
+    [EngineRegistryId]               BIGINT          NULL,
+    [ServiceLifeUnitMonthsOrDays]    INT             DEFAULT (NULL) NULL,
+    [ServiceLifeLimit]               BIGINT          DEFAULT (NULL) NULL,
+    [LastInspectionDate]             DATETIME2 (7)   NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
-    CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 

@@ -4615,6 +4615,25 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateLeaseSetting.sql" />
     <Build Include="dbo\Tables\LeaseStatus.sql" />
+    <Build Include="dbo\Tables\WorksheetMapping.sql" />
+    <Build Include="dbo\Tables\EngineRegistryHeader.sql" />
+    <Build Include="dbo\Tables\AircraftHistoryTemplate.sql" />
+    <Build Include="dbo\Tables\AircraftHistory.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivitySerialDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEngineRegistryState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LinkPartToExistingWorksheet.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

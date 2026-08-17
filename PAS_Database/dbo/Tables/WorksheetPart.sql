@@ -18,7 +18,6 @@
     [SignedById]             BIGINT         NULL,
     [MaintenanceTimeMinutes] INT            NULL,
     CONSTRAINT [PK_WorksheetPart] PRIMARY KEY CLUSTERED ([WorksheetPartId] ASC),
-    CONSTRAINT [FK_WorksheetPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorksheetPart_WorksheetHeader] FOREIGN KEY ([WorksheetHeaderId]) REFERENCES [dbo].[WorksheetHeader] ([WorksheetHeaderId]) ON DELETE CASCADE
+    CONSTRAINT [FK_WorksheetPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 

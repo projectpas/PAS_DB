@@ -15,6 +15,7 @@
     2    28-08-2025     Devendra Shekh			      Modified (added SourceBy, MarketplaceRef)
 	3    08-12-2025     Sahdev Saliya                 Added New Field :- VendorRFQPurchaseOrderNumber
 	4    02-01-2026     Bhargav Saliya                Added New Field :- CustomerRFQNo
+	5    17-08-2026     Divyesh Kathiriya             Added HasReceivedQuantity for Purchase Order cancellation. [PN-17482]
 
 	USP_GetPOHeaderDetails 12345
 **************************************************************/
@@ -97,7 +98,10 @@ BEGIN
                 ISNULL(po.SourceBy, '') AS SourceBy,
                 ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
 				VRFQ.VendorRFQPurchaseOrderNumber,
-				ISNULL(rfq.CustomerRFQNo, '') AS CustomerRFQNo
+				ISNULL(rfq.CustomerRFQNo, '') AS CustomerRFQNo,
+				CAST(CASE WHEN EXISTS
+				    (SELECT 1 FROM [DBO].[PurchaseOrderPart] WITH(NOLOCK) WHERE [PurchaseOrderPart].[PurchaseOrderId] = po.[PurchaseOrderId] AND ISNULL([PurchaseOrderPart].[QuantityReceived], 0) > 0) 
+                     THEN 1 ELSE 0 END AS BIT) AS [HasReceivedQuantity]
             FROM dbo.PurchaseOrder po WITH (NOLOCK)
             LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK)
                 ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @moduleId

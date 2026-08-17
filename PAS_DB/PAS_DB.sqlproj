@@ -4809,6 +4809,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetILSConditionCodeMap.sql" />
     <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportDataAll.sql" />
+    <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

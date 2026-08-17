@@ -40,6 +40,8 @@
 );
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_AccountingCalendarAudit] ON [dbo].[AccountingCalendar]
@@ -63,3 +65,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_AccountingCalendar_MC_LE_ToDate]
+    ON [dbo].[AccountingCalendar]([MasterCompanyId] ASC, [LegalEntityId] ASC, [ToDate] ASC)
+    INCLUDE([AccountingCalendarId], [FiscalYear], [Period], [FromDate], [IsDeleted], [IsAdjustPeriod], [PeriodName]);
+

@@ -1,4 +1,23 @@
-﻿CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsAssetByItemMaster]
+﻿
+/*************************************************************           
+ ** File:   [AutoCompleteDropdownsAssetByItemMaster]           
+ ** Author:   Hemant Saliya
+ ** Description: This stored procedure is used retrieve Asset List for Auto Complete Dropdown 
+ ** Purpose:         
+ ** Date:   11-Aug-2026  
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    Unknown	  Unknown			Created
+	2	 11-Aug-2026  Abhishek Jirawla  Removed the AssetAttributeType table (PN-16823)
+     
+--EXEC [AutoCompleteDropdownsAssetByItemMaster] '',3954,'true', 20,'0',0
+**************************************************************/
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsAssetByItemMaster]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -31,8 +50,9 @@ BEGIN
 						a.AssetAttributeTypeId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId 
+						--JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						LEFT JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND ac.ItemMasterId = @ItemMasterId AND (a.IsActive=1 AND ISNULL(a.IsDeleted,0) = 0 AND (Upper(TC.StatusCode) = 'EQUIPMENT' OR Upper(TC.StatusCode) = 'TOOLS' OR Upper(TC.StatusCode) = 'MACHINERY')
 						AND (a.Name LIKE @StartWith + '%'))
 			   UNION     
@@ -48,8 +68,9 @@ BEGIN
 						a.AssetAttributeTypeId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId 
+						--JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						LEFT JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND a.AssetRecordId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
 				ORDER BY Label				
 			End
@@ -67,8 +88,9 @@ BEGIN
 						a.AssetAttributeTypeId
 					FROM dbo.Asset a  WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId 
+						--JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						LEFT JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 						--JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
 						--JOIN [dbo].[CapabilityType] ct WITH(NOLOCK) ON ct.CapabilityTypeId = ac.CapabilityId
 						--JOIN AssetAttributeType aat WITH(NOLOCK) ON a.TangibleClassId =  aat.TangibleClassId
@@ -88,8 +110,9 @@ BEGIN
 						a.AssetAttributeTypeId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId 
+						--JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						LEFT JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND a.AssetRecordId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
 				ORDER BY Label	
 			END	

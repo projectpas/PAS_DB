@@ -9,8 +9,11 @@
     [UpdatedDate]       DATETIME2 (7) CONSTRAINT [DF_AircraftSection_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
     [IsActive]          BIT           CONSTRAINT [DF_AircraftSection_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]         BIT           CONSTRAINT [DF_AircraftSection_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [Code]              VARCHAR (50)  NULL,
     CONSTRAINT [PK_AircraftSection] PRIMARY KEY CLUSTERED ([AircraftSectionId] ASC)
 );
+
+
 
 
 GO

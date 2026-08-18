@@ -1,4 +1,4 @@
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -48,6 +48,7 @@
 	38   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module
 	39    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	40	 02-JULY-2026       Ayushi Patel            Generate vendorCode and CustomerCode dynamically 
+	41	 18-Aug-2026        Ayushi Patel            [PN-17672] Handle 'Y'/'N' values along with 'YES'/'NO' to store corresponding 0/1 values for all modules.
   exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -265,25 +266,25 @@ BEGIN
 					WHERE FieldName = 'ManufacturerId';
 				
 				END
-				IF LOWER(@isSerialized) = 'no'
+				IF LOWER(@isSerialized) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = ' '  -- Set SerialNumber to blank
 					WHERE FieldName = 'SerialNumber';
 				END
-				IF LOWER(@isSerialized) = 'yes' and ISNULL(@SerialNumber,'') = ''
+				IF LOWER(@isSerialized) IN ('yes', 'y') and ISNULL(@SerialNumber,'') = ''
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = 'Default'  -- Set Default serialNumber
 					WHERE FieldName = 'SerialNumber';
 				END
-				IF LOWER(@isSerialized) = 'yes'
+				IF LOWER(@isSerialized) IN ('yes', 'y')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '1'  -- Set isSerialized to 1
 					WHERE FieldName = 'isSerialized';
 				END
-				ELSE IF LOWER(@isSerialized) = 'no'
+				ELSE IF LOWER(@isSerialized) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '0'  -- Set isSerialized to 0
@@ -450,25 +451,25 @@ BEGIN
 					WHERE FieldName = 'ManufacturerId';
 				
 				END
-				IF LOWER(@isSerialized) = 'no'
+				IF LOWER(@isSerialized) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = ' '  -- Set SerialNumber to blank
 					WHERE FieldName = 'SerialNumber';
 				END
-				IF LOWER(@isSerialized) = 'yes' and ISNULL(@SerialNumber,'') = ''
+				IF LOWER(@isSerialized) IN ('yes', 'y') and ISNULL(@SerialNumber,'') = ''
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = 'Default'  -- Set Default serialNumber
 					WHERE FieldName = 'SerialNumber';
 				END
-				IF LOWER(@isSerialized) = 'yes'
+				IF LOWER(@isSerialized) IN ('yes', 'y')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '1'  -- Set isSerialized to 1
 					WHERE FieldName = 'isSerialized';
 				END
-				ELSE IF LOWER(@isSerialized) = 'no'
+				ELSE IF LOWER(@isSerialized) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '0'  -- Set isSerialized to 0
@@ -516,7 +517,7 @@ BEGIN
 				UPDATE #ImportFields
 				SET FieldValue =
 					CASE 
-						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) IN ('yes', 'y') THEN '1'
 						ELSE '0'
 					END
 				WHERE FieldName IN ('IsPo', 'IsRo');
@@ -529,7 +530,7 @@ BEGIN
 			IF(@ModuleId = @DefaultMessageModule)
 			BEGIN
 			
-			    IF (LOWER(LTRIM(RTRIM(ISNULL(@IsDefault, '')))) = 'yes')
+			    IF (LOWER(LTRIM(RTRIM(ISNULL(@IsDefault, '')))) IN ('yes', 'y'))
 			    BEGIN  
 			        UPDATE DefaultMessage
 			        SET IsDefault = 0
@@ -540,7 +541,7 @@ BEGIN
 
 				UPDATE #ImportFields
 				SET FieldValue = CASE 
-									WHEN LOWER(LTRIM(RTRIM(ISNULL(FieldValue, '')))) = 'yes' THEN '1'
+									WHEN LOWER(LTRIM(RTRIM(ISNULL(FieldValue, '')))) IN ('yes', 'y') THEN '1'
 									ELSE '0'
 								 END
 				WHERE FieldName = 'IsDefault';
@@ -551,7 +552,7 @@ BEGIN
 				UPDATE #ImportFields
 				SET FieldValue =
 					CASE 
-						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) IN ('yes', 'y') THEN '1'
 						ELSE '0'
 					END
 				WHERE FieldName = 'IsWorksInShop';
@@ -561,7 +562,7 @@ BEGIN
 				UPDATE #ImportFields
 				SET FieldValue =
 					CASE 
-						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) IN ('yes', 'y') THEN '1'
 						ELSE '0'
 					END
 				WHERE FieldName in ( 'IsCustAlerts', 'IncludeInDashboard', 'IncludeInStageReport', 'WorkableBacklog', 'IncludeInTAT', 'QuoteDays', 'ShippedDays','ApprovedDays' )
@@ -571,7 +572,7 @@ BEGIN
 				UPDATE #ImportFields
 				SET FieldValue =
 					CASE 
-						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) IN ('yes', 'y') THEN '1'
 						ELSE '0'
 					END
 				WHERE FieldName in ( 'IsDocument', 'IsInspectorDate', 'IsInspector', 'IsDate', 'IsTechnician' )
@@ -686,7 +687,7 @@ BEGIN
 
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'   
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE  'NULL,' END
@@ -695,7 +696,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'  
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'	
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -733,7 +734,7 @@ BEGIN
 				END
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -742,7 +743,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'		
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -759,26 +760,26 @@ BEGIN
 			SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
 			SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
 
-			IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''
+			IF LOWER(@IsAddressForBilling) IN ('yes', 'y') OR @IsAddressForBilling = ''
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '1'  -- Set isAddressForBilling to 1
 					WHERE FieldName = 'isAddressForBilling';
 				END
-				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				ELSE IF LOWER(@IsAddressForBilling) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '0'  -- Set isAddressForBilling to 0
 					WHERE FieldName = 'isAddressForBilling';
 				END
 				
-				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				IF LOWER(@IsAddressForShipping) IN ('yes', 'y') OR @IsAddressForShipping = ''
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '1'  -- Set isAddressForShipping to 1
 					WHERE FieldName = 'isAddressForShipping';
 				END
-				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				ELSE IF LOWER(@IsAddressForShipping) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '0'  -- Set isAddressForShipping to 0
@@ -787,14 +788,14 @@ BEGIN
 				
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END) 
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
 							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','   
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 	
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END) 	
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
 							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','  
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
@@ -809,26 +810,26 @@ BEGIN
 			SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
 			SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
 
-			IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''
+			IF LOWER(@IsAddressForBilling) IN ('yes', 'y') OR @IsAddressForBilling = ''
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '1'  -- Set isAddressForBilling to 1
 					WHERE FieldName = 'isAddressForBilling';
 				END
-				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				ELSE IF LOWER(@IsAddressForBilling) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '0'  -- Set isAddressForBilling to 0
 					WHERE FieldName = 'isAddressForBilling';
 				END
 				
-				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				IF LOWER(@IsAddressForShipping) IN ('yes', 'y') OR @IsAddressForShipping = ''
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '1'  -- Set isAddressForShipping to 1
 					WHERE FieldName = 'isAddressForShipping';
 				END
-				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				ELSE IF LOWER(@IsAddressForShipping) IN ('no', 'n')
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = '0'  -- Set isAddressForShipping to 0
@@ -837,14 +838,14 @@ BEGIN
 				
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END) 
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
 							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','   
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 	
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END) 	
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
 							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','  
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
@@ -857,7 +858,7 @@ BEGIN
 			BEGIN
 			SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','  ELSE 'NULL,' END
@@ -866,7 +867,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''',' 		
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -881,7 +882,7 @@ BEGIN
 			BEGIN
 					SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -890,7 +891,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'		
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -1168,7 +1169,7 @@ BEGIN
 								FieldName + ' = ' +
 								CASE 
 									WHEN FieldType = 'string' THEN QUOTENAME(FieldValue, '''')
-									WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'true') THEN '1' ELSE '0' END
+									WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'y', 'true') THEN '1' ELSE '0' END
 									WHEN FieldType IN ('datetime', 'date') THEN 
 										CASE WHEN ISNULL(FieldValue, '') <> ''
 											 THEN 'CONVERT(DATETIME, ' + QUOTENAME(FieldValue, '''') + ', 101)'
@@ -1345,7 +1346,7 @@ BEGIN
 								ELSE
 									CASE 
 										WHEN FieldType = 'string' THEN QUOTENAME(FieldValue, '''')
-										WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'true') THEN '1' ELSE '0' END
+										WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'y', 'true') THEN '1' ELSE '0' END
 										WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(' + FieldValue + ', ''Z'', '''') AS DATETIME), 101)' ELSE 'NULL,' END
 
 										WHEN FieldType = 'number' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END
@@ -1508,26 +1509,26 @@ BEGIN
 				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
 				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
 				
-				IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''	
+				IF LOWER(@IsAddressForBilling) IN ('yes', 'y') OR @IsAddressForBilling = ''	
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '1'  -- Set isAddressForBilling to 1
 					WHERE FieldName = 'isAddressForBilling';
 				END
-				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				ELSE IF LOWER(@IsAddressForBilling) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '0'  -- Set isAddressForBilling to 0
 					WHERE FieldName = 'isAddressForBilling';
 				END
 
-				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				IF LOWER(@IsAddressForShipping) IN ('yes', 'y') OR @IsAddressForShipping = ''
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '1'  -- Set isAddressForShipping to 1
 					WHERE FieldName = 'isAddressForShipping';
 				END
-				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				ELSE IF LOWER(@IsAddressForShipping) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '0'  -- Set isAddressForShipping to 0
@@ -1549,26 +1550,26 @@ BEGIN
 				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
 				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
 				
-				IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''	
+				IF LOWER(@IsAddressForBilling) IN ('yes', 'y') OR @IsAddressForBilling = ''	
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '1'  -- Set isAddressForBilling to 1
 					WHERE FieldName = 'isAddressForBilling';
 				END
-				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				ELSE IF LOWER(@IsAddressForBilling) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '0'  -- Set isAddressForBilling to 0
 					WHERE FieldName = 'isAddressForBilling';
 				END
 
-				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				IF LOWER(@IsAddressForShipping) IN ('yes', 'y') OR @IsAddressForShipping = ''
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '1'  -- Set isAddressForShipping to 1
 					WHERE FieldName = 'isAddressForShipping';
 				END
-				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				ELSE IF LOWER(@IsAddressForShipping) IN ('no', 'n')
 				BEGIN
 					UPDATE #DynamicKeyValue
 					SET FieldValue = '0'  -- Set isAddressForShipping to 0
@@ -1620,7 +1621,7 @@ BEGIN
 
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
@@ -1629,7 +1630,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'y', 'true') THEN '1,' ELSE '0,' END)        
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),' 
 							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
 							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END

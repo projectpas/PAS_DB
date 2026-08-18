@@ -38,7 +38,7 @@ BEGIN
 			INNER JOIN  dbo.CapabilityType CT WITH (NOLOCK) ON IMC.CapabilityTypeId = CT.CapabilityTypeId
 			LEFT JOIN  dbo.Employee EMP WITH (NOLOCK) ON IMC.VerifiedById = EMP.EmployeeId
 			--LEFT JOIN #ItemMasterCapesMSDATA PMS ON PMS.MSID = IMC.ManagementStructureId
-		WHERE IMC.ItemMasterId  = @ItemMasterId ;
+		WHERE IMC.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		--SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId  AND ISNULL(IM.IsNonStock,0) = 0 ;
 		

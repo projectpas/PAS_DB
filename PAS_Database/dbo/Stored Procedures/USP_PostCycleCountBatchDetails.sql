@@ -21,7 +21,8 @@
 	8    28/11/2025          Moin Bloch          Changed Logic For CR/DR
 	9    09/July/2026          RAJESH GAMI          [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10	 07/07/2026	         Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
-    EXEC [dbo].[USP_PostCycleCountBatchDetails] 
+	11   13/Aug/2026          RAJESH GAMI          [PN-17009] - Re-added missing ISNULL(SL.IsNonStock,0)=0 filter on the Stockline GLAccount lookup that was dropped when this proc was ported from BETA.
+    EXEC [dbo].[USP_PostCycleCountBatchDetails]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
 @CycleCountId BIGINT,
@@ -438,7 +439,7 @@ BEGIN
 				 --GET STOCKLINE GLACCOUNT.
 				 SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 				    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-				    WHERE SL.[StockLineId] = @StocklineId;
+				    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 				 
 				 --GET GL Accounting Data from GLAccout based on stockline
 				 SELECT @GlAccountId = [GLAccountId],

@@ -26,6 +26,7 @@
 	11   05-MAY-2026   Sahdev Saliya        Added CustReqDate Fiield In Update ReceivingCustomerWork Table (PN-16257)
 	12   23-JUN-2026   Nakul Chandigra		Added StockUnitOfMeasureId for StockLine insert and update operations.(PN-16914)
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14    13/Aug/2026			 RAJESH GAMI						[PN-17008] - Re-added 2 missing ISNULL(...IsNonStock,0)=0 filters on ItemMaster lookups that were dropped when this proc was ported from BETA.
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -285,14 +286,14 @@ BEGIN
 					   @RevicedPNId = [RevisedPartId],	
 					   @GlAccountId = [GlAccountId],
 					   @IsTimeLife = [IsTimeLife]
-				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT 
 					   @GlAccountId = im.[GlAccountId],
 					   @GlAccountName = gl.[AccountName]
 				  FROM [dbo].[ItemMaster] AS im WITH(NOLOCK) 
 					INNER JOIN [dbo].[GLAccount] AS gl ON gl.GLAccountId = im.GLAccountId
-				 WHERE [ItemMasterId] = @ItemMasterId;
+				 WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
                 SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 

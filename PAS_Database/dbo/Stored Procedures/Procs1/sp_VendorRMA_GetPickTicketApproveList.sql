@@ -11,6 +11,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ** 6    07/07/2026   Ayushi          [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
  ** 7    09/July/2026 Rajesh Gami     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** 8    13/Aug/2026  Rajesh Gami     [PN-17009] - Applied missing ISNULL(sll.IsNonStock,0) = 0 filter in AvailableQty CTE
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
     @VendorRMAId BIGINT
@@ -91,7 +92,7 @@ BEGIN
             INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId
             INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = sp.StockLineId
             INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
-            WHERE sp.VendorRMAId = @VendorRMAId
+            WHERE sp.VendorRMAId = @VendorRMAId AND ISNULL(sll.IsNonStock,0) = 0
             GROUP BY sp.ItemMasterId
         ),
 

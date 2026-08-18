@@ -45,6 +45,7 @@
 	33   06/Aug/2026  Priyansh Patel	[PN-16941] Added Order by to get the type from ReceivingReconciliationDetails
 	34	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	35   07/08/2026   Moin Bloch          Fix For Receiving Reconciliation Entry
+	36   13/Aug/2026			 RAJESH GAMI						[PN-17009] - Re-added 6 missing ISNULL(IsNonStock,0)=1 filters on NONSTOCK-branch Stockline SELECT/UPDATE/GLAccount-JOIN statements that were dropped when this proc was ported from BETA.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -527,9 +528,9 @@ BEGIN
 										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
 										@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
 										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(UnitCost,0),@ROStocklineUnitPrice=ISNULL(UnitCost,0),@StocklineQtyAvail=QuantityOnHand 
-								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
+								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
 												  
-								SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId
+								SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 
 							END
 							IF(UPPER(@StockType) = 'ASSET')
@@ -736,7 +737,7 @@ BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
 											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE StockLineId=@StocklineId
+											WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 										END
 
 										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType= CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
@@ -744,7 +745,7 @@ BEGIN
 										WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
 										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0)=1
 									END
 
 									IF(UPPER(@StockType) = 'ASSET')
@@ -1063,7 +1064,7 @@ BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
 											UPDATE dbo.Stockline
 											SET  UnitCost=@StocklineUnitPrice
-											WHERE StockLineId=@StocklineId
+											WHERE StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
 										END
 										
 										SELECT TOP 1 @DistributionSetupId=ID, 
@@ -1081,7 +1082,7 @@ BEGIN
 													 @GlAccountName=GL.AccountName 
 												FROM DBO.Stockline SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0)=1
 									END
 									IF(UPPER(@StockType) = 'ASSET')
 									BEGIN

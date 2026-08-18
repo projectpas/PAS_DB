@@ -21,6 +21,7 @@
 	9    08/06/2026   Moin Bloch		Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
 	10    22/07/2026   Priyansh Patel    UOM Changes [PN-16941]
 	11	 29/06/2026	  Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	12   13/Aug/2026   RAJESH GAMI    [PN-17009] - Re-added 4 missing ISNULL(SL.IsNonStock,0) GL-lookup filters on the STOCK and NONSTOCK Stockline branches that were dropped when this proc was ported from BETA.
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails]
@@ -219,7 +220,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 
 							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							  WHERE SL.StockLineId = @StocklineId;	
+							  WHERE SL.StockLineId = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;	
 						END
 						ELSE
 						BEGIN
@@ -229,7 +230,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 
 							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							  WHERE SL.StockLineId = @StocklineId;	
+							  WHERE SL.StockLineId = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;	
 						END
 					END
 					IF(UPPER(@StockType) = 'NONSTOCK')
@@ -243,7 +244,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 						
 							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE SL.[StockLineId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 						END
 						ELSE
 						BEGIN
@@ -253,7 +254,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 						
 							FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							WHERE SL.[StockLineId]=@StocklineId;
+							WHERE SL.[StockLineId]=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1;
 						END
   					END
 					IF(UPPER(@StockType) = 'ASSET')

@@ -51,7 +51,8 @@
 	35    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	36    16/July/2026			 RAJESH GAMI						[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
     37   06/08/2026   Priyansh Patel    Added the removed code  [PN-17271]
-declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
+	38    13/Aug/2026   RAJESH GAMI       [PN-17008] - Re-added missing ISNULL(im.IsNonStock,0) = 0 filter on the #tmpPNManufacturer (STOCK) rebuild query's ItemMaster JOIN; the query was independently rewritten (LastStockline CTE) after the BETA port and the rewrite dropped the filter that the twin NS-suffixed block still has.
+declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
@@ -489,7 +490,7 @@ BEGIN
                           im.isSerialized
                         FROM LastStockline ls
                         JOIN dbo.Stockline st WITH (NOLOCK) ON st.StockLineId = ls.StockLineId
-                        JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId;
+                        JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId AND ISNULL(im.IsNonStock,0) = 0;
 
                         DELETE FROM #tmpCodePrefixes;
 

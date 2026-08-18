@@ -46,7 +46,7 @@ BEGIN
                   ,IM.[LocationId]
                   ,IM.[ShelfId]
                   ,IM.[BinId]
-              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;
+              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 	END TRY
     BEGIN CATCH
 		IF @@trancount > 0

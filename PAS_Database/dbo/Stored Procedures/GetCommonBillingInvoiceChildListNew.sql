@@ -30,6 +30,7 @@
 	17   20/July/2026 RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoice child list (WorkOrder branch untouched).
 	18   05/Aug/2026 Moin Bloch		[PN-17513] - Added UNION ALL arm in SO @AllowBillingBeforeShipping=0 branch to include Service/Non-Stock parts even when no shipment has been done, since these items are never physically shipped.
 	19   03/Aug/2026  Moin Bloch		[PN-17540] - Fix For Duplicate Issue
+	20   18-Aug-2026  Rajesh Gami		[PN-17636] Added IsReOpened flag/column end-to-end (temp table, CTE/INSERT column lists, SELECT projections, final result set) so the SO Billing/Invoicing child list surfaces whether an invoice was re-opened, ported from BETA.
 
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
@@ -134,6 +135,7 @@ BEGIN
 				[IsVersionIncrease] INT NULL,
 				[IsNewInvoice] INT NULL,
 				[IsBilling] BIT NULL,
+				[IsReOpened] BIT NULL,
 				[ECCN] VARCHAR(200) NULL,
 				[HSCODE] VARCHAR(200) NULL,
 				[Weight] DECIMAL(18,6) NULL,
@@ -556,7 +558,7 @@ BEGIN
 					;WITH CTE (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,IsReOpened,
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized,CreditMemoHeaderId) AS
 					(
 					SELECT DISTINCT 
@@ -642,6 +644,7 @@ BEGIN
 					0 AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 					ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
+					ISNULL(sobi.[IsReOpened], 0) as [IsReOpened],
 
 					sop.ECCN AS ECCN,
 					sop.HSCODE AS HSCODE,
@@ -673,7 +676,7 @@ BEGIN
 					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
-					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId,imt.[StockUnitOfMeasure],imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId]
+					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId,sobi.[IsReOpened],imt.[StockUnitOfMeasure],imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId]
 
 					UNION ALL
 
@@ -728,6 +731,7 @@ BEGIN
 					0 AS DepositAmount,
 					(CASE WHEN sobii2.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 					ISNULL(sobi2.[IsInvoicePosted], 0) as [IsBilling],
+					ISNULL(sobi2.[IsReOpened], 0) as [IsReOpened],
 					sop2.ECCN AS ECCN,
 					sop2.HSCODE AS HSCODE,
 					sop2.[Weight] AS [Weight],
@@ -758,12 +762,12 @@ BEGIN
 					INSERT INTO #InvoiceMainDetails (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,IsReOpened,
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,CreditMemoHeaderId)
 					SELECT IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,IsReOpened,
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,CreditMemoHeaderId FROM CTE
 				END
 				ELSE
@@ -778,7 +782,7 @@ BEGIN
 						INSERT INTO #InvoiceMainDetails(IndexColumn,
 							SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 							StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-							TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+							TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],[IsReOpened],
 							ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized,CreditMemoHeaderId)
 							(
 							SELECT DISTINCT 
@@ -877,13 +881,14 @@ BEGIN
 								Where a.ReferenceId = @ReferenceId AND b.BillingInvoicingItemId = sobii.BillingInvoicingItemId  AND a.ModuleId = @SOModuleId
 								AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS InvoiceStatus,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.ShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
-							sobii.VersionNo, 
+							sobii.VersionNo,
 							(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 							CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 							0 AS IsProformaInvoice,
 							0 AS DepositAmount,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 							ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
+							ISNULL(sobi.[IsReOpened], 0) as [IsReOpened],
 
 							stk.ECCN AS ECCN,
 							stk.HSCODE AS HSCODE,
@@ -960,6 +965,7 @@ BEGIN
 								0 AS DepositAmount,
 								(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 								ISNULL(sobi.IsInvoicePosted, 0) as [IsBilling],
+								ISNULL(sobi.IsReOpened, 0) as [IsReOpened],
 								stk.ECCN AS ECCN,
 								stk.HSCODE AS HSCODE,
 								stk.[Weight] AS [Weight], 
@@ -1127,7 +1133,7 @@ BEGIN
 						INSERT INTO #InvoiceMainDetails(IndexColumn,
 						SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId , BillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 						StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-						SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+						SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],[IsReOpened],
 						ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,IsSerialized,CreditMemoHeaderId)
 						SELECT DISTINCT 
 							0 AS IndexColumn,
@@ -1164,6 +1170,7 @@ BEGIN
 							0 AS DepositAmount,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 							ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
+							ISNULL(sobi.[IsReOpened], 0) as [IsReOpened],
 
 							stk.ECCN AS ECCN,
 							stk.HSCODE AS HSCODE,
@@ -1309,7 +1316,7 @@ BEGIN
 				INSERT INTO #InvoiceMainDetails (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],[IsReOpened],
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges,IsSerialized,CreditMemoHeaderId)
 				(
 					
@@ -1349,6 +1356,7 @@ BEGIN
 						ISNULL(sobii.DepositAmount,0) AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 						ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
+						ISNULL(sobi.[IsReOpened], 0) as [IsReOpened],
 						'' AS ECCN,
 						'' AS HSCODE,
 						0 AS [Weight], 
@@ -1434,6 +1442,7 @@ BEGIN
 						   DepositAmount,
 						   IsAllowIncreaseVersionForBillItem,
 						   [IsBilling],
+						   [IsReOpened],
 						   ECCN,
 						   HSCODE,
 						   [Weight],
@@ -1484,6 +1493,7 @@ BEGIN
 							DepositAmount,
 							IsAllowIncreaseVersionForBillItem,
 							IsBilling,
+							IsReOpened,
 							ECCN,
 							HSCODE,
 							Weight,
@@ -1533,6 +1543,7 @@ BEGIN
 							DepositAmount,
 							IsAllowIncreaseVersionForBillItem,
 							IsBilling,
+							IsReOpened,
 							ECCN,
 							HSCODE,
 							Weight,

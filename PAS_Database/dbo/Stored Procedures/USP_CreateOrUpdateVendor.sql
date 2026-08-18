@@ -18,6 +18,7 @@
 ** 7     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 ** 8     06-July-2026  Divyesh Kathitiya Added VAT Number [PN-17124]
 ** 9     12-AUG-2026   Moin Bloch        Added LegalEntityId PN-17651
+** 10    17-AUG-2026   Nakul             Propagated LegalEntityId to linked Customer record PN-17674
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -258,7 +259,8 @@ BEGIN
 										Memo,
 										SyncToken,
 										ResaleNumber,
-										VatNumber
+										VatNumber,
+										LegalEntityId
 									)
 									VALUES (
 										@VendorTypeId,
@@ -306,7 +308,8 @@ BEGIN
 										@Notes, -- Memo
 										NULL,  -- SyncToken
 										@ResaleNumber, -- ResaleNumber
-										@VatNumber -- VAT Number
+										@VatNumber, -- VAT Number
+										@LegalEntityId -- LegalEntityId
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

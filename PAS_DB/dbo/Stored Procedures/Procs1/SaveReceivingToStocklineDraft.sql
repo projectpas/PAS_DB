@@ -841,7 +841,7 @@ BEGIN
 			NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable, NULL, NULL, NULL, 0, NULL,
 			0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL,
 			@IsParent_NonStock, 0, 1, NULL, NULL, NULL, NULL, @ConditionName, IM.WarehouseName, IM.LocationName, '',
-			'', NULL, @POPartGLAccountName, NULL, NULL, NULL, NULL, IM.SiteName, '', '', '',
+			'', NULL, @POPartGLAccountName, NULL, NULL, IM.ShelfName, IM.BinName, IM.SiteName, '', '', '',
 			NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000', NULL, NULL, NULL, IM.PurchaseUnitOfMeasureId,
 			IM.PurchaseUnitOfMeasure, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, 0,
 			NULL, NULL, NULL, NULL, NULL, NULL, @LotId, NULL, NULL, NULL, NULL,

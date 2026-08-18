@@ -19,6 +19,7 @@
 ** 8     06-July-2026  Divyesh Kathitiya    Added VAT Number [PN-17124]
 ** 9     01-Aug-2026   Bhargav Saliya       When we update a vendor at a time, there is no need to update the customer type [PN-17519]
 ** 10    12-AUG-2026   Moin Bloch           Added LegalEntityId PN-17651
+** 11    17-AUG-2026   Nakul                Propagated LegalEntityId to linked Customer record PN-17674
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorId BIGINT,
@@ -220,7 +221,8 @@ BEGIN
                     AddressId = @AddressId,
 					Memo = @Notes,
 					ResaleNumber = @ResaleNumber,
-                    VatNumber = @VatNumber
+                    VatNumber = @VatNumber,
+                    LegalEntityId = @LegalEntityId
                 WHERE CustomerId = @RelatedCustomerId;
 
                 IF @IsAddressForShipping = 1
@@ -334,7 +336,8 @@ BEGIN
 										Memo,
 										SyncToken,
 										ResaleNumber,
-                                        VatNumber
+                                        VatNumber,
+                                        LegalEntityId
 									)
 									VALUES (
 										@VendorTypeId,
@@ -382,7 +385,8 @@ BEGIN
 										@Notes, -- Memo
 										NULL,  -- SyncToken
 										@ResaleNumber, -- ResaleNumber
-                                        @VatNumber -- VAT Number
+                                        @VatNumber, -- VAT Number
+                                        @LegalEntityId -- LegalEntityId
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

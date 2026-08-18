@@ -17,6 +17,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
    6	26/05/2026  Priyansh Patel	    Added new field 'TTSN, TCSN '(PN-16477)
    7	30/06/2026  Amit Ghediya	    Update for Engine data [PN-17075]
    8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PurchaseUOMId/@PartNumber ItemMaster lookup
 
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
@@ -172,7 +173,7 @@ BEGIN
 		 ON CSTL.StockLineId = STL.StockLineId  
   
 		  WHERE ISNULL(IM.IsNonStock,0) = 0
-SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
      
 		 IF(ISNULL(@IsFromAircraft,0) = 1)
 		 BEGIN

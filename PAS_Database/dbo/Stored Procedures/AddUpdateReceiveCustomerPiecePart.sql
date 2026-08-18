@@ -17,6 +17,7 @@
 	5    12/05/2026   Nakul Chandigra  Added OutGoingItemMasterId And OutGoingPartNumber
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
+	8    13/Aug/2026   RAJESH GAMI    [PN-17008] - Re-added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter on the ItemMaster lookup that was dropped when this proc was ported from BETA.
  ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -259,7 +260,7 @@ BEGIN
 					   @IsDER = [IsDER],
 					   @OEM = [IsOEM], 
 					   @RevicedPNId = [RevisedPartId]					  
-				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
                 SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 

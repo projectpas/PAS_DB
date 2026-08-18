@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------   
 	1    07-02-2025   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @IsIgnorePartExist ItemMaster EXISTS checks (DER/PMA cases)
 exec sp_executesql N'EXEC USP_CopyWorkFlowDetailsToSubWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -751,17 +752,17 @@ SET NOCOUNT ON;
 
 								IF (@IsDER = 1 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1))
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 0 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 1 AND @IsPMA = 0)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 

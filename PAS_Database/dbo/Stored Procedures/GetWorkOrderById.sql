@@ -32,6 +32,7 @@
 	20   21/05/2026   Moin Bloch       Added  [AircraftSerialNumber] PN-16469
 	21    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	23    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(im.IsNonStock,0) = 0 / ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filters to the RestrictedParts/StockLine customer PN lookups, the Workflow lookup, and the @RevisedPartId lookup, to match the other ItemMaster lookups in this proc
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -569,7 +570,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 			JOIN [dbo].[RestrictedParts] rp WITH(NOLOCK) ON rc.[CustomerId] = rp.[ReferenceId]
 		WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rp.[ModuleId] = @ModuleEnumCustomer
-		AND rc.[StockLineId] = @StockLineId ;
+		AND rc.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		SELECT @PMACOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'PMA';
 		SELECT @DERCOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'DER';
@@ -616,7 +617,7 @@ BEGIN
 			INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON sl.[ConditionId] = con.[ConditionId]			
 			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 			LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId ;
+			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 		END
 		ELSE
 		BEGIN
@@ -660,7 +661,7 @@ BEGIN
 			LEFT JOIN [dbo].[Customer] c ON sl.[CustomerId] = c.[CustomerId]		
 			LEFT JOIN [dbo].[ItemGroup] ig ON im.[ItemGroupId] = ig.[ItemGroupId]
 			LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId ;
+			WHERE sl.[IsActive] = 1 AND sl.[IsDeleted] = 0 AND sl.[IsParent] = 1 AND sl.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 		END
 		
 		SELECT TOP 1 @WorkFlowNo = CONCAT(wf.[WorkOrderNumber], '_', wf.[Version]),
@@ -669,7 +670,7 @@ BEGIN
 		FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 ;
+		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 				
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               
                @WorkOrderStatusId [WorkOrderStatusId],               
@@ -989,7 +990,7 @@ BEGIN
 
 					SELECT @WorkFlowWorkOrderId = (SELECT TOP 1 [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @ID)
 					
-					SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId);
+					SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 );
 										
 					IF @RevisedPartId > 0
 					BEGIN

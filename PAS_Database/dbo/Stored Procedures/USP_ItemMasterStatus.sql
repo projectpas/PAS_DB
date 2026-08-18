@@ -26,7 +26,7 @@ BEGIN
 	BEGIN TRANSACTION
 
 	DECLARE @MasterPartId AS BIGINT;
-	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid;	
+	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 	IF(ISNULL(@ItemMasterid, 0) > 0)		
 	BEGIN

@@ -44,7 +44,7 @@ BEGIN
 		END
 
 	BEGIN TRY 
-	DECLARE @partNumber VARCHAR(120) = (SELECT Top 1 partnumber FROM DBO.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId And MasterCompanyId = @MasterCompanyId)
+	DECLARE @partNumber VARCHAR(120) = (SELECT Top 1 partnumber FROM DBO.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId And MasterCompanyId = @MasterCompanyId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 	IF OBJECT_ID(N'tempdb..#RFQHistory') IS NOT NULL
 	BEGIN
 		DROP TABLE #RFQHistory

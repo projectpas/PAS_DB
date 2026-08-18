@@ -26,9 +26,9 @@ BEGIN
 	BEGIN TRANSACTION
 
 	DECLARE @MasterPartId AS BIGINT;
-	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid;	
+	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
-		IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterid] = @ItemMasterid)
+		IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterid] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 		BEGIN
 			UPDATE [DBO].[ItemMaster] 
 			SET	[IsDeleted] = ISNULL(@IsDeleted, 0), [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()

@@ -58,7 +58,7 @@ BEGIN
 	  	  
 	  WHERE IMPS.ItemMasterId = @ItemMasterId;
 	  
-	  SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId;
+	  SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 	COMMIT TRANSACTION
 

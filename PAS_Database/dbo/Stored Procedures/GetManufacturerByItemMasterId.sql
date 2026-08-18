@@ -26,7 +26,7 @@ BEGIN
 			imcls.Name AS [label]
 		FROM DBO.Manufacturer imcls WITH (NOLOCK)
 		INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON imcls.ManufacturerId = im.ManufacturerId
-		WHERE imcls.IsDeleted = 0 AND im.ItemMasterId = @ItemMasterId;
+		WHERE imcls.IsDeleted = 0 AND im.ItemMasterId = @ItemMasterId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 	END TRY
 	BEGIN CATCH

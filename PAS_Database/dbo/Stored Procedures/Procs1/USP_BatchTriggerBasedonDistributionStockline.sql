@@ -17,6 +17,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Converted legacy dbo.NonStockInventory references (ReceivingPOStockline NONSTOCK branch) to dbo.Stockline with ISNULL(IsNonStock,0)=1
 	6    20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed NONSTOCK-branch MS lookup from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NONStockMSModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
+	7    13/08/2026   Rajesh Gami    [PN-17350] - Added missing AND ISNULL(IsNonStock,0)=1 filter on the Stockline lookups in the ReceivingPOStockline NONSTOCK branch so it only matches non-stock stockline records
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistributionStockline] 2,5,'10','ReceivingPO','Deep'
 ************************************************************************/
@@ -339,7 +340,7 @@ BEGIN
 	              BEGIN
 				      Select @VendorId=VendorId,@ReferenceId=StockLineId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StockLineNumber
 					  ,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf]
-					  from Stockline where StockLineId=@StocklineId;
+					  from Stockline where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
 					  select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					  select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
 					  select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
@@ -347,14 +348,14 @@ BEGIN
 					  SET @UnitPrice = @Amount;
 					  SET @Amount = (@Qty * @Amount);
 
-					  Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId from Stockline where StockLineId=@StocklineId;
-	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
+					  Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId from Stockline where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1;
+	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId
 	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 	                  select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from NonStocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
 					  Set @ReferencePartId=@partId	
 
-					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
-		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
+					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId AND ISNULL(IsNonStock,0)=1
+		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId
 				       AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 				      SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 					  -----NonStock - Inventory--------

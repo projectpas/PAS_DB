@@ -50,7 +50,7 @@ BEGIN
 			IM.IsActive,
 			IM.IsDeleted
 		FROM dbo.ItemMaster IM WITH (NOLOCK)
-		WHERE IM.ItemMasterId = @ItemMasterId AND IM.MasterCompanyId = @MasterCompanyId;
+		WHERE IM.ItemMasterId = @ItemMasterId AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		SET @MasterPartId = SCOPE_IDENTITY();
 

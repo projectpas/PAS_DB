@@ -37,7 +37,8 @@
 	23   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	25   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
---   EXEC [USP_CreateWorkOrder] 
+	26    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PartNumber ItemMaster lookups
+--   EXEC [USP_CreateWorkOrder]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
@@ -684,7 +685,7 @@ BEGIN
 
 	SELECT TOP 1 @ItemMasterId=[ItemMasterId],@ID=[ID] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 	
-	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 	IF ISNULL(@IsFromLot, 0) = 0
 	BEGIN
@@ -1042,7 +1043,7 @@ BEGIN
 		BEGIN
 		    DECLARE @NewWorkFlowName VARCHAR(50)='',@AddWorkFlow VARCHAR(20)='AddWorkFlow',@WorkFlowTemplateBody VARCHAR(MAX)=''
 			
-			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId;
+			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			SELECT @NewWorkFlowName=ISNULL([WorkOrderNumber],'') FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId]=@WorkflowId;
 			
 			SELECT TOP 1 @WorkFlowTemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddWorkFlow;

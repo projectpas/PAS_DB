@@ -22,6 +22,7 @@
 											always joined so its name always resolves.
 	3	01-08-2026	  Sumit Kumar			Added required fields [PN-17523]
 	4	 29-07-2026	  Abhishek Jirawala		Adding Tangible Class Id
+	5	18-08-2026	  Abhishek Jirawala		Adding Calibration details to AssetInventory
 
 --  EXEC [UpdateAssetInventoryAttributeColumns] 1123
 **************************************************************/
@@ -39,9 +40,29 @@ BEGIN
 			BEGIN
 			Declare @IsIntangible bit =0
 			Declare @AssetClassSource varchar(30) = NULL
+			Declare @AssetTangibleClassId bigint = NULL
+			Declare @AssetDeprNonDeprTangibleAssetsId bigint = NULL
+			Declare @ResolvedDeprNonDeprTangibleAssetsId bigint = NULL
 
 			select @IsIntangible = IsIntangible from dbo.Asset WITH(NOLOCK)  where AssetRecordId= @AssetRecordId
 			select @AssetClassSource = AssetClassSource from dbo.Asset WITH(NOLOCK) where AssetRecordId = @AssetRecordId
+			select @AssetTangibleClassId = TangibleClassId, @AssetDeprNonDeprTangibleAssetsId = DeprNonDeprTangibleAssetsId
+				from dbo.Asset WITH(NOLOCK) where AssetRecordId = @AssetRecordId
+
+			-- Prefer the exact DeprNonDeprTangibleAssetsId link on the Asset; a TangibleClassId can map to
+			-- more than one DeprNonDeprTangibleAssets row, so only fall back to it (deterministically,
+			-- lowest Id) when the Asset was never linked to a specific row.
+			IF (@AssetDeprNonDeprTangibleAssetsId IS NOT NULL)
+			BEGIN
+				SET @ResolvedDeprNonDeprTangibleAssetsId = @AssetDeprNonDeprTangibleAssetsId
+			END
+			ELSE IF (@AssetTangibleClassId IS NOT NULL)
+			BEGIN
+				SELECT TOP 1 @ResolvedDeprNonDeprTangibleAssetsId = DeprNonDeprTangibleAssetsId
+				FROM dbo.DeprNonDeprTangibleAssets WITH (NOLOCK)
+				WHERE TangibleClassId = @AssetTangibleClassId AND IsActive = 1 AND IsDeleted = 0
+				ORDER BY DeprNonDeprTangibleAssetsId
+			END
 
 			if(@IsIntangible =1)
 			begin
@@ -104,10 +125,11 @@ BEGIN
 						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
 						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
 						AI.DepreciationFrequencyName = ISNULL(asdf.Name, ''),
-						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId),
+						AI.DeprNonDeprTangibleAssetsId = ISNULL(DNTA.DeprNonDeprTangibleAssetsId, AI.DeprNonDeprTangibleAssetsId)
 					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.DeprNonDeprTangibleAssetsId = @ResolvedDeprNonDeprTangibleAssetsId
 						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
 						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
 						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId
@@ -118,7 +140,7 @@ BEGIN
 						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = DNTA.AssetDeprMethodId
 						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
 						LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
-					
+
 					WHERE AI.AssetInventoryId = @AssetInventoryId
 				END
 				ELSE
@@ -139,6 +161,8 @@ BEGIN
 						AI.DeprExpenseGLAccountName = GLD.AccountCode +'-'+ GLD.AccountName,
 						AI.AdDepsGLAccountId = DNTA.AccumDeprGLAccountId,
 						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
+						AI.CalibratedGLAccountId = DNTA.CalibratedGLAccountId,
+						AI.CalibratedGLAccountName = GLC.AccountCode +'-'+ GLC.AccountName,
 
 					    AI.AssetSaleGLAccountId =DNTA.AssetSaleGLAccountId,
 						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
@@ -146,16 +170,18 @@ BEGIN
 						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
 						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
 						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
-						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId)
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId),
+						AI.DeprNonDeprTangibleAssetsId = ISNULL(DNTA.DeprNonDeprTangibleAssetsId, AI.DeprNonDeprTangibleAssetsId)
 
 				    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.TangibleClassId = Asset.TangibleClassId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.DeprNonDeprTangibleAssetsId = @ResolvedDeprNonDeprTangibleAssetsId
 
 						--LEFT JOIN dbo.AssetAttributeType ATTB WITH (NOLOCK) ON ATTB.AssetAttributeTypeId = Asset.AssetAttributeTypeId
 						LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = DNTA.AcquiredGLAccountId
 						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
 						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
+						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId
 						LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = DNTA.AssetSaleGLAccountId
 						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = DNTA.AssetWriteOffGLAccountId
 						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = DNTA.AssetWriteDownGLAccountId

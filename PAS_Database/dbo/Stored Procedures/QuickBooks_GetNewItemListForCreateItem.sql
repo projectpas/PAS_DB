@@ -12,6 +12,8 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    10-FEB-2025   Abhishek Jirawla Created
+	2    05-MAY-2026   Moin Bloch       Added Xero PN-16014
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
@@ -22,6 +24,11 @@ AS
 BEGIN
 	DECLARE @InvModuleId INT = 0, @NonPOModuleId INT = 0, @NonPOModuleName VARCHAR(200) = '';
 	DECLARE @InvModuleName VARCHAR(200) = '';
+	DECLARE @QBIntegrationTypeId INT=1,@NSIntegrationTypeId INT=2,@XeroIntegrationTypeId INT=3
+
+	SELECT @QBIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'QuickBooks';
+	SELECT @NSIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'NetSuite';
+	SELECT @XeroIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'Xero';
 	
 	SELECT @InvModuleId = AccountingModuleId, @InvModuleName = AccountingModuleName FROM [dbo].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'ItemMaster';
 
@@ -30,7 +37,7 @@ BEGIN
 	BEGIN TRY
 
 		-- FOR QuickBooks
-		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
+		IF(ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId) 
 		BEGIN
 			SELECT IM.ItemMasterId, 
 				IM.partnumber, 
@@ -58,7 +65,25 @@ BEGIN
 				INNER JOIN DBO.GLAccount GLIncome WITH(NOLOCK) ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
 				INNER JOIN DBO.GLAccount GLAsset WITH(NOLOCK) ON IM.GLAccountId = GLAsset.GLAccountId
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
-			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, 0) = 0 AND ISNULL(IM.IsUpdated, 0) = 1
+			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, '') = '' AND ISNULL(IM.IsUpdated, 0) = 1
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		END
+		--For Xero
+		IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId) 
+		BEGIN
+			 SELECT IM.[ItemMasterId], 
+					IM.[partnumber], 
+					IM.[PartDescription],
+					IM.[ManufacturerId],
+					IM.[ManufacturerName],								
+					(SELECT [UnitCost] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [ItemMasterId] = IM.ItemMasterId AND [IsDeleted] = 0 AND [IsActive] = 1 AND [StockLineId] = (SELECT MAX(StockLineId) FROM [dbo].[Stockline] ST WITH(NOLOCK) WHERE ST.[ItemMasterId] = IM.[ItemMasterId]  AND ST.[IsDeleted] = 0 AND ST.[IsActive] = 1)) AS 'UnitCost'				
+				FROM DBO.ItemMaster IM WITH(NOLOCK)				
+				WHERE IM.MasterCompanyId = @MasterCompanyId 
+				  AND IM.IsDeleted = 0 
+				  AND IM.IsActive = 1 
+				  AND ISNULL(IM.QuickBooksReferenceId, '') = '' 
+				  AND ISNULL(IM.IsUpdated, 0) = 1
+		 AND ISNULL(IM.IsNonStock,0) = 0
 		END
 	END TRY    
 	BEGIN CATCH      

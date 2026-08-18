@@ -18,15 +18,17 @@
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
-	5    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
-    6	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM 
-
+    5	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM 
+	6    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
+    7	 19/06/2026	        Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    9    07/07/2026         Ayushi              [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
 @RMANumber=NULL,@Partnumber=NULL,@StockLineNumber=NULL,@PartDescription=NULL,
 @MasterCompanyId=1,@ViewType=N'detailview',@vendorRMADetailStatusId=3,
 @VendorRMAId=0,@VendorName=NULL,@QtyShipped=NULL
-
 **********************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]  
  @PageNumber INT,  
@@ -93,12 +95,12 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-            ([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QtyShipped,
+            ROUND((CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(RMS.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(RMS.QtyShipped,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END),2) AS QtyShipped,
             RMAD.VendorRMADetailId,
-			SL.[ControlNumber],
-			PurchaseUom.[ShortName] as UnitOfMeasure,
-			([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
-            ([dbo].[fn_ConvertUOM](ISNULL(SL.UnitCost, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],1,IM.[MasterCompanyId])) AS UnitCost,
+            SL.[ControlNumber],
+            PurchaseUom.[ShortName] AS UnitOfMeasure,
+            ROUND((CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(SL.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.QuantityAvailable,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END),2) AS QuantityAvailable,
+            CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(SL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.UnitCost,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],1,IM.[MasterCompanyId]) END AS UnitCost,
 			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
@@ -110,7 +112,7 @@ BEGIN
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
         LEFT JOIN [DBO].[UnitOfMeasure] PurchaseUom WITH (NOLOCK) ON SL.PurchaseUnitOfMeasureId = PurchaseUom.UnitOfMeasureId
 		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
-		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId)
+		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId) AND ISNULL(SL.IsNonStock,0) = 0
 		),
     FinalResult AS (  
     SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, ItemMasterId, PartNumberType, StockLineIdType, StockLineNumberType, PartDescriptionType, 

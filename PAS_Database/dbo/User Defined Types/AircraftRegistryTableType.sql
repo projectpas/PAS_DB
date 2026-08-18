@@ -22,6 +22,8 @@
     [AircraftStatus]      VARCHAR (100)   NULL,
     [MaintenanceStatusId] BIGINT          NULL,
     [MaintenanceStatus]   VARCHAR (100)   NULL,
+    [CustomerId]          BIGINT          NULL,
+    [CustomerName]        VARCHAR (100)   NULL,
     [Memo]                VARCHAR (MAX)   NULL,
     [IsActive]            BIT             NULL,
     [IsDeleted]           BIT             NULL,
@@ -29,5 +31,7 @@
     [CreatedBy]           VARCHAR (256)   NULL,
     [UpdatedBy]           VARCHAR (256)   NULL,
     [CreatedDate]         DATETIME2 (7)   NULL,
-    [UpdatedDate]         DATETIME2 (7)   NULL);
+    [UpdatedDate]         DATETIME2 (7)   NULL,
+    [Description]         VARCHAR (256)   NULL,
+    [EngineRegistryIds]   NVARCHAR (500)  NULL);
 

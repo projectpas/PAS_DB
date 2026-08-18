@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   07/01/2025   Vishal Suthar		Created
+	2   08/01/2026   SUMIT KUMAR		[PN-17518] Modified to delete related task instructions
 
 EXEC [DeleteWOTasksById] 3
 **************************************************************/
@@ -20,7 +21,20 @@ AS
 	BEGIN TRY
 	BEGIN TRANSACTION
 		
-		DELETE FROM DBO.WorkOrderTaskDetails WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM WorkOrderTask WHERE WorkOrderPartNumberId = @WOPartNoId);
+		-- Temporary table to hold task IDs for the given Work Order Part Number
+		DECLARE @WOTaskIds TABLE (WorkOrderTaskId BIGINT);
+
+		-- Retrieve all task IDs associated with the specified Work Order Part Number
+		INSERT INTO @WOTaskIds (WorkOrderTaskId)
+		SELECT WorkOrderTaskId FROM DBO.WorkOrderTask WHERE WorkOrderPartNumberId = @WOPartNoId;
+
+		-- Clean up related records from WorkOrderTaskDetails
+		DELETE FROM DBO.WorkOrderTaskDetails WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM @WOTaskIds);
+		
+		-- Clean up related records from WorkOrderTaskInstruction
+		DELETE FROM DBO.WorkOrderTaskInstruction WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM @WOTaskIds);
+		
+		-- Delete the parent WorkOrderTask records
 		DELETE FROM DBO.WorkOrderTask WHERE WorkOrderPartNumberId = @WOPartNoId;
 
 	COMMIT TRANSACTION

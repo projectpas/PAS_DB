@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetItemMasterDetailById]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Item Master detail by Id
@@ -16,10 +17,15 @@
 	4	 28-Aug-2025	Bhargav saliya		added new field Ranking
 	5	 22-Sep-2025	Divyesh Kathiriya   added new field: IsHotItem
 	6    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
-	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
-    10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
-	11   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
+	7    02/12/2025  Bhargav Saliya	  Revert Changes.
+	8    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+    9   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
+	10   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
+	11   23-June-2026   Rajesh Gami	        Getting return IsStocklineCreated is any stockline is created or not for this part [PN-16878]
+	12   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
+	13   03-Aug-2026     Rajesh Gami	        Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
+	14   03-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+	15   13-Aug-2026    Rajesh Gami         Removed duplicate IsService column from the SELECT list (it was selected twice - once after InWarranty and again after IsMfgExpirationDate); now selected only once [PN-17008]
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
@@ -35,7 +41,8 @@ BEGIN
 	BEGIN
 		IF (@ItemMasterId >0)
 		BEGIN
-			WITH CTE_IntegrationPortal AS (
+			DECLARE @isStocklineCreated BIT = CASE WHEN EXISTS (SELECT 1 FROM dbo.Stockline WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(isDeleted, 0) = 0 AND ISNULL(isActive,  0) = 1 ) THEN 1 ELSE 0 END
+			;WITH CTE_IntegrationPortal AS (
 				SELECT
 					iM.ItemMasterId,
 					STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking,
@@ -202,7 +209,19 @@ BEGIN
 						iM.Landings,
 						iM.Starts,
 						iM.CalendarDate,
-						iM.Model
+						ISNULL(IM.IsNonStock,0)IsNonStock,
+						ISNULL(iM.DiscountPurchasePercent,0) DiscountPurchasePercent,
+						ISNULL(iM.UnitCost,0) UnitCost,
+						ISNULL(iM.ListPrice,0) ListPrice,
+						iM.PriceDate,
+						ISNULL(iM.InWarranty,0) InWarranty,
+						ISNULL(iM.IsService, 0) AS IsService,
+						iM.Model,
+						@isStocklineCreated as  IsStocklineCreated,
+						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
+						iM.MfgExpirationDate,
+						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
+						iM.IsKitAssy
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

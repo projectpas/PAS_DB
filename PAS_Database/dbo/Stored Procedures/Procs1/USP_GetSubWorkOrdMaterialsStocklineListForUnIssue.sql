@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to Un Issue Stockline    
@@ -18,9 +18,10 @@
     1    02/07/2022   Hemant Saliya		Created
 	2    12/19/2023   Hemant Saliya		Updated for Add Kit Items
 *** 3    17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]     
-     
+    4	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForUnIssue 99,15
-
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]    
@@ -124,7 +125,9 @@ SET NOCOUNT ON
 						JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyIssued > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
@@ -134,6 +137,7 @@ SET NOCOUNT ON
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -212,7 +216,9 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
@@ -220,7 +226,8 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
-				) 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				)
 				SELECT  
 					WorkOrderId,
 					SubWorkOrderId,
@@ -229,14 +236,13 @@ SET NOCOUNT ON
 					ItemMasterId,
 					ConditionId,
 					MasterCompanyId,
-					dbo.fn_ConvertUOM(Quantity, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS Quantity,
-					dbo.fn_ConvertUOM(QuantityReserved, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityReserved,
-					dbo.fn_ConvertUOM(QuantityIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityIssued,
-					dbo.fn_ConvertUOM(QuantityOnOrder, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityOnOrder,
-					dbo.fn_ConvertUOM(QtyToBeUnIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QtyToBeUnIssued,
-
-					dbo.fn_ConvertUOM(UnitCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS UnitCost,
-					dbo.fn_ConvertUOM(ExtendedCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS ExtendedCost,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(Quantity,0) ELSE dbo.fn_ConvertUOM(Quantity,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS Quantity,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityReserved,0) ELSE dbo.fn_ConvertUOM(QuantityReserved,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityReserved,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityIssued,0) ELSE dbo.fn_ConvertUOM(QuantityIssued,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityIssued,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityOnOrder,0) ELSE dbo.fn_ConvertUOM(QuantityOnOrder,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityOnOrder,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QtyToBeUnIssued,0) ELSE dbo.fn_ConvertUOM(QtyToBeUnIssued,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QtyToBeUnIssued,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(UnitCost,0) ELSE dbo.fn_ConvertUOM(UnitCost,StockUOM,ConsumeUOM,1,MasterCompanyId) END AS UnitCost,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(ExtendedCost,0) ELSE dbo.fn_ConvertUOM(ExtendedCost,StockUOM,ConsumeUOM,1,MasterCompanyId) END AS ExtendedCost,
 					TaskId,
 					ProvisionId,
 					PartNumber,
@@ -252,22 +258,22 @@ SET NOCOUNT ON
 					IdNumber,
 					Manufacturer,
 					SerialNumber,
-					dbo.fn_ConvertUOM(QuantityAvailable, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityAvailable,
-					dbo.fn_ConvertUOM(QuantityOnHand, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityOnHand,
-					dbo.fn_ConvertUOM(StocklineQuantityOnOrder, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS StocklineQuantityOnOrder,
-					dbo.fn_ConvertUOM(StocklineQuantityTurnIn, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS StocklineQuantityTurnIn,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(QuantityAvailable,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityAvailable,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(QuantityOnHand,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityOnHand,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(StocklineQuantityOnOrder,0) ELSE dbo.fn_ConvertUOM(StocklineQuantityOnOrder,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS StocklineQuantityOnOrder,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(StocklineQuantityTurnIn,0) ELSE dbo.fn_ConvertUOM(StocklineQuantityTurnIn,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS StocklineQuantityTurnIn,
 					UnitOfMeasure,
 					Provision,
 					ProvisionStatusCode,
 					StockType,
-					dbo.fn_ConvertUOM(MSQuantityRequsted, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityRequsted,
-					dbo.fn_ConvertUOM(MSQuantityReserved, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityReserved,
-					dbo.fn_ConvertUOM(MSQuantityIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityIssued,
-					dbo.fn_ConvertUOM(QuantityPicked, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityPicked,
-					dbo.fn_ConvertUOM(MaterialsQuantityPicked, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MaterialsQuantityPicked,
-					dbo.fn_ConvertUOM(MSQtyToBeUnIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQtyToBeUnIssued,
-					dbo.fn_ConvertUOM(SLUnitCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS SLUnitCost,
-					dbo.fn_ConvertUOM(MSQunatityRemaining, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQunatityRemaining,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MSQuantityRequsted,0) ELSE dbo.fn_ConvertUOM(MSQuantityRequsted,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MSQuantityRequsted,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MSQuantityReserved,0) ELSE dbo.fn_ConvertUOM(MSQuantityReserved,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MSQuantityReserved,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MSQuantityIssued,0) ELSE dbo.fn_ConvertUOM(MSQuantityIssued,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MSQuantityIssued,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(QuantityPicked,0) ELSE dbo.fn_ConvertUOM(QuantityPicked,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS QuantityPicked,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MaterialsQuantityPicked,0) ELSE dbo.fn_ConvertUOM(MaterialsQuantityPicked,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MaterialsQuantityPicked,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MSQtyToBeUnIssued,0) ELSE dbo.fn_ConvertUOM(MSQtyToBeUnIssued,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MSQtyToBeUnIssued,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(SLUnitCost,0) ELSE dbo.fn_ConvertUOM(SLUnitCost,StockUOM,ConsumeUOM,1,MasterCompanyId) END AS SLUnitCost,
+					CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL(MSQunatityRemaining,0) ELSE dbo.fn_ConvertUOM(MSQunatityRemaining,StockUOM,ConsumeUOM,0,MasterCompanyId) END AS MSQunatityRemaining,
 					MatStlProvision,
 					MatStlProvisionCode,
 					IsStocklineAdded,

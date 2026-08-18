@@ -22,7 +22,12 @@
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
 	11   16-Apr-026  Bhargav Saliya	     UOM Changes
-	12   21-MAY-2026  Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+	12   21-MAY-2026 Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+    13   19/06/2026  Bhargav Saliya	     Revert UOM Changes No need to convert extended price
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+  16	 05/August/2026	    Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -132,7 +137,8 @@ BEGIN
 	END
 
    ;WITH Result AS (
-    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ([dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId)) AS 'QuoteAmount',  
+    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status',
+	ISNULL(SPC.NetSaleAmount, 0) AS 'QuoteAmount', 
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(SP.PriorityName,'') AS 'Priority',ISNULL(SP.PriorityName, '') AS 'PriorityType', (E.FirstName + ' ' + E.LastName) AS SalesPerson,  
     ISNULL(IM.partnumber,'') AS 'PartNumber',M.Name AS 'ManufacturerType',IsNull(IM.partnumber,'') AS 'PartNumberType', ISNULL(im.PartDescription, '') AS 'PartDescription', ISNULL(im.PartDescription, '') AS 'PartDescriptionType',  
     SOQ.AccountTypeName AS 'CustomerType',
@@ -172,8 +178,8 @@ BEGIN
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
 	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,NumberOfItemCount,SourceBy, MarketplaceRef,SalesOrderQuotePartId,QtyQuoted,QtyRequested,MainUnitSalesPrice from Result  
-    WHERE (  
-     (@GlobalFilter <>'' AND ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
+    WHERE     
+     (ISNULL(@GlobalFilter, '') = '' OR ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
        (CustomerName LIKE '%' +@GlobalFilter+'%') OR  
        (SalesPerson LIKE '%' +@GlobalFilter+'%') OR  
 	   (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR
@@ -190,8 +196,7 @@ BEGIN
 		(MarketplaceRef like '%' +@GlobalFilter+'%') OR
 	   (NumberOfItemCount LIKE '%' +@GlobalFilter+'%')
        ))  
-       OR     
-       (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR SalesOrderQuoteNumber LIKE  '%'+ @SOQNumber+'%') AND   
+       AND (ISNULL(@SOQNumber,'') ='' OR SalesOrderQuoteNumber LIKE  '%'+ @SOQNumber+'%') AND
        (ISNULL(@SalesOrderNumber,'') = '' OR SalesOrderNumber LIKE '%'+@SalesOrderNumber+'%') AND  
        (ISNULL(@CustomerName,'') = '' OR CustomerName LIKE  '%'+@CustomerName+'%') AND  
        (ISNULL(@Status,'') = '' OR Status LIKE  '%'+@Status+'%') AND  
@@ -211,8 +216,8 @@ BEGIN
 		(ISNULL(@MarketplaceRef,'') ='' OR MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
        (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
-	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
-       ))
+	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%')
+       )
 
      SELECT SalesOrderQuoteId,UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber',QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',isnull(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerType) 'ManufacturerType',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  

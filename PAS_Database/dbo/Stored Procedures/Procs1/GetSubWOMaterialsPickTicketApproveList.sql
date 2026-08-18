@@ -19,9 +19,11 @@
  ** --   --------     -------				--------------------------------          
     1    09/20/2021   Hemant Saliya			Created
 	2    12/19/2023	  Devendra Shekh		changes for kit
-*** 3    16/Mar/2026	Rajesh Gami			Added UOM Changes [PN-15714]     
+*** 3    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714] 
+	4	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE GetSubWOMaterialsPickTicketApproveList 48,30,31
-
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSubWOMaterialsPickTicketApproveList]
 @WorkOrderId BIGINT,
@@ -54,7 +56,7 @@ SET NOCOUNT ON
 					wom.ConditionCodeId AS ConditionId,
 					C.[Name] as CustomerName, 
 					C.CustomerCode,
-					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStockline WMSL JOIN dbo.StockLine sl WITH (NOLOCK) ON WMSL.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsId = WMSL.SubWorkOrderMaterialsId) AS QuantityAvailable,
+					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStockline WMSL JOIN dbo.StockLine sl WITH (NOLOCK) ON WMSL.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsId = WMSL.SubWorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0) AS QuantityAvailable,
 					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
 					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0) END AS QtyToShip,
 
@@ -76,6 +78,7 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer C WITH (NOLOCK) on C.CustomerId = WO.CustomerId
 				WHERE WOM.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				UNION ALL
 				
 				SELECT 
@@ -93,7 +96,7 @@ SET NOCOUNT ON
 					wom.ConditionCodeId AS ConditionId,
 					cr.[Name] as CustomerName, 
 					cr.CustomerCode,
-					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStocklineKIT wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId) AS QuantityAvailable,
+					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStocklineKIT wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId AND ISNULL(sl.IsNonStock,0) = 0) AS QuantityAvailable,
 					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
 					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1) END AS QtyToShip,
 
@@ -112,7 +115,8 @@ SET NOCOUNT ON
 					INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 					INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
-				WHERE wom.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
+				WHERE wom.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0
+				AND ISNULL(imt.IsNonStock,0) = 0
 				)
 				 SELECT 
 					cte.OrderPartId,
@@ -122,18 +126,18 @@ SET NOCOUNT ON
 					cte.PartNumber,
 					cte.PartDescription,
 					cte.Manufacturer,
-					CASE WHEN SL.StockLineId > 0 THEN dbo.fn_ConvertUOM(Qty, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.Qty END AS Qty,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN Qty ELSE dbo.fn_ConvertUOM(Qty,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.Qty END AS Qty,
 					cte.OrderNumber,
 					cte.OrderQuoteNumber,
 					cte.ItemMasterId,
 					cte.ConditionId,
 					cte.CustomerName,
 					cte.CustomerCode,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QuantityAvailable END AS QuantityAvailable,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToShip END AS QtyToShip,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QtyToPick, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToPick END AS QtyToPick,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QuantityAvailable ELSE dbo.fn_ConvertUOM(cte.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QuantityAvailable END AS QuantityAvailable,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QtyToShip ELSE dbo.fn_ConvertUOM(cte.QtyToShip,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToShip END AS QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QtyToPick ELSE dbo.fn_ConvertUOM(cte.QtyToPick,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToPick END AS QtyToPick,
 					cte.Status,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.ReadyToPick, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToPick END AS ReadyToPick,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.ReadyToPick ELSE dbo.fn_ConvertUOM(cte.ReadyToPick,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToPick END AS ReadyToPick,
 					cte.IsKitType
 				 FROM tmpCTE cte
 					LEFT JOIN dbo.Stockline SL

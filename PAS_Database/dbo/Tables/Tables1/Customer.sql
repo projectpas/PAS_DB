@@ -44,30 +44,21 @@
     [LastSyncDate]              DATETIME2 (7)  NULL,
     [Memo]                      NVARCHAR (MAX) NULL,
     [SyncToken]                 VARCHAR (200)  NULL,
+    [IntegrationTypeId]         INT            NULL,
+    [ResaleNumber]              VARCHAR (200)  NULL,
+    [VatNumber]                 VARCHAR (50)   NULL,
+    [LegalEntityId]             BIGINT         NULL,
     CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED ([CustomerId] ASC),
     CONSTRAINT [FK_Customer_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Customer_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_Customer_CustomerAffiliation] FOREIGN KEY ([CustomerAffiliationId]) REFERENCES [dbo].[CustomerAffiliation] ([CustomerAffiliationId]),
     CONSTRAINT [FK_Customer_CustomerType] FOREIGN KEY ([CustomerTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
+    CONSTRAINT [FK_Customer_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_Customer_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_Customer_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
 GO
-
-    
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Customer]
 ON [dbo].[Customer]
 AFTER INSERT, UPDATE, DELETE
@@ -75,8 +66,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     ;WITH
-    d AS (SELECT d.[CustomerId],d.[CustomerAffiliationId],d.[CustomerTypeId],d.[Name],d.[CustomerCode],d.[DoingBuinessAsName],d.[IsParent],d.[ParentId],d.[CustomerPhone],d.[CustomerPhoneExt],d.[Email],d.[AddressId],d.[IsAddressForBilling],d.[IsAddressForShipping],d.[IsCustomerAlsoVendor],d.[ContractReference],d.[IsPBHCustomer],d.[PBHCustomerMemo],d.[CustomerURL],d.[RestrictPMA],d.[RestrictDER],d.[ManagementStructureId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsCRMCustomer],d.[BillingAddressId],d.[ShippingAddressId],d.[IsTradeRestricted],d.[TradeRestrictedMemo],d.[IsTrackScoreCard],d.[CommunicationPreference],d.[Ismiscellaneous],d.[IsStageChange],d.[IsCommunicationPreference],d.[IsCustomerShipping],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[Memo],d.[SyncToken] FROM deleted d),
-    i AS (SELECT i.[CustomerId],i.[CustomerAffiliationId],i.[CustomerTypeId],i.[Name],i.[CustomerCode],i.[DoingBuinessAsName],i.[IsParent],i.[ParentId],i.[CustomerPhone],i.[CustomerPhoneExt],i.[Email],i.[AddressId],i.[IsAddressForBilling],i.[IsAddressForShipping],i.[IsCustomerAlsoVendor],i.[ContractReference],i.[IsPBHCustomer],i.[PBHCustomerMemo],i.[CustomerURL],i.[RestrictPMA],i.[RestrictDER],i.[ManagementStructureId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsCRMCustomer],i.[BillingAddressId],i.[ShippingAddressId],i.[IsTradeRestricted],i.[TradeRestrictedMemo],i.[IsTrackScoreCard],i.[CommunicationPreference],i.[Ismiscellaneous],i.[IsStageChange],i.[IsCommunicationPreference],i.[IsCustomerShipping],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[Memo],i.[SyncToken] FROM inserted i),
+    d AS (SELECT d.[CustomerId],d.[CustomerAffiliationId],d.[CustomerTypeId],d.[Name],d.[CustomerCode],d.[DoingBuinessAsName],d.[IsParent],d.[ParentId],d.[CustomerPhone],d.[CustomerPhoneExt],d.[Email],d.[AddressId],d.[IsAddressForBilling],d.[IsAddressForShipping],d.[IsCustomerAlsoVendor],d.[ContractReference],d.[IsPBHCustomer],d.[PBHCustomerMemo],d.[CustomerURL],d.[RestrictPMA],d.[RestrictDER],d.[ManagementStructureId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsCRMCustomer],d.[BillingAddressId],d.[ShippingAddressId],d.[IsTradeRestricted],d.[TradeRestrictedMemo],d.[IsTrackScoreCard],d.[CommunicationPreference],d.[Ismiscellaneous],d.[IsStageChange],d.[IsCommunicationPreference],d.[IsCustomerShipping],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[Memo],d.[SyncToken],d.[IntegrationTypeId],d.[ResaleNumber],d.[VatNumber],d.[LegalEntityId] FROM deleted d),
+    i AS (SELECT i.[CustomerId],i.[CustomerAffiliationId],i.[CustomerTypeId],i.[Name],i.[CustomerCode],i.[DoingBuinessAsName],i.[IsParent],i.[ParentId],i.[CustomerPhone],i.[CustomerPhoneExt],i.[Email],i.[AddressId],i.[IsAddressForBilling],i.[IsAddressForShipping],i.[IsCustomerAlsoVendor],i.[ContractReference],i.[IsPBHCustomer],i.[PBHCustomerMemo],i.[CustomerURL],i.[RestrictPMA],i.[RestrictDER],i.[ManagementStructureId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsCRMCustomer],i.[BillingAddressId],i.[ShippingAddressId],i.[IsTradeRestricted],i.[TradeRestrictedMemo],i.[IsTrackScoreCard],i.[CommunicationPreference],i.[Ismiscellaneous],i.[IsStageChange],i.[IsCommunicationPreference],i.[IsCustomerShipping],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[Memo],i.[SyncToken],i.[IntegrationTypeId],i.[ResaleNumber],i.[VatNumber],i.[LegalEntityId] FROM inserted i),
     paired AS (
         SELECT
             COALESCE(i.CustomerId, d.CustomerId ) AS CustomerId,
@@ -216,3 +207,10 @@ BEGIN
         OR
         (m.Action = 'D' AND m.OldValue IS NOT NULL);
 END;
+GO
+CREATE NONCLUSTERED INDEX [IX_Customer_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[Customer]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([CustomerTypeId], [CustomerAffiliationId], [AddressId], [Name], [CustomerCode], [Email], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [QuickBooksReferenceId], [LastSyncDate], [IsCustomerAlsoVendor], [IsUpdated], [IsTrackScoreCard], [ResaleNumber], [VatNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports GetCustomerList's tenant/soft-delete/active filter (see
+-- UOM_GetCustomerList_Deploy.sql for the full review).
+GO

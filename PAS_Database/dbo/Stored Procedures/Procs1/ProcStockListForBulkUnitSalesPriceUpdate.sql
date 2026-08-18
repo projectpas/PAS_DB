@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [ProcStockListForBulkUnitSalesPriceUpdate]               
  ** Author:  Rajesh Gami  
  ** Description: This stored procedure is used to get stockline list fro bulk unit sales price update      
@@ -22,10 +22,15 @@
 	5    07/02/2024   Ekta Chandegra    added @ConditionId
 	6    08/02/2024   Ekta Chandegra    Retrieve PP_UnitPurchasePrice from ItemMasterPurchaseSales
 	7    14/02/2024   Ekta Chandegra    Retrieve ManufacturerId from ItemMaster
-    
--- EXEC [ProcStockList] 947    
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    04-Aug-2026   Rajesh Gami       [PN-17009] Merge Non-Stock Inventory into Stockline: Non-Stock rows are
+									 excluded from this Stock-only bulk unit-sales-price tool via
+									 ISNULL(IsNonStock,0) = 0 on ItemMaster/RevisedPart/Stockline references
+									 (no toggle - this feature does not apply to Non-Stock/Service items).
+-- EXEC [ProcStockList] 947
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
+CREATE PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -213,7 +218,8 @@ BEGIN
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		  LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
-		  LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
+		   AND ISNULL(rPart.IsNonStock,0) = 0
+		   LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 		  LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
 		  LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ISNULL(stl.QuantityAvailable,0)  > 0 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
@@ -221,7 +227,7 @@ BEGIN
 		 AND stl.IsParent = 1 
 		 AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
 		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))     
-		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0         
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT * INTO #TempResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
@@ -462,7 +468,8 @@ BEGIN
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		 LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId          
-		 LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
+		  AND ISNULL(rPart.IsNonStock,0) = 0
+		  LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 		 LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
 		 LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		 WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
@@ -473,7 +480,7 @@ BEGIN
         AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
 		
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
-	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
+	   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT * INTO #TempResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR 
@@ -721,7 +728,8 @@ BEGIN
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId    
-	   LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
+	    AND ISNULL(rPart.IsNonStock,0) = 0
+	    LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
 	   LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
@@ -730,7 +738,7 @@ BEGIN
 		 AND ISNULL(stl.QuantityAvailable,0) >0
 		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END       
 		 AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
-		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
+		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ','))) AND ISNULL(stl.IsNonStock,0) = 0  
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT * INTO #TempALTResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
@@ -977,7 +985,8 @@ BEGIN
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId    
-	   LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
+	    AND ISNULL(rPart.IsNonStock,0) = 0
+	    LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
 	   LEFT JOIN DBO.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
@@ -989,7 +998,7 @@ BEGIN
 	    AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
 		AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
-	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
+	   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT * INTO #TempALTResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    

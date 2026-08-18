@@ -28,8 +28,14 @@
     [ConnectionString]         NVARCHAR (MAX) NULL,
     [TokenUserName]            VARCHAR (100)  NULL,
     [TokenPassword]            VARCHAR (100)  NULL,
+    [IsXeroAccountingEnabled]  BIT            NULL,
+    [DBName]                   VARCHAR (255)  NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
+
+
+
+
 
 
 
@@ -90,3 +96,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_MasterCompany_Code]
+    ON [dbo].[MasterCompany]([MasterCompanyCode] ASC)
+    INCLUDE([MasterCompanyId], [companylogo]);
+

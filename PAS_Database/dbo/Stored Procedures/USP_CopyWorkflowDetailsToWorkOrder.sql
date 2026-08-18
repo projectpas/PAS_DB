@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
  ** Author: HEMANT SALIYA
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -20,10 +20,13 @@
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
-	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
-	8	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
-	9	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
-
+	7	 27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
+	8	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
+	9	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
+	10	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
+	13    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @IsIgnorePartExist ItemMaster EXISTS checks (DER/PMA cases)
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -608,6 +611,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -618,6 +622,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -629,6 +634,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 									IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
@@ -660,18 +666,18 @@ SET NOCOUNT ON;
 							DECLARE @ConditionCodeId BIGINT, @Item NVARCHAR(MAX),
 									@Figure NVARCHAR(MAX), @TaskId BIGINT, @Quantity INT, 
 									@UnitCost DECIMAL(18,2), @ExtendedCost DECIMAL(18,2), 
-									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX),
+									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX), @Notes NVARCHAR(MAX),
 									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
-							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
+							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, Notes, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
 							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
 							WHERE WM.WorkflowId = @WorkflowId AND ISNULL(WM.IsDeleted, 0) = 0
 							ORDER BY WT.[SequenceNumber] ASC
 
 							OPEN newmaterial_cursors
-							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @Notes, @IsDeferred, @WorkflowMaterialListId
 
 							WHILE @@FETCH_STATUS = 0
 							BEGIN
@@ -756,17 +762,17 @@ SET NOCOUNT ON;
 
 								IF (@IsDER = 1 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1))
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 0 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 1 AND @IsPMA = 0)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 
@@ -788,14 +794,14 @@ SET NOCOUNT ON;
 																		IsActive, IsDeleted, MasterCompanyId, WorkOrderId, WorkFlowWorkOrderId, 
 																		ItemMasterId, TaskId, ConditionCodeId, MaterialMandatoriesId, 
 																		ItemClassificationId, Quantity, UnitOfMeasureId, UnitCost, ExtendedCost, 
-																		Memo, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow)
+																		Memo, Notes, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow)
 										SELECT @createdBy, @createdBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 
 											   @masterCompanyId, @workOrderId, @WorkFlowWorkOrderId, @ItemMasterId, 
 											   CASE WHEN ISNULL(@IsTaskBasedWO, 0) > 0 THEN @MaterialsWorkOrderTaskId ELSE @TaskId END AS TaskId, 
 											   @ConditionCodeId, 
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
-											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
+											   @Memo, @Notes, @IsDeferred, @ProvisionId, @Figure, @Item, 1
 										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId  AND ISNULL(WFM.IsDeleted, 0) = 0
 										order by [Order]
 									END
@@ -803,7 +809,7 @@ SET NOCOUNT ON;
 
 								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @Notes, @IsDeferred, @WorkflowMaterialListId
 							END
 
 							CLOSE newmaterial_cursors
@@ -1288,6 +1294,11 @@ SET NOCOUNT ON;
 										[IsFromWorkFlow] BIT NULL,
 										[NewParentId] [BIGINT] NULL,
 									)
+
+									DECLARE @MaxExistingParentSeq INT = 0;
+									SELECT @MaxExistingParentSeq = ISNULL(MAX(TRY_CAST(SequenceNumber AS INT)), 0)
+									FROM dbo.WorkOrderTaskInstruction WITH (NOLOCK)
+									WHERE WorkOrderTaskId = @WorkOrderTaskId AND ParentId IS NULL AND ISNULL(IsDeleted, 0) = 0;
 									
 									;WITH ParentInstructions AS (
 										SELECT 
@@ -1297,7 +1308,7 @@ SET NOCOUNT ON;
 											WFD.[Action] AS InstructionTitle,
 											WFD.[Description] AS InstructionDetails,
 											T.IsPrintInWO,
-											ROW_NUMBER() OVER (ORDER BY WFD.WorkflowDirectionId) AS ParentSequence
+											ROW_NUMBER() OVER (ORDER BY TRY_CAST(WFD.[Sequence] AS DECIMAL(10, 4)), WFD.WorkflowDirectionId) + @MaxExistingParentSeq AS ParentSequence
 										FROM dbo.WorkflowDirection WFD WITH (NOLOCK)
 										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
 										WHERE WFD.WorkflowId = @WorkflowId 
@@ -1317,7 +1328,7 @@ SET NOCOUNT ON;
 											T.IsPrintInWO,
 											ROW_NUMBER() OVER (
 												PARTITION BY WFD.ParentId 
-												ORDER BY WFD.WorkflowDirectionId
+												ORDER BY TRY_CAST(WFD.[Sequence] AS DECIMAL(10, 4)), WFD.WorkflowDirectionId
 											) AS ChildSequence
 										FROM dbo.WorkflowDirection WFD WITH (NOLOCK)
 										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
@@ -1332,31 +1343,50 @@ SET NOCOUNT ON;
 									INSERT INTO #tmpWorkflowDirection(WorkOrderTaskId,WorkflowDirectionId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
 												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
 									SELECT 
-										@WorkOrderTaskId,
-										p.WorkflowDirectionId,
-										NULL AS ParentId,
-										1 AS IsParent,
-										p.InstructionTitle,
-										CAST(p.ParentSequence AS VARCHAR(100)) AS SequenceNumber,
-										p.InstructionDetails,
-										p.IsPrintInWO,
-										@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 1
-									FROM ParentInstructions p
+										WorkOrderTaskId,
+										WorkflowDirectionId,
+										ParentId,
+										IsParent,
+										InstructionTitle,
+										SequenceNumber,
+										InstructionDetails,
+										IsPrintInWO,
+										MasterCompanyId,
+										CreatedBy,
+										UpdatedBy,
+										CreatedDate,
+										UpdatedDate,
+										IsActive,
+										IsDeleted,
+										IsFromWorkFlow
+									FROM (
+										SELECT 
+											@WorkOrderTaskId AS WorkOrderTaskId,
+											p.WorkflowDirectionId,
+											NULL AS ParentId,
+											1 AS IsParent,
+											p.InstructionTitle,
+											CAST(p.ParentSequence AS VARCHAR(100)) AS SequenceNumber,
+											p.InstructionDetails,
+											p.IsPrintInWO,
+											@MasterCompanyId AS MasterCompanyId, @CreatedBy AS CreatedBy, @CreatedBy AS UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, 1 AS IsActive, 0 AS IsDeleted, 1 AS IsFromWorkFlow
+										FROM ParentInstructions p
 
-									UNION ALL
+										UNION ALL
 
-									SELECT 
-										@WorkOrderTaskId,
-										c.WorkflowDirectionId,
-										c.ParentId,
-										0 AS IsParent,
-										c.InstructionTitle,
-										CAST(c.ChildSequence AS VARCHAR(100)) AS SequenceNumber,
-										c.InstructionDetails,
-										c.IsPrintInWO,
-										@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 1
-									FROM ChildInstructions c
-									ORDER BY ParentId, IsParent DESC, SequenceNumber;
+										SELECT 
+											@WorkOrderTaskId AS WorkOrderTaskId,
+											c.WorkflowDirectionId,
+											c.ParentId,
+											0 AS IsParent,
+											c.InstructionTitle,
+											CAST(c.ChildSequence AS VARCHAR(100)) AS SequenceNumber,
+											c.InstructionDetails,
+											c.IsPrintInWO,
+											@MasterCompanyId AS MasterCompanyId, @CreatedBy AS CreatedBy, @CreatedBy AS UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, 1 AS IsActive, 0 AS IsDeleted, 1 AS IsFromWorkFlow
+										FROM ChildInstructions c
+									) AS DirectionRows
+									ORDER BY IsParent DESC, ParentId, TRY_CAST(SequenceNumber AS DECIMAL(10, 4)), WorkflowDirectionId;
 
 									--FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 									--	LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId

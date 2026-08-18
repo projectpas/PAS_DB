@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SalesOrderSummarizedHistoryByCustomer]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SOQ Summarized History By Customer.    
@@ -17,9 +17,12 @@
 	3	 01/05/2026	  Moin Bloch	Modified Added UOM changes
 	4    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	5    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
+	6    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 --EXEC [SalesOrderSummarizedHistoryByCustomer] 115640, 1
 **************************************************************/
-
 CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
@@ -50,9 +53,9 @@ BEGIN
 						0 AS CustApproved,
 						C.Code AS CurrencyName,
 						--((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
+						ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOPC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) END) + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
 						--((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) * [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
+						ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) END) * (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOP.[QtyOrder],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId) END),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
 						SO.SalesOrderNumber,
 						SOQ.SalesOrderQuoteNumber,
 						SO.VersionNumber,
@@ -81,7 +84,7 @@ BEGIN
 						LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 						LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 						LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month)
+					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month )
 
 					SELECT CustomerName, CustomerId, SalesOrderId, Condition, CustApproved, CurrencyName, SalesOrderNumber, SalesOrderQuoteNumber,
 					VersionNumber, SODate, StatusName, Revenue AS Revenue,DirectCost AS DirectCost, (Revenue - DirectCost) AS Margin,

@@ -1,17 +1,11 @@
-﻿-- =============================================
--- Author:		<Ayesha Sultana>
--- Create date: <7/8/2023>
--- Description:	<Search Shipping List Data>
--- =============================================
-
-/**************************************************************             
+﻿/**************************************************************             
   ** Change History             
  **************************************************************             
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1    23/08/2023				 Ayesha Sultana						Filter Changes & bug fixes
 	2    24/08/2023				 Ayesha Sultana						vendor rma changes & sorting fixes
-	2    28/08/2023				 Ayesha Sultana						ShipVia & ShipDate fetch
+	3    28/08/2023				 Ayesha Sultana						ShipVia & ShipDate fetch
 	4    11/09/2023				 Ayesha Sultana						BUG FIXES ON RECORD COUNT
 	5	 11/04/2024				 Vishal Suthar						Modified to make use of new SO Part tables
 	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
@@ -19,8 +13,11 @@
 	8	 28/05/2025				 Devendra Shekh						added InvoiceStatus Field
 	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO & fix the Currency related issue for the SO
 	10   04-12-2025				 Amit Ghediya						Added qtyShipped,qtyRemaining for shipping details
+	11   09-06-2026              Priyansh Patel						UOM changes releted to qtyshipped,qtyRemaining [PN-16778]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[SearchShippingListData] 
+CREATE       PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -249,7 +246,6 @@ BEGIN
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0  and RPT.IsConfirmed = 1
 					 	--and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
 							--			WHERE RSI.IsDeleted = 0) 
-
 					GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
 								IMT.ItemMasterId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId,RS.ShipDate,SV.Name
 
@@ -530,7 +526,6 @@ BEGIN
 						  LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = RS.ShipViaId -- and SV.IsPrimary=1
 
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0 and RPT.IsConfirmed = 1 AND  RS.AirwayBill IS NOT NULL
-
 					 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RS.ShipDate,SV.Name,RS.AirwayBill,
 								IMT.RevisedPartId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId
 
@@ -582,8 +577,11 @@ BEGIN
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
-								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,qtyRemaining,NumberOfItems
+								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,
+										FORMAT(ISNULL(QtyShipped,0), 'N', 'en-us') AS QtyShipped,
+								
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,
+										FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -817,7 +815,6 @@ BEGIN
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0  and RPT.IsConfirmed = 1 AND  RS.AirwayBill IS NULL
 								and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
 										WHERE RSI.IsDeleted = 0) 
-
 					 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
 								IMT.ItemMasterId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId
 
@@ -868,8 +865,8 @@ BEGIN
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
-								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,qtyRemaining,NumberOfItems
+								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,FORMAT(ISNULL(QtyShipped,0), 'N', 'en-us') AS QtyShipped,
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 

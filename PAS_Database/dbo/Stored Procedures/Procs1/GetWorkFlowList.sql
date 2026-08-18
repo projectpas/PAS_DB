@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkFlowList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Work Flow List    
@@ -24,7 +24,8 @@
 	10   04-05-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 	11   07-05-2026   Priyansh Patel   Global filter updated [PN-16341]
 	12   18-05-2026   Priyansh Patel   Updated maintenance type and Work scope return column [PN-16419]
-
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14   29-06-2026	  Moin Bloch	   Added MaintenanceType PN-17043
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@WorkScopeCode=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
@@ -62,6 +63,7 @@ CREATE    PROCEDURE [dbo].[GetWorkFlowList]
 
 AS
 BEGIN
+	DECLARE @AircraftTemplateType INT = 2
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -120,8 +122,8 @@ BEGIN
 			BEGIN
 				;With Result AS(
 					SELECT	
-					wf.WorkflowId, 					
-					ws.WorkScopeCode As WorkScopeCode,
+					wf.WorkflowId,
+					CASE WHEN wf.[TemplateType] = @AircraftTemplateType THEN wf.[MaintenanceType]  ELSE ws.WorkScopeCode END WorkScopeCode,
 					wf.WorkScopeId,
 					c.Name,
 					im.PartNumber,	
@@ -135,9 +137,8 @@ BEGIN
 					wf.ItemMasterId,
 					wf.ChangedPartNumberId,
 					cp.partnumber AS  ChangedPartNumber,
-					cp.PartDescription AS ChangedPartNumberDescription,					
+					cp.PartDescription AS ChangedPartNumberDescription,
 					wf.Memo,
-
 					wf.IsActive,
 					wf.IsDeleted,
 					(Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) CreatedDate,
@@ -150,19 +151,21 @@ BEGIN
 					wf.TailNum AS AcTailNumber,
 					wf.SerialNum AS AcSerialNumber,
 					ACM.ModelName AS AircraftModel,
-					ACT.[Description] AS AircraftMake, 
-					MT.[MaintenanceType] AS MaintenanceType,
+					ACT.[Description] AS AircraftMake,
+					wf.[MaintenanceType] AS MaintenanceType,
 					wf.Verified,
 					wf.VerifiedBy,
 					wf.VerifiedDate
-					FROM Workflow wf WITH (NOLOCK)
-					LEFT  JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
+					FROM dbo.Workflow wf WITH (NOLOCK)
+					LEFT JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId
 					LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) on im.ItemMasterId =  wf.ItemMasterId
+					 AND ISNULL(im.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster cp WITH (NOLOCK) on cp.ItemMasterId =  wf.ChangedPartNumberId
+					 AND ISNULL(cp.IsNonStock,0) = 0
 					LEFT JOIN dbo.AircraftModel ACM WITH (NOLOCK) on ACM.AircraftModelId =  wf.AircraftModelId
 					LEFT JOIN dbo.AircraftType ACT WITH (NOLOCK) on ACT.AircraftTypeId =  wf.MakeTypeId
-					LEFT JOIN dbo.MaintenanceType MT WITH (NOLOCK) on MT.MaintenanceTypeId =  wf.MaintenanceTypeId
+					--LEFT JOIN dbo.MaintenanceType MT WITH (NOLOCK) on MT.MaintenanceTypeId =  wf.MaintenanceTypeId
 					WHERE ((ISNULL(wf.IsDeleted, 0) = @IsDeleted) and (@IsActive is null or wf.IsActive=@IsActive))
 					AND wf.MasterCompanyId=@MasterCompanyId	
 			), ResultCount AS(Select COUNT(WorkflowId) AS totalItems FROM Result)

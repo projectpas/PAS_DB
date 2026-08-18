@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -16,11 +16,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/05/20221   Subhash Saliya		Created
- ** 1    05/26/2023    HEMANT SALIYA    Updated For WorkOrder Settings
- 
+ ** 2    05/26/2023    HEMANT SALIYA    Updated For WorkOrder Settings
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderTrackingList]  
+CREATE PROCEDURE [dbo].[GetWorkOrderTrackingList]  
  -- Add the parameters for the stored procedure here  
  @PageNumber int,  
  @PageSize int,  
@@ -207,7 +208,7 @@ BEGIN
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
-			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId  AND wost.WorkOrderTypeId = WO.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.OldStageId = WOSG.WorkOrderStageId and wosg.IncludeInDashboard=1   
@@ -216,7 +217,8 @@ BEGIN
 			LEFT JOIN dbo.Employee EMPsales WITH(NOLOCK) ON EMPsales.EmployeeId = WO.SalesPersonId
 			LEFT JOIN dbo.Employee EMPcsr WITH(NOLOCK) ON EMPcsr.EmployeeId = WO.CSRId 
 			LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
-       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive)   AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))    GROUP BY WPN.ID, WTT.OldStageId,WO.WorkOrderId HAVING isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0) >=1
+       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive)   AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))     AND ISNULL(IM.IsNonStock,0) = 0
+        GROUP BY WPN.ID, WTT.OldStageId,WO.WorkOrderId HAVING isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0) >=1
         ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
         Select * INTO #TempResult from  Result  
         WHERE (  
@@ -412,7 +414,8 @@ BEGIN
             STUFF((SELECT ',' + I.partnumber  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster I WITH(NOLOCK) On WOPN.ItemMasterId  = I.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(I.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') PartNumber  
           ) A   
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted )  
@@ -426,7 +429,8 @@ BEGIN
             STUFF((SELECT ',' + im.PartDescription  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(im.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') PartDescription  
           ) A  
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
@@ -606,7 +610,8 @@ BEGIN
             STUFF((SELECT ',' + im.ItemGroup  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(im.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') ItemGroup  
           ) A  
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  

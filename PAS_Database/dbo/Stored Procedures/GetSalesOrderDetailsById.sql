@@ -16,6 +16,7 @@
     1    05/12/2024		EKTA CHANDEGRA	 Created  
 	2	 04/25/2025     Bhargav Saliya   Customer Name Get from the SO table instead of the Customer table
     3    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
+	4    19/JUN/2026    AMIT GHEDIYA	 Get [MarketplaceRef] data [PN-16922]
  EXEC GetSalesOrderDetailsById 1484 
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderDetailsById]
@@ -138,7 +139,8 @@ BEGIN
         CASE 
             WHEN soq.ForeignExchangeRate > 0 THEN soq.ForeignExchangeRate 
             ELSE 0 
-        END AS ForeignExchangeRate
+        END AS ForeignExchangeRate,
+		soq.MarketplaceRef
 			FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuote] soqt WITH(NOLOCK) ON soq.SalesOrderQuoteId = soqt.SalesOrderQuoteId
 			LEFT JOIN [dbo].[MasterSalesOrderQuoteTypes] qty WITH(NOLOCK) ON soq.TypeId = qty.Id

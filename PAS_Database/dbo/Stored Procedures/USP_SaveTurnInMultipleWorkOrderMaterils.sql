@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Devendra Shekh>  
 ** Create date: <09/12/2024>  
 ** Description: <Tender Multiple StockLine>  
@@ -7,11 +7,17 @@
 **************************************************************   
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
-** 1	09/12/2024		Devendra Shekh			Created
-** 2	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
-** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
-**************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
+** 1	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
+** 2	09/12/2024		Devendra Shekh			Created
+** 3    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
+** 4    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+** 5    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
+** 6    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
+** 7    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PartNumber/@IsPMA/@IsDER ItemMaster lookup
+**************************************************************/
+CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
 AS
 BEGIN
@@ -28,16 +34,21 @@ BEGIN
 							@TraceableToTypeId INT, @TraceableTo BIGINT, @TraceableToName VARCHAR(500), @Memo VARCHAR(MAX), @WorkOrderId BIGINT, @WorkOrderNumber VARCHAR(50), @ManufacturerId BIGINT,
 							@InspectedById BIGINT, @InspectedDate DATETIME2(7), @ReceiverNumber VARCHAR(500), @ReceivedDate DATETIME2(7), @ManagementStructureId BIGINT,
 							@SiteId BIGINT, @WarehouseId BIGINT, @LocationId BIGINT, @ShelfId BIGINT, @BinId BIGINT, @MasterCompanyId BIGINT, @UpdatedBy VARCHAR(100), @WorkOrderMaterialsId BIGINT, @IsKitType BIT,
-							@Unitcost DECIMAL(18,2), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT;
+							@Unitcost DECIMAL(18,6), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT,
+							@Notes NVARCHAR(MAX);
 
 					DECLARE @PartNumber VARCHAR(500), @SLCurrentNummber BIGINT, @StockLineNumber VARCHAR(50), @CNCurrentNummber BIGINT, @ControlNumber VARCHAR(50), @IDCurrentNummber BIGINT, 
 							@IDNumber VARCHAR(50), @NewWorkOrderMaterialsId BIGINT, @StockLineId BIGINT, @WorkOrderWorkflowId BIGINT, @MSModuleID INT = 2, @IsPMA BIT = 0, @IsDER BIT = 0, 
 							@IsOemPNId BIGINT, @IsOEM BIT = 0, @OEMPNNumber VARCHAR(500), @count INT, @slcount INT, @IsAddUpdate BIT, @ExecuteParentChild BIT, @UpdateQuantities BIT, @IsOHUpdated BIT, @AddHistoryForNonSerialized BIT,
 							@ReferenceId BIGINT, @SubReferenceId BIGINT, @IsSerialised BIT, @ModuleId BIGINT, @SubModuleId BIGINT, @stockLineQty INT, @stockLineQtyAvailable INT, @GLAccountId INT, @IsTimeLife BIT,
 							@QtyTendered INT = 0, @QtyToTendered INT = 0, @TotalStlQtyReq INT = 0, @WorkOrderTypeId INT = 0, @TearDownWorkOrderTypeId INT = 0, @WorkOrderPartNoId BIGINT = 0, @isExchange BIT,
-							@ActionId INT = 0, @HistoryModuleId INT = 0, @WOMStockLineId BIGINT = 0, @WorkOrderMaterialsKitMappingId BIGINT = NULL, @OLDStockLineId BIGINT = 0;
+							@ActionId INT = 0, @HistoryModuleId INT = 0, @WOMStockLineId BIGINT = 0, @WorkOrderMaterialsKitMappingId BIGINT = NULL, @OLDStockLineId BIGINT = 0,
+							@DistributionMasterId BIGINT  = NULL;
 					
 					DECLARE @currentNo BIGINT, @stockLineCurrentNo BIGINT; 
+
+					-- Lot Support Variables
+					DECLARE @MPNStockLineId BIGINT = 0, @SourceLotId BIGINT = 0, @LotCreatedDate DATETIME, @LotDetails dbo.LotTransInOutDetailsType;
 
 					SELECT @ModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleId] = 22; -- For Stockline Module  
 					SELECT @SubModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleId] = 33; -- For WORK ORDER Materials Module  
@@ -116,19 +127,20 @@ BEGIN
 						[UpdatedBy] VARCHAR(100) NULL,
 						[WorkOrderMaterialsId] BIGINT NULL,
 						[IsKitType] BIT NULL,
-						[Unitcost] DECIMAL(18,2) NULL,
+						[Unitcost] DECIMAL(18,6) NULL,
 						[ProvisionId] INT NULL,
-						[EvidenceId] INT NULL
+						[EvidenceId] INT NULL,
+						[Notes] NVARCHAR(MAX) NULL
 					);					   
 
 					INSERT INTO #TenderWOMListData ([IsMaterialStocklineCreate], [IsCustomerStock], [IsCustomerstockType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [Quantity], [IsSerialized], [SerialNumber], [CustomerId],
 							[ObtainFromTypeId], [ObtainFrom], [ObtainFromName], [OwnerTypeId], [Owner], [OwnerName], [TraceableToTypeId], [TraceableTo], [TraceableToName], [Memo], [WorkOrderId], [WorkOrderNumber], [ManufacturerId],
 							[InspectedById], [InspectedDate], [ReceiverNumber], [ReceivedDate], [ManagementStructureId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [UpdatedBy], [WorkOrderMaterialsId],
-							[IsKitType], [Unitcost], [ProvisionId], [EvidenceId])
+							[IsKitType], [Unitcost], [ProvisionId], [EvidenceId], [Notes])
 					SELECT	[IsMaterialStocklineCreate], [IsCustomerStock], [IsCustomerstockType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [Quantity], [IsSerialized], [SerialNumber], [CustomerId], [ObtainFromTypeId],
 							[ObtainFrom], [ObtainFromName], [OwnerTypeId], [Owner], [OwnerName], [TraceableToTypeId], [TraceableTo], [TraceableToName], [Memo], [WorkOrderId], [WorkOrderNumber], [ManufacturerId], [InspectedById],
 							[InspectedDate], [ReceiverNumber], [ReceivedDate], [ManagementStructureId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [UpdatedBy], [WorkOrderMaterialsId], [IsKitType],
-							[Unitcost], [ProvisionId], [EvidenceId]
+							[Unitcost], [ProvisionId], [EvidenceId], [Notes]
 					FROM @tbl_SaveAndTenderMultipleStocklineType
 
 					SELECT @TotalWOMCount = MAX(RecordId), @CurrentWOM = MIN(RecordId) FROM #TenderWOMListData;
@@ -136,13 +148,18 @@ BEGIN
 					WHILE(ISNULL(@TotalWOMCount, 0) >=  ISNULL(@CurrentWOM, 0))
 					BEGIN											
 
+						-- Reset Lot Support Variables
+						SET @MPNStockLineId = 0;
+						SET @SourceLotId = 0;
+						DELETE FROM @LotDetails;
+
 						SELECT	@IsMaterialStocklineCreate = [IsMaterialStocklineCreate], @IsCustomerStock = [IsCustomerStock], @IsCustomerstockType = [IsCustomerstockType], @ItemMasterId = [ItemMasterId],
 								@UnitOfMeasureId = [UnitOfMeasureId], @ConditionId = [ConditionId], @Quantity = [Quantity], @IsSerialized = [IsSerialized], @SerialNumber = [SerialNumber], @CustomerId = [CustomerId],
 								@ObtainFromTypeId = [ObtainFromTypeId], @ObtainFrom = [ObtainFrom], @ObtainFromName = [ObtainFromName], @OwnerTypeId = [OwnerTypeId], @Owner = [Owner], @OwnerName = [OwnerName], 
 								@TraceableToTypeId = [TraceableToTypeId], @TraceableTo = [TraceableTo], @TraceableToName = [TraceableToName], @Memo = [Memo], @WorkOrderId = [WorkOrderId], @WorkOrderNumber = [WorkOrderNumber],
 								@ManufacturerId = [ManufacturerId], @InspectedById = [InspectedById], @InspectedDate = [InspectedDate], @ReceiverNumber = [ReceiverNumber], @ReceivedDate = [ReceivedDate],
 								@ManagementStructureId = [ManagementStructureId], @SiteId = [SiteId], @WarehouseId = [WarehouseId], @LocationId = [LocationId], @ShelfId = [ShelfId], @BinId = [BinId], @MasterCompanyId = [MasterCompanyId], 
-								@UpdatedBy = [UpdatedBy], @WorkOrderMaterialsId = [WorkOrderMaterialsId], @IsKitType = [IsKitType], @Unitcost = [Unitcost], @ProvisionId = [ProvisionId], @EvidenceId = [EvidenceId]
+								@UpdatedBy = [UpdatedBy], @WorkOrderMaterialsId = [WorkOrderMaterialsId], @IsKitType = [IsKitType], @Unitcost = [Unitcost], @ProvisionId = [ProvisionId], @EvidenceId = [EvidenceId], @Notes = [Notes]
 						FROM #TenderWOMListData
 						WHERE RecordId = @CurrentWOM;
 
@@ -154,11 +171,11 @@ BEGIN
 						SET @IsOHUpdated = 0;  
 						SET @AddHistoryForNonSerialized = 0; 
 
-						SELECT	@QtyTendered = 0, @QtyToTendered = 0, @TotalStlQtyReq = 0, @WorkOrderTypeId = 0, @TearDownWorkOrderTypeId = 0, @WorkOrderPartNoId = 0,
+						SELECT	@QtyTendered = 0, @QtyToTendered = 0, @TotalStlQtyReq = 0, @WorkOrderTypeId = 0,  @WorkOrderPartNoId = 0,
 								@isExchange =  (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
 						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  
-								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 						SELECT @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 						IF(ISNULL(@IsKitType, 0) = 0)
@@ -172,6 +189,10 @@ BEGIN
 
 						SELECT @WorkOrderPartNoId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId =@WorkOrderWorkflowId;
 						
+						-- Resolve MPN stockline and check if it is Lot-controlled
+						SELECT @MPNStockLineId = StocklineId FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
+						SELECT @SourceLotId = ISNULL(LotId, 0) FROM DBO.Stockline WITH(NOLOCK) WHERE StockLineId = @MPNStockLineId AND ISNULL(LotId, 0) > 0;
+
 						IF(ISNULL(@CurrentWOM, 0) = 1)
 						BEGIN
 							/* PN Manufacturer Combination Stockline logic */ 
@@ -194,6 +215,7 @@ BEGIN
 							 FROM CTE_Stockline CSTL WITH(NOLOCK)
 							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId  
 							 /* PN Manufacturer Combination Stockline logic */
+						 WHERE ISNULL(IM.IsNonStock,0) = 0
 						END
 
 						IF(ISNULL(@CurrentWOM, 0) = 1)
@@ -254,12 +276,14 @@ BEGIN
 						TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,  
 						QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,  
 						ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn,  
-						[OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId]
+						[OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId],
+						[LotId], [IsLotAssigned], LOTQty -- Lot support columns
 									) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@UnitOfMeasureId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
 						@IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
 						@TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,@WorkOrderPartNoId,  
 						@ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
-						@IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId);  
+						@IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId,
+						NULLIF(@SourceLotId, 0), CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END, CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN @Quantity ELSE NULL END); -- Lot support values
        
 						SELECT @StockLineId = SCOPE_IDENTITY();
 
@@ -285,9 +309,14 @@ BEGIN
   
 							SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
   
-							UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber,  
-								[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
+							UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber  
+								--,[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
 							WHERE [StockLineId] = @OLDStockLineId;  
+
+							   -- Teardown accounting entry
+							SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = 'TENDERINGSTOCKLINETWO';
+							EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] @DistributionMasterId, @WorkOrderId, @WorkOrderPartNoId,@StockLineId, @MasterCompanyId, @UpdatedBy;
+
 						END 
 
 						--: Around 4 Seconds
@@ -312,6 +341,53 @@ BEGIN
 
 						--: 1 or seconds
 						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @Quantity, @UpdatedBy = @UpdatedBy;
+
+						-- Add Lot Trans-In details if source stockline has an associated Lot
+						IF @SourceLotId > 0
+						BEGIN
+							INSERT INTO @LotDetails (
+								LotTransInOutId, StockLineId, LotId,
+								QtyToTransIn, QtyToTransOut, LotTransInOutDetails,
+								UnitCost, ExtCost, IsTransOut,
+								TransInMemo, TransOutMemo
+							)
+							SELECT
+								0,
+								@StockLineId,
+								@SourceLotId,
+								sl.QuantityOnHand,
+								0,
+								0,
+								ISNULL(sl.UnitCost, 0),
+								ISNULL(sl.UnitCost, 0) * ISNULL(sl.QuantityOnHand, 0),
+								0,
+								'Trans In From Tender Stockline - ' + @WorkOrderNumber,
+								''
+							FROM DBO.Stockline sl WITH(NOLOCK)
+							WHERE sl.StockLineId = @StockLineId;
+
+							SET @LotCreatedDate = GETUTCDATE();
+
+							IF OBJECT_ID('tempdb..#LotResult') IS NOT NULL DROP TABLE #LotResult;
+							CREATE TABLE #LotResult (
+								LotTransInOutId BIGINT
+							);
+
+							INSERT INTO #LotResult
+							EXEC dbo.USP_Lot_AddUpdateLotTransInOutDetails
+								@tbl_LotTransInOutDetailsType = @LotDetails,
+								@LotTransInOutId              = 0,
+								@MasterCompanyId              = @MasterCompanyId,
+								@IsTransInOut                 = 0,
+								@IsInOut                      = 1,
+								@CreatedBy                    = @UpdatedBy,
+								@UpdatedBy                    = @UpdatedBy,
+								@CreatedDate                  = @LotCreatedDate,
+								@UpdatedDate                  = @LotCreatedDate,
+								@IsFromPreCostStk             = 1;
+
+							DROP TABLE #LotResult;
+						END
 
 						--Add SL Managment Structure Details   
 						EXEC USP_SaveSLMSDetails @MSModuleID, @StockLineId, @ManagementStructureId, @MasterCompanyId, @UpdatedBy;
@@ -353,9 +429,9 @@ BEGIN
 								END
 
 								INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
-								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
+								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted, Notes)   
 								SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,  
-								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
+								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0, @Notes  
 								FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)   
 								WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId; 
 								
@@ -441,7 +517,7 @@ BEGIN
 								INSERT INTO dbo.WorkOrderMaterialStockLineKit (WorkOrderMaterialsKitId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
 								UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
 								SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,  
-								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
+								GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0  
 								FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)   
 								WHERE WOM.WorkOrderMaterialsKitId = @NewWorkOrderMaterialsId;
 

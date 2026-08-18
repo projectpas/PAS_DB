@@ -14,6 +14,7 @@
 	2	 12 NOV 2024  HEMANT SALIYA	  Verify the count AND removed un used code 
 	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
 	4	 05 Jun 2025  Devendra Shekh	 Resolved Count issue for Remaning 
+	5	 17 JUL 2026  Abhishek Jirawla	Added IsPiecePart condition in RepairOrderPart table
 
 **************************************************************/ 
 
@@ -169,7 +170,7 @@ SET NOCOUNT ON
 		--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
 		--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
 		--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND ISNULL(ROP.IsPiecePart, 0) = 0
 		WHERE ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROOpenStatusId)  
 		AND RO.MasterCompanyId = @MasterCompanyId  
 		GROUP BY RO.StatusId  
@@ -190,7 +191,7 @@ SET NOCOUNT ON
 		--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
 		--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
 		--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND ISNULL(ROP.IsPiecePart, 0) = 0
 		WHERE ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROApprovedStatusId)  
 		AND RO.MasterCompanyId = @MasterCompanyId  
 		GROUP BY RO.StatusId  
@@ -211,7 +212,7 @@ SET NOCOUNT ON
 		--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
 		--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
 		--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+		LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND ISNULL(ROP.IsPiecePart, 0) = 0
 		Where ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROFulfillingStatusId)  
 		AND RO.MasterCompanyId = @MasterCompanyId  
 		GROUP BY RO.StatusId  
@@ -234,14 +235,14 @@ SET NOCOUNT ON
 	END  
  END TRY      
  BEGIN CATCH        
-	DECLARE	@ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()  
+	DECLARE	@ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name()  
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             , @AdhocComments     VARCHAR(150)    = 'GetPORODashboardDataCount'   
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '  
             , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
     exec spLogException   
-            @DatabaseName           = @DatabaseName  
+            @PAS_UAT           = @PAS_UAT  
             , @AdhocComments          = @AdhocComments  
             , @ProcedureParameters = @ProcedureParameters  
             , @ApplicationName        =  @ApplicationName  

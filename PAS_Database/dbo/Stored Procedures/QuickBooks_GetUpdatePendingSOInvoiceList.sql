@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetUpdatePendingSOInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get SalesOrder Invoice List to Update Invoice in QuickBooks    
@@ -16,7 +16,8 @@
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes and bill/ship)
 	5    07-07-2025        Moin Bloch           Changed Old To New Billing Table 
-     
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock invoice lines are included in the QuickBooks SO invoice update sync payload.
  EXECUTE [QuickBooks_GetUpdatePendingSOInvoiceList] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetUpdatePendingSOInvoiceList]

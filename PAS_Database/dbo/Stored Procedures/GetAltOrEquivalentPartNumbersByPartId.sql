@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------
 	1    10/30/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetAltOrEquivalentPartNumbersByPartId]
@@ -34,7 +35,7 @@ BEGIN
 		WHERE ALT.IsActive = 1 
 		AND ALT.IsDeleted = 0
 		AND ALT.ItemMasterId = @PartId
-		AND ALT.MappingType = @MappingType;
+		AND ALT.MappingType = @MappingType AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0 ;
 	END TRY
 	BEGIN CATCH      
 	IF @@trancount > 0

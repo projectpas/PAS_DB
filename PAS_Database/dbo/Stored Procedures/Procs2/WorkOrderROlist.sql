@@ -18,7 +18,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/07/2020   Subhash Saliya Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    15/07/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
  EXECUTE [WorkOrderROlist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'
 **************************************************************/ 
 
@@ -115,13 +117,13 @@ BEGIN
                                   ro.OpenDate,
                                   ro.NeedByDate
 					FROM RepairOrder ro WITH(NOLOCK)
-						JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId AND rop.ItemTypeId=1
+						JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId AND rop.ItemTypeId=1 AND ISNULL(rop.[IsPiecePart], 0) = 0
 						JOIN dbo.ItemMaster im WITH(NOLOCK) ON rop.ItemMasterId = im.ItemMasterId
 						JOIN dbo.StockLine sl WITH(NOLOCK) ON rop.StockLineId = sl.StockLineId
 						JOIN dbo.Vendor v WITH(NOLOCK) ON ro.VendorId = v.VendorId
 						JOIN dbo.Currency cur WITH(NOLOCK) ON rop.ReportCurrencyId = cur.CurrencyId
 					WHERE ((ro.MasterCompanyId = @MasterCompanyId) AND (ro.IsDeleted = @IsDeleted) AND (@IsActive is null or ro.IsActive = @IsActive))
-						), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+						 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 						Select * INTO #TempResult from  Result
 						WHERE (
 						(@GlobalFilter <>'' AND (

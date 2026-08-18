@@ -15,6 +15,8 @@
     4    10/Feb/2025  RAJESH GAMI    Added @IsPrintInspector,@IsPrintTechnician
 	5    24/Apr/2025  RAJESH GAMI    add the WorkOrderPartNumberId where condition while adding the Sequence Number (We need to increase Sequence By Part No Id)
 	6    10/Feb/2025  Moin Bloch     Added @@IsPrintAdmin
+	7    02/07/2026   Vishal Suthar  PN-17034 Adding Default Instructions while adding task into WO
+
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@WorkOrderTaskId BIGINT,
@@ -117,6 +119,100 @@ BEGIN
         SELECT 
             @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
             @Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ, @IsPrintInspector, @IsPrintTechnician, @IsPrintAdmin;
+
+		-- Insert Default Instructions with Parent-Child hierarchy remapping
+		DECLARE @DefaultInstructions TABLE (
+			TaskInstructionId BIGINT,
+			ParentId BIGINT,
+			IsParent BIT,
+			Title VARCHAR(8000),
+			SequenceNumber INT,
+			Description VARCHAR(MAX),
+			IsParentInstruction BIT,
+			HierarchyLevel INT
+		);
+
+		WITH InstructionHierarchy AS
+		(
+			SELECT TaskInstructionId, ParentId, IsParent, Title, SequenceNumber,
+				   Description, IsParentInstruction,
+				   0 AS HierarchyLevel
+			FROM DBO.TaskInstructionMaster WITH (NOLOCK)
+			WHERE TaskId = @TaskId
+				AND IsDefaultInstruction = 1
+				AND IsActive = 1
+				AND IsDeleted = 0
+				AND MasterCompanyId = @MasterCompanyId
+
+			UNION ALL
+
+			SELECT t.TaskInstructionId, t.ParentId, t.IsParent, t.Title, t.SequenceNumber,
+				   t.Description, t.IsParentInstruction,
+				   h.HierarchyLevel + 1
+			FROM DBO.TaskInstructionMaster t WITH (NOLOCK)
+			INNER JOIN InstructionHierarchy h ON t.ParentId = h.TaskInstructionId
+			WHERE t.IsActive = 1
+				AND t.IsDeleted = 0
+		)
+		INSERT INTO @DefaultInstructions
+		SELECT TaskInstructionId, ParentId, IsParent, Title, SequenceNumber,
+			   Description, IsParentInstruction, HierarchyLevel
+		FROM InstructionHierarchy
+		ORDER BY HierarchyLevel, SequenceNumber, TaskInstructionId;
+
+		DECLARE @InstructionMapping TABLE (
+			OldTaskInstructionId BIGINT,
+			NewWorkOrderTaskInstructionId BIGINT
+		);
+
+		DECLARE @OldId BIGINT, @ParentId BIGINT, @IsParent BIT, @Title VARCHAR(8000),
+				@SeqNo INT, @Details VARCHAR(MAX), @IsParentInstruction BIT, @HierarchyLevel INT;
+
+		DECLARE instruction_cursor CURSOR FOR
+			SELECT TaskInstructionId, ParentId, IsParent, Title, SequenceNumber,
+				   Description, IsParentInstruction, HierarchyLevel
+			FROM @DefaultInstructions
+			ORDER BY HierarchyLevel, SequenceNumber, TaskInstructionId;
+
+		OPEN instruction_cursor;
+		FETCH NEXT FROM instruction_cursor INTO @OldId, @ParentId, @IsParent, @Title,
+												@SeqNo, @Details, @IsParentInstruction, @HierarchyLevel;
+
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			DECLARE @MappedParentId BIGINT = NULL;
+			DECLARE @NewInstructionId BIGINT;
+
+			SELECT @MappedParentId = NewWorkOrderTaskInstructionId
+			FROM @InstructionMapping
+			WHERE OldTaskInstructionId = @ParentId;
+
+			INSERT INTO DBO.WorkOrderTaskInstruction
+			(
+				[WorkOrderTaskId], [ParentId], [IsParent], [InstructionTitle], [SequenceNumber],
+				[InstructionDetails], [TechId], [TechName], [TechUpdatedDate], [InspectorId],
+				[InspectorName], [InspectorUpdatedDate], [PrintInWO], [PrintInWOQ], [MasterCompanyId],
+				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+				[IsFromWorkFlow], [InstructionListId], [ParentSequenceNumber]
+			)
+			VALUES
+			(
+				@InsertedWorkOrderTaskId, @MappedParentId, @IsParent, @Title, @SeqNo,
+				@Details, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, @MasterCompanyId,
+				@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 0, NULL, NULL
+			);
+
+			SET @NewInstructionId = SCOPE_IDENTITY();
+
+			INSERT INTO @InstructionMapping (OldTaskInstructionId, NewWorkOrderTaskInstructionId)
+			VALUES (@OldId, @NewInstructionId);
+
+			FETCH NEXT FROM instruction_cursor INTO @OldId, @ParentId, @IsParent, @Title,
+													@SeqNo, @Details, @IsParentInstruction, @HierarchyLevel;
+		END
+
+		CLOSE instruction_cursor;
+		DEALLOCATE instruction_cursor;
 
         -- Add Entry in History Table
         SET @StatusCode = 'CreateWorkOrderTask';

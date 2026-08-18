@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterExchangeQuotePop]           
  ** Author:  
  ** Description: This SP is Used to get Search ItemMaster ExchangeQuote
@@ -10,8 +10,11 @@
  ** PR   Date			   Author					Change Description            
  ** --   --------		  -------					--------------------------------          
     1   											Created
-	2    07/APR/2026	  Rajesh Gami				Added UOM Changes [PN-15903]     
-	3    15/APR/2026	  Rajesh Gami				Remove UOM Conversion for QUOTE: Need to display stock QTY [PN-15903]
+	1    07/APR/2026	  Rajesh Gami				Added UOM Changes [PN-15903]     
+	2    15/APR/2026	  Rajesh Gami				Remove UOM Conversion for QUOTE: Need to display stock QTY [PN-15903]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
 @ItemMasterIdlist VARCHAR(max), 
@@ -50,8 +53,7 @@ BEGIN
 				,c.Description ConditionDescription
 				,ISNULL(STUFF((
 			    SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-			    FOR XML PATH('')
-			    )
+			    FOR XML PATH(''))
 			    ,1,1,''), '') AlternateFor
 				,CASE 
 					WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -80,7 +82,13 @@ BEGIN
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					                   AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
+				--AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND sl.IsCustomerStock = 0
+				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
+			--LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
+			--	AND sl.IsDeleted = 0
+			--LEFT JOIN DBO.PurchaseOrderPart pop WITH (NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
+			--	AND pop.ItemMasterId = im.ItemMasterId 
+			--	AND pop.IsDeleted = 0
 			LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

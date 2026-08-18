@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_DeleteWorkOrderMaterials]             
  ** Author:  Amit Ghediya  
  ** Description: This stored procedure is used to delete SubWorkOrder Materials Stockline.  
@@ -15,7 +15,9 @@
  ** --   --------     -------			--------------------------------            
     1    28/04/2025  Amit Ghediya			Created  
 	2    04/09/2025  Moin Bloch		    Updated Added History
-       
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PartNumber ItemMaster lookup
+
 -- EXEC USP_DeleteWorkOrderMaterials 129,'AMIT GHEDIYA'  
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_DeleteWorkOrderMaterials]  
@@ -50,7 +52,7 @@ BEGIN
 							
 			SELECT @WorkOrderNum = [WorkOrderNum], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 	
-			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			
 			--Update StockLine
 			IF EXISTS(SELECT TOP 1 StockLineId FROM [DBO].[StockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)

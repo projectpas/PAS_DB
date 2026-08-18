@@ -55,7 +55,7 @@
     [isTimeLife]                        BIT             NOT NULL,
     [isSerialized]                      BIT             NOT NULL,
     [ShelfLife]                         BIT             NOT NULL,
-    [StockLevel]                        INT             NOT NULL,
+    [StockLevel]                        DECIMAL (18, 6) NOT NULL,
     [ShelfLifeAvailable]                NUMERIC (18, 2) NOT NULL,
     [mfgHours]                          NUMERIC (18, 2) NOT NULL,
     [IsPma]                             BIT             NOT NULL,
@@ -144,5 +144,16 @@
     [Landings]                          INT             NULL,
     [Starts]                            INT             NULL,
     [CalendarDate]                      DATETIME2 (7)   NULL,
-    [Model]                             VARCHAR (200)   NULL);
+    [Model]                             VARCHAR (200)   NULL,
+    [IsAcquiredMethodBuy]               BIT             NULL,
+    [IsNonStock]                        BIT             NULL,
+    [DiscountPurchasePercent]           DECIMAL (18, 2) NULL,
+    [UnitCost]                          DECIMAL (18, 2) NULL,
+    [ListPrice]                         DECIMAL (18, 2) NULL,
+    [PriceDate]                         DATETIME        NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL,
+    [IsKitAssy]                         BIT             NULL);
 

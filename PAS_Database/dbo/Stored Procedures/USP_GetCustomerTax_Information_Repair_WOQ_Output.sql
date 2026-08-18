@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_WOQ_Output]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair in WOQ
@@ -14,10 +14,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    21/02/2025   RAJESH GAMI    Created
-     
+    2    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ_Output] 2169,4106,3596
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_WOQ_Output] 
+CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_WOQ_Output] 
 @WorkOrderQuoteId BIGINT,
 @WorkorderId BIGINT,
 @workOrderPartNoId BIGINT,
@@ -107,7 +107,7 @@ BEGIN
 		 WHERE WOQ.[WorkOrderQuoteId] = @WorkOrderQuoteId 
 		   AND WOP.[ID] = @workOrderPartNoId 
 		   AND WOQ.[IsActive] = 1 
-		   AND WOQ.[IsDeleted] = 0;
+		   AND WOQ.[IsDeleted] = 0 AND ISNULL(STK.IsNonStock,0) = 0;
 		 	      
    ---------------------------------Freight--------------------------------------------------------
  	

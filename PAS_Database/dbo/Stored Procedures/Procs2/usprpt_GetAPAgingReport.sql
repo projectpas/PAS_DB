@@ -16,15 +16,19 @@
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami		   Created  
 	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
-	3    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
-	4    05-FEB-2026    Amit Ghediya       Add filter
-	5    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
-	6    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
-	7    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
-	8    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
-	9    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
-	10   12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
-	11   04-MAY-2026    Hemant Saliya      Re-Structure the SP to change the days calculation
+	1    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+	2    05-FEB-2026    Amit Ghediya       Add filter
+	3    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
+	4    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
+	5    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
+	6    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
+	7    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
+	8   12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
+	9   04-MAY-2026    Hemant Saliya      Re-Structure the SP to change the days calculation
+	10   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
+	11   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
+	12   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
+
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
@@ -71,7 +75,8 @@ BEGIN
         @InvoiceDate                 DATETIME     = NULL,
         @InvoiceNo                   VARCHAR(MAX) = NULL,
         @Terms                       VARCHAR(MAX) = NULL,
-        @DueDate                     DATETIME     = NULL;
+        @DueDate                     DATETIME     = NULL,
+		@POReference                 VARCHAR(MAX) = NULL;
 
     BEGIN TRY
 
@@ -125,7 +130,8 @@ BEGIN
             @InvoiceDate = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'invoiceDate'  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @InvoiceDate END,
             @InvoiceNo   = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'invoiceNo'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @InvoiceNo   END,
             @Terms       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'terms'        THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Terms       END,
-            @DueDate     = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'dueDate'      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @DueDate     END
+            @DueDate     = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'dueDate'      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @DueDate     END,
+			@POReference  = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poReference'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @POReference END
         FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
 
         /* ════════════════════════════════════════════════════════
@@ -334,6 +340,7 @@ BEGIN
                 /* ── DaysPastDue: days since DueDate ── */
                 CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
                      THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,''  AS poReference
             INTO #tempReceivingReconciliation
             FROM dbo.ReceivingReconciliationHeader      rrh  WITH (NOLOCK)
             INNER JOIN dbo.ReceivingReconciliationDetails rrd  WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrd.[Type] > 0
@@ -413,6 +420,7 @@ BEGIN
                 0   AS InvoicePaidAmount,
                 CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) > 0
                      THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,''  AS poReference
             INTO #tempCreditMemo
             FROM dbo.VendorCreditMemo           VCM  WITH (NOLOCK)
             INNER JOIN dbo.VendorCreditMemoDetail VCD  WITH (NOLOCK) ON VCD.VendorCreditMemoId = VCM.VendorCreditMemoId
@@ -488,6 +496,7 @@ BEGIN
                 0 AS IsCreditMemo, 0 AS StatusId, 0 AS InvoicePaidAmount,
                 CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) > 0
                      THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,''  AS poReference
             INTO #tempManualJE
             FROM dbo.ManualJournalHeader   MJH WITH (NOLOCK)
             INNER JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2
@@ -575,6 +584,7 @@ BEGIN
                 /* ── DaysPastDue: days since DueDate ── */
                 CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 0
                      THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,'' AS poReference					 
             INTO #tempNonPODetails
             FROM dbo.NonPOInvoiceHeader NPH WITH (NOLOCK)
             INNER JOIN dbo.Vendor                  v   WITH (NOLOCK) ON v.VendorId = NPH.VendorId
@@ -630,7 +640,8 @@ BEGIN
 				ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount',      
 				UPPER(CTE.level1) AS level1, UPPER(CTE.level2) AS level2,  UPPER(CTE.level3) AS level3,  UPPER(CTE.level4) AS level4,UPPER(CTE.level5) AS level5,       
 				UPPER(CTE.level6) AS level6,UPPER(CTE.level7) AS level7,  UPPER(CTE.level8) AS level8, UPPER(CTE.level9) AS level9,UPPER(CTE.level10) AS level10,CTE.MasterCompanyId,0 AS cmAmount,
-				DaysPastDue
+				DaysPastDue				
+			   ,'' poReference
 			  FROM CTE AS CTE WITH (NOLOCK)       
 			  INNER JOIN dbo.Vendor AS v WITH (NOLOCK) ON v.VendorId = CTE.VendorId    
 			  WHERE V.MasterCompanyId = @MasterCompanyId 
@@ -644,6 +655,7 @@ BEGIN
 				AND (ISNULL(@Amountpaidby90days,'') ='' OR Amountpaidby90days LIKE '%' + @Amountpaidby90days + '%')
 				AND (ISNULL(@Amountpaidby120days,'') ='' OR Amountpaidby120days LIKE '%' + @Amountpaidby120days + '%')
 				AND (ISNULL(@Amountpaidbymorethan120days,'') ='' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
+				AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
 
 	   ) , ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)   
 	   ,WithTotal (MastercompanyId, 
@@ -677,6 +689,7 @@ BEGIN
 			TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
 			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount
 			,DaysPastDue
+			,UPPER(poReference)poReference 
 			
 	   INTO #TempResult1 FROM  Result FC
 	   INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
@@ -684,6 +697,7 @@ BEGIN
 				,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
 				TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount
 				,DaysPastDue
+				,poReference
 		;WITH cteFinal AS (
 			  SELECT *,  
 				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY CTE.vendorId ASC) rNo
@@ -704,13 +718,14 @@ BEGIN
 				level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,			
 				TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
 				TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,cmAmount
-				,CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/(MAX(ISNULL(FC.rNo,1))))) AS DaysPastDue
+				,CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/(MAX(ISNULL(FC.rNo,1))))) AS DaysPastDue,
+				poReference
 				--,DaysPastDue
 			
 	   INTO #TempResult1Final FROM  cteFinal FC
 	   GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
 				,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
-				TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount
+				TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount,poReference
 				--,DaysPastDue
 
 		SELECT @Count = COUNT(VendorId) FROM #TempResult1Final     
@@ -729,6 +744,7 @@ BEGIN
 		TotalInvoiceAmount, --TotalcmAmount, TotalcmAmountUsed, 
 		TotalBalanceAmount, TotalAmountpaidbylessthen0days, 
 		TotalAmountpaidby30days, TotalAmountpaidby60days, TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount,DaysPastDue
+		,poReference
 	
 		FROM #TempResult1Final 
 		ORDER BY  					 
@@ -751,7 +767,9 @@ BEGIN
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END DESC
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='poReference') THEN poReference END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='poReference') THEN poReference END DESC
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
         END
         ELSE
@@ -804,7 +822,8 @@ BEGIN
 				vpd.PaymentMade AS InvoicePaidAmount,
 				/* ── DaysPastDue: days since DueDate ── */
 				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
-					 THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+					 THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
+			    ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '') AS poReference			
 			INTO #tempReceivingReconciliationElse
 			FROM dbo.ReceivingReconciliationHeader      rrh  WITH (NOLOCK)
 			INNER JOIN dbo.ReceivingReconciliationDetails rrd  WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrd.[Type] > 0
@@ -882,6 +901,7 @@ BEGIN
 				0 AS InvoicePaidAmount,
 				CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,''  AS poReference
 			INTO #tempCreditMemoElse
 			FROM dbo.VendorCreditMemo           VCM  WITH (NOLOCK)
 			INNER JOIN dbo.VendorCreditMemoDetail VCD  WITH (NOLOCK) ON VCD.VendorCreditMemoId = VCM.VendorCreditMemoId
@@ -957,6 +977,7 @@ BEGIN
 				0 AS IsCreditMemo, 0 AS StatusId, 0 AS InvoicePaidAmount,
 				CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
+				,''  AS poReference
 			INTO #tempManualJEElse
 			FROM dbo.ManualJournalHeader   MJH WITH (NOLOCK)
 			INNER JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2
@@ -1043,7 +1064,8 @@ BEGIN
 				0 AS IsCreditMemo, 0 AS StatusId, 0 AS InvoicePaidAmount,
 				/* ── DaysPastDue: days since DueDate ── */
 				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 0
-					 THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+					 THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
+				ISNULL(NPH.PONumber,'') AS poReference				
 			INTO #tempNonPODetailsElse
 			FROM dbo.NonPOInvoiceHeader NPH WITH (NOLOCK)
 			INNER JOIN dbo.VendorPaymentDetails    vpd WITH (NOLOCK) ON vpd.NonPOInvoiceId = NPH.NonPOInvoiceId
@@ -1133,7 +1155,8 @@ BEGIN
 					UPPER(CTE.level7)  AS level7,  UPPER(CTE.level8)  AS level8,
 					UPPER(CTE.level9)  AS level9,  UPPER(CTE.level10) AS level10,
 					CTE.MasterCompanyId,
-					CTE.DaysPastDue
+					CTE.DaysPastDue,
+					CTE.poReference					
 				FROM CTE WITH (NOLOCK)
 				INNER JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = CTE.VendorId
 				WHERE V.MasterCompanyId = @MasterCompanyId
@@ -1151,6 +1174,7 @@ BEGIN
 				  AND (ISNULL(@Amountpaidby90days,'')       = '' OR Amountpaidby90days          LIKE '%' + @Amountpaidby90days        + '%')
 				  AND (ISNULL(@Amountpaidby120days,'')      = '' OR Amountpaidby120days         LIKE '%' + @Amountpaidby120days       + '%')
 				  AND (ISNULL(@Amountpaidbymorethan120days,'') = '' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
+				  AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
 			),
 			ResultCount AS (SELECT COUNT(VendorId) AS totalItems FROM Result),
 			WithTotal (MastercompanyId, TotalInvoiceAmount, TotalBalanceAmount,
@@ -1192,6 +1216,7 @@ BEGIN
 				WC.TotalAmountpaidby60days,        WC.TotalAmountpaidby90days,
 				WC.TotalAmountpaidby120days,       WC.TotalAmountpaidbymorethan120days,
 				FC.DaysPastDue,
+				FC.poReference,			
 				(SELECT totalItems FROM ResultCount) AS TotalRecordsCount
 			FROM Result FC
 			INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
@@ -1227,14 +1252,16 @@ BEGIN
 				CASE WHEN @SortOrder=1  AND @SortColumn='Amountpaidby120days'         THEN FC.Amountpaidby120days         END ASC,
 				CASE WHEN @SortOrder=-1 AND @SortColumn='Amountpaidby120days'         THEN FC.Amountpaidby120days         END DESC,
 				CASE WHEN @SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days' THEN FC.Amountpaidbymorethan120days END ASC,
-				CASE WHEN @SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days' THEN FC.Amountpaidbymorethan120days END DESC
+				CASE WHEN @SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days' THEN FC.Amountpaidbymorethan120days END DESC,
+				CASE WHEN @SortOrder=1  AND @SortColumn='poReference'                 THEN FC.poReference                 END ASC,
+				CASE WHEN @SortOrder=-1 AND @SortColumn='poReference'                 THEN FC.poReference                 END DESC
 			OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
-		END -- end ELSE
+		END 
     END TRY
     BEGIN CATCH        
     SELECT  
-    ERROR_NUMBER() AS ErrorNumber  
+     ERROR_NUMBER() AS ErrorNumber  
     ,ERROR_SEVERITY() AS ErrorSeverity  
     ,ERROR_STATE() AS ErrorState  
     ,ERROR_PROCEDURE() AS ErrorProcedure  

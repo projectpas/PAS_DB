@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -21,6 +21,11 @@
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
 	7    10/04/2026   Bhargav Saliya	Change to    [StockUnitOfMeasure] to [PurchaseUnitOfMeasure] For UnitCost and UnitPost
+	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROMuom and TOuom Both are Same
+	9    24/06/2026   Bhargav Saliya	No need to convert UnitSalesPrice; it's already save to consume in Item Purchase and sales
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (ItemMaster, joined Stockline, alternate-part mapping) so Non-Stock parts are included.
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -42,14 +47,11 @@ BEGIN
 					,im.ItemMasterId As ItemMasterId
 					,im.PartDescription AS Description
 					,im.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-					--,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.ConsumeUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					--,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 					
-					--,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
 					,ig.[Description] AS ItemGroup
 					,mf.[Name] Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -59,9 +61,8 @@ BEGIN
 					,c.ConditionId ConditionId
 					,c.[Description] ConditionDescription
 					,ISNULL(STUFF((
-					SELECT DISTINCT ', '+ I.partnumber FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] M WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] I WITH(NOLOCK) ON I.ItemMasterId = M.ItemMasterId WHERE M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					)
+					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 AND im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -69,13 +70,11 @@ BEGIN
 						WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS Oempmader
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 					,@MappingType AS MappingType
-				    --,imps.PP_UnitPurchasePrice AS UnitCost
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitCost
-					--,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitSalePrice
-					--,imps.PP_FXRatePerc AS FixRate
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS FixRate
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
+					,ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) AS UnitSalePrice
+					,(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_FXRatePerc, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ime.ExportWeight AS [Weight]
@@ -89,8 +88,8 @@ BEGIN
 					AND (
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
-						)
-					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						) 
+					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))	
 				LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN [dbo].[Manufacturer] mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[ItemClassification] ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -115,6 +114,7 @@ BEGIN
 					,c.ConditionId
 					,im.IsPma
 					,im.IsDER
+					,im.IsNonStock
 					,OEMPMA.partnumber
 					,sl.ItemMasterId
 					,imps.PP_UnitPurchasePrice
@@ -130,7 +130,7 @@ BEGIN
 					,im.[ConsumeUnitOfMeasure],im.MasterCompanyId
 				ORDER BY 9 DESC
 			END
-		COMMIT  TRANSACTION
+		COMMIT TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

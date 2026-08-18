@@ -15,6 +15,8 @@
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes and bill/ship)
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from ItemMaster LEFT JOIN so Non-Stock invoice lines are included in the QuickBooks Exchange SO invoice update sync payload.
      
  EXECUTE [QuickBooks_GetUpdatePendingExChangeInvoiceList] 1, 1, 523, 0
 **************************************************************/ 

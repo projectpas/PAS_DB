@@ -47,7 +47,7 @@
     [IsSchematic]                       BIT             NULL,
     [GLAccountId]                       BIGINT          NULL,
     [LeadTimeDays]                      INT             NULL,
-    [StockLevel]                        INT             NULL,
+    [StockLevel]                        DECIMAL (18, 6) NULL,
     [ReorderPoint]                      DECIMAL (18, 6) NULL,
     [ReorderQuantiy]                    DECIMAL (18, 6) NULL,
     [MinimumOrderQuantity]              DECIMAL (18, 6) NULL,
@@ -146,5 +146,16 @@
     [Landings]                          INT             NULL,
     [Starts]                            INT             NULL,
     [CalendarDate]                      DATETIME2 (7)   NULL,
-    [Model]                             VARCHAR (200)   NULL);
+    [Model]                             VARCHAR (200)   NULL,
+    [IsKitAssy]                         BIT             NULL,
+    [IsAcquiredMethodBuy]               BIT             NULL,
+    [IsNonStock]                        BIT             NULL,
+    [DiscountPurchasePercent]           DECIMAL (18, 2) NULL,
+    [UnitCost]                          DECIMAL (18, 2) NULL,
+    [ListPrice]                         DECIMAL (18, 2) NULL,
+    [PriceDate]                         DATETIME        NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             NULL);
 

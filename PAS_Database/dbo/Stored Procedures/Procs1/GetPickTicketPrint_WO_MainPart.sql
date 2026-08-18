@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_WO_MainPart]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get WO MPN List that are Ready to Pick FOR PDF.    
@@ -21,6 +21,11 @@
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
     5    06/04/2026   Ayushi Patel	        PN-15908 Update (Added UOM Changes)
+	6	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9	 15/07/2026	  Ayushi				[PN-17288]Return Consume UOM
+	10    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
@@ -52,21 +57,10 @@ BEGIN
 						bn.[Name] as BinName,
 						po.PurchaseOrderNumber as PONumber,
 						--sl.QuantityOnHand,
-						ISNULL([dbo].[fn_ConvertUOM](
-							ISNULL(sl.QuantityOnHand,0),
-							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
-							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
-							0,
-							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
-						),0) AS QuantityOnHand,
+						ISNULL((CASE WHEN ISNULL(ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),'') = ISNULL(ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),0,ISNULL(sl.MasterCompanyId,imt.MasterCompanyId)) END),0) AS QuantityOnHand,
+
 						--sl.QuantityAvailable as QtyAvailable,
-						ISNULL([dbo].[fn_ConvertUOM](
-							ISNULL(sl.QuantityAvailable,0),
-							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
-							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
-							0,
-							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
-						),0) AS QtyAvailable,
+						ISNULL((CASE WHEN ISNULL(ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),'') = ISNULL(ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),0,ISNULL(sl.MasterCompanyId,imt.MasterCompanyId)) END),0) AS QtyAvailable,
 						wowf.Memo AS Notes,
 						(wop.Quantity - cte.TotalQtyToShip) as ReadyToPick,
 						wopt.QtyRemaining,
@@ -81,8 +75,8 @@ BEGIN
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
 						LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
-						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
-						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.PurchaseUnitOfMeasureId
+						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
+						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.ConsumeUnitOfMeasureId
 						LEFT JOIN [Site] s WITH (NOLOCK) on s.SiteId = sl.SiteId
 						LEFT JOIN Warehouse w WITH (NOLOCK) on w.WarehouseId = sl.WarehouseId
 						LEFT JOIN [Location] l WITH (NOLOCK) on l.LocationId = sl.LocationId
@@ -90,7 +84,7 @@ BEGIN
 						LEFT JOIN Bin bn WITH (NOLOCK) on bn.BinId = sl.BinId
 						LEFT JOIN PurchaseOrder po WITH (NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
-					WHERE wopt.PickTicketId = @WOPickTicketId;
+					WHERE wopt.PickTicketId = @WOPickTicketId ;
 				END
 			COMMIT  TRANSACTION
 

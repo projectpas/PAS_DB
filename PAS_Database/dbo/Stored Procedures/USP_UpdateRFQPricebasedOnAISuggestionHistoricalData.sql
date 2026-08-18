@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -14,6 +13,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
+	2    19/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
+	3    24/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
 **************************************************************/ 
@@ -34,7 +36,7 @@ BEGIN
 		DECLARE @MasterLoopID INT = 0,
 				--@PartNumber NVARCHAR(200) = '0856AE15',
 				@CustomerRfqId BIGINT = 0,
-				@RfqId BIGINT = 0,
+				@RfqId NVARCHAR(400) = NULL,
 				@Condition VARCHAR(256),
 				@ConditionId BIGINT,
 				@CustomerRfqQuoteId BIGINT = 0,
@@ -61,7 +63,7 @@ BEGIN
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			CustomerRfqId BIGINT NULL,
-			RfqId BIGINT NULL,
+			RfqId NVARCHAR(400) NULL,
 			Condition VARCHAR(256),
 			PartNumber VARCHAR(200) NULL,
 			BuyerCompanyName VARCHAR(200) NULL,
@@ -196,7 +198,7 @@ BEGIN
 						DECLARE @ItemMasterId BIGINT = 0,
 								@CustomerId BIGINT = 0;
 
-						SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
+						SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 						SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
 
 						IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
@@ -220,8 +222,8 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateRFQPricebasedOnAISuggestionHistoricalData'             
-			   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))			                                      
-												   + '@Parameter2 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS VARCHAR(100)) 
+			   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(100))			                                      
+												   + '@Parameter2 = ''' + CAST(ISNULL(@IntegrationTypeId, 0) AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

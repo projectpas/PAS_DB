@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPNTileWOMaterialHistoryList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get list of work orders where the given part is consumed in materials
@@ -22,7 +22,9 @@
 	4    12/06/2023   Jevik Raiyani add @statusValue 
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
 	6    05/06/2026   Priyansh Patel Fixed the issue related to uom conversion [PN-16746]
-
+	7	 24/06/2026   Ayushi Patel   [PN-16963]UOM Changes 
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -85,9 +87,32 @@ BEGIN
 					(CASE WHEN WOMS.WOMStockLineId is null THEN matCon.Description ELSE Cond.Description END) AS Condition,
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOM.Quantity AS ReqQty,
-					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
-					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					--WOM.Quantity AS ReqQty,
+					(CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOM.Quantity
+						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END) AS ReqQty,
+
+					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
+					(CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN (CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END)
+						ELSE [dbo].[fn_ConvertUOM](
+								(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END),
+								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+							 )
+					END) AS ResQty,
+
+					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					(CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN (CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END)
+						ELSE [dbo].[fn_ConvertUOM](
+								(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END),
+								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+							 )
+					END) AS IssueQty,
 					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.UnitCost ELSE WOMS.UnitCost END) AS UnitCost,
 					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.ExtendedCost ELSE WOMS.ExtendedCost END) AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
@@ -108,7 +133,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
+			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
@@ -120,6 +145,7 @@ BEGIN
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0
 			UNION ALL
 
 			SELECT DISTINCT
@@ -130,10 +156,32 @@ BEGIN
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN matCon.Code ELSE Cond.Code END) AS Condition,
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOM.Quantity AS RequestedQty,
+					--WOM.Quantity AS RequestedQty,
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOM.Quantity
+						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END AS RequestedQty,
 
-					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
-					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN (CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END)
+						ELSE [dbo].[fn_ConvertUOM](
+								(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END),
+								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+							 )
+					END AS ResQty,
+
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN (CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END)
+						ELSE [dbo].[fn_ConvertUOM](
+								(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END),
+								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+							 )
+					END AS IssueQty,
+					--(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
+					--(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.UnitCost ELSE WOMS.UnitCost END) AS UnitCost,
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.ExtendedCost ELSE WOMS.ExtendedCost END) AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
@@ -154,7 +202,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
-			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
+			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
@@ -166,7 +214,7 @@ BEGIN
 				  AND WOM.ItemMasterId = @ItemMasterId	
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' + @GlobalFilter +'%') OR
 					(PartDescription LIKE '%' + @GlobalFilter +'%') OR

@@ -13,18 +13,21 @@
  **************************************************************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		-------				--------------------------------            
-    1    03/06/2024		AMIT GHEDIYA		Created  
-	2    13/06/2024		AMIT GHEDIYA		Update for get only part which is reserve qty. 
-	3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	1    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+    2    03/06/2024		AMIT GHEDIYA		Created  
+	3    13/06/2024		AMIT GHEDIYA		Update for get only part which is reserve qty. 
 	4    07/11/2024		Devendra Shekh		added PartDescription and ShortName to select
 	5	 05-12-2024     Shrey Chandegara	add [Customer]
-	5	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
-	6    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
-	7    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
-
+	6	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
+	7    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
+	8    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
+	9	 23/06/2026     Bhargav Saliya	    UOM Changes [PN-16959]
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from both UNION branches' StockLine and ItemMaster joins.
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
+CREATE PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
 	@SalesOrderId BIGINT,
 	@SoPartId BIGINT = 0    
 AS    
@@ -47,7 +50,7 @@ BEGIN
 		
 		CREATE TABLE #tmprShipDetails
 		(
-			[Qty] INT NULL,
+			[Qty] DECIMAL(18,6) NULL,
 			[StockLineNumber] VARCHAR(MAX) NULL,
 			[SerialNumber] VARCHAR(MAX) NULL,
 			[Condition] VARCHAR(MAX) NULL,
@@ -59,13 +62,13 @@ BEGIN
 
 		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer])	
 		SELECT 
-			rpart.QtyToReserve AS Qty,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN rpart.QtyToReserve ELSE [dbo].[fn_ConvertUOM](rpart.QtyToReserve, uomStock.ShortName, uomConsume.ShortName, 0, part.MasterCompanyId) END AS Qty,
 			UPPER(qs.StockLineNumber) AS StockLineNumber,
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
-			UPPER(uom.ShortName) AS ShortName,
+			UPPER(ISNULL(uomConsume.ShortName,'')) AS ShortName,
 			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
@@ -74,7 +77,8 @@ BEGIN
 				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
 				AND rPart.SalesOrderId = @SalesOrderId AND rPart.QtyToReserve > 0 
-				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON itemMaster.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
@@ -83,13 +87,13 @@ BEGIN
 		UNION 
 
 		SELECT 
-			sos.QtyShipped AS Qty,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN sos.QtyShipped ELSE [dbo].[fn_ConvertUOM](sos.QtyShipped, uomStock.ShortName, uomConsume.ShortName, 0, part.MasterCompanyId) END AS Qty,
 			UPPER(qs.StockLineNumber) AS StockLineNumber,
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
-			UPPER(uom.ShortName) AS ShortName,
+			UPPER(ISNULL(uomConsume.ShortName,'')) AS ShortName,
 			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
@@ -99,7 +103,8 @@ BEGIN
 				LEFT JOIN [dbo].[SOPickTicket] SOPICK WITH(NOLOCK) ON SOPICK.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId
 				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON sos.SOPickTicketId = SOPICK.SOPickTicketId
 				AND sos.IsActive = 1 AND sos.IsDeleted = 0
-				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON itemMaster.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0

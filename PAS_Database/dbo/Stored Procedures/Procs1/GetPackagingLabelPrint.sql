@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrint]
  ** Author: unknown
  ** Description:
@@ -11,10 +11,13 @@
  ** PR   Date          Author		Change Description            
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
-	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-	3	10/15/2024		VISHAL SUTHAR	Modified to make use of new SO part tables
-	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
-
+	1	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	2	10/15/2024		VISHAL SUTHAR	Modified to make use of new SO part tables
+	3   07-07-2025      Moin Bloch      Changed Old To New Billing Table
+	4   24-06-2026      Bhargav Saliya  UOM Changes [PN-16967]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed) - fixes blank Part Number/Description/StockLine on Non-Stock Packaging Slip lines.
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
 	@SalesOrderId bigint,
@@ -30,11 +33,13 @@ BEGIN
 		DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		
-		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.SalesOrderId, sl.StockLineNumber, sop.QtyOrder Qty, sopt.QtyToShip as QtyPicked, 
+		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.SalesOrderId, sl.StockLineNumber,
+		CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sop.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.QtyOrder,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END AS Qty,
+		CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END AS QtyPicked,
 		imt.partnumber as PartNumber,imt.PartDescription, sopt.SOPickTicketNumber,
 		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
-		so.SalesOrderNumber,uom.ShortName as UOM, 
-	(SELECT top 1 QtyShipped FROM DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) Where SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS QtyShipped,
+		so.SalesOrderNumber, sl.ConsumeUnitOfMeasure as UOM, 
+		(SELECT top 1 CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END FROM DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) Where SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS QtyShipped,
 		(SELECT top 1 NoOfContainer FROM DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.SalesOrderShipping SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 		Where SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS NoOfContainer,
 		(SELECT top 1 InvoiceNo FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  AND sobi.[ModuleId] = @SOModuleId) AS InvoiceNo,
@@ -49,7 +54,6 @@ BEGIN
 		LEFT JOIN dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN dbo.Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
-		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOS.SalesOrderId = @SalesOrderId
 		WHERE SPI.PackagingSlipId = @PackagingSlipId AND SPB.SalesOrderId = @SalesOrderId

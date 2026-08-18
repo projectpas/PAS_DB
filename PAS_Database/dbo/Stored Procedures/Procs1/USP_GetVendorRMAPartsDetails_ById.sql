@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetVendorRMAPartsDetails_ById]            
  ** Author:   Devendra    
  ** Description: Get Vendor RMA Parts data by vendorrmaid and credit memo id  
@@ -16,7 +16,9 @@
  ** --   --------   -------   --------------------------------            
  1	  27-June-2023	  Devendra		    created  
  2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
-       
+ 3	  19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM      
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[USP_GetVendorRMAPartsDetails_ById] 37,1  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
@@ -55,22 +57,23 @@ BEGIN
      im.PartDescription,  
      sl.StockLineNumber,  
      sl.SerialNumber,  
-     --ISNULL(vrmd.Qty, 0) AS 'Qty', 
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) AS 'Qty',
-     vrmd.ItemMasterId,  
-     vrmd.StockLineId,  
-     vrmd.VendorRMADetailId,
-	 --ISNULL(sl.UnitCost, 0) AS 'UnitCost',
-	 ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) AS 'UnitCost',
-	 --(vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) * ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) as 'ExtendedCost'
+    --ISNULL(vrmd.Qty, 0) AS 'Qty',
+    CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(vrmd.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(vrmd.Qty,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,0,im.MasterCompanyId) END AS 'Qty',
+    vrmd.ItemMasterId,
+    vrmd.StockLineId,
+    vrmd.VendorRMADetailId,
+    --ISNULL(sl.UnitCost, 0) AS 'UnitCost',
+    CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,1,im.MasterCompanyId) END AS 'UnitCost',
+    --(vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
+    (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(vrmd.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(vrmd.Qty,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,0,im.MasterCompanyId) END) * (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,1,im.MasterCompanyId) END) AS 'ExtendedCost'
     FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)   
     LEFT JOIN [dbo].[Currency] cu WITH(NOLOCK) on vcm.CurrencyId = cu.CurrencyId  
     LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId  
     LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vrm.VendorId = v.VendorId  
     LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId  
     LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId  
-    LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on vrmd.StockLineId = sl.StockLineId  
+     AND ISNULL(im.IsNonStock,0) = 0
+     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on vrmd.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 
     WHERE vrmd.[VendorRMAId] = @VRMAId and vcm.VendorCreditMemoId = @VendorCreditMemoId  
                   
    END  

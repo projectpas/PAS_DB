@@ -14,16 +14,19 @@
  ** --   --------     -------           --------------------------------              
     1    13/11/2024    SHREY CHANDEGARA   Created    
     2    22/04/2025    Bhargav Saliya     UOM Changes    
-         
+    3    18/06/2026   Bhargav Saliya	  Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
  EXECUTE GetSalesQuotePartHistory 958  
 **************************************************************/     
-CREATE   PROCEDURE [dbo].[GetSalesQuotePartHistory]  
- @SalesOrderQuotePartId BIGINT  
+CREATE PROCEDURE [dbo].[GetSalesQuotePartHistory]  
+  @SalesOrderQuotePartId BIGINT  
 AS  
 BEGIN  
- SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
- SET NOCOUNT ON;  
-  BEGIN TRY
+  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+  SET NOCOUNT ON;  
+    BEGIN TRY
 		DECLARE @CustomerApprovalEnum INT;
 		SET @CustomerApprovalEnum = (SELECT ApprovalStatusId FROM dbo.[ApprovalStatus] WITH(NOLOCK) WHERE Name='Approved')
 		SELECT DISTINCT
@@ -34,13 +37,19 @@ BEGIN
 			soqs.StockLineId as stockLineId,
 			qs.StockLineNumber AS stockLineNumber,
 			part.FxRate as fxRate,
-			[dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) as qtyQuoted,
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'unitSalePrice',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN soqsc.MarkUpPercentage ELSE soqc.MarkUpPercentage END AS 'markUpPercentage',
+			(CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END) as qtyQuoted,
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+			END AS 'unitSalePrice',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN soqsc.MarkUpPercentage ELSE soqc.MarkUpPercentage END AS 'markUpPercentage',
 			'' AS salesBeforeDiscount,
 			'' AS 'discount',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN soqsc.DiscountAmount ELSE soqc.DiscountAmount END AS 'discountAmount',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.NetSaleAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.NetSaleAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'netSales',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN soqsc.DiscountAmount ELSE soqc.DiscountAmount END AS 'discountAmount',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN ISNULL(soqsc.NetSaleAmount, 0)
+				ELSE ISNULL(soqc.NetSaleAmount, 0)
+			END AS 'netSales',
 			part.MasterCompanyId as masterCompanyId,
 			part.CreatedBy as createdBy,
 			part.CreatedDate as createdDate,
@@ -53,17 +62,29 @@ BEGIN
 			im.IsDER AS 'isDER',
 			'' AS 'methodType',
 			'' AS 'method',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN qs.SerialNumber ELSE '' END 'serialNumber',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN qs.ControlNumber ELSE '' END 'controlNumber',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'unitCost',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitSalesPriceExtended, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitSalesPriceExtended, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'salesPriceExtended',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN qs.SerialNumber ELSE '' END 'serialNumber',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN qs.ControlNumber ELSE '' END 'controlNumber',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+			END AS 'unitCost',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN ISNULL(soqsc.UnitSalesPriceExtended, 0)
+				ELSE ISNULL(soqc.UnitSalesPriceExtended, 0)
+			END AS 'salesPriceExtended',
 			'' AS markupExtended,
 			'' AS salesDiscountExtended,
 			'' AS netSalePriceExtended,
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitCostExtended, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitCostExtended, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'unitCostExtended',
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN [dbo].[fn_ConvertUOM](ISNULL(soqsc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END AS 'marginAmount',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN ISNULL(soqsc.UnitCostExtended, 0)
+				ELSE ISNULL(soqc.UnitCostExtended, 0)
+			END AS 'unitCostExtended',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+			END AS 'marginAmount',
 			'' AS marginAmountExtended,
-			CASE WHEN ISNULL(soqs.StockLineId,0) > 0 THEN soqsc.MarginPercentage ELSE soqc.MarginPercentage END AS 'marginPercentage',
+			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN soqsc.MarginPercentage ELSE soqc.MarginPercentage END AS 'marginPercentage',
 			part.CurrencyName AS currencyDescription,
 			part.ConditionId AS conditionId,
 			part.ConditionName AS conditionDescription,
@@ -90,27 +111,27 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
-			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId	
+			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId 	
 		WHERE 
 			part.SalesOrderQuotePartId = @SalesOrderQuotePartId AND part.PartNumber IS NOT NULL
-		ORDER BY part.UpdatedDate DESC; 
- END TRY      
- BEGIN CATCH        
-  IF @@trancount > 0  
-   ROLLBACK TRAN;  
-   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            , @AdhocComments     VARCHAR(150)    = 'GetSalesQuotePartHistory'   
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderQuotePartId, '') + ''  
-            , @ApplicationName VARCHAR(100) = 'PAS'  
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-            exec spLogException   
-                    @DatabaseName   = @DatabaseName  
-                    , @AdhocComments   = @AdhocComments  
-                    , @ProcedureParameters  = @ProcedureParameters  
-                    , @ApplicationName         = @ApplicationName  
-                    , @ErrorLogID              = @ErrorLogID OUTPUT ;  
-            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
-            RETURN(1);  
- END CATCH  
+		ORDER BY part.UpdatedDate DESC;  
+  END TRY              
+  BEGIN CATCH                  
+    IF @@trancount > 0      
+      ROLLBACK TRAN;      
+      DECLARE      @ErrorLogID   INT, @DatabaseName VARCHAR(100) = db_name()       
+---------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------      
+                        ,  @AdhocComments         VARCHAR(150)         = 'GetSalesQuotePartHistory'       
+                        ,  @ProcedureParameters  VARCHAR(3000)     = '@Parameter1 = ''' + ISNULL(@SalesOrderQuotePartId, '') + ''     
+                        ,  @ApplicationName VARCHAR(100) = 'PAS'      
+---------PLEASE DO NOT EDIT BELOW---------      
+                        exec spLogException        
+                                        @DatabaseName     = @DatabaseName      
+                                        ,  @AdhocComments     = @AdhocComments      
+                                        ,  @ProcedureParameters   = @ProcedureParameters      
+                                        ,  @ApplicationName               = @ApplicationName      
+                                        ,  @ErrorLogID                       = @ErrorLogID OUTPUT ;      
+                        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)      
+                        RETURN(1);      
+  END CATCH      
 END

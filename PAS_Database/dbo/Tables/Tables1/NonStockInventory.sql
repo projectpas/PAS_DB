@@ -91,6 +91,8 @@
 
 
 
+
+
 GO
 
 
@@ -120,3 +122,14 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_NonStockInventory_POPart_CreatedDate]
+    ON [dbo].[NonStockInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PartDescription], [CreatedBy]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_NonStock_POPart_Date]
+    ON [dbo].[NonStockInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PartDescription], [CreatedBy]);
+

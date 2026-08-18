@@ -1,4 +1,14 @@
-﻿--  EXEC [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId] 5
+--  EXEC [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId] 5
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    13-Aug-2026     Rajesh Gami   [PN-17350] - Removed the "AND ISNULL(ST.IsNonStock,0) = 0" filter on the ReconciliationNumber
+									 update below (matches BETA) - this is a multi-row UPDATE keyed by ReceivingReconciliationId,
+									 not a single-row lookup, so the filter was silently skipping ReconciliationNumber stamping for
+									 non-stock stocklines after reconciliation.
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId]
 	@ReceivingReconciliationId int
 AS
@@ -31,7 +41,7 @@ BEGIN
 		FROM [dbo].Stockline ST WITH (NOLOCK)
 		LEFT JOIN DBO.[ReceivingReconciliationDetails] RRDE WITH (NOLOCK) ON st.StockLineId = RRDE.StocklineId
 		LEFT JOIN DBO.ReceivingReconciliationHeader RRDH WITH (NOLOCK) ON RRDH.ReceivingReconciliationId = RRDE.ReceivingReconciliationId
-		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0
+		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0 -- [PN-17350] AND ISNULL(ST.IsNonStock,0) = 0 removed 2026-08-13 (see history) so Non-Stock stocklines also get ReconciliationNumber stamped
 	END
 	COMMIT  TRANSACTION
 

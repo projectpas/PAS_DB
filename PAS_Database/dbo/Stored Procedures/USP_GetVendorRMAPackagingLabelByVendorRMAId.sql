@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPackagingLabelByVendorRMAId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMAPackagingLabel By VendorRMAId pdf
@@ -13,9 +13,12 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-06-2025    Sahdev Saliya       Created  
-
+    2    09/July/2026    RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026    RAJESH GAMI      [PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
+    4    24-07-2026    Bhargav Saliya       Added New fiels [PN-17341]  
+    5    27-07-2026    Bhargav Saliya       Get Ship ShipViaName [PN-17341]  
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
+CREATE    PROCEDURE [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]
     @VendorRMAId BIGINT,
     @RMAPickTicketId BIGINT,
     @VendorRMADetailId BIGINT
@@ -55,7 +58,14 @@ BEGIN
 					soq.CreatedDate,
 					soq.UpdatedBy,
 					soq.UpdatedDate,
-					qs.ManagementStructureId
+					qs.ManagementStructureId,
+					ISNULL(sv.Name, '')        AS ShipViaName,
+					rsh.ShipDate                    AS ShipDate,
+					ISNULL(rsh.AirwayBill, '')      AS AWB,
+					ISNULL(rsh.RMAShippingNum, '')  AS ShippingOrderNo,
+					rsh.NoOfContainer               AS NoOfContainer,
+					ISNULL(soq.Notes, '')           AS Notes,
+					soq.OpenDate                    AS OpenDate
 				FROM [dbo].RMAPickTicket sopkt WITH(NOLOCK)
 				INNER JOIN [dbo].VendorRMA soq WITH(NOLOCK) ON sopkt.VendorRMAId = soq.VendorRMAId
 				INNER JOIN [dbo].VendorRMADetail part WITH(NOLOCK) ON soq.VendorRMAId = part.VendorRMAId
@@ -63,12 +73,14 @@ BEGIN
 				LEFT JOIN [dbo].Address cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
 				LEFT JOIN [dbo].Countries ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id
 				LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON posadd.ReffranceId = soq.VendorRMAId AND ISNULL(posadd.IsShippingAdd, 0) = 1 AND posadd.ModuleId = @ModuleId  
-				LEFT JOIN [dbo].AllShipVia posv WITH(NOLOCK) ON posv.ReferenceId = soq.VendorRMAId AND posv.ModuleId = @ModuleId
+				--LEFT JOIN [dbo].AllShipVia posv WITH(NOLOCK) ON posv.ReferenceId = soq.VendorRMAId AND posv.ModuleId = @ModuleId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipItems spi WITH(NOLOCK) ON sopkt.RMAPickTicketId = spi.RMAPickTicketId
 				LEFT JOIN [dbo].VendorRMAPackaginSlipHeader spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
 				LEFT JOIN [dbo].StockLine qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 				LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN [dbo].RMAShipping rsh WITH(NOLOCK) ON spb.RMAShippingId = rsh.RMAShippingId
+				LEFT JOIN [dbo].ShippingVia sv WITH(NOLOCK) ON rsh.ShipviaId = sv.ShippingViaId
 				WHERE sopkt.VendorRMAId = @VendorRMAId
 				  AND sopkt.VendorRMADetailId = @VendorRMADetailId;
 			END TRY    

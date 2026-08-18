@@ -26,8 +26,11 @@
    10       29-MAR-2026     Amit Ghediya            get aircraft data.(PN-16154)
    11 	    15-MAY-2026	    DIVYESH KATHIRIYA       Combine Aircraft Hour and Minitues Like HH:MM. [PN-16398]
    12       02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
+   13       18-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for VendorBillingAddress  Module.(PN-15976) 
+   14       22-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for   Module.(PN-15976)
+   15 	    27-JUl-2026	    DIVYESH KATHIRIYA       Add Customer Domenstic Shipping. [PN-15669]
 
- EXEC usp_Get_CommonAuditLogHistory @ModuleId=87,@PK_Key=N'AircraftCycleTimeMappingsId',@PK_Value=8,@EmployeeId=236, @SubModuleId=88, @SubPK_Key = '',@SubPK_Value=0
+exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
 
 CREATE PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -58,21 +61,47 @@ BEGIN
 		DECLARE @AircraftCycleTimeModule AS INT
         DECLARE @RefId BIGINT;
 		DECLARE @DetailId VARCHAR(100);
-
-        SELECT @RefId = ContactId
-        FROM [dbo].[VendorContact]
-        WHERE VendorContactId = TRY_CAST(@PK_Value AS BIGINT);
+        DECLARE @VendorBillingAddress AS INT;
+        DECLARE @VendorShippingAddress AS INT;
+        DECLARE @RefModule VARCHAR(100);
+        DECLARE @CustomerDomensticShippingModule AS INT;
 
         -- Validate sort dir
         IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
     
         SET @Module = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @ModuleId);
         SET @SubModule = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @SubModuleId);
+        SET @RefModule = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @ModuleId);
+
 
         SET @CustomerContactModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'CustomerContact');
         SET @VendorContactModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorContact');
 		SET @AircraftCycleTimeModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
-       
+        SET @VendorBillingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorBillingAddress');
+        SET @VendorShippingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorShippingAddress');
+        SET @CustomerDomensticShippingModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'CustomerDomensticShipping');
+
+        IF (@ModuleId = @VendorContactModule)
+        BEGIN 
+            SELECT @RefId = ContactId FROM [dbo].[VendorContact] WHERE VendorContactId = TRY_CAST(@PK_Value AS BIGINT);
+            SET  @RefModule = 'Contact'
+        END
+        ELSE IF (@ModuleId = @VendorBillingAddress)
+        BEGIN
+            SELECT @RefId = AddressId FROM [dbo].[VendorBillingAddress] WHERE VendorBillingAddressId = TRY_CAST(@PK_Value AS BIGINT);
+            SET  @RefModule = 'Address'
+        END
+        ELSE IF (@ModuleId = @VendorShippingAddress)
+        BEGIN
+            SELECT @RefId = AddressId FROM [dbo].[VendorShippingAddress] WHERE VendorShippingAddressId = TRY_CAST(@PK_Value AS BIGINT);
+            SET  @RefModule = 'Address'
+        END
+        ELSE IF (@ModuleId = @CustomerDomensticShippingModule)
+        BEGIN
+            SELECT @RefId = AddressId FROM [dbo].[CustomerDomensticShipping] WHERE [CustomerDomensticShippingId] = TRY_CAST(@PK_Value AS BIGINT);
+            SET  @RefModule = 'Address'
+        END
+               
         SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
         FROM dbo.Employee E WITH (NOLOCK)
         LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
@@ -127,7 +156,7 @@ BEGIN
             )
             ) AS c;
         END
-        ELSE IF (@ModuleId = @VendorContactModule)
+        ELSE IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress OR  @ModuleId = @CustomerDomensticShippingModule)
         BEGIN 
             SELECT @cols =
                 STRING_AGG(QUOTENAME(ColumnName), ',')
@@ -293,7 +322,7 @@ BEGIN
               
                         ),'
         END
-        ELSE IF (@ModuleId = @VendorContactModule)
+        ELSE IF (@ModuleId = @VendorContactModule or @ModuleId = @VendorBillingAddress or @ModuleId = @VendorShippingAddress OR @ModuleId = @CustomerDomensticShippingModule)
         BEGIN 
             SET @sql = N';WITH S AS
             (
@@ -310,7 +339,7 @@ BEGIN
                     ReferenceId   
                 FROM [dbo].[AuditLog] WITH (NOLOCK)
                 WHERE ReferenceId = @RefId  
-                  AND TableName in (''VendorContact'',''Contact'')
+                  AND TableName in (@Module,@RefModule)
                   AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                   AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
             ),'
@@ -414,11 +443,7 @@ BEGIN
                               AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
                         ),'
         END   
-
-		--select @sql
-		--select 'first'
-
-        IF (@ModuleId = @VendorContactModule)
+        IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress OR @ModuleId = @VendorShippingAddress OR @ModuleId = @CustomerDomensticShippingModule)
         BEGIN
             SET @sql = N'
             WITH S AS
@@ -427,7 +452,7 @@ BEGIN
                        OldValue, NewValue, ChangedBy, ChangedAt, ReferenceId
                 FROM dbo.AuditLog WITH (NOLOCK)
                 WHERE ReferenceId = @RefId
-                    AND TableName IN (''VendorContact'',''Contact'')
+                    AND TableName IN (@Module,@RefModule)
                     AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                     AND (@EndAt IS NULL OR ChangedAt < @EndAt)
             ),
@@ -682,8 +707,8 @@ BEGIN
     --      @Module=@Module, @StartAt=@StartAt,     @EndAt=@EndAt,       @PK_Key=@PK_Key,       @PK_Value=@PK_Value,     @CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc;
     EXEC sp_executesql
         @sql,
-        N'@Module sysname,@SubModule sysname,@DetailId nvarchar(128), @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128), @SubPK_Key nvarchar(128), @SubPK_Value nvarchar(128), @CurrntEmpTimeZoneDesc varchar(100) ,@RefId BIGINT',
-          @Module=@Module,@SubModule=@SubModule,@DetailId = @DetailId, @StartAt=@StartAt,     @EndAt=@EndAt,       @PK_Key=@PK_Key,       @PK_Value=@PK_Value,     @SubPK_Key=@SubPK_Key,    @SubPK_Value=@SubPK_Value,  @CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc ,@RefId = @RefId;
+        N'@Module sysname,@SubModule sysname,@DetailId nvarchar(128), @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128), @SubPK_Key nvarchar(128), @SubPK_Value nvarchar(128), @CurrntEmpTimeZoneDesc varchar(100) ,@RefId BIGINT , @RefModule VARCHAR(100) ',
+          @Module=@Module,@SubModule=@SubModule,@DetailId = @DetailId, @StartAt=@StartAt,     @EndAt=@EndAt,       @PK_Key=@PK_Key,       @PK_Value=@PK_Value,     @SubPK_Key=@SubPK_Key,    @SubPK_Value=@SubPK_Value,  @CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc ,@RefId = @RefId ,@RefModule = @RefModule;
       
     END TRY    
   

@@ -13,13 +13,20 @@
     1    19/05/2025   Moin Bloch    Created
     2    06/06/2025   Rajesh Gami   Created    
 	3    10/06/2025   Moin Bloch    Added CustomerId
-	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
-	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
-	6    19/08/2025   Moin Bloch    Added Percent value for view
-	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
+	4   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
+	5    07/07/2025   Abhishek Jirawla Updated Manufacturer
+	6   17/07/2025   Bhargav Saliya    Revert Changes For Cost [PN-17163]
+	7    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
+	8    19/08/2025   Moin Bloch    Added Percent value for view
+	9    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
+	10    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	11   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts' billing invoicing items load correctly (WorkOrder branch untouched).
+	14   27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS
@@ -159,6 +166,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
@@ -174,9 +182,10 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId] 
 
 
-			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
+			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		  		  
 		END 
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SASLES ORDER ********/
@@ -241,9 +250,9 @@ BEGIN
 				  ,BII.[StocklineId]
 				  ,BII.[ConditionId]
 				  ,BII.[CostPlusType]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [UnitPrice]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [QtyBilled]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[PartCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [PartCost]
+				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.[UnitPrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [UnitPrice]
+				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.[QtyBilled], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,WO.MasterCompanyId) END) [QtyBilled]
+				  ,ISNULL(BII.[PartCost], 0) [PartCost]
 				  ,ISNULL(BII.[IsTotalCheck],0) [IsTotalCheck]
 				  ,ISNULL(BII.[TotalBillingCost],0) [TotalBillingCost]
 				  ,ISNULL(BII.[TotalBillingCostPercent],0) [TotalBillingCostPercent]
@@ -264,12 +273,12 @@ BEGIN
 				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[SubTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [SubTotal] 
+				  ,ISNULL(BII.[SubTotal], 0) [SubTotal]
 				  ,ISNULL(salePer.PercentValue,0) [SalesTaxPercent]
 				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
 				  ,ISNULL(otherPer.PercentValue,0) [OtherTaxPercent]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[GrandTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [GrandTotal]
+				  ,ISNULL(BII.[GrandTotal], 0) [GrandTotal]
 				  ,BII.[PDFPath]
 				  ,BII.[VersionNo]
 				  ,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]
@@ -292,6 +301,7 @@ BEGIN
 				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
 				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
 				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,STK.[StockLineNumber] [StockLineNumber] 
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[SalesOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[SalesOrderId]
 			  INNER JOIN [dbo].[SalesOrderPartV1] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[SalesOrderPartId]
@@ -305,7 +315,8 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
-			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
+			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId]
+			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId ;
 		END
 	END TRY    
 	BEGIN CATCH      

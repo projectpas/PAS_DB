@@ -12,6 +12,10 @@
 	2    02-Sep-2025        Sahdev Saliya           Added New Field Verified, VerifiedBy And VerifiedDate
 	3	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
 	4	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6	 15-July-2026		Ayushi Patel			Uom Changes [PN-17248]
+	7	 27-July-2026		SUMIT					Added notes field in material list [PN-16818]
+	8	 29-JUN-2026		Moin Bloch				Added MaintenanceType PN-17043
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
@@ -44,7 +48,7 @@ BEGIN
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
 					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId],
-					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],   CAST(NULL AS VARCHAR(256)) AS [MaintenanceType]  
+					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],[MaintenanceType]
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
 			UPDATE	TMP
@@ -54,17 +58,18 @@ BEGIN
 				TMP.CurrencySymbol = CY.[Symbol],
 				TMP.CurrencyText = CY.[Code],
 				TMP.AircraftModel = ACM.[ModelName],
-				TMP.AircraftMake = ACT.[Description],
-				TMP.MaintenanceType = MT.[Description]
+				TMP.AircraftMake = ACT.[Description]
+				--,TMP.MaintenanceType = MT.[Description]
 			FROM #tmpWorkFLow TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON TMP.CustomerId = CU.CustomerId
 			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON TMP.CurrencyId = CY.CurrencyId
 			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
 			LEFT JOIN [dbo].[AircraftType] ACT WITH (NOLOCK) on ACT.AircraftTypeId =  TMP.MakeTypeId
-			LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
-			
+			--LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
+
 			SELECT @WFItemMasterId = [ItemMasterId], @WFWorkScopeId = [WorkScopeId] FROM #tmpWorkFLow WHERE [WorkflowId] = @WorkflowId;
 
 			-- Getting ItemMaster Details
@@ -82,7 +87,7 @@ BEGIN
 					[COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName], [FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName],
 					[COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName], [COGS_ExchSalesOrderGLAccName], [QuickBooksReferenceId], [IsUpdated], [LastSyncDate],
 					[SyncToken], [WorkOrderFormTypeId] 
-			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFItemMasterId;
+			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			
 			-- Getting WorkScope Details
 			SELECT	[WorkScopeId], [WorkScopeCode], [Description], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [WorkScopeCodeNew], [ConditionId]
@@ -143,6 +148,7 @@ BEGIN
 								END
 			FROM #tmpWorkflowExclusion TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON TMP.ConditionId = CD.ConditionId
 
@@ -157,7 +163,7 @@ BEGIN
 			LEFT JOIN [dbo].[EmployeeExpertise] EE WITH(NOLOCK) ON TMP.ExpertiseTypeId = EE.EmployeeExpertiseId
 
 			-- Getting WorkflowMaterial Details
-			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
+			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [Notes], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
 					[IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId], [WFParentId], [IsVersionIncrease], [Figure], [Item], @stockType AS [StockType], @ManufacturerName AS [ManufacturerName], @ItemClassification AS [ItemClassification],
 					@UnitOfMeasure AS [UnitOfMeasure], @Condition AS [ConditionName]
 			INTO #tmpWorkflowMaterial FROM [dbo].[WorkflowMaterial] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]
@@ -172,9 +178,12 @@ BEGIN
 									WHEN ISNULL(IM.IsPma, 0) = 1 AND ISNULL(IM.IsDER, 0) = 0 THEN 'PMA'
 									WHEN ISNULL(IM.IsPma, 0) = 0 AND ISNULL(IM.IsDER, 0) = 1 THEN 'DER'
 									ELSE 'OEM'
-								END
+								END,
+				TMP.Quantity = CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') OR ISNULL(IM.StockUnitOfMeasure,'') = '' OR ISNULL(IM.ConsumeUnitOfMeasure,'') = '' THEN ISNULL(TMP.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(TMP.Quantity,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,TMP.MasterCompanyId) END,
+				TMP.UnitCost = CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') OR ISNULL(IM.StockUnitOfMeasure,'') = '' OR ISNULL(IM.ConsumeUnitOfMeasure,'') = '' THEN ISNULL(TMP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(TMP.UnitCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,TMP.MasterCompanyId) END
 			FROM #tmpWorkflowMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
 			LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON TMP.UnitOfMeasureId = UM.UnitOfMeasureId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON TMP.ConditionCodeId = CD.ConditionId
@@ -190,6 +199,7 @@ BEGIN
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 
 			-- Getting WorkflowPublications Details
+			 AND ISNULL(IM.IsNonStock,0) = 0
 			SELECT	[WorkflowPublicationsId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsDeleted], [PublicationId], [PublicationDescription], [PublicationType], [Sequence], [Source], [AircraftManufacturer], [Model], [Location], [Revision], [RevisionDate], [VerifiedBy], [VerifiedDate], [Status],
 					[Image], [TaskId], [WorkflowId], [MasterCompanyId], [Order], [IsActive], [Memo], [WFParentId], [IsVersionIncrease], @PublicationTypeName AS [PublicationTypeName], @ModelName AS [ModelName], @ManufacturerName AS [AircraftManufacturerName], @PublicationId AS [PublicationName]
 			INTO #tmpWorkflowPublications FROM [dbo].[WorkflowPublications] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]

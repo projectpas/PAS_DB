@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[PiecePartReconciliationAudit] (
+    [PiecePartReconciliationAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [PiecePartReconciliationId]      BIGINT          NOT NULL,
+    [RepairOrderPartRecordId]        BIGINT          NOT NULL,
+    [SourceRepairOrderId]            BIGINT          NOT NULL,
+    [ConsumedRepairOrderId]          BIGINT          NULL,
+    [StockLineId]                    BIGINT          NOT NULL,
+    [QtyShipped]                     DECIMAL (18, 6) CONSTRAINT [DF__PiecePart__QtySh__74FA31C8] DEFAULT ((0)) NOT NULL,
+    [QtyConsumed]                    DECIMAL (18, 6) CONSTRAINT [DF__PiecePart__QtyCo__75EE5601] DEFAULT ((0)) NOT NULL,
+    [QtyReturned]                    DECIMAL (18, 6) CONSTRAINT [DF__PiecePart__QtyRe__76E27A3A] DEFAULT ((0)) NOT NULL,
+    [QtyRemaining]                   DECIMAL (18, 6) CONSTRAINT [DF__PiecePart__QtyRe__77D69E73] DEFAULT ((0)) NOT NULL,
+    [ReconciliationStatus]           VARCHAR (50)    CONSTRAINT [DF__PiecePart__Recon__78CAC2AC] DEFAULT ('Pending') NOT NULL,
+    [Memo]                           NVARCHAR (MAX)  NULL,
+    [MasterCompanyId]                INT             NOT NULL,
+    [CreatedBy]                      VARCHAR (256)   NOT NULL,
+    [CreatedDate]                    DATETIME2 (7)   CONSTRAINT [DF_PPRA_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedBy]                      VARCHAR (256)   NOT NULL,
+    [UpdatedDate]                    DATETIME2 (7)   CONSTRAINT [DF_PPRA_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsActive]                       BIT             CONSTRAINT [DF_PPRA_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                      BIT             CONSTRAINT [DF_PPRA_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [QtyDamagedLost]                 DECIMAL (18, 6) CONSTRAINT [DF__PiecePart__QtyDa__7D8F77C9] DEFAULT ((0)) NOT NULL,
+    [ParentRepairOrderPartId]        BIGINT          NULL,
+    CONSTRAINT [PK_PiecePartReconciliationAudit] PRIMARY KEY CLUSTERED ([PiecePartReconciliationAuditId] ASC)
+);
+

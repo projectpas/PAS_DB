@@ -15,20 +15,20 @@
     [PP_UOMName]                         VARCHAR (50)    NULL,
     [PP_CurrencyId]                      INT             NULL,
     [PP_CurrencyName]                    VARCHAR (50)    NULL,
-    [PP_VendorListPrice]                 DECIMAL (18, 2) NULL,
+    [PP_VendorListPrice]                 DECIMAL (18, 6) NULL,
     [PP_PurchaseDiscPerc]                INT             NULL,
-    [PP_PurchaseDiscAmount]              DECIMAL (18, 2) NULL,
-    [PP_UnitPurchasePrice]               DECIMAL (18, 2) NULL,
+    [PP_PurchaseDiscAmount]              DECIMAL (18, 6) NULL,
+    [PP_UnitPurchasePrice]               DECIMAL (18, 6) NULL,
     [SalePriceSelectId]                  BIGINT          NULL,
     [SalePriceSelectName]                VARCHAR (200)   NULL,
     [SP_FSP_UOMId]                       BIGINT          NULL,
     [SP_FSP_UOMName]                     VARCHAR (50)    NULL,
     [SP_FSP_CurrencyId]                  INT             NULL,
     [SP_FSP_CurrencyName]                VARCHAR (50)    NULL,
-    [SP_FSP_FlatPriceAmount]             DECIMAL (18, 2) NULL,
+    [SP_FSP_FlatPriceAmount]             DECIMAL (18, 6) NULL,
     [SP_CalSPByPP_MarkUpPercOnListPrice] INT             NULL,
-    [SP_CalSPByPP_MarkUpAmount]          DECIMAL (18, 2) NULL,
-    [SP_CalSPByPP_UnitSalePrice]         DECIMAL (18, 2) NULL,
+    [SP_CalSPByPP_MarkUpAmount]          DECIMAL (18, 6) NULL,
+    [SP_CalSPByPP_UnitSalePrice]         DECIMAL (18, 6) NULL,
     [CreatedBy]                          VARCHAR (100)   NULL,
     [CreatedDate]                        DATETIME2 (7)   NULL,
     [UpdatedBy]                          VARCHAR (100)   NULL,
@@ -36,6 +36,4 @@
     [IsActive]                           BIT             NULL,
     [IsDeleted]                          BIT             NULL
 );
-
-
 

@@ -2,9 +2,9 @@
     [NonPOInvoicePartDetailsId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [NonPOInvoiceId]            BIGINT          NOT NULL,
     [EntryDate]                 DATETIME2 (7)   NOT NULL,
-    [Amount]                    DECIMAL (18, 2) NULL,
+    [Amount]                    DECIMAL (18, 6) NULL,
     [CurrencyId]                BIGINT          NULL,
-    [FXRate]                    DECIMAL (18, 2) NULL,
+    [FXRate]                    DECIMAL (18, 6) NULL,
     [GlAccountId]               BIGINT          NOT NULL,
     [InvoiceNum]                VARCHAR (256)   NULL,
     [Invoicedate]               DATETIME2 (7)   NULL,
@@ -23,11 +23,17 @@
     [Item]                      VARCHAR (250)   NULL,
     [Description]               VARCHAR (500)   NULL,
     [UnitOfMeasureId]           BIGINT          NULL,
-    [Qty]                       BIGINT          NULL,
-    [ExtendedPrice]             DECIMAL (18, 2) NULL,
+    [Qty]                       DECIMAL (18, 6) NULL,
+    [ExtendedPrice]             DECIMAL (18, 6) NULL,
     [TaxTypeId]                 BIGINT          NULL,
     CONSTRAINT [PK_NonPOInvoicePartDetails] PRIMARY KEY CLUSTERED ([NonPOInvoicePartDetailsId] ASC)
 );
-
-
+GO
+CREATE NONCLUSTERED INDEX [IX_NonPOInvoicePartDetails_NonPOInvoiceId_Perf]
+    ON [dbo].[NonPOInvoicePartDetails]([NonPOInvoiceId] ASC)
+    INCLUDE([Amount], [GlAccountId], [ExtendedPrice], [InvoiceNum])
+    WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-12: supports USP_GetNonPOInvoiceList's LEFT JOIN "NPD.NonPOInvoiceId = NPH.NonPOInvoiceId"
+-- and USP_GetNonPOInvoiceEditData_ById's @totalPartCount subquery (see
+-- UOM_USP_GetNonPOInvoiceList_Deploy.sql for the full review). [PN-17634]
 

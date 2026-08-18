@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAShippingChildList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to get shipping child list data.
@@ -16,10 +16,13 @@
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Amit Ghediya			Created
 	2    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
-     
+	3    19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    5    07/07/2026   Ayushi                [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion 
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_VendorRMA_GetVendorRMAShippingChildList 
 **************************************************************/
-CREATE      Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]  
+CREATE       Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]  
  @VendorRMAId  bigint,  
  @VendorRMADetailId bigint,  
  @ConditionId bigint  
@@ -34,10 +37,12 @@ BEGIN
   SELECT DISTINCT sopt.RMAPickTicketId, sos.RMAShippingId, CASE WHEN sosi.VendorRMADetailId	 IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 	  CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sos.RMAShippingNum ELSE NULL END AS RMAShippingNum,  
 	  sopt.RMAPickTicketNumber,
-	  ([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])) AS QtyToShip,
+	  ROUND((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),2) AS QtyToShip,
+
 	  so.RMANumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
 	  sl.SerialNumber, cr.[VendorName] as CustomerName, soc.CustomsValue, soc.CommodityCode, 
-	  ([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])) AS QtyShipped,
+	  ROUND((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),2) AS QtyShipped,
+
 	  sos.VendorRMAId, (CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sosi.VendorRMADetailId ELSE sop.VendorRMADetailId END) VendorRMADetailId,  
 	  sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 	  CASE WHEN sos.RMAShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
@@ -52,7 +57,8 @@ BEGIN
 		 AND sos.VendorRMAId = sopt.VendorRMAId  
 	  INNER JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId  
 	  LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-	  LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId  
+	   AND ISNULL(imt.IsNonStock,0) = 0
+	   LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 
 	  LEFT JOIN DBO.VendorRMACustomsInfo soc WITH (NOLOCK) ON soc.RMAShippingId = sos.RMAShippingId  
 	  LEFT JOIN DBO.Vendor cr WITH (NOLOCK)  on cr.VendorId = so.VendorId  
 	  LEFT JOIN DBO.VendorRMAPackaginSlipItems SPI WITH (NOLOCK) ON sopt.RMAPickTicketId = SPI.RMAPickTicketId  AND SPI.VendorRMADetailId = sop.VendorRMADetailId  

@@ -23,6 +23,9 @@
 	7    19-12-2024   RAJESH GAMI		    Add MastercompanyId in the managementstructure JOIN
 	8    26-12-2024   RAJESH GAMI		    Modified WPN to check RO is closed or not
 	9    26-05-2026   BHARGAV SALIYA		UOM Changes [PN-15052]
+	10   09-06-2026   BHARGAV SALIYA		Resolved converting data type varchar to numeric issue
+	11    09/July/2026   RAJESH GAMI		    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12   23/July/2026   RAJESH GAMI		    [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/   
 CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
@@ -40,8 +43,8 @@ CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @StocklineNumber NVARCHAR(50),
 @ControlNumber NVARCHAR(50),
 @IdNumber NVARCHAR(50),
-@QuantityReserved DECIMAL(18,2) = NULL,   
-@QuantityIssued DECIMAL(18,2) = NULL,    
+@QuantityReserved DECIMAL(18,6) = NULL,   
+@QuantityIssued DECIMAL(18,6) = NULL,    
 @Module NVARCHAR(50),
 @ReferenceNumber NVARCHAR(50),
 @level1Str VARCHAR(MAX) = NULL,
@@ -149,8 +152,8 @@ BEGIN
 	  StocklineNumber VARCHAR(100) NULL,
 	  ControlNumber VARCHAR(100) NULL,
 	  IdNumber VARCHAR(100) NULL,
-	  QuantityReserved DECIMAL(18,2) NULL,   -- changed from INT to DECIMAL(18,2)
-	  QuantityIssued DECIMAL(18,2) NULL,     -- changed from INT to DECIMAL(18,2)
+	  QuantityReserved DECIMAL(18,6) NULL,   -- changed from INT to DECIMAL(18,2)
+	  QuantityIssued DECIMAL(18,6) NULL,     -- changed from INT to DECIMAL(18,2)
 	  Module VARCHAR(50) NULL,
 	  ReferenceNumber VARCHAR(50) NULL,
 	  level1 VARCHAR(MAX)  NULL,
@@ -232,7 +235,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					ROP.QuantityReserved,
-					'',
+					0,
 					'RepairOrder' AS Module,
 					RO.RepairOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -284,7 +287,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					ESR.QtyToReserve,
-					'',
+					0,
 					'ExchangeSalesOrder' AS Module,
 					ESO.ExchangeSalesOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -337,7 +340,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					VRD.Qty,
-					'',
+					0,
 					'RMA' AS Module,
 					VRD.RMANum,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -388,7 +391,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					SSTL.QtyReserved,
-					'',
+					0,
 					'SalesOrder' AS Module,
 					ESO.SalesOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -443,7 +446,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					SSTL.NewQty QtyReserved,
-					'' ,
+					0,
 					'SalesOrder' AS Module,
 					ESO.BulkStkLineAdjNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -484,13 +487,15 @@ BEGIN
 					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
+
+				
 				--* END: Stockline Bulk Adjustment For Reserve *--
 				
 		 END
 
 		 IF(@ViewType = '1')
 		 BEGIN
-
 				--* Start: WorkOrderMaterialStockline For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
@@ -712,7 +717,6 @@ BEGIN
 		 END
 		 IF(@ViewType = '2')
 		 BEGIN
-
 				--* Start: WorkOrderMaterialStockline For Issued *--
 				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
@@ -875,6 +879,7 @@ BEGIN
 						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
 				--* START: SUBWorkOrderMaterialStocklineKit For Issued *--
@@ -929,6 +934,7 @@ BEGIN
 					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
 		 END

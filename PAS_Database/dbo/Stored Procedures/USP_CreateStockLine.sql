@@ -17,8 +17,25 @@
 	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 	6    03/06/2026    Sahdev Saliya    Added new field Model [PN-16667]
-
---   EXEC [USP_CreateStockLine] 
+	7    29/06/2026    Nakul Chandigra  Added new field 'Note' [Note] [PN-17012]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    04-Aug-2026   Rajesh Gami      [PN-17009] Merge Non-Stock Inventory into Stockline: added @IsNonStock,
+									 @Currency, @CurrencyId, @ItemNonStockClassificationId,
+									 @NonStockClassification, @IsService params; persist on Insert/Update.
+									 NOTE: the @UniqItemMasterId/@IsTimeLife lookup is already scoped to the
+									 unique @ItemMasterId, so no IsNonStock filter is added there (same reasoning
+									 as GetStockLineDetails and USP_GetCommonForStocklineByItemMasterId) - it
+									 would otherwise silently skip setting @IsStkTimeLife for Non-Stock stocklines.
+	10   13-Aug-2026   Rajesh Gami      [PN-17009] Entry #9 above was documentation-only - the 6 params
+									 (@IsNonStock, @Currency, @CurrencyId, @ItemNonStockClassificationId,
+									 @NonStockClassification, @IsService) were never actually added to this
+									 proc's parameter list or wired into the Insert/Update statements, even
+									 though the C# repository (StockLineListRepository.CreateStockLine) has
+									 been passing all 6 as SqlParameters since that same date - every Create
+									 Stockline call was failing at runtime with "procedure has too many
+									 arguments specified". Added the params and wired them into both the
+									 Insert column list and the Update SET clause, matching BETA.
+--   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @StockLineId BIGINT = NULL,
@@ -63,6 +80,11 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @GLAccountId BIGINT = NULL,
 @AssetId BIGINT = NULL,
 @IsHazardousMaterial BIT = NULL,
+@IsNonStock BIT = NULL,
+@Currency VARCHAR(100) = NULL,
+@CurrencyId BIGINT = NULL,
+@ItemNonStockClassificationId BIGINT = NULL,
+@NonStockClassification VARCHAR(100) = NULL,
 @IsPMA BIT = NULL,
 @IsDER BIT= NULL,
 @OEM BIT= NULL,
@@ -271,7 +293,9 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TotalCSN DECIMAL(18,2) = NULL,
 @TotalTSNMM DECIMAL(18,6) = NULL,
 @TotalCSNMM DECIMAL(18,6) = NULL,
-@Model VARCHAR(200) = NULL
+@Note NVARCHAR(MAX) = NULL,
+@Model VARCHAR(200) = NULL,
+@IsService BIT = NULL
 AS
 BEGIN
 
@@ -330,7 +354,7 @@ BEGIN
 			RETURN;
 		END
 
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = @IsTimeLife;
@@ -463,7 +487,7 @@ BEGIN
 			INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate]
 			   ,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]			   
 			   ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost]			   
-			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]			   
+			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsNonStock],[Currency],[CurrencyId],[ItemNonStockClassificationId],[NonStockClassification],[IsService],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]
 			   ,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId]
 			   ,[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]			   
 			   ,[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber]			   
@@ -484,11 +508,11 @@ BEGIN
 			   ,[COGS_SalesOrderGLAccName],[COGS_QtyVarianceGLAccId],[COGS_QtyVarianceGLAccName],[COGS_UnitCostVarianceGLAccId],[COGS_UnitCostVarianceGLAccName],[RevenueMroGLAccId]
 			   ,[RevenueMroGLAccName],[RevenueSoGLAccId],[RevenueSoGLAccName],[RevenueExchGLAccId],[RevenueExchGLAccName],[COGS_ExchSalesOrderGLAccId],[COGS_ExchSalesOrderGLAccName]			   
 			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber],StockUnitOfMeasureId,ConsumeUnitOfMeasureId,[PoPartUnitCost]
-			   ,[TotalTSN], [TotalCSN], [TotalTSNMM], [TotalCSNMM], [Model])
+			   ,[TotalTSN], [TotalCSN], [TotalTSNMM], [TotalCSNMM], [Model],[Note])
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
-               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
+               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsNonStock,@Currency,@CurrencyId,@ItemNonStockClassificationId,@NonStockClassification,@IsService,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
                ,CASE WHEN @MSLegalEntityId > 0 THEN @MSLegalEntityId ELSE @LegalEntityId END,@MasterCompanyId ,@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@isSerialized,CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END
 			   ,CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END,@SiteId,@ObtainFromType,@OwnerType,@TraceableToType,@UnitCostAdjustmentReasonTypeId
                ,@UnitSalePriceAdjustmentReasonTypeId,@IdNumber,@QuantityToReceive,(ISNULL(@QuantityOnHand,0) * ISNULL(@PurchaseOrderUnitCost,0)),@ManufacturingTrace,@ExpirationDate,@AircraftTailNumber,ISNULL(@ShippingViaId,0),@EngineSerialNumber
@@ -509,7 +533,7 @@ BEGIN
                ,@COGS_SalesOrderGLAccName,@COGS_QtyVarianceGLAccId,@COGS_QtyVarianceGLAccName,@COGS_UnitCostVarianceGLAccId,@COGS_UnitCostVarianceGLAccName,@RevenueMroGLAccId
                ,@RevenueMroGLAccName,@RevenueSoGLAccId,@RevenueSoGLAccName,@RevenueExchGLAccId,@RevenueExchGLAccName,@COGS_ExchSalesOrderGLAccId,@COGS_ExchSalesOrderGLAccName
                ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@PoPartUnitCost,
-			    @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM,@Model
+			    @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM,@Model,@Note
 
 			SELECT @StockLineId = SCOPE_IDENTITY();
 
@@ -556,7 +580,7 @@ BEGIN
 	  BEGIN
 	    DECLARE @OldUnitCost DECIMAL(18,2) = 0
         SELECT @OldUnitCost = ISNULL([UnitCost],0) FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = CASE WHEN @IsStkTimeLife IS NOT NULL THEN @IsStkTimeLife ELSE @IsTimeLife END;
@@ -631,6 +655,12 @@ BEGIN
                [CoreUnitCost]= ISNULL(@CoreUnitCost,0),
                [AssetId] = @AssetId,
                [IsHazardousMaterial] = @IsHazardousMaterial,
+               [IsNonStock] = @IsNonStock,
+               [Currency] = @Currency,
+               [CurrencyId] = @CurrencyId,
+               [ItemNonStockClassificationId] = @ItemNonStockClassificationId,
+               [NonStockClassification] = @NonStockClassification,
+               [IsService] = @IsService,
                [IsPMA] = @IsPMA,
                [IsDER] = @IsDER,
                [IsOemPNId] = @IsOemPNId,
@@ -729,7 +759,8 @@ BEGIN
 			   [TotalCSN]= ISNULL(@TotalCSN,0),
 			   [TotalTSNMM] = ISNULL(@TotalTSNMM ,0),
 			   [TotalCSNMM] = ISNULL(@TotalCSNMM,0),
-			   [Model] = @Model
+			   [Model] = @Model,
+			   [Note] = @Note
 	     WHERE [MasterCompanyId] = @MasterCompanyId AND [StockLineId] = @StockLineId
 		 
 		EXEC [dbo].[USP_UpdateSLMSDetails] @StkManagementStructureModuleId,@StockLineId,@ManagementStructureId,@UpdatedBy;

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: [dbo].[USP_PostCycleCountBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used create cycle count batch Details 
@@ -16,13 +16,15 @@
 	3    19/11/2024          Moin Bloch          Added @AccountingCalendarId,@LedgerId 
 	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise 
 	5    05/12/2024          Moin Bloch          Added @IsAccountByPass Flag
-	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
-	8    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
-	9    28/11/2025          Moin Bloch          Changed Logic For CR/DR
-
-    EXEC [dbo].[USP_PostCycleCountBatchDetails] 
+	6    27/12/2024          Moin Bloch          Updated Added LegalEntityId
+	7    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
+	8    28/11/2025          Moin Bloch          Changed Logic For CR/DR
+	9    09/July/2026          RAJESH GAMI          [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10	 07/07/2026	         Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	11   13/Aug/2026          RAJESH GAMI          [PN-17009] - Re-added missing ISNULL(SL.IsNonStock,0)=0 filter on the Stockline GLAccount lookup that was dropped when this proc was ported from BETA.
+    EXEC [dbo].[USP_PostCycleCountBatchDetails]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
+CREATE PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
 @CycleCountId BIGINT,
 @CycleCountDetailId BIGINT,
 @StockLineId BIGINT,
@@ -86,6 +88,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
@@ -364,10 +367,14 @@ BEGIN
 							 @GlAccountId = [GlAccountId],
 							 @GlAccountNumber = [GlAccountNumber],
 							 @GlAccountName = [GlAccountName] ,
-							 @IsAutoPost = ISNULL(IsAutoPost,0)
+							 @IsAutoPost = ISNULL(IsAutoPost,0),
+							 @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 						WHERE UPPER([DistributionSetupCode]) = UPPER('COGSCYCLECOUNT') 
 						 AND [DistributionMasterId] = @DistributionMasterId;
+
+				IF(@IsBypassAccounting = 0)
+				BEGIN
 					 
 				INSERT INTO [dbo].[CommonBatchDetails]([JournalBatchDetailId],[JournalTypeNumber],
 							 [CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],
@@ -412,6 +419,8 @@ BEGIN
 							,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 							,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
 							,@CycleCountDetailId,@MasterCompanyId,@LegalEntityId,@LedgerId,@AccountingCalendarId);
+
+				END
 			 
 				----- Inventory - Stock--------		  	 
 
@@ -421,7 +430,8 @@ BEGIN
 							 @CRDRType = [CRDRType],
 							 @GlAccountId = [GlAccountId],
 							 @GlAccountNumber = [GlAccountNumber],
-							 @GlAccountName = [GlAccountName]						
+							 @GlAccountName = [GlAccountName], 
+							 @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 						WHERE UPPER([DistributionSetupCode]) = UPPER('INVENTORYCYCLECOUNT') 
 						 AND [DistributionMasterId] = @DistributionMasterId;
@@ -429,7 +439,7 @@ BEGIN
 				 --GET STOCKLINE GLACCOUNT.
 				 SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 				    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-				    WHERE SL.[StockLineId] = @StocklineId;
+				    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 				 
 				 --GET GL Accounting Data from GLAccout based on stockline
 				 SELECT @GlAccountId = [GLAccountId],
@@ -438,6 +448,9 @@ BEGIN
 				 FROM [dbo].[GLAccount] WITH(NOLOCK)
 				 WHERE [GLAccountId] = @InventoryGLAccId
 				 AND [MasterCompanyId] = @MasterCompanyId; 
+
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 
 				 INSERT INTO [dbo].[CommonBatchDetails]([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],
 							 [DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],
@@ -477,6 +490,8 @@ BEGIN
 							,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 							,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
 							,@CycleCountDetailId,@MasterCompanyId,@LegalEntityId,@LedgerId,@AccountingCalendarId);
+
+				 END
 						
 				 -----Inventory - Stock--------
 

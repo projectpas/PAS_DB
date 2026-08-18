@@ -71,6 +71,7 @@
     <Folder Include="Snapshots" />
   </ItemGroup>
   <ItemGroup>
+    <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
     <Build Include="dbo\Tables\Tables1\AccountingBatchManagementStructureDetails.sql" />
     <Build Include="dbo\Tables\Tables1\AccountingCalendar.sql" />
@@ -266,6 +267,7 @@
     <Build Include="dbo\Tables\Tables1\CompanyEmailConfiguration.sql" />
     <Build Include="dbo\Tables\Tables1\Condition.sql" />
     <Build Include="dbo\Tables\Tables1\ConditionAudit.sql" />
+    <Build Include="dbo\Tables\ILSConditionMapping.sql" />
     <Build Include="dbo\Tables\Tables1\Contact.sql" />
     <Build Include="dbo\Tables\Tables1\ContactAudit.sql" />
     <Build Include="dbo\Tables\Tables1\ContactTag.sql" />
@@ -1411,6 +1413,7 @@
     <Build Include="dbo\Tables\Tables2\WorkScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcess.sql" />
     <Build Include="dbo\Tables\Tables2\YearEndCloseProcessAudit.sql" />
+    <Build Include="dbo\Views\vw_ILSConditions.sql" />
     <Build Include="dbo\Views\vw_WorkOrderStage.sql" />
     <Build Include="dbo\Views\vw_WOInspectionConditions.sql" />
     <Build Include="dbo\Views\vw_warehouse.sql" />
@@ -1429,6 +1432,7 @@
     <Build Include="dbo\Views\vw_managementstructurelevel.sql" />
     <Build Include="dbo\Views\vw_location.sql" />
     <Build Include="dbo\Views\vw_ledger.sql" />
+    <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Views\vw_itemmaster_list_main.sql" />
     <Build Include="dbo\Views\vw_ItemClassification.sql" />
     <Build Include="dbo\Views\vw_EmailTemplate.sql" />
@@ -2216,6 +2220,8 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReport_ColumnName.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReportData.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetbulkstocklineadjustmentById.sql" />
+    <Build Include="dbo\Tables\BulkStockScrapCertificate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetBulkStockScrapCertificateForPDF.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetCageCode_ByLegalEntityId.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetCapabilitiesReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetChekPartandAddress.sql" />
@@ -2613,6 +2619,9 @@
     <Build Include="Database Triggers\backup_objects.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialListType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialKitType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderSettlementDetailsUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\SubWorkOrderSettlementDetailType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowPublicationType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowMeasurementType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowMaterialListType.sql" />
@@ -2800,6 +2809,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO.sql" />
     <Build Include="dbo\Tables\KitMasterHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveKITMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSConditionCodeMap.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKitPartHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateGLLeafNodeSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_New.sql" />
@@ -2872,6 +2885,7 @@
     <Build Include="dbo\Stored Procedures\USP_Audit_AuditHistory.sql" />
     <Build Include="dbo\User Defined Types\AuditFields.sql" />
     <Build Include="dbo\Stored Procedures\USP_ValidateTenderStocklineCostDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ValidateDistributionSetup.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteTenderStocklineDetail.sql" />
     <Build Include="dbo\Tables\ReportUrlParams_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveReportUrlParamsData_1.sql" />
@@ -2899,6 +2913,9 @@
     <Build Include="dbo\Tables\AssetInventoryBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPiecePartReconciliationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetRoPiecePartForVendorReconcilationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReconcilePiecePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_UpdateActiveInActiveStatus.sql" />
     <Build Include="dbo\Views\vw_JobTitle_Audit.sql" />
     <Build Include="dbo\Views\vw_EmployeeStation_Audit.sql" />
@@ -3041,6 +3058,8 @@
     <Build Include="dbo\Stored Procedures\USP_DuplicateSalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateCustomerReferenceDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCustomerListForCreateCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroCustomerList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCustomerListForUpdateCustomer.sql" />
     <Build Include="dbo\Views\vw_EmployeeTrainingType_Audit.sql" />
     <Build Include="dbo\Views\vw_AssetStatusAudit.sql" />
@@ -3121,6 +3140,8 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetVendorListForUpdateVendor.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewVendorListForCreateVendor.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSetupAudit.sql" />
+    <Build Include="dbo\Tables\AccountingIntegrationType.sql" />
+    <Build Include="dbo\Tables\XeroTokens.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupHistory_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupDetails_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetup_List.sql" />
@@ -3422,6 +3443,7 @@
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewGLAccountSyncPendingListForCreate.sql" />
+    <Build Include="dbo\Stored Procedures\Xero_GetNewGLAccountListForCreateAccount.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDateTimeByTimeZone.sql" />
     <Build Include="dbo\Stored Procedures\GetEmployeeTimeZone.sql" />
     <Build Include="dbo\Tables\AccountingModule.sql" />
@@ -3557,6 +3579,7 @@
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />
@@ -3574,6 +3597,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerDomesticShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateIntegrationStatus_ByModuleId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAccountingIntegrationStatus.sql" />
     <Build Include="dbo\Tables\EmployeeCertifyingStaff.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOVersionNum.sql" />
     <Build Include="dbo\Stored Procedures\SP_CreateWorkOrderBillingPerformaInvoicing.sql" />
@@ -4322,6 +4346,7 @@
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageListByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyCode.sql" />
@@ -4391,6 +4416,18 @@
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNosStockSalesOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemMasterWithManufacturerAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartDetailsWithmasterCompanyIdAllTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCreditMemoDetailsForXero.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCreditMemoListForCreateCreditMemo.sql" />
     <Build Include="dbo\Stored Procedures\USP_AlterColumnsToDecimal.sql" />
     <Build Include="dbo\Stored Procedures\UOMSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingRepairOrderForView.sql" />
@@ -4461,6 +4498,7 @@
     <Build Include="dbo\Tables\MaintenanceStatus.sql" />
     <Build Include="dbo\Tables\AircraftStatus.sql" />
     <Build Include="dbo\Tables\AircraftRegistryHeader.sql" />
+    <Build Include="dbo\Tables\XeroAccountingGLConfig.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftRegistryState.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryList.sql" />
     <Build Include="dbo\Tables\AircraftInstalledPartDetails.sql" />
@@ -4493,6 +4531,8 @@
     <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
     <Build Include="dbo\Tables\PersistedGrants.sql" />
+    <Build Include="dbo\Tables\PiecePartReconciliationAudit.sql" />
+    <Build Include="dbo\Tables\PiecePartReconciliation.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAccountDetailsByID.sql" />
     <Build Include="dbo\Tables\MaintenanceType.sql" />
     <Build Include="dbo\Views\vw_MaintenanceType.sql" />
@@ -4520,6 +4560,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivity.sql" />
     <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
     <Build Include="dbo\Tables\CustomerAging_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCustomerAging.sql" />
+    <Build Include="dbo\Tables\VendorAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
@@ -4550,7 +4593,67 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderByIdSSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoHeaderDetailsByItemMasterId.sql" />
     <Build Include="dbo\Views\VW_WorkScopeType.sql" />
+    <Build Include="dbo\Tables\RFQTraceability.sql" />
+    <Build Include="dbo\Views\vw_RFQTraceability.sql" />
+    <Build Include="dbo\Tables\LocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineUOMByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomersDataForReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineList_ByLocation.sql" />
+    <Build Include="dbo\Tables\TrialBalanceUpload.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ValidateTrialBalance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTrialBalanceUploadData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTrialBalance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrialBalanceUploadList.sql" />
+    <Build Include="dbo\User Defined Types\ValidateTrialBalanceUploadType.sql" />
+    <Build Include="dbo\User Defined Types\SaveTrialBalanceUploadType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineRRQty.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BulkCreateReceivingReconciliationDetails.sql" />
+    <Build Include="dbo\User Defined Types\ReceivingReconciliationDetailsType.sql" />
+    <Build Include="dbo\User Defined Types\ReceivingReconciliationDetailsBulkType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPOFromEmail.sql" />
+    <Build Include="dbo\User Defined Types\tbl_EmailVendorRFQPartType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_Optimized.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportData_MultiplePerod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportColumns.sql" />
+    <Build Include="dbo\Tables\LeaseType.sql" />
+    <Build Include="dbo\Views\vw_LeaseType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTaskInstructionMasterHistoryByTaskId.sql" />
+    <Build Include="dbo\Tables\LeaseSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLeaseSetting.sql" />
+    <Build Include="dbo\Tables\LeaseStatus.sql" />
+    <Build Include="dbo\Tables\WorksheetMapping.sql" />
+    <Build Include="dbo\Tables\EngineRegistryHeader.sql" />
+    <Build Include="dbo\Tables\AircraftHistoryTemplate.sql" />
+    <Build Include="dbo\Tables\AircraftHistory.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivitySerialDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEngineRegistryState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LinkPartToExistingWorksheet.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
+    <Build Include="dbo\Tables\WorkSheetStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderFromAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetOpenWorksheetsForAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftComponentMaintenanceDashboardList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
   </ItemGroup>
   <ItemGroup>
@@ -4560,6 +4663,8 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingAddressStatus.sql" />
     <Build Include="dbo\Tables\UserTwoFactorVerification.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoiceDepositFromXero.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationById.sql" />
@@ -4569,6 +4674,7 @@
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationById.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

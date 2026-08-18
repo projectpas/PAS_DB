@@ -23,6 +23,10 @@
     [UpdatedDate]               DATETIME2 (7)  NOT NULL,
     [IsActive]                  BIT            DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT            DEFAULT ((0)) NOT NULL,
+    [Applicability]             BIT            NULL,
+    [MEL]                       BIT            NULL,
+    [Ractification]             VARCHAR (MAX)  NULL,
+    [ComplianceDate]            DATETIME2 (7)  NULL,
     PRIMARY KEY CLUSTERED ([AircraftPublicationId] ASC),
     CONSTRAINT [FK_AircraftPublication_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

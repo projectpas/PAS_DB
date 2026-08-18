@@ -13,10 +13,14 @@
 	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
 	4    27-May-2026        Sahdev Saliya       Added Model [PN-16353]
-    
- -- EXEC [USP_AddItemMasterGeneralInfo] 
+	5    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
+	6   01/July/2026			RAJESH GAMI [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
+	7    03-Aug-2026         Rajesh Gami         Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
+	8    03-Aug-2026        Sahdev Saliya       Added IsKitAssy [PN-17371]
+
+ -- EXEC [USP_AddItemMasterGeneralInfo]
 **************************************************************/
-CREATE       PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
+CREATE         PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -91,12 +95,14 @@ BEGIN
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
 				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
-				[IsFlightHoursAvailable],
-				[IsFlightCyclesAvailable],
-				[IsLandingsAvailable],
-				[IsStartsAvailable],
-				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model])
+
+						[IsFlightHoursAvailable],
+		[IsFlightCyclesAvailable],
+		[IsLandingsAvailable],
+		[IsStartsAvailable],
+		[IsCalendarTimeAvailable],
+		[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
+		[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -118,7 +124,8 @@ BEGIN
 				[IsLandingsAvailable],
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model]
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();
@@ -141,7 +148,7 @@ BEGIN
 
 			EXEC [DBO].[UpdateItemMasterDetail] @ItemMasterId;				
 
-			EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
+			--EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId;
 
 		END
 		ELSE

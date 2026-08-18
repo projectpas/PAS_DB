@@ -34,11 +34,12 @@
 	18	 25/JUN/2025	     Devendra Shekh			Modified DistributionSetup for the DEPOSIT from DistributionSetup to itemGLAccount
 	19	 06/March/2026	     AMIT GHEDIYA			Modified for revert accounting entry whle click on unpost Also not allow to add in vendorPayment & after revert sodt delete vendorpayment table (PN-15580)
 	20	 12/March/2026	     AMIT GHEDIYA			Modified for revert after revert Hard delete vendorpayment table & approval process(PN-15580)
+	21	 06/07/2026	         Moin Bloch             Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
 
-CREATE   PROCEDURE [dbo].[USP_PostNonPO_BatchDetails]
+CREATE    PROCEDURE [dbo].[USP_PostNonPO_BatchDetails]
 (
 	@NonPOInvoiceId BIGINT,
 	@UserName VARCHAR(50),
@@ -99,6 +100,7 @@ BEGIN
 		DECLARE @PartAmtSum DECIMAL(18,2) =0;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
@@ -296,12 +298,15 @@ BEGIN
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0),
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-DEPOSIT') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 				 AND MasterCompanyId = @MasterCompanyId;
 
 				 SELECT @GlAccountId = GlAccountId, @GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @PartGlAccId AND MasterCompanyId = @MasterCompanyId;
+
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -328,6 +333,7 @@ BEGIN
 				INSERT INTO [NonPOInvoiceBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, CommonJournalBatchDetailId, VendorId, VendorName, NonPOInvoiceId, NPONumber, Memo)
 				VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @CommonBatchDetailId , @VendorId, @VendorName, @NonPOInvoiceId, @ReferenceNum, @PartMemo)
 
+				 END
 				 ----- GL ACCOUNT PRESENT IN PART --------
 
 				-----Account Payable--------
@@ -335,10 +341,13 @@ BEGIN
 				IF @NonPOPartStart = @TotalNonPOPart
 				BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE')
 						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 						AND MasterCompanyId = @MasterCompanyId;
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -364,6 +373,8 @@ BEGIN
 			
 					INSERT INTO [NonPOInvoiceBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, CommonJournalBatchDetailId, VendorId, VendorName, NonPOInvoiceId, NPONumber, Memo)
 					VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @CommonBatchDetailId , @VendorId, @VendorName, @NonPOInvoiceId, @ReferenceNum, @PartMemo)
+
+					END
 				END
 				 -----Account Payable--------
 

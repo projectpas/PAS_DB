@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuotesReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SalesOrderQuotes Report   
@@ -20,7 +20,10 @@
 	4    26-JUNE-2024	Vishal Suthar		Added filter to show only latest version of quote
 	5    04-Sept-2024   Shrey Chandegara	Divide 0 by 0 in some case therfor add case condition in "TotalMarginAmtPerc"
 	6    10-OCT-2024    Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
-       
+	7    22-JUNE-2026   Priyansh Patel		Filtered the Records with no itemmaster part in SalesOrderQuotePartV1 [PN-16905]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusions added during the PN-17008/PN-17009 transitional phase so Non-Stock parts now appear correctly in this report.
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuotesReport] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderQuotesReport] 
@@ -92,7 +95,7 @@ BEGIN
 		  FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 			  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 			  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+			  INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 			  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
 			  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
 			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
@@ -159,7 +162,7 @@ BEGIN
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 		  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
 		  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   

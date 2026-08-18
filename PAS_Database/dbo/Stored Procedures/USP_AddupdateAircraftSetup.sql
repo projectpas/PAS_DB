@@ -11,8 +11,11 @@
  ** --   -------------		----------------	--------------------------------          
 	1	 15/05/2026          Nakul Chandigra     Created 
     2    20/05/2026          Nakul Chandigra    Added fields 
-    3    22/05/2026          Bhargav Saliya    Added field [SiteId] 
-    4    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
+    3    22/05/2026          Bhargav Saliya     Added field [SiteId] 
+    4    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
+    5    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
+    6    13/08/2026          Bhargav Saliya     Added field [AllowWorksheets]. [PN-17630]
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
@@ -43,7 +46,9 @@ BEGIN
                 T.UpdatedBy = S.UpdatedBy,
                 T.UpdatedDate = GETUTCDATE(),
                 T.SiteId = S.SiteId,
-                T.[MaintenanceTypeId] = S.[MaintenanceTypeId]
+                T.[WorkScopeId] = S.[WorkScopeId],
+                T.[ConditionId] = S.[ConditionId],
+                T.[IsAllowWorksheets] = S.[IsAllowWorksheets]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -60,7 +65,9 @@ BEGIN
                     ItemgroupId,
                     UpdatedBy,
                     SiteId,
-                    [MaintenanceTypeId]
+                    [WorkScopeId],
+                    [ConditionId],
+                    [IsAllowWorksheets]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -87,7 +94,9 @@ BEGIN
                 IsDeleted,
                 MasterCompanyId,
                 SiteId,
-                [MaintenanceTypeId]
+                [WorkScopeId],
+                [ConditionId],
+                [IsAllowWorksheets]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -108,7 +117,9 @@ BEGIN
                 IsDeleted,
                 MasterCompanyId,
                 SiteId,
-                [MaintenanceTypeId]
+                [WorkScopeId],
+                [ConditionId],
+                [IsAllowWorksheets]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

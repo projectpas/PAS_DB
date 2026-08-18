@@ -189,6 +189,12 @@
 
 
 
+
+
+
+
+
+
 GO
 
 
@@ -215,3 +221,26 @@ BEGIN
   
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPart_CreatedDate]
+    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPart_CreatedDate]
+    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Asset_ROPart_Date]
+    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Asset_POPart_Date]
+    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+

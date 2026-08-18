@@ -11,6 +11,7 @@
 ** 2    09/24/2024		Devendra Shekh			Added more fiels to Select 
 ** 3    09/24/2025		Bhargav Saliya			Added more fiels to Select [PN-12767]
 ** 4    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+** 5    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_TenderMultipleStockLine]
 	@tbl_TenderMultipleStocklineType [TenderMultipleStocklineType] READONLY,
@@ -32,7 +33,8 @@ BEGIN
 					DECLARE @CodeTypeId INT, @TearDownWO INT = 0, @ObtainFromTypeId INT = NULL, @WOTypeId BIGINT = 0, @IsCustomerStock BIT = 0,  
 							@ObtainFrom BIGINT = NULL, @ObtainFromName VARCHAR(500) = '', @SelectedCustomerAffiliation BIGINT, @IsCustomerstockType BIT = 0, @Nummber BIGINT = 0, @Unitcost DECIMAL(18,2) = 0,
 							@OwnerTypeId INT = NULL, @Owner BIGINT = NULL, @OwnerName VARCHAR(500) = '', @TraceableToTypeId INT = NULL, @TraceableTo BIGINT = NULL, @TraceableToName VARCHAR(500) = '',  
-							@InspectedById BIGINT = NULL, @InspectedDate DATETIME2(7) = NULL, @ReceiverNumber VARCHAR(500), @EvidenceId INT = 0, @IsMaterialStocklineCreate BIT = 1, @Memo VARCHAR(MAX) = '';
+							@InspectedById BIGINT = NULL, @InspectedDate DATETIME2(7) = NULL, @ReceiverNumber VARCHAR(500), @EvidenceId INT = 0, @IsMaterialStocklineCreate BIT = 1, @Memo VARCHAR(MAX) = '',
+							@Notes NVARCHAR(MAX) = '';
 					DECLARE @TenderWOMStk [SaveAndTenderMultipleStocklineType];
 
 					IF OBJECT_ID('tempdb..#TenderMultipleStkListData') IS NOT NULL
@@ -97,7 +99,8 @@ BEGIN
 						[TraceableTo] [bigint] NULL,
 						[TraceableToName] [varchar](500) NULL,
 						[InspectionById] [bigint] NULL,
-						[InspectionDate] [datetime2](7) NULL
+						[InspectionDate] [datetime2](7) NULL,
+						[Notes] [nvarchar](max) NULL
 					)
 
 					CREATE TABLE #tmpWOCodePrefixesNew
@@ -129,11 +132,11 @@ BEGIN
 							[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 							[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
 							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost],[ObtainFromTypeId],[ObtainFrom],[ObtainFromName],
-							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName])
+							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName], [Notes])
 					SELECT	[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 							[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
 							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost],[ObtainFromTypeId],[ObtainFrom],[ObtainFromName],
-							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName]
+							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName], [Notes]
 					FROM @tbl_TenderMultipleStocklineType;
 
 					SELECT @TotalStockLineCount = MAX(RecordID), @CurrentStk = MIN(RecordID) FROM #TenderMultipleStkListData;
@@ -148,7 +151,7 @@ BEGIN
 								@MasterCompanyId = MasterCompanyId, @ManagementStructureId = [ManagementStructureId], @Unitcost = [UnitCost],
 								@EvidenceId = EvidenceId, @Memo = Memo, @ObtainFromTypeId = ObtainFromTypeId, @ObtainFrom = ObtainFrom, @ObtainFromName = ObtainFromName,
 								@OwnerTypeId = OwnerTypeId, @Owner = [Owner], @OwnerName = OwnerName, @TraceableToTypeId = TraceableToTypeId, @TraceableTo = TraceableTo, @TraceableToName = TraceableToName,
-								@InspectedById = [InspectionById], @InspectedDate = InspectionDate
+								@InspectedById = [InspectionById], @InspectedDate = InspectionDate, @Notes = Notes
 						FROM  #TenderMultipleStkListData WHERE RecordID = @CurrentStk;
 
 						SELECT @WOTypeId = WorkOrderTypeId FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
@@ -234,7 +237,7 @@ BEGIN
 								@Quantity, @IsSerialized, @TenderStkSerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName,
 								@TraceableToTypeId, @TraceableTo, @TraceableToName, '', @WorkOrderId, @WorkOrderNum, @ManufacturerId, @InspectedById, @InspectedDate,
 								@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UserName,
-								@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId)
+								@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId, @Notes)
 
 							--EXEC [dbo].[usp_SaveTurnInWorkOrderMaterils] 
 							--	@IsMaterialStocklineCreate, @IsCustomerStock, @IsCustomerstockType, @ItemMasterId, @UnitOfMeasureId, @ConditionId,

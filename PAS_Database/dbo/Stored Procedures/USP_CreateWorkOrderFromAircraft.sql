@@ -13,10 +13,18 @@
  ** --   --------		-------				--------------------------------          
 	1    29/05/2026		Moin Bloch			Updated
 	2    02/06/2026		Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
-	3    08-June-2026   Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	3    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
+	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
+	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatusId Fields [PN-16897]
+	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
+	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
+	9    01/July/2026	RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   20/July/2026	Amit Ghediya		Get properly serial num & registor num
+	11   14/08/2026	    Amit Ghediya		Customerid 0 issue.
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
+CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
 @AircraftInstalledPartDetailsId BIGINT = NULL,
 @AircraftRegistryId             BIGINT = NULL,
 @ProgramId                      BIGINT = NULL,
@@ -50,12 +58,31 @@ BEGIN
 			DECLARE  @ExternalCustomerType VARCHAR(50) = 'External'
 			DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0,@ModuleEnumCustomer INT=1
 			DECLARE @WorkOrderNum VARCHAR(30)
+			DECLARE @WorkSheetStatusId INT = 2;		
+			DECLARE @IsFromAircraft BIT = 0;
+
+			IF(ISNULL(@AircraftInstalledPartDetailsId,0) > 0)
+			BEGIN
+				SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftInstalledPartDetails] WITH(NOLOCK) WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+			END
+
+			IF(ISNULL(@ProgramId,0) > 0)
+			BEGIN
+				SELECT @IsFromAircraft = ISNULL([IsFromAircraft],0), @AircraftRegistryId = [AircraftRegistryId] FROM [dbo].[AircraftMaintenanceProgram] WITH(NOLOCK) WHERE [ProgramId] = @ProgramId;
+			END
 
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
-			--IF(ISNULL(@CustomerId,0) = 0)
-			--BEGIN
-			--	 SELECT @CustomerId = ACH.CustomerId  FROM dbo.AircraftRegistryHeader ACH WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
-			--END
+			IF(ISNULL(@CustomerId,0) = 0)
+			BEGIN
+				 IF(ISNULL(@IsFromAircraft,0) = 0)
+				 BEGIN
+					  SELECT @CustomerId = ERH.CustomerId  FROM dbo.EngineRegistryHeader ERH WITH(NOLOCK) WHERE ERH.[EngineRegistryId] = @AircraftRegistryId
+				 END
+				 ELSE
+				 BEGIN
+				      SELECT @CustomerId = ARH.CustomerId  FROM dbo.AircraftRegistryHeader ARH WITH(NOLOCK) WHERE ARH.[AircraftRegistryId] = @AircraftRegistryId
+				 END
+			END
 
 			SELECT @CustomerName=[Name], @CustomerAffiliationId = [CustomerAffiliationId], @CustomerTypeId = CustomerTypeId FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 			
@@ -115,7 +142,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 			JOIN [dbo].[RestrictedParts] rp WITH(NOLOCK) ON rc.[CustomerId] = rp.[ReferenceId]
 			WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rp.[ModuleId] = @ModuleEnumCustomer
-			AND rc.[StockLineId] = @StockLineId;
+			AND rc.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 			SELECT @PMACOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'PMA';
 			SELECT @DERCOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'DER';
@@ -138,26 +165,33 @@ BEGIN
 			INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON sl.[ConditionId] = con.[ConditionId]			
 			 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 			 LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[StockLineId] = @StockLineId;
+			WHERE sl.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 						
-			IF(@MaintenanceTypeId > 0)
-			BEGIN
-				SET @WorkOrderScopeId = @MaintenanceTypeId
-			END
-			ELSE 
-			BEGIN
-				SET @WorkOrderScopeId = (SELECT TOP 1 [MaintenanceTypeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
-			END
+			--IF(@MaintenanceTypeId > 0)
+			--BEGIN
+			--	SET @WorkOrderScopeId = @MaintenanceTypeId
+			--END
+			--ELSE 
+			--BEGIN
+				SET @WorkOrderScopeId = (SELECT TOP 1 [WorkScopeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
+			--END
 
 			SELECT TOP 1 @WorkflowId = CASE WHEN  wf.[WorkflowId] = 0 THEN NULL ELSE wf.[WorkflowId] END					 
 			FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0;
+			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 						
-			SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId);
+			SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 );
 
-			SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+			IF(ISNULL(@IsFromAircraft,0) = 1)
+			BEGIN
+				 SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
+			END
+			ELSE
+			BEGIN
+				 SELECT @ACTailNum = [EngineName], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [EngineRegistryNumber] FROM [dbo].[EngineRegistryHeader] WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId
+			ENd
 			
 			SET @TATDaysCurrent = DATEDIFF(DAY, @ReceivedDate, GETUTCDATE())
 			DECLARE @tbl_Parts WorkOrderMPNType;
@@ -257,7 +291,7 @@ BEGIN
 				@ItemMasterId,          -- [MasterPartId]                bigint
 				@Notes,                 -- [Notes]                       nvarchar(max)
 				@AircraftRegistryNumber,-- [AircraftRegistryNumber]      varchar(30)
-				1,                      -- [IsFromAircraft]              bit
+				@IsFromAircraft,                      -- [IsFromAircraft]              bit
 				@AircraftInstalledPartDetailsId,                   -- [AircraftInstalledPartDetailsId] bigint
 				@AirCraftSerialNumber,           -- [AircraftSerialNumber]        varchar(100)
 				@AircraftRegistryId,                   -- [AircraftRegistryId]          bigint
@@ -323,6 +357,7 @@ BEGIN
 
 			-- Retrieve the new WorkOrderId
 			SELECT @WorkOrderId = [WorkOrderId] FROM @Result
+			
 			SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
 
 			UPDATE AMP
@@ -334,6 +369,67 @@ BEGIN
 			WHERE AMP.ProgramId = @ProgramId
 			  AND AMP.MasterCompanyId = @MasterCompanyId
 			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, '');
+
+			UPDATE AIPD
+			SET
+				AIPD.WorkOrderNum = @WorkOrderNum,
+				AIPD.UpdatedBy    = @CreatedBy,
+				AIPD.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[AircraftInstalledPartDetails] AIPD
+			WHERE AIPD.AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
+			  AND AIPD.MasterCompanyId = @MasterCompanyId
+			  AND ISNULL(AIPD.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, '');
+
+			UPDATE WH
+			SET
+				WH.WorkSheetStatusId = @WorkSheetStatusId,				
+				WH.UpdatedBy    = @CreatedBy,
+				WH.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[WorksheetHeader] WH
+			WHERE WH.WorksheetHeaderId = @WorksheetHeaderId
+			  AND WH.MasterCompanyId = @MasterCompanyId;			  
+
+			
+			-- ══════════════════════════════════════════════════
+			-- HISTORY BLOCK
+			-- Same pattern as USP_CreateAircraftRegistryHeader
+			-- ══════════════════════════════════════════════════
+			DECLARE @TemplateBody   VARCHAR(MAX)    = '',
+					@Activity       VARCHAR(MAX)    = NULL,
+					@HistCreatedBy  VARCHAR(256)    = NULL,
+					@WorkOrderStr   VARCHAR(50)     = NULL;
+
+			-- ── NEW value holders ─────────────────────────────────
+			DECLARE @New_PartNumbers                   VARCHAR(200),
+					@New_PartDescription                   VARCHAR(200),
+					@New_IsActive                   VARCHAR(10);
+
+			SELECT @WorkOrderStr = WorkOrderNum FROM DBO.Workorder WITH(NOLOCK) WHERE workorderid= @WorkOrderId;
+
+			SET @WorkOrderStr = 'WorkOrder Num.: ' + @WorkOrderStr;
+
+			-- Read NEW values from TVP
+			SELECT
+				@New_PartNumbers                  = @PartNumber,
+				@New_PartDescription             = @PartDescription,
+				@New_IsActive                  = 'Active';
+
+			SET @Activity = 'New WorkOrder Added';
+
+               IF @New_PartNumbers                 <> '' SET @TemplateBody += 'Part Num.: '                 + @New_PartNumbers                 + ' | ';
+               IF @New_PartDescription            <> '' SET @TemplateBody += 'Part Desc.: '            + @New_PartDescription            + ' | ';
+               SET @TemplateBody += 'Created By: ' + ISNULL(@HistCreatedBy,'') + ' | ';
+               SET @TemplateBody += 'Created Date: '+ CONVERT(VARCHAR(30), GETUTCDATE(), 103);
+
+			-- Call usp_SaveAircraftHistory once
+			IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+			BEGIN
+
+				EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft WorkOrder',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+											 @OldValue = NULL,@NewValue = @WorkOrderStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+											 @CreatedBy = @CreatedBy;
+			END
+			-- ── END HISTORY BLOCK ─────────────────────────────
 	END
 
 	SELECT @WorkOrderId AS [WorkOrderId]

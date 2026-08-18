@@ -15,13 +15,17 @@
     [IsMargin]           BIT             NULL,
     [IsFixedAmount]      BIT             NULL,
     [PercentId]          BIGINT          NULL,
-    [PerAmount]          DECIMAL (18, 2) NULL,
+    [PerAmount]          DECIMAL (18, 6) NULL,
     [ConsigneeTypeId]    INT             NULL,
     [ConsigneeId]        BIGINT          NULL,
     [IsRevenueSplit]     BIT             NULL,
     [ConsignorPercentId] BIGINT          NULL,
+    [MarginPercentId]    BIGINT          NULL,
+    [MarginConsignorPercentId] BIGINT    NULL,
     CONSTRAINT [PK_LotConsignment] PRIMARY KEY CLUSTERED ([ConsignmentId] ASC)
 );
+
+
 
 
 GO

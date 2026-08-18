@@ -18,6 +18,8 @@
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
     4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]

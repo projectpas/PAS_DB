@@ -16,8 +16,11 @@
 	5    17/03/2025   Ayushi Patel		Converted the date into utc (created , updated) , Added a case to get timeZone
 	6	 01/04/2025   Devendra Shekh	Modified (For Task SS - Order By Description ASC)
 	7	 09/04/2025   Divyesh Kathiriya	Modified (For Aircraft Model SS - Order By Model Names ASC)
-    8    04/05/2025   Nakul Chnadigra   Removed ISNULL Condition from the Filter (PN-16272) 
-    9    03/06/2025   Ayushi Patel      [PN-16697]Added generic BIT column filter support to handle boolean field filtering (true/false/yes/no/1/0).False/0/no also returns NULL values for BIT columns.
+    8    04/05/2026   Nakul Chnadigra   Removed ISNULL Condition from the Filter (PN-16272) 
+    9    03/06/2026   Ayushi Patel      [PN-16697]Added generic BIT column filter support to handle boolean field filtering (true/false/yes/no/1/0).False/0/no also returns NULL values for BIT columns.
+    10	 02/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Sequence ASC) (PN-17106)
+    10	 06/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Description ASC) (PN-17106)
+
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,

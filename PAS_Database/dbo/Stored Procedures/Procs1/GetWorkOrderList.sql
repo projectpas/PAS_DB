@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get work order List for both MPN and WO View
@@ -46,13 +46,12 @@
 	30	 06/03/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
 	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
     32   17/03/2026   HEMANT SALIYA			Optimize SP to Hnadle with .net core upgrade
-	
+	33   09/July/2026  Rajesh Gami			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
 	@UpdatedBy=default,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=98,@WorkOrderStatusType=default,@TechName=default,@TechStation=default,@SerialNumber=default,@CustRef=default,
 	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
-     
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderList]
@@ -412,7 +411,7 @@ BEGIN
                 ISNULL(CWTD.Memo, '')
             FROM dbo.WorkOrder WO WITH (NOLOCK)
             INNER JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
-            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON WPN.StockLineId = STK.StockLineId
+            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON WPN.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN dbo.WorkOrderQuoteDetails WOQD WITH (NOLOCK)
                 ON WPN.ID = WOQD.WOPartNoId
                AND WOQD.IsActive = 1

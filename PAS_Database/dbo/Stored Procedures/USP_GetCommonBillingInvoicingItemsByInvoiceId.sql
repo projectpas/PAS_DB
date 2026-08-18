@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    19/05/2025   Moin Bloch    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceId]
@@ -96,14 +97,18 @@ BEGIN
 							END
 						END [Cond]								
 				  ,WO.[Notes]
+				  ,CST.[QuickBooksReferenceId] [ContactId]
+				  ,ITM.[QuickBooksReferenceId] [LineItemID]
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
 			  INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]
+			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON ITM.[ItemMasterId] = BII.[ItemMasterId]
+			  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = WO.[CustomerId]
 			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
-			   WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0
-		  		  
+			   WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0		  		  
+		 AND ISNULL(ITM.IsNonStock,0) = 0
 		END 
 		
 	END TRY    

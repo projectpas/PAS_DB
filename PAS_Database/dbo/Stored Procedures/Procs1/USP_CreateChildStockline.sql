@@ -21,6 +21,8 @@
 	3    06/14/2023  Devendra Shekh       changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
 	4    10/16/2023  Devendra Shekh       TIMELIFE issue resolved
 	5    6 Nov 2023  Rajesh Gami          SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
+	6    01/07/2026  Priyansh Patel       Added missing Stockuom id in stockline creation [PN-17057]
+
   
 EXEC [dbo].[USP_CreateChildStockline]  883, 5, 15, 166, 1, 1, 0, 0  
 **************************************************************/  
@@ -436,7 +438,8 @@ BEGIN
        ,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
        ,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
        ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate)  
+       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate,
+       [StockUnitOfMeasure],[StockUnitOfMeasureId])  
   
        SELECT [PartNumber],  
        @StocklineNumber  
@@ -466,7 +469,8 @@ BEGIN
        ,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
        ,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
        ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,@MainLotStocklineId,@IsFromInitialPO,@LotSourceId,@lotId, @isLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate FROM DBO.Stockline SL WITH (NOLOCK)  
+       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,@MainLotStocklineId,@IsFromInitialPO,@LotSourceId,@lotId, @isLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate ,
+       [StockUnitOfMeasure],[StockUnitOfMeasureId]FROM DBO.Stockline SL WITH (NOLOCK)  
        WHERE SL.StockLineId = @StocklineId  
   
        SELECT @NewStocklineId = SCOPE_IDENTITY()  

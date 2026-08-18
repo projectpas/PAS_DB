@@ -1,16 +1,17 @@
-﻿
 /***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1   	
-	2    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
-	3    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
+	1    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
+	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
 	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
-	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
-	5    26/12/2025				 Amit Ghediya						Update Part memo
-	6    20/04/2026				 RAJESH GAMI						UOM Decimal changes [PN-16131]
+	4    26/12/2025				 Amit Ghediya						Update Part memo
+	5    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	8    09/07/2026				 Ayushi Patel						Chnaged Qty type from INT to DECIMAL(18,6) [PN-17152]
 ****************************************************************************************************************************************/ 
 CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -84,8 +85,8 @@ BEGIN
 				[Priority] [nvarchar](max) NULL,
 				[ConditionId] [bigint] NULL,
 				[Condition] [varchar](256) NULL,
-				[Quantity] DECIMAL(18, 6) NULL,
-				[UnitCost] DECIMAL(18, 6) NULL,
+				[Quantity] [decimal](18, 6) NULL,
+				[UnitCost] [decimal](18, 6) NULL,
 				[VendorId] [bigint] NULL,
 				[VendorName] [varchar](100) NULL,
 				[VendorCode] [varchar](100) NULL,
@@ -101,15 +102,19 @@ BEGIN
 				[EstReceivedDate] [datetime2](7) NULL,
 				[StatusId] [int] NULL,
 				[WorkOrderMaterialsId] [bigint] NULL,
-				[WorkOrderMaterialsKitId] [bigint] NULL
+				[WorkOrderMaterialsKitId] [bigint] NULL,
+				[SalesOrderId] [bigint] NULL,
+				[SalesOrderPartId] [bigint] NULL,
+				[SONum] [varchar](250) NULL,
+				[SourceType] [varchar](10) NULL
 			)
 					    
 			INSERT INTO #BulkPOItemType ([ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority],[ConditionId], [Condition], 
 			[Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo],
-			[ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId])
+			[ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SalesOrderId,SONum,SalesOrderPartId,SourceType)
 			SELECT [ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority], [ConditionId], [Condition], 
-			[Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo], 
-			[ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId] FROM @tbl_BulkPODetailType;
+			[Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderId] ELSE NULL END , CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderNo] ELSE NULL END, 
+			[ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId], CASE WHEN SalesOrderId > 0  THEN SalesOrderId ELSE NULL END,CASE WHEN SalesOrderId > 0  THEN SONum ELSE NULL END,SalesOrderPartId,SourceType FROM @tbl_BulkPODetailType;
 		
 			INSERT INTO #tempGroupByCount (VendorId) SELECT VendorId FROM #BulkPOItemType GROUP BY VendorId
 			--SELECT * FROM #tempGroupByCount
@@ -236,7 +241,7 @@ BEGIN
 					--ISNULL(IMP.PP_VendorListPrice,0),ISNULL(PP_PurchaseDiscPerc,0),ISNULL(PP_PurchaseDiscAmount,0),
 					ISNULL(TYP.UnitCost,0),0,0,
 					0,ISNULL(TYP.UnitCost,0),(ISNULL(TYP.UnitCost,0) * ISNULL(TYP.Quantity,0)),@ReturnCurrencyId, @ReturnCurrency,1.0,@ReturnCurrencyId,@ReturnCurrency,TYP.WorkOrderId,TYP.WorkOrderNo,
-					NULL,NULL,NULL,NULL,NULL,NULL,1,'STOCK',IM.GLAccountId,IM.GLAccount,IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,
+					NULL,NULL,NULL,NULL,CASE WHEN ISNULL(SalesOrderId,0) = 0 THEN NULL ELSE SalesOrderId END,CASE WHEN ISNULL(SONum,'') = '' THEN NULL ELSE SONum END,1,'STOCK',IM.GLAccountId,IM.GLAccount,IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,
 					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,TYP.[WorkOrderNo],NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,

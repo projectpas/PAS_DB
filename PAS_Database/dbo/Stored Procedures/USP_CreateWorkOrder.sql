@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+
+/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -21,8 +22,8 @@
 	8    01/07/2025   Vishal Suthar	   Inserting EnforceMpnPickTicketConfirmation flag in WorkOrder table
 	9    24/09/2025   RAJESH GAMI		Added MPN Notes
 	10   15/10/2025   Moin Bloch        Added SalesPersion Details
-	11   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
-	12   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
+	11   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
+	12   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
 	13	 20/01/2026   Priyansh Patel  	Added CSN, TSN, CSO, TSO fields from receiving customer
 	14	 30/01/2026   Moin Bloch     	Added IncomingPartNumber
 	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
@@ -33,7 +34,11 @@
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
---   EXEC [USP_CreateWorkOrder] 
+	23   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
+	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	25   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
+	26    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PartNumber ItemMaster lookups
+--   EXEC [USP_CreateWorkOrder]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
@@ -84,6 +89,7 @@ CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @AllowInvoiceBeforeShipping BIT=NULL,
 @IsFromLot BIT=NULL,
 @MtcCategoryId BIGINT = NULL,
+@WorksheetId BIGINT = NULL,
 @tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
@@ -182,7 +188,7 @@ BEGIN
 		[PromisedDate] [DATETIME2](7) NULL,
 		[EstimatedCompletionDate] [DATETIME2](7) NULL,
 		[NTE] [VARCHAR](30),
-		[Quantity] [INT] NULL,
+		[Quantity] [DECIMAL](18,6) NULL,
 		[StockLineId] [BIGINT] NULL,
 		[CMMIds] [VARCHAR](256) NULL,
 		[WorkflowId] [BIGINT] NULL,
@@ -320,7 +326,7 @@ BEGIN
 		[StocklineId] [BIGINT] NULL,
 		[ControlNumber] [VARCHAR](200) NULL,
 		[ControlId] [VARCHAR](100) NULL,
-		[Qty] [INT] NULL,
+		[Qty]  [DECIMAL](18,6) NULL,
 		[UnitPrice] [DECIMAL](18,2) NULL,
 		[Amount] [DECIMAL](18,2) NULL,
 		[RMAReasonId] [INT] NULL,
@@ -378,7 +384,7 @@ BEGIN
 		[ControlId] [VARCHAR](100) NULL,
 		[ReferenceId] [BIGINT] NULL,
 		[ReferenceNo] [VARCHAR](50) NULL,
-		[Qty] [INT] NULL,
+		[Qty]  [DECIMAL](18,6) NULL,
 		[UnitPrice] [DECIMAL](18,2) NULL,
 		[Amount] [DECIMAL](18,2) NULL,
 		[RMAReasonId] [INT] NULL,
@@ -395,7 +401,7 @@ BEGIN
 		[InvoiceId] [BIGINT] NULL,
 		[BillingInvoicingItemId] [BIGINT] NULL,
 		[CustomerReference] [VARCHAR](256) NULL,
-		[InvoiceQty] [INT] NULL,
+		[InvoiceQty] [DECIMAL](18,6) NULL,
 		[ReturnDate] [DATETIME2](7) NULL,
 		[WorkOrderNum] [VARCHAR](50) NULL,
 		[ReceiverNum] [VARCHAR](50) NULL							
@@ -483,10 +489,13 @@ BEGIN
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
-	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
-	BEGIN			
-		SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
-	END
+	--IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
+	--BEGIN			
+	--	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
+	--END
+
+	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermId AND [MasterCompanyId]=@MasterCompanyId
+
 
     -- Insert or Update WorkOrder table (simplified)   
 
@@ -676,7 +685,7 @@ BEGIN
 
 	SELECT TOP 1 @ItemMasterId=[ItemMasterId],@ID=[ID] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 	
-	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 	IF ISNULL(@IsFromLot, 0) = 0
 	BEGIN
@@ -706,10 +715,10 @@ BEGIN
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber   
 	WHILE @MinId <= @TotalRecord
 	BEGIN	    
-		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable INT=0,@QuantityReserved INT=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
+		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable DECIMAL(18,6) = 0,@QuantityReserved DECIMAL(18,6)=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
 		DECLARE @PartStockLineId BIGINT = NULL,@WorkOrderPartNumberId BIGINT = NULL,@RMANumber VARCHAR(50)=NULL,@MSDetailsId BIGINT=NULL
 		DECLARE @WorkScopeDescription VARCHAR(500)=NULL,@ReceiverNumber VARCHAR(50),@PartSerialNumber VARCHAR(100)=''
-		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL,@QuantityOnHand INT=0,@QuantityIssued INT=0
+		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL,@QuantityOnHand DECIMAL(18,6)=0,@QuantityIssued DECIMAL(18,6)=0
 		DECLARE @InvoiceNo VARCHAR(256) = NULL,@InvoiceDate DATETIME2(7)=NULL,@RMACustomerId BIGINT = NULL,@RMACustomerName VARCHAR(100)=NULL,@RMACustomerCode VARCHAR(100)=NULL
 		DECLARE @ContactInfo VARCHAR(150)=NULL,@RMACustomerContactId BIGINT=NULL,@RequestedId BIGINT = NULL,@Requestedby VARCHAR(50)=NULL,@ApprovedbyId BIGINT=NULL
 		DECLARE @Approvedby VARCHAR(50)=NULL,@ApprovedDate DATETIME2(7)=NULL,@ReturnDate DATETIME2(7)=NULL,@ManagementStructureId BIGINT=NULL,@ReferenceId BIGINT=NULL,@Result BIGINT=0
@@ -1034,7 +1043,7 @@ BEGIN
 		BEGIN
 		    DECLARE @NewWorkFlowName VARCHAR(50)='',@AddWorkFlow VARCHAR(20)='AddWorkFlow',@WorkFlowTemplateBody VARCHAR(MAX)=''
 			
-			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId;
+			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			SELECT @NewWorkFlowName=ISNULL([WorkOrderNumber],'') FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId]=@WorkflowId;
 			
 			SELECT TOP 1 @WorkFlowTemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddWorkFlow;
@@ -1093,8 +1102,20 @@ BEGIN
 	-- CREATING STOCK LINE HISTORY TO RESERVE STOCKLINE 
 	-- EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
+	-- WORKSHEET Entry
+	IF(@WorksheetId > 0)
+	BEGIN
+		DECLARE @WorkOrderPartNoId BIGINT = 0 
+		SELECT TOP 1 @WorkOrderPartNoId  = [ID] FROM @WorkOrderParts 
+
+		EXEC [dbo].[CreateWorkOrderTasksForWorksheet] @WorkOrderParts,@WorkOrderId,@WorkOrderPartNoId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorksheetId	
+	END
+
 	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
-	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	IF(ISNULL(@WorksheetId,0) = 0)
+	BEGIN
+		EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	END
 
 	-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
 	IF @WorkOrderTypeId = @TearDown -- TearDown

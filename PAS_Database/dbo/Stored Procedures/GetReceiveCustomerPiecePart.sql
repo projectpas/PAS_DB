@@ -10,11 +10,13 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** -----------------------------------------------------------          
     1    02/09/2024   Moin Bloch    Created
 	2    27/09/2024   Moin Bloch    Added WOInspectionId   
 	3    06/02/2026   Amit Ghediya  Update to add condition for remove record from list after stk QuantityOnHand = 0 (PN-15162)
-	     
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId [PN-17179]
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** -----------------------------------------------------------          
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[GetReceiveCustomerPiecePart]  
@@ -69,6 +71,7 @@ BEGIN
                ,TL.[LastSinceOVH],TL.[LastSinceInspection],TL.[DetailsNotProvided]
 			   ,MS.[LastMSLevel],MS.[AllMSlevels]			  
 			   ,ISNULL(WI.WOInspectionId,0) WOInspectionId
+			   ,SL.[StockUnitOfMeasureId]
           FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 		  INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON RC.[ItemMasterId] = IM.[ItemMasterId]
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  
@@ -78,7 +81,7 @@ BEGIN
 		  WHERE RC.[MasterCompanyId] = @MasterCompanyId 
 		  AND RC.[CustomerId] = @CustomerId 
 		  AND RC.[ReceivingNumber] IN (@FinalReceivingNumber)
-		  AND ISNULL(SL.[QuantityOnHand],0) > 0;		   			    
+		  AND ISNULL(SL.[QuantityOnHand],0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;		   			    
  END TRY        
  BEGIN CATCH  
   IF @@trancount > 0    

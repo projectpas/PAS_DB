@@ -10,6 +10,11 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
+    2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
+	3    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
+	4    02-07-2026       Sahdev Saliya             Added Resale Number [PN-17018]
+    5    06-07-2026       Divyesh Kathitiya         Added VAT Number [PN-17124]
+	6    12-AUG-2026      Moin Bloch                Added LegalEntityId PN-17651
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -61,7 +66,11 @@ BEGIN
             cont.countries_name AS Country,
             cont.countries_id AS CountryId,
             v.VendorParentId,
-
+            v.LegalEntityId,
+			CASE WHEN le.[CompanyCode] IS NULL THEN '' ELSE le.[CompanyCode] + '-' + le.[Name] END AS LegalEntityName,
+			v.Notes,
+			v.ResaleNumber,
+            v.VatNumber,
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')
                 FROM DBO.ClassificationMapping mp WITH (NOLOCK)
@@ -95,13 +104,15 @@ BEGIN
             ISNULL(v.IsTrackScoreCard,0) as IsTrackScoreCard,
             ISNULL(v.IsVendorOnHold,0) as IsVendorOnHold,
             v.CreditTermsId,
-            ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction
-
-        FROM DBO.Vendor v WITH (NOLOCK)
-        LEFT JOIN DBO.Address ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
-        LEFT JOIN DBO.Countries cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
-        LEFT JOIN DBO.VendorType vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
-        LEFT JOIN DBO.Vendor vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+            ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction,
+			v.QuickBooksReferenceId,
+			v.IntegrationTypeId
+		FROM [dbo].[Vendor] v WITH (NOLOCK)
+		LEFT JOIN [dbo].[Address] ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
+		LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
+		LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
+		LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+		LEFT JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON v.LegalEntityId = le.LegalEntityId
 
         WHERE v.VendorId = @VendorId
 

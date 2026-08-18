@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetVendorCreditMemoPart_ByStkId]            
  ** Author:   Devendra    
  ** Description: Get Vendor RMA Parts data by itemMaster and stocklineid 
@@ -15,11 +15,13 @@
  **	 S NO   Date			 Author			 Change Description              
  **	 --   --------		 -------		--------------------------------            
  1	 10-July-2023			Devendra		created  
- 1	 12-July-2023			Devendra		changed quantity to   QuantityAvailable
-       
-EXECUTE   [dbo].[USP_GetVendorCreditMemoPart_ByStkId] 37,1  
+ 2	 12-July-2023			Devendra		changed quantity to   QuantityAvailable
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    13/Aug/2026			 Rajesh Gami						[PN-17009] - Applied missing ISNULL(sl.IsNonStock,0) = 0 filter on Stockline join
+EXECUTE   [dbo].[USP_GetVendorCreditMemoPart_ByStkId] 37,1
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemoPart_ByStkId]  
+CREATE PROCEDURE [dbo].[USP_GetVendorCreditMemoPart_ByStkId]  
 @StockLineId bigint,  
 @ItemMasterId bigint,  
 @VendorId bigint,
@@ -57,7 +59,8 @@ BEGIN
     FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)   
     LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on v.VendorId  = @VendorId
     LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on im.ItemMasterId = @ItemMasterId
-    LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId  
+     AND ISNULL(im.IsNonStock,0) = 0
+     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
     WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
    END  
   COMMIT  TRANSACTION  

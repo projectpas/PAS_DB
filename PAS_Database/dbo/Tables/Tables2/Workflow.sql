@@ -56,6 +56,7 @@
     [MakeTypeId]                   INT             NULL,
     [TemplateType]                 INT             DEFAULT ((1)) NOT NULL,
     [MaintenanceTypeId]            BIGINT          NULL,
+    [MaintenanceType]              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_Process] PRIMARY KEY CLUSTERED ([WorkflowId] ASC),
     FOREIGN KEY ([ChangedPartNumberId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),

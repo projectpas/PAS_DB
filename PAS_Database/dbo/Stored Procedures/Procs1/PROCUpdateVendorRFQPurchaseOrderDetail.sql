@@ -1,4 +1,10 @@
 ﻿--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
+/*****************************************************************************************
+** Change History
+** PR   Date            Author              Change Description
+** --   --------        -------             --------------------------------
+   1    13/Aug/2026      Rajesh Gami         [PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filter to allow Non-Stock items in Vendor RFQ Purchase Order detail update
+*****************************************************************************************/
 CREATE PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
 @VendorRFQPurchaseOrderId  bigint
 AS
@@ -119,7 +125,7 @@ BEGIN
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
-		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId; 
+		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId ;
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	
 

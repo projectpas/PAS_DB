@@ -46,9 +46,12 @@
     [istechnicaldatacurandavail]           INT            NULL,
     [actiontaken]                          NVARCHAR (MAX) NULL,
     [iscustomernotified]                   INT            NULL,
+    [inspectiontraceabilityverified]       INT            NULL,
     CONSTRAINT [PK_WOInspectionChecklist] PRIMARY KEY CLUSTERED ([WOInspectionId] ASC),
     CONSTRAINT [FK_WOInspectionChecklist_ReceivingCustomerWorkId] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId])
 );
+
+
 
 
 

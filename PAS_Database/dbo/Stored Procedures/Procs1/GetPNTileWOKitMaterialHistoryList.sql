@@ -16,8 +16,11 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-	1    08/02/2023   Vishal Suthar Created
-    2    12/06/202    Jevik Raiyani added @statusValue
+    1    12/06/202    Jevik Raiyani added @statusValue
+	2    08/02/2023   Vishal Suthar Created
+	3	 24/06/2026   Ayushi Patel  [PN-16963]UOM Changes 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
 	@PageNumber int = 1,
@@ -80,9 +83,26 @@ BEGIN
 					Cond.Code AS [Condition],
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOMS.QtyReserved AS ResQty,
-					WOMS.QtyIssued AS IssueQty,
-					WOMS.UnitCost,
+					--WOMS.QtyReserved AS ResQty,
+					--WOMS.QtyIssued AS IssueQty,
+					--WOMS.UnitCost,
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.QtyReserved
+						ELSE [dbo].[fn_ConvertUOM](WOMS.QtyReserved, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END AS ResQty,
+
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.QtyIssued
+						ELSE [dbo].[fn_ConvertUOM](WOMS.QtyIssued, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END AS IssueQty,
+
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.UnitCost
+						ELSE [dbo].[fn_ConvertUOM](WOMS.UnitCost, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId)
+					END AS UnitCost,
 					WOMS.ExtendedCost AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
 					Stk.ControlNumber AS ControlNum,
@@ -111,7 +131,7 @@ BEGIN
 				  AND WOMS.ItemMasterId = @ItemMasterId	
 				  AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 AND ISNULL(Stk.IsNonStock,0) = 0), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' + @GlobalFilter +'%') OR
 					(PartDescription LIKE '%' + @GlobalFilter +'%') OR

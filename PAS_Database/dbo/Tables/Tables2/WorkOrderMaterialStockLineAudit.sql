@@ -34,6 +34,8 @@
     [ReservedDate]            DATETIME2 (7)   NULL,
     [IssuedById]              BIGINT          NULL,
     [IssuedDate]              DATETIME2 (7)   NULL,
+    [IsPiecePart]             BIT             CONSTRAINT [DF_WorkOrderMaterialStockLineAudit_IsPiecePart] DEFAULT ((0)) NOT NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineAudit] PRIMARY KEY CLUSTERED ([WOMStockLineAuditId] ASC)
 );
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetReceiverStockROPNLabel]            
  ** Author:   
  ** Description: This stored procedure is used to get data for PN Label
@@ -14,14 +15,16 @@
  **************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-	1
+	1    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
     2    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
-	3    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
-	4    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
-	5    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
-    6    26 SEP 2025  RAJESH GAMI		Added EmployeeId
+	3    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
+	4    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
+    5    26 SEP 2025  RAJESH GAMI		Added EmployeeId
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    28/07/2027   Ayushi Patel      [PN-17459] return stockUnitOfMeaure Insted of purchaseUnitOfMeasure
+	1
 -- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
-
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetReceiverStockROPNLabel]
@@ -61,6 +64,7 @@ BEGIN
 			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 
 			UNION
@@ -78,7 +82,7 @@ BEGIN
 				   i.partnumber,
 				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure AS UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
@@ -112,6 +116,7 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 			
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1
 
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			UNION
 
 			SELECT i.ItemMasterId,
@@ -120,7 +125,7 @@ BEGIN
 				   i.partnumber,
 				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure AS UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
@@ -153,6 +158,7 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 		
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND sd.ForStockQty > 0
 
+			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			UNION
 
 			SELECT sl.AssetRecordId AS ItemMasterId,

@@ -3,6 +3,13 @@
 
 
 --EXEC spGETPO  'open','2019-12-10 00:00:00.0000000','2020-12-10 00:00:00.0000000'
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    13/Aug/2026			 Rajesh Gami						[PN-17350] - Removed leftover ISNULL(IM.IsNonStock,0) = 0 exclusion filter
+****************************************************************************************************************************************/
 CREATE Procedure [dbo].[spGETPO]
 	@status varchar(10),
 	@vendorname varchar(20)=null,
@@ -54,8 +61,8 @@ BEGIN
 		LEFT join  ManagementStructure level3 WITH (NOLOCK) on level4.ParentId = level3.ManagementStructureId 
 		LEFT join  ManagementStructure level2 WITH (NOLOCK) on level3.ParentId = level2.ManagementStructureId 
 		LEFT join  ManagementStructure level1 WITH (NOLOCK) on level2.ParentId = level1.ManagementStructureId
-		WHERE PO.Status = @status and PO.OpenDate between @Fromdate and @Todate 		
-	END TRY    
+		WHERE PO.Status = @status and PO.OpenDate between @Fromdate and @Todate
+	END TRY
 	BEGIN CATCH      
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

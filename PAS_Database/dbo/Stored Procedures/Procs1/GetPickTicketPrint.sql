@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint]           
  ** Author:    
  ** Description: This stored procedure is used to retrieve pickticket data for pdf
@@ -15,17 +15,20 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1										This stored procedure is used to retrieve pickticket data for pdf
-	2    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
-	3    08/17/2023	  Devendra SHekh		REMOVED ReadyToPick and added QtyRemaining
-	4    09/25/2023	  Devendra SHekh		PICKTICKET issue resolved
-	5    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
-	6    10/15/2024   Vishal Suthar			Modified SP to get Pick ticket print data from new SO Part tables
-	7    11/15/2024   Vishal Suthar			Fixed issue with populating list of stockline in Pick Ticket Print
-	8    11/26/2024   Vishal Suthar			Fixed issue with populating qty to pick and qty remaining
-	9    12/05/2024   Vishal Suthar			Fixed issue with printing and picked qty issue
-	10   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
-	11   31/03/2026   Moin Bloch	        Update (Added UOM Changes PN-15067) 
-     
+	1    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
+	2    08/17/2023	  Devendra SHekh		REMOVED ReadyToPick and added QtyRemaining
+	3    09/25/2023	  Devendra SHekh		PICKTICKET issue resolved
+	4    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
+	5    10/15/2024   Vishal Suthar			Modified SP to get Pick ticket print data from new SO Part tables
+	6    11/15/2024   Vishal Suthar			Fixed issue with populating list of stockline in Pick Ticket Print
+	7    11/26/2024   Vishal Suthar			Fixed issue with populating qty to pick and qty remaining
+	8    12/05/2024   Vishal Suthar			Fixed issue with printing and picked qty issue
+	9   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
+	10   31/03/2026   Moin Bloch	        Update (Added UOM Changes PN-15067) 
+	11   18/06/2026   Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
@@ -58,10 +61,10 @@ BEGIN
 		       sopt.[CreatedDate] AS SOPickTicketDate, 
 			    sopt.[SalesOrderId], 
 			    sl.[StockLineNumber], 
-			    --stk.[QtyOrder] Qty, 
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(stk.[QtyOrder],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS Qty,			   
-			    --sopt.QtyToShip AS QtyToPick,
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyToPick,	
+			   --stk.[QtyOrder] Qty,
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(stk.QtyOrder,0) ELSE dbo.fn_ConvertUOM(ISNULL(stk.QtyOrder,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS Qty,
+				--sopt.QtyToShip AS QtyToPick,
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopt.QtyToShip,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS QtyToPick,
 			    imt.[partnumber] AS PartNumber, 
 			    imt.[PartDescription], 
 			    sopt.[SOPickTicketNumber],
@@ -78,15 +81,15 @@ BEGIN
 			    bn.[Name] AS BinName, 
 			     p.[Description] AS PriorityName, 
 			    po.[PurchaseOrderNumber] AS PONumber,
-			    --sl.[QuantityOnHand], 
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QuantityOnHand, 
-			    --sl.[QuantityAvailable] AS QtyAvailable, 
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyAvailable,
-			    sop.[Notes], 		
-			    --sopt.[QtyToShip] AS QtyShipped,	
-			    ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyShipped,	
-			    --sopt.QtyRemaining AS QtyRemaining
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyRemaining],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyRemaining	
+			    --sl.[QuantityOnHand],
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS QuantityOnHand,
+				--sl.[QuantityAvailable] AS QtyAvailable,
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS QtyAvailable,
+				sop.[Notes],
+				--sopt.[QtyToShip] AS QtyShipped,
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopt.QtyToShip,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS QtyShipped,
+				--sopt.QtyRemaining AS QtyRemaining
+				ISNULL((CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyRemaining,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopt.QtyRemaining,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sl.MasterCompanyId) END),0) AS QtyRemaining
 		FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
 		INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId

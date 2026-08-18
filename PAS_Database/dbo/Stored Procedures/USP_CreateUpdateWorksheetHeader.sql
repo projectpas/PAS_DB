@@ -17,11 +17,16 @@
  ** --   --------       -------                 --------------------------------     
     1    14/05/2026     Priyansh Patel          Created [PN-16408]
     2    19/05/2026     Priyansh Patel          Added Duplicate inspection fields [PN-16408]
-    3    08-June-2026   Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
+    3    8/06/2026      Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
+    4    8/06/2026      Amit Ghediya            Adding Header data in History module [PN-16581]
+    5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
+	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
+    7    30/06/2026     Divyesh Kathiriya       Added WorkSheetStatusId fields [PN-16897]
+	8    27/07/2026     Amit Ghediya			Added for mapping table WorksheetMapping for multiple ws. [PN-17396]
 
 **************************************************************/
 
-CREATE    PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE     PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -29,9 +34,22 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
 
-        DECLARE @WorksheetHeaderId  BIGINT = (SELECT WorksheetHeaderId FROM @tbl_WorksheetHeaderType);
-        DECLARE @MasterCompanyId    INT    = (SELECT MasterCompanyId   FROM @tbl_WorksheetHeaderType);
-        DECLARE @AircraftRegistryId BIGINT  = (SELECT AircraftRegistryId   FROM @tbl_WorksheetHeaderType);
+		DECLARE @WorksheetHeaderId              BIGINT,
+				@MasterCompanyId                INT,
+				@AircraftRegistryId              BIGINT,
+				@ProgramId                       BIGINT,
+				@AircraftInstalledPartDetailsId  BIGINT,
+				@IsFromAircraft                  BIT,
+				@UpdatedBy                       VARCHAR(256);
+
+		SELECT 
+			@WorksheetHeaderId             = WorksheetHeaderId,
+			@MasterCompanyId                = MasterCompanyId,
+			@AircraftRegistryId             = AircraftRegistryId,
+			@ProgramId                      = ProgramId,
+			@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId,
+			@UpdatedBy						= UpdatedBy
+		FROM @tbl_WorksheetHeaderType;
 
         DECLARE @CodePrefix         NVARCHAR(50);
         DECLARE @CodeSuffix         NVARCHAR(50);
@@ -42,12 +60,21 @@ BEGIN
         DECLARE @SerialNum          VARCHAR(50)  = NULL;
         DECLARE @AircraftModelId    BIGINT  = NULL;
         DECLARE @MakeTypeId         BIGINT  = NULL;
+        DECLARE @WorkSheetStatusId  INT     = 1;       
 
         DECLARE @WorksheetCodePrefix INT = (
             SELECT [CodeTypeId]
             FROM   [dbo].[CodeTypes] WITH (NOLOCK)
             WHERE  [CodeType] = 'WorksheetNumber'
         );
+
+		-- ── NEW value holders ─────────────────────────────────
+        DECLARE @New_MakeType                   VARCHAR(200),
+                @New_AircraftModel              VARCHAR(200),
+                @New_WorksheetType              VARCHAR(100),
+				@New_TailNum                    VARCHAR(50),
+				@New_SerialNum                  VARCHAR(100),
+                @New_IsActive                   VARCHAR(10);
 
         SELECT TOP 1
             @CodePrefix = [CodePrefix],
@@ -93,11 +120,13 @@ BEGIN
                     WH.AircraftModel                 = T.AircraftModel,
                     WH.WorksheetType                 = T.WorksheetType,
                     WH.WorksheetTypeId               = T.WorksheetTypeId,
+                    WH.MtcCategoryId				 = T.MtcCategoryId,
                     WH.TailNum                      = T.TailNum,
                     WH.SerialNum                    = T.SerialNum,
-                    WH.WorkOrderNo                   = T.WorkOrderNo,
+                    WH.WorkOrderNo                   = T.WorkOrderNo,                    
                     WH.AFHours                       = T.AFHours,
                     WH.InspectionType                = T.InspectionType,
+					WH.InspectionTypeId              = T.InspectionTypeId,
                     WH.InspectionDate                = T.InspectionDate,
                     WH.QualitySafetyDeptSignOutBy    = T.QualitySafetyDeptSignOutBy,
                     WH.QualitySafetyDeptSignOutDate  = T.QualitySafetyDeptSignOutDate,
@@ -123,11 +152,14 @@ BEGIN
                     WH.DupInspSignatory2Time        = T.DupInspSignatory2Time,
                     WH.AircraftInstalledPartDetailsId = T.AircraftInstalledPartDetailsId,
                     WH.ProgramId                    = T.ProgramId,
+					WH.IsFromAircraft				= T.IsFromAircraft,
                     WH.AircraftRegistryId           = T.AircraftRegistryId,
+					WH.EngineRegistryId				= T.EngineRegistryId,
                     WH.IsActive                      = ISNULL(T.IsActive,  WH.IsActive),
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
-                    WH.UpdatedDate                   = GETUTCDATE()
+                    WH.UpdatedDate                   = GETUTCDATE(),
+					WH.IsScheduled                   = T.IsScheduled
                 FROM dbo.[WorksheetHeader] WH
                 INNER JOIN @tbl_WorksheetHeaderType T
                     ON WH.WorksheetHeaderId = T.WorksheetHeaderId
@@ -212,11 +244,14 @@ BEGIN
                     AircraftModel,
                     WorksheetType,
                     WorksheetTypeId,
+					MtcCategoryId,
                     WorkOrderNo,
-                     TailNum,
-                SerialNum,
+                    WorkSheetStatusId,                    
+                    TailNum,
+					SerialNum,
                     AFHours,
                     InspectionType,
+					InspectionTypeId,
                     InspectionDate,
                     QualitySafetyDeptSignOutBy,
                     QualitySafetyDeptSignOutDate,
@@ -242,14 +277,17 @@ BEGIN
                     DupInspSignatory2Time,
                     AircraftInstalledPartDetailsId ,
                     ProgramId,
-                    AircraftRegistryId,
+					IsFromAircraft,
+					AircraftRegistryId,
+					EngineRegistryId,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
                     CreatedBy,
                     UpdatedBy,
                     CreatedDate,
-                    UpdatedDate
+                    UpdatedDate,
+					IsScheduled
                 )
                 SELECT
                     @WorksheetNum,
@@ -259,11 +297,14 @@ BEGIN
                     T.AircraftModel,
                     T.WorksheetType,
                     T.WorksheetTypeId,
+					T.MtcCategoryId,
                     T.WorkOrderNo,
+                    @WorkSheetStatusId,
                     ISNULL(@TailNum, T.TailNum),
                     ISNULL(@SerialNum, T.SerialNum),
                     T.AFHours,
                     T.InspectionType,
+					T.InspectionTypeId,
                     T.InspectionDate,
                     T.QualitySafetyDeptSignOutBy,
                     T.QualitySafetyDeptSignOutDate,
@@ -289,14 +330,17 @@ BEGIN
                     T.DupInspSignatory2Time,
                     T.AircraftInstalledPartDetailsId,
                     T.ProgramId,
-                    T.AircraftRegistryId,
+					T.IsFromAircraft,
+					T.AircraftRegistryId,
+					T.EngineRegistryId,
                     ISNULL(T.IsActive,  1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,
                     T.CreatedBy,
                     T.UpdatedBy,
                     GETUTCDATE(),
-                    GETUTCDATE()
+                    GETUTCDATE(),
+					T.IsScheduled
                 FROM @tbl_WorksheetHeaderType T;
 
                 SET @WorksheetHeaderId = SCOPE_IDENTITY();
@@ -311,12 +355,67 @@ BEGIN
                 WHERE ISNULL(T.ProgramId, 0) > 0
                   AND ISNULL(AMP.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
 
+                UPDATE AIPD
+                SET
+                    AIPD.WorksheetNumber = @WorksheetNum,
+                    AIPD.UpdatedBy       = T.UpdatedBy,
+                    AIPD.UpdatedDate     = GETUTCDATE()
+                FROM [dbo].[AircraftInstalledPartDetails] AIPD
+                INNER JOIN @tbl_WorksheetHeaderType T ON AIPD.AircraftInstalledPartDetailsId = T.AircraftInstalledPartDetailsId AND AIPD.MasterCompanyId = T.MasterCompanyId
+                WHERE ISNULL(T.AircraftInstalledPartDetailsId, 0) > 0
+                  AND ISNULL(AIPD.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
+
                 SELECT 1 AS Status, 'Saved successfully' AS Message,
                        *
                 FROM   dbo.[WorksheetHeader] WITH (NOLOCK)
                 WHERE  WorksheetHeaderId = @WorksheetHeaderId;
+
+				-- ══════════════════════════════════════════════════
+				-- HISTORY BLOCK
+				-- Same pattern as USP_CreateAircraftRegistryHeader
+				-- ══════════════════════════════════════════════════
+				DECLARE @TemplateBody   VARCHAR(MAX)    = '',
+						@Activity       VARCHAR(MAX)    = NULL,
+						@HistCreatedBy  VARCHAR(256)    = NULL,
+						@WorksheetStr   VARCHAR(50)     = NULL;
+
+			    SET @WorksheetStr = 'Worksheet Num.: ' + @WorksheetNum;
+
+				-- Read NEW values from TVP
+				SELECT
+					@New_MakeType                  = ISNULL(T.MakeType, ''),
+					@New_AircraftModel             = ISNULL(T.AircraftModel, ''),
+					@New_WorksheetType             = ISNULL(T.WorksheetType, ''),
+					@New_TailNum                   = ISNULL(T.TailNum,   ISNULL(@TailNum,  '')),
+					@New_SerialNum                 = ISNULL(T.SerialNum, ISNULL(@SerialNum, '')),
+					@New_IsActive                  = CASE WHEN ISNULL(T.IsActive, 1) = 1 THEN 'Active' ELSE 'Inactive' END,
+					@HistCreatedBy                 = ISNULL(T.UpdatedBy, T.CreatedBy)
+				FROM @tbl_WorksheetHeaderType T;
+
+				SET @Activity = 'New Worksheet Added';
+
+                IF @New_MakeType                 <> '' SET @TemplateBody += 'Make/Type: '                 + @New_MakeType                 + ' | ';
+                IF @New_AircraftModel            <> '' SET @TemplateBody += 'Aircraft Model: '            + @New_AircraftModel            + ' | ';
+                IF @New_WorksheetType            <> '' SET @TemplateBody += 'Worksheet Type: '            + @New_WorksheetType            + ' | ';
+                IF @New_TailNum                  <> '' SET @TemplateBody += 'Tail No.: '                  + @New_TailNum                  + ' | ';
+                IF @New_SerialNum                <> '' SET @TemplateBody += 'Serial No.: '                + @New_SerialNum                + ' | ';
+                SET @TemplateBody += 'Created By: ' + ISNULL(@HistCreatedBy,'') + ' | ';
+                SET @TemplateBody += 'Created Date: '+ CONVERT(VARCHAR(30), GETUTCDATE(), 103);
+
+				-- Call usp_SaveAircraftHistory once
+				IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+				BEGIN
+
+					EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft Worksheet',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+												 @OldValue = NULL,@NewValue = @WorksheetStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+												 @CreatedBy = @HistCreatedBy;
+				END
+				-- ── END HISTORY BLOCK ─────────────────────────────
             END
         END
+
+		--Add into Mapping WorksheetMapping table
+		EXEC USP_LinkPartToExistingWorksheet @WorksheetHeaderId,@ProgramId,@AircraftInstalledPartDetailsId,@IsFromAircraft,@MasterCompanyId,@UpdatedBy
 
     END TRY
     BEGIN CATCH

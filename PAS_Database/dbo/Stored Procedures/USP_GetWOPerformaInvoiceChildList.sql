@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [USP_GetWOPerformaInvoiceChildList]           
  ** Author:	  Devendra Shekh
  ** Description: This SP IS Used to get list of performa Invoices for WO Part    
@@ -18,12 +18,12 @@
 	2    02/08/2024		 Devendra Shekh		update for conditionid
 	3    22/02/2024		 Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
 	4    07-07-2025     Moin Bloch          Changed Old To New Billing Table SP NOT IN USE
-
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [USP_GetWOPerformaInvoiceChildList] 3543,3013
-
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[USP_GetWOPerformaInvoiceChildList]
+CREATE PROCEDURE [dbo].[USP_GetWOPerformaInvoiceChildList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartId BIGINT
 AS
@@ -80,8 +80,10 @@ BEGIN
 					INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 
 					INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-					LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
-					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					 AND ISNULL(imt.IsNonStock,0) = 0
+					 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
+					 AND ISNULL(imv.IsNonStock,0) = 0
+					  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 					LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wobii.ConditionId
 					LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId

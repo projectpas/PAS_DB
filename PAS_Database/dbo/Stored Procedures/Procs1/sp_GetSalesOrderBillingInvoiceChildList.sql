@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetSalesOrderBillingInvoiceChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve Invoice child listing data
@@ -53,7 +53,10 @@
 	36	 13/03/2025	  Vishal Suthar		Fixed issue with duplicate records when no invoice is created and only proforma was created
 	37	 03/04/2025	  Vishal Suthar		Fixed issue with Freight and Charges not populating on revised billing
 	38   07-07-2025   Moin Bloch        Changed Old To New Billing Table
-
+	39   21-07-2025   Ayushi Patel      [PN-17375]UOM changes
+	40    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	41    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	42    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoice child list.
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
@@ -115,7 +118,7 @@ BEGIN
 			InvoiceNo [VARCHAR](250)  NULL,
 			InvoiceTypeId [BIGINT] NULL,
 			SOShippingNum [VARCHAR](250)  NULL,
-			QtyToBill [INT]  NULL,
+			QtyToBill [decimal](18,6)  NULL,
 			SalesOrderNumber [VARCHAR](250)  NULL,
 			partnumber [VARCHAR](250) NOT NULL,
 			ItemMasterId [BIGINT] NOT NULL,
@@ -125,26 +128,26 @@ BEGIN
 			SerialNumber  [VARCHAR](250)  NULL,
 			CustomerName [VARCHAR](250)  NULL,
 			StockLineId [BIGINT]  NULL,
-			QtyBilled [INT]  NULL,
+			QtyBilled [decimal](18,6)  NULL,
 			ItemNo [INT]  NULL,
 			SalesOrderId [BIGINT]  NULL,
 			SalesOrderPartId [BIGINT]  NULL,
 			SalesOrderStocklineId [BIGINT] NULL,
 			Condition [VARCHAR](250)  NULL,
 			CurrencyCode [VARCHAR](100)  NULL,
-			TotalSales [decimal](18,2) NULL,   
-			TotalUnitCost [decimal](18,2) NULL,  
-			TotalFreight [decimal](18,2) NULL,  
-			TotalFlatFreight [decimal](18,2) NULL,   
-			TotalCharges [decimal](18,2) NULL,  
-			TotalFlatCharges [decimal](18,2) NULL, 
+			TotalSales [decimal](18,6) NULL,   
+			TotalUnitCost [decimal](18,6) NULL,  
+			TotalFreight [decimal](18,6) NULL,  
+			TotalFlatFreight [decimal](18,6) NULL,   
+			TotalCharges [decimal](18,6) NULL,  
+			TotalFlatCharges [decimal](18,6) NULL, 
 			InvoiceStatus [VARCHAR](250)  NULL,
 			SmentNo [VARCHAR](250)  NULL,
 			VersionNo [VARCHAR](250)  NULL,
 			IsVersionIncrease [INT]  NULL,
 			IsNewInvoice [INT]  NULL,
 			IsProforma [BIT] NULL,
-			DepositAmount [DECIMAL](18,2) NULL,
+			DepositAmount [DECIMAL](18,6) NULL,
 			IsAllowIncreaseVersionForBillItem [BIT] NULL,
 			[IsBilling] [bit] NULL,
 			ECCN [VARCHAR](200)  NULL,
@@ -266,7 +269,7 @@ BEGIN
 			LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-			LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+			 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 			LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) on soc.SalesOrderShippingId = sos.SalesOrderShippingId  
 			LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 			LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
@@ -430,7 +433,7 @@ BEGIN
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
@@ -507,7 +510,7 @@ BEGIN
 						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 						LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 						LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
@@ -604,7 +607,7 @@ BEGIN
 						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.SubReferenceId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR sobii.StockLineId IS NULL) AND sobii.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 						LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 						LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.FunctionalCurrencyId  
@@ -807,7 +810,7 @@ BEGIN
 					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
@@ -1003,7 +1006,7 @@ BEGIN
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.FunctionalCurrencyId 

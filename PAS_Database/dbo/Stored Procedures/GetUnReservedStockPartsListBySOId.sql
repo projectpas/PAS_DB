@@ -14,12 +14,18 @@
  **************************************************************           
  ** PR   Date			 Author				Change Description            
  ** --   --------		 -------			--------------------------------          
-     1    10/10/2024	AMIT GHEDIYA		Created
-     2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
+     1    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
+     2    10/10/2024	AMIT GHEDIYA		Created
 	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
 	 4    07-07-2025    Moin Bloch          Changed Old To New Billing Table
 	 5    02/01/2026    Moin Bloch		    UOM Related Changes
 	 6    07/01/2026    Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	 7	  18/06/2026	Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	11    30/July/2026    Moin Bloch                                 [PN-17485] - Added [IsService],[IsNonStock] Conditions For Ristrict Non Stock List to Un-Reserved
+	12    12/Aug/2026    Moin Bloch                                 [PN-17485] - Changed IsService/IsNonStock filter from AND to OR
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  10851,0,0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
@@ -41,7 +47,8 @@ BEGIN
 			SET @ItemMasterId = NULL;	
 		END
 
-		;WITH UnreserveList AS (SELECT DISTINCT
+		;WITH UnreserveList AS (
+		SELECT DISTINCT
 			   sopi.SalesOrderReservePartId,
 			   sop.SalesOrderPartId,
 			   so.SalesOrderId,
@@ -50,8 +57,7 @@ BEGIN
 			   condi.[Description],
 			   im.PartNumber,
 			   im.PartDescription,
-			   --sop.QtyOrder,
-			   [dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QtyOrder,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(sop.QtyOrder,0) ELSE dbo.fn_ConvertUOM(ISNULL(sop.QtyOrder,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QtyOrder,
 			   sopi.ReservedById,
 			   sopi.IssuedById,
 			   sopi.ReservedDate,
@@ -60,59 +66,48 @@ BEGIN
 			   sopi.IsEquPart,
 			   sopi.AltPartMasterPartId,
 			   sopi.EquPartMasterPartId,
-			   --sopi.QtyToReserve AS 'QtyToUnReserve',
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS 'QtyToUnReserve',
-			   --sopi.QtyToReserve,
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QtyToReserve,
-			   --sopi.TotalReserved,
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[TotalReserved], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS TotalReserved,
-			   @PartStatus As 'PartStatusId',
-			   CASE 
-			       WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER' 
-			       WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
-			       WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
-			       ELSE 'OEM'
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopi.QtyToReserve,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopi.QtyToReserve,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QtyToUnReserve,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopi.QtyToReserve,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopi.QtyToReserve,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QtyToReserve,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopi.TotalReserved,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopi.TotalReserved,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS TotalReserved,
+			   @PartStatus AS PartStatusId,
+			   CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER'
+					WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
+					WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
+					ELSE 'OEM'
 			   END AS StockType,
-			   --stl.QuantityAvailable,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityAvailable], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityAvailable, 
-			   --stl.QuantityOnHand,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnHand], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityOnHand, 
-			   --stl.QuantityOnOrder,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnOrder], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityOnOrder, 
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityAvailable,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityAvailable,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityOnHand,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityOnOrder,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnOrder,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityOnOrder,
 			   stl.StockLineId,
-			   --stl.QuantityIssued,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityIssued], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityIssued, 
-			   --stl.QuantityReserved,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityReserved], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityReserved, 
-			   --stl.QuantityToReceive,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityToReceive], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityToReceive, 
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityIssued,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityIssued,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityIssued,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityReserved,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityReserved,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityReserved,
+			   (CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(stl.QuantityToReceive,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityToReceive,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END) AS QuantityToReceive,
 			   stl.StockLineNumber,
 			   stl.ControlNumber,
 			   stl.MasterCompanyId,
 			   im.ManufacturerName,
-			   CASE WHEN 
-				   @isFromShipping = 0
-			   THEN 
-				   ISNULL((SELECT --ISNULL(sobii.QtyBilled, 0) 
-				   ISNULL([dbo].[fn_ConvertUOM](ISNULL(sobii.[QtyBilled], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId),0)
-				   FROM [DBO].[BillingInvoicing] sobi WITH(NOLOCK)
-				   LEFT JOIN [DBO].[BillingInvoicingItems] sobii WITH(NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId				   
-				   WHERE sobi.ReferenceId = @SalesOrderId AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] = @SOModuleId
-				   AND sobii.StockLineId = stl.StockLineId
+			   CASE WHEN @isFromShipping = 0
+					THEN ISNULL((SELECT ISNULL((CASE WHEN ISNULL(stl.StockUnitOfMeasure,'') = ISNULL(stl.ConsumeUnitOfMeasure,'') THEN ISNULL(sobii.QtyBilled,0) ELSE dbo.fn_ConvertUOM(ISNULL(sobii.QtyBilled,0),stl.StockUnitOfMeasure,stl.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END),0)
+								 FROM DBO.BillingInvoicing sobi WITH(NOLOCK)
+								 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId
+								 WHERE sobi.ReferenceId = @SalesOrderId
+								 AND ISNULL(sobi.IsPerformaInvoice,0) = 0
+								 AND sobi.ModuleId = @SOModuleId
+								 AND sobii.StockLineId = stl.StockLineId
 				   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) 
 				ELSE 0 END AS NoofPieces
-		FROM [dbo].[SalesOrder] so WITH(NOLOCK)
-		JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		JOIN [dbo].[Customer] cu WITH(NOLOCK) ON so.CustomerId = cu.CustomerId
-		JOIN [dbo].[SalesOrderReserveParts] sopi WITH(NOLOCK) ON sop.SalesOrderPartId = sopi.SalesOrderPartId and sop.SalesOrderId = sopi.SalesOrderId
-		JOIN [dbo].[StockLine] stl WITH(NOLOCK) ON sopi.StockLineId = stl.StockLineId
+		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
+		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId AND ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1
+		JOIN [DBO].[Customer] cu WITH(NOLOCK) ON so.CustomerId = cu.CustomerId
+		JOIN [DBO].[SalesOrderReserveParts] sopi WITH(NOLOCK) ON sop.SalesOrderPartId = sopi.SalesOrderPartId and sop.SalesOrderId = sopi.SalesOrderId
+		JOIN [DBO].[StockLine] stl WITH(NOLOCK) ON sopi.StockLineId = stl.StockLineId
 		LEFT JOIN [DBO].[Condition] condi WITH(NOLOCK) ON sop.ConditionId = condi.ConditionId
 		WHERE so.IsDeleted = 0 
 		AND sop.IsDeleted = 0
 		AND (sopi.TotalReserved > 0)
 		AND so.SalesOrderId = @SalesOrderId
-		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId))
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId) )
 
 		SELECT SalesOrderReservePartId,
 			   SalesOrderPartId,

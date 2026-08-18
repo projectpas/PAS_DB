@@ -36,9 +36,17 @@
     [LastSyncDate]           DATETIME2 (7) NULL,
     [SyncToken]              VARCHAR (200) NULL,
     [DueDate]                DATETIME2 (7) NULL,
+    [IntegrationTypeId]      INT           NULL,
     CONSTRAINT [PK_NonPOInvoiceHeader] PRIMARY KEY CLUSTERED ([NonPOInvoiceId] ASC),
     CONSTRAINT [FK_NonPOInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_NonPOInvoiceHeader_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[NonPOInvoiceHeader]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([VendorId], [VendorName], [VendorCode], [PaymentTermsId], [StatusId], [ManagementStructureId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [InvoiceDate], [DueDate], [PaymentMethodId], [NPONumber], [InvoiceNumber], [ControlNumber], [IsUpdated])
+    WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-12: supports USP_GetNonPOInvoiceList's tenant/soft-delete/active filter (see
+-- UOM_USP_GetNonPOInvoiceList_Deploy.sql for the full review). [PN-17634]
 
 
 

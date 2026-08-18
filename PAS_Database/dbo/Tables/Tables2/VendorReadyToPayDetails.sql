@@ -45,8 +45,17 @@
     [LastSyncDate]                  DATETIME2 (7)   NULL,
     [SyncToken]                     VARCHAR (200)   NULL,
     [ManualJournalHeaderId]         BIGINT          NULL,
+    [IntegrationTypeId]             INT             NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorReadyToPayDetails_VendorPaymentDetailsId_Perf]
+    ON [dbo].[VendorReadyToPayDetails]([VendorPaymentDetailsId] ASC)
+    INCLUDE([ReadyToPayDetailsId])
+    WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-12: supports USP_GetNonPOInvoiceList's IsAlreadyPayment correlated subquery
+-- ("INNER JOIN VendorReadyToPayDetails VRPD ON VRPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId")
+-- (see UOM_USP_GetNonPOInvoiceList_Deploy.sql for the full review). [PN-17634]
 
 
 

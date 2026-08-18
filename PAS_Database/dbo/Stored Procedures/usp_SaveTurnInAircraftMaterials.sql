@@ -15,6 +15,9 @@ Exec [usp_SaveTurnInAircraftMaterials]
    4	21/05/2026  Abhishek Jirawla	Added stockline Id to AircraftRegistryHeader  (PN-16523)
    5	22/05/2026  Abhishek Jirawla	Added @IsCustomer Stock based on customer
    6	26/05/2026  Priyansh Patel	    Added new field 'TTSN, TCSN '(PN-16477)
+   7	30/06/2026  Amit Ghediya	    Update for Engine data [PN-17075]
+   8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PurchaseUOMId/@PartNumber ItemMaster lookup
 
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
@@ -61,8 +64,8 @@ CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]
 	@TotalTSN DECIMAL(18,2) = NULL,
 	@TotalCSN DECIMAL(18,2) = NULL,
 	@TotalTSNMM DECIMAL(18,6) = NULL,
-	@TotalCSNMM DECIMAL(18,6) = NULL
-
+	@TotalCSNMM DECIMAL(18,6) = NULL,
+	@IsFromAircraft  BIT = NULL
 AS  
 BEGIN  
    
@@ -169,9 +172,17 @@ BEGIN
 		 INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId  
 		 ON CSTL.StockLineId = STL.StockLineId  
   
-		 SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @ConsumeUOMId =ConsumeUnitOfMeasureId ,@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+		  WHERE ISNULL(IM.IsNonStock,0) = 0
+SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
      
-		 SELECT @AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId 
+		 IF(ISNULL(@IsFromAircraft,0) = 1)
+		 BEGIN
+			 SELECT @AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId 
+		 END
+		 ELSE
+		 BEGIN
+			 SELECT @AircraftRegistryNumber = [EngineRegistryNumber] FROM [dbo].[EngineRegistryHeader] WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId 
+		 END
 
 		 INSERT INTO #tmpCodePrefixes_Parent (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom)   
 		 SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
@@ -229,6 +240,7 @@ BEGIN
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+			 AND ISNULL(iM.IsNonStock,0) = 0
 			GROUP BY iM.ItemMasterId
 
 		 INSERT INTO [dbo].[Stockline](StockLineNumber, ControlNumber, IDNumber, IsCustomerStock,IsCustomerstockType,ItemMasterId,PartNumber, PurchaseUnitOfMeasureId,ConditionId,Quantity,   
@@ -253,7 +265,14 @@ BEGIN
        
 		 UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
 		 
-		 UPDATE [dbo].[AircraftRegistryHeader] SET StockLineId = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		 IF(ISNULL(@IsFromAircraft,0) = 1)
+		 BEGIN
+			  UPDATE [dbo].[AircraftRegistryHeader] SET [StockLineId] = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		 END
+		 ELSE
+		 BEGIN
+			  UPDATE [dbo].[EngineRegistryHeader] SET [StockLineId] = @StockLineId,[EngineName] = @PartNumber WHERE [EngineRegistryId] = @AircraftRegistryId;
+		 END
 	 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
 	 

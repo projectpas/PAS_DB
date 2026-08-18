@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [ConvertSOQToSO]
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used to convert sales order quote to sales order
@@ -29,14 +29,19 @@
 	13   16/10/2024   Moin Bloch		Updated Added SalesPersion Details
 	14   12/12/2025   Devendra Shekh	Added SP usp_MapRFQReferences For PO Part Reference Mapping
 	15   28/04/2026   BHARGAV SALIYA	[PN-16221] When Convert SOQ to SO Save ShipTO BillTO Address in SO
-	15   21/May/2026  Rajesh Gami	    [PN-16507] SOQ to SO: SOQ status should not change to Closed until all parts are converted to SO
+	16   21/May/2026  Rajesh Gami	    [PN-16507] SOQ to SO: SOQ status should not change to Closed until all parts are converted to SO
+	17   17/JUN/2026  AMIT GHEDIYA	    Save ContractReference data move soq to so [PN-16119] 
+	18   19/JUN/2026  AMIT GHEDIYA	    Save [SourceBy],[MarketplaceRef] data move soq to so [PN-16922]
+	19   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	20   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
+	21   01/Aug/2024   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
+	22   13/Aug/2026   Ayushi Patel		[PN-17604] @ReservedQty/@ReservedQty2 declared decimal 
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
 set @p14=NULL
 exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @EmployeeName, @CustomerReference, @ReserveStockline, @TransferStockline, @TransferCharges, @TransferFreight, @TransferMemos, @TransferNotes, @SalesOrderId OUTPUT, @CustomerId OUTPUT',N'@SalesOrderQuoteId bigint,@EmployeeId bigint,@EmployeeName nvarchar(10),@CustomerReference nvarchar(7),@ReserveStockline bit,@TransferStockline bit,@TransferCharges bit,@TransferFreight bit,@TransferMemos bit,@TransferNotes bit,@SalesOrderId bigint output,@CustomerId bigint output',@SalesOrderQuoteId=784,@EmployeeId=2,@EmployeeName=N'ADMIN User',@CustomerReference=N'ESO-123',@ReserveStockline=1,@TransferStockline=1,@TransferCharges=0,@TransferFreight=0,@TransferMemos=0,@TransferNotes=0,@SalesOrderId=@p13 output,@CustomerId=@p14 output
 select @p13, @p14
-
 **************************************************************/
 CREATE    PROCEDURE [dbo].[ConvertSOQToSO]
 	@SalesOrderQuoteId bigint = 0,
@@ -170,16 +175,16 @@ BEGIN
 	[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CreditLimit],[CreditTermId],[CreditLimitName],[CreditTermName],
 	[VersionNumber],[TotalFreight],[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[EnforceEffectiveDate],[IsEnforceApproval],
 	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath],
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef])
 	SELECT 1, SOQ.QuoteTypeId, cast(GETUTCDATE() as date), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
 	CASE WHEN @CustomerReference IS NULL THEN SOQ.CustomerReference ELSE @CustomerReference END, SOQ.[CurrencyId], 0, 0 , 0, 0, SOQ.SalesPersonId, SOQ.[AgentId], SOQ.[CustomerSeviceRepId],
 	SOQ.[EmployeeId], NULL, NULL, CASE WHEN @TransferMemos = 1 THEN SOQ.Memo ELSE '' END, @FulfillingStatusId, GETUTCDATE(), CASE WHEN @TransferNotes = 1 THEN SOQ.Notes ELSE '' END, SOQ.[RestrictPMA], SOQ.[RestrictDER], SOQ.[ManagementStructureId],
 	NULL, SOQ.[CreatedBy], GETUTCDATE(), SOQ.[UpdatedBy], GETUTCDATE(), SOQ.[MasterCompanyId], 0, @SalesOrderQuoteId, 0, 0,
-	@SalesOrderNumber, 1, NULL, NULL, NULL, NULL, NULL, NULL,
+	@SalesOrderNumber, 1, SOQ.[ContractReference], NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, @CreditLimit, @CreditTermsId, NULL, @CreditTermsName,
 	NULL, SOQ.[TotalFreight], SOQ.[TotalCharges], SOQ.[FreightBilingMethodId], SOQ.[ChargesBilingMethodId], NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef]
 	FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 	
 	SELECT @SalesOrderId = SCOPE_IDENTITY();
@@ -248,6 +253,9 @@ BEGIN
 		DECLARE @CurrentConditionId BIGINT = NULL;
 		DECLARE @CreatedBy VARCHAR(100);
 		DECLARE @MasterCompanyId BIGINT = 0;
+		DECLARE @SOPStocklineId BIGINT = 0;
+		DECLARE @IsService BIT = 0;
+		DECLARE @IsNonStock BIT = 0;			
 
 		SELECT @CurrentSOQPartId = SOQP.SalesOrderQuotePartId,
 		@CurrentItemMasterId = SOQP.ItemMasterId, @CurrentConditionId = SOQP.ConditionId , @CreatedBy = SOQP.CreatedBy, @MasterCompanyId = SOQP.MasterCompanyId
@@ -366,7 +374,7 @@ BEGIN
 				BEGIN
 					DECLARE @InsertedReservePartId BIGINT = NULL;
 					DECLARE @StocklineId BIGINT = NULL;
-					DECLARE @ReservedQty INT = NULL;
+					DECLARE @ReservedQty DECIMAL(18,6) = NULL;
 
 					--Set RefrenceNumber
 					SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;
@@ -422,7 +430,154 @@ BEGIN
 
 				SET @SOQStocklineLoopID = @SOQStocklineLoopID - 1;
 			END
-		END		
+		END
+		ELSE
+		BEGIN
+			/* Create Stockline For Non-Stock Part */
+			SELECT @SOPStocklineId = [StockLineId] FROM [dbo].[SalesOrderQuoteStocklineV1] WITH(NOLOCK) WHERE [SalesOrderQuotePartId] = @CurrentSOQPartId;
+
+			SELECT @IsService = ISNULL([IsService],0), @IsNonStock = ISNULL([IsNonStock],0) FROM [dbo].[ItemMaster] WITH (NOLOCK) WHERE [ItemMasterId] = @CurrentItemMasterId;
+
+			IF(@IsService = 1 AND @IsNonStock = 1 AND ISNULL(@SOPStocklineId, 0) = 0)
+			BEGIN
+				EXEC [dbo].[USP_CreateStocklineForNosStockSalesOrderPart]
+						   @SalesOrderId = @SalesOrderId,
+						   @SalesOrderPartId = @CurrentSOPartId,
+						   @ItemMasterId = @CurrentItemMasterId,
+						   @CreatedBy = @CreatedBy,
+						   @MasterCompanyId = @MasterCompanyId,
+						   @StockLineId = @SOPStocklineId OUTPUT;
+
+				IF(@SOPStocklineId > 0)
+				BEGIN
+					DECLARE @CustomerRequestDate AS Datetime2(7);
+					DECLARE @PromisedDate AS Datetime2(7);
+					DECLARE @EstimatedShipDate AS Datetime2(7);
+					DECLARE @SOPartStatus BIGINT;
+					DECLARE @PriorityId BIGINT;
+
+					DECLARE @UnitSalesPrice AS decimal(18,4);
+					DECLARE @MarkUpAmount AS decimal(18,4);
+					DECLARE @MarkUpPercentage AS decimal(18,4);
+					DECLARE @NetSaleAmount AS decimal(18,4);
+					DECLARE @DiscountAmount AS decimal(18,4);
+					DECLARE @MarginAmount AS decimal(18,4);
+					DECLARE @UnitCost AS decimal(18,4);
+					DECLARE @MarginPercentage AS decimal(18,4);
+					DECLARE @DiscountPercentage AS decimal(18,4);
+					DECLARE @NetSalesPerUnitAmt AS decimal(18,4);
+					DECLARE @QtyOrder AS INT;
+
+					SELECT @CustomerRequestDate = sop.[CustomerRequestDate],
+					        @PromisedDate = sop.[PromisedDate],
+						    @EstimatedShipDate = sop.[EstimatedShipDate],
+							@SOPartStatus = sop.[StatusId],
+							@PriorityId = sop.[PriorityId],
+							@QtyOrder =  sop.[QtyRequested]
+					FROM [dbo].[SalesOrderQuotePartV1] sop WITH(NOLOCK)
+					LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON ime.ItemMasterId = sop.ItemMasterId
+					WHERE sop.[SalesOrderQuotePartId] = @CurrentSOQPartId
+					AND ((@TransferStockline = 0) OR @TransferStockline = 1)
+					AND ISNULL(SOP.[IsConvertedToSalesOrder],0) = 0
+					AND ISNULL(sop.[IsNoQuote], 0) <> 1;
+
+					INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved],
+						[QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate],
+						[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[PriorityId])
+					SELECT @CurrentSOPartId, STK.StockLineId, STK.ConditionId, stk.Quantity, 0,
+						stk.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(),
+						@CreatedBy, GETUTCDATE(), 1, 0,	ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight],@PriorityId
+					FROM [dbo].[Stockline] STK
+					LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH(NOLOCK) ON ime.[ItemMasterId] = STK.[ItemMasterId]
+					WHERE STK.[StockLineId] = @SOPStocklineId;
+
+					SET @NewSOStocklineId = SCOPE_IDENTITY();
+
+					SELECT @UnitSalesPrice = ISNULL(SOPC.[UnitSalesPrice],0),
+					       @UnitCost =   ISNULL(SOPC.[UnitCost],0),
+						   @MarkUpPercentage = ISNULL(SOPC.[MarkUpPercentage],0),
+						   @MarkUpAmount = ISNULL(SOPC.[MarkUpAmount],0),
+						   @MarginAmount = ISNULL(SOPC.[MarginAmount],0),
+						   @MarginPercentage = ISNULL(SOPC.[MarginPercentage],0),
+						   @DiscountPercentage = ISNULL(SOPC.[DiscountPercentage],0),
+						   @DiscountAmount = ISNULL(SOPC.[DiscountAmount],0),
+						   @NetSaleAmount = ISNULL(SOPC.[NetSaleAmount],0)
+						FROM [dbo].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK)
+						WHERE SOPC.SalesOrderQuotePartId = @CurrentSOQPartId
+						AND SOPC.SalesOrderQuoteId = @SalesOrderQuoteId;
+
+					INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
+					[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
+					[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+					SELECT @SalesOrderId, @CurrentSOPartId, @NewSOStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QtyOrder), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyOrder), 0), @NetSaleAmount,
+						@UnitCost, ISNULL((@UnitCost * @QtyOrder), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyOrder), 0),
+						@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+						FROM [DBO].[StockLine] Stkl
+						WHERE Stkl.StockLineId = @SOPStocklineId
+
+					SET @ReserveStockline = 1;
+
+					IF (@ReserveStockline = 1)
+					BEGIN
+						DECLARE @InsertedReservePartId2 BIGINT = NULL;
+						DECLARE @StocklineId2 BIGINT = NULL;
+						DECLARE @ReservedQty2 DECIMAL(18,6) = NULL;
+
+						--Set RefrenceNumber
+						SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;
+
+						INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],
+						[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
+						[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+						SELECT @SalesOrderId, SOPSTK.StockLineId, SOP.[ItemMasterId], 1, 0, NULL, 0,
+						NULL, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
+						GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
+						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
+						WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId;
+						--SOP.SalesOrderPartId = @CurrentSOPartId;
+
+						SELECT @InsertedReservePartId2 = SCOPE_IDENTITY();
+
+						SELECT @StocklineId2 = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
+
+						UPDATE SOPSTK
+						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
+						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
+						WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId2;
+
+						UPDATE SOPSTK
+						SET SOPSTK.StatusId = CASE WHEN (SOPSTK.QtyOrder = SOPSTK.QtyReserved) THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
+						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
+						WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId2;
+
+						Update DBO.SalesOrderPartV1
+						SET StatusId = CASE WHEN QtyOrder = QtyReserved THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
+						WHERE SalesOrderPartId = @CurrentSOPartId
+
+						SELECT @ReservedQty2 = QtyToReserve FROM DBO.SalesOrderReserveParts WITH (NOLOCK) WHERE SalesOrderReservePartId = @InsertedReservePartId2;
+
+						UPDATE DBO.Stockline
+						SET QuantityAvailable = QuantityAvailable - @ReservedQty2,
+						QuantityReserved = QuantityReserved + @ReservedQty2
+						WHERE StockLineId = @StocklineId2;
+
+						--Add RefrenceNumber for SOQ TO SO
+						UPDATE [DBO].[SalesOrderStocklineV1]
+						SET ReferenceNumber = @RefNumber
+						WHERE SalesOrderPartId = @CurrentSOPartId AND StockLineId = @StockLineId2
+
+						EXEC USP_AddUpdateStocklineHistory @StocklineId2, @SOModuleId, @SalesOrderId, @SOQModuleId, @SalesOrderQuoteId, 2, @ReservedQty2, @EmployeeName;
+					END
+				END
+			END
+			/* END Create Stockline For Non-Stock Part */
+		END
 
 		/* Transfer Freights */
 		IF (@TransferFreight = 1)

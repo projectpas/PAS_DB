@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceivingReconciliationDetailsById]             
  ** Author:   
  ** Description: This stored procedure is used to get Receiving Reconciliation Details
@@ -10,17 +10,21 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1                 unknown       Created 
-	2    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
-	3    08/11/2023   Moin Bloch    Added ControlNumber Field
-	4    18/12/2023   Moin Bloch    Added Order By
-	5    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
-    6    03/01/2024   Moin Bloch    Added IsSerialized Field
-    7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
-	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
-	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
-
-	
---  EXEC GetReceivingReconciliationDetailsById 321
+	1    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
+	2    08/11/2023   Moin Bloch    Added ControlNumber Field
+	3    18/12/2023   Moin Bloch    Added Order By
+	4    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
+    5    03/01/2024   Moin Bloch    Added IsSerialized Field
+    6    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
+	7    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
+	8    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+	9   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
+	10   26/06/2026   Priyansh Patel  Convert All qty and cost uom for purchaseorder from Stock to Purchase uom  [PN-16941]
+	11    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    20/July/2026   RAJESH GAMI   [PN-17350] - Removed IsNonStock=0 from the Stockline LEFT JOIN's ON clause. Since a Non-Stock stockline added via a PO now flows through the same 'STOCK'-tagged branch as a real Stock stockline (per the PN-17271 unification), this join was silently failing to match on reload, leaving RemainingRRQty/IsSerialized/ControlNumber null/0 for Non-Stock rows even when nothing had been reconciled yet.
+	13    20/July/2026   RAJESH GAMI   [PN-17350] - Repointed Non-Stock management-structure lookup (NMSD) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails, and resolved @NONStockModuleID dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoding 11.
+	14   22/07/2026   Priyansh Patel  Added Stock Uom and poextcost fix  [PN-16941]
+--  EXEC GetReceivingReconciliationDetailsById 136
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
@@ -33,88 +37,104 @@ BEGIN
 	            DECLARE @ModuleID INT = 2;
 				DECLARE @AssetModuleID varchar(500) ='42,43'
 
-			SELECT    JBD.[ReceivingReconciliationDetailId]
-				     ,JBD.[ReceivingReconciliationId]
-					 ,JBD.[StocklineId]
-					 ,JBD.[StocklineNumber]
-					 ,JBD.[ItemMasterId]
-					 ,JBD.[PartNumber]
-					 ,JBD.[PartDescription]
-					 ,JBD.[SerialNumber]
-					 ,JBD.[POReference]
-					 ,JBD.[POQtyOrder]
-					 ,JBD.[ReceivedQty]
-					 ,JBD.[POUnitCost]
-					 ,JBD.[POExtCost]
-					 ,JBD.[InvoicedQty]
-					 ,JBD.[InvoicedUnitCost]
-					 ,JBD.[InvoicedExtCost]
-					 ,JBD.[AdjQty]
-					 ,JBD.[AdjUnitCost]
-					 ,JBD.[AdjExtCost]
-					 ,JBD.[APNumber]
-					 ,JBD.[PurchaseOrderId]
-					 ,JBD.[PurchaseOrderPartRecordId]
-					 ,JBD.[IsManual]
-					 ,JBD.[PackagingId]
-					 ,JBD.[Description]
-					 ,JBD.[GlAccountId]
-					 ,[Type]
-					 ,[StockType]
-					 ,ISNULL([QtyVariance], 0) AS [QtyVariance]
-					 ,ISNULL([PriceVariance], 0) AS [PriceVariance]
-					 --,[RemainingRRQty]
-					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN UPPER(SLI.RRQty) 
-						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN UPPER(NSI.RRQty) 
-						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN UPPER(ASI.RRQty) ELSE NULL END AS RemainingRRQty
-					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN SLI.isSerialized 
-						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN NSI.isSerialized 
-						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN ASI.isSerialized ELSE 0 END AS IsSerialized
-					 ,[JBD].[FreightAdjustment]
-					 ,[JBD].[TaxAdjustment]
-					 ,[JBD].[FreightAdjustmentPerUnit]
-					 ,[JBD].[TaxAdjustmentPerUnit]
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(SLI.ControlNumber) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NSI.ControlNumber) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(ASI.ControlNumber) ELSE '' END AS ControlNumber
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level1Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level1Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level1Name) ELSE '' END  AS level1
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level2Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level2Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level2Name) ELSE '' END  AS level2
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level3Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level3Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level3Name) ELSE '' END  AS level3
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level4Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level4Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level4Name) ELSE '' END  AS level4
-					,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level5Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level5Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level5Name) ELSE '' END  AS level5
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level6Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level6Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level6Name) ELSE '' END  AS level6
-					,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level7Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level7Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level7Name) ELSE '' END  AS level7
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level8Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level8Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level8Name) ELSE '' END  AS level8
-					,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level9Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level9Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level9Name) ELSE '' END  AS level9
-					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name) 
-						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10,
+				SELECT    JBD.[ReceivingReconciliationDetailId]
+				,JBD.[ReceivingReconciliationId]
+				,JBD.[StocklineId]
+				,JBD.[StocklineNumber]
+				,JBD.[ItemMasterId]
+				,JBD.[PartNumber]
+				,JBD.[PartDescription]
+				,JBD.[SerialNumber]
+				,JBD.[POReference]
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL THEN IM.[PurchaseUnitOfMeasure]
+					  WHEN JBD.[Type] = 2 AND RO.RepairOrderId IS NOT NULL THEN IM.[StockUnitOfMeasure]
+				 ELSE '' END AS UnitOfMeasure
+				,IM.[StockUnitOfMeasure] AS StockUnitOfMeasure
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[POQtyOrder], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId)
+				 ELSE JBD.[POQtyOrder]  END AS POQtyOrder
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL THEN CASE WHEN NULLIF(IM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IM.PurchaseUnitOfMeasure, '') IS NULL OR IM.StockUnitOfMeasure = IM.PurchaseUnitOfMeasure THEN JBD.[ReceivedQty]
+				 ELSE dbo.fn_ConvertUOM(JBD.[ReceivedQty], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId) END
+				 ELSE JBD.[ReceivedQty] END AS ReceivedQty
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[POUnitCost], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, IM.MasterCompanyId)
+				 ELSE JBD.[POUnitCost] END AS POUnitCost
+				,JBD.[POExtCost] AS POExtCost
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[InvoicedQty], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId)
+				 ELSE JBD.[InvoicedQty] END AS InvoicedQty
+				,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL AND NULLIF(IM.StockUnitOfMeasure, '') IS NOT NULL AND NULLIF(IM.PurchaseUnitOfMeasure, '') IS NOT NULL AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure THEN dbo.fn_ConvertUOM(JBD.[InvoicedUnitCost], IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, IM.MasterCompanyId)
+				 ELSE JBD.[InvoicedUnitCost] END AS InvoicedUnitCost
+				,JBD.[InvoicedExtCost]
+				,JBD.[AdjQty]
+				,JBD.[AdjUnitCost]
+				,JBD.[AdjExtCost]
+				,JBD.[APNumber]
+				,JBD.[PurchaseOrderId]
+				,JBD.[PurchaseOrderPartRecordId]
+				,JBD.[IsManual]
+				,JBD.[PackagingId]
+				,JBD.[Description]
+				,JBD.[GlAccountId]
+				,[Type]
+				,[StockType]
+				,ISNULL([QtyVariance], 0) AS [QtyVariance]
+				,ISNULL([PriceVariance], 0) AS [PriceVariance]
+				,CASE WHEN UPPER(JBD.[StockType]) = 'STOCK' AND JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL
+				THEN CASE WHEN NULLIF(IM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IM.PurchaseUnitOfMeasure, '') IS NULL OR IM.StockUnitOfMeasure = IM.PurchaseUnitOfMeasure
+				THEN SLI.RRQty
+				ELSE dbo.fn_ConvertUOM(SLI.RRQty, IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId)
+				END
+				WHEN UPPER(JBD.[StockType]) = 'STOCK' THEN SLI.RRQty
+				WHEN UPPER(JBD.[StockType]) = 'NONSTOCK' THEN NSI.RRQty
+				WHEN UPPER(JBD.[StockType]) = 'ASSET' THEN ASI.RRQty
+				ELSE NULL END AS RemainingRRQty
+				,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN SLI.isSerialized 
+				WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN NSI.isSerialized 
+				WHEN UPPER(JBD.[StockType])= 'ASSET' THEN ASI.isSerialized ELSE 0 END AS IsSerialized
+				,[JBD].[FreightAdjustment]
+				,[JBD].[TaxAdjustment]
+				,[JBD].[FreightAdjustmentPerUnit]
+				,[JBD].[TaxAdjustmentPerUnit]
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(SLI.ControlNumber) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NSI.ControlNumber) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(ASI.ControlNumber) ELSE '' END AS ControlNumber
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level1Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level1Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level1Name) ELSE '' END  AS level1
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level2Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level2Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level2Name) ELSE '' END  AS level2
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level3Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level3Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level3Name) ELSE '' END  AS level3
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level4Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level4Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level4Name) ELSE '' END  AS level4
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level5Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level5Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level5Name) ELSE '' END  AS level5
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level6Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level6Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level6Name) ELSE '' END  AS level6
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level7Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level7Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level7Name) ELSE '' END  AS level7
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level8Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level8Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level8Name) ELSE '' END  AS level8
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level9Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level9Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level9Name) ELSE '' END  AS level9
+				,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name) 
+				WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name) 
+				WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10,
 
-					CASE WHEN  ISNULL(JBH.VendorProformaAmount,0) > 0 THEN ISNULL(JBH.VendorProformaAmount,0) ELSE (CASE WHEN [Type] = 1 THEN ISNULL(Po.DepositAmount,0) ELSE ISNULL(RO.DepositAmount,0) END)END AS VendorProformaAmount,
-					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceNo,'') ELSE ISNULL(RO.VendorProformaInvoiceNo,'') END) AS VendorProformaInvoiceNo,
-					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
+				CASE WHEN  ISNULL(JBH.VendorProformaAmount,0) > 0 THEN ISNULL(JBH.VendorProformaAmount,0) ELSE (CASE WHEN [Type] = 1 THEN ISNULL(Po.DepositAmount,0) ELSE ISNULL(RO.DepositAmount,0) END)END AS VendorProformaAmount,
+				(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceNo,'') ELSE ISNULL(RO.VendorProformaInvoiceNo,'') END) AS VendorProformaInvoiceNo,
+				(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
-					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 
-					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
+					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId
+					  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = JBD.[ItemMasterId]
+					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'
 					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
 					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'
 					  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'STOCK'

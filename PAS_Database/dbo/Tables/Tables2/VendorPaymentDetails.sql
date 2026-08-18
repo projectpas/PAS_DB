@@ -43,6 +43,14 @@
     [ManualJournalDetailsId]        BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetails] PRIMARY KEY CLUSTERED ([VendorPaymentDetailsId] ASC)
 );
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorPaymentDetails_NonPOInvoiceId_Perf]
+    ON [dbo].[VendorPaymentDetails]([NonPOInvoiceId] ASC)
+    INCLUDE([VendorPaymentDetailsId])
+    WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-12: supports USP_GetNonPOInvoiceList's IsAlreadyPayment correlated subquery
+-- ("WHERE NPH.NonPOInvoiceId = VPD.NonPOInvoiceId") (see UOM_USP_GetNonPOInvoiceList_Deploy.sql
+-- for the full review). [PN-17634]
 
 
 

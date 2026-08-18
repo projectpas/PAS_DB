@@ -11,6 +11,13 @@
 ** --    --------     -------           -------------------------------          
 ** 1     07-07-2025   Ayushi Patel      Created  
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
+** 3     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
+** 4     24-June-2026  Sahdev Saliya     Added Notes [PN-16968]
+** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
+** 6     02-July-2026  Sahdev Saliya     Added Resale Number [PN-17018]
+** 7     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
+** 8     06-July-2026  Divyesh Kathitiya Added VAT Number [PN-17124]
+** 9     12-AUG-2026   Moin Bloch        Added LegalEntityId PN-17651
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -37,6 +44,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @IsAddressForBilling BIT,
     @IsAddressForShipping BIT,
     @VendorParentId BIGINT = NULL,
+    @LegalEntityId BIGINT = NULL,
     @IsTradeRestricted BIT = 0,
     @TradeRestrictedMemo NVARCHAR(MAX) = NULL,
     @IsTrackScoreCard BIT = 0,
@@ -61,7 +69,10 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
 	@CreditLimit DECIMAL(18,2) = NULL,
 	@CurrencyId INT = NULL,
 	@DiscountId BIGINT = NULL,
-	@Is1099Required BIT
+	@Is1099Required BIT,
+	@Notes NVARCHAR(MAX) = NULL,
+	@ResaleNumber VARCHAR(200) = NULL,
+	@VatNumber VARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -110,22 +121,22 @@ BEGIN
 			IsParent, IsVendorAlsoCustomer, VendorEmail, VendorCode, VendorContractReference,
 			DoingBusinessAsName, VendorURL, IsCertified, VendorAudit, MasterCompanyId, IsActive,
 			IsDeleted, CreditTermsId, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,
-			IsAddressForBilling, IsAddressForShipping, VendorParentId, AddressId,
+			IsAddressForBilling, IsAddressForShipping, VendorParentId, LegalEntityId, AddressId,
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
-			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict
+			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes, ResaleNumber, VatNumber
 		)
 		VALUES (
 			@VendorName, @LicenseNumber, @VendorPhone, @VendorPhoneExt, @VendorTypeId, @IsPreferredVendor,
 			@IsParent, @IsVendorAlsoCustomer, @VendorEmail, @VendorCode, @VendorContractReference,
 			@DoingBusinessAsName, @VendorURL, @IsCertified, @VendorAudit, @MasterCompanyId, @IsActive,
 			@IsDeleted, @CreditTermsId, GETUTCDATE(), GETUTCDATE(), @CreatedBy, @UpdatedBy,
-			@IsAddressForBilling, @IsAddressForShipping, @VendorParentId, @AddressId,
+			@IsAddressForBilling, @IsAddressForShipping, @VendorParentId, @LegalEntityId, @AddressId,
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,
-			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0
+			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes, @ResaleNumber, @VatNumber
 		);
 
         SET @VendorId = SCOPE_IDENTITY();
@@ -172,7 +183,7 @@ BEGIN
         IF @IsVendorAlsoCustomer = 1
         BEGIN
             DECLARE @ExistingCustomerId BIGINT;
-            SELECT TOP 1 @ExistingCustomerId = CustomerId FROM Customer WITH(NOLOCK) WHERE LOWER(Name) = LOWER(@VendorName);
+            SELECT TOP 1 @ExistingCustomerId = RelatedCustomerId  FROM Vendor WITH(NOLOCK) WHERE VendorId = @VendorId;
 
             IF @ExistingCustomerId IS NULL
             BEGIN
@@ -245,7 +256,9 @@ BEGIN
 										IsUpdated,
 										LastSyncDate,
 										Memo,
-										SyncToken
+										SyncToken,
+										ResaleNumber,
+										VatNumber
 									)
 									VALUES (
 										@VendorTypeId,
@@ -290,8 +303,10 @@ BEGIN
 										NULL, -- QuickBooksReferenceId not available
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
-										NULL, -- Memo
-										NULL  -- SyncToken
+										@Notes, -- Memo
+										NULL,  -- SyncToken
+										@ResaleNumber, -- ResaleNumber
+										@VatNumber -- VAT Number
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();
@@ -329,7 +344,7 @@ BEGIN
             SET VendorId = @VendorId, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
             WHERE CustomerCreditPaymentDetailId = @CustomerCreditPaymentDetailId;
         END
-        EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
+        --EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
         COMMIT;
     END TRY
       BEGIN CATCH

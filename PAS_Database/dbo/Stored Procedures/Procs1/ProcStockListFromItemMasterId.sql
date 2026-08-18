@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [ProcStockListFromItemMasterId]               
  ** Author:  Amit Ghediya    
  ** Description:     
@@ -15,13 +15,18 @@
     2    07/26/2023  Vishal Suthar   Added query block for alternative part stockline  
     3    07/28/2023  Vishal Suthar   Added warehouse and location columns  
     4    09/07/2023  Vishal Suthar   Modified to show only available quantity  
-	5    o9/12/2023  Bhargav Saliya  Add two column [QuantityIssued] and [QuantityReserved]
-    5    09 NOV 2023  Rajesh Gami    Add flag : @IsFromSOSOQ in the parameter and add code for the same for getting all the itemmaster from the dashboard (trading page SO SOQ)     
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    7    07/16/2026   Bhargav Saliya  Apply UOM conversion (fn_ConvertUOM) on Qty & UnitCost columns (stock -> consume). UnitSalesPrice left as-is (already stored in consume UOM).
+	8    07/20/2026   Ayushi Patel    [PN-17343]Revert UOM conversion (fn_ConvertUOM) from Qty & UnitCost columns when @IsFromSOSOQ = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	10   29/July/2026  MOIN BLOCH						PN-17465 - Removed ItemTypeId due to that we not able to get Non-Stock List
+
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  
 ************************************************************************/    
-CREATE   PROCEDURE [dbo].[ProcStockListFromItemMasterId]  
+CREATE    PROCEDURE [dbo].[ProcStockListFromItemMasterId]  
 @PageNumber int = NULL,      
 @PageSize int = NULL,      
 @SortColumn varchar(50)=NULL,      
@@ -94,9 +99,9 @@ BEGIN
 			   (ISNULL(c.ConditionId,'')) 'ConditionId',  
 					 (ISNULL(c.Description,'')) 'Condition',  
 					 (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber',  
-					 CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
-					 CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',  
-					 CAST(stl.UnitCost AS varchar) 'UnitCost',  
+					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityOnHand,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityOnHand,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityOnHand',  
+					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityAvailable,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityAvailable',  
+					 CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.UnitCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.UnitCost,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS varchar) 'UnitCost',  
 					 (ISNULL(po.PurchaseOrderNumber,'')) 'PurchaseOrderNumber',  
 					 (ISNULL(ro.RepairOrderNumber,'')) 'RepairOrderNumber',  
 					 vp.VendorName AS Vendor,  
@@ -110,8 +115,8 @@ BEGIN
 			   (ISNULL(stl.TagType,'')) 'TagType',  
 			   (ISNULL(stl.Warehouse,'')) 'Warehouse',  
 			   (ISNULL(stl.[Location],'')) 'Location',
-			   CAST(stl.QuantityIssued AS varchar) 'QuantityIssued',
-			   CAST(stl.QuantityReserved AS varchar) 'QuantityReserved'
+			   CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityIssued,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityIssued,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityIssued',
+			   CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityReserved,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityReserved,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityReserved'
 			   ,stl.SalesPriceExpiryDate
 			   ,stl.UnitSalesPrice
 			   ,stl.ControlNumber
@@ -128,9 +133,8 @@ BEGIN
 					 AND im.MasterCompanyId = @MasterCompanyId        
 				  AND im.ItemMasterId = @ItemMasterId       
 				  --AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
-				  AND im.ItemTypeId  = 1      
-
-				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				  --AND im.ItemTypeId  = 1 
+				  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResultsSOQ FROM  Result      
 				  SELECT @Count = COUNT(StockLineId) FROM #TempResultsSOQ         
       
@@ -160,7 +164,7 @@ BEGIN
 					 (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber',  
 					 CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
 					 CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',  
-					 CAST(stl.UnitCost AS varchar) 'UnitCost',  
+					 CAST(stl.UnitCost AS varchar) 'UnitCost',
 					 (ISNULL(po.PurchaseOrderNumber,'')) 'PurchaseOrderNumber',  
 					 (ISNULL(ro.RepairOrderNumber,'')) 'RepairOrderNumber',  
 					 vp.VendorName AS Vendor,  
@@ -174,8 +178,8 @@ BEGIN
 			   (ISNULL(stl.TagType,'')) 'TagType',  
 			   (ISNULL(stl.Warehouse,'')) 'Warehouse',  
 			   (ISNULL(stl.[Location],'')) 'Location',
-			   CAST(stl.QuantityIssued AS varchar) 'QuantityIssued',
-			   CAST(stl.QuantityReserved AS varchar) 'QuantityReserved'
+			   CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityIssued,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityIssued,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityIssued',
+			   CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityReserved,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityReserved,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityReserved'
 			   ,stl.SalesPriceExpiryDate
 			   ,stl.UnitSalesPrice
 				FROM  [dbo].[StockLine] stl WITH (NOLOCK)      
@@ -191,8 +195,8 @@ BEGIN
 				  AND (@ConditionId IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))      
 				  AND stl.IsParent = 1       
 				  AND stl.IsCustomerStock = 0       
-				  AND im.ItemTypeId  = 1      
-				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				  --AND im.ItemTypeId  = 1 
+				  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResults FROM  Result      
 				 WHERE ((@GlobalFilter <>'' AND       
 					   ((PartNumber LIKE '%' +@GlobalFilter+'%') OR      
@@ -297,9 +301,9 @@ BEGIN
 				(ISNULL(stl.ConditionId,'')) 'ConditionId',  
 				(ISNULL(stl.Condition,'')) 'Condition',  
 				(ISNULL(stl.StockLineNumber,'')) 'StocklineNumber',  
-				CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
-				CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',  
-				CAST(stl.UnitCost AS varchar) 'UnitCost',  
+				CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityOnHand,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityOnHand,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityOnHand',  
+				CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityAvailable,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityAvailable',  
+				CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.UnitCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.UnitCost,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS varchar) 'UnitCost',  
 				(ISNULL(po.PurchaseOrderNumber,'')) 'PurchaseOrderNumber',  
 				(ISNULL(ro.RepairOrderNumber,'')) 'RepairOrderNumber',  
 				vp.VendorName AS Vendor,  
@@ -313,8 +317,8 @@ BEGIN
 				(ISNULL(stl.TagType,'')) 'TagType',  
 				(ISNULL(stl.Warehouse,'')) 'Warehouse',  
 				(ISNULL(stl.[Location],'')) 'Location',
-				CAST(stl.QuantityIssued AS varchar) 'QuantityIssued',
-				CAST(stl.QuantityReserved AS varchar) 'QuantityReserved'
+				CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityIssued,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityIssued,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityIssued',
+				CAST((CASE WHEN ISNULL(stl.[StockUnitOfMeasure],'') = ISNULL(stl.[ConsumeUnitOfMeasure],'') THEN ISNULL(stl.QuantityReserved,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stl.QuantityReserved,0),stl.[StockUnitOfMeasure],stl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS varchar) 'QuantityReserved'
 				,stl.SalesPriceExpiryDate
 				,stl.UnitSalesPrice
 				FROM Nha_Tla_Alt_Equ_ItemMapping ALT  
@@ -334,8 +338,8 @@ BEGIN
 				AND stl.IsParent = 1       
 				AND stl.QuantityOnHand > 0  
 				AND stl.IsCustomerStock = 0       
-				AND im.ItemTypeId  = 1      
-			  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				--AND im.ItemTypeId  = 1 
+				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 			  SELECT * INTO #TempResults_ALT FROM  Result      
 			   WHERE ((@GlobalFilter <>'' AND       
 				  ((PartNumber LIKE '%' +@GlobalFilter+'%') OR      

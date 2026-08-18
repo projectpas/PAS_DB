@@ -14,6 +14,7 @@
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    24/06/2024   AMIT GHEDIYA		 Manufacture filter added(before not working). 
 	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
 CREATE    PROCEDURE [dbo].[SearchExchangeQuoteData]
 	-- Add the parameters for the stored procedure here
@@ -129,6 +130,7 @@ BEGIN
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId
 				Left Join ExchangeQuotePart SP WITH (NOLOCK) on EQ.ExchangeQuoteId = SP.ExchangeQuoteId and SP.IsDeleted = 0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
 				Left Join Priority P WITH (NOLOCK) on EQ.PriorityId=P.PriorityId
 				INNER JOIN dbo.ExchangeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeQuoteId

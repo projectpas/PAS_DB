@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateReceivingCustomerColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -19,11 +19,13 @@
 	2    07/09/2020   Hemant Saliya		Updated SQL Standards
 	3    06/04/2020   Devendra Shekh	removal reason update issue resolved
 	4    13/09/2024   Moin Bloch	    WorkScope makes left join from inner join
-     
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    13/Aug/2026			 RAJESH GAMI						[PN-17009] - Re-added missing ISNULL(SL.IsNonStock,0)=0 filter on the Stockline CustomerName UPDATE statement that was dropped when this proc was ported from BETA.
 --EXEC [UpdateReceivingCustomerColumnsWithId] 5
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[UpdateReceivingCustomerColumnsWithId]
+CREATE PROCEDURE [dbo].[UpdateReceivingCustomerColumnsWithId]
 	@ReceivingCustomerWorkId int
 AS
 BEGIN
@@ -111,9 +113,10 @@ BEGIN
 
 				WHERE RCW.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
 
-				UPDATE SL SET CustomerName= c.Name FROM [dbo].[Stockline] SL WITH(NOLOCK)
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 UPDATE SL SET CustomerName= c.Name FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN dbo.Customer C WITH(NOLOCK) ON SL.CustomerId = C.CustomerId 
-				WHERE StockLineId=@stocklineid
+				WHERE StockLineId=@stocklineid AND ISNULL(SL.IsNonStock,0) = 0
 			END
 		COMMIT  TRANSACTION
 

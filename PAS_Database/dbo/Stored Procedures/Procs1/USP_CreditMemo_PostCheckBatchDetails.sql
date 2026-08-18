@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CreditMemo_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from CreditMemo.
@@ -33,12 +33,13 @@
 	17   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	18	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	19   03-07-2025     Moin Bloch      Changed Old To New Billing Table
-
+	20   09/July/2026     RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	21   23/July/2026     RAJESH GAMI      [PN-17350] - Removed leftover IsNonStock=0 exclusion filter on the SalesOrder-linked branch (SalesOrderPartV1/Stockline). The ExchangeSalesOrder-only branch was left untouched, out of scope.
+	22	 06/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
-     
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CreditMemo_PostCheckBatchDetails]
+CREATE PROCEDURE [dbo].[USP_CreditMemo_PostCheckBatchDetails]
 @CreditMemoHeaderId BIGINT
 AS
 BEGIN 
@@ -106,6 +107,7 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CUSTOMER CREDIT MEMO';
 		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+		DECLARE @IsBypassAccounting BIT = 0;
 
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -217,7 +219,8 @@ BEGIN
 				BillingInvoicingItemId BIGINT NULL,
 				InvoiceReferenceId BIGINT NULL,
 				LastMSLevel VARCHAR(MAX) NULL,
-				AllMSlevels VARCHAR(MAX) NULL
+				AllMSlevels VARCHAR(MAX) NULL,
+				IsBypassAccounting BIT NULL
 			)
 
 			--INSERT RECORDS IN #TMPCOMMONJOURNALBATCHDETAIL IF RECORDS ARE AVAILABLES.
@@ -334,7 +337,7 @@ BEGIN
 							JOIN [dbo].[ExchangeSalesOrderPart]  ESOPN ON ESOPN.ExchangeSalesOrderPartId = ESOBII.ExchangeSalesOrderPartId
 							JOIN [dbo].[Stockline] SL ON ESOPN.StockLineId = SL.StockLineId
 							--JOIN [dbo].[ExchangeSalesOrder]  ESO ON ESO.ExchangeSalesOrderId = ESOPN.ExchangeSalesOrderId
-						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId;
+						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId AND ISNULL(SL.IsNonStock,0) = 0;
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
@@ -349,181 +352,181 @@ BEGIN
 
 					-----START Account Recevable Trade--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0,@IsAutoPost = ISNULL(IsAutoPost,0) --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)  --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 					IF(ISNULL(@ARTAmount,0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @ARTAmount ELSE 0 END As DebitAmount, CASE WHEN @CrDrType = 1 THEN 0 ELSE @ARTAmount END As CreditAmount,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----END Account Recevable--------
 
 					-----RESTOCKING FEES Account Recevable Trade--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = 1--CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = 1 , @IsBypassAccounting = ISNULL(IsBypassAccounting,0)--CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@ARTRESTOCKINGFEESAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @ARTRESTOCKINGFEESAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @ARTRESTOCKINGFEESAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----RESTOCKING FEES Account Recevable--------
 
 					-----COGS - PARTS--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END , @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSPARTS' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@COGSPARTSAmount, 0) != 0)
 					BEGIN
-					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @COGSPARTSAmount ELSE 0 END, 
 							   CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSPARTSAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----COGS - PARTS--------
 
 					-----COGS - DIRECT LABOR--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END , @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSLABOR' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@COGSLABORAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @COGSLABORAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSLABORAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----COGS - DIRECT LABOR--------
 
 					-----COGS - OVERHEAD--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSOH' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@COGSOHAmount, 0) != 0)
 					BEGIN
-					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @COGSOHAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSOHAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----COGS - OVERHEAD--------
 
 					-----INVENTORY TO BILL--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMINVBL' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@INVTOBILLAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @INVTOBILLAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @INVTOBILLAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----INVENTORY TO BILL--------
 
 					-----REVENUE - WO/SO--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@REVENUEAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @REVENUEAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----REVENUE - WO/SO--------
 
 					-----REVENUE - MISC CHARGE--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUEMC' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@REVENUEMISCCHARGEAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @REVENUEMISCCHARGEAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEMISCCHARGEAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----REVENUE - MISC CHARGE--------
 
 					-----MISC REVENUE - RESTOCKING FEES--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMRESFEES' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@REVRESTOCKINGFEESAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @REVRESTOCKINGFEESAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVRESTOCKINGFEESAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----MISC REVENUE - RESTOCKING FEES--------
 
 					-----REVENUE - FREIGHT--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUEFRE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@REVENUEFREIGHTAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @REVENUEFREIGHTAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEFREIGHTAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----REVENUE - FREIGHT--------
 
 					-----SALES TAX PAYABLE--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMSALESTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@SALESTAXAmount, 0) != 0)
 					BEGIN
-						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @SALESTAXAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @SALESTAXAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----SALES TAX PAYABLE--------
 
 					-----TAX PAYABLE - OTHER--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END, @IsBypassAccounting = ISNULL(IsBypassAccounting,0) 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMOTHERTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
 					IF(ISNULL(@OTHERTAXAmount, 0) != 0)
 					BEGIN
-					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId,IsBypassAccounting)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
 							   CASE WHEN @CrDrType = 1 THEN @OTHERTAXAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @OTHERTAXAmount END,
-							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId, @IsBypassAccounting
 					END
 					-----TAX PAYABLE - OTHER--------
 
@@ -613,8 +616,11 @@ BEGIN
 				BEGIN			
 					
 					SELECT @ManagementStructureId = ManagementStructureId, @LastMSLevel = LastMSLevel, @AllMSlevels = AllMSlevels , @BillingInvoicingItemId = BillingInvoicingItemId, 
-						   @InvoiceReferenceId = InvoiceReferenceId
+						   @InvoiceReferenceId = InvoiceReferenceId,@IsBypassAccounting = [IsBypassAccounting]
 					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -639,6 +645,8 @@ BEGIN
 				
 					INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ManagementStructureId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@DocumentNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId,@ManagementStructureId);
+
+					END
 
 					SET @MasterLoopID = @MasterLoopID - 1;
 				END

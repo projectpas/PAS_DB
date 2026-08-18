@@ -26,8 +26,10 @@
     10	 17/02/2025			 AMIT GHEDIYA		    Modify(get Distribution based on new settings from stockline level)
 	11	 02/06/2025			 Abhishek Jirawla		Fixed Name concat read script
     12   02/12/2025          Moin Bloch             Modify(Added dynamic )
+	13	 06/07/2026	         Moin Bloch             Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	14   28/07/2026	         Moin Bloch             Modify (Skip Accounting Entry PN-17290)
 
-     
+
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
 
@@ -111,6 +113,7 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'STOCKLINE';
 		DECLARE @ReserveInventoryAccId BIGINT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;		
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -139,8 +142,13 @@ BEGIN
 
 		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
-		BEGIN		
+		SELECT @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+		  FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+		  WHERE UPPER([DistributionSetupCode]) = UPPER('MSTK-ACCPAYABLE')
+		   AND [DistributionMasterId] = (SELECT TOP 1 [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'ManualStockLine')
+
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0 AND @IsBypassAccounting = 0)
+		BEGIN
 			
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
@@ -259,10 +267,12 @@ BEGIN
 			              @DistributionName=Name,
 						  @JournalTypeId =JournalTypeId, 
 						  @CRDRType =CRDRType,
+
 			     --         @GlAccountId=GlAccountId,
 						  --@GlAccountNumber=GlAccountNumber,
 						  --@GlAccountName=GlAccountName,
-						  @IsAutoPost = ISNULL(IsAutoPost,0) 
+						  @IsAutoPost = ISNULL(IsAutoPost,0), 
+						  @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 			 FROM dbo.DistributionSetup WITH(NOLOCK)  
 			 WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE')  --WHERE UPPER(Name) =UPPER('COGS / Inventory Reserve') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
@@ -292,6 +302,9 @@ BEGIN
 				 AND [MasterCompanyId] = @MasterCompanyId;
 			END
 
+			IF(@IsBypassAccounting = 0)
+			BEGIN
+
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 				[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -320,15 +333,19 @@ BEGIN
 				@RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, 
 				@StockType,@CommonBatchDetailId)
 
+			END
+
 			 -----Account Payable || COGS / Inventory Reserve--------
 
 			 -----STOCK - INVENTORY--------
 			 				
 			 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-			 @GlAccountId = GlAccountId,@GlAccountNumber = GlAccountNumber,@GlAccountName = GlAccountName 
+			 @GlAccountId = GlAccountId,@GlAccountNumber = GlAccountNumber,@GlAccountName = GlAccountName,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 			 FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-STOCK-INV') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
+			IF(@IsBypassAccounting = 0)
+			BEGIN
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -356,6 +373,7 @@ BEGIN
 				@StockType,@CommonBatchDetailId)
 
 			 -----STOCK - INVENTORY--------
+            END
 
 			SET @TotalDebit=0;
 			SET @TotalCredit=0;

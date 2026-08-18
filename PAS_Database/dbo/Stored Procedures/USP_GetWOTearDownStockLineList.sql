@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWOTearDownStockLineList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve stockline list for teardown work order
@@ -23,14 +23,16 @@
     11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
 	12   02/June/2026 Vishal Suthar				Uncommented @DocumentTypeId condition and add document type name (FAA 8130 CERT)
 	13   03/June/2026 Ayushi Patel				[PN-16684] Modified logic to return @DocumentTypeId based on the Code (FAA8130CERT) from the DocumentType table
+	14    22/06/2026   Sumit Kumar            	Selected Stockline Lot number [PN-16570]
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
 @QtyAvailable=NULL,@ExtendedCost=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3886,
 @WorkOrderPartNumberId=3372,@WorkFlowWorkOrderId=3349,@MasterCompanyId=1
-
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
+CREATE PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -130,17 +132,20 @@ BEGIN
 				               WHERE ATT.ReferenceId = SL.StockLineId 
 							     AND ATT.ModuleId = @AttStockLineModuleId ORDER BY ATT.AttachmentId DESC),0) AS AttachmentId,
 						SL.Condition,
-						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm
+						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm,
+						L.LotNumber
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId
 				
 		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
 					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND
 					SL.StockLineId NOT IN(SELECT StocklineId FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartNumberId)
-					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) )
+					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) ) AND ISNULL(SL.IsNonStock,0) = 0
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -211,7 +216,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

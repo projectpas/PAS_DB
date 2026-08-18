@@ -11,13 +11,16 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date			 Author			Change Description              
- ** --   --------		-------			--------------------------------            
-    1    10/12/2024		EKTA CHANDEGRA	 Created  
+ ** PR   Date			 Author				Change Description              
+ ** --   --------		-------				--------------------------------            
+    1    10/12/2024		EKTA CHANDEGRA		Created 
+	2    02/07/2026     Sahdev Saliya		Added Resale Number [PN-17018]
+	3    06/07/2026     Divyesh Kathiriya	Added VAT Number [PN-17124]
+	4    12/08/2026     Moin Bloch   	    Added LegalEntityId [PN-17606]
 
  EXEC GetCustomerRowById 3409
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[GetCustomerRowById]
+CREATE PROCEDURE [dbo].[GetCustomerRowById]
  @customerId BIGINT
 AS
 BEGIN
@@ -76,16 +79,20 @@ BEGIN
 			t.IsStageChange,
 			t.IsCommunicationPreference,
 			t.IsCustomerShipping,
-			t.Memo
-		FROM 
-			[dbo].[Customer] t WITH(NOLOCK)
+			t.Memo,
+			t.ResaleNumber,
+			t.VatNumber,
+			t.LegalEntityId,
+			CASE WHEN le.[CompanyCode] IS NULL THEN '' ELSE le.[CompanyCode] + '-' + le.[Name] END AS LegalEntityName
+		FROM [dbo].[Customer] t WITH(NOLOCK)
 		LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON t.AddressId = ad.AddressId
 		LEFT JOIN [dbo].[CustomerType] type WITH(NOLOCK) ON t.CustomerTypeId = type.CustomerTypeId
 		LEFT JOIN [dbo].[Countries] cont WITH(NOLOCK) ON ad.CountryId = cont.countries_id
 		LEFT JOIN [dbo].[CustomerAffiliation] vt WITH(NOLOCK) ON t.CustomerAffiliationId = vt.CustomerAffiliationId
 		LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON t.ParentId = cust.CustomerId
 		LEFT JOIN [dbo].[CustomerAffiliation] v WITH(NOLOCK) ON t.CustomerAffiliationId = v.CustomerAffiliationId
-		WHERE 
+		LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = t.LegalEntityId
+		WHERE
 			t.CustomerId = @customerId
 		ORDER BY 
 			t.UpdatedDate DESC;

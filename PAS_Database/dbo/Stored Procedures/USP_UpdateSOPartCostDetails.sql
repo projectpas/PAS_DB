@@ -25,9 +25,10 @@
 	9    22-01-2025   Abhishek Jirawla Commented the section for "Remove/Modify Pick Ticket on Un-Reserve" after discussion with Vishalbhai as it was creating problem after SO shipping 
 	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
   	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
+    12   06/30/2026   Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on recalculated MarginAmount so the child SP stores it in the same stock-UOM convention as USP_AddUpdateSalesOrderPart
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
+CREATE    PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 (
 	@SalesOrderId BIGINT = NULL,
 	@SalesOrderPartId BIGINT = NULL,
@@ -49,6 +50,21 @@ SET NOCOUNT ON
 				DECLARE @SendStatusId INT = 0;
 
 				SELECT @SendStatusId = Id FROM DBO.MasterSalesOrderStatus WITH(NOLOCK) WHERE [Name] = 'Sent';
+
+					DECLARE @ItemMasterId BIGINT = 0;
+					DECLARE @ConsumeUnitOfMeasure VARCHAR(100) = NULL;
+					DECLARE @StockUnitOfMeasure VARCHAR(100) = NULL;
+
+					SELECT @ItemMasterId = [ItemMasterId]
+					FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK)
+					WHERE [SalesOrderPartId] = @SalesOrderPartId;
+
+					SELECT @StockUnitOfMeasure   = su.[ShortCode],
+					       @ConsumeUnitOfMeasure = cu.[ShortCode]
+					FROM [dbo].[ItemMaster] im WITH(NOLOCK)
+					LEFT JOIN [dbo].[UnitOfMeasure] su WITH(NOLOCK) ON im.[StockUnitOfMeasureId]   = su.[UnitOfMeasureId]
+					LEFT JOIN [dbo].[UnitOfMeasure] cu WITH(NOLOCK) ON im.[ConsumeUnitOfMeasureId] = cu.[UnitOfMeasureId]
+					WHERE im.[ItemMasterId] = @ItemMasterId;
 
 				IF OBJECT_ID(N'tempdb..#SOPartCostDetails') IS NOT NULL
 				BEGIN
@@ -156,7 +172,9 @@ SET NOCOUNT ON
 								(CASE WHEN @StockLineQty = 0 THEN 0 ELSE MarkUpAmount / @StockLineQty END)) 
 								- (CASE WHEN @StockLineQty = 0 THEN 0 ELSE DiscountAmount / @StockLineQty END),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
-							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
+							MarginAmount = CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+								THEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)
+								ELSE [dbo].[fn_ConvertUOM]((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0), @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END,
 							--MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN
 							--					((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
 							--					ELSE 0 END
@@ -200,7 +218,9 @@ SET NOCOUNT ON
 					Freight = ISNULL(@Freight_S, 0),
 					MiscCharges = ISNULL(@Charges_S, 0),
 					MarkUpAmount = ISNULL(MarkUpAmount, 0),
-					MarginAmount = (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
+					MarginAmount = CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+						THEN (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0)
+						ELSE [dbo].[fn_ConvertUOM]((((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0), @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END,
 					MarginPercentage = CASE WHEN (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) > 0 THEN ((((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
 					TaxPercentage = @SalesTax,
 					TaxAmount = ((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)

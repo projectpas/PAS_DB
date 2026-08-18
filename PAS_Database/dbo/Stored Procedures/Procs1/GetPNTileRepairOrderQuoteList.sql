@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[GetPNTileRepairOrderQuoteList]      
  ** Author:    
  ** Description: Get PNTile RepairOrderQuoteList
@@ -9,7 +9,9 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
 --   EXEC [GetPNTileRepairOrderQuoteList]
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
@@ -104,15 +106,15 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   INNER JOIN [dbo].[VendorRFQRepairOrderPart] ROP WITH (NOLOCK) ON ROP.VendorRFQRepairOrderId = ROQ.VendorRFQRepairOrderId 
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1
+			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1 AND ISNULL(ROT.IsPiecePart,0) = 0
 			   LEFT OUTER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
-			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0					 
+			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0 					 
 			    LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE ROQ.IsDeleted = @IsDeleted 			     
 				  AND ROQ.MasterCompanyId = @MasterCompanyId	
 				  AND ROP.ItemMasterId = @ItemMasterId	
 				  AND (@ConditionId IS NULL OR ROP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(Select COUNT(VendorRFQRepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(VendorRFQRepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
@@ -121,9 +123,9 @@ BEGIN
 					(VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
-					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
-					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
-					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(UnitCost AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR					
+					(CAST(QuantityOrdered AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(ExtendedCost AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR
 					(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
@@ -138,9 +140,9 @@ BEGIN
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 					(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
-					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%'+ @QuantityOrdered+'%') AND 
-					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(10)) LIKE '%'+ @ExtendedCost+'%') AND 
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(50)) LIKE '%'+ @UnitCost+'%') AND 
+					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(50)) LIKE '%'+ @QuantityOrdered+'%') AND 
+					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(50)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND

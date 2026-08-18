@@ -1,4 +1,4 @@
-﻿ /*************************************************************           
+ /*************************************************************           
  ** File:   [USP_GetExchangeQuoteVerificationResult]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuoteVerificationResult
@@ -14,12 +14,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/16/2025   Ekta Chandegra     Created
-     
+    2    09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
   EXEC USP_GetExchangeQuoteVerificationResult @ExchangeQuoteId = 10118
-
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteVerificationResult]
+CREATE PROCEDURE [dbo].[USP_GetExchangeQuoteVerificationResult]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN
@@ -116,7 +115,7 @@ BEGIN
 		IF EXISTS (
 			SELECT 1
 			FROM [dbo].[ExchangeQuotePart] sop WITH(NOLOCK)
-			LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+			LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			WHERE sop.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(sop.IsDeleted, 0) = 0
 				  AND LOWER(sop.MethodType) = 's'
 		)
@@ -137,7 +136,7 @@ BEGIN
 			IF NOT EXISTS (
 				SELECT 1
 				FROM [dbo].[ExchangeQuotePart] sop WITH(NOLOCK)
-				LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+				LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE sop.ExchangeQuoteId = @ExchangeQuoteId
 				  AND LOWER(sop.MethodType) = 's'
 				  AND sop.QtyQuoted > ISNULL(sl.QuantityAvailable, 0)

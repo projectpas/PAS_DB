@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    10/27/2020   Subhash Saliya	Created
     2    01/01/2024   Devendra Shekh	added new param to update seialnumber
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [UpdateWorkOrderPartNumberRevisedColumnsWithId] 30
 **************************************************************/
@@ -39,6 +40,7 @@ BEGIN
 					WPN.RevisedSerialNumber = @SerialNumber
 				FROM dbo.WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WPN.RevisedItemmasterid
+				 AND ISNULL(IM.IsNonStock,0) = 0
 				WHERE WPN.ID = @WorkOrderPartNumberId
 		
 			END

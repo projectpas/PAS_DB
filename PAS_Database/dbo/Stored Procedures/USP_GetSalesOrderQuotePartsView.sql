@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSalesOrderQuotePartsView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve SOQ data for print
@@ -16,7 +16,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    12/04/2024   Vishal Suthar Created
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 exclusion(s) left over from the PN-17008/17009 transitional phase; Non-Stock parts were showing blank details (or being entirely excluded) when printing a Sales Order Quote/Sales Order.
+	5    11/August/2026			Priyansh Patel                       [PN-17573]SOQ/SO/Invoice Print: Added IsNonStock and IsService so SOQ Print can hide Stockline Number/Serial Number for Non-Stock Service Items.
   EXEC [dbo].[USP_GetSalesOrderQuotePartsView] 701
 **************************************************************/
 CREATE   PROCEDURE [DBO].[USP_GetSalesOrderQuotePartsView]
@@ -139,6 +142,8 @@ BEGIN
         0 AS ItemNo,
         partc.NetSaleAmount AS UnitSalesPricePerUnit,
         itemMaster.ItemClassificationName AS ItemClassification,
+        ISNULL(itemMaster.IsNonStock, 0) AS IsNonStock,
+        ISNULL(itemMaster.IsService, 0) AS IsService,
         itemMaster.ItemGroup,
         ISNULL(mf.Name, '') AS ManufacturerName
     FROM 
@@ -155,7 +160,7 @@ BEGIN
     LEFT JOIN DBO.Priority AS pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     INNER JOIN DBO.SalesOrderQuote AS soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-    ORDER BY ItemNo;
+     ORDER BY part.SalesOrderQuotePartId;
 
 	COMMIT  TRANSACTION  
   END TRY      

@@ -1,4 +1,3 @@
-﻿
 /*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
  ** Author:   MOIN BLOCH
@@ -26,7 +25,9 @@
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   11/12/2025   Rajesh Gami	  UPDATE: StockUnitOfMeasure,ConsumeUnitOfMeasure
 	11   09/02/2026   Sahdev Saliya   UPDATED: ItemGroup
-
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 more leftover soft IsNonStock=0 exclusions (IMRI/IMoem/IMTLA/IMNHA aliases) missed by the earlier PN-17009 bugfix pass.
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -122,7 +123,6 @@ BEGIN
 					 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SL.SubWorkOrderId = SWO.SubWorkOrderId 
 					 LEFT JOIN [dbo].[LOT] lot WITH(NOLOCK) ON SL.LotId = lot.LotId
 			  WHERE SL.StocklineId = @StocklineId
-				
 				UPDATE [dbo].[Stockline] 
 					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 

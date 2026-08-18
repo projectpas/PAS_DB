@@ -41,13 +41,13 @@
     [WarningId]                         BIGINT          NULL,
     [Memo]                              NVARCHAR (MAX)  NULL,
     [ExportCountryId]                   SMALLINT        NULL,
-    [ExportValue]                       NUMERIC (18, 2) NULL,
+    [ExportValue]                       DECIMAL (18, 6) NULL,
     [ExportCurrencyId]                  INT             NULL,
-    [ExportWeight]                      NUMERIC (18, 2) NULL,
+    [ExportWeight]                      DECIMAL (18, 6) NULL,
     [ExportWeightUnit]                  VARCHAR (30)    NULL,
-    [ExportSizeLength]                  NUMERIC (18, 2) NULL,
-    [ExportSizeWidth]                   NUMERIC (18, 2) NULL,
-    [ExportSizeHeight]                  NUMERIC (18, 2) NULL,
+    [ExportSizeLength]                  DECIMAL (18, 6) NULL,
+    [ExportSizeWidth]                   DECIMAL (18, 6) NULL,
+    [ExportSizeHeight]                  DECIMAL (18, 6) NULL,
     [ExportSizeUnit]                    VARCHAR (30)    NULL,
     [ExportClassificationId]            TINYINT         NULL,
     [PurchaseCurrencyId]                INT             NOT NULL,
@@ -78,14 +78,14 @@
     [ListPrice]                         DECIMAL (18, 6) NULL,
     [PriceDate]                         DATETIME2 (7)   NULL,
     [ItemNonStockClassificationId]      BIGINT          NULL,
-    [StockLevel]                        INT             CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NOT NULL,
+    [StockLevel]                        DECIMAL (18, 6) CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NULL,
     [ExportECCN]                        VARCHAR (200)   NULL,
     [ITARNumber]                        VARCHAR (200)   NULL,
-    [ShelfLifeAvailable]                NUMERIC (18, 2) CONSTRAINT [ItemMaster_ShelfLifeAvailable] DEFAULT ((0)) NOT NULL,
-    [mfgHours]                          NUMERIC (18, 2) CONSTRAINT [ItemMaster_mfgHours] DEFAULT ((0)) NOT NULL,
+    [ShelfLifeAvailable]                DECIMAL (18, 6) CONSTRAINT [ItemMaster_ShelfLifeAvailable] DEFAULT ((0)) NULL,
+    [mfgHours]                          DECIMAL (18, 6) CONSTRAINT [ItemMaster_mfgHours] DEFAULT ((0)) NULL,
     [IsPma]                             BIT             CONSTRAINT [ItemMaster_IsPma] DEFAULT ((0)) NOT NULL,
-    [turnTimeMfg]                       NUMERIC (18, 2) CONSTRAINT [ItemMaster_turnTimeMfg] DEFAULT ((0)) NOT NULL,
-    [turnTimeBenchTest]                 NUMERIC (18, 2) CONSTRAINT [ItemMaster_turnTimeBenchTest] DEFAULT ((0)) NOT NULL,
+    [turnTimeMfg]                       DECIMAL (18, 6) CONSTRAINT [ItemMaster_turnTimeMfg] DEFAULT ((0)) NULL,
+    [turnTimeBenchTest]                 DECIMAL (18, 6) CONSTRAINT [ItemMaster_turnTimeBenchTest] DEFAULT ((0)) NULL,
     [IsExportUnspecified]               BIT             NULL,
     [IsExportNONMilitary]               BIT             NULL,
     [IsExportMilitary]                  BIT             NULL,
@@ -178,6 +178,13 @@
     [Starts]                            INT             NULL,
     [CalendarDate]                      DATETIME2 (7)   NULL,
     [Model]                             VARCHAR (200)   NULL,
+    [IntegrationTypeId]                 INT             NULL,
+    [IsNonStock] BIT NULL,
+    [InWarranty]                        BIT             NULL,
+    [MfgExpirationDate]                 DATETIME        NULL,
+    [IsMfgExpirationDate]               BIT             NULL,
+    [IsService]                         BIT             CONSTRAINT [DF_ItemMaster_IsService] DEFAULT ((0)) NULL,
+    [IsKitAssy]                         BIT             NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -239,36 +246,16 @@
 
 
 
+
+
+
+
+
+
+
+
 GO
 
-
-
-
-
-
-create TRIGGER [dbo].[Trg_ItemMasterAudit]
-
-   ON  [dbo].[ItemMaster]
-
-   AFTER INSERT,DELETE,UPDATE
-
-AS 
-
-BEGIN
-
-
-
-	INSERT INTO [dbo].[ItemMasterAudit]
-
-	SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END
 GO
 CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
         ON [dbo].[ItemMaster]
@@ -310,7 +297,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             newv AS (
                 SELECT
@@ -325,7 +312,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             merged AS (
                 SELECT
@@ -378,3 +365,11 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMaster_MasterCompanyId_IsDeleted_IsActive_Perf]
+    ON [dbo].[ItemMaster]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
+    INCLUDE([ItemTypeId], [IsHazardousMaterial], [IsUpdated], [partnumber], [ManufacturerName], [ItemClassificationName], [ItemGroup], [NationalStockNumber], [isSerialized], [isTimeLife], [IsPma], [IsDER], [IsOEM], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [WorkOrderFormTypeId], [Model]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- Added 2026-08-03: supports ProcItemMasterStockList's tenant/soft-delete/active/hazmat filter
+-- (see UOM_ProcItemMasterStockList_Deploy.sql for the full review).
+GO
+

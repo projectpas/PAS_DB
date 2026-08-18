@@ -20,7 +20,7 @@
     [LedgerName]                  VARCHAR (30)    NULL,
     [InterCompany]                BIT             CONSTRAINT [GLAccount_DC_InterCompany] DEFAULT ((0)) NOT NULL,
     [Category1099Id]              BIGINT          NULL,
-    [Threshold]                   DECIMAL (18, 2) NULL,
+    [Threshold]                   DECIMAL (18, 6) NULL,
     [IsManualJEReference]         BIT             NULL,
     [ReferenceTypeId]             INT             NULL,
     [SubLedgerId]                 INT             NULL,
@@ -28,6 +28,7 @@
     [IsUpdated]                   BIT             NULL,
     [LastSyncDate]                DATETIME2 (7)   NULL,
     [SyncToken]                   VARCHAR (200)   NULL,
+    [IntegrationTypeId]           INT             NULL,
     CONSTRAINT [PK_GLAccount] PRIMARY KEY CLUSTERED ([GLAccountId] ASC),
     CONSTRAINT [FK_GLAccount_Category1099Id] FOREIGN KEY ([Category1099Id]) REFERENCES [dbo].[Master1099] ([Master1099Id]),
     CONSTRAINT [FK_GLAccount_GLAccountClass] FOREIGN KEY ([GLAccountTypeId]) REFERENCES [dbo].[GLAccountClass] ([GLAccountClassId]),
@@ -36,6 +37,8 @@
     CONSTRAINT [FK_GLAccount_poroCategory] FOREIGN KEY ([POROCategoryId]) REFERENCES [dbo].[POROCategory] ([POROCategoryId]),
     CONSTRAINT [Unique_GLAccount] UNIQUE NONCLUSTERED ([AccountCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

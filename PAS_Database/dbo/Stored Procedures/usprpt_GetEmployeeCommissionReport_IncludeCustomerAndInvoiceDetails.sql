@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]      
  ** Author:  Vishal Suthar
  ** Description: This stored procedure is used to Employee Commission DATA Including Customer & Invoice Details.    
@@ -11,13 +11,13 @@
  **************************************************************               
  ** PR   Date			Author				Change Description                
  ** --   --------		-------				--------------------------------              
-    1    18-SEP-2025	Vishal Suthar		Created
-	2	 10-OCT-2025	Vishal Suthar		PN-14385 Modifled to include Enhancement to Commission Report Calculation using Employee Default
-    3    16-OCT-2025    RAJESH GAMI			handle Null value
-	4    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
-
+	1    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
+    2    18-SEP-2025	Vishal Suthar		Created
+	3	 10-OCT-2025	Vishal Suthar		PN-14385 Modifled to include Enhancement to Commission Report Calculation using Employee Default
+    4    16-OCT-2025    RAJESH GAMI			handle Null value
+	5    09/July/2026    RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/ 
-CREATE        PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
+CREATE PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -113,7 +113,7 @@ BEGIN
 			LEFT JOIN dbo.CreditMemo CM WITH (NOLOCK) ON CM.InvoiceId = BI.BillingInvoicingId AND CM.[Status] = 'Posted'
 			WHERE BI.InvoiceStatus = 'Invoiced' AND ISNULL(BI.IsVersionIncrease, 0) = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0
 			AND BI.ModuleId IN (@SalesOrderModuleId, @WorkOrderModuleId)
-			AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+			AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND ISNULL(Stk.IsNonStock,0) = 0
 		),
 		InvoiceWithPercentageValue AS (
 			SELECT DISTINCT

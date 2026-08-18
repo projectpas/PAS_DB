@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPNTileSalesOrderList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order history date for dashboard
@@ -22,9 +22,11 @@
 	7    07/01/2026   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	8    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 	9    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
-
+	10   18/06/2026   Bhargav Saliya	    Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
-
 **************************************************************/
 CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@PageNumber int = 1,
@@ -94,13 +96,13 @@ BEGIN
 				SO.[CustomerReference],
 				STL.[SerialNumber],
 				--CAST(ISNULL(SPC.[UnitSalesPrice], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
-				CAST(ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitSalesPrice], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId),0) AS VARCHAR(50)) AS [UnitSalesPrice],
+				CAST(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitSalesPrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitSalesPrice], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId) END),0) AS VARCHAR(50)) AS [UnitSalesPrice],
 				--ISNULL(SPC.[UnitCost], 0) AS [UnitCost],
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId),0) AS [UnitCost],				
+				ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId) END),0) AS [UnitCost],				
 				--ISNULL(SP.[QtyOrder], 0) AS [Qty],
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId),0) AS [Qty],
+				ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyOrder],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId) END),0) AS [Qty],
 				--ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
-				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId),0) AS [UnitCostExtended],
+				ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
 				SO.[SalesPersonName],
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,

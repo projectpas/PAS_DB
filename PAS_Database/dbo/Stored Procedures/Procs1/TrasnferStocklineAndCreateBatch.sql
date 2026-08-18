@@ -17,6 +17,8 @@
 	1    08/23/2023   Amit Ghediya	Modify for restrict entry when amount is 0.	
 	2    01/01/2024   BHARGAV SALIYA  CONVERT DATE IN UTC
 	3    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
 **************************************************************/
 -----------------------------------------------------------------------------------------------------
 /*************************************************************

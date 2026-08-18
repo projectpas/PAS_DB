@@ -11,18 +11,20 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  			Change Description            
- ** --   --------		-------				--------------------------------   
-	1
-	2    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
-	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
-	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
-	5	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
-    6	 08/06/2026		Priyansh Patel		uom conversion for unit cost and Extended amount value [PN-16758]
-
+ ** S NO   Date         Author  			Change Description
+ ** --   --------		-------				--------------------------------
+	1    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
+	2    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
+	3	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	4	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
+    5	 09/06/2026		Priyansh Patel		uom conversion for unit cost and Extended amount value [PN-16758]
+	6    19/06/2026	    Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 8 leftover IsNonStock=0 exclusion filters (PO+SO branches) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
+CREATE       PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
 @PageNumber int = 1,  
 @PageSize int = NULL,  
 @mastercompanyid int,  
@@ -158,12 +160,12 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         UPPER(PO.status) 'status',  
         UPPER(PO.VendorName) 'vendorname',  
         UPPER(PO.VendorCode) 'vendorcode',  
-        UPPER(POP.unitofmeasure) 'uom',  
-        POP.QuantityOrdered 'qty',  
-        POP.PurchaseOrderId,  
-        ROUND(dbo.fn_ConvertUOM(ISNULL(STL.UnitCost ,0),STL.StockUnitOfMeasure,  POP.unitofmeasure ,1, @mastercompanyid ),2) AS 'unitcost',
-        UPPER(POP.functionalcurrency) 'currency',  
-        ISNULL(POP.QuantityOrdered, 0) *  ROUND(dbo.fn_ConvertUOM( ISNULL(STL.UnitCost, 0), STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid  ) ,2) AS 'extamount',
+        UPPER(IM.StockUnitOfMeasure) 'uom',  
+        CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN POP.QuantityOrdered ELSE dbo.fn_ConvertUOM(POP.QuantityOrdered, POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, @mastercompanyid) END 'qty',
+        POP.PurchaseOrderId,
+        ROUND(CASE WHEN STL.UnitCost IS NULL THEN CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 1, @mastercompanyid) END ELSE STL.UnitCost END, 6) AS unitcost,
+        UPPER(POP.functionalcurrency) 'currency',
+        ISNULL(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN POP.QuantityOrdered ELSE dbo.fn_ConvertUOM(POP.QuantityOrdered, POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, @mastercompanyid) END, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 1, @mastercompanyid) END ELSE STL.UnitCost END, 6) AS extamount,
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  
@@ -207,7 +209,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
      PO.PurchaseOrderNumber, FORMAT (PO.OpenDate, 'MM/dd/yyyy hh:mm:tt'), IM.partnumber,IM.PartDescription,STL.itemtype,  
    CASE WHEN stl.isPma = 1 AND stl.IsDER = 1 THEN 'PMA&DER' WHEN stl.isPma = 1 AND (stl.IsDER IS NULL OR stl.IsDER = 0) THEN 'PMA'  
      WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER' ELSE 'OEM' END,  
-     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost ,  STL.StockUnitOfMeasure, POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
+     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost , POP.UnitCost, STL.StockUnitOfMeasure,IM.StockUnitOfMeasure, POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
      STL.PurchaseOrderExtendedCost,POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
      MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, POP.MasterCompanyId
 	 )

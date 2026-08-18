@@ -10,9 +10,11 @@
  **************************************************************                 
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
-    1    18/05/2023   Satish Gohil   Count Showing issue fixed    
-	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join    
-**************************************************************/     
+    1    18/05/2023   Satish Gohil   Count Showing issue fixed
+	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join
+	3    17/07/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
+	4    28/07/2026   Nakul Chandigra  UPDATED Where Condition For Closed PO/RO Get[PN-17342]
+**************************************************************/
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
 CREATE      PROCEDURE [dbo].[SearchPODashboardData]      
@@ -52,7 +54,12 @@ BEGIN
    BEGIN      
     DECLARE @RecordFrom int;      
     DECLARE @POModuleId int =4;      
-    DECLARE @ROModuleId int =24;      
+    DECLARE @ROModuleId int =24;  
+	DECLARE @ClosePoStatusId BIGINT;
+	SELECT @ClosePoStatusId = POStatusId FROM POStatus WITH (NOLOCK) WHERE [Description] = 'Closed';
+	DECLARE @CloseRoStatusId INT = 4;
+	SELECT @CloseRoStatusId = ROStatusId FROM ROStatus WITH (NOLOCK) WHERE [Description] = 'Closed';
+
     SET @RecordFrom = (@PageNumber-1) * @PageSize;      
           
     IF @SortColumn IS NULL      
@@ -138,7 +145,7 @@ BEGIN
 				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  AND pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
 					AND POPR.ModuleId = 3  
 			) AS SalesOrderRefNumber   
-		WHERE POP.QuantityBackOrdered > 0      
+		WHERE (POP.QuantityBackOrdered > 0 OR PO.StatusId = @ClosePoStatusId)
 			AND ISNULL(PO.IsDeleted, 0) = @IsDeleted AND (@StatusID is null or PO.StatusId = @StatusID)      
 			AND PO.MasterCompanyId = @MasterCompanyId   
 		GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,POP.PurchaseOrderPartRecordId,PO.OpenDate, POP.PartNumber, POP.PartDescription,PO.Requisitioner,POP.VendorListPrice,POP.FunctionalCurrency, PO.VendorName ,PO.NeedByDate , POP.EstDeliveryDate, PO.Status, WorkOrderRefNumber.WONum,SalesOrderRefNumber.SONum
@@ -149,13 +156,13 @@ BEGIN
 			(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.FunctionalCurrency AS 'Currency',       
 			RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
 		FROM  DBO.RepairOrder RO WITH (NOLOCK)      
-			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
+			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 			--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
 			--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
 			--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
 			INNER JOIN #tmpROEmpUserRole DR ON DR.ReferenceID = RO.RepairOrderId 
 
-		WHERE ROP.QuantityBackOrdered > 0      
+		WHERE (ROP.QuantityBackOrdered > 0 OR RO.StatusId = @CloseRoStatusId)     
 			AND (RO.IsDeleted = @IsDeleted) AND (@StatusID is null or RO.StatusId = @StatusID)      
 			AND RO.MasterCompanyId = @MasterCompanyId),      
 			FinalResult AS (      

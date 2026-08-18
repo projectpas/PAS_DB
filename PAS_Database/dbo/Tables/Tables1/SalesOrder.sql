@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[SalesOrder] (
+﻿CREATE TABLE [dbo].[SalesOrder] (
     [SalesOrderId]                  BIGINT          IDENTITY (1, 1) NOT NULL,
     [Version]                       INT             CONSTRAINT [DF__SalesOrde__Versi__05113BBC] DEFAULT ((1)) NOT NULL,
     [TypeId]                        INT             NOT NULL,
@@ -87,24 +87,29 @@ CREATE TABLE [dbo].[SalesOrder] (
     [CSRSalesMargin]                DECIMAL (18, 6) NULL,
     [AgentSalesRevenue]             DECIMAL (18, 6) NULL,
     [AgentSalesMargin]              DECIMAL (18, 6) NULL,
+    [HasPieceParts]                 BIT             CONSTRAINT [DF_SalesOrder_HasCSP] DEFAULT ((0)) NOT NULL,
+    [SourceBy]                      VARCHAR (30)    NULL,
+    [MarketplaceRef]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrder] PRIMARY KEY CLUSTERED ([SalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrder_AccountTypeId] FOREIGN KEY ([AccountTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
     CONSTRAINT [FK_SalesOrder_AgentId] FOREIGN KEY ([AgentId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_ApprovedById] FOREIGN KEY ([ApprovedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_SalesOrder_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
+    CONSTRAINT [FK_SalesOrder_CustomerContactId] FOREIGN KEY ([CustomerContactId]) REFERENCES [dbo].[CustomerContact] ([CustomerContactId]),
     CONSTRAINT [FK_SalesOrder_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_SalesOrder_CustomerSeviceRepId] FOREIGN KEY ([CustomerSeviceRepId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_CustomerWarning] FOREIGN KEY ([CustomerWarningId]) REFERENCES [dbo].[CustomerWarning] ([CustomerWarningId]),
     CONSTRAINT [FK_SalesOrder_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_SalesOrder_SalesAgentID] FOREIGN KEY ([SalesAgentID]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_SalesOrderQuoteId] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrder_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_SecondarySalesPersonId] FOREIGN KEY ([SecondarySalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_SalesOrder_SalesAgentID] FOREIGN KEY ([SalesAgentID]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_SalesOrder_CustomerContactId] FOREIGN KEY ([CustomerContactId]) REFERENCES [dbo].[CustomerContact] ([CustomerContactId]),
     CONSTRAINT [FK_SalesOrder_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id])
 );
+
+
 
 
 

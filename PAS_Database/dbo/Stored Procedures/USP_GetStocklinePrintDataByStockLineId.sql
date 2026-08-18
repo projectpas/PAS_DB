@@ -1,4 +1,3 @@
-﻿
 /*************************************************************           
  ** File:   [USP_GetStocklinePrintDataByStockLineId]           
  ** Author:   Hemant Saliya
@@ -16,6 +15,12 @@
 	2    29/01/2026     Moin Bloch		Getting Quantity From PickTicket Insted of Stockline PN-15111
 	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832    
 	4    15/Apr/2026	Ayushi Patel	Added UOM Changes [PN-15910]
+	5	 19/06/2026	    Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6	 30/06/2026	    Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Per updated business direction (Non-Stock now allowed everywhere), removed the 4 remaining itm.IsNonStock=0 exclusions on the WorkOrderPartNumber MPN-reference lookup that were deliberately left in place during the prior PN-17009 bugfix pass.
+	10    10/07/2026     Ayushi Patel	[PN-17211] revert the UOM covertion changes for stockline print
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -49,10 +54,16 @@ BEGIN
 			stl.Shelf AS shelfName,
 			stl.Bin AS binName,
 			ISNULL(ve.VendorName, '') AS VendorName,
-			CASE 
-				WHEN ISNULL(stl.QuantityOnHand, 0) > 0 THEN dbo.fn_ConvertUOM(stl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)
-				ELSE 0
-			END AS Quantity,
+			--CASE 
+			--	WHEN ISNULL(stl.QuantityOnHand,0) > 0 
+			--		THEN CASE 
+			--				 WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
+			--					 THEN ISNULL(stl.QuantityOnHand,0)
+			--				 ELSE dbo.fn_ConvertUOM(stl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId)
+			--			 END
+			--	ELSE 0
+			--END AS Quantity,
+			stl.QuantityOnHand AS Quantity,
 			stl.IdNumber AS ControlId,
 			ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 			stl.ExpirationDate,
@@ -65,22 +76,22 @@ BEGIN
 			stl.UpdatedDate,
 			stl.IsSerialized,
 			stl.TraceableToName,
-			--stl.UnitOfMeasure AS UnitOfMeasureName,
-			uomConsume.ShortName AS UnitOfMeasureName,
+			stl.StockUnitOfMeasure AS UnitOfMeasureName,
+			--uomConsume.ShortName AS UnitOfMeasureName,
 			'' AS MPNNum,
 			wo.WorkOrderNum AS WoNum,
 			CAST(0 AS BIT) AS IsFromSubWO,
 			'' Figure,
             '' Item,
-			'' MPNDesc
+			'' MPNDesc,
+			stl.LotNumber,
+			stl.EngineSerialNumber
 		FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK)ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
 			LEFT JOIN [dbo].[WorkOrderMaterials] womst WITH(NOLOCK) ON stl.WorkOrderMaterialsId = womst.WorkOrderMaterialsId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 		WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId;
 	END
 	ELSE IF(@SubWorkOrderMaterialId > 0)
@@ -102,7 +113,7 @@ BEGIN
             stl.Shelf AS shelfName,
             stl.Bin AS binName,
             ISNULL(ve.VendorName, '') AS VendorName,
-            dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)  AS Quantity,
+            CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
             stl.IdNumber AS ControlId,
             ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
             stl.ExpirationDate,
@@ -123,7 +134,9 @@ BEGIN
             im.PartDescription AS MPNDesc,
             mst.Figure,
             mst.Item,
-            1 AS IsFromSubWO
+            1 AS IsFromSubWO,
+			stl.LotNumber,
+			stl.EngineSerialNumber
         FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -157,7 +170,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--ISNULL(stl.QuantityOnHand, 0) AS Quantity,
-				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -177,7 +190,9 @@ BEGIN
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -213,7 +228,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--CASE WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT) ELSE 0 END AS Quantity,
-				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -233,7 +248,9 @@ BEGIN
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -272,7 +289,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -292,7 +309,9 @@ BEGIN
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -327,7 +346,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -347,7 +366,9 @@ BEGIN
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId

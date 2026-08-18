@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_ReceivedUnit]             
  ** Author:  Rajesh Gami    
@@ -13,10 +13,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami          Created  
 	2    03-07-2025   Moin Bloch           Changed Old To New Billing Table
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ ** S NO   Date            Author          Change Description              
+ ** --   --------         -------          --------------------------------            
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_ReceivedUnit] 
 @PageNumber int = 1,
@@ -165,7 +166,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+		 AND ISNULL(IM.IsNonStock,0) = 0 ) as a
 		--select * from #TempWOOperating
 		SELECT * INTO #TempWOOperatingFinal FROM
 		 (SELECT * FROM #TempWOOperating main) as res

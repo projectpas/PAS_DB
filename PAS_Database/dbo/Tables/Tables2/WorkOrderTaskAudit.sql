@@ -17,7 +17,7 @@
     [OpenBy]                VARCHAR (100) NULL,
     [IsIncludeInPrint]      BIT           NULL,
     [HasInstruction]        BIT           NULL,
-    [TaskName]              VARCHAR (200) NULL,
+    [TaskName]              VARCHAR (500) NULL,
     [IsFromWorkFlow]        BIT           NULL,
     CONSTRAINT [PK_WorkOrderTaskAudit] PRIMARY KEY CLUSTERED ([WorkOrderTaskAuditId] ASC)
 );

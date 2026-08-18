@@ -14,22 +14,38 @@
     1    12/07/2023   Rajesh Gami		Created
 	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-	4    19 Nov 2024  RAJESH GAMI		Added condition for PNSoldView (If revised the invoice then show the latest on)
-    5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
-	6    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
-	7    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
-	8	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
-	9    07-07-2025   Moin Bloch        Changed Old To New Billing Table
-	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
-	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
-	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
-	13   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
-	14   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
-	15   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
+    4    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
+	5    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
+	6    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
+	7	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
+	8    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	9   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
+	10   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
+	11   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
+	12   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
+	13   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
+	14   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
+	15   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
+	16   23-JUNE-2026 Priyansh Patel    Added StockUnitOfMeasure And ConsumeUnitOfMeasure  [PN-16771]
+	17    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	18   08-JULY-2026 Priyansh Patel    Changed UnitSalesPrice price to NetSaleAmount for soq [PN-17130]
+	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	20    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 7 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	21   11-Aug-2026	 RAJESH GAMI						Perf fix (timeout on lots with high LotCalculationDetails volume, e.g. 22k+ rows):
+														(a) Added supporting indexes on LotTransInOutDetails.LotId, LotCalculationDetails.LotTransInOutId,
+														    BillingInvoicing.(ReferenceId,ModuleId) and BillingInvoicingItems.(BillingInvoicingId,SubReferenceId) -
+														    these joins/filters had no index besides each table's PK, forcing full scans.
+														(b) ViewAllPN branch: the PN-14039 dedup-by-StockLineId join referenced the "Result" CTE twice
+														    (once as t, once for the MAX(CreatedDate) subquery). SQL Server could not spool/reuse it because
+														    the LotManagementStructureDetails join calls the multi-statement SplitString() function, so the
+														    entire join was silently running TWICE per call. Materialized Result into a #Result temp table
+														    (built once, with a clustered index on StockLineId+CreatedDate) so it's computed once and read twice.
+   22   14-Aug-2026   RAJESH GAMI      PN-17673 : REVENUE-MARGIN Added if IsRevenue & IsMargin selected in the Consingment Setup (ConsignMent Tab)
+   23    17-Aug-2026	Ayushi Patel					[PN-17678] added two fields salesOrderQuoteNumber and invoiceNumber
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
+CREATE    PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -186,7 +202,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
            ,SL.[Memo],SL.[ManagementStructureId],SL.[LegalEntityId],SL.[MasterCompanyId],SL.[CreatedBy] ,SL.[UpdatedBy],SL.[CreatedDate],SL.[UpdatedDate],SL.[isSerialized],SL.[ShelfId],SL.[BinId],SL.[SiteId],SL.[ObtainFromType] ,SL.[OwnerType],SL.[TraceableToType],SL.[UnitCostAdjustmentReasonTypeId] ,SL.[UnitSalePriceAdjustmentReasonTypeId] ,SL.[IdNumber],SL.[QuantityToReceive] ,SL.[PurchaseOrderExtendedCost] ,SL.[ManufacturingTrace]
            ,SL.[ExpirationDate] ,SL.[AircraftTailNumber] ,SL.[ShippingViaId] ,SL.[EngineSerialNumber] ,SL.[QuantityRejected] ,SL.[PurchaseOrderPartRecordId] ,SL.[ShippingAccount],SL.[ShippingReference],SL.[TimeLifeCyclesId] ,SL.[TimeLifeDetailsNotProvided],SL.[WorkOrderId],SL.[WorkOrderMaterialsId] ,SL.[QuantityReserved] ,SL.[QuantityTurnIn] ,SL.[QuantityIssued] ,SL.[QuantityOnHand],SL.[QuantityAvailable] ,SL.[QuantityOnOrder],SL.[QtyReserved]
            ,SL.[QtyIssued],SL.[BlackListed],SL.[BlackListedReason],SL.[Incident],SL.[IncidentReason] ,SL.[Accident],SL.[AccidentReason],SL.[RepairOrderPartRecordId],SL.[isActive],SL.[isDeleted],SL.[WorkOrderExtendedCost],SL.[RepairOrderExtendedCost],SL.[IsCustomerStock],SL.[EntryDate],SL.[LotCost],SL.[NHAItemMasterId] ,SL.[TLAItemMasterId] ,SL.[ItemTypeId],SL.[AcquistionTypeId] ,SL.[RequestorId],SL.[LotNumber] ,SL.[LotDescription] ,SL.[TagNumber] ,SL.[InspectionBy]
-           ,SL.[InspectionDate],SL.[VendorId],SL.[IsParent],SL.[ParentId] ,SL.[IsSameDetailsForAllParts] ,SL.[WorkOrderPartNoId] ,SL.[SubWorkOrderId],SL.[SubWOPartNoId],SL.[IsOemPNId] ,SL.[PurchaseUnitOfMeasureId],SL.[ObtainFromName],SL.[OwnerName],SL.[TraceableToName] ,SL.[Level1] ,SL.[Level2] ,SL.[Level3] ,SL.[Level4] ,SL.[Condition] ,SL.[GlAccountName] ,SL.[Site] ,SL.[Warehouse] ,SL.[Location],SL.[Shelf] ,SL.[Bin] ,SL.[UnitOfMeasure]
+           ,SL.[InspectionDate],SL.[VendorId],SL.[IsParent],SL.[ParentId] ,SL.[IsSameDetailsForAllParts] ,SL.[WorkOrderPartNoId] ,SL.[SubWorkOrderId],SL.[SubWOPartNoId],SL.[IsOemPNId] ,SL.[PurchaseUnitOfMeasureId],SL.[ObtainFromName],SL.[OwnerName],SL.[TraceableToName] ,SL.[Level1] ,SL.[Level2] ,SL.[Level3] ,SL.[Level4] ,SL.[Condition] ,SL.[GlAccountName] ,SL.[Site] ,SL.[Warehouse] ,SL.[Location],SL.[Shelf] ,SL.[Bin] ,SL.[StockUnitOfMeasure]
            ,SL.[WorkOrderNumber],SL.[itemGroup] ,SL.[TLAPartNumber] ,SL.[NHAPartNumber] ,SL.[TLAPartDescription],SL.[NHAPartDescription] ,SL.[itemType],SL.[CustomerId],SL.[CustomerName],SL.[isCustomerstockType],SL.[PNDescription],SL.[RevicedPNId],SL.[RevicedPNNumber],SL.[OEMPNNumber],SL.[TaggedBy],SL.[TaggedByName],SL.[UnitCost],SL.[TaggedByType],SL.[TaggedByTypeName],SL.[CertifiedById] ,SL.[CertifiedTypeId],SL.[CertifiedType],SL.[CertTypeId]
            ,SL.[CertType],SL.[TagTypeId],SL.[IsFinishGood],SL.[IsTurnIn],SL.[IsCustomerRMA],SL.[RMADeatilsId],SL.[DaysReceived],SL.[ManufacturingDays],SL.[TagDays],SL.[OpenDays],SL.[ExchangeSalesOrderId],SL.[RRQty],SL.[SubWorkOrderNumber] ,SL.[IsManualEntry],SL.[WorkOrderMaterialsKitId],SL.[LotId],SL.[IsLotAssigned],SL.[LOTQty],SL.[LOTQtyReserve],SL.[OriginalCost],SL.[POOriginalCost],SL.[ROOriginalCost] ,SL.[VendorRMAId]
            ,SL.[VendorRMADetailId] ,SL.[LotMainStocklineId],SL.[IsFromInitialPO],SL.[LotSourceId],SL.[Adjustment]
@@ -195,7 +211,17 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN
-				;WITH Result AS (SELECT DISTINCT 
+				-- PERF FIX: Result used to be a CTE referenced twice below (once for t, once for the
+				-- MAX(CreatedDate) dedup subquery). SQL Server does not cache/share a CTE's result
+				-- across multiple references in the same statement - especially here, since the
+				-- LotManagementStructureDetails join calls the multi-statement SplitString() function,
+				-- which blocks the optimizer from spooling/reusing it. That meant the entire ~10-way
+				-- join below was actually running TWICE per call. Materializing it into #Result once
+				-- (with a supporting clustered index) and reading that twice instead cuts this
+				-- branch's work roughly in half. See
+				-- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full before/after review.
+				IF OBJECT_ID('tempdb..#Result') IS NOT NULL DROP TABLE #Result
+				SELECT DISTINCT
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -214,7 +240,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ic.ItemClassificationCode ItemClassfication
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
-				,UPPER(sl.UnitOfMeasure) AS Uom
+				,UPPER(sl.StockUnitOfMeasure) AS Uom
+				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
+				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				,(CASE WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) THEN 'INVOICED'
 					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_RO,' ','')) THEN 'RO Created'
 					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')) THEN 'RO Completed'
@@ -300,6 +328,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(sobi.InvoiceDate AS DATE) InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
+				INTO #Result
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -313,17 +342,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
-					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
+					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
+				-- PERF FIX: see comment above the #Result build for why this is materialized instead
+				-- of a doubly-referenced CTE.
+				CREATE CLUSTERED INDEX IX_Result_StockLineId_CreatedDate ON #Result(StockLineId, CreatedDate)
 
 				SELECT t.*
 						INTO #TempResult
-						FROM Result t
+						FROM #Result t
 						JOIN (
 							SELECT StockLineId, MAX(CreatedDate) AS MaxDate
-							FROM Result
+							FROM #Result
 							GROUP BY StockLineId
 						) x ON t.StockLineId = x.StockLineId
 						   AND t.CreatedDate = x.MaxDate
@@ -738,7 +769,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.IdNumber
 				,im.ManufacturerName
 				,sl.itemType
-				,UPPER(sl.UnitOfMeasure) AS Uom		
+				,UPPER(sl.StockUnitOfMeasure) AS Uom	
+				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
+				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				--,per.PercentValue
 				,(CASE WHEN SL.TraceableToType = @AppModuleCustomerId THEN (SELECT CUT.[Name] FROM [dbo].[Customer] CUT WHERE CUT.CustomerId = SL.[TraceableTo] )
 						    WHEN SL.TraceableToType = @AppModuleVendorId THEN (SELECT VET.[VendorName] FROM [dbo].[Vendor] VET WHERE VET.[VendorId] = SL.[TraceableTo])
@@ -784,7 +817,17 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId	 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(REPLACE(ltCal.Type,' ','')) NOT IN (UPPER(REPLACE(@LOT_SO_Shipped,' ','')),UPPER(REPLACE(@LOT_TransOut_SO,' ','')), UPPER(REPLACE(@LOT_TransOut_RO,' ','')),UPPER(REPLACE(@LOT_TransOut_LOT,' ','')))) 
 				 AND (ISNULL(sl.QuantityAvailable,0) >= @AvailableQty)
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 AND NOT (
+						  UPPER(REPLACE(ltCal.Type,' ','')) IN (UPPER(REPLACE(@LOT_TransIn_LOT,' ','')), UPPER(REPLACE(@LOT_TransIn_PO,' ','')))
+						  AND EXISTS (
+							  SELECT 1 
+							  FROM DBO.LotCalculationDetails ltCal2 WITH(NOLOCK)
+							  WHERE ltCal2.LotTransInOutId = ltCal.LotTransInOutId
+								AND UPPER(REPLACE(ltCal2.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ',''))
+						  )
+					  )
+
+				  ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 					SELECT * INTO #PNInStockTbl FROM  Result
 					WHERE 
@@ -1008,8 +1051,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,'Quote' AS Status
 				,Soq.CustomerName
 				,soqp.QtyRequested Qty
-				,soqpc.UnitSalesPrice UnitPrice
-				,ISNULL(soqpc.UnitSalesPrice,0) * ISNULL(soqp.QtyQuoted,0) ExtendedPrice		
+				,soqpc.NetSaleAmount UnitPrice
+				,ISNULL(soqpc.NetSaleAmount,0) * ISNULL(soqp.QtyQuoted,0) ExtendedPrice		
 				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
@@ -1295,6 +1338,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,(CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END) WoNum
 				,So.SalesOrderNumber SoNum
 				,sobi.InvoiceNo InvoiceNum 
+				,soq.SalesOrderQuoteNumber AS SalesOrderQuoteNumber
+				,sobi.InvoiceNo InvoiceNumber
 				,ven.VendorName Vendor
 				,ISNULL(ven.VendorCode,'')VendorCode
 				,ISNULL(ven.VendorId,0) VendorId
@@ -1345,15 +1390,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND sobi.[ModuleId] = @SOModuleId
-					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND sobi.[ModuleId] = @SOModuleId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId
+					 LEFT JOIN DBO.SalesOrderQuote soq WITH(NOLOCK) ON so.SalesOrderQuoteId = soq.SalesOrderQuoteId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
-				 	 	), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 	 	 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 				
 				SELECT * INTO #PNSoldViewTbl FROM  Result 
 				WHERE 
@@ -1593,7 +1639,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ic.ItemClassificationCode ItemClassfication
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
-				,UPPER(sl.UnitOfMeasure) AS Uom
+				,UPPER(sl.StockUnitOfMeasure) AS Uom
 				,ltCal.Qty Qty
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) AS UnitPrice
 				--,(ISNULL(sl.UnitCost,0) * (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) AS ExtendedPrice
@@ -1674,7 +1720,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')))
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				  ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #RepairedViewTbl FROM  Result 
 				WHERE 
@@ -2063,7 +2109,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName
-			    ,(CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
+			    ,(CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
@@ -2076,7 +2122,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #CommisionResult FROM  Result
 				WHERE

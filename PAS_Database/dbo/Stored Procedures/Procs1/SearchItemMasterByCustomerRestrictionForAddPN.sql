@@ -16,11 +16,15 @@
  ** PR   Date				Author			Change Description            
  ** --   --------			-------			-------------------          
 	1    10-May-2022		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
-	2    27-July-2023		Hemant Saliya	Allow Customer stockline use in other customer
-	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
+	2    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
+	3    27-July-2023		Hemant Saliya	Allow Customer stockline use in other customer
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
 	5    23-Dec-2025        Devendra Shekh  added UOM Changes
-	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	6    07/01/2026			Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function  
+	7    18/06/2026			Priyansh Patel	Changed the purchase and sale UOM Conversion to purchase to consume uom [PN-16894] 
+	8    23/06/2026			Priyansh Patel	Changed the ItemGroup to ItemGroupCode instead of  Description [PN-16920]    
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
@@ -48,7 +52,7 @@ BEGIN
 					,im.IsDER
 					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyAvailable
 					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyOnHand
-					,ig.Description AS ItemGroup
+					,ig.ItemGroupCode AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
 					,ic.ItemClassificationCode
@@ -58,8 +62,8 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1 AND M.IsActive = 1 AND M.IsDeleted = 0
-					FOR XML PATH('')
-					)
+					AND ISNULL(I.IsNonStock,0) = 0
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
@@ -68,15 +72,15 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
 					,im.ConsumeUnitOfMeasure
 					,im.StockUnitOfMeasure
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -85,13 +89,14 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
+				 AND ISNULL(im.IsNonStock,0) = 0
 				GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure
 					,im.ItemMasterId 
 					,im.PartDescription
-					,ig.Description 
+					,ig.ItemGroupCode 
 					,mf.Name 
 					,im.ManufacturerId
 					,ic.ItemClassificationCode

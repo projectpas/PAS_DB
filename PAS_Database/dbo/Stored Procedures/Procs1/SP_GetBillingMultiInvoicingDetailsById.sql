@@ -15,7 +15,8 @@
  ** PR   Date         Author		  Change Description            
  ** --   --------     -------		  --------------------------------          
     1    02/11/2023   Amit Ghediya	  Created	
-    2    03/07/2025   Rajesh Gami	  Modified the table name as per new billing structure 	
+    2    03/07/2025   Rajesh Gami	  Modified the table name as per new billing structure
+	3    26/JUNE/2026  Rajesh Gami	  Getting IsPerformaInvoice from the billing invoicing [PN-17017]
 	-- EXEC [dbo].[SP_GetBillingMultiInvoicingDetailsById] '23,24',2
      
 **************************************************************/
@@ -58,7 +59,8 @@ BEGIN
 						bi.[CreatedBy],
 						bi.[CreatedDate],
 						bi.[UpdatedBy],
-						bi.[UpdatedDate]
+						bi.[UpdatedDate],
+						ISNULL(bi.IsPerformaInvoice,0) IsPerformaInvoice
 					FROM DBO.BillingInvoicing bi WITH (NOLOCK)
 					INNER JOIN dbo.BillingInvoicingDetails bid WITH(NOLOCK) on bid.BillingInvoicingId = bi.BillingInvoicingId
 					LEFT JOIN DBO.BillingInvoicingItems bii WITH (NOLOCK) ON bii.[BillingInvoicingId] = bi.[BillingInvoicingId]
@@ -84,7 +86,8 @@ BEGIN
 						bii.[PDFPath],
 						bii.[StockLineId],
 						bii.[VersionNo],
-						bii.[IsVersionIncrease]
+						bii.[IsVersionIncrease],
+						ISNULL(bi.IsPerformaInvoice,0) IsPerformaInvoice
 					FROM DBO.BillingInvoicing bi WITH (NOLOCK)
 					LEFT JOIN DBO.BillingInvoicingItems bii WITH (NOLOCK) ON bii.[BillingInvoicingId] = bi.[BillingInvoicingId]
 					WHERE bi.[BillingInvoicingId] IN(SELECT Item FROM dbo.SplitString(@sobillingInvoicingId, ','))  AND bi.ModuleId = @SOModuleId

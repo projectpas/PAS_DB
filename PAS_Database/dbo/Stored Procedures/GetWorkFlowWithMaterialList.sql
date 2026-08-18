@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [GetWorkFlowWithMaterialList]              
  ** Author:   Ayushi Patel      
  ** Description: Get Work Flow With Material List by WorkflowId  
@@ -14,9 +14,10 @@
  **************************************************************               
  **  S NO   Date         Author    Change Description                
  **  --   --------      --------  --------------------------------              
-      1  07-April-2025   Ayushi   created      
-  
 -- EXEC GetWorkFlowWithMaterialList 80
+      1  07-April-2025   Ayushi   created
+	  2  27-July-2025    SUMIT    Added notes field in material list [PN-16818]      
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE GetWorkFlowWithMaterialList
     @WorkflowId BIGINT
@@ -79,6 +80,7 @@ BEGIN
         IsVersionIncrease BIT NULL,
         Figure NVARCHAR(50) NULL,
         Item NVARCHAR(50) NULL,
+        Notes NVARCHAR(MAX) NULL,
         StockType NVARCHAR(50) NULL,
         ItemClassificationCode NVARCHAR(50) NULL,
         UnitOfMeasure NVARCHAR(50) NULL,
@@ -92,7 +94,7 @@ BEGIN
 		CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, 
 		MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, 
 		ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, 
-		Figure, Item, StockType, ItemClassificationCode, UnitOfMeasure, ConditionName
+		Figure, Item, Notes, StockType, ItemClassificationCode, UnitOfMeasure, ConditionName
 	)
 	SELECT 
 		WorkflowMaterialListId, WorkflowId, ItemMasterId, TaskId, Quantity, 
@@ -101,7 +103,7 @@ BEGIN
 		CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, 
 		MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, 
 		ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, 
-		Figure, Item, NULL, NULL, NULL, NULL 
+		Figure, Item, Notes, NULL, NULL, NULL, NULL 
 	FROM DBO.WorkflowMaterial wm WITH (NOLOCK)
 	WHERE wm.WorkflowId = @WorkflowId 
 	  AND (wm.IsDeleted IS NULL OR wm.IsDeleted <> 1)
@@ -117,7 +119,8 @@ BEGIN
 			ELSE 'OEM'
 		END
     FROM #MaterialList ml
-    INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ml.ItemMasterId = im.ItemMasterId;
+    INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ml.ItemMasterId = im.ItemMasterId WHERE ISNULL(im.IsNonStock,0) = 0
+;
 
     UPDATE ml
     SET ml.ItemClassificationCode = ic.ItemClassificationCode
@@ -160,6 +163,7 @@ BEGIN
 	ml.Price,
 	ISNULL(ml.IsDeferred,0) as IsDeferred,
 	ml.Memo,
+	ml.Notes,
 	ml.MaterialMandatoriesName,
 	ml.PartNumber,
 	ml.PartDescription,
@@ -169,7 +173,8 @@ BEGIN
 	ml.UnitOfMeasure,
 	ml.ConditionName FROM #MaterialList ml;
 
-    SELECT im.ItemMasterId,im.partnumber FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId ;
+    SELECT im.ItemMasterId,im.partnumber FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId  WHERE ISNULL(im.IsNonStock,0) = 0
+;
     SELECT ws.WorkScopeId,ws.Description,ws.WorkScopeCode FROM DBO.WorkScope ws WITH (NOLOCK) inner join #tempWF twf ON twf.WorkScopeId = ws.WorkScopeId ;
     
 END;

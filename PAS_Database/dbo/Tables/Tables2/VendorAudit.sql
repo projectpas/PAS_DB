@@ -26,7 +26,7 @@
     [EDIDescription]          VARCHAR (100)   NULL,
     [AeroExchange]            BIT             NOT NULL,
     [AeroExchangeDescription] VARCHAR (100)   NULL,
-    [CreditLimit]             DECIMAL (18, 2) NULL,
+    [CreditLimit]             DECIMAL (18, 6) NULL,
     [CreditTermsId]           INT             NULL,
     [CurrencyId]              INT             NULL,
     [DiscountId]              BIGINT          NULL,
@@ -54,6 +54,10 @@
     [LastSyncDate]            DATETIME2 (7)   NULL,
     [SyncToken]               VARCHAR (200)   NULL,
     [IsWarningRestriction]    INT             NULL,
+    [IntegrationTypeId]       INT             NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
+    [ResaleNumber]            VARCHAR (200)   NULL,
+    [LegalEntityId]           BIGINT          NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );

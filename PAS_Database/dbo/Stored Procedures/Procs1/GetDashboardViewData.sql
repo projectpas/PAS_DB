@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetDashboardViewData]
  ** Author: unknown
  ** Description: This stored procedure is used to Get Dashboard View Data
@@ -11,33 +11,32 @@
  ** PR   Date          Author		Change Description            
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
-	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
-	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-	4   03/06/2024      Bhargav Saliya  Convert  Into Temp table SP
-	5	03/28/2024		Bhargav Saliya  Resolve Snapshot: MRO Billing amount issue
-	6	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
-	7   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
-	8   01/16/2025		Bhargav Saliya 	Resolved Dashboard Amount issue (SO invoice)
-	9   01/22/2025		Bhargav Saliya 	Resolved Workable Backlog(More Info) PN Amount Issues [PN-10689]
-	10   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
-	11   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
-	12   06/03/2025		Devendra Shekh 	WO DashBoard - Count Issue Resoled
-	13   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
-	14   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
-	15   16/06/2025		Devendra Shekh 	Amount Issue Resolved for MTD Billing
-	16   24/06/2025		Devendra Shekh	Billing Table Changes
-	17	 30/06/2025		Devendra Shekh	Modified(SO Billing Table Changes)
-	18	 07/01/2025		Devendra Shekh  Parts Count Issue resolved for WOQ
-	19	 07/02/2025		Devendra Shekh  Using @BaseUtcOffsetSec for DateConversion
-	20	 09/09/2025		Devendra Shekh	Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
-	21	 03 NOV 2025	HEMANT SALIYA	Corrected Dashbord Reports Issue for Multiple MPN
-	22   05 NOV 2025    Moin Bloch      Exclude Credit Memo Condition 
-	23   14 NOV 2025    Moin Bloch      Fix For Partial Credit Memo
-
+	1	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	3   03/06/2024      Bhargav Saliya  Convert  Into Temp table SP
+	4	03/28/2024		Bhargav Saliya  Resolve Snapshot: MRO Billing amount issue
+	5	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
+	6   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
+	7   01/16/2025		Bhargav Saliya 	Resolved Dashboard Amount issue (SO invoice)
+	8   01/22/2025		Bhargav Saliya 	Resolved Workable Backlog(More Info) PN Amount Issues [PN-10689]
+	9   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
+	10   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
+	11   06/03/2025		Devendra Shekh 	WO DashBoard - Count Issue Resoled
+	12   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
+	13   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
+	14   16/06/2025		Devendra Shekh 	Amount Issue Resolved for MTD Billing
+	15   24/06/2025		Devendra Shekh	Billing Table Changes
+	16	 30/06/2025		Devendra Shekh	Modified(SO Billing Table Changes)
+	17	 07/01/2025		Devendra Shekh  Parts Count Issue resolved for WOQ
+	18	 07/02/2025		Devendra Shekh  Using @BaseUtcOffsetSec for DateConversion
+	19	 09/09/2025		Devendra Shekh	Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 -- EXEC GetDashboardViewData  1,'2025-11-14',2,2,1
 ************************************************************************/
 
-CREATE    PROCEDURE [dbo].[GetDashboardViewData]
+CREATE PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
 	@DashboardType INT = NULL,
@@ -156,7 +155,7 @@ BEGIN
 						AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @Date)
 						AND rec_cust.MasterCompanyId = @MasterCompanyId
 						AND  rec_cust.IsPiecePart = 0 
-					GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
+						 GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
 					)
 					SELECT * FROM TempResults Order by WorkOrderId
 			END
@@ -172,7 +171,7 @@ BEGIN
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON wop.ID = TMP.ReferenceID
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
@@ -215,7 +214,7 @@ BEGIN
 					AND sobi.MasterCompanyId = @MasterCompanyId
 					AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 					AND SOBI.ModuleId = @SOModuleId
-					GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
+					 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
 				), ResultCount AS(Select COUNT(PartNumber) AS totalItems FROM Result) 
 
 				Select * from Result
@@ -229,7 +228,7 @@ BEGIN
 				FROM DBO.WorkOrderPartNumber wop WITH (NOLOCK)
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 		        INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
 				WHERE 
 				wop.WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
@@ -273,7 +272,7 @@ BEGIN
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 				WHERE
 				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
@@ -314,7 +313,7 @@ BEGIN
 				INNER JOIN DBO.WorkOrderPartNumber WOP WITH (NOLOCK) on WOP.ID = WOWF.WorkOrderPartNoId
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON WOQ.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
 				--Outer Apply(
 				--	SELECT 
@@ -341,7 +340,7 @@ BEGIN
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON SQ.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SQP.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
 				WHERE
 				--SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0) AND
@@ -363,7 +362,7 @@ BEGIN
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON SOQ.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOQP.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
 				LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 				WHERE
@@ -397,7 +396,7 @@ BEGIN
 						AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @Date)
 						AND rec_cust.MasterCompanyId = @MasterCompanyId
 						AND  rec_cust.IsPiecePart = 0 
-					GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
+						 GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
 			END
 			ELSE IF (@DashboardType = 10)
 			BEGIN
@@ -411,7 +410,7 @@ BEGIN
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
@@ -435,7 +434,7 @@ BEGIN
 				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON WOQ.WorkOrderId = wop.WorkOrderId AND WOQD.WOPartNoId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
 				WHERE  CONVERT(DATE,WOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
@@ -451,7 +450,7 @@ BEGIN
 				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON WOQ.WorkOrderId = wop.WorkOrderId AND WOQD.WOPartNoId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
 				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = CONVERT(DATE, @Date) AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
 				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
@@ -468,7 +467,7 @@ BEGIN
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				 LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 

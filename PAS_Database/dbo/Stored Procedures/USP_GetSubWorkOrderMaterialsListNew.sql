@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetSubWorkOrderMaterialsListNew]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used retrieve Work Order Sub Materials List      
@@ -16,12 +16,18 @@
 	5	 12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
 	6	 12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	7	 12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
-    9	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
-	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
-	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
-*** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
-    13   28/04/2026	    Ayushi Patel			Added condition to get UnitOfMeasure [PN-16096] 
- EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
+    8	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	9	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
+	10   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
+*** 11   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
+    12   28/04/2026	    Ayushi Patel			Added condition to get UnitOfMeasure [PN-16096] 
+	13	 19/06/2026		Ayushi					[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	16   08/05/2026     Moin Bloch              Added Part Number Filter  PN-16363
+	17   15/07/2026     Abhishek Jirawla	    Adding IsPiecePart condition in RepairOrderPart table
+	18    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 15 leftover IsNonStock=0 exclusion filters.
+ EXECUTE USP_GetSubWorkOrderMaterialsList 316,0
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@subWOPartNoId=282,@ShowPendingToIssue=0
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsListNew]      
@@ -30,9 +36,10 @@ CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsListNew]
 	@PageSize int,  
 	@SortColumn varchar(50)=null,  
 	@SortOrder int,  
-	@subWOPartNoId BIGINT = NULL , 
-	@ShowPendingToIssue BIT NULL = 0
-)      
+	@subWOPartNoId BIGINT = NULL ,
+	@ShowPendingToIssue BIT NULL = 0,
+	@PartNumber VARCHAR(50) = NULL
+)
 AS      
 BEGIN      
   
@@ -535,11 +542,11 @@ SET NOCOUNT ON
 					END AS ItemType,  
 					C.Description AS Condition,        
 					Stk_C.Description AS StocklineCondition,
-					dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost, 0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,   
-					ISNULL(WOM.ExtendedCost, 0),  
-					ISNULL(WOM.TotalStocklineQtyReq, 0),  
-					ISNULL(MSTL.StockLineId,0),         
-					dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
+					CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
+					ISNULL(WOM.ExtendedCost,0),
+					ISNULL(WOM.TotalStocklineQtyReq,0),
+					ISNULL(MSTL.StockLineId,0),
+					CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 					ISNULL(MSTL.ProvisionId,0) StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
@@ -664,8 +671,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -702,12 +708,13 @@ SET NOCOUNT ON
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 			    AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 				--UNION ALL
 				INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -762,11 +769,11 @@ SET NOCOUNT ON
 					END AS ItemType,  
 					C.Description AS Condition,        
 					Stk_C.Description AS StocklineCondition,
-					dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost ,  
-					ISNULL(WOM.ExtendedCost,0),  
-					ISNULL(WOM.TotalStocklineQtyReq,0),  
-					ISNULL(MSTL.StockLineId,0),         
-					dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
+					CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
+					ISNULL(WOM.ExtendedCost,0),
+					ISNULL(WOM.TotalStocklineQtyReq,0),
+					ISNULL(MSTL.StockLineId,0),
+					CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 					ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
@@ -888,8 +895,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -926,12 +932,13 @@ SET NOCOUNT ON
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1);
+				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 		ELSE
 		BEGIN
@@ -987,11 +994,11 @@ SET NOCOUNT ON
 				  END AS ItemType,  
 				  C.Description AS Condition,        
 				  Stk_C.Description AS StocklineCondition,
-				  dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
-				  ISNULL(WOM.ExtendedCost,0),  
-				  ISNULL(WOM.TotalStocklineQtyReq,0),  
-				  ISNULL(MSTL.StockLineId,0),         
-				  dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
+				  CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
+				  ISNULL(WOM.ExtendedCost,0),
+				  ISNULL(WOM.TotalStocklineQtyReq,0),
+				  ISNULL(MSTL.StockLineId,0),
+				  CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 				  ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 				  ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 				  SP.Description AS StocklineProvision,  
@@ -1115,8 +1122,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1153,10 +1159,11 @@ SET NOCOUNT ON
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId 
 				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
+			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 			 AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+		 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 			 --UNION ALL
 			INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1211,11 +1218,11 @@ SET NOCOUNT ON
 				  END AS ItemType,  
 				  C.Description AS Condition,        
 				  Stk_C.Description AS StocklineCondition,
-				  dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
-				  ISNULL(WOM.ExtendedCost,0),  
-				  ISNULL(WOM.TotalStocklineQtyReq,0),  
-				  ISNULL(MSTL.StockLineId,0),         
-				  dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
+				  CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
+				  ISNULL(WOM.ExtendedCost,0),
+				  ISNULL(WOM.TotalStocklineQtyReq,0),
+				  ISNULL(MSTL.StockLineId,0),
+				  CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 				  ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 				  ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 				  SP.Description AS StocklineProvision,  
@@ -1337,8 +1344,7 @@ SET NOCOUNT ON
 							ELSE MSTL.EquPartMasterPartId
 							END
 						ELSE MSTL.AltPartMasterPartId
-						END)
-					) AS AlterPartNumber,
+						END) ) AS AlterPartNumber,
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -1375,12 +1381,13 @@ SET NOCOUNT ON
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
-			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1);  
+			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;

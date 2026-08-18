@@ -9,13 +9,13 @@
     [MarkUpPercentage]          DECIMAL (18, 6) NULL,
     [MarkUpAmount]              DECIMAL (18, 6) NULL,
     [MarginAmount]              DECIMAL (18, 6) NULL,
-    [MarginPercentage]          DECIMAL (18, 4) NULL,
-    [DiscountPercentage]        DECIMAL (18, 4) NULL,
+    [MarginPercentage]          DECIMAL (18, 6) NULL,
+    [DiscountPercentage]        DECIMAL (18, 6) NULL,
     [DiscountAmount]            DECIMAL (18, 6) NULL,
-    [TaxPercentage]             DECIMAL (18, 4) NULL,
+    [TaxPercentage]             DECIMAL (18, 6) NULL,
     [TaxAmount]                 DECIMAL (18, 6) NULL,
-    [MiscCharges]               DECIMAL (18, 4) NULL,
-    [Freight]                   DECIMAL (18, 4) NULL,
+    [MiscCharges]               DECIMAL (18, 6) NULL,
+    [Freight]                   DECIMAL (18, 6) NULL,
     [GrossSaleAmount]           DECIMAL (18, 6) NULL,
     [NetSaleAmount]             DECIMAL (18, 6) NULL,
     [TotalRevenue]              DECIMAL (18, 6) NULL,
@@ -32,6 +32,8 @@
     CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuotePartV1] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuotePartId])
 );
+
+
 
 
 

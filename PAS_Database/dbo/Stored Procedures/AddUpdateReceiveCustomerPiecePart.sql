@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AddUpdateReceiveCustomerPiecePart]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to create update Receive Customer Piece Part
@@ -10,13 +10,15 @@
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** -----------------------------------------------------------          
     1    19/08/2024   Moin Bloch    Created
 	2    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
 	3	 18/04/2025	  ABHISHEK JIRAWLA Updated Receiving Number for Receiving Customer Work
 	4	 30/04/2025	  ABHISHEK JIRAWLA Adding IsPiecePart and IsRepairManagement to the Stockline
 	5    12/05/2026   Nakul Chandigra  Added OutGoingItemMasterId And OutGoingPartNumber
-	     
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
+	8    13/Aug/2026   RAJESH GAMI    [PN-17008] - Re-added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter on the ItemMaster lookup that was dropped when this proc was ported from BETA.
+ ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
@@ -183,7 +185,9 @@ BEGIN
 				[LastSinceInspection] [varchar](20) NULL,
 				[IsSkipShippingReference] [bit] NULL,
 				[OutGoingItemMasterId] [bigint] NULL,
-				[OutGoingPartNumber] [varchar](50) NULL
+				[OutGoingPartNumber] [varchar](50) NULL,
+				[StockUnitOfMeasureId] [bigint] NULL
+
 			)
 				
 		INSERT INTO #tmprReceiveCustomerPiecePart ([ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
@@ -197,7 +201,7 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber])
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -209,7 +213,7 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber]							
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId]							
 						FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprReceiveCustomerPiecePart    
@@ -231,6 +235,7 @@ BEGIN
 				DECLARE @PreviousStockLineNumber VARCHAR(50);
 				DECLARE @Quantity INT = 0;
 				DECLARE @ShelfLife BIT,@IsHazardousMaterial BIT,@IsPMA BIT,@IsDER BIT,@OEM BIT,@IsTimeLIfe BIT,@TimeLifeDetailsNotProvided BIT
+				DECLARE @ConsumeUnitOfMeasureId BIGINT = 0;
 
                 SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Stock Line';
 				SELECT @RCIdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Receiving Customer Work';
@@ -255,7 +260,7 @@ BEGIN
 					   @IsDER = [IsDER],
 					   @OEM = [IsOEM], 
 					   @RevicedPNId = [RevisedPartId]					  
-				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
                 SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 
@@ -374,6 +379,7 @@ BEGIN
                        
 					/* PN Manufacturer Combination Stockline logic */
 
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
 					DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
@@ -424,6 +430,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+					 AND ISNULL(iM.IsNonStock,0) = 0
 					GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   
@@ -448,7 +455,7 @@ BEGIN
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
-						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement])                       
+						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement],[StockUnitOfMeasureId],[ConsumeUnitOfMeasureId])                       
 				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],ISNULL([Quantity],0),[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
@@ -471,7 +478,7 @@ BEGIN
 							0,'',0,NULL,NULL,NULL,0,0,0,0,
 							0,NULL,NULL,NULL,0,NULL,0,NULL,
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
-						    0,NULL,'','','',0,GETUTCDATE(), @IntegrationPortal, 1, 0 FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
+						    0,NULL,'','','',0,GETUTCDATE(), @IntegrationPortal, 1, 0,[StockUnitOfMeasureId],@ConsumeUnitOfMeasureId FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
@@ -632,6 +639,7 @@ BEGIN
 						  ,ST.[IsStkTimeLife] = TR.[IsTimeLife]
 						  ,ST.[IsUpdated] = 1
 						  ,ST.[LastSyncDate] = GETUTCDATE()
+						  ,ST.[StockUnitOfMeasureId] = TR.[StockUnitOfMeasureId]
 					     FROM [dbo].[Stockline] ST WITH(NOLOCK) INNER JOIN #tmprReceiveCustomerPiecePart TR ON ST.[StockLineId] = TR.[StockLineId]
 				     WHERE ST.[StockLineId] = @StocklineId;
 

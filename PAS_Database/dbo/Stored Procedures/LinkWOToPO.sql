@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [LinkWOToPO]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to link Work Order to PO Records
@@ -15,8 +15,8 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    02/01/2024   Vishal Suthar		Created
-  
-
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 declare @p5 int
 set @p5=NULL
 declare @p6 int
@@ -198,7 +198,7 @@ BEGIN
 
 					SELECT @Part_NUMBER = IM.[PN], @Part_Desc = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.[PNM_AUTO_KEY] = @PNM_AUTO_KEY;
 			    
-					SELECT @ItemMaster_Id = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc);
+					SELECT @ItemMaster_Id = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc) ;
 
 					SELECT @ConditionCodeId = ConditionId FROM DBO.[Condition] C WHERE UPPER(C.Description) IN (SELECT UPPER(CC.CONDITION_CODE) FROM [Quantum].QCTL_NEW_3.PART_CONDITION_CODES CC Where CC.PCC_AUTO_KEY = @PCC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
 					
@@ -247,7 +247,7 @@ BEGIN
 						SELECT @PNM_AUTO_KEY_POD = POD.PNM_AUTO_KEY, @POH_AUTO_KEY = POH_AUTO_KEY, @PCC_AUTO_KEY_POD = POD.PCC_AUTO_KEY FROM [Quantum].[QCTL_NEW_3].[PO_DETAIL] POD WHERE POD.POD_AUTO_KEY = @POD_AUTO_KEY;
 
 						SELECT @Part_NUMBER = IM.[PN], @Part_Desc = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.[PNM_AUTO_KEY] = @PNM_AUTO_KEY_POD;
-						SELECT @ItemMaster_Id = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc);
+						SELECT @ItemMaster_Id = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc) ;
 
 						SELECT @PO_Number = POH.PO_NUMBER FROM [Quantum].[QCTL_NEW_3].[PO_HEADER] POH WITH(NOLOCK) WHERE POH.[POH_AUTO_KEY] = @POH_AUTO_KEY;
 						SELECT @PO_Id_IN_PAS = PO.PurchaseOrderId FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK) WHERE UPPER(PO.PurchaseOrderNumber) = UPPER(@PO_Number);

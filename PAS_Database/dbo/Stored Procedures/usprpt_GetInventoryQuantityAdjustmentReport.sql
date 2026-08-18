@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetInventoryQuantityAdjustmentReport]
  ** Author:   
  ** Description: Get Data for Stock Report
@@ -15,7 +15,10 @@
 	2    14-05-2025     Amit Ghediya		added Adjusted By filed.
 	3    09-06-2025     Amit Ghediya		decimal format.
 	4    29-01-2026     Devendra Shekh		Modified to Handle Column Filters
-
+	5    26-06-2026     Bhargav Saliya      Added Decimal Range (18,6)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed obsolete ItemMaster/Stockline IsNonStock=0 filters (6) to allow Non-Stock items in Inventory Quantity Adjustment Report
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]     
 @PageNumber INT = NULL,
@@ -156,12 +159,12 @@ BEGIN
         UPPER(stl.[stocklineNumber]) 'slnum',
 		UPPER(stl.[ControlNumber]) 'ctrlnum',   
 		ISNULL(stl.[UnitCost], 0) 'unitcost',   
-		ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) 'origqty',
-		ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) 'newqty',       
-		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0))
-		     ELSE (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0)) * (-1) END 'qtychange',
-		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0)))
-		     ELSE (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0))) * (-1) END 'qtyadjustmentamount',		
+		ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) 'origqty',
+		ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) 'newqty',       
+		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0))
+		     ELSE (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0)) * (-1) END 'qtychange',
+		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0)))
+		     ELSE (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0))) * (-1) END 'qtyadjustmentamount',		
 		sar.[Description] 'reasoncode',
 		UPPER(uom.[ShortName]) 'uom',
 		UPPER(pox.[PurchaseOrderNumber]) 'ponum',    
@@ -186,7 +189,7 @@ BEGIN
 	INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.[StockLineId]    
 	LEFT JOIN  [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.[EntityStructureId]=MSD.[EntityMSID]    
 	LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId] 
-	LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
+	 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
 	LEFT JOIN [dbo].[PurchaseOrder] pox WITH(NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
 	LEFT JOIN [dbo].[RepairOrder] rox WITH(NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]
 	LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON stladj.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
@@ -246,7 +249,7 @@ BEGIN
 	INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.[StockLineId]    
 	LEFT JOIN  [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.[EntityStructureId]=MSD.[EntityMSID]    
 	LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId] 
-	LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
+	 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
 	LEFT JOIN [dbo].[PurchaseOrder] pox WITH(NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
 	LEFT JOIN [dbo].[RepairOrder] rox WITH(NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]
 	LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON cycd.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
@@ -306,7 +309,7 @@ BEGIN
 	INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.[StockLineId]    
 	LEFT JOIN  [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.[EntityStructureId]=MSD.[EntityMSID]    
 	LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId] 
-	LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
+	 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
 	LEFT JOIN [dbo].[PurchaseOrder] pox WITH(NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
 	LEFT JOIN [dbo].[RepairOrder] rox WITH(NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]
 	LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON bsajd.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	

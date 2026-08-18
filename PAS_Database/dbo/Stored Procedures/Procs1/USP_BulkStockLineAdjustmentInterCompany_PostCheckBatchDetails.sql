@@ -30,6 +30,7 @@
 	14	 15/01/2025   AMIT GHEDIYA		Modify(get Distribution based on new settings from stockline level)
 	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
  	16   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6
+	17	 08/07/2026   Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
 **************************************************************/
@@ -111,6 +112,7 @@ BEGIN
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @ReferenceNumber VARCHAR(50) = '';
@@ -358,9 +360,12 @@ BEGIN
 					EXEC dbo.USP_CreateStockline_BulkStockLineAdjustment @StockLineId,@BulkStockLineAdjustmentDetailsId,@UpdateBy,@MasterCompanyId,@Stockline OUTPUT;
 
 					-----Inventory-Stock--------
-					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'BULKSAINVENTORYSTOCKINTERCOTRANSLEDR' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					 
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
+
 					 INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -385,6 +390,8 @@ BEGIN
 					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ToManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@Stockline,@EmployeeId)
 
+					END
+
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;
 					SET @DistributionName = '';
@@ -394,7 +401,7 @@ BEGIN
 					-----Inventory-Stock--------
 
 					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					 @CrDrType = CRDRType
+					 @CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'BULKSAINVENTORYSTOCKINTERCOTRANSLECR' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					
 					 SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
@@ -407,6 +414,9 @@ BEGIN
 					 FROM [dbo].[GLAccount] WITH(NOLOCK)
 					 WHERE [GLAccountId] = @InventoryGLAccId
 					 AND [MasterCompanyId] = @MasterCompanyId;
+
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
 
 					 INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -431,6 +441,8 @@ BEGIN
 					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@FromManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
 					
+					END
+
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;
 					SET @DistributionName = '';
@@ -440,12 +452,15 @@ BEGIN
 				 -----Intercompany Payable--------
 
 					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					 @CrDrType = CRDRType
+					 @CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'INTERCOMPAYINTERCOTRANSLE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 					 SELECT @GlAccountId = GlAccountId FROM [DBO].[DistributionSetup]  WITH(NOLOCK) WHERE [DistributionSetupCode] = 'INTERCOMPAYINTERCOTRANSLE' AND MasterCompanyId = @MasterCompanyId;
 					 SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 					
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
+
 					 INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -469,6 +484,8 @@ BEGIN
 						INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ToManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@Stockline,@EmployeeId)
 					
+					END
+
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;
 					SET @DistributionName = '';
@@ -478,12 +495,15 @@ BEGIN
 				  -----Intercompany Receivable--------
 
 					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					 @CrDrType = CRDRType
+					 @CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'INTERCOMRECINTERCOTRANSLE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 					 SELECT @GlAccountId = GlAccountId FROM [DBO].[DistributionSetup]  WITH(NOLOCK) WHERE [DistributionSetupCode] = 'INTERCOMRECINTERCOTRANSLE' AND MasterCompanyId = @MasterCompanyId;
 					 SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 					 
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
+
 					 INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -507,6 +527,8 @@ BEGIN
 					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@FromManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
 					
+					END
+
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;
 					SET @DistributionName = '';

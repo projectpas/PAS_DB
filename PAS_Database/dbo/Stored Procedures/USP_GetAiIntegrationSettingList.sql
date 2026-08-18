@@ -14,10 +14,11 @@ EXEC [USP_GetPNLabelSettingData]
 ** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
 ** 4	Aug-11-2025	    Moin Bloch        Modified add Fields OpenAIAPIKeys
 ** 5	Dec-03-2025	    Ayushi Patel      Modified add Fields DocumentTypeId
-exec dbo.USP_GetAiIntegrationSettingList 1  
-**********************/   
+** 6	July-09-2026	Divyesh Kathiriya Add Fields VRFQEmailSubject [PN-16868]
 
-CREATE   PROCEDURE [dbo].[USP_GetAiIntegrationSettingList]
+exec dbo.USP_GetAiIntegrationSettingList 1  
+**********************/
+CREATE PROCEDURE [dbo].[USP_GetAiIntegrationSettingList]
 @MasterCompanyId bigint
 AS
 BEGIN
@@ -45,8 +46,9 @@ BEGIN
 					,AI.[IsDeleted]
 					,AI.[PercentId]
 					,AI.[PercentValue]
-					,AI.[OpenAIAPIKeys]
+					,AI.[OpenAIAPIKeys]					
 					,AI.[DocumentTypeId]
+					,AI.[VRFQEmailSubject]
 				FROM dbo.AiIntegrationSetting AI WITH(NOLOCK)
 				WHERE AI.MasterCompanyId = @MasterCompanyId
                 

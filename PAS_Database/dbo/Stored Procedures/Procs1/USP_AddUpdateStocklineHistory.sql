@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_AddUpdateStocklineHistory]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to add/update stockline history 
@@ -20,6 +18,10 @@
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
 	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
  	4	 25/11/2025		Rajesh Gami		Change the stockline Quantiy related fields datatype INT to DECIMAL 
+	5    16/06/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
+	6    01/07/2026   Ayushi Patel		[PN-17083]Added @StockOldUOM/@StockNewUOM for UOM-Update history template
+	7	 09/07/2026   Ayushi Patel		[PN-17083]Added new field UOM into Stkline_History table
+	8	 16/07/2026   Rajesh Gami		[PN-17308]Qty handle by 2 decimal places for the notes 
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
@@ -31,7 +33,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
 	@SubRefferenceId BIGINT = NULL,
 	@ActionId INT = NULL,
 	@Qty decimal(18,6) = NULL,
-	@UpdatedBy VARCHAR(100) = NULL
+	@UpdatedBy VARCHAR(100) = NULL,
+	@StockOldUOM VARCHAR(250) = NULL,
+	@StockNewUOM VARCHAR(250) = NULL
 )
 AS
 BEGIN
@@ -66,15 +70,18 @@ BEGIN
 
 		SELECT @HistoryNote = StkAct.Template FROM DBO.[StklineHistory_Action] StkAct WITH (NOLOCK) WHERE StkAct.ActionId = @ActionId;
 
-		SET @HistoryNote = REPLACE(REPLACE(@HistoryNote, '#qty#', @Qty), '#StkNum#', @StkLineNumber);
+		SET @HistoryNote = REPLACE(REPLACE(@HistoryNote, '#qty#',  CONVERT(VARCHAR(50), CAST(@Qty AS DECIMAL(18,2)))), '#StkNum#', @StkLineNumber);
 
 		SET @HistoryNote = REPLACE(@HistoryNote, '#ModuleName#', @ModuleName);
 		SET @HistoryNote = REPLACE(@HistoryNote, '#RefferenceNum#', @ReferenceNumber);
 
+		SET @HistoryNote = REPLACE(@HistoryNote, '#StockOldUOM#', ISNULL(@StockOldUOM, ''));
+		SET @HistoryNote = REPLACE(@HistoryNote, '#StockNewUOM#', ISNULL(@StockNewUOM, ''));
+
 		INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
-			[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)
+			[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate,UOM)
 		SELECT @StockLineId, @ModuleId, @ReferenceId, @ReferenceNumber, @SubModuleId, @SubRefferenceId, @SubReferenceNumber, @ActionId, @ActionType, 
-			STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, @Qty, @HistoryNote, @UpdatedBy, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate
+			STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, @Qty, @HistoryNote, @UpdatedBy, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate,CASE WHEN ISNULL(@StockNewUOM, '') <> '' THEN @StockNewUOM ELSE STL.StockUnitOfMeasure END
 		FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
 
 		IF(@CustStockActionId=@ActionId)
@@ -86,16 +93,23 @@ BEGIN
 		BEGIN
 			PRINT '';
 		END
-		ELSE
-		BEGIN
-			EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
-		END
+		--ELSE
+		--BEGIN
+		--	EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
+		--END
 	END
     COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
     IF @@trancount > 0
   ROLLBACK TRAN;
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
   DECLARE @ErrorLogID int
   ,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------

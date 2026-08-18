@@ -8,16 +8,16 @@
     [PartDescription]                 VARCHAR (MAX)   NULL,
     [SerialNumber]                    VARCHAR (50)    NULL,
     [POReference]                     VARCHAR (50)    NULL,
-    [POQtyOrder]                      INT             NULL,
-    [ReceivedQty]                     INT             NULL,
-    [POUnitCost]                      DECIMAL (18, 2) NULL,
-    [POExtCost]                       DECIMAL (18, 2) NULL,
-    [InvoicedQty]                     INT             NULL,
-    [InvoicedUnitCost]                DECIMAL (18, 2) NULL,
-    [InvoicedExtCost]                 DECIMAL (18, 2) NULL,
-    [AdjQty]                          INT             NULL,
-    [AdjUnitCost]                     DECIMAL (18, 2) NULL,
-    [AdjExtCost]                      DECIMAL (18, 2) NULL,
+    [POQtyOrder]                      DECIMAL (18, 6) NULL,
+    [ReceivedQty]                     DECIMAL (18, 6) NULL,
+    [POUnitCost]                      DECIMAL (18, 6) NULL,
+    [POExtCost]                       DECIMAL (18, 6) NULL,
+    [InvoicedQty]                     DECIMAL (18, 6) NULL,
+    [InvoicedUnitCost]                DECIMAL (18, 6) NULL,
+    [InvoicedExtCost]                 DECIMAL (18, 6) NULL,
+    [AdjQty]                          DECIMAL (18, 6) NULL,
+    [AdjUnitCost]                     DECIMAL (18, 6) NULL,
+    [AdjExtCost]                      DECIMAL (18, 6) NULL,
     [APNumber]                        VARCHAR (50)    NULL,
     [PurchaseOrderId]                 BIGINT          NULL,
     [PurchaseOrderPartRecordId]       BIGINT          NULL,
@@ -30,16 +30,24 @@
     [Type]                            INT             NULL,
     [StockType]                       VARCHAR (50)    NULL,
     [RemainingRRQty]                  DECIMAL (18, 6) NULL,
-    [FreightAdjustment]               DECIMAL (18, 2) NULL,
-    [TaxAdjustment]                   DECIMAL (18, 2) NULL,
-    [FreightAdjustmentPerUnit]        DECIMAL (18, 2) NULL,
-    [TaxAdjustmentPerUnit]            DECIMAL (18, 2) NULL,
-    [QtyVariance]                     DECIMAL (9, 2)  NULL,
-    [PriceVariance]                   DECIMAL (9, 2)  NULL,
-    [VendorProformaAmount]            DECIMAL (18, 2) NULL,
+    [FreightAdjustment]               DECIMAL (18, 6) NULL,
+    [TaxAdjustment]                   DECIMAL (18, 6) NULL,
+    [FreightAdjustmentPerUnit]        DECIMAL (18, 6) NULL,
+    [TaxAdjustmentPerUnit]            DECIMAL (18, 6) NULL,
+    [QtyVariance]                     DECIMAL (18, 6) NULL,
+    [PriceVariance]                   DECIMAL (18, 6) NULL,
+    [VendorProformaAmount]            DECIMAL (18, 6) NULL,
     [VendorProformaInvoiceId]         BIGINT          NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetails] PRIMARY KEY CLUSTERED ([ReceivingReconciliationDetailId] ASC)
 );
+
+
+
+
+
+
+
+
 
 
 
@@ -58,3 +66,20 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RRDetails_Recon_Type_Order_Part]
+    ON [dbo].[ReceivingReconciliationDetails]([ReceivingReconciliationId] ASC, [Type] ASC, [PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRD_Recon_Type_Order_Part]
+    ON [dbo].[ReceivingReconciliationDetails]([ReceivingReconciliationId] ASC, [Type] ASC, [PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RecReconDetails_SL]
+    ON [dbo].[ReceivingReconciliationDetails]([StocklineId] ASC)
+    INCLUDE([ReceivingReconciliationId]);
+

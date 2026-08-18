@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWOPackagingLabelPrint]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WO packaging Label Print Details    
@@ -17,11 +17,14 @@
  ** --   --------     -------			--------------------------------          
     1    05/23/2020   Hemant Saliya		Created
 	2    01/01/2024   Devendra Shekh	updated for serialnumber
-     
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22/07/2026   Bhargav Saliya	Get Consume UOM [PN-17353]
+	6    27/07/2026   Bhargav Saliya	Fall back to ItemMaster Consume UOM when stockline UOM is empty [PN-17353]
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[GetWOPackagingLabelPrint]
+CREATE      PROCEDURE [dbo].[GetWOPackagingLabelPrint]
 	@WorkOrderId bigint,
 	@PackagingSlipId bigint
 AS
@@ -45,7 +48,7 @@ BEGIN
 						sl.ControlNumber, 
 						sl.IdNumber, 
 						sl.Condition as ConditionDescription,
-						sl.UnitOfMeasure as UOM, 
+						CASE WHEN NULLIF(sl.ConsumeUnitOfMeasure,'') IS NULL THEN imt.ConsumeUnitOfMeasure ELSE sl.ConsumeUnitOfMeasure END as UOM,
 						wo.WorkOrderNum,
 						(SELECT QtyShipped FROM DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) Where WOSI.WorkOrderPartNumId = wopt.OrderPartId AND wopt.PickTicketId = WOSI.WOPickTicketId) AS QtyShipped
 				FROM WOPickTicket wopt WITH (NOLOCK)
@@ -59,6 +62,7 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = wopt.OrderPartId AND wopt.PickTicketId = WOSI.WOPickTicketId
 					LEFT JOIN DBO.WorkOrderShipping WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId AND WOS.WorkOrderId = @WorkOrderId
 				WHERE WPI.PackagingSlipId = @PackagingSlipId AND WPB.WorkOrderId = @WorkOrderId
+			 AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			END
 		COMMIT  TRANSACTION
 

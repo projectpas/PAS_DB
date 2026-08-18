@@ -19,6 +19,8 @@
 	7    29 Aug 2025   RAJESH GAMI		Get date byb employee/legalentity
 	8	 17-03-2026    Ayushi Patel		PN-15689 return email and phone no from customerContact table insted of customer table
 	9    12-05-2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
+	10   07/01/2026    Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on PartCost, per item, when computing Proforma SubTotal & GrandTotal so totals match the line-item report
+	11   06/07/2026    Kishor Makwana   Added ResaleNumber in select statement
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -50,6 +52,9 @@ BEGIN
 		WHERE E.EmployeeId = @EmployeeId; 
 
 		SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+		DECLARE @SOMasterCompanyId INT = NULL;
+		SELECT @SOMasterCompanyId = [MasterCompanyId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
 
 		SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
 		FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
@@ -145,7 +150,7 @@ BEGIN
 					ShippingTerms = BID.ShippingTermsName,
 					CASE 
 							WHEN BI.IsPerformaInvoice = 1 THEN 
-								(SELECT SUM(ISNULL(BII.PartCost, 0)) FROM dbo.BillingInvoicingItems BII WITH (NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId)
+								(SELECT SUM(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.PartCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, @SOMasterCompanyId) END) FROM dbo.BillingInvoicingItems BII WITH (NOLOCK) LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON BII.ItemMasterId = im.ItemMasterId WHERE BII.BillingInvoicingId = BI.BillingInvoicingId)
 								+
 								(SELECT SUM(ISNULL(FreightCostPlus, 0))
 									FROM (
@@ -183,7 +188,7 @@ BEGIN
 					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
 					CASE WHEN BI.IsPerformaInvoice = 1 THEN 
-													(SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0) 
+													(SELECT SUM(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.PartCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.PartCost,0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, @SOMasterCompanyId) END) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON BII.ItemMasterId = im.ItemMasterId WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0) 
 													+
 								(SELECT SUM(ISNULL(FreightCostPlus, 0))
 									FROM (SELECT ItemMasterId,MAX(ISNULL(FreightCostPlus, 0)) AS FreightCostPlus FROM dbo.BillingInvoicingItems WITH (NOLOCK)
@@ -213,7 +218,8 @@ BEGIN
 					case when CAST(GETUTCDATE() as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) as datetime2))end [PrintDate],
 					UPPER(inv.[Description]) InvoiceType,
 					oriCountry.countries_name OriginCountry,
-					destCountry.countries_name DestinationCountry
+					destCountry.countries_name DestinationCountry,
+					ISNULL(CUST.ResaleNumber,'') ResaleNumber
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]

@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    23-12-2024   HEMNAT SALIYA			Created
 	2    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
+	3    15-JUL-2026  Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
 	
 	EXEC [GetNewStocklineInventoryMismatch]
 **************************************************************/
@@ -256,7 +257,7 @@ BEGIN
 					WHERE ROP.MasterCompanyId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@MasterCompanyId, ',')) 
 					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
-					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
+					AND ISNULL(ROP.IsPiecePart,0) = 0 AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
 						
 				--* END: RepairOrder For Reserve *--
@@ -1188,7 +1189,7 @@ BEGIN
             ERROR_SEVERITY() AS ErrorSeverity,
             ERROR_STATE() AS ErrorState,
             ERROR_LINE() AS ErrorLine;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			DECLARE   @ErrorLogID  INT, @PAS_UAT VARCHAR(100) = db_name() 
 			
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetNewStocklineInventoryMismatch' 
@@ -1196,7 +1197,7 @@ BEGIN
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 
-                    @DatabaseName           = @DatabaseName
+                    @PAS_UAT           = @PAS_UAT
                     , @AdhocComments          = @AdhocComments
                     , @ProcedureParameters = @ProcedureParameters
                     , @ApplicationName        =  @ApplicationName

@@ -19,7 +19,7 @@
 	2    03/08/2024   Bhargav Saliya  In WokOrder DashBoard  Count Issue Resolved
 	3	 12 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
 	4	 31/12/2024	  Bhargav saliya  In WO DashBoards Resolved [RECEIVED] Count Issue (PN-10677)
-     
+    5    25/06/2026   Ayushi Patel	  UOM Changes [PN-16963] 
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetWODashboardDataCount]
@@ -70,7 +70,7 @@ BEGIN
 					 StageCode VARCHAR(100) NULL,
 					 CodeDescription VARCHAR(200) NULL,
 					 Counts INT NULL,
-					 Cost DECIMAL(18,2) NULL,
+					 Cost DECIMAL(18,6) NULL,
 					 GroupNo INT NULL
 				)
 

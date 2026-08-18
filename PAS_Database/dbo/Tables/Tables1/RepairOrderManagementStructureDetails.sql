@@ -36,6 +36,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_RepairOrderManagementStructureDetailsAudit]
    ON  [dbo].[RepairOrderManagementStructureDetails]
@@ -46,3 +48,8 @@ INSERT INTO RepairOrderManagementStructureDetailsAudit
 SELECT * FROM INSERTED
 SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_ROMSD_Module_Reference]
+    ON [dbo].[RepairOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC)
+    INCLUDE([Level1Id], [Level2Id], [Level3Id], [Level4Id], [Level5Id], [Level6Id], [Level7Id], [Level8Id], [Level9Id], [Level10Id]);
+

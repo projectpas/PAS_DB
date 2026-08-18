@@ -14,8 +14,11 @@
 	3    07-JAN-2025   Rajesh Gami			UOM Conversion Related Change (Make Cost and QTY from Consume to Purchase UOM)
 	4    07/01/2026	   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	5    09/04/2026    Ayushi Patel	        PN-15909 resolved uom convertion issue for UnitPrice
+	6	 19/06/2026	   Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	7    23/07/2026    Ayushi Patel         [PN-17337] Fixed Dashboard "Today's Quoted" showing Part Amount as 0.00 when WOQ is initially saved with Build Up From Details. 
+											MaterialFlatBillingAmount was being passed through as-is from the client (always 0.00 in this mode) instead of being derived from WorkOrderQuoteMaterial.BillingAmount like UpdateWorkOrderQuoteDetails does & code review Changes.
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
+CREATE      PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteMaterialType [WorkOrderQuoteMaterialType] READONLY,
 @tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
@@ -73,8 +76,17 @@ BEGIN
 						LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = tb.MarkupPercentageId
 						CROSS APPLY (
 							SELECT 
-								dbo.fn_ConvertUOM(tb.UnitCost, uomStock.ShortName, uomConsume.ShortName, 0,@MasterCompanyId) AS ConvUnitCost,
-								dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uomStock.ShortName, 0,@MasterCompanyId) AS ConvQty
+								CASE 
+									WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
+										THEN tb.UnitCost
+									ELSE dbo.fn_ConvertUOM(tb.UnitCost, uomStock.ShortName, uomConsume.ShortName, 0, @MasterCompanyId)
+								END AS ConvUnitCost,
+
+								CASE 
+									WHEN ISNULL(uomConsume.ShortName,'') = ISNULL(uomStock.ShortName,'')
+										THEN tb.Quantity
+									ELSE dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uomStock.ShortName, 0, @MasterCompanyId)
+								END AS ConvQty
 						) calc;
 
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteMaterialId], [WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],
@@ -392,7 +404,18 @@ BEGIN
 
 			EXEC [dbo].[usp_SavePostKitforWOQ] @WOQMaterialKitMappingType;
 		END
-
+		BEGIN TRAN;
+		;WITH MatTotals AS (
+			SELECT SUM(ISNULL([BillingAmount],0)) AS TotalBillingAmount
+			FROM [dbo].[WorkOrderQuoteMaterial] WITH(NOLOCK)
+			WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId 
+			  AND ISNULL([IsDeleted],0) = 0
+		)
+		UPDATE [dbo].[WorkOrderQuoteDetails]
+		SET [MaterialFlatBillingAmount] = ISNULL((SELECT TotalBillingAmount FROM MatTotals), 0)
+		WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId
+		  AND ISNULL([QuoteMethod],0) = 0;   -- only recalc for Build-Up-From-Details, never for Flat Rate
+		COMMIT TRAN;
 		EXEC [dbo].[USP_ChangeWOQStatusAfterApproval] @WorkOrderQuoteId, @UpdatedBy, @woPartNoId;
 
 		EXEC [dbo].[USP_UpdateWOTotalCostDetails] @WorkOrderId, @WorkflowWorkOrderId, @UpdatedBy, @MasterCompanyId;

@@ -16,7 +16,8 @@
  ** --   --------     -------		  --------------------------------          
     
 	2    22/12/2023   Bhargav Salya	  get UOMid
-	3	 01/17/2025	  Moin Bloch	  Modified (Added @WorkOrderFormTypeId from WO)     
+	3	 01/17/2025	  Moin Bloch	  Modified (Added @WorkOrderFormTypeId from WO)   
+	4    08/14/2026   Sumit Kumar     [PN-17643] Modified to get sequence number in case of duplicate task name
 ****************************************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkFlowWorkOrderChargesList]
 @wfwoId bigint = null,
@@ -56,7 +57,9 @@ BEGIN
 					woc.IsFromWorkFlow,
 					woc.ChargesTypeId AS WorkflowChargeTypeId,
 					--ISNULL(ts.Description,'') as TaskName,
-					CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN  
+						CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END
+					ELSE ISNULL(ts.[Description],'') END AS TaskName,
 					woc.ReferenceNo AS RefNum,
 					ISNULL(gl.AccountName,'') AS GLAccountName,
 					woc.UOMId,
@@ -66,6 +69,15 @@ BEGIN
 					LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) ON woc.VendorId = v.VendorId
 					LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON woc.TaskId = ts.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = woc.TaskId
+					-- Join to get active task counts to detect duplicates
+					LEFT JOIN (
+						SELECT TaskId, WorkOrderId, WorkOrderPartNumberId, COUNT(*) AS TaskCount
+						FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+						WHERE [IsActive] = 1 AND [IsDeleted] = 0
+						GROUP BY TaskId, WorkOrderId, WorkOrderPartNumberId
+					) Dup ON WOT.TaskId = Dup.TaskId 
+					     AND WOT.WorkOrderId = Dup.WorkOrderId 
+					     AND WOT.WorkOrderPartNumberId = Dup.WorkOrderPartNumberId
 					LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId	
 					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON woc.UOMId = uom.UnitOfMeasureId
 				WHERE woc.IsDeleted = @IsDeleted AND woc.WorkFlowWorkOrderId = @wfwoId AND woc.MasterCompanyId=@masterCompanyId

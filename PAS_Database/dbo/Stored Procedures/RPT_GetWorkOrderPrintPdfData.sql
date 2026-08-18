@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -27,8 +27,9 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition)
 ** 17   09/Mar/2026 Moin Bloch		    Updated OutGoingPartDescription PN-15681 
 ** 18   29/05/2026  Ayushi Patel        [PN-16636]Strip time portion from CSN, CSO fields (remove ':00' suffix)
+	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
-
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
@@ -116,7 +117,7 @@ BEGIN
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN CASE WHEN LEN(UPPER(imtr.PartDescription)) > 15 then LEFT(UPPER(imtr.PartDescription), 15) + '...' else  UPPER(imtr.PartDescription) END ELSE CASE WHEN LEN(UPPER(imt.PartDescription)) > 15 then LEFT(UPPER(imt.PartDescription), 15) + '...' else  UPPER(imt.PartDescription) END  END AS PNDesc,			
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
-			UPPER(wop.ACTailNum) as ACTailNum,  
+			UPPER(wop.ACTailNum) as ACTailNum,              
 			wop.TSN as TSN,              
 			CASE WHEN CHARINDEX(':', ISNULL(wop.CSN, '')) > 0 THEN LEFT(wop.CSN, CHARINDEX(':', wop.CSN) - 1) ELSE wop.CSN END AS CSN,
 			wop.TSO as TSO,              
@@ -209,8 +210,8 @@ BEGIN
 			   on nhatae.MappingItemMasterId = imtt.ItemMasterId              
 			   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 			   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
-			   FOR XML PATH('')              
-			   ), 1, 1, '')     
+			   AND ISNULL(imtt.IsNonStock,0) = 0
+			   FOR XML PATH('')), 1, 1, '')     
 			   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
 			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter ,
 			   ISNULL(rc.CustReqCertType,'') AS CustReqCertType
@@ -229,9 +230,11 @@ BEGIN
 			LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId              
 			LEFT JOIN [dbo].[Countries] shipToCountry WITH(NOLOCK) ON shipToAddress.CountryId = shipToCountry.countries_id              
 			LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId              
-			LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = wop.RevisedItemmasterid            
-			LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = wop.WorkOrderPriorityId              
-			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId              
+			 AND ISNULL(imt.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = wop.RevisedItemmasterid            
+			 AND ISNULL(imtr.IsNonStock,0) = 0
+			  LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = wop.WorkOrderPriorityId              
+			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0             
 			LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = wop.TechnicianId              
 			LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId              
 			LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
@@ -240,7 +243,8 @@ BEGIN
 			--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
 			LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 			LEFT JOIN [dbo].[ItemMaster] rimt WITH(NOLOCK) ON rimt.ItemMasterId = wosc.RevisedPartId    
-			LEFT JOIN [dbo].[WorkOrderSettings] wost WITH(NOLOCK) ON wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
+			 AND ISNULL(rimt.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[WorkOrderSettings] wost WITH(NOLOCK) ON wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 			WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId) Result  
 			
 			SELECT 	@Address1 = shipToAddressLine1, @Address2 = shipToAddressLine2, @City = shipToAddressCity, @StateOrProvince = shipToAddressStateOrProvince, @PostalCode = shipToAddressPostalCode,

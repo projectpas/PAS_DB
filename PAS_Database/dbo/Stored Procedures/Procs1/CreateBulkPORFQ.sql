@@ -1,12 +1,13 @@
-﻿
-/***************************************************************************************************************************************             
+﻿/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1   	
-	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
-	3    20/04/2026				 RAJESH GAMI						UOM Decimal changes [PN-16131]
+	1    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
+	2    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 ****************************************************************************************************************************************/ 
 CREATE      PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
@@ -75,8 +76,8 @@ BEGIN
     [Priority] [nvarchar](max) NULL,    
     [ConditionId] [bigint] NULL,    
     [Condition] [varchar](256) NULL,    
-    [Quantity] [decimal](18,2) NULL,    
-    [UnitCost] [decimal](18,6) NULL,    
+    [Quantity] [decimal](18, 6) NULL,    
+    [UnitCost] [decimal](18, 6) NULL,    
     [VendorId] [bigint] NULL,    
     [VendorName] [varchar](100) NULL,    
     [VendorCode] [varchar](100) NULL,    
@@ -92,15 +93,19 @@ BEGIN
     [EstReceivedDate] [datetime2](7) NULL,    
     [StatusId] [int] NULL,    
     [WorkOrderMaterialsId] [bigint] NULL,    
-    [WorkOrderMaterialsKitId] [bigint] NULL    
+    [WorkOrderMaterialsKitId] [bigint] NULL,
+	[SalesOrderId] [bigint] NULL,
+	[SalesOrderPartId] [bigint] NULL,
+	[SONum] [varchar](250) NULL,
+	[SourceType] [varchar](10) NULL    
    )    
              
    INSERT INTO #BulkPORFQItemType ([ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority],[ConditionId], [Condition],     
    [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo],    
-   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId])    
+   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SalesOrderId,SalesOrderPartId,SONum,SourceType)    
    SELECT [ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority], [ConditionId], [Condition],     
-   [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo],     
-   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],@OpenStatusId,[WorkOrderMaterialsId],[WorkOrderMaterialsKitId] FROM @tbl_BulkPORFQDetailType;    
+   [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderId] ELSE NULL END , CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderNo] ELSE NULL END,     
+   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],@OpenStatusId,[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],CASE WHEN SalesOrderId > 0  THEN SalesOrderId ELSE NULL END,SalesOrderPartId,CASE WHEN SalesOrderId > 0  THEN SONum ELSE NULL END,SourceType FROM @tbl_BulkPORFQDetailType;    
       
    INSERT INTO #tempGroupByCount (VendorId) SELECT VendorId FROM #BulkPORFQItemType GROUP BY VendorId    
    Set @TotalRecord = (Select Count(*) from #BulkPORFQItemType)    
@@ -202,7 +207,7 @@ BEGIN
         [UOMId], [UnitOfMeasure],    
      [ManagementStructureId],    
      [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],    
-     NeedByDate,PromisedDate)    
+     NeedByDate,PromisedDate,SalesOrderId,SalesOrderNo)    
      --OUTPUT INSERTED.PurchaseOrderPartRecordId INTO @NewId(MyNewId)    
      SELECT    
       @NewPurchaseOrderRFQId, TYP.ItemMasterId,IM.partnumber, IM.PartDescription,    
@@ -217,7 +222,8 @@ BEGIN
      IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,    
      TYP.ManagementStructureId,    
      TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,    
-     cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)    
+     cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)  ,
+	 CASE WHEN ISNULL(SalesOrderId,0) = 0 THEN NULL ELSE SalesOrderId END,CASE WHEN ISNULL(SONum,'') = '' THEN NULL ELSE SONum END
      FROM #BulkPORFQItemType TYP    
      INNER JOIN dbo.ItemMaster IM on TYP.ItemMasterId = IM.ItemMasterId    
      LEFT JOIN dbo.Currency C on Im.PurchaseCurrencyId = C.CurrencyId    

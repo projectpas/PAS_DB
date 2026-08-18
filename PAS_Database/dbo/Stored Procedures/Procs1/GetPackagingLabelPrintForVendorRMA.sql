@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrintForVendorRMA]
  ** Author: unknown
  ** Description: 
@@ -8,14 +8,19 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date          Author		Change Description            
- ** --   --------      -------		--------------------------------          
-    1					unknown			Created
-	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
-
+ ** PR   Date          Author				Change Description            
+ ** --   --------      -------				--------------------------------          
+    1					unknown				Created
+	2	02/1/2024		AMIT GHEDIYA		added isperforma Flage for SO
+	3   07-07-2025      Moin Bloch			Changed Old To New Billing Table
+	4   09-06-2026      Priyansh Patel		UOM changes releted to qtyshipped [PN-16778]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7	10/07/2026		Nakul Chandigra		Renamed sopt.QtyToShip from QtyToShip to QtyPicked.
+	8	13/07/2026		Ayushi Patel		UOM Convertion [PN-17254]
+	9	29/07/2026		Divyesh Kathiriya   Fixed "QtyShipped" convert double time in UOM. [PN-17476]
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
+CREATE PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
 	@VendorRMAId bigint,
 	@PackagingSlipId bigint
 AS
@@ -29,23 +34,38 @@ BEGIN
 	    DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
-		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.VendorRMAId, sl.StockLineNumber, sop.Qty, sopt.QtyToShip as QtyPicked, 
-		imt.partnumber as PartNumber,imt.PartDescription, sopt.RMAPickTicketNumber,
-		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
-		so.RMANumber,uom.ShortName as UOM, 
-		(SELECT top 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS QtyShipped,
-		(SELECT top 1 NoOfContainer FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId
-		Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS NoOfContainer,
-		(SELECT top 1 InvoiceNo FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.VendorRMAId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0) AS InvoiceNo,
-		(SELECT top 1 InvoiceDate FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.VendorRMAId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0) AS InvoiceDate
+		SELECT 
+			SPB.PackagingSlipId, 
+			SPB.PackagingSlipNo, 
+			sopt.VendorRMAId, 
+			sl.StockLineNumber, 
+			--FORMAT(ISNULL(sop.Qty,0), 'N', 'en-us') AS Qty, 
+			FORMAT(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.PurchaseUnitOfMeasure,'') OR ISNULL(imt.StockUnitOfMeasure,'') = '' OR ISNULL(imt.PurchaseUnitOfMeasure,'') = '' THEN ISNULL(sop.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(sop.Qty,0),imt.StockUnitOfMeasure,imt.PurchaseUnitOfMeasure,0,imt.MasterCompanyId) END,'N','en-us') AS Qty,
+			--FORMAT(ISNULL(sopt.QtyToShip,0), 'N', 'en-us') AS QtyPicked,
+			FORMAT(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.PurchaseUnitOfMeasure,'') OR ISNULL(imt.StockUnitOfMeasure,'') = '' OR ISNULL(imt.PurchaseUnitOfMeasure,'') = '' THEN ISNULL(sopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopt.QtyToShip,0),imt.StockUnitOfMeasure,imt.PurchaseUnitOfMeasure,0,imt.MasterCompanyId) END,'N','en-us') AS QtyPicked,
+			imt.partnumber as PartNumber,
+			imt.PartDescription, 
+			sopt.RMAPickTicketNumber,
+			sl.SerialNumber, 
+			sl.ControlNumber, 
+			sl.IdNumber, 
+			co.[Description] as ConditionDescription,
+			so.RMANumber,uom.ShortName as UOM,
+			FORMAT(ISNULL((SELECT TOP 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) WHERE SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId), 0), 'N', 'en-us') AS QtyShipped,
+			--FORMAT(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.PurchaseUnitOfMeasure,'') OR ISNULL(imt.StockUnitOfMeasure,'') = '' OR ISNULL(imt.PurchaseUnitOfMeasure,'') = '' THEN ISNULL((SELECT TOP 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) WHERE SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId),0) ELSE dbo.fn_ConvertUOM(ISNULL((SELECT TOP 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) WHERE SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId),0),imt.StockUnitOfMeasure,imt.PurchaseUnitOfMeasure,0,imt.MasterCompanyId) END,'N','en-us') AS QtyShipped,
+			(SELECT top 1 NoOfContainer FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId
+					Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS NoOfContainer,
+			(SELECT top 1 InvoiceNo FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.VendorRMAId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0) AS InvoiceNo,
+			(SELECT top 1 InvoiceDate FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.VendorRMAId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0) AS InvoiceDate
 		FROM dbo.RMAPickTicket sopt WITH(NOLOCK)
 		LEFT JOIN DBO.VendorRMAPackaginSlipItems SPI WITH(NOLOCK) ON sopt.RMAPickTicketId = SPI.RMAPickTicketId AND SPI.VendorRMADetailId = sopt.VendorRMADetailId
 		LEFT JOIN DBO.VendorRMAPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.RMAShippingItem SSI WITH(NOLOCK) ON SSI.RMAPickTicketId = sopt.RMAPickTicketId
 		INNER JOIN dbo.VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN dbo.VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
-		LEFT JOIN  dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN  dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN  dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
+		 AND ISNULL(imt.IsNonStock,0) = 0
 		LEFT JOIN  dbo.Condition co WITH(NOLOCK) on co.ConditionId = sl.ConditionId
 		LEFT JOIN  dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.RMAShippingItem SOSI WITH(NOLOCK) ON SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId

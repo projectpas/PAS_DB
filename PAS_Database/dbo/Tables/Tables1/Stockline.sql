@@ -175,7 +175,7 @@
     [IsLotAssigned]                       BIT             NULL,
     [LOTQty]                              DECIMAL (18, 6) NULL,
     [LOTQtyReserve]                       DECIMAL (18, 6) NULL,
-    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [OriginalCost]                        DECIMAL (18, 6) NULL,
     [POOriginalCost]                      DECIMAL (18, 6) NULL,
     [ROOriginalCost]                      DECIMAL (18, 6) NULL,
     [VendorRMAId]                         BIGINT          NULL,
@@ -247,11 +247,18 @@
     [AircraftInstalledPartDetailsId]      BIGINT          NULL,
     [AircraftSN]                          VARCHAR (30)    NULL,
     [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_Stockline_IsReadyReleaseForm] DEFAULT ((0)) NULL,
-    [TotalTSN]                            DECIMAL (18, 2) NULL,
-    [TotalCSN]                            DECIMAL (18, 2) NULL,
+    [TotalTSN]                            DECIMAL (18, 6) NULL,
+    [TotalCSN]                            DECIMAL (18, 6) NULL,
     [TotalTSNMM]                          DECIMAL (18, 6) NULL,
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
     [Model]                               VARCHAR (200)   NULL,
+    [Note]                                NVARCHAR (MAX)  NULL,
+    [IsNonStock]                          BIT             NULL,
+    [Currency]                            VARCHAR (100)   NULL,
+    [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
+    [IsService]                           BIT             CONSTRAINT [DF_Stockline_IsService] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -268,6 +275,14 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
+
+
+
+
+
+
 
 
 
@@ -380,9 +395,9 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
         BEGIN
             SET NOCOUNT ON;
             ;WITH
-            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[StockUnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QuantityReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QuantityIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[Memo],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted],d.[AircraftTailNumber], d.[AircraftSN] FROM deleted d),
-            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[StockUnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QuantityReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QuantityIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[Memo],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted],i.[AircraftTailNumber], i.[AircraftSN] FROM inserted i),
-
+            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[StockUnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QuantityReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QuantityIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[Memo],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted],d.[AircraftTailNumber], d.[AircraftSN], d.[Note] FROM deleted d),
+            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[StockUnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QuantityReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QuantityIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[Memo],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted],i.[AircraftTailNumber], i.[AircraftSN], i.[Note] FROM inserted i),
+             
             paired AS (
                 SELECT
                     COALESCE(i.StockLineId, d.StockLineId ) AS StockLineId,
@@ -483,3 +498,89 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL));
         END;
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPart_Date]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPart_CreatedDate]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_Date]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPart_CreatedDate]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy]);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): IsCustomerStock moved from key into INCLUDE,
+-- and IsNonStock added to INCLUDE, so non-stock stocklines are covered by this index too.
+CREATE NONCLUSTERED INDEX [IX_Stockline_StockReport]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [GLAccountId], [IsNonStock], [IsCustomerStock], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityReserved], [QuantityAvailable], [Quantity]);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): added IsNonStock to INCLUDE.
+CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
+    ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([IsNonStock], [CreatedDate]);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (RepairOrderPartRecordId lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate], [RepairOrderUnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (RepairOrderPartRecordId + IsNonStock + CreatedDate lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ROPartRec_Created_Perf]
+    ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [RepairOrderUnitCost], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (PurchaseOrderPartRecordId lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([IsNonStock], [PartNumber], [PNDescription], [CreatedBy], [CreatedDate]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (PurchaseOrderPartRecordId + IsNonStock + CreatedDate lookups).
+CREATE NONCLUSTERED INDEX [IX_Stockline_POPartRec_Created_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderPartRecordId] ASC, [IsNonStock] ASC, [CreatedDate] ASC)
+    INCLUDE([PartNumber], [PNDescription], [CreatedBy], [StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (CreatedDate + RepairOrderPartRecordId ordering).
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_ROPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): performance index rebuild (CreatedDate + PurchaseOrderPartRecordId ordering).
+CREATE NONCLUSTERED INDEX [IX_Stockline_Created_POPartRec_Perf]
+    ON [dbo].[Stockline]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+-- Ported from BETA for PN-17009 (2026-08-13): new index added in BETA to support reporting
+-- queries (Stock + Non-Stock) filtered by MasterCompanyId/IsParent/isDeleted/CreatedDate.
+CREATE NONCLUSTERED INDEX [IX_Stockline_Report]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [PurchaseOrderId], [RepairOrderId], [VendorId], [CustomerId], [GLAccountId], [IsCustomerStock], [IsNonStock]);
+

@@ -16,12 +16,14 @@
  ** --   --------     -------		--------------------------------              
 	1    24/08/2023  Moin Bloch     Created
 	2    28/08/2023  Moin Bloch     ADDED Labor ACCOUNTING BATCH
-	3    25/09/2024	 AMIT GHEDIYA	Added for AutoPost Batch
-	4	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
-	5	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	3	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	4    25/09/2024	 AMIT GHEDIYA	Added for AutoPost Batch
+	5	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	6	 13/01/2025  Devendra Shekh Modify (StockLine GL selection Changes)
 	7	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	8    17/Mar/2026  Rajesh Gami	Added UOM Changes [PN-15714]
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(ITM.IsNonStock,0) = 0 filter to the SubWorkOrderMaterialStockLine/ItemMaster piece lookup
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
@@ -164,6 +166,7 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SWO.ItemMasterId = ITM.ItemMasterId			  
 			  WHERE SWO.[SubWorkOrderId] = @ReferenceId AND SWO.[SubWOPartNoId] = @partId
 			  
+			 AND ISNULL(ITM.IsNonStock,0) = 0
 			IF(UPPER(@DistributionCode) = UPPER('WOMATERIALGRIDTAB'))
 			BEGIN
 				SELECT @LastMSLevel = [LastMSLevel],
@@ -717,7 +720,7 @@ BEGIN
 						   @PiecePN = ITM.[partnumber]
 					 FROM [dbo].[SubWorkOrderMaterialStockLine] SMS WITH(NOLOCK)
 					 INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SMS.[ItemMasterId] = ITM.[ItemMasterId]				 
-					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId;				
+					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId AND ISNULL(ITM.IsNonStock,0) = 0 ;
 				 				 				 
 					SELECT TOP 1 @DistributionSetupId = [ID],
 				             @DistributionName = [Name],

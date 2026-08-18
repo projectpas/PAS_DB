@@ -15,10 +15,13 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    27-Mar-2026  Bhargav Saliya		CREATED	
+    1    27-Mar-2026  Bhargav Saliya		CREATED
 	2    22/06/2026   Amit Ghediya		    Adding TTSN H/M & TCSN H/M [PN-16533]
- 
-EXEC [dbo].[USP_GetAircraftRegistryHeaderDetails] 61501 ,10242  
+	3    25/06/2026	  Amit Ghediya			Added Description,Hobbs [PN-17000]
+	4    01/07/2026   Amit Ghediya		   Update for Engine data  [PN-17075]
+	5    20/07/2026   Amit Ghediya		   Added filter params for SLNum/CntrlNum/Cond/Site/Warehouse/Location [PN-17344]
+
+EXEC [dbo].[USP_GetAircraftRegistryHeaderDetails] 61501 ,10242
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetAircraftRegistryHeaderDetails]
 (
@@ -26,7 +29,7 @@ CREATE    PROCEDURE [dbo].[USP_GetAircraftRegistryHeaderDetails]
 	@MasterCompanyId BIGINT
 )
 AS
-BEGIN 
+BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON
 	BEGIN TRY
@@ -58,9 +61,21 @@ BEGIN
 				AR.MaintenanceStatus,
 				AR.MasterCompanyId,
 				AR.Memo,
-				AR.AircraftRegistryNumber
-			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK) 
-			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
+				AR.AircraftRegistryNumber,
+				AR.[Description],
+				AR.EngineRegistryIds,
+				STK.StockLineNumber AS SLNum,
+				STK.ControlNumber AS CntrlNum,
+				STK.Condition AS Cond,
+				SITE.[Name] AS Site,
+				WH.[Name] AS Warehouse,
+				LOC.[Name] AS Location
+			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK)
+			LEFT JOIN dbo.[Stockline] STK WITH(NOLOCK) ON AR.StockLineId = STK.StockLineId
+			LEFT JOIN dbo.[Site] SITE WITH(NOLOCK) ON STK.SiteId = SITE.SiteId
+			LEFT JOIN dbo.[Warehouse] WH WITH(NOLOCK) ON STK.WarehouseId = WH.WarehouseId
+			LEFT JOIN dbo.[Location] LOC WITH(NOLOCK) ON STK.LocationId = LOC.LocationId
+			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId
 		END
 	COMMIT  TRANSACTION
 	END TRY

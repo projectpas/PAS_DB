@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
@@ -24,13 +24,13 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 13	04/24/2025		Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 ** 14	02/02/2026		HEMANT SALIYA     Modify to Get Stockline unit cost from stockline insted of Work Order materials stockline so, latest cost will reflacts
    15   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
-** 15   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
+** 16   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
+** 17   23/06/2026      Moin Bloch	      Added Teardown WO Issue Accounting Entry
+	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	19    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @MPNPartnumber ItemMaster lookup
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
-
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
-
 EXEC dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
-
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(4226,3748,16233,179044,318,7,1,10,2,N'NE',N'100865',N'BATTERY POWER SUPPLY',1,0,0,1,0,0,N'CNTL-000614',N'ID_NUM-000001',N'STL000073',N'',N'ADMIN User',1,0,0,0,0,0)
 exec dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
@@ -116,6 +116,7 @@ BEGIN
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @CustomerWOTypeId INT= 0;
 					DECLARE @InternalWOTypeId INT= 0;
+					DECLARE @TeardownWOTypeId INT= 0;
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
@@ -248,6 +249,7 @@ BEGIN
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
+					SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Teardown'
 
 					PRINT 'Hem-1'
 
@@ -487,7 +489,7 @@ BEGIN
 						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @HistoryWorkOrderMaterialsId;
 						SELECT @WorkOrderPartNoId = WorkOrderPartNoId,@historyWorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 						SELECT @ItemMasterId = ItemMasterId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
-						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
+						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 						SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @historyWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;
@@ -505,7 +507,7 @@ BEGIN
 						SET @OldValue= '';
 						SET @NewValue= 'ISSUED PARTS';
 
-						PRINT 'Hem-6'
+						
 						
 						IF @KITID = 0
 						BEGIN
@@ -517,27 +519,31 @@ BEGIN
 						EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
-						BEGIN
-							PRINT '7'
+						BEGIN							
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
-							BEGIN
-								PRINT '7.1.1'
+							BEGIN								
 								 INSERT INTO @WOBatchTriggerType VALUES
 								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
-							END
-							PRINT '7.1'
+							END							
 						END
 
 						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
-						BEGIN
-							PRINT '8'
+						BEGIN							
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								INSERT INTO @IWOBatchTriggerType VALUES
 								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
-							END
-							PRINT '8.1'
+							END							
 						END
+
+						IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+						BEGIN							
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+							BEGIN								
+								 INSERT INTO @WOBatchTriggerType VALUES
+								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
+							END							
+						END						
 
 						SET @slcount = @slcount + 1;
 					END;
@@ -552,23 +558,27 @@ BEGIN
 					EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrictNew OUTPUT, @IsAccountByPassNew OUTPUT;
 
 					IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
-					BEGIN
-						PRINT '9'
+					BEGIN						
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
-						END
-						PRINT '9.1'
+						END						
 					END
 
 					IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
-					BEGIN
-						PRINT '10'
+					BEGIN						
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
-						END
-						PRINT '10.1'
+						END						
+					END
+
+					IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
+					BEGIN						
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+						BEGIN
+							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+						END						
 					END
 					/*** Same JE Changes : End ***/
 

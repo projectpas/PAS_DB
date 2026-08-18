@@ -15,6 +15,7 @@
     1    17/03/2025   Ayushi Patel     Created
 	2    03/07/2025   Moin Bloch       Changed Old To New Billing Table
   	3    31/Mar/2026  Rajesh Gami		UOM Changes [PN-15741]   
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     USP_WorkOrderAnalysisForShippingARbalance 8473 , 8128
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
@@ -93,6 +94,7 @@ BEGIN
         INNER JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON wop.WorkOrderStatusId = st.Id  
         WHERE wo.WorkOrderId = @WorkOrderId  
           AND woc.WOPartNoId = @WorkOrderPartNoId  
+         AND ISNULL(im.IsNonStock,0) = 0
         ORDER BY wop.ID;  
 
         -- Drop the temporary table after usage

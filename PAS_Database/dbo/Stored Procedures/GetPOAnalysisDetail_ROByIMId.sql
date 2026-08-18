@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.GetPOAnalysisDetail_ROByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Detail By Item Master Id (RO Stock)
@@ -14,9 +14,11 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
+-- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
     1    21-AUG-2024      Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price
-
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_ROByIMId] 
 @PageNumber int = 1,
@@ -129,7 +131,7 @@ BEGIN
 			0 as 'isPurchaseOrder'
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
-			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
+			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId AND ISNULL(POP.IsPiecePart,0) = 0
 			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId  AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.RepairOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
@@ -151,7 +153,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0) as a
 
 		SELECT *
 			 INTO #tmpFinalAnalysisResult FROM (SELECT DISTINCT vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,SUM(qtys) as qty,

@@ -17,6 +17,8 @@
     1    12-Oct-2023		HEMANT SALIYA		Created
 	2    15-DEC-2023		Ayesha Sultana		BugFix - View Inventory in add/edit work order
     3    11-Mar-2026		RAJESH GAMI			Get Stock Unit Od Measure [PN-14832]
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [SearchItemMasterByCustomerRestrictionFromWO] 3, 12, 2461,1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
@@ -89,8 +91,8 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					)
+					AND ISNULL(I.IsNonStock,0) = 0
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -105,7 +107,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -114,6 +116,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
+				 AND ISNULL(im.IsNonStock,0) = 0
 				GROUP BY
 					im.PartNumber
 					,im.StockUnitOfMeasureId

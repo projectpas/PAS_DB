@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -25,8 +25,10 @@
 	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
 	13   10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	14   14/10/2025   Moin Bloch     Updated For Type Wise Order
-	
-
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	17   10/07/2026   Priyansh Patel Added missing IsFromLogBook field  [PN-17081]
+	18   13/08/2026   Rajesh Gami    [PN-17008] - Merge Non Stock Item Master to ItemMaster : Added missing ISNULL(ims.IsNonStock,0) = 0 filter on ItemMaster (RevisedItemmasterid) join in the @ReleaseFromId branch to match the @ReleaseFromId=0 branch
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
 
@@ -116,11 +118,14 @@ BEGIN
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 					  ,wro.[VersionNo]
 					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
+					   ,0 AS [IsFromLogBook]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
+							  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+							   AND ISNULL(im.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
+							   AND ISNULL(ims.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = @WorkOrderSettlementId
 				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -188,17 +193,19 @@ BEGIN
 					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
-					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
-					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
+						  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
+					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
+						   AND ISNULL(im.IsNonStock,0) = 0
+					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid
+						   AND ISNULL(ims.IsNonStock,0) = 0
 					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = @WorkOrderSettlementId
 				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
-					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
+					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
-				WHERE wro.[WorkOrderId]=@WorkorderId 
-				  AND wro.[workOrderPartNoId] =@workOrderPartNoId 
-				  AND wro.[ReleaseFromId] = @ReleaseFromId				 
+				WHERE wro.[WorkOrderId]=@WorkorderId
+				  AND wro.[workOrderPartNoId] =@workOrderPartNoId
+				  AND wro.[ReleaseFromId] = @ReleaseFromId
 				  ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
 				END
 		END TRY    

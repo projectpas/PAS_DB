@@ -18,8 +18,16 @@
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
 	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
-
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9328,10
+	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	10   25/06/2026    Bhargav saliya   Get Consume UOM
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12   08/07/2026    Bhargav saliya   did formatting for billing amount 
+	13    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
+	15   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
+	16    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	17    11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -73,24 +81,26 @@ BEGIN
 					  THEN SUBSTRING(ISNULL(stock.Notes, sop.Notes), 4, LEN(ISNULL(stock.Notes, sop.Notes)) - 7)
 					  ELSE ISNULL(stock.Notes, sop.Notes)
 					END,
-					UOM = UPPER(im.PurchaseUnitOfMeasure),
+					UOM = UPPER(im.ConsumeUnitOfMeasure),
 					Cond = UPPER(c.Description),
-					QtyShipped = ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					QTYOnBACKOrder = ([dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)) - ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					UnitPrice = ([dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					Amount = ([dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
+					QtyShipped = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
+					QTYOnBACKOrder = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sop.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END) - (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
+					UnitPrice = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.UnitPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END),
+					Amount = ISNULL(BII.PartCost, 0),
 					StockLineId = sl.StockLineId,
 					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
 					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,
 					UPPER(ISNULL(sl.StockLineNumber,''))StockLineNumber,
 					UPPER(ISNULL(sl.ControlNumber,''))ControlNumber,
 					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
-					ShipViaDetails = CASE 
+					ISNULL(im.IsNonStock, 0) AS IsNonStock,
+					ISNULL(im.IsService, 0) AS IsService,
+					ShipViaDetails = CASE
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), ''))), ', '
+													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), '0.00'))), ', '
 												) 
 												FROM DBO.SalesOrderFreight f WITH(NOLOCK)
 												WHERE f.SalesOrderId = so.SalesOrderId 
@@ -106,7 +116,7 @@ BEGIN
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													UPPER(ct.[ChargeType]) + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), ''), ',  '
+													UPPER(ct.[ChargeType]) + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), '0.00'), ',  '
 												)
 												FROM dbo.SalesOrderCharges c WITH(NOLOCK) INNER JOIN dbo.Charge ct  WITH(NOLOCK) ON c.ChargesTypeId = ct.ChargeId
 												WHERE c.SalesOrderId = so.SalesOrderId 
@@ -160,6 +170,8 @@ BEGIN
 						StockLineNumber,
 						ControlNumber,
 						IdNumber,
+						IsNonStock,
+						IsService,
 						ShipViaDetails,
 						MiscChargesDetails,
 						BillingInvoicingId,

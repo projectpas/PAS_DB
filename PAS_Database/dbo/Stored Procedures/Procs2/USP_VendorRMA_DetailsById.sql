@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Details
@@ -15,6 +15,10 @@
 	3    07-23-2024   Vishal Suthar			Added EnforcePickTicketConfirmation column
 	4    02-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
 	5    04-05-2026   Ayushi Patel          UOM Conversion for UnitCost [PN-16266]
+	6	 19/06/2026	  Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
@@ -62,9 +66,9 @@ BEGIN
 			      ,IM.[PartDescription]
 				  ,VD.[SerialNumber]
 				  ,CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END 'ReferenceNumber' 
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS Qty
-				  ,(([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) + ([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))) AS OriginalQty
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS Qty
+				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(SL.[QuantityAvailable],0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.[QuantityAvailable],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END + CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS OriginalQty
+				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[UnitCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[UnitCost],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END AS UnitCost
 				  ,VD.[ExtendedCost]
 				  ,VD.[VendorRMAReturnReasonId]
 				  ,RR.[Reason]
@@ -72,11 +76,23 @@ BEGIN
 				  ,RS.[VendorRMAStatus]
 				  ,VD.[VendorShippingAddressId]
 				  ,VD.[Notes]	
-				  ,(SELECT TOP 1 ISNULL(SUM(([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))), 0) FROM [dbo].[RMAShippingItem] SP WITH(NOLOCK)
-					INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
-					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]
-					INNER JOIN [dbo].[RMAShipping] RS ON SP.[RMAShippingId] = RS.[RMAShippingId] 
-					WHERE RS.[VendorRMAId] = @VendorRMAId AND SP.[VendorRMADetailId] = VD.[VendorRMADetailId]) AS [QtyShipped]	
+				  ,(SELECT TOP 1 
+					  ISNULL(
+						  SUM(
+							  CASE 
+								  WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'')
+									  THEN ISNULL(SP.[QtyShipped],0)
+								  ELSE dbo.fn_ConvertUOM(ISNULL(SP.[QtyShipped],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])
+							  END
+						  ),0
+					  )
+				  FROM [dbo].[RMAShippingItem] SP WITH(NOLOCK)
+				  INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
+				  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]
+				  INNER JOIN [dbo].[RMAShipping] RS ON SP.[RMAShippingId] = RS.[RMAShippingId]
+				  WHERE RS.[VendorRMAId] = @VendorRMAId
+					AND SP.[VendorRMADetailId] = VD.[VendorRMADetailId]
+				 ) AS [QtyShipped]
 			  FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 			  INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]	
@@ -84,7 +100,7 @@ BEGIN
 		      LEFT JOIN  [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 			  LEFT JOIN  [dbo].[VendorRMAReturnReason] RR WITH (NOLOCK) ON VD.[VendorRMAReturnReasonId] = RR.[VendorRMAReturnReasonId]
 			  LEFT JOIN  [dbo].[VendorRMAStatus] RS WITH (NOLOCK) ON VD.[VendorRMAStatusId] = RS.[VendorRMAStatusId]			   
-			  WHERE VD.[VendorRMAId] = @VendorRMAId;
+			  WHERE VD.[VendorRMAId] = @VendorRMAId ;
 		END	
 	END TRY
     BEGIN CATCH

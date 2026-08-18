@@ -7,6 +7,9 @@
  ** 1    06/19/2023   Amit Ghediya    Created
  ** 2    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
  ** 3    [today]      [Hemant]        Performance & readability optimization
+ ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	5    09/July/2026   RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** 6    13/Aug/2026   Rajesh Gami  [PN-17009] - Applied missing ISNULL(sl.IsNonStock,0) = 0 filter on StockLine join
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
     @VendorRMAId        BIGINT,
@@ -27,13 +30,17 @@ BEGIN
             sopt.IsConfirmed,
             sopt.ConfirmedDate,
             sopt.CreatedDate                                                AS PickedDate,
-            [dbo].[fn_ConvertUOM](
-                ISNULL(sopt.QtyToShip, 0),
-                im.StockUnitOfMeasure,
-                im.PurchaseUnitOfMeasure,
-                0,
-                im.MasterCompanyId
-            )                                                               AS QtyToShip,
+            CASE 
+                WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'')
+                    THEN ISNULL(sopt.QtyToShip,0)
+                ELSE [dbo].[fn_ConvertUOM](
+                        ISNULL(sopt.QtyToShip,0),
+                        im.StockUnitOfMeasure,
+                        im.PurchaseUnitOfMeasure,
+                        0,
+                        im.MasterCompanyId
+                     )
+            END AS QtyToShip,
             sl.SerialNumber,
             sl.StockLineNumber,
             sl.StockLineId,
@@ -42,17 +49,12 @@ BEGIN
             CONCAT(emp.FirstName,  ' ', emp.LastName)                       AS PickedBy,
             CONCAT(empy.FirstName, ' ', empy.LastName)                      AS ConfirmedBy
         FROM RMAPickTicket sopt WITH(NOLOCK)
-        INNER JOIN VendorRMADetail sop  WITH(NOLOCK) ON  sop.VendorRMAId       = sopt.VendorRMAId
-                                                     AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-        LEFT  JOIN StockLine sl         WITH(NOLOCK) ON  sl.StockLineId        = sop.StockLineId
-        INNER JOIN ItemMaster im        WITH(NOLOCK) ON  im.ItemMasterId       = sl.ItemMasterId
-        INNER JOIN Employee emp         WITH(NOLOCK) ON  emp.EmployeeId        = sopt.PickedById
-        LEFT  JOIN Employee empy        WITH(NOLOCK) ON  empy.EmployeeId       = sopt.ConfirmedById
-        WHERE
-            sopt.VendorRMAId       = @VendorRMAId
-            AND sopt.VendorRMADetailId = @VendorRMADetailId
-            AND sop.ItemMasterId       = @ItemMasterId
-            AND sl.ConditionId         = @ConditionId;
+		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+		LEFT JOIN ItemMaster im WITH(NOLOCK) on im.ItemMasterId = sop.ItemMasterId
+		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
+		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
+		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId
 
     END TRY
     BEGIN CATCH

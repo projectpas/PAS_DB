@@ -57,6 +57,11 @@
 	47   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 	48   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
 	49   21-May-2026        Bhargav Saliya          Fixed the parameter sequence issue and add and add case  @MaintenanceCategoryModule
+	50   11-June-2026       Nakul Chandigra         Added validation for RFQTraceability table.(PN-16803)
+	51   17-June-2026       Nakul Chandigra         Updated validation for ItemClassification Module  (PN-15952)
+	52    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	53	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
+	54   06-Aug-1016        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -73,7 +78,6 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "SalesCurrencyId": "USD",
   "SiteId": "MESA"
 }')					
-
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
 CREATE    PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
@@ -234,6 +238,8 @@ BEGIN
 		DECLARE @AircraftSectionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftSection');
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
+		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
+		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -252,6 +258,18 @@ BEGIN
 		DECLARE @UserExits INT, @UserFirstLastExits INT;
 		DECLARE @LegalEntityId BIGINT;
 		DECLARE @Level1Id INT;
+		DECLARE @ModuleName VARCHAR(50);
+		DECLARE @maxlength INT;
+
+		SET @ModuleName = (SELECT [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE ImportModuleId = @ModuleId)
+		CREATE TABLE #ColumnInfo
+		(
+			ColumnName   VARCHAR(128),
+			DataType     VARCHAR(50),
+			MaxLength    INT NULL
+		);
+		INSERT INTO #ColumnInfo (ColumnName, DataType, MaxLength)
+		EXEC [dbo].[USP_GetVarcharLength] @ModuleName
 
 		SET @EmployeeMSId  = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		--SET @DropdownListTable = QUOTENAME(@DropdownListTable);
@@ -391,7 +409,7 @@ BEGIN
 								SELECT COUNT(*)
 								FROM ItemMaster
 								WHERE UPPER(TRIM(partnumber)) = UPPER(TRIM(@DropdownLFieldValue))
-							) > 1
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ) > 1
 							BEGIN
 								SET @DropdownLFieldValue = CONCAT(@DropdownLFieldValue, ' - ', @wManufacturerId)
 							END
@@ -456,7 +474,7 @@ BEGIN
 									  AND ISNULL(IM.IsDeleted,0) = 0 
 									  AND ISNULL(IM.IsActive,0) = 1
 									  AND IM.MasterCompanyId = @MasterCompanyId
-							)
+							 AND ISNULL(IM.IsNonStock,0) = 0 )
 							BEGIN
 								-- Case 1: @ManufacturerId is actually a ManufacturerName
 								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
@@ -468,7 +486,7 @@ BEGIN
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
 								  AND IM.MasterCompanyId = @MasterCompanyId
-								  AND IM.ManufacturerName = @ManufacturerId;
+								  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							END
 							ELSE
 							BEGIN
@@ -481,7 +499,7 @@ BEGIN
 								  AND IMF.DropdownListValue = 'PartNumber'
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
-								  AND IM.MasterCompanyId = @MasterCompanyId;
+								  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							END
 
 							Update IMF SET IMF.DropdownListValueId = MNF.PartNumberId FROM #ImportFields IMF 
@@ -491,7 +509,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							
 					--  Check how many different manufacturers were found
 					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
@@ -848,52 +866,16 @@ BEGIN
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-												WHEN @ModuleId = @AircraftStatusModule 
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @MaintenanceStatusModule  
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @AircraftStatusModule 
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 100
-												THEN '‘Name’ exceeds 100 characters limit.'
-												WHEN @ModuleId = @MaintenanceStatusModule  
-													 AND IMF.FieldName = 'Description'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘Description’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @AircraftStatusModule  
-													 AND IMF.FieldName = 'Description'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘Description’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @MaintenanceTypeModule  
-													 AND IMF.FieldName = 'MaintenanceType'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 500
-												THEN '‘MaintenanceType’ exceeds 500 characters limit.'
-												WHEN @ModuleId = @MaintenanceClassModule  
-													 AND IMF.FieldName = 'Name'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 256
-												THEN '‘Name’ exceeds 256 characters limit.'
-												WHEN @ModuleId = @AircraftSectionModule  
-													 AND IMF.FieldName = 'Section'  
-													 AND ISNULL(TMP.FieldValue, '') <> ''
-													 AND LEN(TMP.FieldValue) > 256
-												THEN '‘Section’ exceeds 256 characters limit.'
-												
+												WHEN ISNULL(CI.MaxLength,0) > 0 
+													 AND ISNULL(TMP.FieldValue,'') <> '' 
+												     AND LEN(TMP.FieldValue) > CI.MaxLength
+												THEN '''' + IMF.HeaderName + ''' exceeds '+ CAST(CI.MaxLength AS VARCHAR(10))+ ' characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
 			FROM #ImportFields IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
+			LEFT JOIN #ColumnInfo CI ON CI.ColumnName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			
 			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule) 
@@ -952,6 +934,7 @@ BEGIN
 					BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 					END
 					SET @IsDuplicate = 0;
 					IF(@ModuleId=@StocklineModule)
@@ -1103,7 +1086,10 @@ BEGIN
 															THEN 'Entered Source Code Already Exists!'
 														WHEN @ModuleId = @StandardModule THEN 'Entered Standard Name Already Exits!'
 														WHEN @ModuleId = @ItemGroupModule THEN 'Entered Item Group Already Exits!'
-														WHEN @ModuleId = @ItemClassificationModule THEN 'Entered Classification Code Already Exits!'
+														WHEN @ModuleId = @ItemClassificationModule AND @ChekDuplticateRef1 = 'ItemClassificationCode'
+															THEN 'Entered Classification Code Already Exits!'
+														WHEN @ModuleId = @ItemClassificationModule AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Description Already Exits!'								
 														WHEN @ModuleId = @ManufacturerModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @ATAReferenceModule THEN 'Entered ATAReference Already Exits!'
 														WHEN @ModuleId = @ATAChapterModule THEN 'Entered Chapter Code Already Exits!'
@@ -1253,6 +1239,10 @@ BEGIN
 															THEN 'Entered Part And Condition Already Exits!'
 														WHEN @ModuleId = @MaintenanceCategoryModule
 															THEN 'Entered Maintenance Category Already Exits!'
+														WHEN @ModuleId = @RFQTraceabilityModule
+															THEN 'Entered Traceability Already Exits!'
+														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
+															THEN 'Entered Lease Type Already Exists!'	
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -1284,7 +1274,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted,0) = 0 
 						  AND ISNULL(IM.IsActive,0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-				)
+				 AND ISNULL(IM.IsNonStock,0) = 0 )
 				BEGIN
 					-- Case 1: @ManufacturerId is actually a ManufacturerName
 					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName, partnumber, PartNumberId)
@@ -1296,7 +1286,7 @@ BEGIN
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
 					  AND IM.MasterCompanyId = @MasterCompanyId
-					  AND IM.ManufacturerName = @ManufacturerId;
+					  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 				ELSE
 				BEGIN
@@ -1309,7 +1299,7 @@ BEGIN
 					  AND IMF.DropdownListValue = 'PartNumber'
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
-					  AND IM.MasterCompanyId = @MasterCompanyId;
+					  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 				
@@ -1320,7 +1310,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 							
 
 					--  Check how many different manufacturers were found
@@ -1444,7 +1434,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted, 0) = 0
 						  AND ISNULL(IM.IsActive, 0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-					)
+					 AND ISNULL(IM.IsNonStock,0) = 0 )
 					BEGIN
 						SET @ManufacturerName = @InputManufacturerName;
 					END
@@ -1457,6 +1447,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted, 0) = 0
 						  AND ISNULL(IM.IsActive, 0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
+						 AND ISNULL(IM.IsNonStock,0) = 0
 						ORDER BY IM.ManufacturerName ASC;
 					END
 

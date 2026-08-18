@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderBillingReport]             
  ** Author:       
  ** Description: Get Data for WorkOrderBillingReport  
@@ -26,11 +26,12 @@
 	10  20-June-2025	Devendra Shekh		Billing Table Changes
 	11  10-Nov-2025	    Moin Bloch			Updated Credit memo Amount Get From CreditMemoDetails
 	12  10-Nov-2025	    Moin Bloch			Updated Fix For Duplicate Credit Memo
-
-
+	13  17-Jun-2026	    Bhargav Saliya		Fixed Date Converation Issue as per selected time zone
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]
+CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]
 	@PageNumber INT = 1,
 	@PageSize INT = NULL,
 	@mastercompanyid INT,
@@ -60,7 +61,8 @@ BEGIN
 		  @Level9 VARCHAR(MAX) = NULL,  
 		  @Level10 VARCHAR(MAX) = NULL,  
 		  @IsDownload BIT = NULL,  
-		  @Status VARCHAR(50) = NULL  
+		  @Status VARCHAR(50) = NULL,
+		  @EmployeeId INT = NULL
 
 		  DECLARE @StkModuleID INT = 0; 
 		  SELECT @StkModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'STOCKLINE'
@@ -117,10 +119,21 @@ BEGIN
 		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,  
   
 		   @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
+		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end,  
+
+		   @EmployeeId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='employeeId'   
+		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @EmployeeId END
   
 			FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
   
+		  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		  SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
+		  FROM dbo.Employee E WITH (NOLOCK)
+			  LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			  LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			  LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		  WHERE E.EmployeeId = @EmployeeId;
+
 		   IF ISNULL(@PageSize,0)=0  
 		   BEGIN   
 			SELECT @PageSize=COUNT(*)  
@@ -160,7 +173,8 @@ BEGIN
 				 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				 AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
   
-		   SELECT @PageSizeCM=COUNT(*)  
+		    AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				  SELECT @PageSizeCM=COUNT(*)  
 			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
 				  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.[IsDeleted] = 0 AND CMD.[IsActive] = 1
 				  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
@@ -222,10 +236,16 @@ BEGIN
 			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBIM.GrandTotal,0) > 0 THEN ISNULL(WOBIM.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBIM.GrandTotal,0) > 0 THEN (ISNULL(WOBIM.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))) WHEN ISNULL(WOBIM.SubTotal,0) > 0 THEN ISNULL(WOBIM.SubTotal,0) ELSE ISNULL(WOBIM.UnitPrice,0) END END AS 'revenue',   
 			   UPPER(WOQ.QuoteNumber) 'quotenum',  
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
-			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
-			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 107) END 'invoicedate',   
+			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+					ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+			   END 'opendate', 
+			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+					ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+			   END 'invoicedate',   
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'quotedate',   
-			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 107) END 'quoteapprovaldate',   
+			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CASE WHEN CAST(WOQ.ApprovedDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOQ.ApprovedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+					ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WOQ.ApprovedDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOQ.ApprovedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+			   END 'quoteapprovaldate',   
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate',   
 			   CASE  
 				 WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)  
@@ -248,11 +268,12 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
 				LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
-				INNER JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WOModuleId
+				 AND ISNULL(RIM.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WOModuleId
 				INNER JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.SubReferenceId = WOPN.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId
 				LEFT JOIN [dbo].[WorkOrderShippingItem] AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.SubReferenceId  
 				LEFT JOIN [dbo].[WorkOrderShipping] AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId   
-				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1  
+				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0 
 				LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID  
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0  
 				LEFT JOIN [dbo].[WorkOrderType] WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
@@ -263,10 +284,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderStage] AS WTG WITH (NOLOCK) ON WOPN.WorkOrderStageId = WTG.WorkOrderStageId  
 				LEFT JOIN [dbo].[WorkOrderStatus] AS WTS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WTS.Id  
 				LEFT JOIN [dbo].[InvoiceStatus] AS IVS WITH (NOLOCK) ON WOBI.InvoiceStatus = IVS.Status  
-				LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
-				LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[TimeZone] TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-		   WHERE CAST((SELECT [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.[Description])) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)   
+		   WHERE CAST(WOBI.InvoiceDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)   
 				AND WO.customerid=ISNULL(@customername,WO.customerid)   
 				AND WO.mastercompanyid = @mastercompanyid  
 				AND WO.IsDeleted = 0 AND WO.IsActive = 1
@@ -283,7 +301,8 @@ BEGIN
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
       
-			UNION ALL  
+			 AND ISNULL(IM.IsNonStock,0) = 0
+				 UNION ALL  
   
 			SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,  
 				 CM.WorkOrderId,  
@@ -299,10 +318,19 @@ BEGIN
 				 ISNULL(CMD.Amount,0) 'revenue',   
 				 UPPER(WOQ.QuoteNumber) 'quotenum',  
 				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
-				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
-				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 107) END 'invoicedate',   
-				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'quotedate',   
-				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 107) END 'quoteapprovaldate',   
+				 CASE WHEN ISNULL(@IsDownload,0) = 0 
+				  THEN FORMAT(CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+				  ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+				 END 'opendate',
+				 CASE WHEN ISNULL(@IsDownload,0) = 0 
+				  THEN FORMAT(CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+				  ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+			     END 'invoicedate',
+				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'quotedate', 
+				 CASE WHEN ISNULL(@IsDownload,0) = 0 
+				  THEN FORMAT(CASE WHEN CAST(WOQ.ApprovedDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOQ.ApprovedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 'MM/dd/yyyy') 
+				  ELSE CONVERT(VARCHAR(50), CASE WHEN CAST(WOQ.ApprovedDate AS DATE) = CAST('0001-01-01' AS DATE) THEN NULL ELSE CAST(DBO.ConvertUTCtoLocal(WOQ.ApprovedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END, 107) 
+			     END 'quoteapprovaldate',
 				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate',  
 				 CASE  
 				   WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)  

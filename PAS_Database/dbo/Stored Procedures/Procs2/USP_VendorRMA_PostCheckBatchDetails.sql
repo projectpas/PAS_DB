@@ -31,9 +31,11 @@
 	15	 06/02/2025	  Abhishek Jirawla		Fixed Name concat read script
 	16   06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
 	17   03-06-2026   Priyansh Patel		Fixed the issue with the Extended Cost [PN-16610]
+	18   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+	19	 06/07/2026	  Moin Bloch            Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
+CREATE     PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
 (
 	@VendorRMADetailId BIGINT,
 	@VendorRMAId BIGINT,
@@ -102,6 +104,7 @@ BEGIN
 		DECLARE @VENDORRMAPRODUCTREPLACEDReferenceModule VARCHAR(100) = 'VENDOR-RMA-PRODUCT-REPLACED';
 		DECLARE @ReferenceModule VARCHAR(100) = '';
 		DECLARE @InventoryGLAccId BIGINT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;		
 
 		--SET @DistributionCodeName = 'VendorRMA';
 
@@ -136,7 +139,7 @@ BEGIN
 			SET @tmpVendorRMADetailId = @VendorRMADetailId;
 			SELECT @VendorRMADetailId = VCM.VendorRMADetailId, 
 			       @VendorRMAId = VCM.VendorRMAId,
-				   @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId])),0), 
+				   @ExtAmount = ISNULL((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VCM.ApplierdAmt ELSE [dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0),
 				   @VendorCreditMemoId = VCM.VendorCreditMemoId
 			FROM [DBO].[VendorCreditMemoDetail] VCM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[VendorRMADetail] VRM WITH(NOLOCK) ON VRM.VendorRMADetailId = VCM.VendorRMADetailId
@@ -148,7 +151,9 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId])),0),@VendorCreditMemoId = VRM.VendorRMAId 
+			SELECT 
+			@ExtAmount = ISNULL((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VRM.ExtendedCost ELSE [dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0)
+			,@VendorCreditMemoId = VRM.VendorRMAId 
 			FROM [DBO].[VendorRMADetail] VRM WITH(NOLOCK) 
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = VRM.ItemMasterId 
 			WHERE  VRM.VendorRMADetailId = @VendorRMADetailId;
@@ -309,9 +314,11 @@ BEGIN
 				 -----Account Payable--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMASC-AP' AND MasterCompanyId= @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -334,13 +341,15 @@ BEGIN
 					
 					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Account Payable--------
 
 				 -----Purchase Return/Inventory--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType,
+				 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMASC-PI' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 				 				 
 				 --GET STOCKLINE GLACCOUNT.
@@ -356,6 +365,8 @@ BEGIN
 				 WHERE [GLAccountId] = @InventoryGLAccId
 				 AND [MasterCompanyId] = @MasterCompanyId;
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -378,6 +389,7 @@ BEGIN
 			
 					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Purchase Return/Inventory--------
 			END
@@ -386,9 +398,12 @@ BEGIN
 				-----Account Payable--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
+				 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMACA-AP' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -411,14 +426,18 @@ BEGIN
 
 					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Account Payable--------
 				 -----Account Receivabes Other--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType,
+				 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMACA-ART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -441,6 +460,7 @@ BEGIN
 			
 					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Account Payable--------
 			END
@@ -450,9 +470,12 @@ BEGIN
 				-----Inventory - Parts--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType,
+				 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMAPR-IP' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -475,15 +498,19 @@ BEGIN
 			
 					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Inventory - Parts--------
 
 				 -----Account Payable--------
 
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType,
+				 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMAPR-AP' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -506,6 +533,7 @@ BEGIN
 			
 					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
+				 END
 					-- @VendorRMAId
 				 -----Account Payable--------
 			END

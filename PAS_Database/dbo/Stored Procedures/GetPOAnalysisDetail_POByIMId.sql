@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.GetPOAnalysisDetail_POByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Detail By Item Master Id
@@ -16,8 +16,11 @@
  ** --   --------         -------          --------------------------------            
     1    21-AUG-2024      Rajesh Gami       Created  
     2    08-JUNE-2026     Priyansh Patel    uom changes [PN-16756]
-
-**************************************************************/  
+    3	 18/06/2026	      Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    5    09/July/2026     Rajesh Gami       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+**************************************************************/
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_POByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
@@ -136,28 +139,26 @@ BEGIN
             LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
             LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
             CROSS APPLY (
-                SELECT 
-                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
-                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, PO.MasterCompanyId), 2) AS unitCost
+                SELECT
+                    ROUND(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(STK.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.Quantity,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,PO.MasterCompanyId) END, 2) AS qty,
+                    ROUND(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(STK.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,1,PO.MasterCompanyId) END, 2) AS unitCost
             ) AS calc
-        WHERE ISNULL(PO.IsDeleted,0) = 0 
-            AND ISNULL(STK.IsParent,0) = 1
-            AND PO.VendorId = ISNULL(@vendorId, PO.VendorId)
-            AND STK.ItemMasterId = ISNULL(@selectedItemMasterId, STK.ItemMasterId)
-            AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE)
-            AND PO.MasterCompanyId = @mastercompanyid
-            AND (ISNULL(@conditionIds,'') = '' OR STK.ConditionId IN (SELECT value FROM STRING_SPLIT(ISNULL(@conditionIds,''), ',')))
-            AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',')))
-            AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',')))
-            AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,  ',')))
-            AND (ISNULL(@Level4,'')  = '' OR MSD.Level4Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,  ',')))
-            AND (ISNULL(@Level5,'')  = '' OR MSD.Level5Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,  ',')))
-            AND (ISNULL(@Level6,'')  = '' OR MSD.Level6Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,  ',')))
-            AND (ISNULL(@Level7,'')  = '' OR MSD.Level7Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,  ',')))
-            AND (ISNULL(@Level8,'')  = '' OR MSD.Level8Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,  ',')))
-            AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,  ',')))
-            AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
-        ) AS a
+		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
+				PO.VendorId=ISNULL(@vendorId,PO.VendorId)    AND stk.ItemMasterId = ISNULL(@selectedItemMasterId,stk.ItemMasterId)  -- POP.ItemMasterId = ISNULL(@selectedItemMasterId,POP.ItemMasterId)
+					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
+					AND (ISNULL(@conditionIds,'')='' OR Stk.ConditionId IN(SELECT value FROM String_split(ISNULL(@conditionIds,''), ',')))
+					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+					AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+					AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+					AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+					AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+					AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
+		 ) as a
 
 		--Select * from #TempPOAnalysisTbl
 		SELECT *

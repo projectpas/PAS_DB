@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchShippingDashboardData]
  ** Author: unknown
  ** Description: 
@@ -13,8 +13,11 @@
 	1    11/04/2024	   Vishal Suthar		Modified to make use of new SO Part tables
 	2    04-15-2025	   Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 	3    14-May-2025   Divyesh Kathiriya	Added AWB Field. [PN-16424]
-	4    03-Jun-2026   Sumit Kumar      Added RO and Vendor RMA shipping entries to dashboard
-
+	4    03-Jun-2026   Sumit Kumar          Added RO and Vendor RMA shipping entries to dashboard
+	5	 24/06/2026    Ayushi Patel         [PN-16963]UOM Changes 
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
 											@Status=NULL,@timeHrs=NULL,@RefNumber=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=212,@QtyShipped=NULL,@QtyRemaining=NULL,@AirwayBill=N''
@@ -95,8 +98,19 @@ BEGIN
 						--'Ready to ship' as'Status',
 						CASE WHEN ISNULL(WOSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as'Status',
 						Max(wopt.ConfirmedDate) as timeHrs,
-						ISNULL(WOSI.QtyShipped,0) AS QtyShipped,
-						ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0)  AS QtyRemaining,
+						--ISNULL(WOSI.QtyShipped,0) AS QtyShipped,
+						--ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0)  AS QtyRemaining,
+						CASE 
+							WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'')
+								THEN ISNULL(WOSI.QtyShipped,0)
+							ELSE [dbo].[fn_ConvertUOM](ISNULL(WOSI.QtyShipped,0), imt.StockUnitOfMeasure, imt.ConsumeUnitOfMeasure, 0, imt.MasterCompanyId)
+						END AS QtyShipped,
+
+						CASE 
+							WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'')
+								THEN ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0)
+							ELSE [dbo].[fn_ConvertUOM](ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0), imt.StockUnitOfMeasure, imt.ConsumeUnitOfMeasure, 0, imt.MasterCompanyId)
+						END AS QtyRemaining,
 						wo.CreatedDate AS CreatedDate,
 						WOS.AirwayBill AS AirwayBill
 					    FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
@@ -111,7 +125,7 @@ BEGIN
 						--and wop.ID not in(SELECT WorkOrderPartNumId FROM DBO.WorkOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
 						GROUP BY wopt.PickTicketId,wo.CustomerId,wo.WorkOrderNum,imt.partnumber,
-						imt.PartDescription,wop.WorkOrderId,wop.ID,WOSI.QtyShipped,wop.Quantity,wo.CreatedDate,WOS.AirwayBill
+						imt.PartDescription,wop.WorkOrderId,wop.ID,WOSI.QtyShipped,wop.Quantity,wo.CreatedDate,WOS.AirwayBill, imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,imt.MasterCompanyId
 				UNION
 				SELECT  sop.SalesOrderId as RefId,
 						sop.SalesOrderPartId as RefPartId,
@@ -129,8 +143,19 @@ BEGIN
 						--'Ready to ship' as'Status',
 						CASE WHEN ISNULL(SOSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as'Status',
 						Max(sopt.ConfirmedDate) as timeHrs,
-						ISNULL(SOSI.QtyShipped,0) AS QtyShipped,
-						ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0)  AS QtyRemaining,
+						--ISNULL(SOSI.QtyShipped,0) AS QtyShipped,
+						--ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0)  AS QtyRemaining,
+						CASE 
+							WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'')
+								THEN ISNULL(SOSI.QtyShipped,0)
+							ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0), imt.StockUnitOfMeasure, imt.ConsumeUnitOfMeasure, 0, imt.MasterCompanyId)
+						END AS QtyShipped,
+
+						CASE 
+							WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'')
+								THEN ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0)
+							ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0), imt.StockUnitOfMeasure, imt.ConsumeUnitOfMeasure, 0, imt.MasterCompanyId)
+						END AS QtyRemaining,
 						so.CreatedDate AS CreatedDate,
 						SOS.AirwayBill AS AirwayBill
 				        FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
@@ -145,7 +170,7 @@ BEGIN
 						--and sop.SalesOrderPartId not in(SELECT SalesOrderPartId FROM DBO.SalesOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
 						GROUP BY sopt.SOPickTicketId,so.CustomerId,so.SalesOrderNumber,sop.SalesOrderPartId,imt.partnumber, 
-						imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId, sop.ConditionId,SOSI.QtyShipped,sopt.QtyToShip,so.CreatedDate,SOS.AirwayBill
+						imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId, sop.ConditionId,SOSI.QtyShipped,sopt.QtyToShip,so.CreatedDate,SOS.AirwayBill, imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,imt.MasterCompanyId
 
 						UNION
 
@@ -173,7 +198,7 @@ BEGIN
 						LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 						INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+						 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.ExchangeSalesOrderShippingItem EOSI WITH (NOLOCK)  ON EOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND EOSI.SOPickTicketId = sopt.SOPickTicketId						

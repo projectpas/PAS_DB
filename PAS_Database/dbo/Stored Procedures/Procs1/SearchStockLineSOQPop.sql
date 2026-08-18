@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineSOQPop]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Search Data for SOQ, SO  search for from part list tab
@@ -19,12 +19,17 @@
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
 	5    07/01/2026			Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	6    09/06/2026			Bhargav Saliya	 Get ShortName Of UOM   
+	7    18/06/2026         Bhargav Saliya	 Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	8    18/06/2026         Bhargav Saliya   No need to convert UnitSalesPrice; it's already saved to consume in Stockline
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (both UNION branches) so Non-Stock stocklines are included.
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
+CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]
 	@ItemMasterIdlist VARCHAR(max) = '0', 
 	@ConditionId BIGINT = NULL,
-	--@ConditionIds VARCHAR(100) = NULL,
 	@CustomerId BIGINT = NULL,
 	@MappingType INT = -1,
 	@StocklineIdlist VARCHAR(max)='0'
@@ -53,7 +58,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,im.ItemMasterId As ItemMasterId
 			,im.PartDescription AS Description
 			,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-			,suom.Description AS unitOfMeasure
+			,suom.ShortName AS unitOfMeasure
 			,ig.Description AS ItemGroup
 			,mf.Name AS Manufacturer
 			,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -75,16 +80,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 
-			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 
-			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost			
-			--,(CASE WHEN ISNULL(lsm.IsUseMargin,0) = 1 THEN CONVERT(DECIMAL(18,2),((ISNULL(sl.UnitCost, 0) * ISNULL(per.PercentValue,0.00))/100 ))  
-			--ELSE  CONVERT(DECIMAL(18,2), ISNULL(sl.UnitCost, 0))  END)   AS unitCost
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitCost			
-			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitSalePrice
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
+			,sl.UnitSalesPrice AS unitSalePrice
 			,sl.TraceableToName AS TracableToName
 			,sl.OwnerName AS OwnerName
 			,sl.ObtainFromName AS ObtainFromName			
@@ -159,7 +158,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,im.ItemMasterId As ItemMasterId
 			,im.PartDescription AS Description
 			,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-			,suom.Description AS unitOfMeasure
+			,suom.ShortName AS unitOfMeasure
 			,ig.Description AS ItemGroup
 			,mf.Name AS Manufacturer
 			,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -181,38 +180,28 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 
-			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 			
-			--,ISNULL(sl.UnitCost, 0) AS unitCost
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitCost
-			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitSalePrice
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 					WHEN sl.TraceableToType = 9 THEN leTraceble.Name
 					WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
-					ELSE
-						''
-					END
-					AS TracableToName
+					ELSE ''
+					END AS TracableToName
 			,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name
 					WHEN sl.OwnerType = 2 THEN vOwner.VendorName
 					WHEN sl.OwnerType = 9 THEN leOwner.Name
 					WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)
-					ELSE
-						''
-					END
-					AS [OwnerName]
+					ELSE ''
+					END AS [OwnerName]
 			,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name
 					WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName
 					WHEN sl.ObtainFromType = 9 THEN leObtain.Name
 					WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)
-					ELSE
-						''
-					END
-					AS ObtainFromName
+					ELSE ''
+					END AS ObtainFromName
 					,sl.TagDate
 					,sl.TagType
 					,sl.CertifiedBy
@@ -262,7 +251,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
 		END
-		COMMIT  TRANSACTION
+		COMMIT TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
@@ -289,6 +278,4 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
 		END CATCH
-
- 
 END

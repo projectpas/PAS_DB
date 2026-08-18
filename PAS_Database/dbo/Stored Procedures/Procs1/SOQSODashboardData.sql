@@ -14,7 +14,9 @@
 	2	01-JAN-2024		AMIT GHEDIYA	 added isperforma Flage for SO
 	3   16-OCT-2024		Abhishek Jirawla Implemented the new tables for SalesOrderQuotePart related tables (Needs to be revisited)
 	4   11-DEC-2024		RAJESH GAMI      Modified to multyply the Est Revenue and Est Cost for every operation (SO & SOQ) :  Add the separate CTE and using it in JOIN (DeduplicatedRoles)
-	6   30-Jun-2025     Devendra Shekh	 Modified(SO Billing Table Changes)
+	5   30-Jun-2025     Devendra Shekh	 Modified(SO Billing Table Changes)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    22/July/2026			RAJESH GAMI					[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters (8 occurrences across @Opr branches) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 ************************************************************************/
 CREATE PROCEDURE [dbo].[SOQSODashboardData]
 	-- Add the parameters for the stored procedure here

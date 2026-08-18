@@ -21,14 +21,9 @@
     [ManualText]            VARCHAR (100)  NULL,
     [IsAutoPost]            BIT            NULL,
     [Memo]                  NVARCHAR (MAX) NULL,
+    [IsBypassAccounting]    BIT            NULL,
     CONSTRAINT [PK_DistributionSetup] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
-
-
-
-
-
-
 
 
 

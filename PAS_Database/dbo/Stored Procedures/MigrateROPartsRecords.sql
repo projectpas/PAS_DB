@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    12/23/2023   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -164,12 +165,15 @@ BEGIN
 
 			SELECT @RO_NUMBER = RO.[RO_NUMBER] FROM [Quantum].[QCTL_NEW_3].[RO_HEADER] RO WITH(NOLOCK) WHERE RO.ROH_AUTO_KEY = @ROH_AUTO_KEY;
 			SELECT @RO_Id = RO.[RepairOrderId] FROM dbo.[RepairOrder] RO WITH(NOLOCK) WHERE RO.[RepairOrderNumber] = @RO_NUMBER;		
-			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
-			SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
-			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@Part_Desc);
-			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc);
+			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.[DESCRIPTION] FROM [BEACH].QCTL1.[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
+			SELECT @ConditionCode = CC.CONDITION_CODE FROM [BEACH].QCTL1.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
+			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
-			SELECT @UOMId = IM.[PurchaseUnitOfMeasureId], @Part_NUMBER = IM.[partnumber], @Part_Desc = IM.[PartDescription], @IsPMA = IM.[IsPma], @IsDER = IM.[IsDER], @ManufacturerId = IM.[ManufacturerId], @ManufacturerName = IM.[ManufacturerName], @GLAccountId = [GLAccountId], @GLAccount = [GLAccount] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
+			PRINT @ItemMaster_Id;
+
+			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc) AND ISNULL(IM.IsNonStock,0) = 0 ;
+
+			SELECT @UOMId = IM.[PurchaseUnitOfMeasureId], @Part_NUMBER = IM.[partnumber], @Part_Desc = IM.[PartDescription], @IsPMA = IM.[IsPma], @IsDER = IM.[IsDER], @ManufacturerId = IM.[ManufacturerId], @ManufacturerName = IM.[ManufacturerName], @GLAccountId = [GLAccountId], @GLAccount = [GLAccount] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			IF (ISNULL(@PNM_AUTO_KEY, 0) = 0)
 			BEGIN
@@ -229,7 +233,7 @@ BEGIN
 						PRINT @RO_NUMBER;
 
 						SELECT @UOMCode = UOM.ShortName FROM dbo.UnitOfMeasure UOM WITH(NOLOCK) WHERE UnitOfMeasureId = @UOMId;
-						SELECT @ALT_Part_NUMBER = IM.[partnumber], @ALT_Part_Desc = IM.[PartDescription] FROM dbo.[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ALT_ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
+						SELECT @ALT_Part_NUMBER = IM.[partnumber], @ALT_Part_Desc = IM.[PartDescription] FROM dbo.[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ALT_ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 						SELECT @PriorityId = [PriorityId], @Priority = [Priority], @NeedByDate = [NeedByDate] FROM [dbo].[RepairOrder] RO WITH(NOLOCK) WHERE RO.[RepairOrderNumber] = @RO_NUMBER;
 						SELECT @ConditionId = [ConditionId] FROM [dbo].[Condition] Cond WITH(NOLOCK) WHERE (UPPER(Cond.Code) = UPPER(@ConditionCode) OR UPPER(Cond.Description) = UPPER(@ConditionCode)) AND [MasterCompanyId] = @FromMasterComanyID;
 						SELECT @CurrencyId = [CurrencyId] FROM [dbo].[Currency] C WITH(NOLOCK) WHERE UPPER(Code) = 'USD' AND [MasterCompanyId] = @FromMasterComanyID;

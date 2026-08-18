@@ -1,4 +1,4 @@
-﻿CREATE   PROCEDURE usp_SaveVendorCapability  
+﻿CREATE   PROCEDURE [dbo].[usp_SaveVendorCapability]  
 @tbl_VendorCapabilityType VendorCapabilityType READONLY  
   
 AS  
@@ -30,7 +30,7 @@ BEGIN
      [PartNumber] [varchar](100) NULL,  
      [PartDescription] [varchar](max) NULL,  
      [TAT] [int] NULL,  
-     [Cost] [decimal] NULL,  
+     [Cost] [decimal] (18,6) NULL,  
      [Memo] [nvarchar](max) NULL,  
      [capabilityDescription] [varchar](max) NULL,  
      [IsPMA] [bit] NULL,  

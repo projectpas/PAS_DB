@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[sp_VendorRMA_SearchStockLinePickTicket]          
  ** Author:   Amit Ghediya
  ** Description: Get pick ticket stockline data to pick for Vendor RMA.
@@ -11,8 +11,11 @@
     1    06/22/2023   Amit Ghediya   created
 	2    06/23/2023   Amit Ghediya   Get Data Based on ItemMasterId.
 	3    07/04/2023   Amit Ghediya   Updated for get Qty base ticket.
-	4    02-03-2026	  Amit Ghediya	UOM Conversion Changes [PN-15140]
-
+	4    02-03-2026	  Amit Ghediya	 UOM Conversion Changes [PN-15140]
+	5	 19/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 330,1,42,0
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 1,1,42,1
 **************************************************************/ 
@@ -53,13 +56,9 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyAvailable
-					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyOnHand
-					,ISNULL(((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
-						FROM VendorRMADetail VR WITH(NOLOCK)
-						INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-						Where VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyAvailable
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyOnHand
+					,ROUND(ISNULL(((SELECT TOP 1 CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(VR.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.Qty,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END FROM VendorRMADetail VR WITH(NOLOCK) INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId WHERE VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0),2) AS QtyToPick
 					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -130,14 +129,33 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyAvailable
-					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyOnHand
-					,ISNULL(((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
-						FROM VendorRMADetail VR WITH(NOLOCK) 
-						INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-					Where VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
-					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyAvailable
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyOnHand
+					,ROUND(
+						ISNULL(
+							(
+								SELECT TOP 1
+									CASE
+										WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+											THEN ISNULL(VR.Qty,0)
+										ELSE dbo.fn_ConvertUOM(
+												ISNULL(VR.Qty,0),
+												IM.StockUnitOfMeasure,
+												IM.PurchaseUnitOfMeasure,
+												0,
+												IM.MasterCompanyId
+											 )
+									END
+								FROM VendorRMADetail VR WITH(NOLOCK)
+								INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
+								INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+								WHERE VR.VendorRMADetailId = sop.VendorRMADetailId
+								  AND VR.ItemMasterId = sop.ItemMasterId
+							) - SUM(ISNULL(Pick.QtyToShip,0)),
+						0),
+					2) AS QtyToPick
+
+					,ISNULL(sl.PurchaseOrderUnitCost,0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 							WHEN sl.TraceableToType = 9 THEN leTraceble.Name

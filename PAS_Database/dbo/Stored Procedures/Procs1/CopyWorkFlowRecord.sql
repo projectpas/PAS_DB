@@ -14,6 +14,7 @@
 	4    28-Feb-2025	Devendra Shekh		Modified (changes for create new WorkFlowTask)
 	5    17-Sep-2025	Vishal Suthar		Fixed and issue with mismatch in number of columns for Workflow table
 	6    05-May-2026	Priyansh Patel		Added AC columns in workflow table [PN-16276]
+	7    28-July-2026	SUMIT KUMAR			Added Notes to workflow materials to copy [PN-16818]
      
 EXEC [dbo].[CopyWorkFlowRecord] 3053, 'ADMIN Admin', 0
 **************************************************************/ 
@@ -152,7 +153,7 @@ BEGIN
 					END
 					IF(@materialCount >0)
 					BEGIN
-						SELECT  WorkflowId, ItemMasterId, TaskId, Quantity, UnitOfMeasureId, ConditionCodeId, UnitCost, ExtendedCost, Price, ProvisionId, IsDeferred, WorkflowActionId, Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, Figure, Item INTO #tempTable7 FROM dbo.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						SELECT  WorkflowId, ItemMasterId, TaskId, Quantity, UnitOfMeasureId, ConditionCodeId, UnitCost, ExtendedCost, Price, ProvisionId, IsDeferred, WorkflowActionId, Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, Figure, Item, Notes INTO #tempTable7 FROM dbo.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
 						UPDATE #tempTable7 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowMaterial SELECT * FROM #tempTable7
 						DROP TABLE #tempTable7

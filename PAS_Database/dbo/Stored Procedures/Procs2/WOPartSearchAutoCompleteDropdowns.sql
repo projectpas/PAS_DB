@@ -16,6 +16,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    17/11/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
      
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
@@ -75,10 +77,11 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
+		 AND ISNULL(im.IsNonStock,0) = 0
 		IF( @CustRestrictedPMA <> 1	)
 		BEGIN
 		INSERT INTO #TempTable (PartId, PartNumber, PartDescription, StockType)
@@ -96,8 +99,9 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
+         AND ISNULL(im.IsNonStock,0) = 0
         END
 			
 		--FOR DER
@@ -118,8 +122,9 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
 			AND im.IsDER  = 1	
+         AND ISNULL(im.IsNonStock,0) = 0
         END
 
 		IF( @IncludePMA = 1)
@@ -146,7 +151,8 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+		 AND ISNULL(im.IsNonStock,0) = 0
 		END 
 
 		IF( @IncludeDER = 1)
@@ -173,7 +179,8 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+		 AND ISNULL(im.IsNonStock,0) = 0
 		END 
 
 		INSERT INTO #Result 
@@ -196,6 +203,7 @@ CREATE PROCEDURE [dbo].[WOPartSearchAutoCompleteDropdowns]
 					END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
+		 AND ISNULL(im.IsNonStock,0) = 0
 		END
 
 		SELECT DISTINCT TOP 20 r.PartId,

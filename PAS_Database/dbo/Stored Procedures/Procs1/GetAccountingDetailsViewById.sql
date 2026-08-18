@@ -22,8 +22,9 @@
 	7    25/07/2024  Sahdev Saliya        Set JournalTypeNumber Order by desc
 	8    05/03/2025  Ayushi Patel		  converted the date into utc (TransactionDate , EntryDate) , Added a case to get timeZone
 	9    12-03-2025  Shrey Chandegara     Add @ModuleId because duplicate record coming in accounting(In this [SalesOrderManagementStructureDetails] table same ReferenceId with different ModuleId)
+	10   08/10/2026  Rajesh Gami          [PN-17569] Added IsReversedJE so the UI can show a "Reverse Invoice" indicator per line
 
--- exec GetAccountingDetailsViewById 728,228   
+-- exec GetAccountingDetailsViewById 728,228
 ************************/   
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewById]    
 @SalesOrderId bigint,
@@ -107,8 +108,9 @@ BEGIN
                  ,le.CompanyName as LegalEntityName    
                  ,BD.JournalTypeNumber 
 				 ,UPPER(BS.[Name]) AS JEStatus
-                 ,BD.CurrentNumber  
+                 ,BD.CurrentNumber
 				 ,BD.AccountingPeriod AS 'AccountingPeriod'
+				 ,ISNULL(BD.[IsReversedJE],0) AS [IsReversedJE]
                  ,CR.Code AS Currency  
           ,UPPER(SSD.Level1Name) AS level1,      
            UPPER(SSD.Level2Name) AS level2,     

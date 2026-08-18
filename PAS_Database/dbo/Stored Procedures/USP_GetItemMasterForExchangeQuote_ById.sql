@@ -1,4 +1,4 @@
-﻿/*********************           
+/*********************           
  ** File:   [USP_GetItemMasterForExchangeQuote_ById]           
  ** Author:   Bhargav Saliya
  ** Description: Get ItemMaster Data for Exchnage loan By Id - for exchangepart
@@ -21,10 +21,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
 	1    22-Jan-2024   Bhargav Saliya		Created
-     
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE [USP_GetItemMasterForExchangeQuote_ById] 397, 1, NULL, -1, 0
 **********************/ 
-CREATE   PROCEDURE [dbo].[USP_GetItemMasterForExchangeQuote_ById]
+CREATE PROCEDURE [dbo].[USP_GetItemMasterForExchangeQuote_ById]
 @ItemMasterId BIGINT = NULL, 
 @ConditionId BIGINT = NULL,
 @CustomerId BIGINT = NULL,
@@ -58,8 +59,8 @@ BEGIN
 				,c.Description ConditionDescription
 				,ISNULL(STUFF((
 			    SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-			    FOR XML PATH('')
-			    )
+			    AND ISNULL(I.IsNonStock,0) = 0
+			    FOR XML PATH(''))
 			    ,1,1,''), '') AlternateFor
 				,CASE 
 					WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -87,7 +88,7 @@ BEGIN
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = @ConditionId
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
+				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1)) AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -97,7 +98,8 @@ BEGIN
 			LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH (NOLOCK) on imel.ItemMasterId = im.ItemMasterId
 			WHERE 
 				im.ItemMasterId = @ItemMasterId
-			GROUP BY
+			 AND ISNULL(im.IsNonStock,0) = 0
+				 GROUP BY
 				im.PartNumber
 				,im.ItemMasterId 
 				,im.PartDescription

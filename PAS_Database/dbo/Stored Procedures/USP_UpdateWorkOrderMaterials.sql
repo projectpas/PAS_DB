@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_UpdateWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create work order materials
@@ -9,8 +9,12 @@
  ** PR   Date					Author						Change Description              
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
-       
-**************************************************************/  
+ ** 2    27-July-2025    		SUMIT    				Added notes field in material list [PN-16818]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5	 17/AUG/2026			 Sumit Kumar			[PN-17684] Provide Ability to Add/Edit Notes for WO Materials at Part/Stockline Level
+	6    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @partnumber ItemMaster lookup used for the history template
+**************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderMaterials]  
 	@tbl_WorkOrderMaterialsType [WorkOrderMaterialsType] READONLY
@@ -79,7 +83,7 @@ BEGIN
 			
 						SELECT @WOMQuantity = [Quantity] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
 						SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
-						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 						SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 						SELECT @historyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
@@ -111,6 +115,8 @@ BEGIN
 						WOM.UnitCost = TMP.UnitCost,
 						WOM.ExtendedCost = TMP.ExtendedCost,
 						WOM.Memo = TMP.Memo,
+						-- Update Notes column in WorkOrderMaterials
+						WOM.Notes =  CASE WHEN ISNULL(TMP.IsStocklineEdit, 0) = 0 THEN TMP.Notes ELSE WOM.Notes END,
 						WOM.ProvisionId = CASE WHEN ISNULL(TMP.IsStocklineEdit, 0) = 0 THEN TMP.ProvisionId ELSE WOM.ProvisionId END,
 						WOM.TaskId = TMP.TaskId,
 						WOM.MaterialMandatoriesId = TMP.MaterialMandatoriesId,
@@ -129,11 +135,11 @@ BEGIN
 					INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [ConditionCodeId], [ItemClassificationId],
 							[Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty], 
 							[IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder],
-							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber])
+							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber], [Notes])
 					SELECT [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [ConditionCodeId], [ItemClassificationId],
 							[Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty], 
 							[IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder],
-							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber]
+							[QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [isfromsubWorkOrder], [ExpectedSerialNumber], [Notes]
 					FROM #tmpWorkOrderMaterial WHERE [RowId] = @CurrentRowId;
 
 					SET @WorkOrderMaterialsId = SCOPE_IDENTITY();
@@ -152,14 +158,14 @@ BEGIN
 					[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 					[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 					[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-					[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+					[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
 				SELECT [WorkOrderMaterialsId], [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], 
 					[QuantityReserved], [QuantityIssued], [IssuedById], [IssuedDate], [ReservedById], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [PartStatusId], [UnReservedQty], [UnIssuedQty], [ParentWorkOrderMaterialsId], [ItemMappingId],
 					[TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued], [QtyToTurnIn], [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [IsFromWorkFlow], [IsEquPart], [StockLineId],
 					[StocklineQuantity], [Provision], [WareHouse], [Location], [Shelf], [Bin], [TaskName], [Condition], [MandatoryOrSupplemental], [StockLineNumber], [PartNumber], [PartDescription], [AltPartNumber], [SerialNumber], [StockType], [ControlId],
 					[ControlNo], [ItemType], [QunatityRequried], [QunatityReserved], [QunatityTurnIn], [QunatityBackOrder], [QunatityRemaining], [Currency], [PurchaseOrderNumber], [RepairOrderNumber], [PartQuantityOnHand], [PartQuantityAvailable],
 					[PartQuantityOnOrder], [Receiver], [WorkOrderNumber], [SubWorkOrder], [SalesOrder], [TimeLife], [PurchaseUnitOfMeasureId], [IsStocklineEdit], [isExistingMaterilas], [Figure], [Item], [IsAlternatePart], [EquPartMasterPartId], [KitId],
-					[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
+					[IsKitType], [isfromsubWorkOrder], [ExpectedSerialNumber], [POId], [PONum], [PONextDlvrDate], [IsExchangeTender], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Notes]
 				FROM #tmpWorkOrderMaterial WHERE [RowId] = @CurrentRowId; 
 
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) WHERE WOMS.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMS.StockLineId = @WOMStockLineId) AND @WOMStockLineId > 0
@@ -178,11 +184,12 @@ BEGIN
 							WOMS.UnitCost = STK.UnitCost,
 							WOMS.ExtendedCost = ISNULL(TMP.StocklineQuantity, 0) * ISNULL(STK.UnitCost, 0),
 							WOMS.Figure = TMP.Figure,
-							WOMS.Item = TMP.Item
+							WOMS.Item = TMP.Item,
+							WOMS.Notes = TMP.Notes
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId;
+						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0 ;
 					END
 				END
 

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetReceivingLogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for ReceivingLog Report    
@@ -22,10 +22,15 @@
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
 	 8    31-MAR-2026       Sahdev Saliya       Added Condition (PN-15844)
-
+	 9    09-JUNE-2026      Priyansh Patel      UOM changes, Changed the decimals to 2 [PN-16778]
+	 10   16-JUNE-2026      Priyansh Patel      converted purchase order quantity to stock uom [PN-16860]
+	 11   19-JUNE-2026      Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
+	 12	  09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	 13   15-JUL-2026       Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
+	 14	  24/July/2026		RAJESH GAMI	[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (4) to allow Non-Stock items in Receiving Log Report
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 
+CREATE    PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -34,7 +39,7 @@ AS
 BEGIN  
   SET NOCOUNT ON;  
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
-  
+
   declare @Fromdate datetime2,
 	@Todate datetime2,
 	@partnumber varchar(50) = NULL,
@@ -52,6 +57,11 @@ BEGIN
 	@Level10 VARCHAR(MAX) = NULL 
   
   BEGIN TRY  
+
+	  DECLARE @ManagementStructureModuleId BIGINT = 0;
+
+	SELECT @ManagementStructureModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK)
+	WHERE ModuleName = 'ROHeader'
 
   select 
    
@@ -89,7 +99,10 @@ BEGIN
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
   
-  DECLARE @ModuleID INT = 4; -- MS Module ID
+  DECLARE @ModuleID INT = 0; -- MS Module ID
+
+  SELECT @ModuleID = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK)
+  WHERE ModuleName = 'POHeader'
 
   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -111,14 +124,12 @@ BEGIN
 				UPPER(POP.AltEquiPartNumber) 'altequiv',  
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
-				UPPER(POP.QuantityOrdered) 'qtyord',  
-				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) 'qtyrcvd',  
-				--UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
-				--UPPER(POP.ExtendedCost) 'extcost',  
-				UPPER((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',  
-				UPPER(POP.QuantityRejected) 'qtyrej',  
-				POP.QuantityBackOrdered 'qtyonbacklog',  
+				(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityOrdered, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyord',
+				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0) ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END END) 'qtyrcvd',
+				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',
+				((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0) ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END END) * (ISNULL(STL.UnitCost, 0))) 'extcost',
+				(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityRejected, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityRejected, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyrej',
+				(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityBackOrdered, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityBackOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyonbacklog',
 				UPPER(STL.CreatedBy) 'receivedby',  
 				UPPER(PO.Requisitioner) 'requestor',  
 				UPPER(PO.approvedby) 'approver',  
@@ -211,9 +222,9 @@ BEGIN
 				UPPER(MSD.Level10Name) AS level10,
 				UPPER(POP.Condition) 'condition' 
 			  FROM DBO.RepairOrder PO WITH (NOLOCK)  
-				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
-				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
-				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0
+				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1
+				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ManagementStructureModuleId AND MSD.ReferenceID = PO.RepairOrderId
 				INNER JOIN (
 						SELECT SD.RepairOrderId,SD.StockLineId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
 						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
@@ -265,14 +276,12 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.AltEquiPartNumber) 'altequiv',  
         UPPER(POP.manufacturer) 'manufacturer',  
         UPPER(POP.itemtype) 'itemtype',  
-        UPPER(POP.QuantityOrdered) 'qtyord',  
-        (CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) 'qtyrcvd', 
-		--ISNULL(POP.UnitCost, 0) 'unitcost',  
-		(ISNULL(STL.UnitCost, 0)) 'unitcost',  
-        --ISNULL(POP.ExtendedCost, 0) 'extcost',   
-        ((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',   
-        UPPER(POP.QuantityRejected) 'qtyrej',  
-        POP.QuantityBackOrdered 'qtyonbacklog',  
+		(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityOrdered, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyord',
+		(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0) ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END END) 'qtyrcvd',
+		(ISNULL(STL.UnitCost, 0)) 'unitcost',
+		((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0) ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END END) * (ISNULL(STL.UnitCost, 0))) 'extcost',
+		(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityRejected, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityRejected, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyrej',
+		(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityBackOrdered, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityBackOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyonbacklog',
         UPPER(STL.CreatedBy) 'receivedby',  
         UPPER(PO.Requisitioner) 'requestor',  
         UPPER(PO.approvedby) 'approver',  
@@ -345,7 +354,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         --ISNULL(POP.UnitCost, 0) 'unitcost',  
         (ISNULL(STL.UnitCost, 0)) 'unitcost',  
         --ISNULL(POP.ExtendedCost, 0) 'extcost',  
-        ((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',  
+        ((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost', 
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         UPPER(STL.CreatedBy) 'receivedby',  
@@ -371,7 +380,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
-	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ManagementStructureModuleId AND MSD.ReferenceID = PO.RepairOrderId  
 					INNER JOIN (
 						SELECT SD.RepairOrderId,SD.StockLineId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
 						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
@@ -398,20 +407,25 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
    ) T )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
 				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, condition, masterCompanyId) 
-			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,ROUND(ISNULL(unitcost, 0), 2, 1) AS unitcost, ROUND(ISNULL(extcost, 0), 2, 1) AS extcost, qtyrej, qtyonbacklog,
 				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, condition, masterCompanyId FROM rptCTE)
 
 			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost ) 
 			  AS (SELECT masterCompanyId, 
-				FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
-				FORMAT(SUM(extcost), 'N', 'en-us') TotalExtCost
+				 FORMAT(SUM(unitcost), 'N2', 'en-us') TotalUnitCost,
+				FORMAT(SUM(extcost), 'N2', 'en-us') TotalExtCost
 				FROM FinalCTE
 				GROUP BY masterCompanyId)
 
-			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
-					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
-					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
-					qtyrej, qtyonbacklog, receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, 
+					FORMAT(ROUND(ISNULL(CAST(qtyord AS DECIMAL(18,6)), 0), 2, 1), 'N2', 'en-us') AS qtyord,
+					FORMAT(ROUND(ISNULL(CAST(qtyrcvd AS DECIMAL(18,6)), 0), 2, 1), 'N2', 'en-us') AS qtyrcvd,
+					FORMAT(ROUND(ISNULL(unitcost, 0), 2, 1), 'N2', 'en-us') 'unitcost',
+					FORMAT(ROUND(ISNULL(extcost, 0), 2, 1), 'N2', 'en-us') 'extcost',
+					FORMAT(ROUND(ISNULL(CAST(qtyrej AS DECIMAL(18,6)), 0), 2, 1), 'N2', 'en-us') AS qtyrej,
+					FORMAT(ROUND(ISNULL(CAST(qtyonbacklog AS DECIMAL(18,6)), 0), 2, 1), 'N2', 'en-us') AS qtyonbacklog,
+
+					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 					level9, level10,
 					condition,
 					WC.TotalUnitCost,
@@ -426,7 +440,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
   BEGIN CATCH  
      
     DECLARE @ErrorLogID int,  
-            @DatabaseName varchar(100) = DB_NAME()  
+            @PAS_UAT varchar(100) = DB_NAME()  
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             ,  
             @AdhocComments varchar(150) = '[usprpt_GetReceivingLogReport]',  
@@ -436,7 +450,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
             '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter, '') AS varchar(max)),
             @ApplicationName varchar(100) = 'PAS' 
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-    EXEC Splogexception @DatabaseName = @DatabaseName,  
+    EXEC Splogexception @PAS_UAT = @PAS_UAT,  
                         @AdhocComments = @AdhocComments,  
                         @ProcedureParameters = @ProcedureParameters,  
                         @ApplicationName = @ApplicationName,  

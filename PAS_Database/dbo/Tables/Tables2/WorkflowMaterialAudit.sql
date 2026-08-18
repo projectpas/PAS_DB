@@ -7,9 +7,9 @@
     [Quantity]                DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]         BIGINT          NULL,
     [ConditionCodeId]         BIGINT          NULL,
-    [UnitCost]                DECIMAL (18, 2) NULL,
-    [ExtendedCost]            DECIMAL (18, 2) NULL,
-    [Price]                   DECIMAL (18, 2) NULL,
+    [UnitCost]                DECIMAL (18, 6) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) NULL,
+    [Price]                   DECIMAL (18, 6) NULL,
     [ProvisionId]             INT             NULL,
     [IsDeferred]              BIT             NULL,
     [WorkflowActionId]        TINYINT         NOT NULL,
@@ -25,13 +25,14 @@
     [PartNumber]              VARCHAR (256)   NULL,
     [PartDescription]         VARCHAR (MAX)   NULL,
     [ItemClassificationId]    BIGINT          NULL,
-    [ExtendedPrice]           DECIMAL (18, 2) NULL,
+    [ExtendedPrice]           DECIMAL (18, 6) NULL,
     [Order]                   INT             NULL,
     [MaterialMandatoriesId]   INT             NULL,
     [WFParentId]              BIGINT          NULL,
     [IsVersionIncrease]       BIT             NULL,
     [Figure]                  NVARCHAR (50)   NULL,
     [Item]                    NVARCHAR (50)   NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkflowMaterialAudit] PRIMARY KEY CLUSTERED ([WorkflowMaterialAuditId] ASC)
 );
 

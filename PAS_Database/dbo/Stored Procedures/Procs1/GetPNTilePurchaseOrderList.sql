@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[GetPNTilePurchaseOrderList]      
  ** Author:    
  ** Description: Get PNTile PurchaseOrderList
@@ -8,14 +8,16 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			-------------------------------- 
+	1    05/12/2023   Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	2    07/25/2023   Devendra Shekh	changed NVARCHAR(10) to NVARCHAR(20)
-	3    05/12/2023   Amit Ghediya      Modify(Added Traceable & Tagged fields)
-	4    12/04/2023   Jevik Raiyani		add @statusValue
-	5    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
-
+	3    12/04/2023   Jevik Raiyani		add @statusValue
+	4    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Purchase Order History (PN Tile): removed IsNonStock/ItemType exclusions from part join and WHERE clause.
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
+CREATE PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -113,7 +115,7 @@ BEGIN
 				  AND POP.ItemMasterId = @ItemMasterId
 				  AND POP.ItemTypeId = @ItemTypeStock
 				  AND (@ConditionId IS NULL OR POP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
+			 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

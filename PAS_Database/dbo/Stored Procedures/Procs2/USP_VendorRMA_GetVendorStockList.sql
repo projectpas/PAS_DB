@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorStockList]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor Stock Listing 
@@ -18,9 +18,13 @@
     6    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
 	7    05-Jun-2026        Sahdev Saliya      Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
 	8	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a STOCKUOM from stockline table when @IsVCMAdd=1 
+	9   19-Jun-2026			Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 *******************************************************************************
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
+CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
 @PageNumber INT = 1,
 @PageSize INT = 10,
 @SortColumn VARCHAR(50)=NULL,
@@ -97,9 +101,10 @@ BEGIN
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
 			   --,SL.[QuantityAvailable]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
-			   --,SL.[UnitCost]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+			   
+				,ROUND((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0), IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure], 0, IM.[MasterCompanyId]) END), 2) AS QuantityAvailable
+				--,SL.[UnitCost]
+				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -122,7 +127,7 @@ BEGIN
 		  LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		  LEFT JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON SL.[VendorId] = VO.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0))
+			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM Result 
 		      WHERE
@@ -228,7 +233,7 @@ BEGIN
 			AND SL.StockLineId NOT IN 
 			(SELECT ISNULL(StockLineId,0) FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
 			LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) ON vcmd.VendorCreditMemoId = vcm.VendorCreditMemoId 
-			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed')))
+			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed')) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 		SELECT * INTO #TempResultData FROM Result 
 			 WHERE

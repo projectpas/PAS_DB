@@ -1,8 +1,14 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		Subhash Saliya
 -- Create date: 01 jun 2022
 -- Description:	Get Expire Days in Stockline
 -- =============================================
+/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE FUNCTION [dbo].[FN_GetExpireDaysStockline]
 (
 	@StocklineId as bigint

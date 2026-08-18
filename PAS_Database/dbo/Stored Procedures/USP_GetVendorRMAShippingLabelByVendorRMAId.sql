@@ -14,7 +14,10 @@
  ** --   --------         -------          --------------------------------            
     1    09-06-2025    Sahdev Saliya       Created  
 	2    06-04-2026	   Amit Ghediya		   UOM Conversion Changes [PN-15140]
-
+	3	 19/06/2026	   Ayushi			   [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	4    27/07/2026    Ayushi              [PN-17433]Removed UOM convertion for QtyShipped
+	5    30/07/2026    Nakul Chandigra     [PN-17340]Updated the query to return sosi.QtyShipped as NoOfPiece
+	exec USP_GetVendorRMAShippingLabelByVendorRMAId 10095,10107,10061
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAShippingLabelByVendorRMAId]
     @VendorRMAId BIGINT,
@@ -26,47 +29,48 @@ BEGIN
     SET NOCOUNT ON;
 		     BEGIN TRY
 
-				SELECT
-					sos.ServiceClass,
-					'' AS CustomerRef,
-					so.RMANumber AS SalesOrderNumber,
-					sos.ShipDate,
-					sos.Weight,
-					uom.ShortName AS UOM,
-					uomn.ShortName AS UOMDimention,
-					ISNULL(sos.AirwayBill, '') AS ShippingLabelBarcode, 
-					sos.OriginName AS OriginCompanyName,
-					sos.OriginAddress1,
-					sos.OriginCity,
-					sos.OriginState,
-					sos.OriginZip AS OriginPostalCode,
-					sos.OriginCountryName AS OriginCountry,
-					sos.ShipToName AS ShipToComanyName,
-					cds.SiteName AS ShipToSiteName,
-					cds.Attention AS ShipToAttention,
-					sos.ShipToAddress1,
-					sos.ShipToCity,
-					sos.ShipToState,
-					sos.ShipToZip AS ShipToPostalCode,
-					country.countries_name AS ShipToCountry,
-					cust.VendorPhone AS ShipToPhone,
-					sos.RMAShippingId,
-					sos.ShipSizeLength AS Length,
-					sos.ShipSizeWidth AS Width,
-					sos.ShipSizeHeight AS Height,
-					sos.NoOfContainer,
-					([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])) AS NoOfPiece,
-					so.UpdatedDate
-				FROM [dbo].VendorRMA so WITH(NOLOCK)
-				LEFT JOIN [dbo].RMAShipping sos WITH(NOLOCK) ON so.VendorRMAId = sos.VendorRMAId AND sos.RMAShippingId = @RMAShippingId
-				LEFT JOIN [dbo].RMAShippingItem sosi WITH(NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId
-				LEFT JOIN [dbo].[VendorRMADetail] vrd WITH(NOLOCK) ON sosi.VendorRMADetailId = vrd.VendorRMADetailId
-				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON vrd.[ItemMasterId] = IM.[ItemMasterId]
-				LEFT JOIN [dbo].CustomerDomensticShipping cds WITH(NOLOCK) ON sos.ShipToSiteId = cds.CustomerDomensticShippingId
-				LEFT JOIN [dbo].Vendor cust WITH(NOLOCK) ON so.VendorId = cust.VendorId
-				LEFT JOIN [dbo].UnitOfMeasure uom WITH(NOLOCK) ON sos.ShipWeightUnit = uom.UnitOfMeasureId
-				LEFT JOIN [dbo].UnitOfMeasure uomn WITH(NOLOCK) ON sos.ShipSizeUnitOfMeasureId = uomn.UnitOfMeasureId
-				LEFT JOIN [dbo].Countries country WITH(NOLOCK) ON sos.ShipToCountryId = country.countries_id
+					SELECT
+						sos.ServiceClass,
+						'' AS CustomerRef,
+						so.RMANumber AS SalesOrderNumber,
+						sos.ShipDate,
+						sos.Weight,
+						uom.ShortName AS UOM,
+						uomn.ShortName AS UOMDimention,
+						ISNULL(sos.AirwayBill, '') AS ShippingLabelBarcode, 
+						sos.OriginName AS OriginCompanyName,
+						sos.OriginAddress1,
+						sos.OriginCity,
+						sos.OriginState,
+						sos.OriginZip AS OriginPostalCode,
+						sos.OriginCountryName AS OriginCountry,
+						sos.ShipToName AS ShipToComanyName,
+						cds.SiteName AS ShipToSiteName,
+						cds.Attention AS ShipToAttention,
+						sos.ShipToAddress1,
+						sos.ShipToCity,
+						sos.ShipToState,
+						sos.ShipToZip AS ShipToPostalCode,
+						country.countries_name AS ShipToCountry,
+						cust.VendorPhone AS ShipToPhone,
+						sos.RMAShippingId,
+						sos.ShipSizeLength AS Length,
+						sos.ShipSizeWidth AS Width,
+						sos.ShipSizeHeight AS Height,
+						sos.NoOfContainer,
+						sosi.QtyShipped AS NoOfPiece,
+						--CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(sosi.QtyShipped,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId) END AS NoOfPiece,
+						so.UpdatedDate
+					FROM [dbo].VendorRMA so WITH(NOLOCK)
+					LEFT JOIN [dbo].RMAShipping sos WITH(NOLOCK) ON so.VendorRMAId = sos.VendorRMAId AND sos.RMAShippingId = @RMAShippingId
+					LEFT JOIN [dbo].RMAShippingItem sosi WITH(NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId
+					LEFT JOIN [dbo].[VendorRMADetail] vrd WITH(NOLOCK) ON sosi.VendorRMADetailId = vrd.VendorRMADetailId
+					LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON vrd.[ItemMasterId] = IM.[ItemMasterId]
+					LEFT JOIN [dbo].CustomerDomensticShipping cds WITH(NOLOCK) ON sos.ShipToSiteId = cds.CustomerDomensticShippingId
+					LEFT JOIN [dbo].Vendor cust WITH(NOLOCK) ON so.VendorId = cust.VendorId
+					LEFT JOIN [dbo].UnitOfMeasure uom WITH(NOLOCK) ON sos.ShipWeightUnit = uom.UnitOfMeasureId
+					LEFT JOIN [dbo].UnitOfMeasure uomn WITH(NOLOCK) ON sos.ShipSizeUnitOfMeasureId = uomn.UnitOfMeasureId
+					LEFT JOIN [dbo].Countries country WITH(NOLOCK) ON sos.ShipToCountryId = country.countries_id
 				WHERE sos.VendorRMAId = @VendorRMAId
 				  AND sosi.VendorRMADetailId = @VendorRMADetailId;
 		    END TRY    

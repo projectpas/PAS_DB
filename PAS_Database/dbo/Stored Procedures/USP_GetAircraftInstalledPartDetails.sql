@@ -1,14 +1,13 @@
-﻿
-/*********************
+﻿/*******
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-**********************
+********
 ** Change History
-**********************
+********
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    2026-03-27   Amit Ghediya		Created
@@ -23,17 +22,28 @@
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
-** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
-** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
-** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
-** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
-** 17   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+** 13   2026-05-12   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 13   2026-05-13   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 14   2026-05-18   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 14   2026-05-13   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 15   2026-05-18   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
+** 16   2026-05-20   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 17   2026-05-26   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+** 18   2026-06-03   Amit Ghediya       Update for get latest wo created from ACIC [PN-16699]
+** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
+** 20   07/07/2026	  Kishor Makwana	[PN-17162] Updated for Get ServiceLifeUnitMonthsOrDays, ServiceLifeLimit
+** 21   10/07/2026	  Amit Ghediya		Update condition
 
-
-*********************/
-CREATE    PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+   21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+   23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
+   24	17/07/2026	  Amit Ghediya		Update to get with direcly from part IsFromAircraft
+   25	18/07/2026	  Amit Ghediya		Return IsFromAircraft as its own output column (was only used
+                                        internally for the CASE branching above) so the UI can tell, per
+                                        row, whether it's an aircraft- or engine-installed component.
+   26   27/07/2026   Amit Ghediya		Get Worksheet from mapping table [PN-17396]
+*******/
+CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,
@@ -69,7 +79,8 @@ CREATE    PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@PONumber VARCHAR(50) = NULL,
 	@RONumber VARCHAR(50) = NULL,
 	@WONumber VARCHAR(50) = NULL,
-	@WorksheetNumber VARCHAR(50) = NULL
+	@WorksheetNumber VARCHAR(50) = NULL,
+	@IsFromAircraft  BIT = NULL
 )
 AS
 BEGIN
@@ -86,10 +97,11 @@ BEGIN
         (
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
-				ARH.MakeType,
-				ARH.AircraftModel AS Model,
-				ARH.TailNum,
-				ARH.SerialNum,
+				ISNULL(AIPD.IsFromAircraft,0) AS IsFromAircraft,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS MakeType,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS Model,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.EngineName END AS TailNum,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNum,
                 AIPD.ATAChapterId,
 				CONCAT_WS(' - ',
 				   NULLIF(IMAM.Level1, ''),
@@ -100,8 +112,9 @@ BEGIN
                 AIPD.PartDescription,
 				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
-				ARH.AircraftRegistryId,
-				COALESCE(ARH.AircraftRegistryNumber, '') AS AircraftRegistryNumber,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryId ELSE ERH.EngineRegistryId END AS AircraftRegistryId,
+				ERH.EngineRegistryId,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.AircraftRegistryNumber ELSE ERH.EngineRegistryNumber END AS AircraftRegistryNumber,
 				STK.Condition,
 				STK.ConditionId,
 				STK.StockLineNumber,
@@ -118,8 +131,8 @@ BEGIN
 				AIPD.IsSerialized,
                 CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
 				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,
-				ARH.AircraftStatusId,
-				AST.Name AS AircraftStatus,
+				ISNULL(ARH.AircraftStatusId, ERH.EngineStatusId) AS AircraftStatusId,
+				CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN AST.Name ELSE ERH.EngineStatus END AS AircraftStatus,
                 AIPD.DateInstalled,
 				AIPD.PositionCodeId,
                 AIPD.PositionCode,
@@ -170,28 +183,132 @@ BEGIN
 				WSH.WorksheetNumber,
 				WOP.WorkOrderId AS WOId,
 				WO.WorkOrderNum AS 'WONumber',
-                WSH.WorksheetHeaderId
+                WSH.WorksheetHeaderId,
+				AIPD.ServiceLifeUnitMonthsOrDays,
+				AIPD.ServiceLifeLimit,
+				AIPD.LastInspectionDate,
+				CASE WHEN ServiceLifeUnitMonthsOrDays = 1 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Mths'
+				WHEN ServiceLifeUnitMonthsOrDays = 2 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS timeDayMonth,
+				CASE WHEN AIPD.ServiceLifeUnitMonthsOrDays = 1 THEN
+				CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(MONTH, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
+				WHEN AIPD.ServiceLifeUnitMonthsOrDays = 2 THEN CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(DAY, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
+				ELSE '' END AS remainingTimeDayMonth
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
-			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
+			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
+			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 0
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
-			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
-			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ARH.[StockLineId] 
+			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
+			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = (CASE WHEN ISNULL(AIPD.IsFromAircraft,0) = 1 THEN ARH.[StockLineId] ELSE  ERH.[StockLineId] END) AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
-			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY AircraftInstalledPartDetailsId ORDER BY CreatedDate DESC) AS RN FROM dbo.WorksheetHeader WITH (NOLOCK)) WSH ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND WSH.RN = 1
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
-					WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
-					AND MasterCompanyId = @MasterCompanyId
+					WHERE 
+					--	IsFromAircraft = ISNULL(@IsFromAircraft, 1)
+					--	AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+					--		  OR (ISNULL(@IsFromAircraft,0) = 1 AND AircraftRegistryId = @AircraftRegistryId)
+					--		  OR (ISNULL(@IsFromAircraft,0) = 0 AND EngineRegistryId   = @AircraftRegistryId)
+					--		 )
+					----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
+					--AND MasterCompanyId = @MasterCompanyId
+					 MasterCompanyId = @MasterCompanyId
+					  AND (
+							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+							OR ( ISNULL(@IsFromAircraft,0) = 1
+								 AND (
+									   ( AircraftRegistryId = @AircraftRegistryId
+										 AND ISNULL(IsFromAircraft,0) = 1 )
+									   OR ( ISNULL(IsFromAircraft,0) = 0
+											AND EngineRegistryId IS NOT NULL
+											AND EXISTS (
+												 SELECT 1
+												 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+												 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+												 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+												   AND ARH2.MasterCompanyId = @MasterCompanyId
+												   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = EngineRegistryId
+											   ) )
+									 )
+							   )
+
+							OR ( ISNULL(@IsFromAircraft,0) = 0
+								 AND ISNULL(IsFromAircraft,0) = 0
+								 AND EngineRegistryId = @AircraftRegistryId )
+						  )
 			) LS
-            WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId) AND AIPD.MasterCompanyId = @MasterCompanyId
+			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId
+				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
+				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+				ORDER BY WOP_inner.ID DESC 
+			) AS WOP
+			OUTER APPLY (
+                SELECT TOP (1) W.WorksheetNumber, W.WorksheetHeaderId
+                FROM [dbo].[WorksheetMapping] WSM WITH (NOLOCK)
+				INNER JOIN [dbo].[WorksheetHeader] W WITH (NOLOCK) ON W.WorksheetHeaderId = WSM.WorksheetHeaderId
+                WHERE WSM.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+                ORDER BY W.CreatedDate DESC
+            ) WSH
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+            WHERE 
+			--	AIPD.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
+			--			AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+			--				  OR (ISNULL(@IsFromAircraft,0) = 1 AND AIPD.AircraftRegistryId = @AircraftRegistryId)
+			--				  OR (ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId   = @AircraftRegistryId) )
+			----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
+			--AND AIPD.MasterCompanyId = @MasterCompanyId
+			       AIPD.MasterCompanyId = @MasterCompanyId
+					  AND ISNULL(IM.IsNonStock,0) = 0
+					  AND (
+							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+							OR ( ISNULL(@IsFromAircraft,0) = 1
+								 AND (
+									   ( AIPD.AircraftRegistryId = @AircraftRegistryId
+										 AND ISNULL(AIPD.IsFromAircraft,0) = 1 )
+									   OR ( ISNULL(AIPD.IsFromAircraft,0) = 0
+											AND AIPD.EngineRegistryId IS NOT NULL
+											AND EXISTS (
+												 SELECT 1
+												 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+												 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+												 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+												   AND ARH2.MasterCompanyId = @MasterCompanyId
+												   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = AIPD.EngineRegistryId
+											   ) )
+									 )
+							   )
+
+							OR ( ISNULL(@IsFromAircraft,0) = 0
+								 AND ISNULL(AIPD.IsFromAircraft,0) = 0
+								 AND AIPD.EngineRegistryId = @AircraftRegistryId )
+						  )
+			--AIPD.MasterCompanyId = @MasterCompanyId
+			--	  AND (
+			--			@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+
+			--			-- AIRCRAFT MODE (=1): the aircraft's own program + all its engines' programs
+			--			OR ( ISNULL(@IsFromAircraft,0) = 1
+			--				 AND (
+			--					   AIPD.AircraftRegistryId = @AircraftRegistryId
+			--					   OR AIPD.EngineRegistryId IN (
+			--							SELECT TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value)))
+			--							FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+			--							CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+			--							WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+			--							  AND ARH2.MasterCompanyId = @MasterCompanyId
+			--							  AND ISNULL(s.value,'') <> ''
+			--						  )
+			--					 )
+			--			   )
+
+			--			-- ENGINE MODE (0/NULL): only the selected engine's program
+			--			OR ( ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId = @AircraftRegistryId )
+			--		  )
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR

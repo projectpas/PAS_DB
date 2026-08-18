@@ -17,11 +17,13 @@
     1    07/12/2021   Vishal Suthar   Created
     2    11/04/2024   Vishal Suthar   Modified to make use of new tables
 	3    16-Apr-026   Bhargav Saliya  UOM Changes
-     
+    4    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter is no longer needed)
 --EXEC [SalesOrderQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
+CREATE PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -49,8 +51,14 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost
+						(
+							(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SOQP.MasterCompanyId) END)
+							* (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQP.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId) END)
+						) + ISNULL(SUM(Charges.BillingAmount), 0) AS Revenue,
+						(
+							(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SOQP.MasterCompanyId) END)
+							* (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQP.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId) END)
+						) + ISNULL(SUM(Charges.BillingAmount), 0) AS DirectCost
 					FROM dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId

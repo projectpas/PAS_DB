@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
 ** File:  [USP_UpdateItemMaster]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to Update Item Master
@@ -15,9 +16,14 @@
 ** 4     03-Apr-2026   Sahdev Saliya		Remove LifeLimitedPart (PN-15833)
 ** 5     07-May-2026   Divyesh Kathiriya    Update "IsTimeLife" in stockline table based on ItemMaster Id. [PN-16327]
 ** 6     27-May-2026   Sahdev Saliya        Added Model [PN-16353]
+** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
+** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
+** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
+   10	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+** 11    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -30,16 +36,15 @@ BEGIN
   BEGIN TRANSACTION
 	SET @RetMessage = '';
 	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
-
 	--MasterParts TABLE variables Declaration--
-	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
+	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,@QuickBooksReferenceId VARCHAR(200),@IntegrationTypeId INT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
 
 	SELECT @MasterCompanyId = MasterCompanyId,@imManufacturerId = ManufacturerId,@imPartNumber = PartNumber FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster' 
 
-	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription,
+	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription, @QuickBooksReferenceId = [QuickBooksReferenceId], @IntegrationTypeId = [IntegrationTypeId],
 			@PartNumber = PartNumber,@ManufacturerId = ManufacturerId,@mMasterCompanyId = MasterCompanyId,@CreatedBy = CreatedBy,
 			@UpdatedBy = UpdatedBy,@CreatedDate = CreatedDate,@IsActive = IsActive,@IsDeleted = IsDeleted
 	FROM [dbo].ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @Id
@@ -53,10 +58,57 @@ BEGIN
 	END
 	ELSE
 	BEGIN
+		/******** Check any of UOM fields modified or not in the ItemMaster **********/
+		DECLARE @IsUOMEdited BIT = 0,
+        @IsPOUOMEdited BIT = 0,
+        @IsStockUOMEdited BIT = 0,
+        @IsConsumeUOMEdited BIT = 0,
+		@ExistingPOUOMId BIGINT = 0,@ExistingConsumeUOMId BIGINT = 0,@ExistingStockUOMId BIGINT =0;
+			SELECT
+			@ExistingPOUOMId = i.PurchaseUnitOfMeasureId,
+			@ExistingConsumeUOMId =i.ConsumeUnitOfMeasureId,
+			@ExistingStockUOMId = i.StockUnitOfMeasureId,
+				@IsPOUOMEdited =
+					CASE
+						WHEN ISNULL(i.PurchaseUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.PurchaseUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsStockUOMEdited =
+					CASE
+						WHEN ISNULL(i.StockUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.StockUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsConsumeUOMEdited =
+					CASE
+						WHEN ISNULL(i.ConsumeUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.ConsumeUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsUOMEdited =
+					CASE
+						WHEN ISNULL(i.PurchaseUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.PurchaseUnitOfMeasureId, 0), 0)
+						  OR ISNULL(i.StockUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.StockUnitOfMeasureId, 0), 0)
+						  OR ISNULL(i.ConsumeUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.ConsumeUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END
+			FROM dbo.ItemMaster i
+			JOIN @tbl_ItemMasterUpdateType PST
+				ON i.ItemMasterId = PST.ItemMasterId
+				AND i.MasterCompanyId = PST.MasterCompanyId
+			WHERE i.ItemMasterId = @Id;
+
 		UPDATE i
 		SET 
 		i.PartAlternatePartId = PST.PartAlternatePartId
-		,i.ItemGroupId = PST.ItemGroupId
+		,i.ItemGroupId = CASE WHEN PST.ItemGroupId = 0 THEN NULL ELSE PST.ItemGroupId END
 		,i.ItemClassificationId = PST.ItemClassificationId
 		,i.IsHazardousMaterial = PST.IsHazardousMaterial
 		,i.IsExpirationDateAvailable = PST.IsExpirationDateAvailable
@@ -192,7 +244,18 @@ BEGIN
 		,i.Landings = PST.Landings
 		,i.Starts = PST.Starts
 		,i.CalendarDate = PST.CalendarDate
+		
+		,i.IsAcquiredMethodBuy              = PST.IsAcquiredMethodBuy
+		,i.DiscountPurchasePercent          = PST.DiscountPurchasePercent
+		,i.UnitCost                         = PST.UnitCost
+		,i.ListPrice                        = PST.ListPrice
+		,i.PriceDate                        = PST.PriceDate
+		,i.InWarranty                       = PST.InWarranty
+		,i.MfgExpirationDate                = PST.MfgExpirationDate
+		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
+		,i.IsService						= ISNULL(PST.IsService, 0)
 		,i.Model = PST.Model
+		,i.IsKitAssy = PST.IsKitAssy
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;
@@ -220,28 +283,52 @@ BEGIN
 			MP.[UpdatedDate] = GETUTCDATE()
 		FROM dbo.MasterParts MP WITH(NOLOCK)
 		WHERE MP.MasterPartId = @MasterPartId AND MP.[MasterCompanyId] = @mMasterCompanyId	
-
-		UPDATE [dbo].[Stockline]
-		SET [IsStkTimeLife] = IM.[IsTimeLife]
-		FROM [dbo].[Stockline] sl
-		INNER JOIN @tbl_ItemMasterUpdateType IM ON sl.[ItemMasterId] = IM.[ItemMasterId]
-		WHERE sl.[ItemMasterId] = @Id;
+		PRINT @IsUOMEdited
+		PRINT '>>@IsUOMEdited = 1'
+		IF(@IsUOMEdited = 1)
+		BEGIN
+		PRINT '@IsUOMEdited = 1'
+			   DECLARE @PurchaseUnitOfMeasureId  BIGINT,
+                    @StockUnitOfMeasureId     BIGINT,
+                    @ConsumeUnitOfMeasureId   BIGINT,@IsStkTimeLife BIT;
+				SELECT TOP 1 @PurchaseUnitOfMeasureId = PurchaseUnitOfMeasureId, @StockUnitOfMeasureId = StockUnitOfMeasureId,@ConsumeUnitOfMeasureId = ConsumeUnitOfMeasureId, @IsStkTimeLife = IsTimeLife  FROM @tbl_ItemMasterUpdateType
+				PRINT @PurchaseUnitOfMeasureId
+				PRINT @StockUnitOfMeasureId
+				PRINT @ConsumeUnitOfMeasureId
+				EXEC [dbo].[USP_UpdateStocklineUOMByItemMasterId] @Id ,@MasterCompanyId,@PurchaseUnitOfMeasureId,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@IsPOUOMEdited,@IsStockUOMEdited,@IsConsumeUOMEdited,@ExistingPOUOMId,@ExistingStockUOMId,@ExistingConsumeUOMId,@IsStkTimeLife,@UpdatedBy
+		END
+		ELSE
+		BEGIN
+			UPDATE [dbo].[Stockline]
+			SET [IsStkTimeLife] = IM.[IsTimeLife]
+			FROM [dbo].[Stockline] sl
+			INNER JOIN @tbl_ItemMasterUpdateType IM ON sl.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE sl.[ItemMasterId] = @Id;
+		END
+		
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 
-		EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
+		--EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
 
 	END
-	SELECT @MasterPartId AS [MasterPartId];
+	SELECT @MasterPartId AS [MasterPartId],@QuickBooksReferenceId AS [QuickBooksReferenceId], @IntegrationTypeId AS [IntegrationTypeId]
   COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
   ROLLBACK TRANSACTION
+    SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_UpdateItemMaster]',
-            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, '') AS varchar(100)),
+            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, 0) AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,

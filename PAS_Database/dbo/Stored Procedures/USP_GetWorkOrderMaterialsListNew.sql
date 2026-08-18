@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsListNew]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used retrieve Work Order Materials List With Pagination
@@ -35,6 +35,16 @@
 	24  17-03-2026	    Moin Bloch			    Modify to StocklineQtytobeReserved  SET 0 For For Stock Provision PN-15765
 	25  26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 	26  03/Apr/2026     Rajesh Gami	            Getting UOM (Stock and consume) based on ItemMaster [PN-15911]
+	27	19/06/2026	    Ayushi		            [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	28  02-02-2026		Hemant Saliiya			Modify to handle StocklineQtytobeReserved and StocklineQtyRemaining For For Stock Provision
+	29  08-05-2026      Moin Bloch              Added Part Number Filter  PN-16363
+	30  11-05-2026      Moin Bloch              Fixed Pagination For Part Number Filter PN-16388
+	31    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	32    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	33  15-07-2026      Priyansh Patel          Convert the kitqty to consume uom PN-17079
+	34  15-07-2026      Abhishek Jirawla        Adding IsPiecePart condition in RepairOrderPart table
+	35  15-07-2026      Abhishek Jirawla        Adding Notes field in WorkOrderMaterialStockLine table
+	36    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -48,8 +58,9 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@WFWOId BIGINT  = NULL,
 	@ShowPendingToIssue BIT  = 0,
 	@IsDownload BIT = 0,
-	@IsParent BIT = 0
-)    
+	@IsParent BIT = 0,
+	@PartNumber VARCHAR(50) = NULL
+)
 AS    
 BEGIN    
 
@@ -85,6 +96,11 @@ SET NOCOUNT ON
 				IF @Local_SortColumn IS NULL
 				BEGIN  
 					SET @Local_SortColumn = ('recordId')
+				END
+
+				IF(@PartNumber = '')
+				BEGIN
+					SET @PartNumber = NULL;
 				END
 
 				SELECT @MasterCompanyId = MasterCompanyId,@WoTypeId = WorkOrderTypeId,@WorkOrderNum = [WorkOrderNum] FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @Local_WorkOrderId;
@@ -269,6 +285,7 @@ SET NOCOUNT ON
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
 					[Memo] [nvarchar](MAX) NULL,
+					[Notes] [nvarchar](MAX) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,
@@ -291,7 +308,7 @@ SET NOCOUNT ON
 					[Employeename] [varchar](256) NULL,
 					[RONextDlvrDate] [datetime2] NULL,
 					[RepairOrderNumber] [varchar](150) NULL,
-					[RepairOrderId] [bigint] NULL,
+					[RepairOrderId] [bigint] NULL,					
 					[VendorId] [bigint] NULL,
 					[VendorName] [varchar](150) NULL,
 					[VendorCode] [varchar](150) NULL,
@@ -352,26 +369,29 @@ SET NOCOUNT ON
 					SL.QuantityTurnIn,
 					SL.QuantityOnOrder,
 					SL.IsParent
-				FROM dbo.Stockline SL WITH(NOLOCK) 
+				FROM dbo.Stockline SL WITH(NOLOCK)
 				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
-				WHERE SL.MasterCompanyId = @MasterCompanyId 
+				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+				WHERE SL.MasterCompanyId = @MasterCompanyId
 				AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND  SL.IsActive = 1 AND SL.IsDeleted = 0
-
-				INSERT INTO #tmpWOMStockline SELECT DISTINCT						
-						WOMS.StockLineId, 						
+				AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
+				INSERT INTO #tmpWOMStockline SELECT DISTINCT
+						WOMS.StockLineId,
 						WOMS.WorkOrderMaterialsId,
 						WOMS.ConditionId,
 						WOMS.QtyIssued,
 						WOMS.QtyReserved,
 						WOMS.IsActive,
 						WOMS.IsDeleted
-				FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) 
-				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId 
+				FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK)
+				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 				AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+				AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 
-				INSERT INTO #tmpStocklineKit SELECT DISTINCT						
-					SL.StockLineId, 						
+				INSERT INTO #tmpStocklineKit SELECT DISTINCT
+					SL.StockLineId,
 					SL.ItemMasterId,
 					SL.ConditionId,
 					SL.QuantityOnHand,
@@ -380,112 +400,130 @@ SET NOCOUNT ON
 					SL.QuantityTurnIn,
 					SL.QuantityOnOrder,
 					SL.IsParent
-				FROM dbo.Stockline SL WITH(NOLOCK) 
+				FROM dbo.Stockline SL WITH(NOLOCK)
 				JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
-				WHERE SL.MasterCompanyId = @MasterCompanyId 
+				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+				WHERE SL.MasterCompanyId = @MasterCompanyId
 				AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND  SL.IsActive = 1 AND SL.IsDeleted = 0
-
-				INSERT INTO #tmpWOMStocklineKit SELECT DISTINCT						
-						WOMS.StockLineId, 						
+				AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
+				INSERT INTO #tmpWOMStocklineKit SELECT DISTINCT
+						WOMS.StockLineId,
 						WOMS.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOMS.ConditionId,
 						WOMS.QtyIssued,
 						WOMS.QtyReserved,
 						WOMS.IsActive,
 						WOMS.IsDeleted
-				FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) 
-				JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId 
+				FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK)
+				JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
+				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 				AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+				AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 
 				--Inserting Data For Parent Level- For Pagination : Start
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 				BEGIN
 					INSERT INTO #TMPWOMaterialParentListData
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
-					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0);
-
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 					INSERT INTO #TMPWOMaterialParentListData
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
 					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
-					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0);
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOMK.[ItemMasterId]
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 
 					--Calculating Total Extended Cost For Material list
-					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM 
+					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM
 					(
-						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 						UNION
 
 						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOMK.[ItemMasterId]
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
-					) AS AmtResult
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) ) AS AmtResult
 
 					--Calculating Total Issued / Reserved Stockline Extended Cost For Material list
-					SELECT @TotalIssuedStkExtendedCost = SUM(AmtResult.IssuedStkExtendedCost), @TotalReservedStkExtendedCost = SUM(AmtResult.ReservedStkExtendedCost) FROM 
+					SELECT @TotalIssuedStkExtendedCost = SUM(AmtResult.IssuedStkExtendedCost), @TotalReservedStkExtendedCost = SUM(AmtResult.ReservedStkExtendedCost) FROM
 					(
 						SELECT SUM(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS IssuedStkExtendedCost, SUM(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS ReservedStkExtendedCost
-						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 						UNION
 
 						SELECT SUM(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS IssuedStkExtendedCost, SUM(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS ReservedStkExtendedCost
 						FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOMK.[ItemMasterId]
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
-					) AS AmtResult
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) ) AS AmtResult
 				END
 				ELSE
 				BEGIN
 					INSERT INTO #TMPWOMaterialParentListData
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
-
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+					INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 					INSERT INTO #TMPWOMaterialParentListData
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
-					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
+					INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMKIT.ItemMasterId
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 
 					--Calculating Total Extended Cost For Material list
-					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM 
+					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM
 					(
-						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
-
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 						UNION
 
 						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId
-					) AS AmtResult
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) ) AS AmtResult
 
 					--Calculating Total Issued / Reserved Stockline Extended Cost For Material list
-					SELECT @TotalIssuedStkExtendedCost = SUM(AmtResult.IssuedStkExtendedCost), @TotalReservedStkExtendedCost = SUM(AmtResult.ReservedStkExtendedCost) FROM 
+					SELECT @TotalIssuedStkExtendedCost = SUM(AmtResult.IssuedStkExtendedCost), @TotalReservedStkExtendedCost = SUM(AmtResult.ReservedStkExtendedCost) FROM
 					(
 						SELECT SUM(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS IssuedStkExtendedCost, SUM(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS ReservedStkExtendedCost
-						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
-
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 						UNION
 
 						SELECT SUM(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS IssuedStkExtendedCost, SUM(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS ReservedStkExtendedCost
 						FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId
-					) AS AmtResult
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) ) AS AmtResult
 				END
 
 				--Added to Calculate Qty
@@ -493,26 +531,33 @@ SET NOCOUNT ON
 				BEGIN
 					INSERT INTO #TMPWOMaterialParentQtySum
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
-					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
-					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0);
-
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 					INSERT INTO #TMPWOMaterialParentQtySum
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
 					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
-					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0);
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 				END
 				ELSE
 				BEGIN
 					INSERT INTO #TMPWOMaterialParentQtySum
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
-					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
-
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 					INSERT INTO #TMPWOMaterialParentQtySum
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
-					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
-					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 				END
 				
 				CREATE TABLE #TMPWOMaterialResultListData (
@@ -551,7 +596,7 @@ SET NOCOUNT ON
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -596,11 +641,11 @@ SET NOCOUNT ON
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
 						--WOM.UnitCost,
-						dbo.fn_ConvertUOM(WOM.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(WOM.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
 						WOM.TotalStocklineQtyReq,
-						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,						
 						ISNULL(MSTL.WOMStockLineId, 0) as WOMStockLineId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
@@ -626,8 +671,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						SP.Description AS StocklineProvision,
 						SP.StatusCode AS StocklineProvisionStatusCode,
 						SL.StockLineNumber,
@@ -688,8 +732,8 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) END AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -714,6 +758,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -741,7 +786,7 @@ SET NOCOUNT ON
 						Employeename = UPPER(WOM.CreatedBy),
 						CASE WHEN SL.RepairOrderPartRecordId IS NOT NULL AND MSTL.RepairOrderId > 0 THEN SL.ReceivedDate ELSE ROP.EstRecordDate END AS 'RONextDlvrDate',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
-						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',						
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
@@ -773,8 +818,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -787,12 +832,14 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.SubWorkOrderPartNumber SWPN WITH (NOLOCK) ON SWPN.WorkOrderId = WOM.WorkOrderId AND SWPN.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
-						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId
+						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0 --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)	ORDER BY WOM.WorkOrderMaterialsId ASC
+					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+				AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
+				ORDER BY WOM.WorkOrderMaterialsId ASC
 
 					--WorkOrderMaterial Kit Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -847,11 +894,11 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						dbo.fn_ConvertUOM(WOM.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(WOM.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
-						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
+						ISNULL(WOM.TotalStocklineQtyReq,0) AS TotalStocklineQtyReq,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,						
 						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLineId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
@@ -877,8 +924,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						SP.Description AS StocklineProvision,
 						SP.StatusCode AS StocklineProvisionStatusCode,
 						SL.StockLineNumber,
@@ -934,8 +980,8 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) END AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -1015,8 +1061,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -1029,13 +1075,15 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.SubWorkOrderPartNumber SWPN WITH (NOLOCK) ON SWPN.WorkOrderId = WOM.WorkOrderId AND SWPN.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
-						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId
+						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0 --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)	ORDER BY WOM.WorkOrderMaterialsKitId ASC
+						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+						AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
+					ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 				ELSE
 				BEGIN
@@ -1049,7 +1097,7 @@ SET NOCOUNT ON
 								[PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], [Currency], [QuantityIssued], [QuantityReserved],
 								[QunatityRemaining], [QunatityPicked], [StocklineQtyReserved], [QtytobeReserved], [StocklineQtyIssued], [StocklineQuantityTurnIn], [StocklineQtyRemaining], [StocklineQtytobeReserved],
 								[QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [ReceivedDate], [POId], [Quantity], [StocklineQuantity], [PartQtyToTurnIn], [StocklineQtyToTurnIn], [ConditionCodeId], [StocklineConditionCodeId],
-								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
+								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
@@ -1094,11 +1142,11 @@ SET NOCOUNT ON
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
 						--WOM.UnitCost,
-						dbo.fn_ConvertUOM(WOM.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(WOM.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
-						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
+						ISNULL(WOM.TotalStocklineQtyReq,0) AS TotalStocklineQtyReq,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.WOMStockLineId, 0) as WOMStockLineId,						
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
@@ -1124,8 +1172,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						SP.Description AS StocklineProvision,
 						SP.StatusCode AS StocklineProvisionStatusCode,
 						SL.StockLineNumber,
@@ -1186,8 +1233,8 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) END AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -1212,6 +1259,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
+						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
 						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1270,8 +1318,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId -- DO Not Modify this 
 						--LEFT JOIN dbo.Stockline SL_PO WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -1285,11 +1333,12 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.SubWorkOrderPartNumber SWPN WITH (NOLOCK) ON SWPN.WorkOrderId = WOM.WorkOrderId AND SWPN.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
-						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId
+						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0 --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
 					ORDER BY WOM.WorkOrderMaterialsId ASC
 
 					--WorkOrderMaterial Kit Data Insert
@@ -1345,11 +1394,11 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						dbo.fn_ConvertUOM(WOM.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
-						ISNULL(IMPS.PP_UnitPurchasePrice, 0) AS ItemMasterUnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(WOM.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS UnitCost,
+						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
-						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
+						ISNULL(WOM.TotalStocklineQtyReq,0) AS TotalStocklineQtyReq,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(MSTL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0),uomStock.ShortName,uomConsume.ShortName,1,@MasterCompanyId) END AS StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,						
 						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLineId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
@@ -1375,8 +1424,7 @@ SET NOCOUNT ON
 								ELSE MSTL.EquPartMasterPartId
 								END
 							ELSE MSTL.AltPartMasterPartId
-							END)
-						) AS AlterPartNumber,
+							END) ) AS AlterPartNumber,
 						SP.Description AS StocklineProvision,
 						SP.StatusCode AS StocklineProvisionStatusCode,
 						SL.StockLineNumber,
@@ -1432,8 +1480,8 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0), 0) END AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued, 0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -1494,7 +1542,14 @@ SET NOCOUNT ON
 						,CASE WHEN isnull(MSTL.StockLineId,0)=0 then WOM.Item else MSTL.Item end StockLineItem
 						,ISNULL(SL.StockLineId, 0) as StockLineId
 						,1 AS IsKitType
-						,ISNULL((SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId), 0) AS KitQty
+						,ISNULL((SELECT SUM(CASE WHEN ISNULL(uomStock.ShortName, '') = ISNULL(uomConsume.ShortName, '') THEN ISNULL(WOMK.Quantity, 0)
+							ELSE dbo.fn_ConvertUOM(ISNULL(WOMK.Quantity, 0), uomStock.ShortName, uomConsume.ShortName, 0, @MasterCompanyId) END)
+						FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
+						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId
+						), 0) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,0  AS IsExchangeTender
 						,'Yes' [IsKitItem]
@@ -1513,8 +1568,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId -- DO Not Modify this 
 						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -1527,56 +1582,67 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.SubWorkOrderPartNumber SWPN WITH (NOLOCK) ON SWPN.WorkOrderId = WOM.WorkOrderId AND SWPN.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
-						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId
+						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0 --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
-					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1) ORDER BY WOM.WorkOrderMaterialsKitId ASC
+					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber)
+				ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 
 				--	Calculating Total Material Parts and StockLine Parts	: Start
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 				BEGIN
 					SET @TotalMaterialParts = ISNULL((SELECT COUNT([WorkOrderMaterialsId])
-						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) ),0)
+
 
 					SET @TotalMaterialParts = ISNULL(@TotalMaterialParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialsKitId])
-						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) 
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) ),0)
 
 					--	StockLine Part
 					SET @TotalStkParts = ISNULL((SELECT COUNT([WOMStockLineId])
-						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) ),0)
 
 					SET @TotalStkParts = ISNULL(@TotalStkParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialStockLineKitId])
-						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) ),0)
 				END
 				ELSE
 				BEGIN
 					SET @TotalMaterialParts = ISNULL((SELECT COUNT([WorkOrderMaterialsId])
-						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId ),0)
 
 					SET @TotalMaterialParts = ISNULL(@TotalMaterialParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialsKitId])
-						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) 
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId ),0)
 
 					--	StockLine Part
 					SET @TotalStkParts = ISNULL((SELECT COUNT([WOMStockLineId])
-						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId ),0)
 
 					SET @TotalStkParts = ISNULL(@TotalStkParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialStockLineKitId])
-						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
-						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+						WHERE (@PartNumber IS NULL OR IM.[PartNumber] = @PartNumber) AND WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId ),0)
 				END
 				--	Calculating Total Material Parts and StockLine Parts	: End
 

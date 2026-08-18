@@ -16,9 +16,11 @@
     1    08/10/2023     AMIT GHEDIYA			Created
 	2    31/10/2023     AMIT GHEDIYA			Added Isseralized for Qty check.
 	3    22/12/2023     Bhargav Salya			Added NewUnitCostTotransfer Field
-       
--- EXEC USP_GetbulkstocklineadjustmentById 8,2  
-  
+	4    16/06/2026     Moin Bloch			    Added [BulkStockScrapCertificateId] Field PN-16824
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
+-- EXEC USP_GetbulkstocklineadjustmentById 110,2  
 ************************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_GetbulkstocklineadjustmentById]  
 	@BulkStkLineAdjId BIGINT,
@@ -82,14 +84,16 @@ BEGIN
 			   BSAD.[FromManagementStructureId],
 			   BSAD.[ToManagementStructureId],
 			   BSAD.[QuantityOnHand],
-			   BSAD.[UnitOfMeasure],
+			   STL.[StockUnitOfMeasure] AS [UnitOfMeasure],
 			   BSAD.[NewUnitCostTotransfer],
-			   BSAD.[AdjustmentReasonId]
+			   BSAD.[AdjustmentReasonId],
+			   BSSS.[BulkStockScrapCertificateId]
 		  FROM [dbo].[BulkStockLineAdjustmentDetails] BSAD WITH (NOLOCK)  
 		  INNER JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON  STL.StockLineId = BSAD.StockLineId
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON STL.[ItemMasterId] = IM.[ItemMasterId]
-		  LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON STL.ManufacturerId = MF.ManufacturerId
-		  WHERE BSAD.[BulkStkLineAdjId] = @BulkStkLineAdjId AND BSAD.[IsActive] = 1;
+		   LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON STL.ManufacturerId = MF.ManufacturerId
+		   LEFT JOIN [dbo].[BulkStockScrapCertificate] BSSS WITH (NOLOCK) ON BSSS.[BulkStkLineAdjDetailsId] = BSAD.[BulkStkLineAdjDetailsId] AND BSSS.[IsActive] = 1 AND BSSS.[IsDeleted]=0
+		  WHERE BSAD.[BulkStkLineAdjId] = @BulkStkLineAdjId AND BSAD.[IsActive] = 1 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ;
 	END
 END TRY      
  BEGIN CATCH        

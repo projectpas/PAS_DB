@@ -20,17 +20,22 @@
 	7    23/06/2025   Moin Bloch     Added WorkOrderShippingId
 	8    24/06/2025   RAJESH GAMI    Fixed while IsProformaInvoice = true part status changed to BILLED.  
 	9    25/06/2025   Moin Bloch     Fixed Version Increase 
-	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
-	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
-	12   02/07/2025   Moin Bloch     Added DepositAmount
-	13   03 JUL 2025  RAJESH GAMI	 Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
-	14   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
-	15   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
-	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
-	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
-	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
-	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
-	20   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
+	10   25/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-16983]
+	11   30/06/2025   Rajesh Gami    Fixed to version increase issue 
+	12   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
+	13   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
+	14   02/07/2025   Moin Bloch     Added DepositAmount
+	15   03 JUL 2025  RAJESH GAMI	 Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
+	16   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
+	17   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
+	18   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
+	19   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
+	20   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
+	21   15/01/2026   Vishal Suthar  Issue with new version created for SA
+	22   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
+	23   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	25   14/07/2026   Bhargav saliya    Revert Changes For Part Cost [PN-16986]
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -449,18 +454,14 @@ BEGIN
 			DECLARE @ShipDate DATETIME2(7) = NULL
 
 			UPDATE TEMP_TABLE
-			SET 
-				[UnitPrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[QtyBilled] = ([dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[PartCost] = ([dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[SubTotal] = ([dbo].[fn_ConvertUOM](ISNULL([SubTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[GrandTotal] = ([dbo].[fn_ConvertUOM](ISNULL([GrandTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[UnitSalePrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitSalePrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[MarkUpAmount] = ([dbo].[fn_ConvertUOM](ISNULL([MarkUpAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[DiscountAmount] = ([dbo].[fn_ConvertUOM](ISNULL([DiscountAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId))
+			SET
+				[UnitPrice]     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([UnitPrice], 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),    IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[QtyBilled]     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([QtyBilled], 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),    IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],0,TEMP_TABLE.MasterCompanyId) END),
+				[UnitSalePrice] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([UnitSalePrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([UnitSalePrice], 0), IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END)
+				--[PartCost]     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([PartCost], 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),    IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END)
 			FROM #tmprAddBillingInvoicingDetailsTemp TEMP_TABLE
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON TEMP_TABLE.ItemMasterId = IM.ItemMasterId
-			WHERE [PKID] = @MinId 
+			WHERE [PKID] = @MinId
 
 			 SELECT @BillingInvoicingId = ISNULL([BillingInvoicingId],0),
 			        @BillingInvoicingItemId = ISNULL([BillingInvoicingItemId],0),
@@ -609,7 +610,7 @@ BEGIN
 
 				EXEC [dbo].[USP_UpdateWOCostDetails] @ReferenceId,@WFWorkOrderId,@UpdatedBy,@MasterCompanyId
 
-				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId;					   
+				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;					   
 				SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = 'Invoicing';								   
 				SET @TemplateBody = REPLACE(@TemplateBody, '##WoMPN##', @PartNumber);
 				SET @TemplateBody = REPLACE(@TemplateBody, '##InvoiceNo##', @InvoiceNo);

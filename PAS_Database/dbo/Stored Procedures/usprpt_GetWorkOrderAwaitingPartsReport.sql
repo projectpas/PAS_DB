@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************
+﻿/*************************************************************
  ** File:   [usprpt_GetWorkOrderAwaitingPartsReport]
  ** Author:   Abhishek Jirawla 
  ** Description: Get Data for WorkOrder Awaiting Parts report
@@ -16,8 +15,12 @@
  ** S NO   DateAuthor   Change Description 
  ** --   ---------------  --------------------------------
 	1	22-10-2024		Abhishek Jirawla	CREATED  
+	2	15-06-2026	    Priyansh Patel      uom changes related to quantity field [PN-16829]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4	20-07-2026	    Priyansh Patel      uom changes removed the conversion due to stock uom return required and added uom conversion for po data [PN-16829] 
+
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
  @PageSize INT = NULL,
  @mastercompanyid INT,
@@ -131,17 +134,17 @@ BEGIN TRANSACTION
 			condition VARCHAR(256) NULL,
 			manufacturer VARCHAR(250) NULL,
 			uom VARCHAR(100) NULL,
-			approvedamount DECIMAL(18, 2) NULL, 
+			approvedamount DECIMAL(18, 6) NULL, 
 			openDate DATETIME2 NULL, 
 			requestDate DATETIME2 NULL, 
 			estimatedShipDate DATETIME2 NULL, 
 			workOrderMaterialsId BIGINT NULL,
-			quantityRequested INT NULL, 
-			quantityReserved INT NULL, 
-			quantityIssued INT NULL, 
-			quantityAvailable INT NULL,
-			backlog INT NULL,
-			customerStock INT NULL,
+			quantityRequested DECIMAL(18, 6) NULL, 
+			quantityReserved DECIMAL(18, 6) NULL, 
+			quantityIssued DECIMAL(18, 6) NULL, 
+			quantityAvailable DECIMAL(18, 6) NULL, 
+			backlog DECIMAL(18, 6) NULL, 
+			customerStock DECIMAL(18, 6) NULL, 
 			customerApprovedDate DATETIME2 NULL,
 			level1 VARCHAR(MAX) NULL, 
 			level2 VARCHAR(MAX) NULL, 
@@ -164,9 +167,9 @@ BEGIN TRANSACTION
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL, 
-			[QuantityReserved] [INT] NULL,
-			[QuantityIssued] [INT] NULL
+			[Quantity] DECIMAL(18, 6) NULL, 
+			[QuantityReserved]  DECIMAL(18, 6) NULL, 
+			[QuantityIssued]  DECIMAL(18, 6) NULL
 		)
 
 		CREATE TABLE #tmpMultipleWOMStocklineKit
@@ -176,9 +179,9 @@ BEGIN TRANSACTION
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL, 
-			[QuantityReserved] [INT] NULL,
-			[QuantityIssued] [INT] NULL
+			[Quantity]  DECIMAL(18, 6) NULL, 
+			[QuantityReserved]  DECIMAL(18, 6) NULL, 
+			[QuantityIssued]  DECIMAL(18, 6) NULL
 		)
 
 		INSERT INTO #tmpMultipleWOMStockline 
@@ -208,7 +211,7 @@ BEGIN TRANSACTION
 		MPNData.conditionId 'conditionId',
 		MPNData.condition 'condition',
 		UPPER(IMWOM.ManufacturerName) 'manufacturer',
-		UPPER(UOM.ShortName) 'uom',
+		UPPER(IMWOM.StockUnitOfMeasure) 'uom',
 		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
@@ -218,7 +221,6 @@ BEGIN TRANSACTION
 		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
 		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		ISNULL(STK.QuantityAvailable, 0) 'quantityAvailable',
-		--ISNULL(POPData.Backlog, 0) 'backlog',
 		0 'backlog',
 		ISNULL(STKCS.QuantityAvailable, 0) 'customerStock',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'customerApprovedDate',
@@ -249,6 +251,7 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
+		 AND ISNULL(IMWOM.IsNonStock,0) = 0
 		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (
@@ -287,16 +290,15 @@ BEGIN TRANSACTION
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID = WOWF.WorkOrderPartNoId
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 			WHERE WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-		) AS MPNData
+		 AND ISNULL(IMWOPN.IsNonStock,0) = 0 ) AS MPNData
 		OUTER APPLY (
-			SELECT 
+			SELECT
 				MAX(
 					CASE  
 						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
 						ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
 						   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
 						   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
-						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
 					END
 				) AS approvedamount
 			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
@@ -330,6 +332,7 @@ BEGIN TRANSACTION
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+	 AND ISNULL(IMWOPN.IsNonStock,0) = 0
 	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 		STK.QuantityAvailable,
 		STKCS.QuantityAvailable,
@@ -345,7 +348,9 @@ BEGIN TRANSACTION
 		MPNData.condition,
 		tmpWOM.WorkOrderMaterialsId,
 		UPPER(IMWOM.ManufacturerName),
-		UPPER(UOM.ShortName),
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.ConsumeUnitOfMeasure,
+		IMWOM.MasterCompanyId,
 		ApprovedAmount.approvedamount,
 		MSD.Level1Name,
 		MSD.Level2Name,
@@ -364,15 +369,20 @@ BEGIN TRANSACTION
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
 		APD.ConditionId,
-		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+		dbo.fn_ConvertUOM(SUM(ISNULL(POP.QuantityBackOrdered, 0)), IMWOM.PurchaseUnitOfMeasure, IMWOM.StockUnitOfMeasure, 0, IMWOM.MasterCompanyId) AS Backlog
+
 	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
 		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
 		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+		INNER JOIN DBO.ItemMaster IMWOM WITH (NOLOCK) ON IMWOM.ItemMasterId = POP.ItemMasterId
 	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId
 	GROUP BY 
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
-		APD.ConditionId
+		APD.ConditionId,
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.PurchaseUnitOfMeasure,
+		IMWOM.MasterCompanyId
 	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 	INSERT INTO #AwaitingPartsData
@@ -390,17 +400,17 @@ BEGIN TRANSACTION
 		MPNData.conditionId 'conditionId',
 		MPNData.condition 'condition',
 		UPPER(IMWOM.ManufacturerName) 'manufacturer',
-		UPPER(UOM.ShortName) 'uom',
+		UPPER(IMWOM.StockUnitOfMeasure) 'uom',
 		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
 		tmpWOM.WorkOrderMaterialsId 'workOrderMaterialsId',
+		
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
 		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		ISNULL(STK.QuantityAvailable, 0) 'quantityAvailable',
-		--ISNULL(POPData.Backlog, 0) 'backlog',
 		0 'backlog',
 		ISNULL(STKCS.QuantityAvailable, 0) 'customerStock',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'customerApprovedDate',
@@ -431,6 +441,7 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
+		 AND ISNULL(IMWOM.IsNonStock,0) = 0
 		LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (
@@ -469,9 +480,9 @@ BEGIN TRANSACTION
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID = WOWF.WorkOrderPartNoId
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 			WHERE WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-		) AS MPNData
+		 AND ISNULL(IMWOPN.IsNonStock,0) = 0 ) AS MPNData
 		OUTER APPLY (
-			SELECT 
+			SELECT
 				MAX(
 					CASE  
 						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
@@ -512,6 +523,7 @@ BEGIN TRANSACTION
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+	 AND ISNULL(IMWOPN.IsNonStock,0) = 0
 	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 		STK.QuantityAvailable,
 		STKCS.QuantityAvailable,
@@ -527,7 +539,9 @@ BEGIN TRANSACTION
 		MPNData.condition,
 		tmpWOM.WorkOrderMaterialsId,
 		UPPER(IMWOM.ManufacturerName),
-		UPPER(UOM.ShortName),
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.ConsumeUnitOfMeasure,
+		IMWOM.MasterCompanyId,
 		ApprovedAmount.approvedamount,
 		MSD.Level1Name,
 		MSD.Level2Name,
@@ -546,15 +560,19 @@ BEGIN TRANSACTION
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
 		APD.ConditionId,
-		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+		dbo.fn_ConvertUOM(SUM(ISNULL(POP.QuantityBackOrdered, 0)), IMWOM.PurchaseUnitOfMeasure, IMWOM.StockUnitOfMeasure, 0, IMWOM.MasterCompanyId) AS Backlog
 	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
 		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
 		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+		INNER JOIN DBO.ItemMaster IMWOM WITH (NOLOCK) ON IMWOM.ItemMasterId = POP.ItemMasterId
 	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId AND APD.isKitType = 1
 	GROUP BY 
 		APD.WorkOrderId, 
 		APD.ItemMasterId,
-		APD.ConditionId
+		APD.ConditionId,
+		IMWOM.StockUnitOfMeasure,
+		IMWOM.PurchaseUnitOfMeasure,
+		IMWOM.MasterCompanyId
 	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 
@@ -566,7 +584,7 @@ BEGIN TRANSACTION
 		ORDER BY WorkOrderId DESC
 	END
 
-	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts INT = 0;
+	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts DECIMAL(18, 6) = 0;
 
 	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC WITH (NOLOCK)
 	WHERE  (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 

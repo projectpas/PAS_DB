@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -21,6 +21,10 @@
  ** 7    23/12/2025	  Devendra Shekh  added UOM Changes
 	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function  
 	9    09/01/2026   Rajesh Gami	  Resolved Issue For Stock and Consume related (Qty and Cost)
+	10	 18/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -110,7 +114,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		);
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
-
 		SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 		INSERT INTO #ConditionGroup (ConditionId)
@@ -120,7 +123,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0;  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0 ;  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],
@@ -158,10 +161,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(sl.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyAvailable
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(sl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyOnHand
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(sl.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitCost
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitSalesPrice,0) ELSE dbo.fn_ConvertUOM(sl.UnitSalesPrice,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitSalePrice
 			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
 			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
 			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
@@ -275,10 +278,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(sl.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyAvailable
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(sl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyOnHand
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(sl.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitCost
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitSalesPrice,0) ELSE dbo.fn_ConvertUOM(sl.UnitSalesPrice,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
 			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
 			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  

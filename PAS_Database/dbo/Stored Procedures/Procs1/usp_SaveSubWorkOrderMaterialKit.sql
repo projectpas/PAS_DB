@@ -18,6 +18,9 @@
 	2	 01/13/2024	  Moin Bloch			Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	3	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
 	4    17/11/2024	  Ayuhi Patel			Added logic to set @ProvisionId
+	5    29/06/2026	  Ayuhi Patel			Added type decimal to qty [PN-17004]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(IM.IsNonStock,0) = 0 filter to the @ItemClassificationId ItemMaster lookup
 declare @p1 dbo.WorkOrderMaterialKitType
 insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'ADMIN User',N'ADMIN User','2023-09-05 05:42:00','2023-11-06 02:25:00',1,0)
 
@@ -64,8 +67,8 @@ BEGIN
 				[KitId] [bigint] NULL,
 				[KitNumber] [varchar](256) NULL,
 				[ItemMasterId] [bigint] NULL,
-				[Quantity] [int] NULL,
-				[UnitCost] [decimal](18, 2) NULL,
+				[Quantity] [decimal](18, 6) NULL,
+				[UnitCost] [decimal](18, 6) NULL,
 				[MasterCompanyId] [int] NULL,
 				[CreatedBy] [varchar](256) NULL,
 				[UpdatedBy] [varchar](256) NULL,
@@ -141,9 +144,9 @@ BEGIN
 					[ManufacturerId] [bigint] NOT NULL,
 					[ConditionId] [bigint] NOT NULL,
 					[UOMId] [bigint] NOT NULL,
-					[Qty] [int] NULL,
-					[UnitCost] [decimal](18, 2) NULL,
-					[StocklineUnitCost] [decimal](18, 2) NULL,
+					[Qty] [decimal](18, 6) NULL,
+					[UnitCost] [decimal](18, 6) NULL,
+					[StocklineUnitCost] [decimal](18, 6) NULL,
 					[PartNumber] [varchar](250) NULL,
 					[PartDescription] [varchar](MAX) NULL,
 					[Manufacturer] [varchar](256) NULL,
@@ -172,9 +175,9 @@ BEGIN
 				BEGIN
 					DECLARE @MasterCompanyId BIGINT;
 					DECLARE @ItemMasterId BIGINT;
-					DECLARE @Qty BIGINT;
+					DECLARE @Qty [decimal](18, 6);
 					DECLARE @UOMId BIGINT;
-					DECLARE @UnitCost [decimal](18, 2);
+					DECLARE @UnitCost [decimal](18, 6);
 					DECLARE @TaskId BIGINT = 0;
 					DECLARE @ItemClassificationId BIGINT;
 					DECLARE @ProvisionId BIGINT;
@@ -190,7 +193,7 @@ BEGIN
 					END
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
-					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
+					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 					SELECT @ProvisionId = PROV.ProvisionId
 					FROM [DBO].[KitMaster] PROV
 					WHERE PROV.KitId = @KitId;

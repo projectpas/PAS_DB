@@ -108,6 +108,9 @@
     [IsUPSImplement]                  BIT             CONSTRAINT [DF_AppSettings_IsUPSImplement] DEFAULT ((0)) NULL,
     [AsOfNowHistoryCleanUpDays]       INT             DEFAULT ((-31)) NOT NULL,
     [DisableHangfireCron]             BIT             DEFAULT ((1)) NOT NULL,
+    [PowerBiTenantId]                 VARCHAR (250)   NULL,
+    [PowerBiClientId]                 VARCHAR (250)   NULL,
+    [PowerBiClientSecret]             VARCHAR (250)   NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
 

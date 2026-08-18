@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/10/2022  Subhash Saliya     Created
+	2    20/July/2026   RAJESH GAMI        [PN-17350] - Repointed RPO/RRO/AST-branch NONSTOCK MS lookup from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NONStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
      
 --EXEC GetJournalBatchDetailsById 27,0,'SOI'
 ************************************************************************/

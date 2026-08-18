@@ -13,6 +13,7 @@
     2    28-JAN-2025		Ekta Chandegra  		Update isDeleted value for parent
     3    28-JAN-2025		Vishal Suthar  			Modified the logic of delete and restore with all it's child too
     4    06-MAR-2025		RAJESH GAMI  			Add condition while deleting the record (Hard delete)
+	5    07-JULY-2026		NAKUL CHANDIGRA			Add condition for hard deleting the entire Task Instruction. [PN-17036]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_TaskInstruction_DeleteRestoreById]
 @TaskInstructionId bigint,
@@ -31,7 +32,7 @@ BEGIN
 						--UPDATE TaskInstructionMaster
 						--SET IsDeleted = 1
 						--WHERE TaskInstructionId = @TaskInstructionId;
-						DELETE FROM TaskInstructionMaster WHERE TaskInstructionId = @TaskInstructionId;
+						DELETE FROM TaskInstructionMaster WHERE TaskInstructionId = @TaskInstructionId OR ParentId = @TaskInstructionId ;
 					END
 					ELSE
 					BEGIN

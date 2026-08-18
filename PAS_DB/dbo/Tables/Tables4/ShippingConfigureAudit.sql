@@ -1,7 +1,8 @@
 ﻿CREATE TABLE [dbo].[ShippingConfigureAudit] (
     [ShippingConfigureAuditId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [ShippingConfigureId]      BIGINT        NULL,
-    [ShippingViaId]            BIGINT        NULL,
+    -- Previous single-select type: [ShippingViaId] BIGINT NULL,
+    [ShippingViaId]            VARCHAR (MAX) NULL,
     [ApiURL]                   VARCHAR (MAX) NULL,
     [ApiKey]                   VARCHAR (MAX) NULL,
     [SecretKey]                VARCHAR (MAX) NULL,

@@ -1,6 +1,7 @@
 ﻿CREATE TABLE [dbo].[ShippingConfigure] (
     [ShippingConfigureId]   BIGINT        IDENTITY (1, 1) NOT NULL,
-    [ShippingViaId]         BIGINT        NOT NULL,
+    -- Previous single-select type: [ShippingViaId] BIGINT NOT NULL,
+    [ShippingViaId]         VARCHAR (MAX) NOT NULL,
     [ApiURL]                VARCHAR (MAX) NOT NULL,
     [ApiKey]                VARCHAR (MAX) NOT NULL,
     [SecretKey]             VARCHAR (MAX) NOT NULL,
@@ -15,8 +16,8 @@
     [IsDeleted]             BIT           CONSTRAINT [DF_ShippingConfigure_IsDeleted] DEFAULT ((0)) NOT NULL,
     [CarrierId]             BIGINT        NULL,
     CONSTRAINT [PK_ShippingConfigure] PRIMARY KEY CLUSTERED ([ShippingConfigureId] ASC),
-    CONSTRAINT [FK_ShippingConfigure_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_ShippingConfigure_ShippingVia] FOREIGN KEY ([ShippingViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId])
+    CONSTRAINT [FK_ShippingConfigure_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    -- Previous single-select foreign key: FK_ShippingConfigure_ShippingVia.
 );
 
 

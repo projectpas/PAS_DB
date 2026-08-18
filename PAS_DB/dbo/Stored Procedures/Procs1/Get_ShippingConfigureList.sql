@@ -95,7 +95,8 @@ BEGIN
   
     ;WITH Result AS(  
     SELECT   
-    SC.ShippingConfigureId,S.NAME 'shippingvia',  
+    -- Previous single-select value: S.NAME 'shippingvia'.
+    SC.ShippingConfigureId,SV.ShippingVia 'shippingvia',
     SC.ShippingAccountNumber 'ShippingAccountNumber',
 	CASE WHEN SC.IsAuthReq =1 THEN 'Yes' ELSE 'No' END 'IsAuthReq',
     SC.APIKey, 
@@ -111,9 +112,16 @@ BEGIN
 	ELSE (CAST(SC.UpdatedDate AS DATETIME)) END UpdatedDate,
 	SC.IsActive,
 	SC.IsDeleted,
-	SC.CarrierId,C.Code 'Carrier'
+    SC.CarrierId,C.Code 'Carrier'
     FROM DBO.ShippingConfigure SC WITH(NOLOCK)  
-    LEFT JOIN DBO.ShippingVia S WITH(NOLOCK) ON SC.ShippingViaId = S.ShippingViaId 
+	-- Previous single-select join: LEFT JOIN DBO.ShippingVia S ON SC.ShippingViaId = S.ShippingViaId.
+	OUTER APPLY
+	(
+		SELECT STRING_AGG(S.Name, ', ') WITHIN GROUP (ORDER BY S.Name) AS ShippingVia
+		FROM STRING_SPLIT(SC.ShippingViaId, ',') ShippingViaIds
+		INNER JOIN DBO.ShippingVia S WITH(NOLOCK)
+			ON S.ShippingViaId = TRY_CONVERT(BIGINT, LTRIM(RTRIM(ShippingViaIds.value)))
+	) SV
 	LEFT JOIN DBO.Carrier C WITH(NOLOCK) ON SC.CarrierId = C.CarrierId
     Where ((SC.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SC.IsActive=@IsActive))    
     AND SC.MasterCompanyId=@MasterCompanyId     

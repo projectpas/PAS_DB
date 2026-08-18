@@ -19,6 +19,7 @@
 	2    06/28/2021   Hemant Saliya  Added Tarnsation And Content Managment
 	3    08/12/2024   Devendra Shekh  changed uom Description to ShortName
 	4	 01/17/2025	  Moin Bloch	  Modified (Added @WorkOrderFormTypeId from WO)
+	5    08/14/2026   Sumit Kumar     [PN-17643] Modified to get sequence number in case of duplicate task name
 
      
  EXECUTE [GetWorkFlowWorkOrderFreightList] 140, null,0
@@ -59,7 +60,9 @@ BEGIN
                     sv.[Name] AS ShipVia,
                     wf.TaskId,
                    -- ISNULL(ts.Description,'') as TaskName,
-					CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN  
+						CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END
+					ELSE ISNULL(ts.[Description],'') END AS TaskName,
                     wf.[Length],
                     wf.Width,
                     wf.Height,
@@ -73,6 +76,15 @@ BEGIN
 					JOIN [dbo].[ShippingVia] sv WITH(NOLOCK) ON wf.ShipViaId = sv.ShippingViaId
 				    LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wf.TaskId
+					-- Join to get active task counts to detect duplicates
+					LEFT JOIN (
+						SELECT TaskId, WorkOrderId, WorkOrderPartNumberId, COUNT(*) AS TaskCount
+						FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+						WHERE [IsActive] = 1 AND [IsDeleted] = 0
+						GROUP BY TaskId, WorkOrderId, WorkOrderPartNumberId
+					) Dup ON WOT.TaskId = Dup.TaskId 
+					     AND WOT.WorkOrderId = Dup.WorkOrderId 
+					     AND WOT.WorkOrderPartNumberId = Dup.WorkOrderPartNumberId
 					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
 					LEFT JOIN [dbo].[UnitOfMeasure] duom  WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
 					LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId

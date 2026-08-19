@@ -8,11 +8,12 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    07/08/2026     Amit Ghediya            Created
+    2    18/08/2026     Amit Ghediya            Added Notes
 
 exec USP_CreateUpdateLeasePart
 @LeasePartId=0,@LeaseHeaderId=1,@ItemMasterId=1,@ConditionId=1,@QtyRequested=1,@QtyOrder=1,@AircraftSectionId=NULL,
 @StartDate=NULL,@EndDate=NULL,@POId=NULL,@PONumber=NULL,@StatusId=1,
-@MasterCompanyId=1,@CreatedBy='',@UpdatedBy=''
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeasePart]
 	@LeasePartId BIGINT = 0,
@@ -28,7 +29,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeasePart]
 	@StatusId INT = 1,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(256),
-	@UpdatedBy VARCHAR(256)
+	@UpdatedBy VARCHAR(256),
+	@Notes NVARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -61,6 +63,7 @@ BEGIN
 				POId              = @POId,
 				PONumber          = @PONumber,
 				StatusId          = @StatusId,
+				Notes             = @Notes,
 				UpdatedBy         = @UpdatedBy,
 				UpdatedDate       = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
@@ -70,13 +73,13 @@ BEGIN
 			INSERT INTO [dbo].[LeasePart]
 			(
 				LeaseHeaderId, ItemMasterId, PN, PNDescription, UOM, QtyOrder, QtyReserved,
-				ConditionId, AircraftSectionId, StartDate, EndDate, POId, PONumber, StatusId,
+				ConditionId, AircraftSectionId, StartDate, EndDate, POId, PONumber, StatusId, Notes,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
 			)
 			VALUES
 			(
 				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @UOM, @QtyOrder, 0,
-				@ConditionId, @AircraftSectionId, @StartDate, @EndDate, @POId, @PONumber, @StatusId,
+				@ConditionId, @AircraftSectionId, @StartDate, @EndDate, @POId, @PONumber, @StatusId, @Notes,
 				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 
@@ -101,6 +104,7 @@ BEGIN
 			LP.POId,
 			LP.PONumber,
 			LP.StatusId,
+			LP.Notes,
 			LP.MasterCompanyId,
 			LP.CreatedBy,
 			LP.UpdatedBy,

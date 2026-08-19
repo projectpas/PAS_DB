@@ -172,7 +172,7 @@
     [ReceivablesAmount]                 DECIMAL (18, 6) NULL,
     [DepreciationStartDate]             DATETIME        NULL,
     [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
-    [CalibratedGLAccountId]             INT             NULL,
+    [CalibratedGLAccountId]             BIGINT          NULL,
     [CalibratedGLAccountName]           VARCHAR (255)   NULL,
     [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),

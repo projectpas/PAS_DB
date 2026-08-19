@@ -602,7 +602,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(WOM.Notes, '') AS Notes,
+						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
 						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
@@ -1067,7 +1067,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(WOM.Notes, '') AS Notes,
+						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
 						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,

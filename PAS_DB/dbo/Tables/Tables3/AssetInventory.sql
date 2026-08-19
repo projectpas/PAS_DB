@@ -106,7 +106,7 @@
     [WarrantyCompanyName]               VARCHAR (100)   NULL,
     [WarrantyCompanySelectId]           INT             NULL,
     [WarrantyMemo]                      NVARCHAR (MAX)  NULL,
-    [IsQtyReserved]                     BIT             NOT NULL,
+    [IsQtyReserved]                     BIT             CONSTRAINT [DF_AssetInventory_IsQtyReserved] DEFAULT ((0)) NOT NULL,
     [InventoryStatusId]                 BIGINT          NULL,
     [InventoryNumber]                   VARCHAR (100)   NULL,
     [AssetStatusId]                     BIGINT          NULL,
@@ -138,7 +138,7 @@
     [BinId]                             BIGINT          NULL,
     [BinName]                           VARCHAR (250)   NULL,
     [StatusNote]                        VARCHAR (500)   NULL,
-    [RRQty]                             INT             NOT NULL,
+    [RRQty]                             INT             CONSTRAINT [DF_AssetInventory_RRQty] DEFAULT ((0)) NOT NULL,
     [DepreciationMethodId]              BIGINT          NULL,
     [DepreciationMethodName]            VARCHAR (250)   NULL,
     [ResidualPercentageId]              BIGINT          NULL,
@@ -182,6 +182,8 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

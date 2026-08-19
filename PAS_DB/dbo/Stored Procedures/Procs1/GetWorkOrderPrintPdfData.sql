@@ -20,7 +20,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 EXEC GetWorkOrderPrintPdfData 8560,8227
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	10   18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)
+	10   18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)kept the incomingPN as it
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderPrintPdfData]
 @WorkorderId bigint,

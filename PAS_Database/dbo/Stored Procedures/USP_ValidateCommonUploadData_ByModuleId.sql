@@ -62,7 +62,8 @@
 	52    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	53	 29-Jul-2026        Nakul Chandigra         Updated Max Length Validation to dynamic Validation (PN-15051)
 	54   06-Aug-1016        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
-
+	55	 14-Aug-2026        Ayushi Patel			Fixed: Stockline duplicate check call to USP_ChekDuplicateValueForUpload was missing Ref3/Value3 params , causing type clash error for serialized parts. Fixed by using named parameters.
+	56   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -941,7 +942,17 @@ BEGIN
 					BEGIN
 						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
 						BEGIN
-						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						EXEC [dbo].[USP_ChekDuplicateValueForUpload] 
+								@ChekDuplticateRef1  = @ChekDuplticateRef1,
+								@ChekDuplticateRef2  = @ChekDuplticateRef2,
+								@DuplicateRefeValue1 = @DuplicateRefeValue1,
+								@DuplicateRefeValue2 = @DuplicateRefeValue2,
+								@ReferenceTable      = @ReferenceTable,
+								@MasterCompanyId     = @MasterCompanyId,
+								@ModuleId            = @ModuleId,
+								@UploadData          = @UploadData,
+								@UploadRecord        = @UploadRecord,
+								@IsDuplicate         = @IsDuplicate OUTPUT;
 						END
 					END
 					ELSE IF(@ModuleId=@WorkOrderMaterialsModule)
@@ -1511,9 +1522,12 @@ BEGIN
 
 			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule  OR @ModuleId = @WorkOrderMaterialsModule)
 			BEGIN
-				UPDATE #uploadDataResults 
-				SET 
-					OriginalRecordData = JSON_MODIFY(OriginalRecordData, '$.ManufacturerId', @ManufacturerName) WHERE RecordId = @CurrentRecord;
+			IF (@ManufacturerName IS NOT NULL)
+				BEGIN
+					UPDATE #uploadDataResults 
+					SET 
+						OriginalRecordData = JSON_MODIFY(OriginalRecordData, '$.ManufacturerId', @ManufacturerName) WHERE RecordId = @CurrentRecord;
+				END
 			END
 			
 			INSERT INTO [dbo].[UploadModuleData] ([ModuleId], [OriginalRecordData], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], 

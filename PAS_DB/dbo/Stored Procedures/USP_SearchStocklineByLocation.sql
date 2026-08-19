@@ -33,37 +33,34 @@ BEGIN
   BEGIN TRY
     BEGIN
 		SELECT TOP 500
-			s.[StockLineId],
-			s.[PartNumber],
-			s.[PNDescription] AS [PartDescription],
-			s.[StockLineNumber],
-			s.[ControlNumber],
-			s.[IdNumber],
-			s.[Manufacturer],
-			s.[Condition],
-			s.[SerialNumber],
-			s.[QuantityOnHand],
-			s.[QuantityAvailable],
-			s.[Site],
-			s.[Warehouse],
-			s.[Location],
-			s.[Shelf],
-			s.[Bin]
-		FROM dbo.Stockline s
-		WHERE s.MasterCompanyId = @MasterCompanyId
-			AND (NOT EXISTS (SELECT 1 FROM @tbl_SiteIds) OR s.SiteId IN (SELECT [Value] FROM @tbl_SiteIds))
-			AND (NOT EXISTS (SELECT 1 FROM @tbl_WarehouseIds) OR s.WarehouseId IN (SELECT [Value] FROM @tbl_WarehouseIds))
-			AND (NOT EXISTS (SELECT 1 FROM @tbl_LocationIds) OR s.LocationId IN (SELECT [Value] FROM @tbl_LocationIds))
-			AND (NOT EXISTS (SELECT 1 FROM @tbl_ShelfIds) OR s.ShelfId IN (SELECT [Value] FROM @tbl_ShelfIds))
-			AND (NOT EXISTS (SELECT 1 FROM @tbl_BinIds) OR s.BinId IN (SELECT [Value] FROM @tbl_BinIds))
-		ORDER BY s.StockLineId DESC;
+            s.[StockLineId],
+            s.[PartNumber],
+            s.[PNDescription] AS [PartDescription],
+            s.[StockLineNumber],
+            s.[ControlNumber],
+            s.[IdNumber],
+            s.[Manufacturer],
+            s.[Condition],
+            s.[SerialNumber],
+            s.[QuantityOnHand],
+            s.[QuantityAvailable],
+            s.[Site],
+            s.[Warehouse],
+            s.[Location],
+            s.[Shelf],
+            s.[Bin]
+        FROM dbo.Stockline s WITH (NOLOCK)
+        WHERE s.MasterCompanyId = @MasterCompanyId
+            AND (NOT EXISTS (SELECT 1 FROM @tbl_SiteIds) OR s.SiteId IN (SELECT [Value] FROM @tbl_SiteIds))
+            AND (NOT EXISTS (SELECT 1 FROM @tbl_WarehouseIds) OR s.WarehouseId IN (SELECT [Value] FROM @tbl_WarehouseIds))
+            AND (NOT EXISTS (SELECT 1 FROM @tbl_LocationIds) OR s.LocationId IN (SELECT [Value] FROM @tbl_LocationIds))
+            AND (NOT EXISTS (SELECT 1 FROM @tbl_ShelfIds) OR s.ShelfId IN (SELECT [Value] FROM @tbl_ShelfIds))
+            AND (NOT EXISTS (SELECT 1 FROM @tbl_BinIds) OR s.BinId IN (SELECT [Value] FROM @tbl_BinIds))
+        ORDER BY s.StockLineId DESC;
     END
   END TRY
   BEGIN CATCH
-   IF @@trancount > 0
-    PRINT 'ROLLBACK'
-                    ROLLBACK TRAN;
-              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+                 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_SearchStocklineByLocation'
               , @ProcedureParameters VARCHAR(3000)  = '@MasterCompanyId = ''' + CONVERT(VARCHAR(20), @MasterCompanyId) + ''''

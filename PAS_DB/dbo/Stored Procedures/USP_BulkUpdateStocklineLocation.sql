@@ -59,7 +59,7 @@ BEGIN
 		SELECT t.[Value], 'NotFound'
 		FROM @tbl_StockLineIds t
 		WHERE NOT EXISTS (
-			SELECT 1 FROM dbo.Stockline s
+			SELECT 1 FROM dbo.Stockline s WITH (NOLOCK)
 			WHERE s.StockLineId = t.[Value] AND s.MasterCompanyId = @MasterCompanyId
 		);
 
@@ -77,7 +77,7 @@ BEGIN
 			s.Bin = @Bin,
 			s.UpdatedBy = @UpdatedBy,
 			s.UpdatedDate = GETDATE()
-		FROM dbo.Stockline s
+		FROM dbo.Stockline s 
 		INNER JOIN @tbl_StockLineIds t ON s.StockLineId = t.[Value]
 		WHERE s.MasterCompanyId = @MasterCompanyId;
 
@@ -85,7 +85,7 @@ BEGIN
 		SELECT t.[Value], 'Updated'
 		FROM @tbl_StockLineIds t
 		WHERE EXISTS (
-			SELECT 1 FROM dbo.Stockline s
+			SELECT 1 FROM dbo.Stockline s WITH (NOLOCK)
 			WHERE s.StockLineId = t.[Value] AND s.MasterCompanyId = @MasterCompanyId
 		);
 

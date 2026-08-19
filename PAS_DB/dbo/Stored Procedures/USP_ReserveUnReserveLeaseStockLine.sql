@@ -27,10 +27,17 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 
-		DECLARE @StockLineId BIGINT, @LeasePartId BIGINT, @CurrentQtyOrder INT, @CurrentQtyReserved INT;
+		DECLARE @StockLineId BIGINT, @LeasePartId BIGINT, @CurrentQtyOrder INT, 
+				@CurrentQtyReserved INT,@ModuleId BIGINT = 0,@ActionId INT = 0,
+				@LeaseHeaderId BIGINT = 0;
 
-		SELECT @StockLineId = StockLineId, @LeasePartId = LeasePartId, @CurrentQtyOrder = QtyOrder, @CurrentQtyReserved = QtyReserved
-		FROM [dbo].[LeaseStockline] WITH (UPDLOCK, ROWLOCK)
+		SELECT @ModuleId = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
+
+		SELECT @StockLineId = LS.StockLineId, @LeasePartId = LS.LeasePartId, 
+			   @CurrentQtyOrder = LS.QtyOrder, @CurrentQtyReserved = LS.QtyReserved,
+			   @LeaseHeaderId = LP.LeaseHeaderId
+		FROM [dbo].[LeaseStockline] LS WITH (NOLOCK)
+		JOIN [dbo].[LeasePart] LP WITH (NOLOCK) ON LP.LeasePartId = LS.LeasePartId
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		IF (@StockLineId IS NULL)
@@ -66,6 +73,10 @@ BEGIN
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
+
+			--FOR STOCK LINE HISTORY	
+			SET @ActionId = 2; --For Reserve
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @LeaseHeaderId, @SubModuleId = 0, @SubRefferenceId = @ModuleId, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @UpdatedBy;
 		END
 		ELSE
 		BEGIN
@@ -93,6 +104,9 @@ BEGIN
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
+
+			--FOR STOCK LINE HISTORY
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @LeaseHeaderId, @SubModuleId = 0, @SubRefferenceId = @ModuleId, @ActionId = 3, @Qty = @Qty, @UpdatedBy = @UpdatedBy;
 		END
 
 		COMMIT TRANSACTION;

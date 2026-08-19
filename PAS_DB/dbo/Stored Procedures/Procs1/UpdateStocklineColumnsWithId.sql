@@ -38,6 +38,7 @@
 											 IMTLA/IMNHA) untouched - those point at a DIFFERENT ItemMaster row and are meant to
 											 stay Stock-only.
 
+	15   19/08/2026   Nakul   Added Case for UnitOfMeasure [PN-17712]
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -75,7 +76,7 @@ BEGIN
 				UPDATE SL SET 
 					SL.Condition = CN.[Description],
 					--SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
-					SL.UnitOfMeasure = ISNULL(um.ShortName,''),
+					SL.UnitOfMeasure = CASE WHEN ISNULL(um.ShortName, '') <> '' THEN um.ShortName ELSE SL.UnitOfMeasure END,
 					SL.Manufacturer = ISNULL(MF.[Name],''),
 					SL.Site = ISNULL(S.[Name],''),
 					SL.Warehouse = ISNULL(W.[Name],''),

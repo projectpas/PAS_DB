@@ -15,6 +15,7 @@
 	2    01/29/2025   Moin Bloch     Updated for WorkOrderTask
 	3    02/26/2025   AMIT GHEDIYA   Get taskid from wotask.
 	4    02/13/2025   Bhargav Saliya UTC Date Changes
+	5    08/18/2026   Abhishek Jirawla Replace AssetAttributeType with YangibleClassId
      
     EXEC GetWOAssetList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@WorkFlowWorkOrderId=3305,@Name=NULL,@AssetId=NULL,@Description=NULL,@AssetTypeName=NULL,@Quantity=0,@CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@Status=NULL,@TaskName=NULL,@IsFromWorkFlowNew=NULL
 **************************************************************/
@@ -88,7 +89,7 @@ BEGIN
 	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END TaskName,  
        --T.TaskId,  
 	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskId] ELSE T.[TaskId] END TaskId,
-       AAT.AssetAttributeTypeName AS AssetTypeName,  
+       TY.TangibleClassName AS AssetTypeName,  
        AAT.TangibleClassId,  
        WOA.Quantity,  
        (CIE.FirstName + ' ' + CIE.LastName) AS CheckInEmp,  
@@ -112,8 +113,8 @@ BEGIN
        LEFT JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = WOA.TaskId  
 	   LEFT JOIN dbo.WorkOrderTask WOT WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOA.TaskId 
 	   LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOA.WorkOrderId 
-       JOIN dbo.AssetAttributeType AAT WITH(NOLOCK) ON A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  	
-       JOIN dbo.TangibleClass TY WITH(NOLOCK) ON AAT.TangibleClassId=TY.TangibleClassId 
+       LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId  	
+       LEFT JOIN dbo.TangibleClass TY WITH(NOLOCK) ON AAT.TangibleClassId=TY.TangibleClassId 
        LEFT JOIN dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) ON WOA.WorkOrderAssetId = COCI.WorkOrderAssetId AND COCI.IsQtyCheckOut = 1  
        LEFT JOIN dbo.AssetInventory AI WITH(NOLOCK) ON COCI.AssetInventoryId =  AI.AssetInventoryId  
        LEFT JOIN dbo.Employee CIE WITH(NOLOCK) ON COCI.CheckInEmpId = CIE.EmployeeId  

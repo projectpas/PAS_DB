@@ -22,6 +22,7 @@
     [CreatedDate]       DATETIME       NULL,
     [UpdatedBy]         VARCHAR (256)  NOT NULL,
     [UpdatedDate]       DATETIME       NULL,
+    [Notes]             NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_LeasePartAudit] PRIMARY KEY CLUSTERED ([LeasePartAuditId] ASC)
 );
 

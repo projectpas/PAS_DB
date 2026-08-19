@@ -24,9 +24,10 @@
 	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number (PN-16231)
 	13   02/06/2026   Nakul Chandigra       Merge UAT Changes
 	14   10/06/2026   Divyesh Kathiriya     Update PurchaseOrderNumber on AircraftInstalledPartDetails Table [PN-16780]
+	15   18/08/2026   Amit Ghediya          Added LeasePartId write-back to LeasePart.POId/PONumber for Lease-sourced PO parts
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE    PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -43,6 +44,7 @@ BEGIN
 			DECLARE @ModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE LOWER(ModuleName) ='popart' AND ISNULL(IsDeleted,0) = 0)
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT, @IsDeletedPart BIT = 0,@PurchaseOrderId BIGINT,@PurchaseOrderNumber VARCHAR(100),@EmployeeID BIGINT;
 			DECLARE @IsFromAircraft BIT = 0, @AircraftInstalledPartDetailsId BIGINT = NULL;
+			DECLARE @LeasePartId BIGINT = NULL;
 			DECLARE @IsLotAssigned BIT =0, @LotId BIGINT, @StatusId INT, @FulfillStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'fulfilling'),
 			@OpenStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open'),
 			@OpenStatus VARCHAR = (SELECT TOP 1 Memo FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open');
@@ -88,7 +90,7 @@ BEGIN
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
 							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder,
 							@IsFromVendorRFQ = IsFromVendorRFQ,	@IsModified = IsModified, @IsFromAircraft = IsFromAircraft,
-							@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId
+							@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId, @LeasePartId = LeasePartId
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -779,6 +781,15 @@ BEGIN
 						
 					END
 /* ----------------------------END:  WO Materials Update ---------------------------------- */	
+/* ----------------------------START:  Lease Part Update ---------------------------------- */
+				IF (ISNULL(@LeasePartId, 0) > 0)
+				BEGIN
+					UPDATE DBO.LeasePart
+					SET POId = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE @PurchaseOrderId END,
+						PONumber = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE @PurchaseOrderNumber END
+					WHERE LeasePartId = @LeasePartId
+				END
+/* ----------------------------END:  Lease Part Update ---------------------------------- */
 				SET @PartLoopId +=1
 			END -->>>>> End: While Loop Main
 

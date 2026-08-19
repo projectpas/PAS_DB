@@ -41,9 +41,12 @@
     [MaintenancePer]       NVARCHAR (50)   NULL,
     [InsurancePer]         NVARCHAR (50)   NULL,
     [TaxesPer]             NVARCHAR (50)   NULL,
+    [Notes]                NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_LeaseStockline] PRIMARY KEY CLUSTERED ([LeaseStocklineId] ASC),
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

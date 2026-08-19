@@ -22,9 +22,10 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	8    30/July/2026    Moin Bloch                                 [PN-17485] - Added [IsService],[IsNonStock] Conditions For Ristrict Non Stock List to Un-Reserved
+	9    17/Aug/2026     Kishor Makwana		[PN-17685] - UnResered Row not Comming
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0,0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
+CREATE     PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
     @SalesOrderId BIGINT,
 	@ItemMasterId BIGINT = NULL,
 	@isFromShipping BIT = 0
@@ -139,7 +140,7 @@ BEGIN
 			   MasterCompanyId,
 			   ManufacturerName
 			   FROM UnreserveList
-			   WHERE NoofPieces = 0;
+			   WHERE ISNULL((ISNULL(QtyOrder,0) - NoofPieces),0) > 0;
   END TRY
   BEGIN CATCH
   SELECT

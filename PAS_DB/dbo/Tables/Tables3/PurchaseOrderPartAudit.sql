@@ -103,6 +103,8 @@
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [ACTailNum]                      VARCHAR (250)   NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeasePartId]                    BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
 

@@ -34,6 +34,8 @@
 	21   09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	22   20/July/2026 RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter so Non-Stock parts' MPN details populate correctly on SO billing (WorkOrder branch untouched).
 	23	 05/Aug/2026 Kishor Makwana		Removed the unused LEFT JOINs to SalesOrderPartCost (PC) and SalesOrderStockLineCost (SOSC) in the SO stockline insert - neither table's columns were selected there, but when either had more than one matching row (e.g. cost revision history) the JOIN silently duplicated the SalesOrderStocklineV1 row into two grid rows with the same PN/Condition/StockLineNum/Qty but different Total Cost.
+	24   018/Aug/2026 Kishor Makwana	[PN-17688] - Added SubReference Id Join - Revised Invoice for Individual Part: Other Part Billing incorrectly changes to Old Version
+
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 19821,19957,'19957',15,1,0
 ************************************************************************/
@@ -611,7 +613,8 @@ BEGIN
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
-							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))							
+							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))
+							AND (cpd.SubReferenceId = BII.SubReferenceId OR (cpd.SubReferenceId IS NULL))
 							WHERE cpd.ReferenceId = @ReferenceId  AND ((ISNULL(Bi.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0) OR  (ISNULL(Bi.IsVersionIncrease,0) = 1 AND ISNULL(BII.IsVersionIncrease,0) = 0)) AND  [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);	
 				
 				IF(@SoChargesBillingMethodId != 0 AND @SoChargesBillingMethodId != @FlatBillingMethodId)

@@ -41,6 +41,7 @@
 	21   22/06/2026	  Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 	22    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	23    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	24   19/AUG/2026  SUMIT KUMAR						[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
@@ -367,7 +368,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -600,7 +602,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						-- WOM.Notes AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -838,7 +841,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1063,7 +1067,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						-- ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,

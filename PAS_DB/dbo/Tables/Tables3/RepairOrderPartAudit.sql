@@ -114,6 +114,8 @@
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [IsPiecePart]                    BIT             CONSTRAINT [DF_RepairOrderPartAudit_IsPiecePart] DEFAULT ((0)) NOT NULL,
     [IsForCalibration]               BIT             NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeasePartId]                    BIGINT          NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
 

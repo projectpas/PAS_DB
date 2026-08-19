@@ -251,21 +251,9 @@ CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPartRec_Perf]
 
 
 GO
-CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPartRec_Created_Perf]
-    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
-
-
-GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPartRec_Perf]
     ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC)
     INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPartRec_Created_Perf]
-    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 GO

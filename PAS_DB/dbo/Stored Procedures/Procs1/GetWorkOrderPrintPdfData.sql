@@ -20,7 +20,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 EXEC GetWorkOrderPrintPdfData 8560,8227
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	10   18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)
+	10   18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)kept the incomingPN as it
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderPrintPdfData]
 @WorkorderId bigint,
@@ -64,8 +64,8 @@ BEGIN
 		CASE WHEN wop.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,
 		'' as wty,
 		'' as wtyCode,
-		UPPER(imt.partnumber) as PN, 
-		CASE WHEN wop.[IncomingPartNumber] IS NOT NULL AND wop.[IncomingPartNumber] <> '' THEN UPPER(wop.[IncomingPartNumber]) ELSE UPPER(imt.partnumber) END as IncomingPN,
+		UPPER(imt.partnumber) as IncomingPN, 
+		CASE WHEN wop.[IncomingPartNumber] IS NOT NULL AND wop.[IncomingPartNumber] <> '' THEN UPPER(wop.[IncomingPartNumber]) ELSE UPPER(imt.partnumber) END as IPN,
 		CASE WHEN wop.[RevisedPartNumber] IS NOT NULL AND wop.[RevisedPartNumber] <> '' THEN UPPER(wop.[RevisedPartNumber]) ELSE CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END END as RevisedPN,
 		CASE WHEN LEN(UPPER(imt.PartDescription)) > 30 then LEFT(UPPER(imt.PartDescription), 30) + '...' else  UPPER(imt.PartDescription) end as PNDesc,
 		UPPER(sl.SerialNumber) as SerialNum,

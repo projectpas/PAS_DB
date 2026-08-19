@@ -164,7 +164,7 @@ BEGIN
 					FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
 					--JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
 					LEFT JOIN [DBO].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = @ConditionId
-					WHERE IM.ItemMasterId = @ItemMasterId AND CON.ConditionId = @ConditionId;
+					WHERE IM.ItemMasterId = @ItemMasterId AND CON.ConditionId = @ConditionId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		  --select * from #tmpItemMasterPurchaseSalesType
 		  MERGE dbo.ItemMasterPurchaseSale AS TARGET  

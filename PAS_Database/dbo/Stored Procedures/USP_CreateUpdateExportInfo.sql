@@ -61,7 +61,7 @@ BEGIN
 	) 
 /***************Start Save ItemMaster ExportInfo Details***************/
 			
-    IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId)
+    IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
     BEGIN        
         IF NOT EXISTS (SELECT 1 FROM [DBO].[ItemMasterExportInfo] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId)
         BEGIN

@@ -1,6 +1,7 @@
-﻿CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
+CREATE TABLE [dbo].[AircraftEngineStartsMappings] (
     [AircraftEngineStartsMappingsId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [AircraftCycleTimeMappingsId]    BIGINT          NULL,
+    [EngineRegistryId]               BIGINT          NULL,
     [EngineName]                     VARCHAR (50)    NULL,
     [Hours]                          DECIMAL (18, 6) NULL,
     [CurruntHours]                   DECIMAL (18, 6) NULL,
@@ -22,6 +23,10 @@
     PRIMARY KEY CLUSTERED ([AircraftEngineStartsMappingsId] ASC),
     CONSTRAINT [FK_AircraftEngineStartsMappings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 

@@ -19,7 +19,7 @@
     2    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
-  
+	5    17/Aug/2026   Moin Bloch		Removed RRQTY For CustStockTransfer
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
@@ -814,7 +814,7 @@ BEGIN
 					NULL,NULL,NULL,NULL,0,NULL,ISNULL([isCustomerstockType], 0), '', NULL, NULL, NULL,
 					[TaggedBy],[TaggedByName], (0 + 0 + 0)
 					,[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,
-					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], @qtyonhand, NULL, 1, NULL,
+					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], 0, NULL, 1, NULL,
 					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],0, [IsStkTimeLife], @IntegrationPortal
 					FROM #tmpStockline
 					WHERE StockLineId = @SelectedStockLineId;

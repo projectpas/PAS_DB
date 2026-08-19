@@ -4649,6 +4649,12 @@
     <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
     <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
     <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
+    <Build Include="dbo\Tables\WorkSheetStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderFromAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetOpenWorksheetsForAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftComponentMaintenanceDashboardList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

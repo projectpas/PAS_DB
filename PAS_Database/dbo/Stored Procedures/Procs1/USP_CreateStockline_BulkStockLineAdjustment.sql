@@ -22,6 +22,7 @@
 	6    12/11/2025   SAHDEV SALIYA     Modified - Fixed the unit of measure error when creating a new stock line.
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters.
+	9    17/Aug/2026   Moin Bloch		Removed RRQTY For Bulk StockLine Adjustment
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
@@ -821,7 +822,7 @@ BEGIN
 					NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0), '', NULL, NULL, NULL,
 					[TaggedBy],[TaggedByName], (0 + 0 + 0)
 					,[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,
-					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], @qtyonhand, NULL, 1, NULL,
+					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], 0, NULL, 1, NULL,
 					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],0, [IsStkTimeLife], @IntegrationPortal
 					FROM #tmpStockline
 					WHERE StockLineId = @SelectedStockLineId;

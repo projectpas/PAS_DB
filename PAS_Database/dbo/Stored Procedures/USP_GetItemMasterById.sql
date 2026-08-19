@@ -130,7 +130,7 @@ BEGIN
 			LEFT JOIN dbo.ItemMaster imst ON iM.IsOemPNId = imst.ItemMasterId
 		 AND ISNULL(imst.IsNonStock,0) = 0
 		WHERE 
-			iM.ItemMasterId = @ItemMasterId;
+			iM.ItemMasterId = @ItemMasterId AND ISNULL(iM.IsNonStock,0) = 0 ;
 
   
  END TRY      

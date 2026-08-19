@@ -1,4 +1,5 @@
-﻿/*************************************************************                 
+﻿
+/*************************************************************                 
  ** File:   [USP_UpdateStocklineForReceivingPO]                
  ** Author:   Vishal Suthar      
  ** Description: This stored procedure is used to Update stocklines for receiving PO    
@@ -28,7 +29,7 @@ declare @p5 dbo.UpdateTimeLifeReceivingPOType
 exec dbo.USP_UpdateNonStockForReceivingPO @PurchaseOrderId=2319,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1,@tbl_UpdateNonStocklineReceivingPOType=@p4,@tbl_UpdateTimeLifeReceivingPOType=@p5  
 
 **************************************************************/      
-CREATE     PROCEDURE [dbo].[USP_UpdateNonStockForReceivingPO]    
+CREATE PROCEDURE [dbo].[USP_UpdateNonStockForReceivingPO]    
 (      
 	@PurchaseOrderId BIGINT = NULL,    
 	@UpdatedBy VARCHAR(100) = NULL,    
@@ -202,14 +203,14 @@ BEGIN
 	END
 
    UPDATE StkDraft    
-   SET StkDraft.ManagementStructureId = TmpStkDraft.ManagementStructureEntityId,
+   SET StkDraft.ManagementStructureEntityId = TmpStkDraft.ManagementStructureEntityId,
    StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,    
    StkDraft.WarehouseId = CASE WHEN TmpStkDraft.WarehouseId > 0 THEN TmpStkDraft.WarehouseId ELSE NULL END,    
    StkDraft.LocationId = CASE WHEN TmpStkDraft.LocationId > 0 THEN TmpStkDraft.LocationId ELSE NULL END,    
    StkDraft.ShelfId = CASE WHEN TmpStkDraft.ShelfId > 0 THEN TmpStkDraft.ShelfId ELSE NULL END,    
    StkDraft.BinId = CASE WHEN TmpStkDraft.BinId > 0 THEN TmpStkDraft.BinId ELSE NULL END,    
-   StkDraft.UnitCost = ISNULL(TmpStkDraft.UnitCost, 0),    
-   StkDraft.ExtendedCost = ISNULL(TmpStkDraft.ExtendedCost, 0),    
+   StkDraft.PurchaseOrderUnitCost = ISNULL(TmpStkDraft.UnitCost, 0),    
+   StkDraft.PurchaseOrderExtendedCost = ISNULL(TmpStkDraft.ExtendedCost, 0),    
    StkDraft.ConditionId = TmpStkDraft.ConditionId,    
    StkDraft.ShippingViaId = CASE WHEN TmpStkDraft.ShippingViaId > 0 THEN TmpStkDraft.ShippingViaId ELSE NULL END,    
    StkDraft.ShippingReference = TmpStkDraft.ShippingReference,    
@@ -222,7 +223,6 @@ BEGIN
    StkDraft.UpdatedBy = TmpStkDraft.UpdatedBy,    
    StkDraft.UnitOfMeasureId = TmpStkDraft.UnitOfMeasureId,    
    StkDraft.UpdatedDate = GETUTCDATE(),  
-   StkDraft.Acquired = TmpStkDraft.Acquired,
    StkDraft.IsParent = @PrevIsParent
    FROM DBO.StocklineDraft StkDraft
    INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.StockLineDraftId

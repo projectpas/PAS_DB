@@ -18,6 +18,7 @@
     2    04/07/2025   Vishal Suthar Update Part Number, Part Description when part is modified
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(IIM.IsNonStock,0) = 0 filter to the PartNumber/PNDescription subqueries in the UPDATE SL SET clause
 -- EXEC [UpdatePartAfterWOCreated] 1005, 2956
 **************************************************************/
 CREATE PROCEDURE [dbo].[UpdatePartAfterWOCreated]
@@ -38,8 +39,8 @@ BEGIN
 					SET SL.ItemMasterId = @ItemMasterId,
 					SL.ConditionId = @ConditionId,
 					SL.Condition = (SELECT Con.Code FROM DBO.Condition Con WITH(NOLOCK) WHERE Con.ConditionId = @ConditionId),
-					SL.PartNumber = (SELECT IIM.partnumber FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId),
-					SL.PNDescription = (SELECT IIM.PartDescription FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId)
+					SL.PartNumber = (SELECT IIM.partnumber FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId AND ISNULL(IIM.IsNonStock,0) = 0 ),
+					SL.PNDescription = (SELECT IIM.PartDescription FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId AND ISNULL(IIM.IsNonStock,0) = 0 )
 					FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN dbo.ReceivingCustomerWork RC WITH(NOLOCK) ON SL.StockLineId = RC.StockLineId
 					INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ItemMasterId = RC.ItemMasterId

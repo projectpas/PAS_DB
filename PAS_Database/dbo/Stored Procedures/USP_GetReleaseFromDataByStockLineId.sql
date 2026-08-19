@@ -28,6 +28,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 17   18/MAY/2026     Rajesh Gami			8130 Release Form Enhancements for the ATI [PN-16447]	
 	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	20    13/Aug/2026			 RAJESH GAMI						[PN-17009] - Re-added 4 missing ISNULL(...IsNonStock,0)=0 filters on Stockline lookups (MasterCompanyId lookup and 3 sl.StockLineId joins) that were dropped when this proc was ported from BETA.
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 **************************************************************/ 
 
@@ -70,7 +71,7 @@ BEGIN
 		SET @MSModuleId = 2 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
-		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId ;
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId AND ISNULL(CTT.IsNonStock,0) = 0;
 
 		SELECT @WorkorderId = [WorkorderId] FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID]=@workOrderPartNumberId
 
@@ -363,7 +364,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			END
 			ELSE
 			BEGIN
@@ -452,7 +453,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 			END
 		END
@@ -535,7 +536,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 		END
   END TRY      

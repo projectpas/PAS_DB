@@ -9,6 +9,7 @@
  ** 3    [today]      [Hemant]        Performance & readability optimization
  ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	5    09/July/2026   RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** 6    13/Aug/2026   Rajesh Gami  [PN-17009] - Applied missing ISNULL(sl.IsNonStock,0) = 0 filter on StockLine join
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
     @VendorRMAId        BIGINT,
@@ -49,7 +50,7 @@ BEGIN
             CONCAT(empy.FirstName, ' ', empy.LastName)                      AS ConfirmedBy
         FROM RMAPickTicket sopt WITH(NOLOCK)
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN ItemMaster im WITH(NOLOCK) on im.ItemMasterId = sop.ItemMasterId
 		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById

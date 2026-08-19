@@ -42,6 +42,7 @@
     [MaintenancePer]        NVARCHAR (50)   NULL,
     [InsurancePer]          NVARCHAR (50)   NULL,
     [TaxesPer]              NVARCHAR (50)   NULL,
+    [Notes]                 NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_LeaseStocklineAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineAuditId] ASC)
 );
 

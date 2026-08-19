@@ -4811,6 +4811,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportDataAll.sql" />
     <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIDetailedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BulkUpdateStocklineLocation.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

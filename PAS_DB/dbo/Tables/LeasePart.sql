@@ -21,9 +21,12 @@
     [CreatedDate]       DATETIME       CONSTRAINT [DF_LeasePart_CreatedDate] DEFAULT (getutcdate()) NULL,
     [UpdatedBy]         VARCHAR (256)  NOT NULL,
     [UpdatedDate]       DATETIME       CONSTRAINT [DF_LeasePart_UpdatedDate] DEFAULT (getutcdate()) NULL,
+    [Notes]             NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_LeasePart] PRIMARY KEY CLUSTERED ([LeasePartId] ASC),
     CONSTRAINT [FK_LeasePart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

@@ -16,3 +16,8 @@
     CONSTRAINT [FK_ReleaseNoteHeader] FOREIGN KEY ([ReleaseNoteHeaderId]) REFERENCES [dbo].[ReleaseNoteHeadersDetails] ([ReleaseNoteHeaderId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ReleaseNotesTitleDetails_HeaderId_Active]
+    ON [dbo].[ReleaseNotesTitleDetails]([ReleaseNoteHeaderId] ASC) WHERE ([IsActive]=(1) AND [IsDeleted]=(0));
+

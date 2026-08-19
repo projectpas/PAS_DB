@@ -19,6 +19,7 @@
 	3    20-03-2024  Rajesh Gami        Added StockAdjustments 
 	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
 	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    14/08/2026  Amit Ghediya        [PN-17597] - added for leasing module refrencenumber
 	
 **************************************************************/
 CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
@@ -101,7 +102,11 @@ BEGIN
 		IF (@ModuleName = 'CycleCount')
 		BEGIN
 			SELECT @ReferenceNumber = CC.[CycleCountNumber] FROM [dbo].[CycleCount] CC WITH (NOLOCK) WHERE CC.[CycleCountId] = @ReferenceId;
-		END		
+		END	
+		IF (@ModuleName = 'Leasing')
+		BEGIN
+			SELECT @ReferenceNumber = LH.[LeaseNumber] FROM [dbo].[LeaseHeader] LH WITH (NOLOCK) WHERE LH.[LeaseHeaderId] = @ReferenceId;
+		END
 	END
 
 	IF (@ModuleOrSubModule = 2)

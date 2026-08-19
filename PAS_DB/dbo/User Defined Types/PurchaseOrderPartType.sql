@@ -109,5 +109,6 @@
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
-    [ACTailNum]                      VARCHAR (250)   NULL);
+    [ACTailNum]                      VARCHAR (250)   NULL,
+    [LeasePartId]                    BIGINT          NULL);
 

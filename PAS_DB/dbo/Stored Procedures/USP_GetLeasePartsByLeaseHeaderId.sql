@@ -10,6 +10,7 @@
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked for denormalized PN/PNDescription schema
     3    10/08/2026     Amit Ghediya            Added ManufacturerName (joined from ItemMaster, display-only)
+    4    18/08/2026     Amit Ghediya            Added OEMPMA (derived from ItemMaster.IsPma/IsOEM, LeasePart has no such column)
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -30,6 +31,7 @@ BEGIN
 			LP.PNDescription,
 			LP.UOM,
 			IM.ManufacturerName,
+			CASE WHEN IM.IsPma = 1 THEN 'PMA' WHEN IM.IsOEM = 1 THEN 'OEM' ELSE '' END AS OEMPMA,
 			LP.QtyOrder,
 			LP.QtyReserved,
 			LP.ConditionId,

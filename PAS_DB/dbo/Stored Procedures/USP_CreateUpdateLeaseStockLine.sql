@@ -9,13 +9,14 @@
  ** --   --------       -------                 --------------------------------
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked for denormalized PNDescription/SN/StocklineNumber schema
+    3    18/08/2026     Amit Ghediya            Added Notes
 
 exec USP_CreateUpdateLeaseStockLine
 @LeaseStocklineId=0,@LeasePartId=1,@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
 @PricingMethod=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
 @UsagePerUnitCycles=NULL,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=NULL,@OverrunPerUnitTimes=NULL,
 @Maintenance=NULL,@Insurance=NULL,@Taxes=NULL,@RepairOrderId=NULL,@WorkOrderId=NULL,
-@MasterCompanyId=1,@CreatedBy='',@UpdatedBy=''
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@LeaseStocklineId BIGINT = 0,
@@ -46,7 +47,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@WorkOrderId BIGINT = NULL,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(256),
-	@UpdatedBy VARCHAR(256)
+	@UpdatedBy VARCHAR(256),
+	@Notes NVARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -109,6 +111,7 @@ BEGIN
 				RONumber              = @RONumber,
 				WorkOrderId           = @WorkOrderId,
 				WorkOrderNo           = @WorkOrderNo,
+				Notes                 = @Notes,
 				UpdatedBy             = @UpdatedBy,
 				UpdatedDate           = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
@@ -120,7 +123,7 @@ BEGIN
 				LeasePartId, PNDescription, QtyOrder, QtyReserved, QtyAvailable, QtyOH, SN, StockLineId, StocklineNumber, ConditionId,
 				OutrightPrice, FlatRate, PricingMethod, RateUnit, BillingInterval, BillingMethod, MinimumCycles, MinimumTimes, MaximumCycles, MaximumTimes,
 				UsagePerUnitCycles, UsagePerUnitTimes, OverrunPerUnitCycles, OverrunPerUnitTimes, Maintenance, MaintenancePer, Insurance, InsurancePer, Taxes, TaxesPer,
-				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo,
+				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
 			)
 			VALUES
@@ -128,7 +131,7 @@ BEGIN
 				@LeasePartId, @PNDescription, @QtyOrder, 0, @QtyAvailable, @QtyOH, @SN, @StockLineId, @StocklineNumber, @ConditionId,
 				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
-				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo,
+				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes,
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 

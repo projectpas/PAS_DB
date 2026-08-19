@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿	/*************************************************************           
  ** File:  [GetCommonBillingInvoiceListNew]           
  ** Author:	  Moin Bloch
  ** Description: This SP is Used to get list of Invoices for Part    
@@ -32,7 +32,7 @@
 	19   05/Aug/2026  Kishor Makwana	[PN-17439] - Modify SO & SOQ Part Grid logic to allow duplicate PN + Condition rows (uniqueness by PN + Condition + SalesOrderPartId, displayed via Sequence Number)
 	20   13/Aug/2026  Kishor Makwana	[PN-17439] - Fixed Billing/Invoicing tab not showing all old and new invoice lines: StockLineRank's PARTITION BY was missing BillingInvoicingId, so it collapsed every invoice/version billed against the same StockLine/Shipment down to only the newest BillingInvoicingId, silently dropping legitimate "Old Version" invoice rows.
 	21   14/Aug/2026  Kishor Makwana	[PN-17666] - Fixed Stockline Number not displayed for posted Standard Invoice (only Proforma showed it): the Service/NonStock UNION ALL arm hardcoded StockLineNumber/SerialNumber to NULL for every row, even when the BillingInvoicingItems row actually had a real StockLineId. Now resolved directly off sobii2.StockLineId via a dedicated Stockline join.
-
+	22   17/Aug/2026  Moin Bloch		[PN-17667] - Non-Stock Part Gets Unselected When Creating a Single Invoice for Stock and Non-Stock Parts
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -703,8 +703,8 @@ BEGIN
 					im.PartDescription,
 					sl2.StockLineNumber,
 					sl2.SerialNumber AS SerialNumber,
-					cr2.[Name] as CustomerName,
-					NULL AS StockLineId,
+					cr2.[Name] as CustomerName,					
+					stk.StockLineId,  
 					ISNULL(sobii2.QtyBilled,0) AS QtyBilled,
 					sop2.SequenceNumber AS ItemNo,
 					sop2.SalesOrderId,
@@ -745,6 +745,7 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 sop2 WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrder so2 WITH (NOLOCK) ON so2.SalesOrderId = sop2.SalesOrderId
 					INNER JOIN [DBO].[ItemMaster] im WITH (NOLOCK) ON sop2.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) = 1 AND ISNULL(im.[IsNonStock],0) = 1)
+					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop2.SalesOrderPartId
 					LEFT JOIN DBO.BillingInvoicingItems sobii2 WITH (NOLOCK) ON sobii2.SubReferenceId = sop2.SalesOrderPartId AND ISNULL(sobii2.IsPerformaInvoice,0) = 0 AND sobii2.ModuleId = @SOModuleId
 					LEFT JOIN DBO.BillingInvoicing sobi2 WITH (NOLOCK) ON sobi2.BillingInvoicingId = sobii2.BillingInvoicingId AND ISNULL(sobi2.IsPerformaInvoice,0) = 0 AND sobi2.ReferenceId = @ReferenceId AND sobi2.ModuleId = @SOModuleId
 					LEFT JOIN DBO.Stockline sl2 WITH (NOLOCK) ON sl2.StockLineId = sobii2.StockLineId

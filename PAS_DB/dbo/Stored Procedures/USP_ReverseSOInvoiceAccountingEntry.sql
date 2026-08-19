@@ -5,7 +5,8 @@
  **              created when a Sales Order invoice (Standard or Proforma) was posted.
  **              It reads the exact GL rows already posted for the invoice
  **              (dbo.SalesOrderBatchDetails.DocumentId = @BillingInvoicingId) and mirrors
- **              them into a brand new journal batch with Debit/Credit swapped - the original
+ **              them into the SAME journal batch (BatchHeader) as the original entries, with
+ **              Debit/Credit swapped - the original
  **              rows are left untouched (audit trail) and both the original and the new
  **              reversal rows are flagged via dbo.BatchDetails.IsReversedJE = 1.
  **              If nothing was posted for this invoice (e.g. accounting was bypassed at
@@ -46,6 +47,19 @@
 										reversal BatchHeader at all (only on the line-item BatchDetails rows), so the Batch
 										Detail screen showed Accounting Period as blank/'--Select--' - now captured once from
 										the original entries and included on the BatchHeader insert.
+    6    18-Aug-2026  Rajesh Gami		[PN-17635] Reversal no longer creates a brand new BatchHeader/batch number. The reversal's
+										BatchDetails/CommonBatchDetails/SalesOrderBatchDetails rows are now inserted
+										under the SAME JournalBatchHeaderId as the original invoice entries being
+										reversed (reused directly from #OriginalEntries) instead of INSERT-ing a fresh
+										BatchHeader row. So the Batch Ref no longer changes for a reversal - it keeps
+										the invoice's original batch number (e.g. 'SOI 1926'); the reversal JE is still
+										distinguished by its own new JE Number (PR 5) and BatchDetails.IsReversedJE = 1.
+										This makes the header AccountingPeriod/BatchName generation added in PR 4/PR 5
+										unnecessary (removed) - the reused header already carries the correct values
+										from when it was first created. The existing header's TotalDebit/TotalCredit/
+										TotalBalance are now incremented by the reversal's amounts instead of being
+										overwritten, since the header now represents both the original and reversal
+										activity together.
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -148,18 +162,16 @@ BEGIN
 		DECLARE @AccountMSModuleId INT
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Accounting'
 
-		DECLARE @JournalTypeId BIGINT, @JournalTypeName VARCHAR(200), @Module VARCHAR(50), @HeaderCustomerTypeId INT
-		SELECT TOP 1 @JournalTypeId = [JournalTypeId], @JournalTypeName = [JournalTypeName], @Module = [Module], @HeaderCustomerTypeId = [HeaderCustomerTypeId] FROM #OriginalEntries
+		DECLARE @JournalTypeId BIGINT, @JournalTypeName VARCHAR(200)
+		SELECT TOP 1 @JournalTypeId = [JournalTypeId], @JournalTypeName = [JournalTypeName] FROM #OriginalEntries
 
-		-- [PN-17635] Accounting Period was never being set on the reversal BatchHeader (only on the line-item
-		-- BatchDetails rows), so the Batch Detail screen showed it blank ('--Select--') for the reversal batch.
-		-- Capture it once here (same accounting period as the original transaction) and include it on the
-		-- BatchHeader insert below.
-		DECLARE @HeaderAccountingPeriodId BIGINT, @HeaderAccountingPeriod VARCHAR(100)
-		SELECT TOP 1 @HeaderAccountingPeriodId = [AccountingPeriodId], @HeaderAccountingPeriod = [AccountingPeriod] FROM #OriginalEntries
-
-		DECLARE @StatusId BIGINT, @StatusName VARCHAR(200)
-		SELECT @StatusId = [Id], @StatusName = [Name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE [Name] = 'Open'
+		-- Reversal entries belong in the SAME batch as the original invoice they're reversing - reuse the
+		-- original JournalBatchHeaderId (already captured on #OriginalEntries) instead of inserting a new
+		-- BatchHeader row. Batch Ref and Accounting Period therefore stay exactly as they already are on
+		-- that header; nothing needs to be (re)generated for either of them here.
+		DECLARE @NewJournalBatchHeaderId BIGINT, @HeaderCurrentNumber BIGINT
+		SELECT TOP 1 @NewJournalBatchHeaderId = [JournalBatchHeaderId] FROM #OriginalEntries
+		SELECT @HeaderCurrentNumber = [CurrentNumber] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalBatchHeaderId] = @NewJournalBatchHeaderId
 
 		-- [PN-17635] JE Number for the reversal batch used to just copy the ORIGINAL entry's JournalTypeNumber
 		-- verbatim (via the cursor below), so the reversal showed the exact same JE Number as the invoice it was
@@ -180,48 +192,6 @@ BEGIN
 				(SELECT CP.[CodeSufix] FROM [dbo].[CodePrefixes] CP WITH(NOLOCK) WHERE CP.[CodeTypeId] = @JECodeTypeId AND CP.[MasterCompanyId] = @MasterCompanyId AND CP.[IsActive] = 1 AND CP.[IsDeleted] = 0)))
 			UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @JECurrentNo WHERE [CodeTypeId] = @JECodeTypeId AND [MasterCompanyId] = @MasterCompanyId
 		END
-
-		-- Batch Ref used to be generated for these reversal batches as a hardcoded literal,
-		-- '<JournalTypeName> (REVERSED)' (e.g. 'SO Invoice (REVERSED)') - this bled through into
-		-- the UI even on rows that were NOT reversal lines, because a later same-day re-invoice
-		-- would end up reusing this same batch header (see the matching fix in
-		-- USP_BatchTriggerBasedonSOInvoiceNew). Whether a line is a reversal is already tracked
-		-- correctly and independently via BatchDetails.IsReversedJE, so the raw Batch Ref no
-		-- longer needs to carry that information - it's now generated the exact same dynamic way
-		-- normal posting does (e.g. 'SOI 1637'), and the UI adds its own "(Reverse)" label from
-		-- the IsReversedJE flag.
-		DECLARE @JournalTypeCode VARCHAR(50)
-		SELECT @JournalTypeCode = [JournalTypeCode] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeId
-
-		DECLARE @CurrentNumber BIGINT, @PaddedBatchNumber VARCHAR(100)
-		SELECT TOP 1 @CurrentNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE 1 END
-		FROM [dbo].[BatchHeader] WITH(NOLOCK) ORDER BY [JournalBatchHeaderId] DESC
-
-		-- Same zero-padding convention as normal posting (USP_BatchTriggerBasedonSOInvoiceNew):
-		-- 3 digits while <= 99, unpadded once past 99.
-		IF (CAST(@CurrentNumber AS BIGINT) > 99)
-		BEGIN
-			SET @PaddedBatchNumber = CAST(@CurrentNumber AS VARCHAR(100))
-		END
-		ELSE IF (CAST(@CurrentNumber AS BIGINT) > 9)
-		BEGIN
-			SET @PaddedBatchNumber = CONCAT('0', CAST(@CurrentNumber AS VARCHAR(50)))
-		END
-		ELSE
-		BEGIN
-			SET @PaddedBatchNumber = CONCAT('00', CAST(@CurrentNumber AS VARCHAR(50)))
-		END
-
-		DECLARE @BatchName VARCHAR(200) = CAST(ISNULL(@JournalTypeCode,'JE') + ' ' + @PaddedBatchNumber AS VARCHAR(200))
-
-		DECLARE @NewJournalBatchHeaderId BIGINT
-
-		INSERT INTO [dbo].[BatchHeader]
-			([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],[AccountingPeriodId],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
-		VALUES
-			(@BatchName,@CurrentNumber,GETUTCDATE(),@HeaderAccountingPeriod,@HeaderAccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@Module,@HeaderCustomerTypeId)
-
-		SET @NewJournalBatchHeaderId = SCOPE_IDENTITY()
 
 		DECLARE @LineNumber INT = 1
 		DECLARE @TotalDebit DECIMAL(18,2) = 0, @TotalCredit DECIMAL(18,2) = 0
@@ -264,7 +234,7 @@ BEGIN
 				 ISNULL(@CreditAmount,0),
 				 ISNULL(@DebitAmount,0),
 				 @ManagementStructureId,@ModuleName,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@NewJournalTypeNumber,@CurrentNumber,1,@AccountingPeriodId,@AccountingPeriod,1)
+				 @LastMSLevel,@AllMSlevels,@DistributionSetupId,@DistributionName,@NewJournalTypeNumber,@HeaderCurrentNumber,1,@AccountingPeriodId,@AccountingPeriod,1)
 
 			SET @NewJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -314,10 +284,12 @@ BEGIN
 		CLOSE curReverse
 		DEALLOCATE curReverse
 
+		-- The header now represents both the original entries AND this reversal, so add to whatever totals
+		-- it already has instead of overwriting them (overwriting would erase the original invoice's totals).
 		UPDATE [dbo].[BatchHeader]
-		SET		[TotalDebit] = @TotalDebit,
-				[TotalCredit] = @TotalCredit,
-				[TotalBalance] = (@TotalDebit - @TotalCredit),
+		SET		[TotalDebit] = ISNULL([TotalDebit],0) + @TotalDebit,
+				[TotalCredit] = ISNULL([TotalCredit],0) + @TotalCredit,
+				[TotalBalance] = (ISNULL([TotalDebit],0) + @TotalDebit) - (ISNULL([TotalCredit],0) + @TotalCredit),
 				[UpdatedBy] = @UpdatedBy,
 				[UpdatedDate] = GETUTCDATE()
 		WHERE	[JournalBatchHeaderId] = @NewJournalBatchHeaderId

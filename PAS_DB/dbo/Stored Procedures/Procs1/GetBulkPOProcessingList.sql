@@ -1,4 +1,3 @@
-
 /***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
@@ -19,6 +18,7 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	15   12/May/2026             RAJESH GAMI						Blank the MPN when it is SO [PN-16401]
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -580,8 +580,8 @@ BEGIN
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
 
-				IM.PartNumber,       -- MPN
-				IM.PartDescription,  -- MPNDescription
+				'' PartNumber,       -- MPN
+				'' PartDescription,  -- MPNDescription
 				'',                  -- SerialNum (updated later)
 				SO.CustomerName,
 				IM.ManufacturerName,
@@ -696,8 +696,8 @@ BEGIN
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
 
-				IM.PartNumber,
-				IM.PartDescription,
+				'' PartNumber,
+				'' PartDescription,
 				'',
 				SO.CustomerName,
 				IM.ManufacturerName,
@@ -822,8 +822,8 @@ BEGIN
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId), ''),
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
-				IM.PartNumber,
-				IM.PartDescription,
+				'' PartNumber,
+				'' PartDescription,
 				'',
 				SO.CustomerName,
 				IM.ManufacturerName,
@@ -1417,8 +1417,8 @@ BEGIN
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
 
-				IM.PartNumber,
-				IM.PartDescription,
+				'' PartNumber,
+				'' PartDescription,
 				'',
 				SO.CustomerName,
 				IM.ManufacturerName,
@@ -1537,8 +1537,8 @@ BEGIN
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
 
-				IM.PartNumber,
-				IM.PartDescription,
+				'' PartNumber,
+				'' PartDescription,
 				'',
 				SO.CustomerName,
 				IM.ManufacturerName,
@@ -1662,8 +1662,8 @@ BEGIN
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId), ''),
 				0 AS WorkOrderId,
 				SO.SalesOrderNumber AS WONum,
-				IM.PartNumber,
-				IM.PartDescription,
+				'' PartNumber,
+				'' PartDescription,
 				'',
 				SO.CustomerName,
 				IM.ManufacturerName,

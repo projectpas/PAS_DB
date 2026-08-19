@@ -20,6 +20,7 @@
 	8    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	10   11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
+	11   18/Aug/2026   Kishor Makwana  [PN-17687] - Display Freight and Charges Display as per Part
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
@@ -100,6 +101,7 @@ BEGIN
 												WHERE f.SalesOrderId = so.SalesOrderId 
 												  AND f.ItemMasterId = sop.ItemMasterId 
 												  AND f.ConditionId = sop.ConditionId 
+												  AND f.SalesOrderPartId = sop.SalesOrderPartId
 												  AND ISNULL(f.IsActive,0) = 1 
 												  AND ISNULL(f.IsDeleted,0) = 0
 											), 'NA')
@@ -116,6 +118,7 @@ BEGIN
 												WHERE c.SalesOrderId = so.SalesOrderId 
 												  AND c.ItemMasterId = sop.ItemMasterId 
 												  AND c.ConditionId = sop.ConditionId 
+												  AND c.SalesOrderPartId = sop.SalesOrderPartId
 												  AND  ISNULL(c.IsActive,0) = 1 
 												  AND  ISNULL(c.IsDeleted,0) = 0
 											), 'NA')

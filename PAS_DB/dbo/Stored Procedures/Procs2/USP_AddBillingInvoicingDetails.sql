@@ -30,6 +30,7 @@
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
+	20   18/08/2026   Kishor Makwana [PN-17439] -Not Proper Update IsVersionIncrease in BillingInvoicingItems.
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -194,31 +195,31 @@ BEGIN
 
 		SET @IsNewVersion = ISNULL(@IsNewVersion, 0);
 
-		IF (@MasterCompanyId = 12)
-		BEGIN
-			IF (@IsNewVersion = 0)
-			BEGIN
-				SET @isNewInvoice = 1;
-			END
-		END
+		--IF (@MasterCompanyId = 12)
+		--BEGIN
+		--	IF (@IsNewVersion = 0)
+		--	BEGIN
+		--		SET @isNewInvoice = 1;
+		--	END
+		--END
 
-		IF (@MasterCompanyId = 12)
-		BEGIN
-			IF (ISNULL(@IsNewVersion, 0) = 1)
-			BEGIN
-				-- NEW VERSION
-				SET @isNewInvoice = 0;
-				SET @IsVersionIncrease = 1;
-			END
-			ELSE
-			BEGIN
-				-- NEW INVOICE
-				SET @isNewInvoice = 1;
-				SET @IsVersionIncrease = 0;
-				--SET @VersionNo = NULL;
-				SET @InvoiceNo = '';
-			END
-		END
+		--IF (@MasterCompanyId = 12)
+		--BEGIN
+		--	IF (ISNULL(@IsNewVersion, 0) = 1)
+		--	BEGIN
+		--		-- NEW VERSION
+		--		SET @isNewInvoice = 0;
+		--		SET @IsVersionIncrease = 1;
+		--	END
+		--	ELSE
+		--	BEGIN
+		--		-- NEW INVOICE
+		--		SET @isNewInvoice = 1;
+		--		SET @IsVersionIncrease = 0;
+		--		--SET @VersionNo = NULL;
+		--		SET @InvoiceNo = '';
+		--	END
+		--END
 
 		IF(ISNULL(@isNewInvoice,0) = 0)
 		BEGIN
@@ -301,16 +302,16 @@ BEGIN
 			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 		END		
 
-		IF (@MasterCompanyId = 12 AND ISNULL(@IsNewVersion, 0) = 1 AND @BillingInvoicingIdI > 0)
-		BEGIN
-			UPDATE dbo.BillingInvoicing
-			SET IsVersionIncrease = 1,
-				UpdatedBy = @UpdatedBy,
-				UpdatedDate = @UpdatedDate
-			WHERE BillingInvoicingId = @BillingInvoicingIdI;
+		--IF (@MasterCompanyId = 12 AND ISNULL(@IsNewVersion, 0) = 1 AND @BillingInvoicingIdI > 0)
+		--BEGIN
+		--	UPDATE dbo.BillingInvoicing
+		--	SET IsVersionIncrease = 1,
+		--		UpdatedBy = @UpdatedBy,
+		--		UpdatedDate = @UpdatedDate
+		--	WHERE BillingInvoicingId = @BillingInvoicingIdI;
 
-			UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE BillingInvoicingId = @BillingInvoicingIdI;
-		END
+		--	UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE BillingInvoicingId = @BillingInvoicingIdI;
+		--END		
 
 		IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTemp') IS NOT NULL
 		BEGIN
@@ -401,11 +402,11 @@ BEGIN
 			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, 
-					 --@IsVersionIncrease, 
-					 CASE 
-						WHEN @MasterCompanyId = 12 AND ISNULL(@IsNewVersion,0) = 1 THEN 0
-						ELSE @IsVersionIncrease
-					 END,
+					 @IsVersionIncrease, 
+					 --CASE 
+						--WHEN @MasterCompanyId = 12 AND ISNULL(@IsNewVersion,0) = 1 THEN 0
+						--ELSE @IsVersionIncrease
+					 --END,
 					 @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
 					 @IsActive, @IsDeleted, @IsReversedJE, @QuickBooksReferenceId, @IsUpdated, @LastSyncDate, @SyncToken,
@@ -440,6 +441,7 @@ BEGIN
 			   FROM @tbl_BillingInvoicingItemsType
 
 		UPDATE #tmprAddBillingInvoicingDetailsTemp SET [SubModuleId] = @SOPartModuleId WHERE [ModuleId] = @SOModuleId;
+
 		
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprAddBillingInvoicingDetailsTemp    
 
@@ -480,6 +482,11 @@ BEGIN
 			
 			IF(@BillingInvoicingId = 0)
 			BEGIN
+				IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE [SubReferenceId] = @SubReferenceId AND BillingInvoicingItemId = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId; -- kishor
+					END
+				
 				INSERT INTO [dbo].[BillingInvoicingItems]([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId]
 						   ,[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus]
 						   ,[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
@@ -493,6 +500,7 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
+
 			END
 			ELSE
 			BEGIN				
@@ -538,10 +546,10 @@ BEGIN
 				
 				IF(@CreditMemoHeaderId = 0)
 				BEGIN
-					IF (@MasterCompanyId <> 12)
-					BEGIN
+					--IF (@MasterCompanyId <> 12)
+					--BEGIN
 						UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
-					END
+					--END
 				END
 				ELSE
 				BEGIN
@@ -552,16 +560,21 @@ BEGIN
 				BEGIN
 					IF(@ModuleId = @SOModuleId)
 					BEGIN
-						IF (@MasterCompanyId <> 12)
-						BEGIN
+						--IF (@MasterCompanyId <> 12)
+						--BEGIN
 							UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
-						END
+						--END
 					END
 					ELSE IF(@ModuleId = @WOModuleId)
 					BEGIN
 						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId; 
 					END
 				END
+
+				IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE [SubReferenceId] = @SubReferenceId AND BillingInvoicingItemId = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId;
+					END
 
 				INSERT INTO [dbo].[BillingInvoicingItems]([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId]
 						   ,[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus]
@@ -582,7 +595,7 @@ BEGIN
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			   
 			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
-
+				
 			END						
 
 			IF(@ModuleId = @WOModuleId)

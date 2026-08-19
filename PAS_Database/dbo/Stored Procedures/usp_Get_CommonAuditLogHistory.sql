@@ -29,6 +29,7 @@
    13       18-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for VendorBillingAddress  Module.(PN-15976) 
    14       22-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for   Module.(PN-15976)
    15 	    27-JUl-2026	    DIVYESH KATHIRIYA       Add Customer Domenstic Shipping. [PN-15669]
+   16       19-AUG-2026     DIVYESH KATHIRIYA       Add New 'WorksheetHeader' Module.[PN-16806]
 
 exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
@@ -65,6 +66,7 @@ BEGIN
         DECLARE @VendorShippingAddress AS INT;
         DECLARE @RefModule VARCHAR(100);
         DECLARE @CustomerDomensticShippingModule AS INT;
+        DECLARE @AircraftWorksheetHeaderModule AS INT;
 
         -- Validate sort dir
         IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
@@ -80,6 +82,7 @@ BEGIN
         SET @VendorBillingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorBillingAddress');
         SET @VendorShippingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorShippingAddress');
         SET @CustomerDomensticShippingModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'CustomerDomensticShipping');
+        SET @AircraftWorksheetHeaderModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'WorksheetHeader');
 
         IF (@ModuleId = @VendorContactModule)
         BEGIN 
@@ -216,6 +219,47 @@ BEGIN
 					  WHERE ic.TableName = @SubModule
 						AND ic.ColumnName = AL.ColumnName
 				)
+            ) AS c;
+        END
+        ELSE IF (@ModuleId = @AircraftWorksheetHeaderModule)
+        BEGIN
+            SELECT @cols =
+                STRING_AGG(QUOTENAME(ColumnName), ',')
+            FROM (
+                SELECT DISTINCT ColumnName
+                FROM [dbo].[AuditLog] AL WITH (NOLOCK)
+                WHERE (
+                        -- MAIN MODULE FILTER
+                        (@Module IS NULL OR TableName = @Module
+                            AND (
+                                    @PK_Key IS NULL OR @PK_Value IS NULL
+                                    OR TRY_CONVERT(nvarchar(128),
+                                        JSON_VALUE(PKJson, CONCAT('$.', @PK_Key))) = @PK_Value
+                                )
+                        )
+                        OR
+                        -- SUB-MODULE FILTER (WorksheetHeader -> WorksheetPart)
+                        (@Module IS NULL OR @Module = 'WorksheetHeader'
+                            AND TableName = @SubModule
+                            AND (
+                                    @SubPK_Key   IS NOT NULL
+                                AND @SubPK_Value IS NOT NULL
+                                AND TRY_CONVERT(nvarchar(128),
+                                    JSON_VALUE(PKJson, CONCAT('$.', @SubPK_Key))) = @SubPK_Value
+                            )
+                        )
+                    )
+                  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+                  AND ColumnName IS NOT NULL
+                  AND ColumnName <> ''
+                  AND LEN(ColumnName) <= 128
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM dbo.IgnoreColumn ic WITH (NOLOCK)
+                      WHERE ic.TableName = @Module
+                        AND ic.ColumnName = AL.ColumnName
+                  )
             ) AS c;
         END
         ELSE
@@ -416,6 +460,49 @@ BEGIN
 								AND FD.ChangedAt = AL.ChangedAt
 								AND FD.[Action] = AL.[Action]
 						),';
+        END
+        ELSE IF (@ModuleId = @AircraftWorksheetHeaderModule)
+        BEGIN
+            SET @sql = N';WITH S AS
+                        (
+                            SELECT
+                                AuditId,
+                                TableName,
+                                PKJson,
+                                ColumnName,
+                                [Action],
+                                OldValue,
+                                NewValue,
+                                ChangedBy,
+                                ChangedAt
+                            FROM [dbo].[AuditLog] WITH (NOLOCK)
+                            WHERE 1=1
+                              AND (
+                                    -- MAIN MODULE FILTER
+                                    (@Module IS NULL OR TableName = @Module
+                                        AND (
+                                                @PK_Key IS NULL OR @PK_Value IS NULL
+                                                OR TRY_CONVERT(nvarchar(128),
+                                                   JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
+                                            )
+                                    )
+
+                                    OR
+
+                                    -- SUB-MODULE FILTER (WorksheetHeader -> WorksheetPart)
+                                    (@Module IS NULL OR @Module = ''WorksheetHeader''
+                                        AND TableName = ''' + ISNULL(@SubModule, '') + '''
+                                        AND (
+                                                @SubPK_Key   IS NOT NULL
+                                            AND @SubPK_Value IS NOT NULL
+                                            AND TRY_CONVERT(nvarchar(128),
+                                                JSON_VALUE(PKJson, CONCAT(''$.'' , @SubPK_Key))) = @SubPK_Value
+                                        )
+                                    )
+                                 )
+                              AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                              AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+                        ),'
         END
         ELSE
         BEGIN

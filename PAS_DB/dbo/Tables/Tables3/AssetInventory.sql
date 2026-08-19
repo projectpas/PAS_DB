@@ -106,7 +106,7 @@
     [WarrantyCompanyName]               VARCHAR (100)   NULL,
     [WarrantyCompanySelectId]           INT             NULL,
     [WarrantyMemo]                      NVARCHAR (MAX)  NULL,
-    [IsQtyReserved]                     BIT             DEFAULT ((0)) NOT NULL,
+    [IsQtyReserved]                     BIT             CONSTRAINT [DF__AssetInve__IsQty__7E4D98E6] DEFAULT ((0)) NOT NULL,
     [InventoryStatusId]                 BIGINT          NULL,
     [InventoryNumber]                   VARCHAR (100)   NULL,
     [AssetStatusId]                     BIGINT          NULL,
@@ -138,7 +138,7 @@
     [BinId]                             BIGINT          NULL,
     [BinName]                           VARCHAR (250)   NULL,
     [StatusNote]                        VARCHAR (500)   NULL,
-    [RRQty]                             INT             DEFAULT ((0)) NOT NULL,
+    [RRQty]                             INT             CONSTRAINT [DF__AssetInve__RRQty__741D5092] DEFAULT ((0)) NOT NULL,
     [DepreciationMethodId]              BIGINT          NULL,
     [DepreciationMethodName]            VARCHAR (250)   NULL,
     [ResidualPercentageId]              BIGINT          NULL,
@@ -171,7 +171,7 @@
     [ReceivablesAmount]                 DECIMAL (18, 2) NULL,
     [DepreciationStartDate]             DATETIME        NULL,
     [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
-    [CalibratedGLAccountId]             INT             NULL,
+    [CalibratedGLAccountId]             BIGINT          NULL,
     [CalibratedGLAccountName]           VARCHAR (255)   NULL,
     [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
@@ -182,6 +182,8 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -221,33 +223,43 @@ END
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPartRec_Perf]
     ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
 
 
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPartRec_Created_Perf]
     ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
 
 
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPartRec_Perf]
     ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
 
 
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPartRec_Created_Perf]
     ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
-    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    INCLUDE([Name], [Description], [CreatedBy], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
 
 
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_Created_ROPartRec_Perf]
-    ON [dbo].[AssetInventory]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    ON [dbo].[AssetInventory]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90);
+
+
 
 
 GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_Created_POPartRec_Perf]
-    ON [dbo].[AssetInventory]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    ON [dbo].[AssetInventory]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90);
 

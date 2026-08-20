@@ -8,7 +8,8 @@
 ** PR   Date         Author           Change Description
 ** --   --------     -------          ------------------
 ** 1    07/06/2026   SUMIT KUMAR      Created
-** 1    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
+** 2    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
+** 3    07/08/2026   SUMIT KUMAR      Changes to allow duplicate tasks to be added to the same Work Order Part Number [PN-17716 & PN-17643]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddTasksFromTemplatesToWorkOrder]
@@ -84,7 +85,8 @@ BEGIN
                 SELECT @WfId = WorkflowId, @TskId = TaskId, @XmlSeq = SequenceNumber FROM #NewTasks WHERE ID = @CurrentRow; --  Retrieve SequenceNumber for current task row
 
                 -- Check duplicates: Verify task is not already present in the active Work Order Part Number.
-                IF NOT EXISTS (SELECT 1 FROM dbo.WorkOrderTask WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNumberId = @WorkOrderPartNumberId AND TaskId = @TskId AND IsActive = 1 AND IsDeleted = 0)
+                -- IF NOT EXISTS (SELECT 1 FROM dbo.WorkOrderTask WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNumberId = @WorkOrderPartNumberId AND TaskId = @TskId AND IsActive = 1 AND IsDeleted = 0)
+                -- Note: [PN-17716 & PN-17643] The above duplicate check is commented out to allow multiple instances of the same task if needed. Uncomment if strict uniqueness is required.
                 BEGIN
                     DECLARE @SeqStr VARCHAR(50) = @XmlSeq; --  Default to the sequence number passed in the XML
 

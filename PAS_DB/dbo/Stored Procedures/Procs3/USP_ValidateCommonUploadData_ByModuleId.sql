@@ -61,6 +61,7 @@
 	47   01/July/2026		RAJESH GAMI				[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	48	 14-Aug-2026        Ayushi Patel			Fixed: Stockline duplicate check call to USP_ChekDuplicateValueForUpload was missing Ref3/Value3 params , causing type clash error for serialized parts. Fixed by using named parameters.
 	49   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
+	50	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -79,7 +80,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
-CREATE      PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
+CREATE PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
 	@MasterCompanyId INT = NULL, 
@@ -660,7 +661,13 @@ BEGIN
 				END	
 			END			
 			UPDATE TMP
-			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = ''
+													 AND NOT (
+														 @ModuleId = @WorkOrderMaterialsModule
+														 AND IMF.FieldName = 'UnitCost'
+														 AND (SELECT LOWER(LTRIM(RTRIM(FieldValue))) FROM #DynamicKeyValue WHERE FieldName = 'TaskId') = 'teardown'
+													 )
+												THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
 												WHEN (@ModuleId = @ItemMasterModule)

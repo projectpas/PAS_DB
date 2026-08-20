@@ -251,7 +251,8 @@ BEGIN
 			QtyRequested = @QtyRequested,
 			QtyQuoted = @QtyQuoted,
 			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END),
-			SequenceNumber = @SequenceNumber
+			SequenceNumber = @SequenceNumber,
+			PriorityId =@PriorityId
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

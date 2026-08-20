@@ -1,4 +1,4 @@
-﻿/*********************
+﻿﻿/*********************
  ** File:   [USP_ReverseSOInvoiceAccountingEntry]
  ** Author:   Rajesh Gami
  ** Description: This stored procedure reverses the PAS accounting (GL) entries that were
@@ -67,6 +67,17 @@
 										CreditAmount pre-summed from #OriginalEntries; every reversed line still gets
 										its own dbo.CommonBatchDetails/dbo.SalesOrderBatchDetails row attached to that
 										same JournalBatchDetailId, so the 'view' action still lists every individual line.
+    8    19-Aug-2026  Rajesh Gami		[PN-17663] Fixed: PR 6 made this SP always reuse the ORIGINAL invoice's batch
+										header, which is wrong whenever Re-Open happens on a LATER day than the original
+										posting (e.g. invoice posted yesterday, Re-Opened today) - the reversal was landing
+										in YESTERDAY's batch instead of TODAY's. Now looks up (or creates) TODAY's batch
+										header the same day-bucketing way USP_BatchTriggerBasedonSOInvoiceNew does for
+										normal posting (JournalType/MasterCompany/EntryDate=today/Status/CustomerType) -
+										creating a fresh header only when none exists yet for today, otherwise appending
+										to today's existing one, exactly like a normal same-day re-invoice would. Also now
+										re-resolves Accounting Period for TODAY (falling back to the original invoice's
+										period only if today's can't be resolved), since a reversal posted in a later
+										period should carry that period, not the original invoice's.
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -172,13 +183,10 @@ BEGIN
 		DECLARE @JournalTypeId BIGINT, @JournalTypeName VARCHAR(200)
 		SELECT TOP 1 @JournalTypeId = [JournalTypeId], @JournalTypeName = [JournalTypeName] FROM #OriginalEntries
 
-		-- Reversal entries belong in the SAME batch as the original invoice they're reversing - reuse the
-		-- original JournalBatchHeaderId (already captured on #OriginalEntries) instead of inserting a new
-		-- BatchHeader row. Batch Ref and Accounting Period therefore stay exactly as they already are on
-		-- that header; nothing needs to be (re)generated for either of them here.
+		-- [PN-17663] Batch grouping now follows the SAME day-bucketing rule USP_BatchTriggerBasedonSOInvoiceNew
+		-- uses for normal posting - see the day-bucketed lookup/creation block below (right before the
+		-- @HeaderLineNumber computation) instead of always reusing the ORIGINAL invoice's batch header.
 		DECLARE @NewJournalBatchHeaderId BIGINT, @HeaderCurrentNumber BIGINT
-		SELECT TOP 1 @NewJournalBatchHeaderId = [JournalBatchHeaderId] FROM #OriginalEntries
-		SELECT @HeaderCurrentNumber = [CurrentNumber] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalBatchHeaderId] = @NewJournalBatchHeaderId
 
 		-- [PN-17635] JE Number for the reversal batch used to just copy the ORIGINAL entry's JournalTypeNumber
 		-- verbatim (via the cursor below), so the reversal showed the exact same JE Number as the invoice it was
@@ -219,13 +227,92 @@ BEGIN
 		-- cursor processes below then attaches its own dbo.CommonBatchDetails/dbo.SalesOrderBatchDetails
 		-- row to THIS SAME @NewJournalBatchDetailId, so the 'view' action still lists every individual line -
 		-- only the dbo.BatchDetails summary row is now aggregated (mirrors USP_BatchTriggerBasedonSOInvoiceNew).
+		-- [PN-17663] Batch grouping must follow the SAME day-bucketing rule normal SO Invoice POSTing uses
+		-- (see USP_BatchTriggerBasedonSOInvoiceNew) - one BatchHeader per day, per JournalType/Company/
+		-- Status/CustomerType. Always reusing the ORIGINAL invoice's batch header was wrong whenever
+		-- Re-Open happens on a LATER day than the original posting (invoice posted yesterday, Re-Opened
+		-- today) - the reversal landed in YESTERDAY's batch instead of TODAY's. This looks up (or creates)
+		-- TODAY's batch header the same way normal posting does.
+		DECLARE @ReversalCustomerTypeId INT
+		SELECT TOP 1 @ReversalCustomerTypeId = [CustomerTypeId] FROM #OriginalEntries
+
+		DECLARE @ReversalBatchStatusId INT, @ReversalBatchStatusName VARCHAR(200)
+		SELECT @ReversalBatchStatusId = [Id], @ReversalBatchStatusName = [Name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE [Name] = 'Open'
+
+		DECLARE @ReversalJournalTypeCode VARCHAR(200)
+		SELECT @ReversalJournalTypeCode = [JournalTypeCode] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeId
+
+		-- Baseline Accounting Period from the original entries; overridden below with TODAY's period when a
+		-- calendar row for today can be resolved - a reversal posted in a later period than the original
+		-- invoice should carry today's period, not the original invoice's.
+		SELECT TOP 1 @AccountingPeriodId = [AccountingPeriodId], @AccountingPeriod = [AccountingPeriod] FROM #OriginalEntries
+
+		DECLARE @ReversalLegalEntityId BIGINT
+		SELECT TOP 1 @ReversalLegalEntityId = C.[LegalEntityId]
+		FROM #OriginalEntries OE
+		INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.[CustomerId] = OE.[CustomerId]
+
+		DECLARE @TodayAccountingPeriodId BIGINT, @TodayAccountingPeriod VARCHAR(100)
+		SELECT TOP 1 @TodayAccountingPeriodId = [AccountingCalendarId], @TodayAccountingPeriod = [PeriodName]
+		FROM [dbo].[AccountingCalendar] WITH(NOLOCK)
+		WHERE [IsDeleted] = 0 AND [LegalEntityId] = @ReversalLegalEntityId AND [MasterCompanyId] = @MasterCompanyId
+		  AND CAST(GETUTCDATE() AS DATE) >= CAST([FromDate] AS DATE) AND CAST(GETUTCDATE() AS DATE) <= CAST([ToDate] AS DATE)
+
+		IF (@TodayAccountingPeriodId IS NOT NULL)
+		BEGIN
+			SET @AccountingPeriodId = @TodayAccountingPeriodId
+			SET @AccountingPeriod = @TodayAccountingPeriod
+		END
+
+		DECLARE @ReversalBatchNumber VARCHAR(100), @ReversalCurrentBatch VARCHAR(100), @ReversalCurrentPeriodId BIGINT = 0
+
+		IF NOT EXISTS(SELECT BH.[JournalBatchHeaderId] FROM [dbo].[BatchHeader] BH WITH(NOLOCK) WHERE BH.[JournalTypeId] = @JournalTypeId AND BH.[MasterCompanyId] = @MasterCompanyId AND CAST(BH.[EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND BH.[StatusId] = @ReversalBatchStatusId AND BH.[CustomerTypeId] = @ReversalCustomerTypeId)
+		BEGIN
+			IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK))
+			BEGIN
+				SET @ReversalCurrentBatch = '001'
+			END
+			ELSE
+			BEGIN
+				SELECT TOP 1 @ReversalCurrentBatch = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE 1 END
+				FROM [dbo].[BatchHeader] WITH(NOLOCK) ORDER BY [JournalBatchHeaderId] DESC
+			END
+
+			SET @HeaderCurrentNumber = CAST(@ReversalCurrentBatch AS BIGINT)
+
+			IF (CAST(@ReversalCurrentBatch AS BIGINT) > 99)
+				SET @ReversalBatchNumber = CAST(@ReversalCurrentBatch AS VARCHAR(100))
+			ELSE IF (CAST(@ReversalCurrentBatch AS BIGINT) > 9)
+				SET @ReversalBatchNumber = CONCAT('0', CAST(@ReversalCurrentBatch AS VARCHAR(50)))
+			ELSE
+				SET @ReversalBatchNumber = CONCAT('00', CAST(@ReversalCurrentBatch AS VARCHAR(50)))
+
+			SET @ReversalBatchNumber = CAST(@ReversalJournalTypeCode + ' ' + CAST(@ReversalBatchNumber AS VARCHAR(100)) AS VARCHAR(100))
+
+			INSERT INTO [dbo].[BatchHeader]
+				([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],[AccountingPeriodId],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
+			VALUES
+				(@ReversalBatchNumber,@HeaderCurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@ReversalBatchStatusId,@ReversalBatchStatusName,@JournalTypeId,@JournalTypeName,0,0,0,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,'SOI',@ReversalCustomerTypeId)
+
+			SELECT @NewJournalBatchHeaderId = SCOPE_IDENTITY()
+		END
+		ELSE
+		BEGIN
+			SELECT TOP 1 @NewJournalBatchHeaderId = BH.[JournalBatchHeaderId], @HeaderCurrentNumber = BH.[CurrentNumber], @ReversalCurrentPeriodId = ISNULL(BH.[AccountingPeriodId],0)
+			FROM [dbo].[BatchHeader] BH WITH(NOLOCK)
+			WHERE BH.[JournalTypeId] = @JournalTypeId AND BH.[MasterCompanyId] = @MasterCompanyId AND CAST(BH.[EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND BH.[StatusId] = @ReversalBatchStatusId AND BH.[CustomerTypeId] = @ReversalCustomerTypeId
+
+			IF (@ReversalCurrentPeriodId = 0)
+			BEGIN
+				UPDATE [dbo].[BatchHeader] SET [AccountingPeriodId] = @AccountingPeriodId, [AccountingPeriod] = @AccountingPeriod WHERE [JournalBatchHeaderId] = @NewJournalBatchHeaderId
+			END
+		END
+
 		DECLARE @HeaderLineNumber BIGINT = 1
 		SELECT @HeaderLineNumber = CASE WHEN [LineNumber] > 0 THEN CAST([LineNumber] AS BIGINT) + 1 ELSE 1 END
 		FROM [dbo].[BatchDetails] WITH(NOLOCK)
 		WHERE [JournalBatchHeaderId] = @NewJournalBatchHeaderId
 		ORDER BY [JournalBatchDetailId] DESC
-
-		SELECT TOP 1 @AccountingPeriodId = [AccountingPeriodId], @AccountingPeriod = [AccountingPeriod] FROM #OriginalEntries
 
 		-- Debit/Credit swapped the same way each reversed line is swapped below, so this total matches the
 		-- sum of what the cursor is about to insert into CommonBatchDetails.

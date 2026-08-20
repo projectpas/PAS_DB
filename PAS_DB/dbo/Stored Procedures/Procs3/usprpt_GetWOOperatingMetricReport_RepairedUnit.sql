@@ -22,9 +22,10 @@
 	2    13-sept-2024	Shrey Chandegara	Modified due to add sum total revenue.
 	3    18/04/2025		Ayushi				Added the condition for pn , pndescription 
 	4    23-June-2025	Devendra Shekh		Billing Table Changes
-	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
+	5    01/July/2026   RAJESH GAMI         [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    20/Aug/2026    Bhargav             [PN-17660] - Fix Times Repaired count & Work Scope: use COUNT(*) per (pn,item) instead of MAX(Row_Number) (was leaking the whole item's count across revised part numbers and was non-deterministic); pick the most-frequent Work Scope deterministically.
+**************************************************************/
+CREATE      PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -187,11 +188,11 @@ BEGIN
 		) as a
 		--Select * from #TempWOOperating
 		SELECT * INTO #TempWOOperatingFinal FROM
-		 (SELECT (CASE WHEN (SELECT TOP 1 Row_Number FROM #TempWOOperating tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.workscopes FROM #TempWOOperating tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE workscopes END) AS 'workscope',* FROM #TempWOOperating main) as res
+		 (SELECT (SELECT TOP 1 tm.workscopes FROM #TempWOOperating tm WHERE ISNULL(tm.ItemMasterId,-1) = ISNULL(main.ItemMasterId,-1) AND ISNULL(tm.pn,'') = ISNULL(main.pn,'') GROUP BY tm.workscopes ORDER BY COUNT(*) DESC, tm.workscopes ASC) AS 'workscope',* FROM #TempWOOperating main) as res
 		 --select * from #TempWOOperatingFinal
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT workscope,MAX(Row_Number) AS timesRepaired,SUM(GrandTotal) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(GrandTotal)/MAX(Row_Number))) as averageRevenue,pn,pnDescription,ItemMasterId 
+		 (SELECT workscope,COUNT(*) AS timesRepaired,SUM(GrandTotal) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(GrandTotal)/COUNT(*))) as averageRevenue,pn,pnDescription,ItemMasterId
 		 
 		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,workscope,ItemMasterId) as result
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)

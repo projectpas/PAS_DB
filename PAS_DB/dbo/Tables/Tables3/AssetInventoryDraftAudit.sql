@@ -154,6 +154,7 @@
     [LastCalibrationDate]               DATETIME        NULL,
     [NextCalibrationDate]               DATETIME        NULL,
     [DepreciationStartDate]             DATETIME        NULL,
+    [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventoryDraftAudit] PRIMARY KEY CLUSTERED ([AssetInventoryDraftAuditId] ASC)
 );
 

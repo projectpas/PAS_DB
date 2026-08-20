@@ -28,6 +28,7 @@
 	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
 	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9	 19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -49,12 +50,26 @@ BEGIN
 			DECLARE @WorkOrderQuoteId BIGINT = 0			
 			DECLARE @WorkOrderId BIGINT = 0
 			DECLARE @WorkOrderFormTypeId BIT = 0; 			
+			DECLARE @WorkOrderPartNumberId BIGINT = 0;
 
 			SELECT @WorkflowWorkOrderId=WorkflowWorkOrderId,@WorkOrderQuoteId=WorkOrderQuoteId FROM dbo.WorkOrderQuoteDetails WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId= @workOrderQuoteDetailsId
 
 			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId
 
 			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
+			SELECT @WorkOrderPartNumberId = ISNULL(WorkOrderPartNoId, 0) FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkflowWorkOrderId;
+
+			-- Declare and populate table variable to get active task counts to detect duplicates
+			DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+			INSERT INTO @DupTasks (TaskId, TaskCount)
+			SELECT TaskId, COUNT(*) AS TaskCount
+			FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+			WHERE [WorkOrderId] = @WorkOrderId 
+			  AND [WorkOrderPartNumberId] = @WorkOrderPartNumberId
+			  AND [IsActive] = 1 AND [IsDeleted] = 0
+			GROUP BY TaskId;
 			
 			SELECT      im.PartNumber,
                         im.PartDescription,
@@ -80,7 +95,9 @@ BEGIN
                         wom.ItemMasterId,
                        wom.TaskId,
 					   --ts.Description as TaskName,
-					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
+					   CASE WHEN @WorkOrderFormTypeId = 1 THEN  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+					   ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
 					   wom.BillingName,
@@ -115,6 +132,7 @@ BEGIN
 					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = wom.ItemClassificationId
 					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
 					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+					 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					 LEFT JOIN [dbo].[MaterialMandatories] ms  WITH(NOLOCK) ON ms.Id = wom.MaterialMandatoriesId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
@@ -144,7 +162,9 @@ BEGIN
                         wom.ItemMasterId,
                        wom.TaskId,
 					   --'' as TaskName,
-					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
+					   CASE WHEN @WorkOrderFormTypeId = 1 THEN  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+					   ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
                        wom.BillingName,
@@ -179,6 +199,7 @@ BEGIN
 					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = im.ItemClassificationId
 					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
 					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wom.TaskId
+					 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )  AND ISNULL(im.IsNonStock,0) = 0

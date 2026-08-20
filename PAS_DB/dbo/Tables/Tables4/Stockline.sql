@@ -273,6 +273,8 @@
 
 
 
+
+
 GO
 
 GO
@@ -331,13 +333,11 @@ BEGIN
             d.[UnitCost],
             CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Currency], '') END AS [Currency],
             CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[GlAccountName], '') END AS [GlAccountName],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Site], '') END AS [Site],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Warehouse], '') END AS [Warehouse],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Location], '')
-                ELSE d.[Location]
-            END AS [Location],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Shelf], '') END AS [Shelf],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Bin], '') END AS [Bin],
+            d.[Site],
+            d.[Warehouse],
+            d.[Location],
+            d.[Shelf],
+            d.[Bin],
             CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(dms.[LastMSLevel], '') END AS [ManagementStructure],
             CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
             CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[InventoryGLAccName], '') END AS [InventoryGLAccName],
@@ -438,13 +438,11 @@ BEGIN
             i.[UnitCost],
             CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Currency], '') END AS [Currency],
             CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[GlAccountName], '') END AS [GlAccountName],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Site], '') END AS [Site],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Warehouse], '') END AS [Warehouse],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Location], '')
-                ELSE i.[Location]
-            END AS [Location],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Shelf], '') END AS [Shelf],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Bin], '') END AS [Bin],
+            i.[Site],
+            i.[Warehouse],
+            i.[Location],
+            i.[Shelf],
+            i.[Bin],
             CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(ims.[LastMSLevel], '') END AS [ManagementStructure],
             CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],
             CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[InventoryGLAccName], '') END AS [InventoryGLAccName],

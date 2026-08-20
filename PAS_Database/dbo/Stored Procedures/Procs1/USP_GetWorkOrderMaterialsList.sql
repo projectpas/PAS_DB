@@ -45,6 +45,7 @@
 	27	 15/07/2026	  Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
 	28   19/Aug/2026  SUMIT KUMAR       [PN-17716] - Resolved error getting while copy WO materials from WO -> WOQ
 										And (Append sequence number to task name if duplicate task exists for the WO)
+	24   19/AUG/2026  SUMIT KUMAR						[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
@@ -382,7 +383,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -619,6 +621,7 @@ SET NOCOUNT ON
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
 						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -860,7 +863,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1090,6 +1094,7 @@ SET NOCOUNT ON
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
 						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,

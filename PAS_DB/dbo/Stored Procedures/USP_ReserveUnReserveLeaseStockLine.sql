@@ -11,6 +11,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    10/08/2026     Amit Ghediya            Created
+    2    19/08/2026     Amit Ghediya            LeasePart.QtyOrder now moves with QtyReserved (Reserve/UnReserve), mirroring LeaseStockline
 
 exec USP_ReserveUnReserveLeaseStockLine @LeaseStocklineId=1,@Qty=1,@IsReserve=1,@UpdatedBy=''
 ************************************************************************/
@@ -69,12 +70,13 @@ BEGIN
 			WHERE StockLineId = @StockLineId;
 
 			UPDATE [dbo].[LeasePart]
-			SET QtyReserved = QtyReserved + @Qty,
+			SET QtyOrder = QtyOrder - @Qty,
+				QtyReserved = QtyReserved + @Qty,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;
 
-			--FOR STOCK LINE HISTORY	
+			--FOR STOCK LINE HISTORY
 			SET @ActionId = 2; --For Reserve
 			EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @LeaseHeaderId, @SubModuleId = 0, @SubRefferenceId = @ModuleId, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @UpdatedBy;
 		END
@@ -100,7 +102,8 @@ BEGIN
 			WHERE StockLineId = @StockLineId;
 
 			UPDATE [dbo].[LeasePart]
-			SET QtyReserved = QtyReserved - @Qty,
+			SET QtyOrder = QtyOrder + @Qty,
+				QtyReserved = QtyReserved - @Qty,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeasePartId = @LeasePartId;

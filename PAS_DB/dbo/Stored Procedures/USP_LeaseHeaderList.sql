@@ -8,11 +8,15 @@
  ** PR   Date         Author          Change Description
  ** --   --------     -------         ------------------------------------
     1    04/08/2026   Amit Ghediya    Created
+    2    19/08/2026   Amit Ghediya    Added @IsDetailView - Detail View now fans out one row per LeasePart/LeaseStockline;
+                                      Summary View's TailNum shows the single Part Number or 'Multiple' when more than one part exists
+    3    19/08/2026   Amit Ghediya    Summary View's StartDate/EndDate now bind too - single part shows its own dates,
+                                      multiple parts show the overall MIN(StartDate)/MAX(EndDate) range across them
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
 @CustomerName=NULL,@LeaseStatusId=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,
-@MasterCompanyId=1,@StatusId=NULL,@IsDeleted=NULL,@EmployeeId=226
+@MasterCompanyId=1,@StatusId=NULL,@IsDeleted=NULL,@EmployeeId=226,@IsDetailView=0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_LeaseHeaderList]
 	@PageNumber int = 1,
@@ -43,7 +47,8 @@ CREATE   PROCEDURE [dbo].[USP_LeaseHeaderList]
 	@ContractTime varchar(50) = NULL,
 	@StartDate datetime = NULL,
 	@EndDate datetime = NULL,
-	@LeaseStatus varchar(50) = NULL
+	@LeaseStatus varchar(50) = NULL,
+	@IsDetailView bit = 0
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -99,44 +104,139 @@ BEGIN
 			SET @IsDeleted=0
 		END
 
-		;WITH Result AS (
+		IF OBJECT_ID(N'tempdb..#RawResult') IS NOT NULL
+		BEGIN
+			DROP TABLE #RawResult
+		END
+		IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL
+		BEGIN
+			DROP TABLE #TempResult
+		END
+
+		CREATE TABLE #RawResult
+		(
+			LeaseHeaderId          BIGINT,
+			LeaseNumber            VARCHAR(50),
+			LeaseName              VARCHAR(200),
+			LeaseTypeId            INT,
+			LeaseStatusId          INT,
+			LeaseStatusName        VARCHAR(50),
+			CustomerName           VARCHAR(100),
+			ManagementStructureName VARCHAR(200),
+			MasterCompanyId        BIGINT,
+			CreatedBy              VARCHAR(50),
+			UpdatedBy              VARCHAR(50),
+			CreatedDate            DATETIME,
+			UpdatedDate            DATETIME,
+			IsActive               BIT,
+			IsDeleted              BIT,
+			TailNum                VARCHAR(200),
+			PnDescription          VARCHAR(200),
+			SerialNum              VARCHAR(50),
+			AcSection              VARCHAR(100),
+			StocklineNum           VARCHAR(50),
+			BillingMethod          VARCHAR(50),
+			BillingFrequency       VARCHAR(50),
+			ContractCycle          VARCHAR(50),
+			ContractTime           VARCHAR(50),
+			StartDate              VARCHAR(20),
+			EndDate                VARCHAR(20)
+		)
+
+		IF (@IsDetailView = 1)
+		BEGIN
+			-- Detail View: one row per LeasePart, further fanned out per LeaseStockline
+			INSERT INTO #RawResult
 			SELECT DISTINCT
 				LH.LeaseHeaderId
 			   ,LH.LeaseNumber
 			   ,LH.LeaseName
 			   ,LH.LeaseTypeId
 			   ,LH.LeaseStatusId
-			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END as 'LeaseStatusName'
-			   ,C.Name as 'CustomerName'
-			   ,MS.Name as 'ManagementStructureName'
+			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
+			   ,C.Name
+			   ,MS.Name
 			   ,LH.[MasterCompanyId]
 			   ,LH.[CreatedBy]
 			   ,LH.[UpdatedBy]
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.CreatedDate AS DATETIME)) END CreatedDate
+				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END UpdatedDate
+				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
-			   ,'' AS [TailNum]
-			   ,'' AS [PnDescription]
-			   ,'' AS [SerialNum]
-			   ,'' AS [AcSection]
-			   ,'' AS [StocklineNum]
-			   ,'' AS [BillingMethod]
-			   ,'' AS [BillingFrequency]
-			   ,'' AS [ContractCycle]
-			   ,'' AS [ContractTime]
-			   ,'' AS [StartDate]
-			   ,'' AS [EndDate]
+			   ,ISNULL(LP.PN,'')
+			   ,ISNULL(LP.PNDescription,'')
+			   ,ISNULL(LSL.SN,'')
+			   ,ISNULL(ACS.Section,'')
+			   ,ISNULL(LSL.StocklineNumber,'')
+			   ,ISNULL(LSL.BillingMethod,'')
+			   ,ISNULL(LSL.BillingInterval,'')
+			   ,CASE WHEN LSL.MinimumCycles IS NULL AND LSL.MaximumCycles IS NULL THEN ''
+					 ELSE CAST(ISNULL(LSL.MinimumCycles,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumCycles,0) AS VARCHAR(20)) END
+			   ,CASE WHEN LSL.MinimumTimes IS NULL AND LSL.MaximumTimes IS NULL THEN ''
+					 ELSE CAST(ISNULL(LSL.MinimumTimes,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumTimes,0) AS VARCHAR(20)) END
+			   ,ISNULL(CONVERT(VARCHAR(20), LP.StartDate, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), LP.EndDate, 101),'')
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
+				LEFT JOIN dbo.LeasePart LP WITH(NOLOCK) ON LP.LeaseHeaderId = LH.LeaseHeaderId AND LP.IsDeleted = 0
+				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.LeasePartId = LP.LeasePartId AND LSL.IsDeleted = 0
+				LEFT JOIN dbo.AircraftSection ACS WITH(NOLOCK) ON ACS.AircraftSectionId = LP.AircraftSectionId
 			WHERE LH.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR LH.IsActive=@IsActive) AND LH.MasterCompanyId = @MasterCompanyId
-		  	)
-		SELECT * INTO #TempResult FROM  Result
+		END
+		ELSE
+		BEGIN
+			-- Summary View: one row per LeaseHeader; TailNum shows single Part Number or 'Multiple';
+			-- StartDate/EndDate show the part's own dates, or overall MIN/MAX range when multiple parts exist
+			INSERT INTO #RawResult
+			SELECT DISTINCT
+				LH.LeaseHeaderId
+			   ,LH.LeaseNumber
+			   ,LH.LeaseName
+			   ,LH.LeaseTypeId
+			   ,LH.LeaseStatusId
+			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
+			   ,C.Name
+			   ,MS.Name
+			   ,LH.[MasterCompanyId]
+			   ,LH.[CreatedBy]
+			   ,LH.[UpdatedBy]
+			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
+					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
+				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
+			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
+					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
+				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
+			   ,LH.[IsActive]
+			   ,LH.[IsDeleted]
+			   ,CASE WHEN PartAgg.PartCount > 1 THEN 'Multiple' ELSE ISNULL(PartAgg.AnyPN,'') END
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MinStartDate ELSE PartAgg.AnyStartDate END, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MaxEndDate ELSE PartAgg.AnyEndDate END, 101),'')
+				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
+				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
+				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
+				OUTER APPLY (
+					SELECT COUNT(1) AS PartCount, MIN(LP2.StartDate) AS MinStartDate, MAX(LP2.EndDate) AS MaxEndDate,
+						   MAX(LP2.PN) AS AnyPN, MAX(LP2.StartDate) AS AnyStartDate, MAX(LP2.EndDate) AS AnyEndDate
+					FROM dbo.LeasePart LP2 WITH(NOLOCK)
+					WHERE LP2.LeaseHeaderId = LH.LeaseHeaderId AND LP2.IsDeleted = 0
+				) AS PartAgg
+			WHERE LH.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR LH.IsActive=@IsActive) AND LH.MasterCompanyId = @MasterCompanyId
+		END
+
+		SELECT * INTO #TempResult FROM  #RawResult
 			 WHERE ((ISNULL(@GlobalFilter,'') <>'' AND ((LeaseNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (LeaseName LIKE '%' +@GlobalFilter+'%') OR
 					(CustomerName LIKE '%' +@GlobalFilter+'%') OR

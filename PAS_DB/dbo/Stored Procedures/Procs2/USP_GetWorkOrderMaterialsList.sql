@@ -43,6 +43,7 @@
 	23    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	24   19/Aug/2026  SUMIT KUMAR       [PN-17716] - Resolved error getting while copy WO materials from WO -> WOQ
 										And (Append sequence number to task name if duplicate task exists for the WO)
+	25   19/Aug/2026  SUMIT KUMAR		[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
@@ -381,7 +382,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -618,6 +620,7 @@ SET NOCOUNT ON
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
 						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -858,7 +861,8 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						ISNULL(MSTL.Notes, WOM.Notes) AS Notes,
+						ISNULL(WOM.Notes, '') AS Notes,
+						ISNULL(MSTL.Notes, '') AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,
@@ -1087,6 +1091,7 @@ SET NOCOUNT ON
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
 						CAST(NULL AS NVARCHAR(MAX)) AS Notes, -- As currently Notes are not stored at the Kit level, only at the individual material level
+						'' AS StocklineNotes,
 						WOM.IsDeferred,
 						WOM.TaskId,
 						--T.Description AS TaskName,

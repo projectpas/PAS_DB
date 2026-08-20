@@ -30,6 +30,7 @@
    14       22-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for   Module.(PN-15976)
    15 	    27-JUl-2026	    DIVYESH KATHIRIYA       Add Customer Domenstic Shipping. [PN-15669]
    16       19-AUG-2026     DIVYESH KATHIRIYA       Add New 'WorksheetHeader' Module.[PN-16806]
+   17 	    18-JUN-2026	    DIVYESH KATHIRIYA       Handle 'Engine' wise data in "AircraftCycleTimeMappings". [PN-16870]
 
 exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
@@ -192,27 +193,41 @@ BEGIN
             SELECT @cols =
                 STRING_AGG(QUOTENAME(ColumnName), ',')
             FROM (
-                SELECT DISTINCT ColumnName
+                SELECT DISTINCT AL.ColumnName
                 FROM [dbo].[AuditLog] AL WITH (NOLOCK)
-                 WHERE (@Module IS NULL OR TableName = @Module)
+                 WHERE (@Module IS NULL OR AL.TableName = @Module)
                   AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                   AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
 				  AND TRY_CONVERT(BIGINT, JSON_VALUE(PKJson, '$.AircraftCycleTimeMappingsId')) = @PK_Value
-                  AND ColumnName IS NOT NULL
-                  AND ColumnName <> ''
-                  AND LEN(ColumnName) <= 128 
+                  AND AL.ColumnName IS NOT NULL
+                  AND AL.ColumnName <> ''
+                  AND LEN(AL.ColumnName) <= 128
 
 				UNION ALL
 
-				SELECT DISTINCT ColumnName
+				SELECT DISTINCT CONCAT('Engine', EngineInfo.EngineNo, SUBSTRING(AL.ColumnName, LEN('Engine') + 1, 128)) AS ColumnName
                 FROM [dbo].[AuditLog] AL WITH (NOLOCK)
-                 WHERE (@SubModule IS NULL OR TableName = @SubModule)
+				INNER JOIN dbo.AircraftEngineStartsMappings AESM WITH (NOLOCK)
+					ON AESM.AircraftEngineStartsMappingsId = TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, '$.aircraftenginestartsmappingsid'))
+				CROSS APPLY
+				(
+					SELECT TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), 'ENGINE', ''), ' ', '')) AS EngineNo
+				) EngineInfo
+                 WHERE (@SubModule IS NULL OR AL.TableName = @SubModule)
                   AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                   AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-				  AND TRY_CONVERT(BIGINT, JSON_VALUE(PKJson, '$.aircraftenginestartsmappingsid')) IN(SELECT Item FROM DBO.SPLITSTRING(@DetailId,','))-- @PK_Value
-                  AND ColumnName IS NOT NULL
-                  AND ColumnName <> ''
-                  AND LEN(ColumnName) <= 128
+				  AND TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, '$.aircraftenginestartsmappingsid')) IN(SELECT Item FROM DBO.SPLITSTRING(@DetailId,','))-- @PK_Value
+				  AND EngineInfo.EngineNo BETWEEN 1 AND 4
+                  AND AL.ColumnName IN
+				  (
+					  'EngineAddHoursMinutes',
+					  'EngineAddStarts',
+					  'EngineCurrentHoursMinutes',
+					  'EngineCurrentStarts',
+					  'EngineUpdatedHoursMinutes',
+					  'EngineUpdatedStarts'
+				  )
+                  AND LEN(CONCAT('Engine', EngineInfo.EngineNo, SUBSTRING(AL.ColumnName, LEN('Engine') + 1, 128))) <= 128
 				  AND NOT EXISTS (            
 					  SELECT 1
 					  FROM dbo.IgnoreColumn ic WITH (NOLOCK)
@@ -394,7 +409,7 @@ BEGIN
 				FROM AircraftEngineStartsMappings
 			WHERE AircraftCycleTimeMappingsId = @PK_Value;
 
-			SET @sql = N';WITH RawS AS
+			SET @sql = N';WITH ParentRaw AS
 						(
 							SELECT
 								AuditId,
@@ -406,49 +421,150 @@ BEGIN
 								NewValue,
 								ChangedBy,
 								ChangedAt,
-								ReferenceId   
+                                DATEADD(second, DATEDIFF(second, CONVERT(datetime2(3), ''20000101''), ChangedAt), CONVERT(datetime2(3), ''20000101'')) AS ChangedAtBucket
 							FROM [dbo].[AuditLog] WITH (NOLOCK)
 							WHERE (@Module IS NULL OR TableName = @Module) 
 							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
 							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.AircraftCycleTimeMappingsId'')) = @PK_Value
+							  AND TRY_CONVERT(BIGINT, JSON_VALUE(PKJson, ''$.AircraftCycleTimeMappingsId'')) = TRY_CONVERT(BIGINT, @PK_Value)
+						),
+                        ParentEventMap AS
+                        (
+                            SELECT
+                                TableName,
+                                PKJson,
+                                [Action],
+                                ChangedAtBucket,
+                                MAX(ChangedAt) AS ChangedAt,
+                                COALESCE(
+                                    MAX(CASE
+                                            WHEN ColumnName = ''UpdatedDate''
+                                                THEN TRY_CONVERT(datetime2(3), CASE WHEN [Action] = ''D'' THEN OldValue ELSE NewValue END)
+                                        END),
+                                    MAX(ChangedAt)
+                                ) AS EventAt
+                            FROM ParentRaw
+                            GROUP BY TableName, PKJson, [Action], ChangedAtBucket
+                        ),
+                        EngineRawBase AS
+                        (
+							SELECT
+								AL.AuditId,
+								AL.TableName,
+								AL.PKJson,
+								AL.ColumnName,
+								AL.[Action],
+								AL.OldValue,
+								AL.NewValue,
+								AL.ChangedBy,
+								AL.ChangedAt,
+                                DATEADD(second, DATEDIFF(second, CONVERT(datetime2(3), ''20000101''), AL.ChangedAt), CONVERT(datetime2(3), ''20000101'')) AS ChangedAtBucket,
+                                EngineInfo.EngineNo
+							FROM [dbo].[AuditLog] AL WITH (NOLOCK)
+							INNER JOIN dbo.AircraftEngineStartsMappings AESM WITH (NOLOCK)
+								ON AESM.AircraftEngineStartsMappingsId = TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, ''$.aircraftenginestartsmappingsid''))
+							CROSS APPLY
+							(
+								SELECT TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), ''ENGINE'', ''''), '' '', '''')) AS EngineNo
+							) EngineInfo
+							WHERE (@SubModule IS NULL OR AL.TableName = @SubModule)
+							  AND (@StartAt IS NULL OR AL.ChangedAt >= @StartAt)
+							  AND (@EndAt   IS NULL OR AL.ChangedAt <  @EndAt)
+							  AND TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, ''$.aircraftenginestartsmappingsid'')) IN (SELECT TRY_CONVERT(BIGINT, value) FROM STRING_SPLIT(@DetailId, '',''))
+							  AND EngineInfo.EngineNo BETWEEN 1 AND 4
+							  AND AL.ColumnName IN
+							  (
+								  ''EngineAddHoursMinutes'',
+								  ''EngineAddStarts'',
+								  ''EngineCurrentHoursMinutes'',
+								  ''EngineCurrentStarts'',
+								  ''EngineUpdatedHoursMinutes'',
+								  ''EngineUpdatedStarts'',
+                                    ''EngineUpdatedDate''
+							  )
+                        ),
+                        EngineEventMap AS
+                        (
+                            SELECT
+                                PKJson,
+                                [Action],
+                                ChangedAtBucket,
+                                MAX(ChangedAt) AS ChangedAt,
+                                COALESCE(
+                                    MAX(CASE
+                                            WHEN ColumnName = ''EngineUpdatedDate''
+                                                THEN TRY_CONVERT(datetime2(3), CASE WHEN [Action] = ''D'' THEN OldValue ELSE NewValue END)
+                                        END),
+                                    MAX(ChangedAt)
+                                ) AS EventAt
+                            FROM EngineRawBase
+                            GROUP BY PKJson, [Action], ChangedAtBucket
+                        ),
+                        RawS AS
+						(
+							SELECT
+								PR.AuditId,
+								PR.TableName,
+								PR.PKJson,
+								PR.ColumnName,
+								PR.[Action],
+								PR.OldValue,
+								PR.NewValue,
+								PR.ChangedBy,
+								PR.ChangedAt,
+                                PEM.EventAt
+							FROM ParentRaw PR
+                            INNER JOIN ParentEventMap PEM
+                                ON PEM.TableName = PR.TableName
+                                AND PEM.PKJson = PR.PKJson
+                                AND PEM.[Action] = PR.[Action]
+                                AND PEM.ChangedAtBucket = PR.ChangedAtBucket
 
 							UNION ALL
 
 							SELECT
-								AuditId,
-								TableName,
-								PKJson,
-								ColumnName,
-								[Action],
-								OldValue,
-								NewValue,
-								ChangedBy,
-								ChangedAt,
-								ReferenceId   
-							FROM [dbo].[AuditLog] WITH (NOLOCK)
-							WHERE (@SubModule IS NULL OR TableName = @SubModule) 
-							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
-							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.aircraftenginestartsmappingsid'')) IN (SELECT value FROM STRING_SPLIT(@DetailId, '',''))
+								ERB.AuditId,
+								@Module AS TableName,
+								CONCAT(N''{"AircraftCycleTimeMappingsId":'', @PK_Value, N''}'') AS PKJson,
+								CONCAT(''Engine'', ERB.EngineNo, SUBSTRING(ERB.ColumnName, LEN(''Engine'') + 1, 128)) AS ColumnName,
+								ERB.[Action],
+								ERB.OldValue,
+								ERB.NewValue,
+								ERB.ChangedBy,
+								ERB.ChangedAt,
+								COALESCE(NearestParent.EventAt, EEM.EventAt) AS EventAt
+							FROM EngineRawBase ERB
+                            INNER JOIN EngineEventMap EEM
+                                ON EEM.PKJson = ERB.PKJson
+                                AND EEM.[Action] = ERB.[Action]
+                                AND EEM.ChangedAtBucket = ERB.ChangedAtBucket
+                            OUTER APPLY
+                            (
+                                SELECT TOP (1) PEM.EventAt
+                                FROM ParentEventMap PEM
+                                WHERE PEM.ChangedAt <= EEM.ChangedAt
+                                    AND DATEDIFF(second, PEM.ChangedAt, EEM.ChangedAt) BETWEEN 0 AND 10
+                                ORDER BY PEM.ChangedAt DESC
+                            ) NearestParent
+                            WHERE ERB.ColumnName IN
+							  (
+								  ''EngineAddHoursMinutes'',
+								  ''EngineAddStarts'',
+								  ''EngineCurrentHoursMinutes'',
+								  ''EngineCurrentStarts'',
+								  ''EngineUpdatedHoursMinutes'',
+								  ''EngineUpdatedStarts''
+							  )
 						),
-						FilterData AS
+                        FilterData AS
 						(
 							SELECT DISTINCT
 								TableName,
 								PKJson,
-								ChangedAt,
+								EventAt,
 								[Action]
 							FROM RawS
 							WHERE ColumnName NOT IN (''UpdatedBy'', ''UpdatedDate'', ''CreatedBy'', ''CreatedDate'')
-							  AND NOT (
-									TableName = @SubModule
-									AND ColumnName = ''EngineName''
-									AND (
-										(OldValue IS NULL AND NewValue IS NULL)
-										OR (OldValue IS NOT NULL AND NewValue IS NOT NULL AND OldValue = NewValue)
-									)
-							  )
 						),
 						S AS
 						(
@@ -457,7 +573,7 @@ BEGIN
 							INNER JOIN FilterData FD
 								ON FD.TableName = AL.TableName
 								AND FD.PKJson = AL.PKJson
-								AND FD.ChangedAt = AL.ChangedAt
+								AND FD.EventAt = AL.EventAt
 								AND FD.[Action] = AL.[Action]
 						),';
         END
@@ -651,17 +767,17 @@ BEGIN
 			SET @sql += N'Dedup AS
             (
                 SELECT
-                    TableName, PKJson, ChangedAt, ChangedBy, ColumnName, [Action],
+                    TableName, PKJson, EventAt, ChangedAt, ChangedBy, ColumnName, [Action],
                     CONVERT(nvarchar(max), ' + @valExpr + N') AS ValToPivot,
                     ROW_NUMBER() OVER (
-                        PARTITION BY TableName, PKJson, ChangedAt, ColumnName, [Action]
+                        PARTITION BY TableName, PKJson, EventAt, ColumnName
                         ORDER BY AuditId DESC
                     ) AS rn
                 FROM S
             ),
             FinalSource AS
             (
-                SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, [Action], ValToPivot
+                SELECT TableName, PKJson, EventAt, ChangedBy, ColumnName, ValToPivot
                 FROM Dedup
                 WHERE rn = 1
             ),
@@ -670,22 +786,23 @@ BEGIN
                 SELECT
                     TableName,
                     PKJson,
-                    ChangedAt,
+                    EventAt,
+                    MAX(ChangedAt) AS ChangedAt,
                     MIN(ChangedBy) AS AnyChangedBy,               -- usually 1 user per event
-                    [Action] AS Actions
+                    MIN([Action]) AS Actions
                     --STRING_AGG(DISTINCT Action, '''') AS Actions   -- e.g. I/U/D compressed
                 FROM S
-                GROUP BY TableName, PKJson, ChangedAt, [Action]
+                GROUP BY TableName, PKJson, EventAt
             )
             SELECT
                 p.TableName AS AuditTableName,
                 p.PKJson AS AuditPKJson,
                 CASE 
                     WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
-                            THEN COALESCE(p.[UpdatedDate], p.ChangedAt)
+                            THEN COALESCE(p.[UpdatedDate], p.EventAt, a.ChangedAt)
                     WHEN TRY_CAST(p.[UpdatedDate] AS datetime2(3)) IS NULL
                             OR TRY_CAST(p.[UpdatedDate] AS date) = ''0001-01-01''
-                            THEN CAST(dbo.ConvertUTCtoLocal(p.ChangedAt, @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                            THEN CAST(dbo.ConvertUTCtoLocal(COALESCE(p.EventAt, a.ChangedAt), @CurrntEmpTimeZoneDesc) AS datetime2(3))
                     ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
                 END AS UpdatedDate,
 
@@ -704,7 +821,7 @@ BEGIN
                 + N'
             FROM
             (
-                SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, ValToPivot
+                SELECT TableName, PKJson, EventAt, ChangedBy, ColumnName, ValToPivot
                 FROM FinalSource
             ) AS src
             PIVOT
@@ -714,8 +831,8 @@ BEGIN
             JOIN Agg a
                 ON a.TableName = p.TableName
                 AND a.PKJson    = p.PKJson
-                AND a.ChangedAt = p.ChangedAt
-            ORDER BY p.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
+                AND a.EventAt = p.EventAt
+            ORDER BY a.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
 		END
         ELSE
         BEGIN

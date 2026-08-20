@@ -21,6 +21,7 @@
 	4      29-APRIL-2026  Amit Ghediya        Aadded New SubModuleId.
 	5 	   15-MAY-2026	  DIVYESH KATHIRIYA   Added New "FieldAlign" Field. [PN-16398]
 	6 	   17-JUN-2026	  DIVYESH KATHIRIYA   Added New "FieldWidth" Field. [PN-16875]
+	7 	   18-JUN-2026	  DIVYESH KATHIRIYA   Handle @ModuleId, @SubModuleId in "AircraftCycleTimeMappings". [PN-16870]
 
     EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=85,@SubModuleId=86
 **********************/
@@ -35,17 +36,14 @@ BEGIN
 
     DECLARE @TableName VARCHAR(128);
 	DECLARE @TModuleId BIGINT;
-	DECLARE @Ids NVARCHAR(100);
 
 	SET @TModuleId = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
 
 	IF(@ModuleId = @TModuleId)
 	BEGIN
-		SET @Ids = CAST(@ModuleId AS VARCHAR(20)) + ',' + CAST(@SubModuleId AS VARCHAR(20));
-
 		SELECT @TableName = STRING_AGG(CAST([HistoryModuleName] AS VARCHAR(50)), ',') 
 			FROM [dbo].[HistoryModule] WITH (NOLOCK)
-		WHERE [HistoryModuleId]  IN (SELECT value FROM STRING_SPLIT(@Ids, ','));
+		WHERE [HistoryModuleId] IN (@ModuleId, @SubModuleId);
 
 		IF @TableName IS NULL
 		BEGIN

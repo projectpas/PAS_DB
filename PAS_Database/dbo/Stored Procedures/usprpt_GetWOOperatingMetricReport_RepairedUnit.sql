@@ -184,14 +184,14 @@ BEGIN
 		) as a
 		--Select * from #TempWOOperating
 		SELECT * INTO #TempWOOperatingFinal FROM
-		 (SELECT (SELECT TOP 1 tm.workscopes FROM #TempWOOperating tm WHERE ISNULL(tm.ItemMasterId,-1) = ISNULL(main.ItemMasterId,-1) AND ISNULL(tm.pn,'') = ISNULL(main.pn,'') GROUP BY tm.workscopes ORDER BY COUNT(*) DESC, tm.workscopes ASC) AS 'workscope',* FROM #TempWOOperating main) as res
+		 (SELECT (SELECT TOP 1 tm.workscopes FROM #TempWOOperating tm WHERE ISNULL(tm.ItemMasterId,-1) = ISNULL(main.ItemMasterId,-1) AND ISNULL(tm.pn,'') = ISNULL(main.pn,'') GROUP BY tm.workscopes ORDER BY COUNT(1) DESC, tm.workscopes ASC) AS 'workscope',* FROM #TempWOOperating main) as res
 		 --select * from #TempWOOperatingFinal
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT workscope,COUNT(*) AS timesRepaired,SUM(GrandTotal) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(GrandTotal)/COUNT(*))) as averageRevenue,pn,pnDescription,ItemMasterId
+		 (SELECT workscope,COUNT(1) AS timesRepaired,SUM(GrandTotal) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(GrandTotal)/COUNT(1))) as averageRevenue,pn,pnDescription,ItemMasterId
 		 
 		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,workscope,ItemMasterId) as result
-		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		SET @totalResult = (SELECT COUNT(1) FROM #tmpFinalResult)
 		SET @TotalRevenutSum = (SELECT SUM(ISNULL(totalRevenue,0)) FROM #tmpFinalResult)
 		SET @TotalAvgRevenutSum = (SELECT SUM(ISNULL(averageRevenue,0)) FROM #tmpFinalResult)
 

@@ -16,8 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    28-April-2025   Bhargav Saliya		Created
-
-	
+    2    20-Aug-2026     Sumit Kumar    Modified to prepend sequence number to task name for duplicate tasks on Dynamic WOs [PN-17643]
 **************************************************************/
 --EXEC [USP_GetWorkOrderFreightList] @WorkOrderQuoteDetailsId = 6795, @BuildMethodId= 4
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderFreightList]
@@ -30,17 +29,29 @@ BEGIN
 
 	BEGIN TRY
 
-		-- First, get the WorkOrderId
+		-- First, get the WorkOrderId and WorkOrderPartNumberId
 		DECLARE @WorkOrderId BIGINT;
+		DECLARE @WorkOrderPartNumberId BIGINT;
 		DECLARE @WorOrderTypeId BIT;
 
-		SELECT TOP 1 @WorkOrderId = woq.WorkOrderId 
+		SELECT TOP 1 @WorkOrderId = woq.WorkOrderId, @WorkOrderPartNumberId = wq.WOPartNoId
 		FROM [dbo].[WorkOrderQuoteDetails] wq WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wq.WorkOrderQuoteId = woq.WorkOrderQuoteId
 		WHERE wq.IsDeleted = 0 AND wq.WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
 
 
 		SELECT @WorOrderTypeId = WorkOrderFormTypeId FROM [dbo].[WorkOrder] w WITH(NOLOCK) where w.WorkOrderId = @WorkOrderId   
+
+		-- Declare and populate table variable to get active task counts to detect duplicates 
+		DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+		INSERT INTO @DupTasks (TaskId, TaskCount)
+		SELECT TaskId, COUNT(*) AS TaskCount
+		FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+		WHERE WorkOrderId = @WorkOrderId 
+		  AND WorkOrderPartNumberId = @WorkOrderPartNumberId
+		  AND [IsActive] = 1 AND [IsDeleted] = 0
+		GROUP BY TaskId;
 		
 		-- Now get the freight list
 		SELECT DISTINCT
@@ -65,7 +76,13 @@ BEGIN
 			--) AS ShipViaName,
 			wf.MarkupPercentageId,
 			wf.TaskId,
-			CASE WHEN @WorOrderTypeId = 1 THEN ISNULL(wot.TaskName, '') ELSE ISNULL(ts.Description, '') END AS TaskName,
+			CASE WHEN @WorOrderTypeId = 1 
+                 THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(wot.[SequenceNumber], '') <> '' 
+                            THEN wot.[SequenceNumber] + ' - ' + wot.[TaskName] 
+                            ELSE wot.[TaskName] 
+                       END) 
+                 ELSE ISNULL(ts.Description, '') 
+            END AS TaskName, -- Prepend sequence number to TaskName if duplicate tasks exist 
 			wf.HeaderMarkupId,
 			wf.BillingMethodId,
 			wf.BillingRate,
@@ -84,6 +101,8 @@ BEGIN
 			INNER JOIN [dbo].[WorkOrderQuoteDetails] wq WITH(NOLOCK) ON wf.WorkOrderQuoteDetailsId = wq.WorkOrderQuoteDetailsId
 			LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
 			LEFT JOIN [dbo].[WorkOrderTask] wot WITH(NOLOCK) ON wf.TaskId = wot.WorkOrderTaskId
+			-- Join to get active task counts to detect duplicates 
+			LEFT JOIN @DupTasks Dup ON wot.TaskId = Dup.TaskId
 			INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wq.WorkOrderQuoteId = woq.WorkOrderQuoteId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
 			LEFT JOIN [dbo].[UnitOfMeasure] duom WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId

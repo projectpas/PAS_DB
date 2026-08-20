@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[WorkOrderTaskHistory] (
     [WorkOrderTaskHistoryId]                       BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkOrderTaskId]                              BIGINT         NOT NULL,
-    [TaskName]                                     VARCHAR (200)  NULL,
+    [TaskName]                                     VARCHAR (500)  NULL,
     [Descrepancy]                                  VARCHAR (MAX)  NULL,
     [Resolution]                                   VARCHAR (MAX)  NULL,
     [TechId]                                       BIGINT         NULL,

@@ -187,26 +187,45 @@ BEGIN
         GROUP BY pkjson, action
     ),
     recordedhourminutes_changes AS (
-        SELECT pkjson,
-               'FlightHoursRecorded' AS columnname,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHours' THEN oldvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightMinutes' THEN oldvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS oldvalue,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHours' THEN newvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightMinutes' THEN newvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS newvalue,
-               action
-        FROM merged
-        WHERE columnname IN ('FlightHours', 'FlightMinutes')
-        GROUP BY pkjson, action
+        SELECT
+            COALESCE(p.PKJson, oldRecorded.PKJson, newRecorded.PKJson) AS pkjson,
+            'FlightHoursRecorded' AS columnname,
+            oldRecorded.oldvalue,
+            newRecorded.newvalue,
+            p.action
+        FROM paired p
+        LEFT JOIN d
+            ON d.AircraftInstalledPartDetailsId = p.AircraftInstalledPartDetailsId
+        LEFT JOIN i
+            ON i.AircraftInstalledPartDetailsId = p.AircraftInstalledPartDetailsId
+        OUTER APPLY (
+            SELECT
+                p.PKJson,
+                CASE
+                    WHEN d.AircraftInstalledPartDetailsId IS NULL
+                         OR (d.FlightHours IS NULL AND d.FlightMinutes IS NULL)
+                    THEN NULL
+                    ELSE CONCAT(
+                        CAST(ISNULL(d.FlightHours,0) + CAST(ISNULL(d.FlightMinutes,0) AS INT) / 60 AS VARCHAR(50)),
+                        ':',
+                        CAST(CAST(ISNULL(d.FlightMinutes,0) AS INT) % 60 AS VARCHAR(10))
+                    )
+                END AS oldvalue
+        ) oldRecorded
+        OUTER APPLY (
+            SELECT
+                p.PKJson,
+                CASE
+                    WHEN i.AircraftInstalledPartDetailsId IS NULL
+                         OR (i.FlightHours IS NULL AND i.FlightMinutes IS NULL)
+                    THEN NULL
+                    ELSE CONCAT(
+                        CAST(ISNULL(i.FlightHours,0) + CAST(ISNULL(i.FlightMinutes,0) AS INT) / 60 AS VARCHAR(50)),
+                        ':',
+                        CAST(CAST(ISNULL(i.FlightMinutes,0) AS INT) % 60 AS VARCHAR(10))
+                    )
+                END AS newvalue
+        ) newRecorded
     ),
     remaininghourminutes_changes AS (
         SELECT pkjson,

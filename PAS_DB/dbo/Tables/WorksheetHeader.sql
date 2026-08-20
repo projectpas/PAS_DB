@@ -159,15 +159,13 @@ BEGIN
         m.ColumnName,
         m.Action,
         CASE            
-            WHEN m.ColumnName = 'WorksheetTypeId' THEN asOld.Section
-            WHEN m.ColumnName = 'InspectionType' THEN wsOld.WorkScopeCode
+            WHEN m.ColumnName = 'WorksheetTypeId' THEN asOld.Section           
             WHEN m.ColumnName = 'MtcCategoryId' THEN mcOld.MtcCategory
             WHEN m.ColumnName = 'WorkSheetStatusId' THEN wssOld.[Status]
             ELSE m.OldValue
         END AS OldValue,
         CASE
             WHEN m.ColumnName = 'WorksheetTypeId' THEN asNew.Section
-            WHEN m.ColumnName = 'InspectionType' THEN wsNew.WorkScopeCode
             WHEN m.ColumnName = 'MtcCategoryId' THEN mcNew.MtcCategory
             WHEN m.ColumnName = 'WorkSheetStatusId' THEN wssNew.[Status]
             ELSE m.NewValue
@@ -175,8 +173,6 @@ BEGIN
     FROM merged m
     LEFT JOIN [dbo].[AircraftSection] asOld WITH(NOLOCK) ON m.ColumnName = 'WorksheetTypeId' AND TRY_CAST(m.OldValue AS BIGINT) = asOld.AircraftSectionId
     LEFT JOIN [dbo].[AircraftSection] asNew WITH(NOLOCK) ON m.ColumnName = 'WorksheetTypeId' AND TRY_CAST(m.NewValue AS BIGINT) = asNew.AircraftSectionId
-    LEFT JOIN [dbo].[WorkScope] wsOld WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.OldValue AS BIGINT) = wsOld.WorkScopeId
-    LEFT JOIN [dbo].[WorkScope] wsNew WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.NewValue AS BIGINT) = wsNew.WorkScopeId
     LEFT JOIN [dbo].[MaintenanceCategory] mcOld WITH(NOLOCK) ON m.ColumnName = 'MtcCategoryId' AND TRY_CAST(m.OldValue AS BIGINT) = mcOld.MtcCategoryId
     LEFT JOIN [dbo].[MaintenanceCategory] mcNew WITH(NOLOCK) ON m.ColumnName = 'MtcCategoryId' AND TRY_CAST(m.NewValue AS BIGINT) = mcNew.MtcCategoryId
     LEFT JOIN [dbo].[WorkSheetStatus] wssOld WITH(NOLOCK) ON m.ColumnName = 'WorkSheetStatusId' AND TRY_CAST(m.OldValue AS BIGINT) = wssOld.WorkSheetStatusId

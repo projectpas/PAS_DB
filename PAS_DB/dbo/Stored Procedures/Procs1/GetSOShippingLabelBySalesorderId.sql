@@ -53,7 +53,7 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					sosi.QtyShipped AS NoOfPiece,
+					Sum(sosi.QtyShipped) AS NoOfPiece,
 					so.UpdatedDate
 				FROM 
 					dbo.[SalesOrder] so WITH(NOLOCK)
@@ -66,8 +66,14 @@ BEGIN
 					LEFT JOIN dbo.[Countries] country WITH(NOLOCK) ON sos.ShipToCountryId = country.countries_id
 				WHERE 
 					sos.SalesOrderId = @SalesOrderId 
-					AND sosi.SalesOrderPartId = @SalesOrderPartId
-					AND sos.SalesOrderShippingId = @SoShippingId;
+					--AND sosi.SalesOrderPartId = @SalesOrderPartId
+					AND sos.SalesOrderShippingId = @SoShippingId
+
+					GROUP BY sos.ServiceClass,so.CustomerReference,	so.SalesOrderNumber,sos.ShipDate,sos.Weight,uom.ShortName,
+					uomn.ShortName,sos.AirwayBill,sos.OriginName,sos.OriginAddress1,	sos.OriginCity,
+					sos.OriginState,sos.OriginZip,sos.OriginCountryName,sos.ShipToName,	shipToSite.SiteName,
+					shipToSite.Attention ,sos.ShipToAddress1,sos.ShipToCity,sos.ShipToState,sos.ShipToZip,country.countries_name,
+					cust.CustomerPhone,	sos.ShipSizeLength,	sos.ShipSizeWidth,	sos.ShipSizeHeight,	sos.NoOfContainer,	so.UpdatedDate;
 			END
 			COMMIT  TRANSACTION
 

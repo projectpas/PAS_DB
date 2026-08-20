@@ -24,7 +24,7 @@
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 	10   14/Aug/2026       Kishor Makwana      [PN-17666] - Added Sequence Number As a ItemNo. 
-
+	11   20/Aug/2026  Ayushi Patel      [PN-17573]return two field for soq print (IsNonStock,IsService)
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -154,7 +154,9 @@ BEGIN
 			part.IsNoQuote,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOQPC.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit,
 			SOQPC.UnitSalesPrice MainUnitSalesPrice,
-			ISNULL((CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmount, 0) ELSE ISNULL(SOQPC.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+			ISNULL((CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmount, 0) ELSE ISNULL(SOQPC.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart,
+			itemMaster.IsNonStock,
+			itemMaster.IsService
 
 		INTO #tmpSOPartTblView 
 		FROM DBO.SalesOrderQuotePartV1 part WITH (NOLOCK)

@@ -1,4 +1,4 @@
-/********************************************************************
+﻿/********************************************************************
  ** File:   [USP_LeaseHeaderList]
  ** Description: Returns the paginated list of Lease Header records.
  **
@@ -113,43 +113,73 @@ BEGIN
 			DROP TABLE #TempResult
 		END
 
+		CREATE TABLE #RawResult
+		(
+			LeaseHeaderId          BIGINT,
+			LeaseNumber            VARCHAR(50),
+			LeaseName              VARCHAR(200),
+			LeaseTypeId            INT,
+			LeaseStatusId          INT,
+			LeaseStatusName        VARCHAR(50),
+			CustomerName           VARCHAR(100),
+			ManagementStructureName VARCHAR(200),
+			MasterCompanyId        BIGINT,
+			CreatedBy              VARCHAR(50),
+			UpdatedBy              VARCHAR(50),
+			CreatedDate            DATETIME,
+			UpdatedDate            DATETIME,
+			IsActive               BIT,
+			IsDeleted              BIT,
+			TailNum                VARCHAR(200),
+			PnDescription          VARCHAR(200),
+			SerialNum              VARCHAR(50),
+			AcSection              VARCHAR(100),
+			StocklineNum           VARCHAR(50),
+			BillingMethod          VARCHAR(50),
+			BillingFrequency       VARCHAR(50),
+			ContractCycle          VARCHAR(50),
+			ContractTime           VARCHAR(50),
+			StartDate              VARCHAR(20),
+			EndDate                VARCHAR(20)
+		)
+
 		IF (@IsDetailView = 1)
 		BEGIN
-			-- Detail View: one row per LeasePart, further fanned out per LeaseStockline (mirrors USP_GetLeasePartsByLeaseHeaderId's join shape)
+			-- Detail View: one row per LeasePart, further fanned out per LeaseStockline
+			INSERT INTO #RawResult
 			SELECT DISTINCT
 				LH.LeaseHeaderId
 			   ,LH.LeaseNumber
 			   ,LH.LeaseName
 			   ,LH.LeaseTypeId
 			   ,LH.LeaseStatusId
-			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END as 'LeaseStatusName'
-			   ,C.Name as 'CustomerName'
-			   ,MS.Name as 'ManagementStructureName'
+			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
+			   ,C.Name
+			   ,MS.Name
 			   ,LH.[MasterCompanyId]
 			   ,LH.[CreatedBy]
 			   ,LH.[UpdatedBy]
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.CreatedDate AS DATETIME)) END CreatedDate
+				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END UpdatedDate
+				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
-			   ,ISNULL(LP.PN,'') AS [TailNum]
-			   ,ISNULL(LP.PNDescription,'') AS [PnDescription]
-			   ,ISNULL(LSL.SN,'') AS [SerialNum]
-			   ,ISNULL(ACS.Section,'') AS [AcSection]
-			   ,ISNULL(LSL.StocklineNumber,'') AS [StocklineNum]
-			   ,ISNULL(LSL.BillingMethod,'') AS [BillingMethod]
-			   ,ISNULL(LSL.BillingInterval,'') AS [BillingFrequency]
+			   ,ISNULL(LP.PN,'')
+			   ,ISNULL(LP.PNDescription,'')
+			   ,ISNULL(LSL.SN,'')
+			   ,ISNULL(ACS.Section,'')
+			   ,ISNULL(LSL.StocklineNumber,'')
+			   ,ISNULL(LSL.BillingMethod,'')
+			   ,ISNULL(LSL.BillingInterval,'')
 			   ,CASE WHEN LSL.MinimumCycles IS NULL AND LSL.MaximumCycles IS NULL THEN ''
-					 ELSE CAST(ISNULL(LSL.MinimumCycles,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumCycles,0) AS VARCHAR(20)) END AS [ContractCycle]
+					 ELSE CAST(ISNULL(LSL.MinimumCycles,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumCycles,0) AS VARCHAR(20)) END
 			   ,CASE WHEN LSL.MinimumTimes IS NULL AND LSL.MaximumTimes IS NULL THEN ''
-					 ELSE CAST(ISNULL(LSL.MinimumTimes,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumTimes,0) AS VARCHAR(20)) END AS [ContractTime]
-			   ,ISNULL(CONVERT(VARCHAR(20), LP.StartDate, 101),'') AS [StartDate]
-			   ,ISNULL(CONVERT(VARCHAR(20), LP.EndDate, 101),'') AS [EndDate]
-			INTO #RawResult
+					 ELSE CAST(ISNULL(LSL.MinimumTimes,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumTimes,0) AS VARCHAR(20)) END
+			   ,ISNULL(CONVERT(VARCHAR(20), LP.StartDate, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), LP.EndDate, 101),'')
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
@@ -160,39 +190,40 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			-- Summary View: one row per LeaseHeader; TailNum shows the single Part Number, or 'Multiple' when more than one part exists
+			-- Summary View: one row per LeaseHeader; TailNum shows single Part Number or 'Multiple';
+			-- StartDate/EndDate show the part's own dates, or overall MIN/MAX range when multiple parts exist
+			INSERT INTO #RawResult
 			SELECT DISTINCT
 				LH.LeaseHeaderId
 			   ,LH.LeaseNumber
 			   ,LH.LeaseName
 			   ,LH.LeaseTypeId
 			   ,LH.LeaseStatusId
-			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END as 'LeaseStatusName'
-			   ,C.Name as 'CustomerName'
-			   ,MS.Name as 'ManagementStructureName'
+			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
+			   ,C.Name
+			   ,MS.Name
 			   ,LH.[MasterCompanyId]
 			   ,LH.[CreatedBy]
 			   ,LH.[UpdatedBy]
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.CreatedDate AS DATETIME)) END CreatedDate
+				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
 			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
 					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END UpdatedDate
+				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
-			   ,CASE WHEN PartAgg.PartCount > 1 THEN 'Multiple' ELSE ISNULL(PartAgg.AnyPN,'') END AS [TailNum]
-			   ,'' AS [PnDescription]
-			   ,'' AS [SerialNum]
-			   ,'' AS [AcSection]
-			   ,'' AS [StocklineNum]
-			   ,'' AS [BillingMethod]
-			   ,'' AS [BillingFrequency]
-			   ,'' AS [ContractCycle]
-			   ,'' AS [ContractTime]
-			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MinStartDate ELSE PartAgg.AnyStartDate END, 101),'') AS [StartDate]
-			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MaxEndDate ELSE PartAgg.AnyEndDate END, 101),'') AS [EndDate]
-			INTO #RawResult
+			   ,CASE WHEN PartAgg.PartCount > 1 THEN 'Multiple' ELSE ISNULL(PartAgg.AnyPN,'') END
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,''
+			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MinStartDate ELSE PartAgg.AnyStartDate END, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), CASE WHEN PartAgg.PartCount > 1 THEN PartAgg.MaxEndDate ELSE PartAgg.AnyEndDate END, 101),'')
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId

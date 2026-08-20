@@ -4814,6 +4814,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
     <Build Include="dbo\Stored Procedures\USP_BulkUpdateStocklineLocation.sql" />
+    <Build Include="dbo\Stored Procedures\SearchStockLineForLeaseAddPnPopup.sql" />
+    <Build Include="dbo\Stored Procedures\SearchItemMasterForLeaseAddPnPopup.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

@@ -39,6 +39,7 @@
     [UpdatedDate]                       DATETIME       NULL,
     [Memo]                              VARCHAR (MAX)  NULL,
     [IsActive]                          BIT            NULL,
-    [IsDeleted]                         BIT            NULL
+    [IsDeleted]                         BIT            NULL,
+    [IsStock]                           BIT            NULL
 );
 

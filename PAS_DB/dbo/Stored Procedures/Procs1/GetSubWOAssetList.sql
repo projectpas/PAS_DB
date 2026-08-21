@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetSubWOAssetList]             
  ** Author:   Subhash Saliya  
  ** Description: Get Search Data for GetSubWOAsset List      
@@ -21,6 +21,7 @@
 	4    06/20/2023   Devendra Shekh	Join Change with table TangibleClass
 	5    07/04/2023   Devendra Shekh	added InventoryNumber,StklineNumber,ControlNumber to select
 	6	 07/Mar/2025	  Bhargav Saliya			UTC Date Changes
+	7    21/08/2026   SUMIT KUMAR       Modified to prepend sequence number to task name when duplicate tasks exist [PN-17643]
        
 exec GetSubWOAssetList 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@SubWorkOrderAssetId=0,@SubWOPartNoId=270,
@@ -74,6 +75,23 @@ BEGIN
      DECLARE @IsActive bit=1  
      DECLARE @Count Int;  
      SET @RecordFrom = (@PageNumber-1)*@PageSize;  
+
+     DECLARE @WorkOrderFormTypeId BIT = 0;
+     DECLARE @WorkOrderId BIGINT = 0;
+
+     SELECT @WorkOrderId = WorkOrderId FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId;
+     SELECT @WorkOrderFormTypeId = ISNULL(WorkOrderFormTypeId, 0) FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
+
+     -- Declare and populate table variable to get active task counts to detect duplicates
+     DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+     INSERT INTO @DupTasks (TaskId, TaskCount)
+     SELECT TaskId, COUNT(*) AS TaskCount
+     FROM [dbo].[SubWorkOrderTask] WITH(NOLOCK)
+     WHERE [WorkOrderId] = @WorkOrderId 
+       AND [SubWOPartNoId] = @SubWOPartNoId
+       AND [IsActive] = 1 AND [IsDeleted] = 0
+     GROUP BY TaskId;
      IF @IsDeleted is null  
      Begin  
       Set @IsDeleted=0  
@@ -97,8 +115,14 @@ BEGIN
        A.AssetId,  
        A.Description,  
        A.Name,  
-       --T.[Description] AS TaskName,  
-       SWOT.TaskName AS TaskName,  
+        --T.[Description] AS TaskName,  
+        CASE WHEN @WorkOrderFormTypeId = 1 
+             THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND SWOT.[SequenceNumber] IS NOT NULL 
+                        THEN CAST(SWOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + SWOT.[TaskName] 
+                        ELSE SWOT.[TaskName] 
+                   END) 
+             ELSE ISNULL(SWOT.[TaskName], '') 
+        END AS TaskName,  
        T.TaskId,  
        at.TangibleClassId,  
        at.TangibleClassName,  
@@ -127,6 +151,8 @@ BEGIN
 	   FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)  
        join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId 
 	   LEFT JOIN dbo.SubWorkOrderTask SWOT WITH(NOLOCK) on SWOT.SubWorkOrderTaskId = WOA.TaskId
+	   -- Join to get active task counts to detect duplicates
+	   LEFT JOIN @DupTasks Dup ON SWOT.TaskId = Dup.TaskId
        LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  
        JOIN dbo.TangibleClass at WITH (NOLOCK) ON AAT.TangibleClassId = at.TangibleClassId  

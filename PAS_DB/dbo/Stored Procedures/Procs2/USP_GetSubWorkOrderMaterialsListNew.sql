@@ -25,6 +25,7 @@
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 15 leftover IsNonStock=0 exclusion filters.
+	17    21/08/2026   SUMIT KUMAR    Modified to prepend sequence number to task name when duplicate tasks exist [PN-17643]
 	       
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
@@ -57,6 +58,7 @@ SET NOCOUNT ON
 		DECLARE @RecordFrom int;  
 		DECLARE @TotalExtendedCost DECIMAL(13,2);
 		DECLARE @WorkOrderPartNumberId BIGINT = 0
+		DECLARE @WorkOrderId BIGINT = 0;
 		DECLARE @WorkOrderFormTypeId BIT = 0; 
 		DECLARE @TotalIssuedStkExtendedCost DECIMAL(13,2);
 		DECLARE @TotalReservedStkExtendedCost DECIMAL(13,2);
@@ -70,10 +72,21 @@ SET NOCOUNT ON
 		SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
 		SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
 		SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderPartNumberId = SWO.[WorkOrderPartNumberId],
-		@WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0)
+		@WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0), @WorkOrderId = WO.WorkOrderId
 		FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 			JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) on SWOPN.SubWorkOrderId = SWO.SubWorkOrderId 
 		WHERE SWOPN.SubWOPartNoId = @subWOPartNoId;
+
+		-- Declare and populate table variable to get active task counts to detect duplicates
+		DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+		INSERT INTO @DupTasks (TaskId, TaskCount)
+		SELECT TaskId, COUNT(*) AS TaskCount
+		FROM [dbo].[SubWorkOrderTask] WITH(NOLOCK)
+		WHERE [WorkOrderId] = @WorkOrderId 
+		  AND [SubWOPartNoId] = @subWOPartNoId
+		  AND [IsActive] = 1 AND [IsDeleted] = 0
+		GROUP BY TaskId;
 
 		 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL  
 		 BEGIN  
@@ -618,7 +631,13 @@ SET NOCOUNT ON
 					ISNULL(WOM.IsDeferred, 0),
 					WOM.TaskId,  
 					--T.Description AS TaskName,  
-					CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 
+					     THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+					                THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+					                ELSE WOT.[TaskName] 
+					           END) 
+					     ELSE ISNULL(T.[Description], '') 
+					END AS TaskName,
 					MM.Name AS MandatoryOrSupplemental,  
 					WOM.MaterialMandatoriesId,  
 					WOM.MasterCompanyId,  
@@ -695,6 +714,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId 
 					LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
+					-- Join to get active task counts to detect duplicates
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
@@ -838,7 +859,13 @@ SET NOCOUNT ON
 					ISNULL(WOM.IsDeferred, 0),
 					WOM.TaskId,  
 					--T.Description AS TaskName,  
-					CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 
+					     THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+					                THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+					                ELSE WOT.[TaskName] 
+					           END) 
+					     ELSE ISNULL(T.[Description], '') 
+					END AS TaskName,
 					MM.Name AS MandatoryOrSupplemental,  
 					WOM.MaterialMandatoriesId,  
 					WOM.MasterCompanyId,  
@@ -913,6 +940,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
 					LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
+					-- Join to get active task counts to detect duplicates
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
@@ -1058,7 +1087,13 @@ SET NOCOUNT ON
 				  ISNULL(WOM.IsDeferred, 0),
 				  WOM.TaskId,  
 				  --T.Description AS TaskName,  
-				  CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
+				  CASE WHEN @WorkOrderFormTypeId = 1 
+				       THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+				                  THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+				                  ELSE WOT.[TaskName] 
+				             END) 
+				       ELSE ISNULL(T.[Description], '') 
+				  END AS TaskName,
 				  MM.Name AS MandatoryOrSupplemental,  
 				  WOM.MaterialMandatoriesId,  
 				  WOM.MasterCompanyId,  
@@ -1134,6 +1169,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
 				  LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
+				  -- Join to get active task counts to detect duplicates
+				  LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId 
@@ -1275,7 +1312,13 @@ SET NOCOUNT ON
 				  ISNULL(WOM.IsDeferred, 0),
 				  WOM.TaskId,  
 				  --T.Description AS TaskName, 
-				  CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
+				  CASE WHEN @WorkOrderFormTypeId = 1 
+				       THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+				                  THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+				                  ELSE WOT.[TaskName] 
+				             END) 
+				       ELSE ISNULL(T.[Description], '') 
+				  END AS TaskName,
 				  MM.Name AS MandatoryOrSupplemental,  
 				  WOM.MaterialMandatoriesId,  
 				  WOM.MasterCompanyId,  
@@ -1350,6 +1393,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
 				  LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
+				  -- Join to get active task counts to detect duplicates
+				  LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  

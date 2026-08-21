@@ -18,6 +18,7 @@
 	4    28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 	5    20/01/2026   Rajesh Gami	    Sequence issue fixed
     6    14/08/2026   SUMIT KUMAR       Modified to prepend sequence number to task label only for duplicated tasks (e.g. '1 - TEARDOWN') on Dynamic WOs [PN-17643]
+	7    21/08/2026   SUMIT KUMAR       Modified to prepend sequence number to task label for SubWorkOrderTask on Dynamic WOs [PN-17643]
     EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305 
 	EXEC AutoCompleteDropdownsForTask 'WorkOrderTask','TaskId','TaskName','',1,0,'11',1,4739,4304 
 	exec dbo.AutoCompleteDropdownsForTask @TableName=N'WorkOrderTask',@Parameter1=N'TaskId',@Parameter2=N'TaskName',@Parameter3=N'',@Parameter4=1,@Count=0,@Idlist=N'0',@MasterCompanyId=1,@WorkOrderId=4742,@WorkOrderPartNumberId=606,@IsSubWorkOrder=0
@@ -48,13 +49,26 @@ AS BEGIN
 		-- Declare and populate table variable to get active task counts to detect duplicates
 		DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
 
-		INSERT INTO @DupTasks (TaskId, TaskCount)
-		SELECT TaskId, COUNT(*) AS TaskCount
-		FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
-		WHERE [WorkOrderId] = @WorkOrderId 
-		  AND [WorkOrderPartNumberId] = @WorkOrderPartNumberId
-		  AND [IsActive] = 1 AND [IsDeleted] = 0
-		GROUP BY TaskId;
+		IF(@IsSubWorkOrder = 1)
+		BEGIN
+			INSERT INTO @DupTasks (TaskId, TaskCount)
+			SELECT TaskId, COUNT(*) AS TaskCount
+			FROM [dbo].[SubWorkOrderTask] WITH(NOLOCK)
+			WHERE [WorkOrderId] = @WorkOrderId 
+			  AND [SubWOPartNoId] = @WorkOrderPartNumberId
+			  AND [IsActive] = 1 AND [IsDeleted] = 0
+			GROUP BY TaskId;
+		END
+		ELSE
+		BEGIN
+			INSERT INTO @DupTasks (TaskId, TaskCount)
+			SELECT TaskId, COUNT(*) AS TaskCount
+			FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+			WHERE [WorkOrderId] = @WorkOrderId 
+			  AND [WorkOrderPartNumberId] = @WorkOrderPartNumberId
+			  AND [IsActive] = 1 AND [IsDeleted] = 0
+			GROUP BY TaskId;
+		END
 
 		IF (@Count='0')
 		BEGIN      		
@@ -140,13 +154,14 @@ AS BEGIN
 				IF(@Parameter4 = 1)
 				BEGIN                      
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-									WOT.[TaskName] AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  										
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
 					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
@@ -155,13 +170,14 @@ AS BEGIN
 					UNION
 
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-									WOT.[TaskName] AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 									 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
 					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
@@ -171,13 +187,14 @@ AS BEGIN
 					ELSE 
 					BEGIN                        
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
-									WOT.[TaskName] AS [Label],
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label],
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
 					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
@@ -186,13 +203,14 @@ AS BEGIN
 					UNION
                          
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
-									WOT.[TaskName] AS [Label],
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label],
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
 					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
@@ -293,7 +311,7 @@ AS BEGIN
 				IF (@Parameter4 = 1)
 				BEGIN				
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-					                WOT.[TaskName] AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -302,6 +320,7 @@ AS BEGIN
 								    '' AS [Resolution]
                     FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
                     WHERE WOT.[MasterCompanyId]=@MasterCompanyId 					
 					  AND WOT.[WorkOrderId] = @WorkOrderId 
 				      AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
@@ -310,7 +329,7 @@ AS BEGIN
 					UNION
                     
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-					                WOT.[TaskName] AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -319,6 +338,7 @@ AS BEGIN
 									'' AS [Resolution]
                     FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
                     WHERE  WOT.[MasterCompanyId] = @MasterCompanyId 
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
@@ -328,7 +348,7 @@ AS BEGIN
                 ELSE
 				BEGIN
 						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-						                 WOT.[TaskName] AS [Label], 
+										 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -337,6 +357,7 @@ AS BEGIN
 										 '' AS [Resolution]
                          FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 					     LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+						 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
                          WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
 						 AND  WOT.[WorkOrderId] = @WorkOrderId 
 				         AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
@@ -345,7 +366,7 @@ AS BEGIN
 						 UNION
                          
 						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
-						                 WOT.[TaskName] AS [Label], 
+										 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -354,6 +375,7 @@ AS BEGIN
 										 '' AS [Resolution]
                          FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
 						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+						 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
                          WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 

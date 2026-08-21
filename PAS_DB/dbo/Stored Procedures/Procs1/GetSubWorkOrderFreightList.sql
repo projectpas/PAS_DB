@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetSubWorkOrderFreightList]           
  ** Author:   Subhash Saliya
@@ -19,6 +19,7 @@
     1    02/22/2021   Subhash Saliya Created
     2    06/25/2021   Hemant Saliya  Added SQL Standards
     3	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)     
+	4    21/08/2026   SUMIT KUMAR    Modified to prepend sequence number to task name when duplicate tasks exist [PN-17643]
 
  EXECUTE [GetSubWorkOrderFreightList] 27,0
 **************************************************************/ 
@@ -39,6 +40,17 @@ BEGIN
 			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWOPartNoId] = @subWOPartNoId;
 
 			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
+			-- Declare and populate table variable to get active task counts to detect duplicates
+			DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+			INSERT INTO @DupTasks (TaskId, TaskCount)
+			SELECT TaskId, COUNT(*) AS TaskCount
+			FROM [dbo].[SubWorkOrderTask] WITH(NOLOCK)
+			WHERE [WorkOrderId] = @WorkOrderId 
+			  AND [SubWOPartNoId] = @subWOPartNoId
+			  AND [IsActive] = 1 AND [IsDeleted] = 0
+			GROUP BY TaskId;
 		
 			SELECT	wf.Amount,
                     wf.CreatedBy,
@@ -58,7 +70,13 @@ BEGIN
                     sv.[Name] AS ShipVia,
                     wf.TaskId,
                     --ISNULL(ts.[Description],'') AS TaskName,
-					CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 
+					      THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+					                 THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+					                 ELSE WOT.[TaskName] 
+					            END) 
+					      ELSE ISNULL(ts.[Description], '') 
+					 END AS TaskName,
                     wf.[Length],
                     wf.Width,
                     wf.Height,
@@ -72,6 +90,8 @@ BEGIN
 					JOIN [dbo].[ShippingVia] sv WITH(NOLOCK) ON wf.ShipViaId = sv.ShippingViaId
 				    LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
 					LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = wf.TaskId
+					-- Join to get active task counts to detect duplicates
+					LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
 					LEFT JOIN [dbo].[UnitOfMeasure] duom WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
 					LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId

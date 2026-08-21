@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSubWorkOrderChargesList]           
  ** Author:   
  ** Description: This stored procedure is used TO GetSubWorkOrderChargesList
@@ -13,6 +13,7 @@
     1     
     2    01/11/2024   Devendra Shekh		added UOM changes
 	3	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)    
+	4    21/08/2026   SUMIT KUMAR       Modified to prepend sequence number to task name when duplicate tasks exist [PN-17643]
      
 exec [GetSubWorkOrderChargesList] 
 @subWOPartNoId=0, @IsDeleted=0,@masterCompanyId=1
@@ -33,6 +34,17 @@ BEGIN
 			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWOPartNoId] = @subWOPartNoId;
 
 			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
+			-- Declare and populate table variable to get active task counts to detect duplicates
+			DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+			INSERT INTO @DupTasks (TaskId, TaskCount)
+			SELECT TaskId, COUNT(*) AS TaskCount
+			FROM [dbo].[SubWorkOrderTask] WITH(NOLOCK)
+			WHERE [WorkOrderId] = @WorkOrderId 
+			  AND [SubWOPartNoId] = @subWOPartNoId
+			  AND [IsActive] = 1 AND [IsDeleted] = 0
+			GROUP BY TaskId;
 	    
             SELECT   woc.ChargesTypeId,  
                      ct.ChargeType,  
@@ -54,7 +66,13 @@ BEGIN
                      woc.SubWorkOrderChargesId,  
                      woc.WorkOrderId,                          
 					 --ISNULL(ts.Description,'') as TaskName,  
-					 CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+					 CASE WHEN @WorkOrderFormTypeId = 1 
+					      THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND WOT.[SequenceNumber] IS NOT NULL 
+					                 THEN CAST(WOT.[SequenceNumber] AS VARCHAR(20)) + ' - ' + WOT.[TaskName] 
+					                 ELSE WOT.[TaskName] 
+					            END) 
+					      ELSE ISNULL(ts.[Description], '') 
+					 END AS TaskName,
 					 woc.ReferenceNo AS ReferenceNo,  
 					 ISNULL(gl.AccountName,'') AS GLAccountName,
 					 woc.UOMId,  
@@ -65,6 +83,8 @@ BEGIN
 				 LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) ON woc.VendorId = v.VendorId       
 				 LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON woc.TaskId = ts.TaskId  
 				 LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = woc.TaskId
+				 -- Join to get active task counts to detect duplicates
+				 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId
 				 LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId    
 				 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON um.UnitOfMeasureId = woc.UOMId  
 				 WHERE woc.IsDeleted = @IsDeleted AND woc.SubWOPartNoId = @subWOPartNoId AND woc.MasterCompanyId=@masterCompanyId  

@@ -17,7 +17,8 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------    
-    1    05/19/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16426] 
+    1    05/19/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16426]
+    2    07/23/2026   Amit Ghediya		   Set IsAircraft flag for engine or aircraft
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateAircraftInfoHeader]
     @tbl_AircraftInfoHeaderType dbo.AircraftInfoTableType READONLY
@@ -42,7 +43,8 @@ BEGIN
                     AR.ACModelId = T.AircraftModelId,
                     AR.ACModelName = T.AircraftModel,
                     AR.ACSubModel = T.AircraftSubModel,
-                    AR.ItemMasterId = T.ItemMasterId,
+                    AR.ItemMasterId = T.ItemMasterId,                    
+                    AR.IsAircraft = ISNULL(T.IsAircraft, AR.IsAircraft),
                     AR.IsActive = ISNULL(T.IsActive, AR.IsActive),
                     AR.IsDeleted = ISNULL(T.IsDeleted, AR.IsDeleted),
                     AR.MasterCompanyId = T.MasterCompanyId,
@@ -64,6 +66,7 @@ BEGIN
                     ACModelName,
                     ACSubModel,
                     ItemMasterId,
+                    IsAircraft,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
@@ -79,6 +82,7 @@ BEGIN
                     T.AircraftModel,
                     T.AircraftSubModel,
                     T.ItemMasterId,
+                    T.IsAircraft,
                     ISNULL(T.IsActive, 1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,

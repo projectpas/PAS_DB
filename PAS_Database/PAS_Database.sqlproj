@@ -4663,6 +4663,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftComponentMaintenanceDashboardList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -15,7 +15,8 @@
 	2    01/29/2025   Moin Bloch     Updated for WorkOrderTask
 	3    02/26/2025   AMIT GHEDIYA   Get taskid from wotask.
 	4    02/13/2025   Bhargav Saliya UTC Date Changes
-	5    08/18/2026   Abhishek Jirawla Replace AssetAttributeType with YangibleClassId
+	5    20/08/2026   Sumit Kumar    Modified to prepend sequence number to task label only for duplicated tasks (e.g. '1 - TEARDOWN') on Dynamic WOs [PN-17643]
+	6    08/18/2026   Abhishek Jirawla Replace AssetAttributeType with YangibleClassId
      
     EXEC GetWOAssetList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@WorkFlowWorkOrderId=3305,@Name=NULL,@AssetId=NULL,@Description=NULL,@AssetTypeName=NULL,@Quantity=0,@CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@Status=NULL,@TaskName=NULL,@IsFromWorkFlowNew=NULL
 **************************************************************/
@@ -54,6 +55,22 @@ BEGIN
 		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 	WHERE E.EmployeeId = @EmployeeId;
+
+	-- Declare and populate table variable to get active task counts to detect duplicates 
+	DECLARE @WorkOrderId BIGINT = 0, @WorkOrderPartNumberId BIGINT = 0;
+	SELECT @WorkOrderId = WorkOrderId, @WorkOrderPartNumberId = WorkOrderPartNoId 
+	FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) 
+	WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+
+	DECLARE @DupTasks TABLE (TaskId BIGINT, TaskCount INT);
+
+	INSERT INTO @DupTasks (TaskId, TaskCount)
+	SELECT TaskId, COUNT(*) AS TaskCount
+	FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+	WHERE WorkOrderId = @WorkOrderId 
+	  AND WorkOrderPartNumberId = @WorkOrderPartNumberId
+	  AND [IsActive] = 1 AND [IsDeleted] = 0
+	GROUP BY TaskId;
   
     DECLARE @RecordFrom INT;  
     DECLARE @IsActive BIT=1  
@@ -86,7 +103,13 @@ BEGIN
        A.AssetId,  
        A.[Description],  
        A.[Name],  
-	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END TaskName,  
+ 	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 
+            THEN (CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' 
+                       THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] 
+                       ELSE WOT.[TaskName] 
+                  END) 
+            ELSE T.[Description] 
+       END TaskName, -- Prepend sequence number to TaskName if duplicate tasks exist   
        --T.TaskId,  
 	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskId] ELSE T.[TaskId] END TaskId,
        TY.TangibleClassName AS AssetTypeName,  

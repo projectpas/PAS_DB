@@ -10,7 +10,7 @@
  ** --   --------			-------					--------------------------------            
     1    07-Feb-2025		Devendra Shekh					Created
     2    23-March-2025		Ekta Chandegra					Convert date using ConvertUTCtoLocal method according user timezone
-
+    3    21-AUG-2026		Rajesh Gami					    Added [WorkFlowTask] JOIN with WorkFlowDirection (As discussed with Hemant)
 	exec dbo.USP_GetWorkFlowTaskInstructionMasterList @WorkflowId=5205,@TaskId=10,@MasterCompanyId=1,@IsDeleted=0,@EmployeeId=223
 
 
@@ -79,6 +79,7 @@ BEGIN
 			WFD.IsDeleted 
 			FROM dbo.WorkFlowDirection WFD WITH(NOLOCK)
 			LEFT JOIN DBO.Task T WITH(NOLOCK) ON T.TaskId = WFD.TaskId
+			INNER JOIN DBO.[WorkFlowTask] WF WITH(NOLOCK) ON WFD.[WorkflowId] = WF.[WorkflowId] AND WFD.TaskId = WF.TaskId
 			WHERE WFD.MasterCompanyId = @MasterCompanyId AND ISNULL(WFD.IsActive,0) = 1 AND ISNULL(WFD.IsDeleted,0) = @IsDeleted AND WFD.WorkflowId = @WorkflowId AND WFD.TaskId = @TaskId
 		)
 

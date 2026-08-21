@@ -21,7 +21,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 10	18/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	13    18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)
+	13    18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)kept IncomingPN as it is
 EXEC GetWorkOrderPrintPdfData 10248,10466
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              

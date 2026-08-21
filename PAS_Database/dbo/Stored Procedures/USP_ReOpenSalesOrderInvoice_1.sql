@@ -1,3 +1,4 @@
+﻿
 /*********************
  ** File:   [USP_ReOpenSalesOrderInvoice]
  ** Author:   Rajesh Gami
@@ -40,12 +41,11 @@
 										the SP was found out of sync with dbo.Stored Procedures.Procs3 copy - missing
 										changes #5 and #6 entirely - brought back to parity as part of this change.)
 										And change the word can't to can not in the message to match the payment guard message.
-										
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
 **********************/
-CREATE   PROCEDURE [dbo].[USP_ReOpenSalesOrderInvoice]
+CREATE    PROCEDURE [dbo].[USP_ReOpenSalesOrderInvoice]
 	@BillingInvoicingId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS

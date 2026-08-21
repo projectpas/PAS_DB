@@ -342,6 +342,12 @@ SET NOCOUNT ON
 					BEGIN
 						SELECT @PickTicketId = PickTicketId, @QtyRemove = QtyPtickTicketRemove, @QtyAvilable = PickTicketQtyToShip FROM #tmpremovePT WHERE ID = @LoopID;
 
+						IF EXISTS (SELECT 1 FROM dbo.SalesOrderShippingItem SSI WHERE SSI.SOPickTicketId = @PickTicketId)
+						BEGIN
+							SET @LoopID = @LoopID - 1;
+							CONTINUE;
+						END
+
 						IF @QtyRemove = 0 
 						BEGIN
 						   SET @QtyAvilable = 0

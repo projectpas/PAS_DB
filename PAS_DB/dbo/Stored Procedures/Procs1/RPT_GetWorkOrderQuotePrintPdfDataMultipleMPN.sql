@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -27,10 +27,11 @@
 	13   23-March-2026	 BHARGAV SALIYA		PN-15822 Added CustomerReference field in Group By clause
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	16    21/July/2026			 Bhargav Saliya						[PN-17747] - Added In [Fleet] in temp table
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2304,'3823,3824,3825',0  
 exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2303,@workOrderPartNoIds=N'3820,3821,3822',@isByPartIds=1
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
+CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoIds varchar(max),
  @isByPartIds INT = 0
@@ -107,6 +108,7 @@ BEGIN
 
 			CREATE TABLE #tmpPartResult (        
 				[PublicationId] VARCHAR(100) NULL,
+				[Fleet] VARCHAR(100) NULL,
 				[ConditionName] NVARCHAR(MAX) NULL,
 				[RevisionNum] VARCHAR(100) NULL,
 				[RevisionDate] VARCHAR(100) NULL,
@@ -550,7 +552,7 @@ BEGIN
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderQuoteId, '') + ''  
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + ISNULL(CAST(@WorkOrderQuoteId AS VARCHAR(50)), '') + ''''
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
               exec spLogException   

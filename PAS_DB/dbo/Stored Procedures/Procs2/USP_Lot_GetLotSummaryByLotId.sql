@@ -15,6 +15,7 @@
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	3    09/July/2026	 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026	 RAJESH GAMI	[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
+	5    21/Aug/2026	 RAJESH GAMI	[PN-17745] @TransferredInCost now also includes 'Turn In' type rows (in addition to 'Trans In (Lot)'), since "Create Stockline from Lot" now records that type instead.
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -62,7 +63,7 @@ BEGIN
 			SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
 				   FROM 
 					DBO.LotCalculationDetails LCD WITH(NOLOCK)
-					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ',''))) 
+					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ','')), UPPER(REPLACE('Turn In',' ','')))
 					--AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
 					--AND (SELECT ISNULL(LT.IsStockLineUnitCost,0) FROM DBO.LotTransInOutDetails LT WITH(NOLOCK) WHERE LT.LotTransInOutId = LCD.LotTransInOutId ) = 1
 			

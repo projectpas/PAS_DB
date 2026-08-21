@@ -1,5 +1,4 @@
-﻿
--- ---------------------------------------------------------------------------------------------------
+﻿-- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_GetWorkOrderQuoteMaterial   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderQuoteMaterial.sql)
 -- ---------------------------------------------------------------------------------------------------
 
@@ -29,6 +28,7 @@
 	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9	 19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
+	10   21/AUG/2026  Moin Bloch        [PN-17716] - Append sequence number to task name
 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -96,7 +96,7 @@ BEGIN
                        wom.TaskId,
 					   --ts.Description as TaskName,
 					   CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END  
 					   ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
@@ -163,7 +163,7 @@ BEGIN
                        wom.TaskId,
 					   --'' as TaskName,
 					   CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END  
 					   ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,

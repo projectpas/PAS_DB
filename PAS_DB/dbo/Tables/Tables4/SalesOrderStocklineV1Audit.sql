@@ -31,6 +31,7 @@
     [SizeHeight]                 DECIMAL (10, 2) NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
     [PriorityId]                 BIGINT          NULL,
+    [ToTalReservedQty]           INT             NULL,
     CONSTRAINT [PK_SalesOrderStocklineV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderStocklineId] ASC)
 );
 

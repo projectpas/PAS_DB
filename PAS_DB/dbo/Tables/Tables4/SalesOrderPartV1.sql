@@ -43,10 +43,13 @@
     [AltOrEqType]           VARCHAR (50)    NULL,
     [UnitSalesPrice]        DECIMAL (18, 2) NULL,
     [SequenceNumber]        BIGINT          DEFAULT (NULL) NULL,
+    [ToTalReservedQty]      INT             NULL,
     CONSTRAINT [PK_SalesOrderPartV1] PRIMARY KEY CLUSTERED ([SalesOrderPartId] ASC),
     CONSTRAINT [FK_SalesOrderPartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 
 
 

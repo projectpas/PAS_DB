@@ -32,6 +32,7 @@
 	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	22    16/July/2026			 RAJESH GAMI						[PN-17271] - NONSTOCK accounting branch now reads DBO.Stockline (IsNonStock=1) instead of legacy NonStockInventory table.
 	23	  23/Aug/2026	          Moin Bloch   	                    [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings)
+	24	  21/Aug/2026	          Moin Bloch                        [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings In INVOICE)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -407,65 +408,48 @@ BEGIN
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 							 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 
-							 IF(@VendorTypeId = @VendorAffiliateTypeId)
-							 BEGIN							
-								SELECT TOP 1 @DistributionSetupId=ID,
-											 @DistributionName=Name,
-											 @JournalTypeId =JournalTypeId,
-											 @STKGlAccountId=GlAccountId,
-											 @STKGlAccountNumber=GlAccountNumber,
-											 @STKGlAccountName=GlAccountName,
-											 @CrDrType =CRDRType,
-											 @IsAutoPost = ISNULL(IsAutoPost,0),
-											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-										FROM dbo.DistributionSetup WITH(NOLOCK)  
-										WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY') 
-										AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;	
-										
-									IF(@VendorLegalEntityId > 0)
-									BEGIN
-									  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
-										FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
-										INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
-										INNER JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON MSL.[LegalEntityId] = LE.[LegalEntityId]
-										WHERE ess.[IsActive] = 1
-										  AND ess.[IsDeleted] = 0
-										  AND MSL.[LegalEntityId] = @VendorLegalEntityId AND MSL.[MasterCompanyId] = @MasterCompanyId
-
-										IF(@ManagementStructureId > 0)
-										BEGIN
-											IF OBJECT_ID(N'tempdb..#tmpMSDetails') IS NOT NULL
-												DROP TABLE #tmpMSDetails;
-
-											CREATE TABLE #tmpMSDetails
-											(
-												[EntityStructureId] BIGINT,
-												[MasterCompanyId] INT,
-												[Level1Id] BIGINT, [Level1Name] VARCHAR(200),
-												[Level2Id] BIGINT, [Level2Name] VARCHAR(200),
-												[Level3Id] BIGINT, [Level3Name] VARCHAR(200),
-												[Level4Id] BIGINT, [Level4Name] VARCHAR(200),
-												[Level5Id] BIGINT, [Level5Name] VARCHAR(200),
-												[Level6Id] BIGINT, [Level6Name] VARCHAR(200),
-												[Level7Id] BIGINT, [Level7Name] VARCHAR(200),
-												[Level8Id] BIGINT, [Level8Name] VARCHAR(200),
-												[Level9Id] BIGINT, [Level9Name] VARCHAR(200),
-												[Level10Id] BIGINT, [Level10Name] VARCHAR(200),
-												[AllMSlevels] NVARCHAR(MAX),
-												[LastMSName] VARCHAR(200)
-											);
-
-											INSERT INTO #tmpMSDetails
-											EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
-
-											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetails;
-
-											DROP TABLE #tmpMSDetails;
-										END
-								  END
-							END
-							ELSE 
+							IF(@VendorLegalEntityId > 0)
 							BEGIN
+							  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
+								FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
+								INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
+								INNER JOIN [dbo].[LegalEntity] le WITH (NOLOCK) ON MSL.[LegalEntityId] = LE.[LegalEntityId]
+								WHERE ess.[IsActive] = 1
+								  AND ess.[IsDeleted] = 0
+								  AND MSL.[LegalEntityId] = @VendorLegalEntityId AND MSL.[MasterCompanyId] = @MasterCompanyId
+
+								IF(@ManagementStructureId > 0)
+								BEGIN
+									IF OBJECT_ID(N'tempdb..#tmpMSDetails') IS NOT NULL
+										DROP TABLE #tmpMSDetails;
+
+									CREATE TABLE #tmpMSDetails
+									(
+										[EntityStructureId] BIGINT,
+										[MasterCompanyId] INT,
+										[Level1Id] BIGINT, [Level1Name] VARCHAR(200),
+										[Level2Id] BIGINT, [Level2Name] VARCHAR(200),
+										[Level3Id] BIGINT, [Level3Name] VARCHAR(200),
+										[Level4Id] BIGINT, [Level4Name] VARCHAR(200),
+										[Level5Id] BIGINT, [Level5Name] VARCHAR(200),
+										[Level6Id] BIGINT, [Level6Name] VARCHAR(200),
+										[Level7Id] BIGINT, [Level7Name] VARCHAR(200),
+										[Level8Id] BIGINT, [Level8Name] VARCHAR(200),
+										[Level9Id] BIGINT, [Level9Name] VARCHAR(200),
+										[Level10Id] BIGINT, [Level10Name] VARCHAR(200),
+										[AllMSlevels] NVARCHAR(MAX),
+										[LastMSName] VARCHAR(200)
+									);
+
+									INSERT INTO #tmpMSDetails
+									EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
+
+									SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetails;
+
+									DROP TABLE #tmpMSDetails;
+								END
+							END
+
 								SELECT TOP 1 @DistributionSetupId=ID,
 											 @DistributionName=Name,
 											 @JournalTypeId =JournalTypeId,
@@ -494,8 +478,7 @@ BEGIN
 
 								SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
-							END						
-
+		
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
 							BEGIN
@@ -539,8 +522,12 @@ BEGIN
 												 @DistributionName=Name,
 												 @JournalTypeId =JournalTypeId,
 												 @GlAccountId=GlAccountId,
-												 @GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
-											FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES')
+												 @GlAccountNumber=GlAccountNumber,
+												 @GlAccountName=GlAccountName,
+												 @CrDrType=CRDRType,
+												 @IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
+											FROM dbo.DistributionSetup WITH(NOLOCK)  
+											WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES')
 											 AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 								END
 								ELSE
@@ -626,25 +613,9 @@ BEGIN
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 1
 							 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
-							
-							-----NonStock - Inventory--------
-							IF(@VendorTypeId = @VendorAffiliateTypeId)
-							BEGIN
-								SELECT TOP 1 @DistributionSetupId=ID,
-											 @DistributionName=Name,
-											 @JournalTypeId =JournalTypeId,
-											 @STKGlAccountId=GlAccountId,
-											 @STKGlAccountNumber=GlAccountNumber,
-											 @STKGlAccountName=GlAccountName,
-											 @CrDrType=CRDRType, 
-											 @IsAutoPost = ISNULL(IsAutoPost,0),
-											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-										FROM dbo.DistributionSetup WITH(NOLOCK)  
-										WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY')
-										AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
 
-									IF(@VendorLegalEntityId > 0)
-									BEGIN
+							IF(@VendorLegalEntityId > 0)
+							BEGIN
 									  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
 										FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
 										INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
@@ -679,14 +650,13 @@ BEGIN
 											INSERT INTO #tmpMSDetailsNONSTOCK
 											EXEC [dbo].[USP_GetEntityManagementStructureDetailsById] @ManagementStructureId;
 
-											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetailsNONSTOCK
+											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetailsNONSTOCK;
 
-											DROP TABLE tmpMSDetailsNONSTOCK;
+											DROP TABLE #tmpMSDetailsNONSTOCK;
 										END
-								  END
-							END
-							ELSE
-							BEGIN
+								END
+							
+							-----NonStock - Inventory--------							
 								SELECT TOP 1 @DistributionSetupId=ID,
 											 @DistributionName=Name,
 											 @JournalTypeId =JournalTypeId,
@@ -714,8 +684,7 @@ BEGIN
 								AND [MasterCompanyId] = @MasterCompanyId;
 
 								SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1
-							END
+								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 1						
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -759,7 +728,7 @@ BEGIN
 									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
 									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0)  
 									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES') AND 
-									DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+									DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId									
 								END
 								ELSE
 								BEGIN
@@ -830,19 +799,19 @@ BEGIN
 							Set @ReferencePartId=@partId	
 
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
-							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0							
 							
-							IF(@VendorTypeId = @VendorAffiliateTypeId)
+								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
+								DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+
+								SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
+								FROM DBO.AssetInventory SL WITH(NOLOCK)
+								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
+								WHERE AssetInventoryId=@StocklineId;
+
+							IF(@VendorLegalEntityId > 0)
 							BEGIN
-								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0),
-											 @GlAccountId=GlAccountId,
-											 @GlAccountNumber=GlAccountNumber,
-											 @GlAccountName=GlAccountName
-									    FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTOCKINVENTORY') AND
-											 DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId	
-											 
-								IF(@VendorLegalEntityId > 0)
-								BEGIN
 									  SELECT TOP 1 @ManagementStructureId  = ESS.[EntityStructureId]
 										FROM [dbo].[EntityStructureSetup] ESS WITH (NOLOCK)
 										INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
@@ -880,21 +849,9 @@ BEGIN
 											SELECT @AllMSlevels = [AllMSlevels], @LastMSLevel = [LastMSName] FROM #tmpMSDetailsASSET;
 
 											DROP TABLE #tmpMSDetailsASSET;
-										END
-								  END
+									END
 							END
-							ELSE
-							BEGIN
-								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-								FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
-								DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
-
-								SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
-								FROM DBO.AssetInventory SL WITH(NOLOCK)
-								INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
-								WHERE AssetInventoryId=@StocklineId;
-							END
-							
+						
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
 							BEGIN
@@ -935,7 +892,7 @@ BEGIN
 									SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
 									@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsBypassAccounting = ISNULL([IsBypassAccounting],0) 
 									FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOINTERCOMPANYPAYABLES') 
-									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+									AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId									
 								END
 								ELSE
 								BEGIN

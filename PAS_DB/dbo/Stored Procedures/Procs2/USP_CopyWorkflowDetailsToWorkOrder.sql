@@ -1,4 +1,4 @@
-﻿
+
 -- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_CopyWorkflowDetailsToWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CopyWorkflowDetailsToWorkOrder.sql)
 -- ---------------------------------------------------------------------------------------------------
@@ -32,6 +32,7 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
 	14	 27-July-2025    SUMIT    		Added notes field in material list [PN-16818]
+	15   21/08/2026   SUMIT KUMAR		Append the sequence of task just after existing task seq [PN-17753].
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -93,9 +94,13 @@ SET NOCOUNT ON;
 			BEGIN
 				IF (@WorkOrderId > 0)
 				BEGIN
-					DECLARE @WorkFlowWorkOrderId BIGINT;
+					DECLARE @WorkFlowWorkOrderId BIGINT, @MaxSequenceNo INT = 0;
 					SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM DBO.WorkOrderWorkFlow WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNoId = @workOrderPartNumberId;
 					SELECT @IsTaskBasedWO = ISNULL(WorkOrderFormTypeId, 0)  FROM DBO.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId 
+
+					SELECT @MaxSequenceNo = ISNULL(MAX(TRY_CAST(SequenceNumber AS INT)), 0) 
+					FROM dbo.WorkOrderTask WITH (NOLOCK) 
+					WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(IsDeleted, 0) = 0;
 
 					IF EXISTS (SELECT TOP 1 1 FROM DBO.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1 AND (WorkflowExpirationDate IS NULL OR CAST(WorkflowExpirationDate AS date) >= GETUTCDATE()))
 					BEGIN
@@ -203,6 +208,8 @@ SET NOCOUNT ON;
 
 										IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId AND TaskId = @WorkFlowTasksId)
 										BEGIN
+											SET @MaxSequenceNo = @MaxSequenceNo + 1;
+
 											INSERT INTO DBO.WorkOrderTask(WorkOrderId,WorkFlowWorkOrderId,TaskId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,
 														WorkOrderPartNumberId,SequenceNumber,IsIncludeInPrint,HasInstruction,TaskName,IsFromWorkFlow)
 											SELECT TOP 1
@@ -217,8 +224,7 @@ SET NOCOUNT ON;
 												1 AS IsActive,
 												0 AS IsDeleted,
 												@workOrderPartNumberId AS WorkOrderPartNumberId,
-												--ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
-												WFT.SequenceNumber,
+												CAST(@MaxSequenceNo AS VARCHAR(10)),
 												T.IsPrintInWO AS IsIncludeInPrint,											
 												0 as HasInstruction,
 												T.[Description] as TaskName,

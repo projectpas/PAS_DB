@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    08/17/2026  Nakul     Created
+    2    08/21/2026  Nakul     Added QuantityOnHand > 0 Condtion 
 
 -- EXEC USP_SearchStocklineByLocation
 ************************************************************************/
@@ -56,7 +57,8 @@ BEGIN
             AND (NOT EXISTS (SELECT 1 FROM @tbl_LocationIds) OR s.LocationId IN (SELECT [Value] FROM @tbl_LocationIds))
             AND (NOT EXISTS (SELECT 1 FROM @tbl_ShelfIds) OR s.ShelfId IN (SELECT [Value] FROM @tbl_ShelfIds))
             AND (NOT EXISTS (SELECT 1 FROM @tbl_BinIds) OR s.BinId IN (SELECT [Value] FROM @tbl_BinIds))
-        ORDER BY s.StockLineId DESC;
+            AND  s.QuantityOnHand > 0
+            ORDER BY s.StockLineId DESC;
     END
   END TRY
   BEGIN CATCH

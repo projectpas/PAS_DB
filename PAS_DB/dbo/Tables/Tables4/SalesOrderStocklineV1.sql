@@ -30,9 +30,12 @@
     [SizeHeight]            DECIMAL (10, 2) NULL,
     [ReferenceNumber]       VARCHAR (100)   NULL,
     [PriorityId]            BIGINT          NULL,
+    [ToTalReservedQty]      INT             NULL,
     CONSTRAINT [PK_SalesOrderStocklineV1] PRIMARY KEY CLUSTERED ([SalesOrderStocklineId] ASC),
     CONSTRAINT [FK_SalesOrderStocklineV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

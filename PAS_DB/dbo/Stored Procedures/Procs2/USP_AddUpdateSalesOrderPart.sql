@@ -25,6 +25,7 @@
 	10   30/July/2026	  MOIN BLOCH        [PN-17485] - Added [IsService],[IsNonStock] Conditions If IsNonStock then Create StockLine
 	11   01/July/2026	  MOIN BLOCH        [PN-17485] - Update QtyOnhand And Qty Reserved in Stockline on update Part Qty
 	12   05/Aug/2026	  KISHOR MAKWANA    [PN-17439] - Added SequenceNumber to persist user-editable Item No on Sales Order parts
+	13   21/Aug/2026	  KISHOR MAKWANA    [PN-17734] - Updated Condition
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -276,7 +277,8 @@ BEGIN
 			SizeHeight = @SizeHeight,
 			PriorityId = @PriorityId,
 			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END),
-			SequenceNumber = @SequenceNumber
+			SequenceNumber = @SequenceNumber,
+			ConditionId = @ConditionId
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			UPDATE [DBO].[SalesOrderPartV1]

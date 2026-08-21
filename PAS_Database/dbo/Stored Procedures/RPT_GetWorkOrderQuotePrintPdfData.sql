@@ -1,4 +1,4 @@
-
+﻿
 /*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfData]             
  ** Author:   AMIT GHEDIYA  
@@ -30,7 +30,8 @@
 	15	 03-March-2026  Ayushi Patel		Retuen ItemNo 
 	16    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	17    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
---EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
+	18    21/July/2026			 Bhargav Saliya						[PN-17747] - Added In [Fleet] in temp table
+--EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2319,3946  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
  @WorkOrderQuoteId bigint,  
@@ -96,6 +97,7 @@ BEGIN
 
 		CREATE TABLE #tmpPartResult (        
 			[PublicationId] VARCHAR(100) NULL,
+			[Fleet] VARCHAR(100) NULL,
 			[ConditionName] NVARCHAR(MAX) NULL,
 			[RevisionNum] VARCHAR(100) NULL,
 			[RevisionDate] VARCHAR(100) NULL,
@@ -117,7 +119,6 @@ BEGIN
 			[WorkOrderPartNoId] BIGINT NULL,
 			[Remarks] NVARCHAR(MAX) NULL,
 		)
-
 		INSERT INTO #tmpPartResult EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] @WorkOrderId, @workOrderPartNoId;
 
 		IF EXISTS(SELECT 1 FROM #tmpPartResult)

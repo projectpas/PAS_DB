@@ -38,6 +38,8 @@
 
 
 
+
+
 GO
 
 
@@ -59,32 +61,3 @@ BEGIN
 
 END
 GO
-CREATE   TRIGGER [dbo].[Trg_DefaultCondition]
-
-   ON  [dbo].[MasterCompany]
-
-   AFTER INSERT
-
-AS 
-
-BEGIN
-
-	DECLARE @MasterCompanyId INT;
-
-    SELECT @MasterCompanyId = INSERTED.MasterCompanyId       
-
-    FROM INSERTED;
-
-
-
-	INSERT INTO Condition VALUES('BENCH CHECK','',GETDATE(),GETDATE(),1,@MasterCompanyId, 'Auto Script','Auto Script',0,1,'BENCH CHECK','BENCH CHECK');
-
-	INSERT INTO Condition VALUES('OVERHAUL','',GETDATE(),GETDATE(),1,@MasterCompanyId, 'Auto Script','Auto Script',0,2,'OVERHAUL','OVERHAUL');
-
-	INSERT INTO Condition VALUES('REPAIR','',GETDATE(),GETDATE(),1,@MasterCompanyId, 'Auto Script','Auto Script',0,3,'REPAIR','REPAIR');
-
-
-
-	SET NOCOUNT ON;
-
-END

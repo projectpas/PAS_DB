@@ -20,6 +20,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
+	10   21/Aug/2026			 RAJESH GAMI						[PN-17745] - IsFromPreCostStk-based eligibility check now also excludes the new 'Turn In' type (in addition to 'Trans In(Lot)'), matching existing behavior for stocklines created via "Create Stockline from Lot".
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -154,7 +155,7 @@ BEGIN
 				LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId
 				LEFT JOIN [dbo].[Vendor] vp WITH (NOLOCK) ON stl.VendorId = vp.VendorId
 				LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON stl.ConditionId = con.ConditionId
-				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') ) = 0 ) ,FinalResult AS (
+				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') OR REPLACE([Type],' ','') = REPLACE('Turn In',' ','')) ) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
 					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 

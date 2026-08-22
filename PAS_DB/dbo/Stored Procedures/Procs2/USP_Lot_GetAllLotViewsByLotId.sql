@@ -19,6 +19,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (9 individual checks) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	8    21/Aug/2026			 RAJESH GAMI						[PN-17745] - HowAcquired/AcquiredRef now recognize the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" still show correctly.
 
 -- EXEC USP_Lot_GetAllLotViewsByLotId 7,'ViewAllPN',1
 ************************************************************************/
@@ -38,7 +39,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			DECLARE @LOT_TransIn_LOT VARCHAR(100) = 'Trans In(Lot)'; DECLARE @LOT_TransIn_PO VARCHAR(100) = 'Trans In(PO)';	DECLARE @LOT_TransIn_RO VARCHAR(100) = 'Trans In(RO)';
 			DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans In(SO)'; DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In(WO)'; DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
 			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out(PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out(RO)';
-			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)'; 
+			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)',@LOT_TurnIn VARCHAR(100) = 'Turn In'; 
 			DECLARE @LotTransIn VARCHAR(100) = 'Trans In', @LotPO VARCHAR(100) = 'Purchase Order',@LotRO VARCHAR(100) = 'Repair Order',@LotSO VARCHAR(100) = 'Sales Order', @LotWO VARCHAR(100) = 'Work Order';
 			DECLARE @AppModuleId INT = 0;
 			DECLARE @SOModuleId INT
@@ -96,17 +97,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--,(ISNULL(sl.UnitCost,0) * (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) ExtPrice
 				--,(( (ISNULL(sl.RepairOrderUnitCost,0) + (ISNULL(sl.PurchaseOrderUnitCost,0)* (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END))) * ISNULL(per.PercentValue,0) ) /100) AS MarginAmt
 				--,ISNULL(per.PercentValue,0) Margin
-				,(CASE WHEN ltCal.Type = @LOT_TransIn_LOT OR ltCal.Type = @LOT_TransOut_LOT THEN @LotTransIn 
+				,(CASE WHEN ltCal.Type = @LOT_TransIn_LOT OR ltCal.Type = @LOT_TransOut_LOT THEN @LotTransIn
+					   WHEN ltCal.Type = @LOT_TurnIn THEN @LOT_TurnIn
 					   WHEN ltCal.Type = @LOT_TransIn_PO THEN @LotPO
-					   WHEN ltCal.Type = @LOT_TransIn_RO OR ltCal.Type = @LOT_TransOut_RO THEN @LotRO 
-					   WHEN ltCal.Type = @LOT_TransOut_SO THEN @LotSO 
-					   WHEN ltCal.Type = @LOT_TransIn_WO THEN @LotWO 
+					   WHEN ltCal.Type = @LOT_TransIn_RO OR ltCal.Type = @LOT_TransOut_RO THEN @LotRO
+					   WHEN ltCal.Type = @LOT_TransOut_SO THEN @LotSO
+					   WHEN ltCal.Type = @LOT_TransIn_WO THEN @LotWO
 				ELSE '' END) HowAcquired
-				,(CASE WHEN ltCal.Type = @LOT_TransIn_LOT OR ltCal.Type = @LOT_TransOut_LOT THEN sl.StockLineNumber 
+				,(CASE WHEN ltCal.Type = @LOT_TransIn_LOT OR ltCal.Type = @LOT_TransOut_LOT OR ltCal.Type = @LOT_TurnIn THEN sl.StockLineNumber
 					   WHEN ltCal.Type = @LOT_TransIn_PO THEN po.PurchaseOrderNumber
-					   WHEN ltCal.Type = @LOT_TransIn_RO OR ltCal.Type = @LOT_TransOut_RO THEN ro.RepairOrderNumber 
-					   WHEN ltCal.Type = @LOT_TransOut_SO THEN so.SalesOrderNumber 
-					   WHEN ltCal.Type = @LOT_TransIn_WO THEN wo.WorkOrderNum 
+					   WHEN ltCal.Type = @LOT_TransIn_RO OR ltCal.Type = @LOT_TransOut_RO THEN ro.RepairOrderNumber
+					   WHEN ltCal.Type = @LOT_TransOut_SO THEN so.SalesOrderNumber
+					   WHEN ltCal.Type = @LOT_TransIn_WO THEN wo.WorkOrderNum
 				ELSE '' END) AS AcquiredRef
 				,po.PurchaseOrderNumber PoNum
 				,ro.RepairOrderNumber RoNum

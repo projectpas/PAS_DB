@@ -19,6 +19,7 @@
 	6    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 	8    06/08/2026		 Nakul Chnadigra		Added status Filter [PN-17566]
+	9    21/Aug/2026		 RAJESH GAMI			[PN-17745] Total Lot Cost's TransferredInCost sum now also includes 'Turn In' type rows (in addition to 'Trans In (Lot)'), since "Create Stockline from Lot" now records that type instead.
 **************************************************************
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_Lot_GetLotList]
@@ -127,13 +128,15 @@ BEGIN
 			           WHERE LCD.LotId = LT.LotId
 			       ), 0)
  
-			       -- TransferredInCost: only 'Trans In (Lot)' type, IsFromPreCostStk = 0
+			       -- TransferredInCost: 'Trans In (Lot)' (manual Lot Trans-In) and 'Turn In' (Create Stockline from
+			       -- Lot) types, IsFromPreCostStk = 0
 			       + ISNULL((
 			           SELECT SUM(ISNULL(TransferredInCost, 0))
 			           FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
 			           WHERE LCD.LotId = LT.LotId
 			             AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
-			             AND UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans In (Lot)', ' ', ''))
+			             AND (UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans In (Lot)', ' ', ''))
+			                  OR UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Turn In', ' ', '')))
 			       ), 0)
  
 			       -- OtherCost (PO): Freight at part-record level

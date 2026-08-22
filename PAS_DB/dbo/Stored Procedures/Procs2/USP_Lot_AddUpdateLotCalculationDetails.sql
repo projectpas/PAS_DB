@@ -25,6 +25,11 @@
 									   already ran the first time - re-running it on every repost was double/triple
 									   decrementing LOTQty).
 	6   14-Aug-2026   RAJESH GAMI      PN-17673 : Update LOT Commission Cost Calculation for Multiple Commission Methods (% Of Revenue, % Of Margin OR Fixed Commision Amount)
+	7   21-Aug-2026   RAJESH GAMI      [PN-17745] "Create Stockline from Lot" now sends @Type = 'Turn In' instead of
+									   'Trans In (Lot)'. Added 'Turn In' alongside the existing 'Trans In (Lot)' check
+									   in both the insert gate above and the Stockline.LOTQty/IsLotAssigned update gate
+									   below - 'Trans In (Lot)' is left in place since the manual Lot Trans-In quantity
+									   transfer flow (USP_Lot_AddUpdateLotTransInOutDetails) still legitimately uses it.
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -97,7 +102,7 @@ BEGIN
 			[IsFromPreCostStk][bit] NULL
 		)
 		
-		IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR UPPER(@Type) = UPPER('PO') OR UPPER(@Type) = UPPER('RO') OR UPPER(@Type) = UPPER('SO') OR UPPER(@Type) = UPPER('WO') OR UPPER(@Type) = UPPER('Trans In (PO)') OR UPPER(@Type) = UPPER('Trans In (RO)')OR UPPER(@Type) = UPPER('Shipped') OR UPPER(@Type) = UPPER('Trans In (SO)') OR UPPER(@Type) = UPPER('Trans In (WO)') )
+		IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR UPPER(@Type) = UPPER('Turn In') OR UPPER(@Type) = UPPER('PO') OR UPPER(@Type) = UPPER('RO') OR UPPER(@Type) = UPPER('SO') OR UPPER(@Type) = UPPER('WO') OR UPPER(@Type) = UPPER('Trans In (PO)') OR UPPER(@Type) = UPPER('Trans In (RO)')OR UPPER(@Type) = UPPER('Shipped') OR UPPER(@Type) = UPPER('Trans In (SO)') OR UPPER(@Type) = UPPER('Trans In (WO)') )
 		BEGIN		
 
 			INSERT INTO #tmpLotCalculationDetailsType ([LotCalculationId], [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
@@ -145,7 +150,7 @@ BEGIN
 				END
 				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost WHERE LotCalculationId = @LatestId; 
 				
-				IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR (UPPER(@Type) = UPPER('Trans In (RO)') ))
+				IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR UPPER(@Type) = UPPER('Turn In') OR (UPPER(@Type) = UPPER('Trans In (RO)') ))
 				BEGIN
 					Update dbo.Stockline set 
 										LOTQty = ISNULL(LOTQty,0) + ISNULL(@LastQty,0), LotId =@LotId, IsLotAssigned = 1,LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId

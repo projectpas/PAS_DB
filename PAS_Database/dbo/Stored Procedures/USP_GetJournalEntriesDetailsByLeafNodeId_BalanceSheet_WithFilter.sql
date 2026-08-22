@@ -15,6 +15,7 @@
 	4   30-Oct-2025			Devendra Shekh			Added @BaseUtcOffsetSec for EntryDate
 	5   02-Feb-2026			Bhargav Saliya			Added JournalTypeName Field
     6   15-Jun-2026			Moin Bloch			    Fixed For Duplicate Record PN-16616
+	7   21-Aug-2026			Bhargav Saliya			PN-15173 Sort result set by latest Journal Entry (JE) number
 **************************************************************/  
 /*************************************************************             
 exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter 
@@ -598,8 +599,8 @@ BEGIN
 
 	SELECT * INTO #GLRecordsResult 
 	FROM #TempResults
-	ORDER BY AccountingPeriodId, JournalNumber
-	OFFSET @RecordFrom ROWS 
+	ORDER BY AccountingPeriodId, JournalNumber DESC
+	OFFSET @RecordFrom ROWS
 	FETCH NEXT @PageSize ROWS ONLY
 
 	SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);
@@ -618,7 +619,7 @@ BEGIN
 			Cast(EntryDate as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName, @TotalRecordsCount as NumberOfItems
 	FROM cteRanked c1 
 	WHERE GLAccountId IS NOT NULL
-	ORDER BY AccountingPeriodId, JournalNumber;
+	ORDER BY AccountingPeriodId, JournalNumber DESC;
 
 	END TRY  
 	BEGIN CATCH  

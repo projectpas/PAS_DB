@@ -11,10 +11,18 @@
     [IsDeleted]               BIT           CONSTRAINT [DF_ClassificationMapping_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ClassificationMapping] PRIMARY KEY CLUSTERED ([ClassificationMappingId] ASC)
 );
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_ClassificationMapping_ReferenceId_ModuleId_Perf]
     ON [dbo].[ClassificationMapping]([ReferenceId] ASC, [ModuleId] ASC)
     INCLUDE([ClasificationId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 -- Added 2026-08-03: supports GetCustomerList's per-customer classification rollup (see
 -- GetCustomerList_Performance_Recommendations.sql for the full review).
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ClassificationMapping_ReferenceId_ModuleId]
+    ON [dbo].[ClassificationMapping]([ReferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([ClasificationId]);
 

@@ -31,6 +31,7 @@
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
 	20   18/08/2026   Kishor Makwana [PN-17439] -Not Proper Update IsVersionIncrease in BillingInvoicingItems.
+	21   24/08/2026   Kishor Makwana Update Shipping ID based on the Stockline ID and PickticktetID
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -484,7 +485,8 @@ BEGIN
 			BEGIN
 				IF(@ModuleId = @SOModuleId)
 					BEGIN
-						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE [SubReferenceId] = @SubReferenceId AND BillingInvoicingItemId = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId; -- kishor
+						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE [SubReferenceId] = @SubReferenceId AND BillingInvoicingItemId = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId;
+					
 					END
 				
 				INSERT INTO [dbo].[BillingInvoicingItems]([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId]
@@ -500,6 +502,18 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
+
+				 --- Update Shipping ID based on the Stockline ID and PickticktetID
+					IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
+						INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
+						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
+						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
+						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+					END
+
 
 			END
 			ELSE
@@ -596,6 +610,17 @@ BEGIN
 			   
 			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
 				
+				--- Update Shipping ID based on the Stockline ID and PickticktetID
+				IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
+						INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
+						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
+						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
+						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+					END
+				
 			END						
 
 			IF(@ModuleId = @WOModuleId)
@@ -671,6 +696,7 @@ BEGIN
 				/***************************** END :  Update the SO Revenue While Generating the Invoice ***********************/
 			END
 
+			
 			SET @MinId = @MinId + 1;
 		END  /****** END : MAIN WHILE LOOP *******/
 		

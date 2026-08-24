@@ -34,11 +34,11 @@
 	21   14/Aug/2026  Kishor Makwana	[PN-17666] - Fixed Stockline Number not displayed for posted Standard Invoice (only Proforma showed it): the Service/NonStock UNION ALL arm hardcoded StockLineNumber/SerialNumber to NULL for every row, even when the BillingInvoicingItems row actually had a real StockLineId. Now resolved directly off sobii2.StockLineId via a dedicated Stockline join.
 	22   17/Aug/2026  Moin Bloch		[PN-17667] - Non-Stock Part Gets Unselected When Creating a Single Invoice for Stock and Non-Stock Parts
 	23   22/Aug/2026  Vishal Suthar		Fixed duplicate rows AND incorrect QtyBilled/InvoiceDate/InvoiceStatus in SO @AllowBillingBeforeShipping=0 branch.
-
+	24   24/Aug/2026  Kishor Makwana	[PN-17763] - Fixed  '' AS InvoiceStatus to sobi.InvoiceStatus AS InvoiceStatus in SO @AllowBillingBeforeShipping= 1
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
-CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
+CREATE       PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
 @ReferenceId BIGINT = NULL,
 @SubReferenceId BIGINT = NULL, 
 @IncludeProformaInvoice BIT = NULL,
@@ -962,7 +962,8 @@ BEGIN
 								0 AS TotalFlatFreight,
 								0 AS TotalCharges,
 								0 AS TotalFlatCharges,
-								'' AS InvoiceStatus,
+								--'' AS InvoiceStatus,
+								sobi.InvoiceStatus AS InvoiceStatus,								
 								0 AS 'SmentNo',
 								sobii.VersionNo,
 								(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,

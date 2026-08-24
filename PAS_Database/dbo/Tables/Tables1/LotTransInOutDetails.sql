@@ -26,10 +26,13 @@
     [ReferenceNumber]      VARCHAR (100)   NULL,
     [IsShipped]            BIT             DEFAULT ((0)) NULL,
     [ShippedQty]           DECIMAL (18, 6) CONSTRAINT [DF__LotTransI__Shipp__2E574124] DEFAULT ((0)) NULL,
+    [IsExcludedFromOnHand] BIT             NULL,
     CONSTRAINT [PK_LotTransInOutDetails] PRIMARY KEY CLUSTERED ([LotTransInOutId] ASC),
     CONSTRAINT [FK_LotTransInOutDetails_Lot] FOREIGN KEY ([LotId]) REFERENCES [dbo].[Lot] ([LotId]),
     CONSTRAINT [FK_LotTransInOutDetails_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_LotTransInOutDetails_LotId]
     ON [dbo].[LotTransInOutDetails]([LotId] ASC)

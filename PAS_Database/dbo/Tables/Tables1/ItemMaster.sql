@@ -216,7 +216,7 @@
     CONSTRAINT [FK_ItemMaster_StockUOM] FOREIGN KEY ([StockUnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_ItemMaster_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
-    CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId_ItemTypeId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [ItemTypeId] ASC)
 );
 
 
@@ -255,6 +255,8 @@
 
 
 GO
+
+
 
 GO
 CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]

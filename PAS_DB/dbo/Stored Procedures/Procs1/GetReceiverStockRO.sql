@@ -1,5 +1,4 @@
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetReceiverStockRO]
  ** Author:  MOIN BLOCH
  ** Description: Show WO#, SO#, and For Stock based on grouping in Receiving Repair Order Stock Report Print
@@ -18,6 +17,7 @@
     3    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    24/Aug/2026             Bhargav Saliya						[PN-15154]-Get Inspector and Inspected Date For Receiving Stock
 --  EXEC GetReceiverStockRO 1123,'0',1,1,'RecNo-000001'
 --  EXEC GetReceiverStockRO 1122,'0',1,1,'RecNo-000001'
 ************************************************************************/
@@ -98,7 +98,9 @@ BEGIN
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
 				  sl.Manufacturer,				  
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
+				  sl.InspectionDate
 			    FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			INNER JOIN [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
@@ -109,6 +111,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
+			LEFT JOIN  [dbo].[Employee] e WITH(NOLOCK) ON sl.InspectionBy = e.EmployeeId
 			WHERE sl.[RepairOrderId] = @RepairOrderId 
 			  AND sl.[ReceiverNumber] = @ReceiverNumber AND sl.[IsParent]=1
 
@@ -140,7 +143,9 @@ BEGIN
 				  '' AS ReferenceNumber,
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
+				  sl.InspectionDate
 			    FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			INNER JOIN [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId
@@ -151,6 +156,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
+			LEFT JOIN  [dbo].[Employee] e WITH(NOLOCK) ON sl.InspectionBy = e.EmployeeId
 			WHERE sl.[RepairOrderId] = @RepairOrderId 
 			  AND sl.[ReceiverNumber] = @ReceiverNumber AND sl.[IsParent]=1 AND sd.ForStockQty > 0
 
@@ -182,7 +188,9 @@ BEGIN
 				   ''  as ReferenceNumber,
 				   sl.ManufactureName AS Manufacturer,
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				    '' AS TraceableToName
+				    '' AS TraceableToName,
+					'' as Inspector,
+					NULL InspectionDate
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE [RepairOrderId] = @RepairOrderId 
 			AND sl.ReceiverNumber = @ReceiverNumber;

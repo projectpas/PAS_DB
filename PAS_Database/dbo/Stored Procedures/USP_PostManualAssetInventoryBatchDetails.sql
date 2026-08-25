@@ -21,8 +21,9 @@
 	5	 18/10/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
 	6	 11/04/2024			 Devendra Shekh		 Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	7	 21/07/2026	         Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	8	 17/08/2026	         Abhishek Jirawla    Adding Mastercompanyid when selecting GRNI GLAccount
 
-     
+
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
@@ -389,8 +390,8 @@ BEGIN
 						 @GlAccountName = [GlAccountName] ,
 						 @IsAutoPost = ISNULL(IsAutoPost,0),
 						 @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
-			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('GOODSRECEIPTNOTINVOICED') 
-			         AND [DistributionMasterId] = @DistributionMasterId;
+			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('GOODSRECEIPTNOTINVOICED')
+			         AND [DistributionMasterId] = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
 
 			IF(@IsBypassAccounting = 0)
 			BEGIN

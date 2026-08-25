@@ -1,7 +1,4 @@
-
-
-
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -24,9 +21,10 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 10	18/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)kept IncomingPN as it is
 EXEC GetWorkOrderPrintPdfData 10248,10466
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
+CREATE    PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
 @WorkorderId bigint,              
 @workOrderPartNoId bigint              
 AS              
@@ -68,9 +66,10 @@ BEGIN
 		CASE WHEN wop.IsPMA = 1 THEN 'YES' else 'NO' END AS RestrictPMA,              
 		CASE WHEN wop.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,              
 		'' as wty,              
-		'' as wtyCode,            
-		UPPER(imt.partnumber) as IncomingPN,              
-		CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        
+		'' as wtyCode,
+		UPPER(imt.partnumber) as IncomingPN,
+		CASE WHEN wop.[IncomingPartNumber] IS NOT NULL AND wop.[IncomingPartNumber] <> '' THEN UPPER(wop.[IncomingPartNumber]) ELSE UPPER(imt.partnumber) END as IPN,
+		CASE WHEN wop.[RevisedPartNumber] IS NOT NULL AND wop.[RevisedPartNumber] <> '' THEN UPPER(wop.[RevisedPartNumber]) ELSE CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END END as RevisedPN,
 		CASE WHEN LEN(UPPER(imt.PartDescription)) > 30 then LEFT(UPPER(imt.PartDescription), 30) + '...' else  UPPER(imt.PartDescription) end as PNDesc,              
 		UPPER(sl.SerialNumber) as SerialNum,              
 		CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            

@@ -46,6 +46,7 @@
 	29  13/July/2026  RAJESH GAMI			[PN-17009] Retired dbo.ItemMasterNonStock table lookups (@TableName='ItemMasterNonStock', 3 branches):
 	30   04-Aug-2026   Rajesh Gami          [PN-17008] Merge Non-Stock Item Master into Item Master: ItemMaster/ItemMasterNonStock PN dropdown branches now filter by IsNonStock and show a (Stock)/(Non-Stock) label suffix.
 	31   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
+    28   31/July/2026  Ayushi Patel         [PN-17489][Item Accounting Type filter] Added dedicated @TableName='InventoryGLSetting'(IsStock=1) and @TableName='InventoryGLSettingNonStock' (IsStock=0)
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -404,6 +405,26 @@ AS BEGIN
                                   WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 1
                          END
+                         ELSE IF(@TableName='InventoryGLSetting')BEGIN
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=1 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                                UNION
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=1 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                ORDER BY StockInventoryName asc
+                         END
+                         ELSE IF(@TableName='InventoryGLSettingNonStock')BEGIN
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=0 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                                UNION
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=0 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                ORDER BY StockInventoryName asc
+                         END
                          ELSE IF(@TableName='LotConsignment')BEGIN
                                   SELECT LC.ConsignmentId AS Value, LC.ConsignmentNumber AS Label, LC.MasterCompanyId AS MasterCompanyId, LC.ConsigneeName AS ConsigneeName
                                   FROM dbo.LotConsignment LC
@@ -551,6 +572,27 @@ AS BEGIN
                          END
                      END
                      ELSE BEGIN
+                         IF(@TableName='InventoryGLSetting')BEGIN
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=1 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                                UNION
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=1 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                ORDER BY StockInventoryName asc
+                         END
+                         ELSE IF(@TableName='InventoryGLSettingNonStock')BEGIN
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=0 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                                UNION
+                                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=0 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                ORDER BY StockInventoryName asc
+                         END
+                     ELSE BEGIN
                          SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
                           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
         CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,  
@@ -560,6 +602,7 @@ AS BEGIN
             SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
       CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
       MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
+                      END
                      END
             END
         END
@@ -713,6 +756,26 @@ AS BEGIN
                      WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
                       AND ISNULL(IM.IsNonStock,0) = 1
             END
+            ELSE IF(@TableName='InventoryGLSetting')BEGIN
+                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=1 AND StockInventoryName LIKE '%'+@Parameter3+'%'
+                UNION
+                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=1 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                ORDER BY StockInventoryName asc
+            END
+            ELSE IF(@TableName='InventoryGLSettingNonStock')BEGIN
+                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=0 AND StockInventoryName LIKE '%'+@Parameter3+'%'
+                UNION
+                SELECT DISTINCT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=0 AND InventoryGLSettingId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                ORDER BY StockInventoryName asc
+            END
 			 ELSE IF(@TableName='BatchDetails')BEGIN
                      SELECT DISTINCT TOP 20 MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
                      FROM dbo.BatchDetails WITH(NOLOCK)
@@ -794,6 +857,24 @@ AS BEGIN
                                   WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.PartNumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 1
                          END
+                         ELSE IF(@TableName='InventoryGLSetting')BEGIN
+                            SELECT TOP 50 InventoryGLSettingId AS Value, StockInventoryName AS Label
+                            FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                            WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=1 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                            UNION
+                            SELECT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                            FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                            WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=1 AND InventoryGLSettingId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                        END
+                        ELSE IF(@TableName='InventoryGLSettingNonStock')BEGIN
+                            SELECT TOP 50 InventoryGLSettingId AS Value, StockInventoryName AS Label
+                            FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                            WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted,0)=0 AND ISNULL(IsStock,1)=0 AND(StockInventoryName LIKE '%'+@Parameter3+'%'))
+                            UNION
+                            SELECT InventoryGLSettingId AS Value, StockInventoryName AS Label
+                            FROM dbo.InventoryGLSetting WITH(NOLOCK)
+                            WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsStock,1)=0 AND InventoryGLSettingId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                        END
                          ELSE IF(@TableName='ConsigneeLot')BEGIN
                                   SELECT TOP 20 LotId AS Value, LotNumber AS Label
                                   FROM dbo.LOT WITH(NOLOCK)

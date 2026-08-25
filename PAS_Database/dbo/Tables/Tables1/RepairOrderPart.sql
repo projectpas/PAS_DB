@@ -112,6 +112,7 @@
     [IsFromAircraft]                 BIT             CONSTRAINT [DF_RepairOrderPart_IsFromAircraft] DEFAULT ((0)) NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [IsPiecePart]                    BIT             CONSTRAINT [DF_RepairOrderPart_IsPiecePart] DEFAULT ((0)) NOT NULL,
+    [IsForCalibration]               BIT             NULL,
     CONSTRAINT [PK_RepairOrderpart] PRIMARY KEY CLUSTERED ([RepairOrderPartRecordId] ASC),
     CONSTRAINT [FK_RepairOrderPart_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_RepairOrderPart_GlAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),

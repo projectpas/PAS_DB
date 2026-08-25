@@ -23,6 +23,7 @@
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 	11   28/04/2026	  Nakul Chandigra 		Added New Fields (PN-16150)
 	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number [PN-16231]
+	13   10/06/2026   Divyesh Kathiriya     Update PurchaseOrderNumber on AircraftInstalledPartDetails Table [PN-16780]
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -40,6 +41,7 @@ BEGIN
 			DECLARE @TotalPartsCount int = 0,@TotalSplitPartsCount int = 0, @PartLoopId int = 1, @SplitPartLoopId int = 0,@ManagementStructureId BIGINT,@ManagementStructureIdSplit BIGINT;
 			DECLARE @ModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE LOWER(ModuleName) ='popart' AND ISNULL(IsDeleted,0) = 0)
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT, @IsDeletedPart BIT = 0,@PurchaseOrderId BIGINT,@PurchaseOrderNumber VARCHAR(100),@EmployeeID BIGINT;
+			DECLARE @IsFromAircraft BIT = 0, @AircraftInstalledPartDetailsId BIGINT = NULL;
 			DECLARE @IsLotAssigned BIT =0, @LotId BIGINT, @StatusId INT, @FulfillStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'fulfilling'),
 			@OpenStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open'),
 			@OpenStatus VARCHAR = (SELECT TOP 1 Memo FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open');
@@ -84,7 +86,8 @@ BEGIN
 					SELECT @PurchaseOrderPartRecordId= PurchaseOrderPartRecordId,@IsDeletedPart = IsDeleted,@EmployeeID =EmployeeID, @SalesOrderId = SalesOrderId, 
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
 							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder,
-							@IsFromVendorRFQ = IsFromVendorRFQ,	@IsModified = IsModified
+							@IsFromVendorRFQ = IsFromVendorRFQ,	@IsModified = IsModified, @IsFromAircraft = IsFromAircraft,
+							@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -422,6 +425,18 @@ BEGIN
 							 UPDATE dbo.[VendorRFQPart] SET ReferenceId = @PurchaseOrderId, ModuleId = @RFQModuleId WHERE [VendorRFQPartId] = @IsFromVendorRFQ;
 						END						
 					END -->>>>> END:1 ELSE @PurchaseOrderPartRecordId > 0									
+
+					IF(ISNULL(@IsDeletedPart, 0) = 0 AND ISNULL(@IsFromAircraft, 0) = 1 AND ISNULL(@AircraftInstalledPartDetailsId, 0) > 0)
+					BEGIN
+						UPDATE AIPD
+						SET AIPD.PurchaseOrderNumber = @PurchaseOrderNumber,
+							AIPD.UpdatedBy = @userName,
+							AIPD.UpdatedDate = GETUTCDATE()
+						FROM DBO.[AircraftInstalledPartDetails] AIPD
+						WHERE AIPD.AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
+						  AND AIPD.MasterCompanyId = @masterCompanyId
+						  AND ISNULL(AIPD.PurchaseOrderNumber, '') <> ISNULL(@PurchaseOrderNumber, '');
+					END
 				
 /* ----------------------------START:  SPLIT PART Functionality ---------------------------------- */
 					SET @SplitPartLoopId = 1;

@@ -8,7 +8,7 @@
     [DepriciableLife]       INT             NULL,
     [DepreciationMethod]    VARCHAR (30)    NULL,
     [DepreciationFrequency] VARCHAR (20)    NULL,
-    [AssetId]               VARCHAR (20)    NULL,
+    [AssetId]               VARCHAR (30)    NULL,
     [AssetInventoryId]      BIGINT          NULL,
     [InstalledCost]         DECIMAL (18, 6) NULL,
     [DepreciationAmount]    DECIMAL (18, 6) NULL,

@@ -15,6 +15,7 @@
  ** PR    Date					Author				Change Description            
  ** --    --------			-----------				--------------------------------          
 	 1    4-16-2025			Amit Ghediya			Created
+	 2    08-18-2025		Abhishek Jirawla		Removed AssetAttributyType
 
 	 EXEC [dbo].[USP_GetWOAssetInventoryList] 162
 ****************************************************************************************/
@@ -66,7 +67,7 @@ BEGIN
 					ISNULL(ASST.[Name], '') AS AssetStatus
 				FROM [dbo].[AssetInventory] AI WITH(NOLOCK)
 				INNER JOIN [dbo].[Asset] A WITH(NOLOCK) ON AI.[AssetRecordId] = A.[AssetRecordId]
-				INNER JOIN [dbo].[AssetAttributeType] AT WITH(NOLOCK) ON A.[AssetAttributeTypeId] = AT.[AssetAttributeTypeId]
+				INNER JOIN [dbo].[DeprNonDeprTangibleAssets] AT WITH(NOLOCK) ON A.[DeprNonDeprTangibleAssetsId] = AT.[DeprNonDeprTangibleAssetsId]
 				INNER JOIN [dbo].[TangibleClass] TC WITH(NOLOCK) ON AT.[TangibleClassId] = TC.[TangibleClassId]
 				LEFT JOIN [dbo].[CheckInCheckOutWorkOrderAsset] CW WITH(NOLOCK) ON AI.[AssetInventoryId] = CW.[AssetInventoryId]
 				LEFT JOIN [dbo].[Manufacturer] MAN WITH(NOLOCK) ON A.[ManufacturerId] = MAN.[ManufacturerId]

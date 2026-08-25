@@ -29,6 +29,7 @@
 	16   31/July/2026 Moin Bloch		[PN-17513] - Added UNION ALL arm in SO @AllowBillingBeforeShipping=0 branch to include Service/Non-Stock parts even when no shipment has been done, since these items are never physically shipped.
 	17   03/Aug/2026  Moin Bloch		[PN-17540] - Fix For Duplicate Issue
 	18   11-Aug-2026  Rajesh Gami		[PN-17636] Added IsReOpen Flag to handle the Reopen Invoice
+	19   17/Aug/2026  Moin Bloch		[PN-17667] - Non-Stock Part Gets Unselected When Creating a Single Invoice for Stock and Non-Stock Parts
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -700,7 +701,7 @@ BEGIN
 					NULL AS StockLineNumber,
 					NULL AS SerialNumber,
 					cr2.[Name] as CustomerName,
-					NULL AS StockLineId,
+					stk.StockLineId,
 					ISNULL(sobii2.QtyBilled,0) AS QtyBilled,
 					0 AS ItemNo,
 					sop2.SalesOrderId,
@@ -741,6 +742,7 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 sop2 WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrder so2 WITH (NOLOCK) ON so2.SalesOrderId = sop2.SalesOrderId
 					INNER JOIN [DBO].[ItemMaster] im WITH (NOLOCK) ON sop2.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) = 1 AND ISNULL(im.[IsNonStock],0) = 1)
+					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop2.SalesOrderPartId
 					LEFT JOIN DBO.BillingInvoicingItems sobii2 WITH (NOLOCK) ON sobii2.SubReferenceId = sop2.SalesOrderPartId AND ISNULL(sobii2.IsPerformaInvoice,0) = 0 AND sobii2.ModuleId = @SOModuleId
 					LEFT JOIN DBO.BillingInvoicing sobi2 WITH (NOLOCK) ON sobi2.BillingInvoicingId = sobii2.BillingInvoicingId AND ISNULL(sobi2.IsPerformaInvoice,0) = 0 AND sobi2.ReferenceId = @ReferenceId AND sobi2.ModuleId = @SOModuleId
 					LEFT JOIN DBO.Customer cr2 WITH (NOLOCK) ON cr2.CustomerId = so2.CustomerId

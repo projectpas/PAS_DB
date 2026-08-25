@@ -1,22 +1,44 @@
 ﻿
-/*************************************************************           
- ** File:   [GetAssetDataforInventoryOnEdit]           
+/*************************************************************
+ ** File:   [GetAssetDataforInventoryOnEdit]
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used to get Asset Data for Inventory on Edit
- ** Purpose:         
- ** Date:    09/12/2024 
-          
- ** PARAMETERS:    
+ ** Purpose:
+ ** Date:    09/12/2024
 
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/12/2024   Abhishek Jirawla Created
-     
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
+    1    09/12/2024   Abhishek Jirawla	Created
+    2    15/07/2026   Vishal Suthar     Fall back to DeprNonDeprTangibleAssets for AssetTypeName
+    3    29/07/2026   Abhishek Jirawala Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+                                        (never a DeprNonDeprTangibleAssetsId); joined dnta by its
+                                        AssetAttributeTypeId FK instead of its own PK. Dropped the
+                                        dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+                                        always joined so its name always resolves.
+    4    05/08/2026   Abhishek Jirawala AssetAttributeType retired - Asset Class is now identified solely by
+                                        TangibleClassId. AssetTypeName now sources from TangibleClass.TangibleClassName
+                                        via asset.TangibleClassId instead of the AssetAttributeType/asty join, which
+                                        is dropped. Restored the dnta (DeprNonDeprTangibleAssets) join, keyed off
+                                        asset.TangibleClassId, and wired it up to DepreciationMethod,
+                                        ResidualPercentage, AssetLife, CalibratedGLAccount, AcquiredGLAccount and
+                                        DeprExpenseGLAccount - the class-level GL/depreciation attributes the
+                                        Inventory Edit screen displays, which had no source since AssetAttributeType
+                                        was dropped. ConventionType has no replacement source on TangibleClass /
+                                        DeprNonDeprTangibleAssets yet, so it now always returns 0.
+    5    06/08/2026   Abhishek Jirawala Return asset.DeprNonDeprTangibleAssetsId alongside asset.TangibleClassId -
+                                        Asset now persists which specific DeprNonDeprTangibleAssets row was
+                                        resolved at selection time.
+    6    07/08/2026   Abhishek Jirawala AssetTypeName now falls back to asset.DeprNonDeprTangibleAssetsId ->
+                                        DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName when
+                                        asset.TangibleClassId doesn't resolve directly.
+
 --  EXEC [GetAssetDataforInventoryOnEdit] 221
 **************************************************************/
 
@@ -26,7 +48,7 @@ CREATE     PROCEDURE [dbo].[GetAssetDataforInventoryOnEdit]
 AS
 BEGIN
     SET NOCOUNT ON;
-	
+
     IF EXISTS (SELECT TOP 1 * FROM DBO.Asset WITH (NOLOCK) WHERE AssetRecordId = @AssetRecordId AND IsIntangible = 1)
     BEGIN
         SELECT TOP 1
@@ -74,7 +96,7 @@ BEGIN
 			asset.Description,
 			asset.AssetRecordId,
 			asset.ManufacturerPN AS PartNumber,
-			CASE 
+			CASE
 				WHEN asset.AlternateAssetRecordId IS NULL THEN ''
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AlternateAssetRecordId)
 			END AS AlternateAssetId,
@@ -134,21 +156,21 @@ BEGIN
 			ISNULL(ascal.VerificationGlAccountId, 0) AS VerificationGlAccountId,
 			ISNULL(ascal.VerificationMemo, '') AS VerificationMemo,
 			ISNULL(ascal.VerificationRequired, 0) AS VerificationRequired,
-			CalibrationCurrencyName = CASE 
-											WHEN ascal.CalibrationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			CalibrationCurrencyName = CASE
+											WHEN ascal.CalibrationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 											END,
-			CertificationCurrencyName = CASE 
-											WHEN ascal.CertificationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			CertificationCurrencyName = CASE
+											WHEN ascal.CertificationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 										END,
-			InspectionCurrencyName = CASE 
-										WHEN ascal.InspectionCurrencyId IS NULL THEN '' 
-										ELSE c.Code 
+			InspectionCurrencyName = CASE
+										WHEN ascal.InspectionCurrencyId IS NULL THEN ''
+										ELSE c.Code
 									END,
-			VerificationCurrencyName = CASE 
-											WHEN ascal.VerificationCurrencyId IS NULL THEN '' 
-											ELSE c.Code 
+			VerificationCurrencyName = CASE
+											WHEN ascal.VerificationCurrencyId IS NULL THEN ''
+											ELSE c.Code
 										END,
 			ISNULL(asmai.WarrantyCompany, '') AS WarrantyCompany,
 			asset.AssetIntangibleTypeId,
@@ -160,8 +182,15 @@ BEGIN
 				ELSE (SELECT p.AssetId FROM DBO.Asset p WITH (NOLOCK) WHERE p.AssetRecordId = asset.AssetParentRecordId)
 			END AS AssetParentId,
 			asset.TangibleClassId,
-			ISNULL(asty.AssetAttributeTypeName, '') AS AssetTypeName,
+			asset.DeprNonDeprTangibleAssetsId,
+			ISNULL(at.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetTypeName,
 			asset.AssetAttributeTypeId,
+			ISNULL(dndm.AssetDepreciationMethodName, '') AS DepreciationMethod,
+			ISNULL(dndper.PercentValue, 0) AS ResidualPercentage,
+			dnta.AssetLife,
+			ISNULL(dndcgla.AccountCode + '-' + dndcgla.AccountName, '') AS CalibratedGLAccount,
+			ISNULL(dndagla.AccountCode + '-' + dndagla.AccountName, '') AS AcquiredGLAccount,
+			ISNULL(dndegla.AccountCode + '-' + dndegla.AccountName, '') AS DeprExpenseGLAccount,
 			asset.AssetLocationId,
 			(SELECT p.Code + '-' + p.Name FROM DBO.AssetLocation p WITH (NOLOCK) WHERE p.AssetLocationId = asset.AssetLocationId) AS AsetLocationName,
 			ISNULL(cagla.AccountCode + '-' + cagla.AccountName, '') AS CalibrationGlAccountName,
@@ -198,7 +227,7 @@ BEGIN
 			asset.UpdatedBy,
 			asset.UpdatedDate,
 			ISNULL(vgla.AccountCode + '-' + vgla.AccountName, '') AS VerificationGlAccountName,
-			ISNULL(asty.ConventionType, 0) AS ConventionType,
+			0 AS ConventionType,
 			ISNULL(ascali.CalibrationProvider, 'Vendor') AS CalibrationProvider,
 			ISNULL(ascali.CertificationProvider, 'Vendor') AS CertificationProvider,
 			ISNULL(ascali.InspectionProvider, 'Vendor') AS InspectionProvider,
@@ -214,12 +243,19 @@ BEGIN
 			asset.BinId,
 			ISNULL(assbin.Name, '') AS BinName
 		FROM DBO.Asset asset WITH (NOLOCK)
-			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId 
+			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId
 			LEFT JOIN DBO.AssetCalibration ascali WITH (NOLOCK) ON asset.AssetRecordId = ascali.AssetRecordId
 			LEFT JOIN DBO.AssetMaintenance asmai WITH (NOLOCK) ON asset.AssetRecordId = asmai.AssetRecordId
 			LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
 			LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
-			LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+			LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON asset.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+			LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
+			LEFT JOIN DBO.DeprNonDeprTangibleAssets dnta WITH (NOLOCK) ON asset.TangibleClassId = dnta.TangibleClassId
+			LEFT JOIN DBO.AssetDepreciationMethod dndm WITH (NOLOCK) ON dnta.AssetDeprMethodId = dndm.AssetDepreciationMethodId
+			LEFT JOIN DBO.[Percent] dndper WITH (NOLOCK) ON dnta.ResidualPercentage = dndper.PercentId
+			LEFT JOIN DBO.GLAccount dndcgla WITH (NOLOCK) ON dnta.CalibratedGLAccountId = dndcgla.GLAccountId
+			LEFT JOIN DBO.GLAccount dndagla WITH (NOLOCK) ON dnta.AcquiredGLAccountId = dndagla.GLAccountId
+			LEFT JOIN DBO.GLAccount dndegla WITH (NOLOCK) ON dnta.DeprExpenseGLAccountId = dndegla.GLAccountId
 			LEFT JOIN DBO.Vendor vencali WITH (NOLOCK) ON ascal.CalibrationDefaultVendorId = vencali.VendorId
 			LEFT JOIN DBO.Vendor vencert WITH (NOLOCK) ON ascal.CertificationDefaultVendorId = vencert.VendorId
 			LEFT JOIN DBO.Vendor venins WITH (NOLOCK) ON ascal.InspectionDefaultVendorId = venins.VendorId

@@ -19,6 +19,13 @@
 	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
 	5    28-03-2025  Shrey Chandegara		Modified Due to Filter Issue.
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    06-08-2026  Abhishek Jirawala		AssetClass now returns the resolved Asset Class name via
+	                                        asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
+	                                        asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
+	                                        and blank when neither resolves, instead of the Tangible/Intangible flag.
+	8    07-08-2026  Abhishek Jirawala		AssetType now uses the same TangibleClassId/DeprNonDeprTangibleAssetsId
+	                                        resolution as AssetClass, instead of the AssetAttributeType table join.
+
 ************************************************************************/
 
 CREATE PROCEDURE [dbo].[GetAssetPNViewList]  
@@ -128,10 +135,10 @@ BEGIN
     UPPER(maf.Name) AS ManufacturerName,  
     UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
     UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
-    UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END) AS AssetClass,
+    UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ''))) AS AssetClass,
 	UPPER((SELECT TOP 1 AssetDepreciationMethodName FROM dbo.AssetDepreciationMethod AS adm WITH(NOLOCK) WHERE adm.AssetDepreciationMethodId = asty.DepreciationMethod)) AS DepreciationMethod,
     UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
-    UPPER(asty.AssetAttributeTypeName) AS AssetType,   
+    UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ''))) AS AssetType,
     UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
 	(Cast(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) CreatedDate,
 	(Cast(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) UpdatedDate,
@@ -145,10 +152,13 @@ BEGIN
 	  ,(SELECT CAST(ai.AssetInventoryId as NVARCHAR(100)) + ',' 
 	  FROM dbo.AssetInventory ai  WITH(NOLOCK) WHERE ai.AssetRecordId=asm.AssetRecordId FOR XML PATH('')) AS AssetInventoryIds
      FROM dbo.Asset asm WITH(NOLOCK)  
-      LEFT JOIN dbo.AssetCalibration ascal WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId  
-      --LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
+      LEFT JOIN dbo.AssetCalibration ascal WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId
+      --LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 	  LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.AssetAttributeTypeId = asty.AssetAttributeTypeId
-      LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
+	  LEFT JOIN dbo.TangibleClass tcDirect WITH(NOLOCK) on asm.TangibleClassId = tcDirect.TangibleClassId
+	  LEFT JOIN dbo.DeprNonDeprTangibleAssets dndFallback WITH(NOLOCK) on asm.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+	  LEFT JOIN dbo.TangibleClass tcViaDnd WITH(NOLOCK) on dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
+      LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID  IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 	  --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	

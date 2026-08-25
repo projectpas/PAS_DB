@@ -16,8 +16,10 @@
  ** --   --------     -------			--------------------------------              
     1    Unknown		Unknown				Created    
 	2    11-04-2024   Abhishek Jirawla		In AssetInventoryDraft SET Assetlife and Asset Location, Calibration details, warranty details
-    3    11-04-2025   Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table      
-**************************************************************/    
+    3    11-04-2025   Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
+	4    20-08-2026   Abhishek Jirawala	Copy DeprNonDeprTangibleAssetsId from Asset onto the draft so it carries
+	                                    forward when the draft is converted into an AssetInventory row
+**************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
 @PurchaseOrderId  bigint
 AS
@@ -94,6 +96,7 @@ BEGIN
 			  ,SD.[CurrencyId] = AST.CurrencyId
 			  ,SD.[AssetParentRecordId] = AST.AssetParentRecordId
 			  ,SD.[TangibleClassId] = AAT.TangibleClassId
+              ,SD.[DeprNonDeprTangibleAssetsId] = AST.DeprNonDeprTangibleAssetsId
               ,SD.[AssetIntangibleTypeId] = AST.AssetIntangibleTypeId
 			  --,SD.[AssetCalibrationMin] = AST.AssetCalibrationMin                                       Neet To Discuss
 			  --,SD.[AssetCalibrationMinTolerance] = AI.AssetCalibrationMinTolerance					  Neet To Discuss

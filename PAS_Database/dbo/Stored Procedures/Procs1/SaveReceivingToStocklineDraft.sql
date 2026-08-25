@@ -1,4 +1,4 @@
-/*********************               
+﻿/*********************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -38,9 +38,10 @@
 	22    15/July/2026			 RAJESH GAMI						[PN-17271] - Also insert Non-Stock PO Parts into StocklineDraft (IsNonStock = 1).
 	23    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters on ItemMaster lookups (isSerialized) that would silently fail for Non-Stock items.
 	24    15/July/2026			 RAJESH GAMI						[PN-17271] - Removed NonStockInventoryDraft insert; StocklineDraft is now the sole insert for Non-Stock PO Parts.
+	25    18/Aug/2026			 Bhargav Saliya						[PN-17660] Get Stockline Shelf and Bin Values
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **********************/    
-CREATE      PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
+CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
 AS    
@@ -226,12 +227,12 @@ BEGIN
 		IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
 		NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
 		NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
-		IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
+		IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, IM.ShelfId, IM.BinId, IM.SiteId,    
 		NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
 		NULL, NULL, @ACTailNum, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 		NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
 		NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
-		IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
+		IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, IM.ShelfName, IM.BinName, IM.SiteName, '', '',    
 		'', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
 		NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
 		NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
@@ -339,12 +340,12 @@ BEGIN
 		  IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
 		  NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
 		  NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
-		  IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
+		  IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, IM.ShelfId, IM.BinId, IM.SiteId,    
 		  NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, @QuantityToReceive, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
 		  NULL, NULL, @ACTailNum, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 		  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
 		  NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
-		  IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
+		  IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, IM.ShelfName, IM.BinName, IM.SiteName, '', '',    
 		  '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
 		  NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
 		  NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
@@ -734,13 +735,13 @@ BEGIN
 			IM.LocationId, NULL, NULL, NULL, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL, NULL,
 			NULL, NULL, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL, NULL,
 			NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, @POPartGLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma, IM.IsDER,
-			IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL,
-			NULL, IM.SiteId, NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1), NULL,
+			IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, IM.ShelfId,
+			IM.BinId, IM.SiteId, NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1), NULL,
 			NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '', NULL, 0, NULL,
 			NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable, NULL, NULL, NULL, 0, NULL,
 			0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL,
 			@IsParent_NonStock, 0, 1, NULL, NULL, NULL, NULL, @ConditionName, IM.WarehouseName, IM.LocationName, '',
-			'', NULL, @POPartGLAccountName, NULL, NULL, NULL, NULL, IM.SiteName, '', '', '',
+			'', NULL, @POPartGLAccountName, NULL, NULL, IM.ShelfName, IM.BinName, IM.SiteName, '', '', '',
 			NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000', NULL, NULL, NULL, IM.PurchaseUnitOfMeasureId,
 			IM.PurchaseUnitOfMeasure, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, 0,
 			NULL, NULL, NULL, NULL, NULL, NULL, @LotId, NULL, NULL, NULL, NULL,
@@ -845,13 +846,13 @@ BEGIN
 			IM.LocationId, NULL, NULL, NULL, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL, NULL,
 			NULL, NULL, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL, NULL,
 			NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, @POPartGLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma, IM.IsDER,
-			IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL,
-			NULL, IM.SiteId, NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1), NULL,
+			IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, IM.ShelfId,
+			IM.BinId, IM.SiteId, NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1), NULL,
 			NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '', NULL, 0, NULL,
 			NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable, NULL, NULL, NULL, 0, NULL,
 			0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL,
 			@IsParent_NonStock, 0, 1, NULL, NULL, NULL, NULL, @ConditionName, IM.WarehouseName, IM.LocationName, '',
-			'', NULL, @POPartGLAccountName, NULL, NULL, NULL, NULL, IM.SiteName, '', '', '',
+			'', NULL, @POPartGLAccountName, NULL, NULL, IM.ShelfName, IM.BinName,  IM.SiteName, '', '', '',
 			NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000', NULL, NULL, NULL, IM.PurchaseUnitOfMeasureId,
 			IM.PurchaseUnitOfMeasure, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, 0,
 			NULL, NULL, NULL, NULL, NULL, NULL, @LotId, NULL, NULL, NULL, NULL,

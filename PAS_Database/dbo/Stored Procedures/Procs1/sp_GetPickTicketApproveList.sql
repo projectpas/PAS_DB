@@ -28,6 +28,8 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
+	15   08/Aug/2026			 Divyesh Kathiriya					[PN-17554] - Added Non-Stock and Service flags to disable Pick Ticket creation for Non-Stock Service parts.
+
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 10851
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_GetPickTicketApproveList]
@@ -46,6 +48,8 @@ BEGIN
 				sop.SalesOrderId,
 				imt.PartNumber,
 				imt.PartDescription,
+				ISNULL(imt.[IsNonStock], 0) AS [IsNonStock], 
+				ISNULL(imt.[IsService], 0) AS [IsService],
 		--(SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) 
 		(SELECT TOP 1 (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL([QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([QtyRequested],0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.[MasterCompanyId]) END)
 		    FROM [dbo].[SalesOrderPartV1] SP WITH(NOLOCK) 
@@ -169,7 +173,7 @@ BEGIN
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
 		,sl.isSerialized, imt.ItemMasterId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],sl.[MasterCompanyId],
-		imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId])
+		imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId], imt.[IsNonStock], imt.[IsService])
 
 		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
 		SerialNumber, QuantityAvailable,
@@ -182,7 +186,7 @@ BEGIN
 		FROM CTE
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = cte.SalesOrderId AND sopt.SalesOrderPartId = cte.SalesOrderPartId
 		GROUP BY cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
-		SerialNumber, QuantityAvailable, cte.[Status], SalesOrderNumber, SalesOrderQuoteNumber, ConditionId, CustomerName, CustomerCode--,cte.TotalReadyToPick 
+		SerialNumber, QuantityAvailable, cte.[Status], SalesOrderNumber, SalesOrderQuoteNumber, ConditionId, CustomerName, CustomerCode, cte.[IsNonStock], cte.[IsService]--,cte.TotalReadyToPick 
 	END
 	COMMIT  TRANSACTION
 

@@ -13,9 +13,10 @@
   1    11-September-2025  Divyesh Kathiriya	Created
 	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
 	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
-	4    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
-	5   01/July/2026			RAJESH GAMI [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
+	4    04-May-2026		    Moin Bloch	    Moved TO API SIDE PN-16014
+	5   01/July/2026			RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
 	6   29-July-2026        Ayushi Patel		Added New Field IsService [PN-17470]
+	7   25/Aug/2026			RAJESH GAMI		    PN-17776 - Allow Same PN and Manufacturer for Stock and Non-Stock Items 
  -- EXEC [USP_AddItemMasterGeneralInfo] 
  drop procedure [USP_AddItemMasterGeneralInfo]
 **************************************************************/
@@ -32,7 +33,7 @@ BEGIN
 		DECLARE @PartNumber VARCHAR(50), @PartDescription NVARCHAR(max);
 		DECLARE @CreatedBy VARCHAR(256), @UpdatedBy VARCHAR(256), @ItemMasterRankingIds VARCHAR(256);
 		DECLARE @ManufacturerName VARCHAR(100);
-		DECLARE @IsActive BIT, @IsDeleted BIT;
+		DECLARE @IsActive BIT, @IsDeleted BIT, @IsNonStock BIT;
 		DECLARE @ItemMasterModuleId INT;	
 		SELECT @ItemMasterModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'ITEMMASTER';
 		SELECT 
@@ -42,9 +43,11 @@ BEGIN
 			@ItemMasterRankingIds = [ItemMasterRankingIds],
 			@MasterCompanyId = [MasterCompanyId], 
 			@CreatedBy = [CreatedBy],
-			@UpdatedBy = [UpdatedBy]			
+			@UpdatedBy = [UpdatedBy],
+			@IsNonStock = ISNULL(IsNonStock,0)
 		FROM @tbl_ItemMasterTableType;
-		
+		PRINT @IsNonStock
+
 		IF OBJECT_ID(N'tempdb..##tmpitemmasterranking') IS NOT NULL        
 		BEGIN        
 			DROP TABLE #tmpitemmasterranking    
@@ -58,7 +61,7 @@ BEGIN
 		CREATE TABLE #tmpmsg(msg VARCHAR(100) NULL) 
 
 /***************Start Save Item Details***************/	
-		IF NOT EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ManufacturerId] = @ManufacturerId AND [PartNumber] = @PartNumber AND [MasterCompanyId] = @MasterCompanyId)
+		IF NOT EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ManufacturerId] = @ManufacturerId AND [PartNumber] = @PartNumber AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(IsNonStock,0) = @IsNonStock)
 		BEGIN
 			INSERT INTO [DBO].[MasterParts] ([PartNumber], [Description], [ManufacturerId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 			VALUES (@PartNumber, @PartDescription, @ManufacturerId, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0);
@@ -135,6 +138,13 @@ BEGIN
 	IF @@trancount > 0  
 		PRINT 'ROLLBACK'  
 		ROLLBACK TRAN;  
+		SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
               , @AdhocComments     VARCHAR(150)    = 'USP_AddItemMasterGeneralInfo'
 			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = '''

@@ -12,6 +12,7 @@
  ** --   --------			-------					-------------------------------            
 	1    18-Nov-2025		Devendra Shekh			Created
 	2    02-Feb-2026	    Bhargav Saliya			Added JournalTypeName Field
+	3    21-Aug-2026	    Bhargav Saliya			PN-15173 Sort result set by latest Journal Entry (JE) number
 	 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter]  
@@ -510,8 +511,8 @@ BEGIN
 
 	SELECT * INTO #GLRecordsResult 
 	FROM #TempResults
-	ORDER BY AccountingPeriodId, JournalNumber
-	OFFSET @RecordFrom ROWS 
+	ORDER BY AccountingPeriodId, JournalNumber DESC
+	OFFSET @RecordFrom ROWS
 	FETCH NEXT @PageSize ROWS ONLY
 
 	SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);
@@ -530,7 +531,7 @@ BEGIN
 		Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM, ReferenceNumber,JournalTypeName, @TotalRecordsCount as NumberOfItems		
 	FROM cteRanked c1 
 	WHERE c1.GLAccountId IS NOT NULL
-	ORDER BY OrderNum, JournalNumber;
+	ORDER BY OrderNum, JournalNumber DESC;
 
 	END TRY  
 	BEGIN CATCH  

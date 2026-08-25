@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderQuoteParts]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get sales order quote part details for view    
@@ -25,6 +25,8 @@
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
+	12    20/Aug/2026  Ayushi Patel      [PN-17573]return two field for soq print (IsNonStock,IsService)
+	13    21/Aug/2026  Ayushi Patel		 [PN-17573] Handle isNull (IsNonStock,IsService)
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -206,7 +208,9 @@ BEGIN
 			ISNULL(CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
 				THEN ISNULL(SOQSC.NetSaleAmount, 0)
 				ELSE ISNULL(SOQPC.NetSaleAmount, 0)
-			END, 0) NetSalePriceExtendedPart
+			END, 0) NetSalePriceExtendedPart,
+			ISNULL(itemMaster.IsNonStock,0) IsNonStock,
+			ISNULL(itemMaster.IsService,0) IsService
 
 		INTO #tmpSOPartTblView
 		FROM DBO.SalesOrderQuotePartV1 part WITH (NOLOCK)

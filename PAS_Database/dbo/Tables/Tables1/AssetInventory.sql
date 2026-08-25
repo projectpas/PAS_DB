@@ -171,6 +171,9 @@
     [ReceivablesAmount]                 DECIMAL (18, 6) NULL,
     [DepreciationStartDate]             DATETIME        NULL,
     [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
+    [CalibratedGLAccountId]             BIGINT          NULL,
+    [CalibratedGLAccountName]           VARCHAR (255)   NULL,
+    [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
     CONSTRAINT [FK_AssetInventory_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_AssetInventory_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -179,10 +182,6 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
-
-
-
-
 
 
 
@@ -243,4 +242,26 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Asset_POPart_Date]
     ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC, [CreatedDate] ASC)
     INCLUDE([Name], [Description], [CreatedBy], [UnitCost]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_ROPartRec_Perf]
+    ON [dbo].[AssetInventory]([RepairOrderPartRecordId] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_POPartRec_Perf]
+    ON [dbo].[AssetInventory]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([Name], [Description], [CreatedBy], [CreatedDate], [UnitCost]) WITH (FILLFACTOR = 90);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_Created_ROPartRec_Perf]
+    ON [dbo].[AssetInventory]([CreatedDate] ASC, [RepairOrderPartRecordId] ASC) WITH (FILLFACTOR = 90);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_Created_POPartRec_Perf]
+    ON [dbo].[AssetInventory]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90);
 

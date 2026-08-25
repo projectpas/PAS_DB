@@ -14,11 +14,14 @@
  **************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1       
-	2    14/04/2025   Moin Bloch        Modify(Update QuantityBackOrdered From QuantityReceived)  
+    1
+	2    14/04/2025   Moin Bloch        Modify(Update QuantityBackOrdered From QuantityReceived)
+	3    20/08/2026   Abhishek Jirawala Copy DeprNonDeprTangibleAssetsId onto the draft (from the existing
+	                                    AssetInventory when re-receiving a known asset, else from Asset) so it
+	                                    carries forward when the draft is converted into an AssetInventory row
 
 --- exec UpdateAssetInventoryDraftRoDetails  1133
-**************************************************************/ 
+**************************************************************/
 CREATE    PROCEDURE [dbo].[UpdateAssetInventoryDraftRoDetails]
 @RepairOrderId  bigint
 AS
@@ -43,6 +46,7 @@ BEGIN TRANSACTION
       ,SD.[Memo] = AI.Memo
       ,SD.[AssetParentRecordId] = AI.AssetParentRecordId
       ,SD.[TangibleClassId] = AAT.TangibleClassId  --------------------
+      ,SD.[DeprNonDeprTangibleAssetsId] = ISNULL(AI.DeprNonDeprTangibleAssetsId, AST.DeprNonDeprTangibleAssetsId)
       ,SD.[AssetIntangibleTypeId] = AI.AssetIntangibleTypeId
       ,SD.[AssetCalibrationMin] = AI.AssetCalibrationMin
       ,SD.[AssetCalibrationMinTolerance] = AI.AssetCalibrationMinTolerance

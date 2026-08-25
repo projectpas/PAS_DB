@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId_Filter]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -40,12 +40,14 @@
 														    the LotManagementStructureDetails join calls the multi-statement SplitString() function, so the
 														    entire join was silently running TWICE per call. Materialized Result into a #Result temp table
 														    (built once, with a clustered index on StockLineId+CreatedDate) so it's computed once and read twice.
-	20   14-Aug-2026   RAJESH GAMI      PN-17673 : REVENUE-MARGIN Added if IsRevenue & IsMargin selected in the Consingment Setup (ConsignMent Tab)
-	21   25-Aug-2026   RAJESH GAMI      [PN-17745] Ported from PAS_DB - HowAcquired/AcquiredRef CASE expressions in the ViewAllPN branch now also recognize the new 'Turn In' type (in addition to 'Trans In(Lot)') so stocklines created via "Create Stockline from Lot" are still displayed correctly. (A separate pre-existing exclusion filter in the PNInStockView branch, around the NOT(...IN(@LOT_TransIn_LOT,@LOT_TransIn_PO)...) EXISTS block, was left untouched - its intended behavior for 'Turn In' is unclear and needs business confirmation.)
+   22   14-Aug-2026   RAJESH GAMI      PN-17673 : REVENUE-MARGIN Added if IsRevenue & IsMargin selected in the Consingment Setup (ConsignMent Tab)
+   23    17-Aug-2026	Ayushi Patel					[PN-17678] added two fields salesOrderQuoteNumber and invoiceNumber
+   24   24-Aug-2026   RAJESH GAMI      BAG LOT: Added a new flag, IsExcludedFromOnHand, for the PARTS ON HAND tab (PNInStockView). Only records where IsExcludedFromOnHand is NULL or 0 will be included.
+   25   25-Aug-2026   RAJESH GAMI      [PN-17745] Ported from PAS_DB - HowAcquired/AcquiredRef CASE expressions in the ViewAllPN branch now also recognize the new 'Turn In' type (in addition to 'Trans In(Lot)') so stocklines created via "Create Stockline from Lot" are still displayed correctly. (A separate pre-existing exclusion filter in the PNInStockView branch, around the NOT(...IN(@LOT_TransIn_LOT,@LOT_TransIn_PO)...) EXISTS block, was left untouched - its intended behavior for 'Turn In' is unclear and needs business confirmation.)
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
+CREATE    PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -819,6 +821,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId	 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(REPLACE(ltCal.Type,' ','')) NOT IN (UPPER(REPLACE(@LOT_SO_Shipped,' ','')),UPPER(REPLACE(@LOT_TransOut_SO,' ','')), UPPER(REPLACE(@LOT_TransOut_RO,' ','')),UPPER(REPLACE(@LOT_TransOut_LOT,' ','')))) 
 				 AND (ISNULL(sl.QuantityAvailable,0) >= @AvailableQty)
+				 AND ISNULL(ltin.IsExcludedFromOnHand,0) = 0
 				 AND NOT (
 						  UPPER(REPLACE(ltCal.Type,' ','')) IN (UPPER(REPLACE(@LOT_TransIn_LOT,' ','')), UPPER(REPLACE(@LOT_TransIn_PO,' ','')))
 						  AND EXISTS (
@@ -1340,6 +1343,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,(CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END) WoNum
 				,So.SalesOrderNumber SoNum
 				,sobi.InvoiceNo InvoiceNum 
+				,soq.SalesOrderQuoteNumber AS SalesOrderQuoteNumber
+				,sobi.InvoiceNo InvoiceNumber
 				,ven.VendorName Vendor
 				,ISNULL(ven.VendorCode,'')VendorCode
 				,ISNULL(ven.VendorId,0) VendorId
@@ -1390,8 +1395,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND sobi.[ModuleId] = @SOModuleId
-					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND sobi.[ModuleId] = @SOModuleId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId
+					 LEFT JOIN DBO.SalesOrderQuote soq WITH(NOLOCK) ON so.SalesOrderQuoteId = soq.SalesOrderQuoteId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId

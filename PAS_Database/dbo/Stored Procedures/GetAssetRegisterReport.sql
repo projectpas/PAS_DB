@@ -22,6 +22,7 @@
 	1	 10-01-2024		Ayesha Sultana		Created
 	2    11-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed and added some more return values. Also added some modification to Depreciation calculations.
 	3	 12/12/2024		Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
+	4    12-Aug-2026    Abhishek Jirawla	Remove AssetAttributeTypeId
      
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
@@ -86,7 +87,7 @@ BEGIN
 				AI.AssetId AS InternalPN,
 				UPPER(ASTS.[Name]) AS AssetStatus,
 				UPPER(COALESCE(ASTIS.[Status], ASTAS.[Status], '')) AS InventoryStatus,
-				UPPER(ASAT.AssetAttributeTypeName) AS AssetClass,
+				UPPER(TC.TangibleClassName) AS AssetClass,
 				AI.InventoryNumber,
 				UPPER(AI.PartNumber) AS PartNumber,
 				AI.AlternateAssetRecordId,
@@ -141,11 +142,12 @@ BEGIN
 				LEFT JOIN DBO.AssetAcquisitionType AAT WITH(NOLOCK) ON AAT.AssetAcquisitionTypeId = AI.AssetAcquisitionTypeId
 				LEFT JOIN DBO.AssetInventoryStatus ASTIS WITH(NOLOCK) ON ASTIS.AssetInventoryStatusId = AI.InventoryStatusId
 				LEFT JOIN DBO.AssetAvailableStatus ASTAS WITH(NOLOCK) ON ASTAS.AssetAvailableStatusId = AI.InventoryStatusId
-				LEFT JOIN DBO.AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
+				--LEFT JOIN DBO.AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
+				LEFT JOIN DBO.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = AI.TangibleClassId
 				LEFT JOIN DBO.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
 				LEFT JOIN DBO.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID 		
 
-		WHERE ((ISNULL(@id,0) = 0 OR AI.AssetAttributeTypeId IN (@id,0)))			
+		WHERE ((ISNULL(@id,0) = 0 OR AI.TangibleClassId IN (@id,0)))			
 			  AND ((ISNULL(@id2,0) = 0 OR AI.AssetStatusId IN (@id2,0)))		 
 			  AND ((ISNULL(@id3,0) = 0 OR AI.InventoryStatusId IN (@id3,0)))	 
 			  AND AI.MasterCompanyId = @mastercompanyid

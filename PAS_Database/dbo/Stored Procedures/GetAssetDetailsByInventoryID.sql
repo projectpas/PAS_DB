@@ -1,24 +1,38 @@
-﻿/*************************************************************           
- ** File:   [GetAssetDetailsByInventoryID]           
+﻿/*************************************************************
+ ** File:   [GetAssetDetailsByInventoryID]
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used to get AssetData By InventoryId
- ** Purpose:         
- ** Date:    09/12/2024 
-          
- ** PARAMETERS:    
+ ** Purpose:
+ ** Date:    09/12/2024
 
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author				Change Description
+ ** --   --------     -------				--------------------------------
     1    09/12/2024   Abhishek Jirawla		Created
 	2    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
 	3	 30-01-2026	  Divyesh Kathiriya		Add "CalibrationCertificateNumber"
-     
---  EXEC [GetAssetDetailsByInventoryID] 614
+	4	 15-07-2026	  Vishal Suthar			Fall back to DeprNonDeprTangibleAssets for AssetType
+	5	 29-07-2026	  Abhishek Jirawala		Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+											(never a DeprNonDeprTangibleAssetsId); joined dnta by its
+											AssetAttributeTypeId FK instead of its own PK. Dropped the
+											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+											always joined so its name always resolves.
+	6	 06-08-2026	  Abhishek Jirawala		AssetInventory now persists which specific DeprNonDeprTangibleAssets
+											row was resolved at TangibleClassId selection time. Return
+											asset.DeprNonDeprTangibleAssetsId alongside asset.TangibleClassId.
+	7	 07-08-2026	  Abhishek Jirawala		AssetType now falls back to asset.DeprNonDeprTangibleAssetsId ->
+											DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName when
+											asset.TangibleClassId doesn't resolve directly. Removed the dead
+											dnta/atc joins (declared but never referenced) that were left over
+											from an earlier, reverted fallback attempt.
+
+--  EXEC [GetAssetDetailsByInventoryID] 1123
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetDetailsByInventoryID]
     @AssetInventoryId BIGINT
@@ -36,7 +50,8 @@ BEGIN
 
 	IF EXISTS(SELECT TOP 1 * FROM DBO.AssetInventory WITH (NOLOCK) WHERE AssetInventoryId = @AssetInventoryId AND IsIntangible = 1)
 	BEGIN
-		SELECT 
+		PRINT 'Y'
+		SELECT
 			ISNULL(asset.InventoryNumber, '') AS InventoryNumber,
 			ISNULL(asset.InventoryStatusId, 0) AS InventoryStatusId,
 			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
@@ -44,11 +59,11 @@ BEGIN
 			ISNULL(asset.AssetInventoryId, 0) AS AssetInventoryId,
 			ISNULL(asset.AssetRecordId, 0) AS AssetRecordId,
 			ISNULL(asset.AssetStatusId, 0) AS AssetStatusId,
-			ISNULL((SELECT TOP 1 p.Name 
+			ISNULL((SELECT TOP 1 p.Name
 					FROM AssetStatus p  WITH (NOLOCK)
 					WHERE p.AssetStatusId = asset.AssetStatusId), '') AS AssetStatus,
 			ISNULL(asset.AlternateAssetRecordId, 0) AS AlternateAssetRecordId,
-			ISNULL((SELECT TOP 1 p.AssetId 
+			ISNULL((SELECT TOP 1 p.AssetId
 					FROM Asset p  WITH (NOLOCK)
 					WHERE p.AssetRecordId = asset.AlternateAssetRecordId), 0) AS AlternateAssetRecord,
 			ISNULL(asset.IsInsurance, 0) AS IsInsurance,
@@ -82,6 +97,7 @@ BEGIN
 			ISNULL(asset.DepreciationMethodName, '') AS AmortizationMethod,
 			ISNULL(asset.DepreciationFrequencyName, '') AS AmortizationFrequency,
 			ISNULL(asty.IntangibleLifeYears, 0) AS IntangibleLife,
+			--ISNULL(asset.CalibrationGLAccountName, '') AS IntangibleGLAccount,
 			ISNULL(asset.IntangibleGLAccountName, '') AS IntangibleGLAccount,
 			ISNULL(asset.AmortExpenseGLAccountName, '') AS AmortExpenseGLAccount,
 			ISNULL(asset.AccAmortDeprGLAccountName, '') AS AccAmortDeprGLAccount,
@@ -103,17 +119,17 @@ BEGIN
 			ISNULL(asset.ReceivedDate, GETDATE()) AS ReceivedDate,
 			ISNULL(asset.StatusNote, '') AS StatusNote,
 			ISNULL(wo.WorkOrderNum, '') AS WorkOrderNum,
-			ISNULL(asset.DepreciationStartDate, GETDATE()) AS DepreciationStartDate			
+			ISNULL(asset.DepreciationStartDate, GETDATE()) AS DepreciationStartDate
 		FROM DBO.AssetInventory asset WITH (NOLOCK)
 		LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
 		LEFT JOIN DBO.AssetIntangibleType aity WITH (NOLOCK) ON asset.AssetIntangibleTypeId = aity.AssetIntangibleTypeId
 		LEFT JOIN DBO.AssetIntangibleAttributeType asty WITH (NOLOCK) ON asset.AssetIntangibleTypeId = asty.AssetIntangibleTypeId
-		LEFT JOIN DBO.CheckInCheckOutWorkOrderAsset ciwo 
-			ON asset.AssetInventoryId = ciwo.AssetInventoryId 
+		LEFT JOIN DBO.CheckInCheckOutWorkOrderAsset ciwo
+			ON asset.AssetInventoryId = ciwo.AssetInventoryId
 			AND ciwo.InventoryStatusId = @CheckInInventoryStatusId -- CheckIn status
 		LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) ON ciwo.WorkOrderId = wo.WorkOrderId
-		LEFT JOIN DBO.AssetManagementStructureDetails AMSD 
-			ON asset.AssetInventoryId = AMSD.ReferenceID 
+		LEFT JOIN DBO.AssetManagementStructureDetails AMSD
+			ON asset.AssetInventoryId = AMSD.ReferenceID
 			AND AMSD.ModuleID = @AssetInventoryInTangibleManagementStructureModuleId -- ManagementStructureModuleEnum.AssetInventoryInTangible
 		LEFT JOIN DBO.AssetInventoryStatus ins WITH (NOLOCK) ON asset.InventoryStatusId = ins.AssetInventoryStatusId
 		LEFT JOIN DBO.AssetAvailableStatus ans WITH (NOLOCK) ON asset.InventoryStatusId = ans.AssetAvailableStatusId
@@ -122,8 +138,8 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-
-		SELECT 
+		PRINT 'N'
+		SELECT
 			asset.InventoryNumber,
 			asset.InventoryStatusId,
 			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
@@ -131,11 +147,11 @@ BEGIN
 			asset.AssetInventoryId,
 			asset.AssetRecordId,
 			asset.AlternateAssetRecordId,
-			ISNULL((SELECT TOP 1 p.AssetId 
+			ISNULL((SELECT TOP 1 p.AssetId
 					FROM Asset p  WITH (NOLOCK)
 					WHERE p.AssetRecordId = asset.AlternateAssetRecordId), 0) AS AlternateAssetRecord,
 			asset.AssetStatusId,
-			ISNULL((SELECT TOP 1 p.Name 
+			ISNULL((SELECT TOP 1 p.Name
 					FROM AssetStatus p  WITH (NOLOCK)
 					WHERE p.AssetStatusId = asset.AssetStatusId), '') AS AssetStatus,
 			asset.AssetAcquisitionTypeId,
@@ -144,7 +160,7 @@ BEGIN
 			asset.AssetCalibrationExpectedTolerance,
 			asset.SerialNo,
 			ISNULL(manu.Name, '') AS ManufacturerName,
-			ISNULL(asty.AssetAttributeTypeName, '') AS AssetType,
+			ISNULL(at.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, '')) AS AssetType,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			ISNULL(curr.Code, '') AS CurrencyName,
 			ISNULL(asset.IsInsurance, 0) AS IsInsurance,
@@ -160,14 +176,15 @@ BEGIN
 			ISNULL(asset.AssetMaintenanceContractFileExt, '') AS AssetMaintenanceContractFileExt,
 			ISNULL(asset.AssetMaintenanceIsContract, 0) AS AssetMaintenanceIsContract,
 			asset.AssetParentRecordId,
-			ISNULL((SELECT TOP 1 p.AssetId 
+			ISNULL((SELECT TOP 1 p.AssetId
 					FROM Asset p  WITH (NOLOCK)
 					WHERE p.AssetRecordId = asset.AssetParentRecordId), 0) AS AssetParentRecord,
 			asset.UnitOfMeasureId,
 			ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
 			asset.TangibleClassId,
+			asset.DeprNonDeprTangibleAssetsId,
 			asset.AssetLocationId,
-			CASE 
+			CASE
 				WHEN alo.AssetLocationId IS NULL THEN ''
 				ELSE CONCAT(alo.Code, '-', alo.Name)
 			END AS AssetLocationName,
@@ -176,7 +193,10 @@ BEGIN
 			asset.CalibrationDefaultVendorId,
 			asset.CalibrationFrequencyDays,
 			asset.CalibrationFrequencyMonths,
-			asset.CalibrationGlAccountId,
+			asset.CalibratedGLAccountId CalibrationGlAccountId,
+			ISNULL(asset.CalibratedGLAccountName, '') AS CalibrationGlAccount,
+			--asset.CalibrationGlAccountId,
+			--ISNULL(CalibrationGL.AccountName, '') AS CalibrationGlAccount,
 			ISNULL(asset.CalibrationMemo, '') AS CalibrationMemo,
 			ISNULL(asset.CalibrationRequired, 0) AS CalibrationRequired,
 			asset.CertificationCurrencyId,
@@ -271,6 +291,8 @@ BEGIN
 			asset.AcquiredGLAccountId,
 			asset.DeprExpenseGLAccountId,
 			asset.AdDepsGLAccountId,
+			asset.CalibratedGLAccountId,
+			ISNULL(asset.CalibratedGLAccountName, '') AS CalibratedGLAccount,
 			ISNULL(asset.AdDepsGLAccountName, '') AS AdDepsGLAccount,
 			ISNULL(asset.AssetSaleGLAccountName, '') AS AssetSale,
 			ISNULL(asset.AssetWriteOffGLAccountName, '') AS AssetWriteOff,
@@ -343,7 +365,10 @@ BEGIN
 		LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON asset.UnitOfMeasureId = uom.UnitOfMeasureId
 		LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON asset.CurrencyId = curr.CurrencyId
 		LEFT JOIN DBO.AssetAcquisitionType aacq WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
+		LEFT JOIN DBO.Asset astSrc WITH (NOLOCK) ON asset.AssetRecordId = astSrc.AssetRecordId
 		LEFT JOIN DBO.AssetAttributeType asty WITH (NOLOCK) ON asset.AssetAttributeTypeId = asty.AssetAttributeTypeId
+		LEFT JOIN DBO.DeprNonDeprTangibleAssets dndFallback WITH (NOLOCK) ON asset.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+		LEFT JOIN DBO.TangibleClass tcViaDnd WITH (NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
 		LEFT JOIN DBO.GLAccount wgla WITH (NOLOCK) ON asset.WarrantyGLAccountId = wgla.GLAccountId
 		LEFT JOIN DBO.GLAccount mgla WITH (NOLOCK) ON asset.MaintenanceGLAccountId = mgla.GLAccountId
 		LEFT JOIN DBO.AssetLocation alo WITH (NOLOCK) ON asset.AssetLocationId = alo.AssetLocationId

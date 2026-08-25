@@ -20,7 +20,11 @@
 	7    08/05/2024  Devendra Shekh		Added lastDeprDate to List
 	8	 12/11/2024  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 	9   27-Mar-2025	 Divyesh Kathiriya	Update CreatedDate, UpdateDate and LastDeprDate based on Employee time zone
-	
+	10  07-08-2026	 Abhishek Jirawala	AssetType (shown as "Asset Class") now resolves directly off
+	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
+	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
+	                                    then to the intangible type name, instead of the AssetAttributeType table join.
+
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
@@ -175,7 +179,7 @@ BEGIN
 								UPPER(CASE WHEN asm.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END) AS CalibrationRequiredNew,
 								UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'ELSE 'Intangible' END) AS AssetClass,
 								UPPER(ISNULL((CASE WHEN ISNULL(asm.IsTangible,0) = 1 AND ISNULL(asm.IsDepreciable, 0) = 1 THEN 'Yes' WHEN  ISNULL(asm.IsTangible,0) = 0 AND ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  ELSE 'No'  END),'No')) AS deprAmort,
-								AssetType = UPPER(CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END), --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+								AssetType = UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ISNULL(asti.AssetIntangibleName,'')))), --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 								InventoryNumber = UPPER(asm.InventoryNumber),
 								EntryDate = UPPER(asm.EntryDate),
 								AssetStatus = (SELECT TOP 1 UPPER([Name]) AS Name FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId),
@@ -234,6 +238,9 @@ BEGIN
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
 								 LEFT JOIN [dbo].[AssetAttributeType] asty WITH(NOLOCK) ON ast.AssetAttributeTypeId = asty.AssetAttributeTypeId
 								 LEFT JOIN [dbo].[AssetIntangibleType]  astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
+								 LEFT JOIN [dbo].[TangibleClass] tcDirect WITH(NOLOCK) ON asm.TangibleClassId = tcDirect.TangibleClassId
+								 LEFT JOIN [dbo].[DeprNonDeprTangibleAssets] dndFallback WITH(NOLOCK) ON asm.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
+								 LEFT JOIN [dbo].[TangibleClass] tcViaDnd WITH(NOLOCK) ON dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
 								 LEFT JOIN [dbo].[Manufacturer]  maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								 LEFT JOIN [dbo].[AssetCalibration] cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId AND asm.CalibrationRequired = 1	
 								 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId

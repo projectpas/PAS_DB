@@ -11,3 +11,9 @@
     CONSTRAINT [PK_BatchStatus] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BatchStatus_Name_Perf]
+    ON [dbo].[BatchStatus]([Name] ASC)
+    INCLUDE([Id]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

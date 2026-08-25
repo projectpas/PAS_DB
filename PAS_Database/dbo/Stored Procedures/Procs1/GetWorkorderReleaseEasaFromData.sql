@@ -3,6 +3,8 @@
 **************************************************************
 ** PR   Date         Author			Change Description
 	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    07/August/2026 Abhishek Jirawala [PN-17260] - Added Fleet field in Section 12 Remarks
+	3    07/August/2026 Abhishek Jirawala [PN-17260] - Excluded Fleet field for MasterCompanyCode PAR
 **************************************************************/
 CREATE PROC [dbo].[GetWorkorderReleaseEasaFromData]
 @WorkorderId bigint,
@@ -21,7 +23,8 @@ BEGIN
 				DECLARE @CMMIds VARCHAR(200) = NULL;			
 				DECLARE @IsMultiple BIT = NULL;
 				DECLARE @EmailBody NVARCHAR(MAX)=''
-				DECLARE @MasterCompanyId INT;  
+				DECLARE @MasterCompanyId INT;
+				DECLARE @MasterCompanyCode VARCHAR(20);
 
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
@@ -29,6 +32,8 @@ BEGIN
 				WHERE Wo.WorkOrderId = @WorkorderId AND WS.WorkOrderSettlementName like '%Cond%'
 
 				SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
+
+				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 		
 				IF OBJECT_ID(N'tempdb..#tmprCMMIDsDetails') IS NOT NULL
 				BEGIN
@@ -114,7 +119,8 @@ BEGIN
 					   +'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + isnull(ven.VendorName,'-')
 								WHEN pub.PublishedById = 3 THEN 'Published By: ' +  isnull(mf.Name,'-')
 								WHEN pub.PublishedById = 4 THEN 'Published By: ' +  isnull(pub.PublishedByOthers,'-')
-								ELSE '' END) + '</p>' 
+								ELSE '' END) + '</p>'
+						+ (CASE WHEN @MasterCompanyCode = 'PAR' THEN '' ELSE '<p>' +'Fleet: ' + isnull(UPPER(pub.Fleet),'-') + '</p>' END)
 						+ '<p>' +'Revision No: ' + ISNULL(convert(varchar(20),pub.RevisionNum),'-') + '</p>'
 						+ '<p>' +'Revision Date: ' + ISNULL(convert(varchar(100),pub.revisionDate,103),'-') + '</p>'
 						ELSE '' END) 	

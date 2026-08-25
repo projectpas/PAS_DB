@@ -24,7 +24,9 @@ EXEC [GetSubWorkorderReleaseFromData]
    13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
+	16    07/August/2026		 Abhishek Jirawala					[PN-17260] - Added Fleet field in Section 12 Remarks
+
+EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'
 **************************************************************/     
 CREATE   PROC [dbo].[GetSubWorkorderReleaseFromData]    
 @SubWorkOrderId bigint = null,    
@@ -214,6 +216,7 @@ BEGIN
 				  @IsMultiple AS IsMultiple,
 				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+				  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 				  '' SecondPublicationId,
@@ -315,6 +318,7 @@ BEGIN
 				  @IsMultiple AS IsMultiple,
 				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+				  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 				  ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,
@@ -413,6 +417,7 @@ BEGIN
 				  @IsMultiple AS IsMultiple,				 
 				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+				  ISNULL(UPPER(pub.Fleet),'-') AS Fleet,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 				  '' SecondPublicationId,

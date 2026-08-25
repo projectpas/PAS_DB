@@ -23,7 +23,7 @@
  EXEC USP_GetReleaseNoteDetailsList 2, 1, 0, 12, 1, 10          -- paged titles for header 12, page 1, size 10
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetReleaseNoteDetailsList]
+CREATE   PROCEDURE [dbo].[USP_GetReleaseNoteDetailsList]
     @EmployeeId BIGINT,
     @IsActive bit,
     @IsDelete bit,
@@ -70,7 +70,7 @@ BEGIN
                 LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
         WHERE E.EmployeeId = @EmployeeId;
 
-        SELECT DISTINCT
+        SELECT
             RHD.ReleaseNoteHeaderId
            ,RHD.SprintName
            ,RHD.SprinDescription
@@ -84,9 +84,14 @@ BEGIN
            ,RHD.IsDeleted
            ,RHD.[FileName]
            ,RHD.DocumentPath
-           ,(SELECT COUNT(1) FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK)
-             WHERE rtd.ReleaseNoteHeaderId = RHD.ReleaseNoteHeaderId AND rtd.IsActive = 1 AND rtd.IsDeleted = 0) AS TitleCount
+           ,ISNULL(tc.TitleCount, 0) AS TitleCount
         FROM [dbo].[ReleaseNoteHeadersDetails] RHD WITH(NOLOCK)
+        LEFT JOIN (
+            SELECT rtd.ReleaseNoteHeaderId, COUNT(1) AS TitleCount
+            FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK)
+            WHERE rtd.IsActive = 1 AND rtd.IsDeleted = 0
+            GROUP BY rtd.ReleaseNoteHeaderId
+        ) tc ON tc.ReleaseNoteHeaderId = RHD.ReleaseNoteHeaderId
         WHERE RHD.IsActive = @IsActive and RHD.IsDeleted = @IsDelete
         ORDER BY RHD.ReleaseNoteHeaderId DESC
 

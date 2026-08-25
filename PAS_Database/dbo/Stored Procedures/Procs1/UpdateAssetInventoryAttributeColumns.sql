@@ -1,7 +1,34 @@
-﻿CREATE    PROCEDURE [dbo].[UpdateAssetInventoryAttributeColumns]
+﻿/*************************************************************
+ ** File:   [GetAssetDetailsByInventoryID]
+ ** Author:   Abhishek Jirawla
+ ** Description: This stored procedure is used to Update Asset Inventory Attribute Columns
+ ** Purpose:
+ ** Date:    UNKNOWN
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author				Change Description
+ ** --   --------     -------				--------------------------------
+    1    UNKNOWN	   UNKNOWN				Created
+	2	 29-07-2026	  Abhishek Jirawala		Asset.AssetAttributeTypeId now always stores an AssetAttributeTypeId
+											(never a DeprNonDeprTangibleAssetsId); joined dnta by its
+											AssetAttributeTypeId FK instead of its own PK. Dropped the
+											dnta.AssetAttributeTypeName fallback (column removed) - asty is now
+											always joined so its name always resolves.
+	3	 29-07-2026	  Abhishek Jirawala		Adding Tangible Class Id
+	4	18-08-2026	  Abhishek Jirawala		Adding Calibration details to AssetInventory
+
+--  EXEC [UpdateAssetInventoryAttributeColumns] 1123
+**************************************************************/
+CREATE    PROCEDURE [dbo].[UpdateAssetInventoryAttributeColumns]
 	@AssetInventoryId int,
 	@AssetRecordId int
-	
+
 AS
 BEGIN
 	   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -9,15 +36,37 @@ BEGIN
 
 		BEGIN TRY
 		BEGIN TRANSACTION
-			BEGIN 
+			BEGIN
 			Declare @IsIntangible bit =0
+			Declare @AssetClassSource varchar(30) = NULL
+			Declare @AssetTangibleClassId bigint = NULL
+			Declare @AssetDeprNonDeprTangibleAssetsId bigint = NULL
+			Declare @ResolvedDeprNonDeprTangibleAssetsId bigint = NULL
 
-			select @IsIntangible = IsIntangible from Asset  where AssetRecordId= @AssetRecordId
+			select @IsIntangible = IsIntangible from dbo.Asset WITH(NOLOCK)  where AssetRecordId= @AssetRecordId
+			select @AssetClassSource = AssetClassSource from dbo.Asset WITH(NOLOCK) where AssetRecordId = @AssetRecordId
+			select @AssetTangibleClassId = TangibleClassId, @AssetDeprNonDeprTangibleAssetsId = DeprNonDeprTangibleAssetsId
+				from dbo.Asset WITH(NOLOCK) where AssetRecordId = @AssetRecordId
+
+			-- Prefer the exact DeprNonDeprTangibleAssetsId link on the Asset; a TangibleClassId can map to
+			-- more than one DeprNonDeprTangibleAssets row, so only fall back to it (deterministically,
+			-- lowest Id) when the Asset was never linked to a specific row.
+			IF (@AssetDeprNonDeprTangibleAssetsId IS NOT NULL)
+			BEGIN
+				SET @ResolvedDeprNonDeprTangibleAssetsId = @AssetDeprNonDeprTangibleAssetsId
+			END
+			ELSE IF (@AssetTangibleClassId IS NOT NULL)
+			BEGIN
+				SELECT TOP 1 @ResolvedDeprNonDeprTangibleAssetsId = DeprNonDeprTangibleAssetsId
+				FROM dbo.DeprNonDeprTangibleAssets WITH (NOLOCK)
+				WHERE TangibleClassId = @AssetTangibleClassId AND IsActive = 1 AND IsDeleted = 0
+				ORDER BY DeprNonDeprTangibleAssetsId
+			END
 
 			if(@IsIntangible =1)
 			begin
 
-			    Update AI SET 					
+			    Update AI SET
 					AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
 					AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
 					AI.DepreciationFrequencyId = ATTB.AssetAmortizationIntervalId,
@@ -50,62 +99,116 @@ BEGIN
 			else
 			BEGIN
 
-			   Update AI SET 					
-					AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
-					AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
-					AI.ResidualPercentageId = per.PercentId,
-					AI.ResidualPercentage = per.PercentValue,
-					AI.DepreciationFrequencyId = ATTB.DepreciationFrequencyId,
-					AI.DepreciationFrequencyName = Fre.Name,
+				if (@AssetClassSource = 'DeprNonDeprTangibleAssets')
+				BEGIN
 
-					AI.AcquiredGLAccountId = ATTB.AcquiredGLAccountId,
-					AI.AcquiredGLAccountName = GLA.AccountCode +'-'+ GLA.AccountName,
-					AI.DeprExpenseGLAccountId = ATTB.DeprExpenseGLAccountId,
-					AI.DeprExpenseGLAccountName = GLD.AccountCode +'-'+ GLD.AccountName,
-					AI.AdDepsGLAccountId = ATTB.AdDepsGLAccountId,
-					AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
+					Update AI SET
+						AI.AcquiredGLAccountId = DNTA.AcquiredGLAccountId,
+						AI.AcquiredGLAccountName = GLAQ.AccountCode +'-'+ GLAQ.AccountName,
+						AI.DeprExpenseGLAccountId = DNTA.DeprExpenseGLAccountId,
+						AI.DeprExpenseGLAccountName = GLD.AccountCode +'-'+ GLD.AccountName,
+						AI.AdDepsGLAccountId = DNTA.AccumDeprGLAccountId,
+						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
+						AI.CalibratedGLAccountId = DNTA.CalibratedGLAccountId,
+						AI.CalibratedGLAccountName = GLC.AccountCode +'-'+ GLC.AccountName,
+						AI.AssetSaleGLAccountId = DNTA.AssetSaleGLAccountId,
+						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
+						AI.AssetWriteOffGLAccountId = DNTA.AssetWriteOffGLAccountId,
+						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
+						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
+						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
+						AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
+						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
+						AI.AssetLife = ISNULL(DNTA.AssetLife, 0),
+						AI.ResidualPercentageId = dnta.ResidualPercentage,
+						AI.ResidualPercentage = ISNULL(per.PercentValue, 0),
+						AI.DepreciationFrequencyId = ISNULL(dnta.DepreciationFrequencyId,0),
+						AI.DepreciationFrequencyName = ISNULL(asdf.Name, ''),
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId),
+						AI.DeprNonDeprTangibleAssetsId = ISNULL(DNTA.DeprNonDeprTangibleAssetsId, AI.DeprNonDeprTangibleAssetsId)
+					FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
+						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.DeprNonDeprTangibleAssetsId = @ResolvedDeprNonDeprTangibleAssetsId
+						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
+						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
+						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId
+						LEFT JOIN dbo.GLAccount GLAQ WITH (NOLOCK) ON GLAQ.GLAccountId = DNTA.AcquiredGLAccountId
+						LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = DNTA.AssetSaleGLAccountId
+						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = DNTA.AssetWriteOffGLAccountId
+						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = DNTA.AssetWriteDownGLAccountId
+						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = DNTA.AssetDeprMethodId
+						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON dnta.ResidualPercentage = per.PercentId
+						LEFT JOIN dbo.AssetDepreciationFrequency asdf WITH (NOLOCK) ON dnta.DepreciationFrequencyId = asdf.AssetDepreciationFrequencyId
 
-				    AI.AssetSaleGLAccountId =ATTB.AssetSale,
-					AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
-					AI.AssetWriteOffGLAccountId =ATTB.AssetWriteOff,
-					AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
-					AI.AssetWriteDownGLAccountId = ATTB.AssetWriteDown,
-					AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
-					AI.AssetAttributeTypeId = ATTB.AssetAttributeTypeId
+					WHERE AI.AssetInventoryId = @AssetInventoryId
+				END
+				ELSE
+				BEGIN
 
-			    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
-					LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
-					LEFT JOIN dbo.AssetAttributeType ATTB WITH (NOLOCK) ON ATTB.AssetAttributeTypeId = Asset.AssetAttributeTypeId
-					LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = ATTB.AcquiredGLAccountId
-					LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = ATTB.DeprExpenseGLAccountId
-					LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = ATTB.AdDepsGLAccountId
-					LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = ATTB.AssetSale
-					LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = ATTB.AssetWriteOff
-					LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = ATTB.AssetWriteDown
-					LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = ATTB.DepreciationMethod
-					LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON per.PercentId = ATTB.ResidualPercentage
-					LEFT JOIN dbo.AssetDepreciationFrequency Fre WITH (NOLOCK) ON Fre.AssetDepreciationFrequencyId = ATTB.DepreciationFrequencyId
-				WHERE AI.AssetInventoryId = @AssetInventoryId
+				   Update AI SET
+						AI.DepreciationMethodId = Dmethod.AssetDepreciationMethodId,
+						AI.DepreciationMethodName = Dmethod.AssetDepreciationMethodName,
+						AI.AssetLife = ISNULL(DNTA.AssetLife, 0),
+						AI.ResidualPercentageId = dnta.ResidualPercentage,
+						AI.ResidualPercentage = per.PercentValue,
+						AI.DepreciationFrequencyId = dnta.DepreciationFrequencyId,
+						AI.DepreciationFrequencyName = Fre.Name,
+
+						AI.AcquiredGLAccountId = DNTA.AcquiredGLAccountId,
+						AI.AcquiredGLAccountName = GLA.AccountCode +'-'+ GLA.AccountName,
+						AI.DeprExpenseGLAccountId = DNTA.DeprExpenseGLAccountId,
+						AI.DeprExpenseGLAccountName = GLD.AccountCode +'-'+ GLD.AccountName,
+						AI.AdDepsGLAccountId = DNTA.AccumDeprGLAccountId,
+						AI.AdDepsGLAccountName = GLAD.AccountCode +'-'+ GLAD.AccountName,
+						AI.CalibratedGLAccountId = DNTA.CalibratedGLAccountId,
+						AI.CalibratedGLAccountName = GLC.AccountCode +'-'+ GLC.AccountName,
+
+					    AI.AssetSaleGLAccountId =DNTA.AssetSaleGLAccountId,
+						AI.AssetSaleGLAccountName = GLS.AccountCode +'-'+ GLS.AccountName,
+						AI.AssetWriteOffGLAccountId =DNTA.AssetWriteOffGLAccountId,
+						AI.AssetWriteOffGLAccountName = GLO.AccountCode +'-'+ GLO.AccountName,
+						AI.AssetWriteDownGLAccountId = DNTA.AssetWriteDownGLAccountId,
+						AI.AssetWriteDownGLAccountName = GLDO.AccountCode +'-'+ GLDO.AccountName,
+						AI.TangibleClassId = ISNULL(DNTA.TangibleClassId, AI.TangibleClassId),
+						AI.DeprNonDeprTangibleAssetsId = ISNULL(DNTA.DeprNonDeprTangibleAssetsId, AI.DeprNonDeprTangibleAssetsId)
+
+				    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
+						LEFT JOIN dbo.Asset Asset WITH (NOLOCK) ON Asset.AssetRecordId = AI.AssetRecordId
+						LEFT JOIN dbo.DeprNonDeprTangibleAssets DNTA WITH (NOLOCK) ON DNTA.DeprNonDeprTangibleAssetsId = @ResolvedDeprNonDeprTangibleAssetsId
+
+						--LEFT JOIN dbo.AssetAttributeType ATTB WITH (NOLOCK) ON ATTB.AssetAttributeTypeId = Asset.AssetAttributeTypeId
+						LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = DNTA.AcquiredGLAccountId
+						LEFT JOIN dbo.GLAccount GLD WITH (NOLOCK) ON GLD.GLAccountId = DNTA.DeprExpenseGLAccountId
+						LEFT JOIN dbo.GLAccount GLAD WITH (NOLOCK) ON GLAD.GLAccountId = DNTA.AccumDeprGLAccountId
+						LEFT JOIN dbo.GLAccount GLC WITH (NOLOCK) ON GLC.GLAccountId = DNTA.CalibratedGLAccountId
+						LEFT JOIN dbo.GLAccount GLS WITH (NOLOCK) ON GLS.GLAccountId = DNTA.AssetSaleGLAccountId
+						LEFT JOIN dbo.GLAccount GLO WITH (NOLOCK) ON GLO.GLAccountId = DNTA.AssetWriteOffGLAccountId
+						LEFT JOIN dbo.GLAccount GLDO WITH (NOLOCK) ON GLDO.GLAccountId = DNTA.AssetWriteDownGLAccountId
+						LEFT JOIN dbo.AssetDepreciationMethod Dmethod WITH (NOLOCK) ON Dmethod.AssetDepreciationMethodId = dnta.AssetDeprMethodId
+						LEFT JOIN dbo.[Percent] per WITH (NOLOCK) ON per.PercentId = dnta.ResidualPercentage
+						LEFT JOIN dbo.AssetDepreciationFrequency Fre WITH (NOLOCK) ON Fre.AssetDepreciationFrequencyId = dnta.DepreciationFrequencyId
+					WHERE AI.AssetInventoryId = @AssetInventoryId
+				END
 			END
-			
-			  
+
+
 		END
 		COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'UpdateAssetInventoryAttributeColumns' 
+              , @AdhocComments     VARCHAR(150)    = 'UpdateAssetInventoryAttributeColumns'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@AssetInventoryId, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters

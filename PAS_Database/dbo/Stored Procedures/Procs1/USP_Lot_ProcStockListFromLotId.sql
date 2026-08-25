@@ -15,6 +15,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
+	5    25-Aug-2026			 RAJESH GAMI						[PN-17745] Ported from PAS_DB - The inclusion OR-chain now also recognizes the new 'Turn In' type (in addition to 'Trans In(Lot)') so stocklines created via "Create Stockline from Lot" are still included correctly.
 -- EXEC USP_Lot_ProcStockListFromLotId
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_ProcStockListFromLotId]
@@ -108,7 +109,7 @@ BEGIN
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 					WHERE lin.LotId = @LotId AND im.ItemMasterId = @ItemMasterId 
 					AND ISNULL(lin.QtyToTransIn,0) >0 AND ISNULL(stl.QuantityAvailable,0) >0 AND ( (REPLACE(cal.Type,' ','')  ='Trans In(RO)' AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0)) OR (REPLACE(cal.Type,' ','') = REPLACE('Trans Out(SO)',' ','') AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0))
-					OR (REPLACE(cal.Type,' ','') = REPLACE('Trans Out(Lot)',' ','') AND ISNULL(lin.QtyToTransOut,0)=0 ) OR (REPLACE(cal.Type,' ','') = REPLACE('Trans In(Lot)',' ','')) )
+					OR (REPLACE(cal.Type,' ','') = REPLACE('Trans Out(Lot)',' ','') AND ISNULL(lin.QtyToTransOut,0)=0 ) OR (REPLACE(cal.Type,' ','') = REPLACE('Trans In(Lot)',' ','')) OR (REPLACE(cal.Type,' ','') = REPLACE('Turn In',' ','')) )
 					--AND ISNULL(lin.StockLineId,1) != ISNULL(stl.StockLineId,0)
 					--AND ISNULL(stl.StockLineId,1) NOT IN (ISNULL(lin.StockLineId,0))
 					AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0)

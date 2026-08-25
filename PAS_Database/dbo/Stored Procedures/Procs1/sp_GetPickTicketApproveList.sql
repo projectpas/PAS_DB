@@ -30,7 +30,7 @@
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	15   08/Aug/2026			 Divyesh Kathiriya					[PN-17554] - Added Non-Stock and Service flags to disable Pick Ticket creation for Non-Stock Service parts.
 
--- EXEC [dbo].[sp_GetPickTicketApproveList] 10851
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 1465
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
@@ -151,7 +151,7 @@ BEGIN
 				WHERE sopt.SalesOrderId = @SalesOrderId
 				GROUP BY sopt.SalesOrderPartStocklineId
 			) sopt ON sopt.SalesOrderPartStocklineId = agg.SalesOrderPartId
-		), 0) AS TotalReadyToPick
+		), 0) AS TotalReadyToPick		
 
 		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
 		LEFT JOIN DBO.SalesOrderStockLineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
@@ -175,7 +175,7 @@ BEGIN
 		,sl.isSerialized, imt.ItemMasterId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],sl.[MasterCompanyId],
 		imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId], imt.[IsNonStock], imt.[IsService])
 
-		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
+		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.[IsNonStock], cte.[IsService], cte.Qty,
 		SerialNumber, QuantityAvailable,
 		SalesOrderNumber, SalesOrderQuoteNumber, SUM(cte.QtyToShip) QtyToShip, (cte.Qty - SUM(cte.QtyToShip)) QtyToPick, ConditionId, 
 		(CASE WHEN SUM(ReadyToPick) > (cte.Qty - SUM(cte.QtyToShip)) THEN (cte.Qty - SUM(cte.QtyToShip)) ELSE 

@@ -4657,6 +4657,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

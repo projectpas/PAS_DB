@@ -21,6 +21,7 @@
 	5    03/12/2024   Abhishek Jirawla		Added IsPosted Column
 	6    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
 	7    28-Mar-2025  Divyesh Kathiriya		Update CreatedDate based on Employee time zone
+	8    12-Aug-2026  Abhishek Jirawla		Remove AssetAttributeTypeId
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -162,7 +163,7 @@ BEGIN
 								CASE WHEN asm.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END AS CalibrationRequiredNew,
 								CASE WHEN asm.IsTangible = 1 THEN 'Tangible'ELSE 'Intangible' END AS AssetClass,
 								ISNULL((CASE WHEN ISNULL(asm.IsTangible,0) = 1 and ISNULL(asm.IsDepreciable, 0) = 1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  ELSE 'No'  END),'No') as deprAmort,
-								AssetType = CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END, --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+								AssetType = CASE WHEN ISNULL(tc.TangibleClassName,'') != '' THEN tc.TangibleClassName ELSE ISNULL(asti.AssetIntangibleName,'') END, --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 								InventoryNumber = asm.InventoryNumber,
 								EntryDate = asm.EntryDate,
 								AssetStatus = (SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId),
@@ -199,7 +200,7 @@ BEGIN
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
 								LEFT JOIN  [dbo].[WorkOrder] awo WITH(NOLOCK) ON awo.WorkOrderId = aci.WorkOrderId
-								LEFT JOIN  [dbo].[AssetAttributeType] asty WITH(NOLOCK) ON ast.AssetAttributeTypeId = asty.AssetAttributeTypeId
+								LEFT JOIN  [dbo].[TangibleClass] tc WITH(NOLOCK) ON ast.TangibleClassId = tc.TangibleClassId
 								LEFT JOIN  [dbo].[AssetIntangibleType]  AS astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								LEFT JOIN  [dbo].[Manufacturer]  AS maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								LEFT JOIN  [dbo].[AssetCalibration] as cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	

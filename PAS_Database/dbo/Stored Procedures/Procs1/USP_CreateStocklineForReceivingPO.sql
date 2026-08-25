@@ -1929,7 +1929,7 @@ BEGIN
 						[ExpirationDate],[Memo],[AssetParentRecordId],[TangibleClassId],[AssetIntangibleTypeId],[AssetCalibrationMin],[AssetCalibrationMinTolerance],[AssetCalibratonMax],[AssetCalibrationMaxTolerance],
 						[AssetCalibrationExpected],[AssetCalibrationExpectedTolerance],[AssetCalibrationMemo],[AssetIsMaintenanceReqd],[AssetMaintenanceIsContract],[AssetMaintenanceContractFile],[MaintenanceFrequencyMonths],
 						[MaintenanceFrequencyDays],[MaintenanceDefaultVendorId],[MaintenanceGLAccountId],[MaintenanceMemo],[IsWarrantyRequired],[WarrantyCompany],[WarrantyStartDate],[WarrantyEndDate],[WarrantyStatusId],
-						[UnexpiredTime],[MasterCompanyId],[AssetLocationId],[IsDeleted],[Warranty],[IsActive],[CalibrationDefaultVendorId],[CertificationDefaultVendorId],[InspectionDefaultVendorId],[VerificationDefaultVendorId],
+						[UnexpiredTime],[MasterCompanyId],[AssetLocationId],[IsDeleted],[Warranty],1,[CalibrationDefaultVendorId],[CertificationDefaultVendorId],[InspectionDefaultVendorId],[VerificationDefaultVendorId],
 						[CertificationFrequencyMonths],[CertificationFrequencyDays],[CertificationDefaultCost],[CertificationGlAccountId],[CertificationMemo],[InspectionMemo],[InspectionGlaAccountId],[InspectionDefaultCost],
 						[InspectionFrequencyMonths],[InspectionFrequencyDays],[VerificationFrequencyDays],[VerificationFrequencyMonths],[VerificationDefaultCost],[CalibrationDefaultCost],[CalibrationFrequencyMonths],
 						[CalibrationFrequencyDays],[CalibrationGlAccountId],[CalibrationMemo],[VerificationMemo],[VerificationGlAccountId],[CalibrationCurrencyId],[CertificationCurrencyId],[InspectionCurrencyId],[VerificationCurrencyId],

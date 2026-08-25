@@ -153,6 +153,7 @@
     [LastCalibrationDate]               DATETIME        NULL,
     [NextCalibrationDate]               DATETIME        NULL,
     [DepreciationStartDate]             DATETIME        NULL,
+    [DeprNonDeprTangibleAssetsId]       BIGINT          NULL,
     CONSTRAINT [PK_AssetInventoryDraft] PRIMARY KEY CLUSTERED ([AssetInventoryDraftId] ASC),
     CONSTRAINT [FK_AssetInventoryDraft_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_AssetInventoryDraft_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),

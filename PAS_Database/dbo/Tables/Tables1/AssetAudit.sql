@@ -51,6 +51,8 @@
     [ManufacturerPN]                  NVARCHAR (80)   NULL,
     [CntrlNumber]                     INT             NULL,
     [AssetAttributeTypeId]            BIGINT          NULL,
+    [AssetClassSource]                VARCHAR (30)    NULL,
+    [DeprNonDeprTangibleAssetsId]     BIGINT          NULL,
     CONSTRAINT [PK__AssetAud__88889B1E86626B25] PRIMARY KEY CLUSTERED ([AssetAuditId] ASC),
     CONSTRAINT [FK_AssetAudit_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId])
 );

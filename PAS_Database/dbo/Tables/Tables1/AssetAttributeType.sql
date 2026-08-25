@@ -1,19 +1,19 @@
 ﻿CREATE TABLE [dbo].[AssetAttributeType] (
     [AssetAttributeTypeId]    BIGINT         IDENTITY (1, 1) NOT NULL,
     [TangibleClassId]         BIGINT         NOT NULL,
-    [AssetAttributeTypeName]  VARCHAR (30)   NOT NULL,
+    [AssetAttributeTypeName]  VARCHAR (100)  NOT NULL,
     [Description]             VARCHAR (100)  NULL,
-    [ConventionType]          BIGINT         NOT NULL,
-    [DepreciationMethod]      BIGINT         NOT NULL,
-    [ResidualPercentage]      BIGINT         NOT NULL,
-    [AssetLife]               INT            NOT NULL,
-    [DepreciationFrequencyId] BIGINT         NOT NULL,
-    [AcquiredGLAccountId]     BIGINT         NOT NULL,
-    [DeprExpenseGLAccountId]  BIGINT         NOT NULL,
-    [AdDepsGLAccountId]       BIGINT         NOT NULL,
-    [AssetSale]               BIGINT         NOT NULL,
-    [AssetWriteOff]           BIGINT         NOT NULL,
-    [AssetWriteDown]          BIGINT         NOT NULL,
+    [ConventionType]          BIGINT         NULL,
+    [DepreciationMethod]      BIGINT         NULL,
+    [ResidualPercentage]      BIGINT         NULL,
+    [AssetLife]               INT            NULL,
+    [DepreciationFrequencyId] BIGINT         NULL,
+    [AcquiredGLAccountId]     BIGINT         NULL,
+    [DeprExpenseGLAccountId]  BIGINT         NULL,
+    [AdDepsGLAccountId]       BIGINT         NULL,
+    [AssetSale]               BIGINT         NULL,
+    [AssetWriteOff]           BIGINT         NULL,
+    [AssetWriteDown]          BIGINT         NULL,
     [ManagementStructureId]   BIGINT         NULL,
     [MasterCompanyId]         INT            NOT NULL,
     [CreatedBy]               VARCHAR (256)  NOT NULL,
@@ -22,7 +22,7 @@
     [UpdatedDate]             DATETIME2 (7)  CONSTRAINT [DF_AssetAttributeType_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                BIT            CONSTRAINT [DF_AssetAttributeType_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT            CONSTRAINT [DF_AssetAttributeType_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [SelectedCompanyIds]      VARCHAR (1000) NOT NULL,
+    [SelectedCompanyIds]      VARCHAR (1000) NULL,
     CONSTRAINT [PK_AssetAttributeType] PRIMARY KEY CLUSTERED ([AssetAttributeTypeId] ASC),
     CONSTRAINT [FK_AssetAttributeType_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_AssetAttributeType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -39,6 +39,8 @@
     CONSTRAINT [FK_AssetAttributeTypeDeps_ResidualPercentage] FOREIGN KEY ([ResidualPercentage]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [Unique_AssetAttributeType] UNIQUE NONCLUSTERED ([AssetAttributeTypeName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

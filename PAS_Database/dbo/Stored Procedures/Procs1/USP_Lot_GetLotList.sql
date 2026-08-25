@@ -15,6 +15,7 @@
 	3    19/02/2025		 Ayushi Patel			converted the date into utc (created) , Added a case to get timeZone
 	4    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	6    25/Aug/2026 RAJESH GAMI    [PN-17745] Ported from PAS_DB - TransferredInCost SUM subquery now also recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" are still included/calculated correctly.
 **************************************************************
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
@@ -129,7 +130,8 @@ BEGIN
 			           FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
 			           WHERE LCD.LotId = LT.LotId
 			             AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
-			             AND UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans In (Lot)', ' ', ''))
+			             AND (UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans In (Lot)', ' ', ''))
+			                  OR UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Turn In', ' ', '')))
 			       ), 0)
  
 			       -- OtherCost (PO): Freight at part-record level

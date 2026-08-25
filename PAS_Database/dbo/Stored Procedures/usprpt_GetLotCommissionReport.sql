@@ -16,7 +16,7 @@
     1    21-08-2026     Ayushi Patel         [PN-17565] created
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetLotCommissionReport]
+CREATE    PROCEDURE [dbo].[usprpt_GetLotCommissionReport]
 	@mastercompanyid INT,
 	@PageNumber INT = NULL,
 	@PageSize INT = NULL,
@@ -59,7 +59,7 @@ BEGIN
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @LotId END,
 			@ConsigneeName = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Consignee'
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(256)') ELSE @ConsigneeName END,
-			@PartNumberId = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'PN'
+			@PartNumberId = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') COLLATE Latin1_General_CS_AS = 'PN' COLLATE Latin1_General_CS_AS
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @PartNumberId END,
 			@Fromdate = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'From Date'
 				THEN CONVERT(DATE, filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)')) ELSE @Fromdate END,
@@ -85,7 +85,7 @@ BEGIN
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @level9Ids END,
 			@level10Ids = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level10'
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @level10Ids END,
-			@ColPn = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'PartNumber'
+			@ColPn = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') COLLATE Latin1_General_CS_AS = 'pn' COLLATE Latin1_General_CS_AS
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(200)') ELSE @ColPn END,
 			@ColPnDescription = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'pnDescription'
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(200)') ELSE @ColPnDescription END,

@@ -14,6 +14,7 @@
   ** S NO   Date            Author          Change Description
  ** --   --------         -------          --------------------------------
     1    21-08-2026     Ayushi Patel         [PN-17565] created
+    2    25-08-2026     Ayushi Patel         [PN-17780] Renamed date filters 'From Date'/'To Date' to 'Start Date'/'End Date'
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetLotCommissionReport]
@@ -61,9 +62,9 @@ BEGIN
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(256)') ELSE @ConsigneeName END,
 			@PartNumberId = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') COLLATE Latin1_General_CS_AS = 'PN' COLLATE Latin1_General_CS_AS
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @PartNumberId END,
-			@Fromdate = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'From Date'
+			@Fromdate = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Start Date'
 				THEN CONVERT(DATE, filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)')) ELSE @Fromdate END,
-			@Todate = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'To Date'
+			@Todate = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'End Date'
 				THEN CONVERT(DATE, filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)')) ELSE @Todate END,
 			@level1Ids = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level1'
 				THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @level1Ids END,

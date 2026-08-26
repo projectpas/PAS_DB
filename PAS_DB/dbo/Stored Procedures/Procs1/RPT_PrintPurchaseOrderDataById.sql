@@ -135,26 +135,39 @@ BEGIN
 					--,
 				--ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END,MC.MasterCompanyCode)),
 				ShipToMergedAddress1 =
-										(
-											SELECT dbo.ValidatePDFAddressWithSiteName(
-												Ad.[Line1],
-												Ad.[Line2],
-												NULL,
-												CASE
-													WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
-													THEN Ad.[SiteName]
-													ELSE NULL
-												END,
-												Ad.[City],
-												Ad.[StateOrProvince],
-												Ad.[PostalCode],
-												Ad.[Country],
-												Ad.[ContactPhoneNo],
-												NULL,
-												CASE WHEN MC.MasterCompanyCode = @PARMasterCompanyCode THEN '' ELSE SC.[Email] END,
-												MC.MasterCompanyCode
-											)
-										),	
+									(
+										SELECT
+											CASE
+												WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
+												THEN dbo.ValidatePDFAddressWithSiteName(
+														Ad.[Line1],
+														Ad.[Line2],
+														NULL,
+														Ad.[SiteName],
+														Ad.[City],
+														Ad.[StateOrProvince],
+														Ad.[PostalCode],
+														Ad.[Country],
+														Ad.[ContactPhoneNo],
+														NULL,
+														CASE WHEN MC.MasterCompanyCode = @PARMasterCompanyCode THEN '' ELSE SC.[Email] END,
+														MC.MasterCompanyCode
+													 )
+												ELSE dbo.ValidatePDFAddress(
+														Ad.[Line1],
+														Ad.[Line2],
+														NULL,
+														Ad.[City],
+														Ad.[StateOrProvince],
+														Ad.[PostalCode],
+														Ad.[Country],
+														Ad.[ContactPhoneNo],
+														NULL,
+														CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END,
+														MC.MasterCompanyCode
+													 )
+											END
+									),
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
 			   THEN 
@@ -226,26 +239,39 @@ BEGIN
 					--,
 				--BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, BC.[Email],MC.MasterCompanyCode)),	
 				BillToMergedAddress1 =
-										(
-											SELECT dbo.ValidatePDFAddressWithSiteName(
-												ADB.[Line1],
-												ADB.[Line2],
-												NULL,
-												CASE
-													WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
-													THEN ADB.[SiteName]
-													ELSE NULL
-												END,
-												ADB.[City],
-												ADB.[StateOrProvince],
-												ADB.[PostalCode],
-												ADB.[Country],
-												ADB.[ContactPhoneNo],
-												NULL,
-												BC.[Email],
-												MC.MasterCompanyCode
-											)
-										),
+								(
+									SELECT
+										CASE
+											WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
+											THEN dbo.ValidatePDFAddressWithSiteName(
+													ADB.[Line1],
+													ADB.[Line2],
+													NULL,
+													ADB.[SiteName],
+													ADB.[City],
+													ADB.[StateOrProvince],
+													ADB.[PostalCode],
+													ADB.[Country],
+													ADB.[ContactPhoneNo],
+													NULL,
+													BC.[Email],
+													MC.MasterCompanyCode
+												 )
+											ELSE dbo.ValidatePDFAddress(
+													ADB.[Line1],
+													ADB.[Line2],
+													NULL,
+													ADB.[City],
+													ADB.[StateOrProvince],
+													ADB.[PostalCode],
+													ADB.[Country],
+													ADB.[ContactPhoneNo],
+													NULL,
+													BC.[Email],
+													MC.MasterCompanyCode
+												 )
+										END
+								),
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
 			   THEN

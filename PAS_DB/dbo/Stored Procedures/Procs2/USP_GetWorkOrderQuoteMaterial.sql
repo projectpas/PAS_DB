@@ -29,6 +29,10 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9	 19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
 	10   21/AUG/2026  Moin Bloch        [PN-17716] - Append sequence number to task name
+	11   25-Aug-2026  RAJESH GAMI       [PN-17782] Removed the "ISNULL(im.IsNonStock,0) = 0" restriction from
+	                                    both the regular-material and Kit-mapped branches - WOQ Material now allows
+	                                    Non-Stock ItemMaster parts (WOQ is quote/estimate-only, no Stockline involved,
+	                                    so no Stockline-creation logic is needed here - just don't hide saved rows).
 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -138,7 +142,6 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wom.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) --order by wom.CreatedDate desc
 
-				 AND ISNULL(im.IsNonStock,0) = 0
 				 UNION ALL
 				 
 				 SELECT 
@@ -202,7 +205,7 @@ BEGIN
 					 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )  AND ISNULL(im.IsNonStock,0) = 0
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )
 				 order by wom.CreatedDate asc
                 
 		--	END

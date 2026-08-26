@@ -16,6 +16,7 @@
  ** --   --------     -------				--------------------------------          
     1    28 Mar 2025   RAJESH GAMI			CREATED
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 **************************************************************/
 
 CREATE       PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
@@ -58,7 +59,7 @@ BEGIN
 		FROM [dbo].SubWorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
-		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId AND ISNULL(IM.IsNonStock,0) = 0 ;
+		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId;
 
 		SELECT @BodyTemplate = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE UPPER(TemplateCode) = 'DELETEKITPART';
 		

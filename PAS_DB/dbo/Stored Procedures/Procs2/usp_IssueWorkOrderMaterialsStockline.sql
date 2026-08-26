@@ -30,6 +30,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 15   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
 ** 16   23/06/2026      Moin Bloch	      Added Teardown WO Issue Accounting Entry
 
+** 17   25-Aug-2026			 RAJESH GAMI		  [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -465,7 +466,7 @@ BEGIN
 						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @HistoryWorkOrderMaterialsId;
 						SELECT @WorkOrderPartNoId = WorkOrderPartNoId,@historyWorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 						SELECT @ItemMasterId = ItemMasterId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
-						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId ;
 
 						SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @historyWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

@@ -4776,6 +4776,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNosStockSalesOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockSubWorkOrderMaterial.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypesAudit.sql" />
     <Build Include="dbo\Tables\DeprNonDeprTangibleClassTypes.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />

@@ -18,6 +18,7 @@
     1    05/25/2021   Hemant Saliya Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
      
 -- EXEC [SearchPickTicketForSubWO] 15,4,92,122
 **************************************************************/
@@ -89,9 +90,9 @@ ELSE sl.ConditionId END
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.WorkorderPickTicket Pick WITH (NOLOCK) ON Pick.WorkOrderMaterialsId = wom.WorkOrderMaterialsId
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
-				WHERE im.ItemMasterId = @ItemMasterId AND wo.WorkOrderId=@WorkOrderId AND sl.StockLineId = @StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				WHERE im.ItemMasterId = @ItemMasterId AND wo.WorkOrderId=@WorkOrderId AND sl.StockLineId = @StocklineId
 			END
 		COMMIT  TRANSACTION
 

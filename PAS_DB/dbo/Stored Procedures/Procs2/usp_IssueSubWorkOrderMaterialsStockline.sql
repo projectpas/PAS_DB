@@ -22,6 +22,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 7	04/24/2025	Devendra Shekh	 Modify (Added [IsManualText] check for DistributionSetup)
 ** 8	04/30/2025	Abhishek Jirawla In loop checked Whether it is kit or material
 ** 9    27/03/2026  Moin Bloch	     Rename Internal To Internal Repair   PN-15850
+** 10   25-Aug-2026  RAJESH GAMI      [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -451,7 +452,7 @@ BEGIN
 
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
+						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId ;
 						
 						SELECT @SubWorkOrderNum = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @historysUBWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

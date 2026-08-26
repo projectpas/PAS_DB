@@ -22,8 +22,9 @@
     1    06/02/2020    Subhash Saliya Created  
     2    06/17/2025   Hemant  Saliya Check For Is deleted Condition  
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-       
---EXEC [GetWorkOrderPrintPdfData] 274,258  
+	4    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the "ISNULL(imt/im.IsNonStock,0) = 0" restriction so Non-Stock WOQ material parts also appear on the WOQ print/PDF form
+
+--EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
 CREATE       PROCEDURE [dbo].[GetWorkOrderQoutePirntMateriallist]  
@@ -48,8 +49,7 @@ BEGIN
 	    (mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
-        LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId  
-     AND ISNULL(imt.IsNonStock,0) = 0
+        LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
          WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
@@ -64,8 +64,8 @@ BEGIN
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
 	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
 	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0
-	   END  
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1
+	   END
   COMMIT  TRANSACTION  
   
   END TRY      

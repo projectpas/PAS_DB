@@ -13,7 +13,14 @@
        
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/  
+	3    25-Aug-2026			 RAJESH GAMI						[PN-17782] Allow Non-Stock ItemMaster parts as Sub Work Order
+										Materials - removed 2 "IsNonStock=0" exclusion filters, and wired in a new
+										per-row Non-Stock Stockline-creation step (calls
+										USP_CreateStocklineForNonStockSubWorkOrderMaterial when a Non-Stock row has no
+										@WOMStockLineId yet and a real Quantity > 0) so Non-Stock materials get a real
+										dbo.Stockline row and can flow through Reserve/Issue/PickTicket/Unreserve/Unissue
+										like Stock materials do.
+**************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterials]  
 	@tbl_SubWorkOrderMaterialsType [SubWorkOrderMaterialsType] READONLY
@@ -104,8 +111,7 @@ BEGIN
 				TMP.UpdatedDate =  GETUTCDATE()
 			FROM #tmpSubWorkOrderMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0
-			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 
 			SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpSubWorkOrderMaterial;
 
@@ -130,14 +136,54 @@ BEGIN
 					UPDATE TMP
 					SET	TMP.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId,
 						TMP.UnitOfMeasureId = CASE WHEN ISNULL(TMP.UnitOfMeasureId, 0) = 0 THEN CASE WHEN ISNULL(TMP.StockLineId, 0) > 0 THEN STK.PurchaseUnitOfMeasureId ELSE IM.PurchaseUnitOfMeasureId END ELSE TMP.UnitOfMeasureId END
-					FROM #tmpSubWorkOrderMaterial TMP 
+					FROM #tmpSubWorkOrderMaterial TMP
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-					 AND ISNULL(IM.IsNonStock,0) = 0
-					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 					WHERE [RowId] = @CurrentRowId;
-					
+
 					SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId
-					
+
+					-- [PN-17782] Non-Stock materials never arrive with an existing @WOMStockLineId
+					-- (there's no on-hand inventory to pick from) - create a brand-new Stockline for them here,
+					-- mirroring how Sales Order already does this for Non-Stock parts (see
+					-- USP_CreateStocklineForNonStockSubWorkOrderMaterial). Once created, @WOMStockLineId is set
+					-- so the existing IF block below runs exactly as it already does for Stock materials.
+					IF(ISNULL(@WOMStockLineId, 0) = 0)
+					BEGIN
+						DECLARE @NS_IsNonStock BIT = 0, @NS_ConditionCodeId BIGINT, @NS_Quantity INT, @NS_ItemMasterId BIGINT, @NS_WorkOrderId BIGINT, @NS_SubWorkOrderId BIGINT, @NS_CreatedBy VARCHAR(200), @NS_MasterCompanyId INT, @NS_NewStockLineId BIGINT = 0;
+
+						SELECT @NS_IsNonStock = ISNULL(IM3.IsNonStock,0), @NS_ConditionCodeId = TMP3.ConditionCodeId, @NS_Quantity = TMP3.Quantity,
+							   @NS_ItemMasterId = TMP3.ItemMasterId, @NS_WorkOrderId = TMP3.WorkOrderId, @NS_SubWorkOrderId = TMP3.SubWorkOrderId, @NS_CreatedBy = TMP3.CreatedBy, @NS_MasterCompanyId = TMP3.MasterCompanyId
+						FROM #tmpSubWorkOrderMaterial TMP3
+						INNER JOIN [dbo].[ItemMaster] IM3 WITH(NOLOCK) ON TMP3.ItemMasterId = IM3.ItemMasterId
+						WHERE TMP3.RowId = @CurrentRowId;
+
+						-- Skip provision-replace placeholder rows (Quantity intentionally zeroed above, real
+						-- consumption happens later via the actual turn-in) - only create a real Stockline
+						-- once there's an actual quantity to back it with.
+						IF(@NS_IsNonStock = 1 AND ISNULL(@NS_Quantity, 0) > 0)
+						BEGIN
+							EXEC [dbo].[USP_CreateStocklineForNonStockSubWorkOrderMaterial]
+								@WorkOrderId = @NS_WorkOrderId,
+								@SubWorkOrderId = @NS_SubWorkOrderId,
+								@SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId,
+								@ItemMasterId = @NS_ItemMasterId,
+								@Quantity = @NS_Quantity,
+								@ConditionCodeId = @NS_ConditionCodeId,
+								@CreatedBy = @NS_CreatedBy,
+								@MasterCompanyId = @NS_MasterCompanyId,
+								@StockLineId = @NS_NewStockLineId OUTPUT;
+
+							IF(ISNULL(@NS_NewStockLineId,0) > 0)
+							BEGIN
+								UPDATE TMP SET TMP.StockLineId = @NS_NewStockLineId, TMP.StocklineQuantity = @NS_Quantity
+								FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId;
+
+								SET @WOMStockLineId = @NS_NewStockLineId;
+							END
+						END
+					END
+
 					IF(ISNULL(@WOMStockLineId, 0) > 0)
 					BEGIN
 						DELETE FROM @tmpStkSubWOMaterial;

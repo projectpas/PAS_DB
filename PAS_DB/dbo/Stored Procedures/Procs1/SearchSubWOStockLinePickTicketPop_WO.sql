@@ -21,6 +21,7 @@
 	4    01/21/2025   Bhargav SALIYA        Get Location
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
@@ -124,7 +125,7 @@ BEGIN
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(Pick.IsKitType, 0) = 0
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
@@ -134,7 +135,6 @@ BEGIN
 						AND
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 						 UNION ALL
 
 					SELECT DISTINCT
@@ -194,7 +194,7 @@ BEGIN
 						LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 						LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(Pick.IsKitType, 0) = 1
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
 					WHERE 
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
@@ -203,7 +203,6 @@ BEGIN
 						AND 
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 						 END
 				ELSE
 				BEGIN
@@ -268,7 +267,7 @@ BEGIN
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND ISNULL(Pick.IsKitType, 0) = 0
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
@@ -278,7 +277,6 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 							AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 				
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 							 UNION ALL
 								
 					SELECT DISTINCT
@@ -341,7 +339,7 @@ BEGIN
 						LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 						LEFT JOIN DBO.SubWorkorderPickTicket Pick WITH (NOLOCK) ON Pick.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND ISNULL(Pick.IsKitType, 0) = 1
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
@@ -351,7 +349,6 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 						 END
 				
 			END

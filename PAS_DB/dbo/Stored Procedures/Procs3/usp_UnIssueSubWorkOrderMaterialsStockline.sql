@@ -20,6 +20,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 ** 6	24/04/2025  Devendra Shekh   Modify (Added [IsManualText] check for DistributionSetup)
 ** 7    27/03/2026  Moin Bloch	     Rename Internal To Internal Repair   PN-15850
+** 8    25-Aug-2026  RAJESH GAMI      [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 
 declare @p1 dbo.SubWOMaterialsStocklineType
 insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A COCKPIT OR FLIGHT DECK IS THE AREA, USUALLY NEAR THE FRONT OF AN AIRCRAFT OR SPACECRAFT, FROM WHICH A PILOT CONTROLS THE AIRCRAFT. THE COCKPIT OF AN AIRCRAFT CONTAINS FLIGHT INSTRUMENTS ON AN INSTRUMENT PANEL, AND THE CONTROLS THAT ENABLE THE PILOT TO FLY THE AIRCRAFT',1,0,0,0,0,1,N'CNTL-001540',N'ID_NUM-000010',N'STL000004',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -312,7 +313,7 @@ BEGIN
 						SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @HistorySubWorkOrderMaterialsId;
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
+						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId ;
 						
 						SELECT @SubWorkOrderNum = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @historysUBWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

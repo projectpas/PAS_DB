@@ -18,6 +18,7 @@
     1    05/10/2021   Vishal Suthar Created
 	1    05/24/2021   Hemant Saliya Updated Stockline Condition and Add Content Managment
 	2    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    25-Aug-2026   RAJESH GAMI   [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
      
 --EXEC [GetWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 			FROM dbo.WorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 
@@ -75,7 +76,7 @@ BEGIN
 			FROM dbo.WorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 		COMMIT  TRANSACTION

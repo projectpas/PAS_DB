@@ -31,6 +31,16 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY	
+		 DECLARE @A2ZMasterCompanyCode VARCHAR(50), @PARMasterCompanyCode VARCHAR(50);
+
+		SELECT @A2ZMasterCompanyCode = MasterCompanyCode
+		FROM dbo.MasterCompany WITH (NOLOCK)
+		WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+
+		SELECT @PARMasterCompanyCode = MasterCompanyCode
+		FROM dbo.MasterCompany WITH (NOLOCK)
+		WHERE UPPER(MasterCompanyCode) = UPPER('PAR');
+
 
 		DECLARE @ModuleID BIGINT,
 		        @OtherModuleID BIGINT, 
@@ -131,7 +141,7 @@ BEGIN
 												Ad.[Line2],
 												NULL,
 												CASE
-													WHEN UPPER(MC.MasterCompanyCode) = 'A2Z'
+													WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
 													THEN Ad.[SiteName]
 													ELSE NULL
 												END,
@@ -141,7 +151,7 @@ BEGIN
 												Ad.[Country],
 												Ad.[ContactPhoneNo],
 												NULL,
-												CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END,
+												CASE WHEN MC.MasterCompanyCode = @PARMasterCompanyCode THEN '' ELSE SC.[Email] END,
 												MC.MasterCompanyCode
 											)
 										),	
@@ -222,7 +232,7 @@ BEGIN
 												ADB.[Line2],
 												NULL,
 												CASE
-													WHEN UPPER(MC.MasterCompanyCode) = 'A2Z'
+													WHEN UPPER(MC.MasterCompanyCode) = @A2ZMasterCompanyCode
 													THEN ADB.[SiteName]
 													ELSE NULL
 												END,

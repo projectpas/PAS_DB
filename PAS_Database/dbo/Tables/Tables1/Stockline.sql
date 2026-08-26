@@ -388,116 +388,341 @@ BEGIN
 END
 
 GO
-CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
-        ON [dbo].[Stockline]
-        AFTER INSERT, UPDATE, DELETE
-        AS
-        BEGIN
-            SET NOCOUNT ON;
-            ;WITH
-            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[StockUnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QuantityReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QuantityIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[Memo],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted],d.[AircraftTailNumber], d.[AircraftSN], d.[Note] FROM deleted d),
-            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[StockUnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QuantityReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QuantityIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[Memo],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted],i.[AircraftTailNumber], i.[AircraftSN], i.[Note] FROM inserted i),
-             
-            paired AS (
-                SELECT
-                    COALESCE(i.StockLineId, d.StockLineId ) AS StockLineId,
-                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
-                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
-                    CASE
-                        WHEN i.StockLineId IS NOT NULL AND d.StockLineId IS NOT NULL THEN 'U'
-                        WHEN i.StockLineId IS NOT NULL AND d.StockLineId IS NULL     THEN 'I'
-                        WHEN i.StockLineId IS NULL     AND d.StockLineId IS NOT NULL THEN 'D'
-                    END AS Action,
+CREATE TRIGGER [dbo].[trg_Audit_dbo_Stockline]
+    ON [dbo].[Stockline]
+    AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
 
-                    (SELECT COALESCE(i.StockLineId, d.StockLineId) AS StockLineId
-                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
-                FROM d
-                FULL OUTER JOIN i
-                    ON i.StockLineId = d.StockLineId
-            ),
+    ;WITH d AS
+    (
+        SELECT
+            d.[StockLineId],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN N'Non-Stock' END AS [Type],
+            d.[PartNumber],
+            d.[PNDescription],
+            d.[Manufacturer],
+            d.[Condition],
+            d.[IsSerialized],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1
+                THEN CASE WHEN ISNULL(d.[IsService], 0) = 1 THEN N'Service' ELSE N'Non-Service' END
+            END AS [Service],
+            d.[StockLineNumber],
+            d.[NonStockClassification],           
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[ExpirationDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), d.[ExpirationDate], 126)
+            END AS [ExpirationDate],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(daat.[Name], '') END AS [AcquisitionType],
+            d.[UnitOfMeasure],
+            d.[StockUnitOfMeasure],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[OrderDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), d.[OrderDate], 126)
+            END AS [OrderDate],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[EntryDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), d.[EntryDate], 126)
+            END AS [EntryDate],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[PurchaseOrderNumber], '')
+                ELSE d.[PurchaseOrderNumber]
+            END AS [PurchaseOrderNumber],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(dv.[VendorName], '') END AS [Vendor],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1
+                THEN LTRIM(RTRIM(CONCAT(ISNULL(de.[FirstName], ''), ' ', ISNULL(de.[LastName], ''))))
+            END AS [Requestor],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[ReceiverNumber], '')
+                ELSE d.[ReceiverNumber]
+            END AS [ReceiverNumber],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[ReceivedDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), d.[ReceivedDate], 126)
+            END AS [ReceivedDate],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN d.[IsHazardousMaterial] END AS [IsHazardousMaterial],
+            d.[QuantityOnHand],
+            d.[QuantityReserved],
+            d.[QuantityIssued],
+            d.[QuantityAvailable],
+            d.[QuantityAdjustment],
+            d.[UnitCost],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Currency], '') END AS [Currency],
+            d.[GlAccountName],          
+            d.[Site],
+            d.[Warehouse],
+            d.[Location],
+            d.[Shelf],
+            d.[Bin],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(dms.[LastMSLevel], '') END AS [ManagementStructure],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
+            d.[InventoryGLAccName],
+            d.[GoodsReceivedNotInvoicesGLAccName],
+            d.[RevenueSoGLAccName],
+            d.[Memo],
+            d.[RevicedPNNumber],
+            d.[IsCustomerStock],
+            d.[IsRepairManagement],
+            d.[IsStkTimeLife],
+            d.[IsDocument],
+            d.[ControlNumber],
+            d.[RepairOrderNumber],
+            d.[TraceableTo],
+            d.[ObtainFrom],
+            d.[TagType],
+            d.[TaggedBy],
+            d.[TagDate],
+            d.[PartCertificationNumber],
+            d.[CertifiedBy],
+            d.[CertifiedDate],
+            d.[UpdatedBy],
+            d.[UpdatedDate],
+            d.[WorkOrderNumber],
+            d.[LotNumber],
+            d.[CustomerName],
+            d.[BatchNumber],
+            d.[SerialNumber],
+            d.[itemGroup],
+            d.[PurchaseOrderUnitCost],
+            d.[RepairOrderUnitCost],
+            d.[Adjustment],
+            d.[CreatedBy],
+            d.[CreatedDate],
+            d.[IsActive],
+            d.[IsDeleted],
+            d.[AircraftTailNumber],
+            d.[AircraftSN],
+            d.[Note]
+        FROM deleted d
+        LEFT JOIN [dbo].[AssetAcquisitionType] daat WITH(NOLOCK) ON daat.[AssetAcquisitionTypeId] = d.[AcquistionTypeId]
+        LEFT JOIN [dbo].[Vendor] dv WITH(NOLOCK) ON dv.[VendorId] = d.[VendorId]
+        LEFT JOIN [dbo].[Employee] de WITH(NOLOCK) ON de.[EmployeeId] = d.[RequestorId]
+        LEFT JOIN [dbo].[InventoryGLSetting] digs WITH(NOLOCK) ON digs.[InventoryGLSettingId] = d.[InventoryGLSettingId]
+        OUTER APPLY
+        (
+            SELECT TOP (1) msd.[LastMSLevel]
+            FROM [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK)
+            WHERE msd.[ReferenceID] = d.[StockLineId]
+              AND msd.[ModuleID] = 2
+              AND ISNULL(msd.[IsDeleted], 0) = 0
+            ORDER BY msd.[MSDetailsId] DESC
+        ) dms
+    ),
+    i AS
+    (
+        SELECT
+            i.[StockLineId],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN N'Non-Stock' END AS [Type],
+            i.[PartNumber],
+            i.[PNDescription],
+            i.[Manufacturer],
+            i.[Condition],
+            i.[IsSerialized],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1
+                THEN CASE WHEN ISNULL(i.[IsService], 0) = 1 THEN N'Service' ELSE N'Non-Service' END
+            END AS [Service],
+            i.[StockLineNumber],
+            i.[NonStockClassification],            
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[ExpirationDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), i.[ExpirationDate], 126)
+            END AS [ExpirationDate],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iaat.[Name], '') END AS [AcquisitionType],
+            i.[UnitOfMeasure],
+            i.[StockUnitOfMeasure],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[OrderDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), i.[OrderDate], 126)
+            END AS [OrderDate],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[EntryDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), i.[EntryDate], 126)
+            END AS [EntryDate],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[PurchaseOrderNumber], '')
+                ELSE i.[PurchaseOrderNumber]
+            END AS [PurchaseOrderNumber],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iv.[VendorName], '') END AS [Vendor],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1
+                THEN LTRIM(RTRIM(CONCAT(ISNULL(ie.[FirstName], ''), ' ', ISNULL(ie.[LastName], ''))))
+            END AS [Requestor],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[ReceiverNumber], '')
+                ELSE i.[ReceiverNumber]
+            END AS [ReceiverNumber],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[ReceivedDate], 126), '')
+                ELSE CONVERT(NVARCHAR(33), i.[ReceivedDate], 126)
+            END AS [ReceivedDate],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN i.[IsHazardousMaterial] END AS [IsHazardousMaterial],
+            i.[QuantityOnHand],
+            i.[QuantityReserved],
+            i.[QuantityIssued],
+            i.[QuantityAvailable],
+            i.[QuantityAdjustment],
+            i.[UnitCost],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Currency], '') END AS [Currency],            
+            i.[GlAccountName],          
+            i.[Site],
+            i.[Warehouse],
+            i.[Location],
+            i.[Shelf],
+            i.[Bin],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(ims.[LastMSLevel], '') END AS [ManagementStructure],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],            
+            i.[InventoryGLAccName],
+            i.[GoodsReceivedNotInvoicesGLAccName],
+            i.[RevenueSoGLAccName],
+            i.[Memo],
+            i.[RevicedPNNumber],
+            i.[IsCustomerStock],
+            i.[IsRepairManagement],
+            i.[IsStkTimeLife],
+            i.[IsDocument],
+            i.[ControlNumber],
+            i.[RepairOrderNumber],
+            i.[TraceableTo],
+            i.[ObtainFrom],
+            i.[TagType],
+            i.[TaggedBy],
+            i.[TagDate],
+            i.[PartCertificationNumber],
+            i.[CertifiedBy],
+            i.[CertifiedDate],
+            i.[UpdatedBy],
+            i.[UpdatedDate],
+            i.[WorkOrderNumber],
+            i.[LotNumber],
+            i.[CustomerName],
+            i.[BatchNumber],
+            i.[SerialNumber],
+            i.[itemGroup],
+            i.[PurchaseOrderUnitCost],
+            i.[RepairOrderUnitCost],
+            i.[Adjustment],
+            i.[CreatedBy],
+            i.[CreatedDate],
+            i.[IsActive],
+            i.[IsDeleted],
+            i.[AircraftTailNumber],
+            i.[AircraftSN],
+            i.[Note]
+        FROM inserted i
+        LEFT JOIN [dbo].[AssetAcquisitionType] iaat WITH(NOLOCK) ON iaat.[AssetAcquisitionTypeId] = i.[AcquistionTypeId]
+        LEFT JOIN [dbo].[Vendor] iv WITH(NOLOCK) ON iv.[VendorId] = i.[VendorId]
+        LEFT JOIN [dbo].[Employee] ie WITH(NOLOCK) ON ie.[EmployeeId] = i.[RequestorId]
+        LEFT JOIN [dbo].[InventoryGLSetting] iigs WITH(NOLOCK) ON iigs.[InventoryGLSettingId] = i.[InventoryGLSettingId]
+        OUTER APPLY
+        (
+            SELECT TOP (1) msd.[LastMSLevel]
+            FROM [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK)
+            WHERE msd.[ReferenceID] = i.[StockLineId]
+              AND msd.[ModuleID] = 2
+              AND ISNULL(msd.[IsDeleted], 0) = 0
+            ORDER BY msd.[MSDetailsId] DESC
+        ) ims
+    ),
+    paired AS
+    (
+        SELECT
+            COALESCE(i.[StockLineId], d.[StockLineId]) AS [StockLineId],
+            (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS [old_row_json],
+            (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS [new_row_json],
+            CASE
+                WHEN i.[StockLineId] IS NOT NULL AND d.[StockLineId] IS NOT NULL THEN 'U'
+                WHEN i.[StockLineId] IS NOT NULL AND d.[StockLineId] IS NULL THEN 'I'
+                WHEN i.[StockLineId] IS NULL AND d.[StockLineId] IS NOT NULL THEN 'D'
+            END AS [Action],
+            (SELECT COALESCE(i.[StockLineId], d.[StockLineId]) AS [StockLineId]
+             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS [PKJson]
+        FROM d
+        FULL OUTER JOIN i ON i.[StockLineId] = d.[StockLineId]
+    ),
+    oldv AS
+    (
+        SELECT
+            p.[PKJson],
+            p.[StockLineId],
+            v.[key] AS [ColumnName],
+            v.[value] AS [OldValue]
+        FROM paired p
+        CROSS APPLY OPENJSON(p.[old_row_json]) v
+        WHERE NOT EXISTS
+        (
+            SELECT 1
+            FROM [dbo].[IgnoreColumn] ign
+            WHERE ign.[SchemaName] = N'dbo'
+              AND ign.[TableName] = N'Stockline'
+              AND ign.[ColumnName] = N'StockLineId'
+        )
+    ),
+    newv AS
+    (
+        SELECT
+            p.[PKJson],
+            p.[StockLineId],
+            v.[key] AS [ColumnName],
+            v.[value] AS [NewValue]
+        FROM paired p
+        CROSS APPLY OPENJSON(p.[new_row_json]) v
+        WHERE NOT EXISTS
+        (
+            SELECT 1
+            FROM [dbo].[IgnoreColumn] ign
+            WHERE ign.[SchemaName] = N'dbo'
+              AND ign.[TableName] = N'Stockline'
+              AND ign.[ColumnName] = N'StockLineId'
+        )
+    ),
+    merged AS
+    (
+        SELECT
+            COALESCE(n.[PKJson], o.[PKJson]) AS [PKJson],
+            COALESCE(n.[ColumnName], o.[ColumnName]) AS [ColumnName],
+            o.[OldValue],
+            n.[NewValue],
+            p.[Action]
+        FROM paired p
+        LEFT JOIN oldv o ON o.[StockLineId] = p.[StockLineId]
+        LEFT JOIN newv n ON n.[StockLineId] = p.[StockLineId]
+            AND n.[ColumnName] = o.[ColumnName]
 
-            oldv AS (
-                SELECT
-                    p.PKJson,
-                    p.StockLineId,
-                    v.[key]  AS ColumnName,
-                    v.value  AS OldValue
-                FROM paired p
-                CROSS APPLY OPENJSON(p.old_row_json) v
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM dbo.IgnoreColumn ign
-                    WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'Stockline'
-                      AND ign.ColumnName = N'StockLineId'
-                )),
-            newv AS (
-                SELECT
-                    p.PKJson,
-                    p.StockLineId ,
-                    v.[key]  AS ColumnName,
-                    v.value  AS NewValue
-                FROM paired p
-                CROSS APPLY OPENJSON(p.new_row_json) v
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM dbo.IgnoreColumn ign
-                    WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'Stockline'
-                      AND ign.ColumnName = N'StockLineId'
-                )),
-            merged AS (
-                SELECT
-                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
-                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
-                    o.OldValue,
-                    n.NewValue,
-                    p.Action
-                FROM paired p
-                LEFT JOIN oldv o
-                    ON o.StockLineId = p.StockLineId
-                LEFT JOIN newv n
-                    ON n.StockLineId = p.StockLineId
-                   AND n.ColumnName = o.ColumnName
-                UNION ALL
-                SELECT
-                    n.PKJson,
-                    n.ColumnName,
-                    NULL AS OldValue,
-                    n.NewValue,
-                    p.Action
-                FROM paired p
-                LEFT JOIN newv n
-                    ON n.StockLineId = p.StockLineId
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM oldv o2
-                    WHERE o2.StockLineId = p.StockLineId
-                      AND o2.ColumnName    = n.ColumnName
-                )
-            )
-            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
-            SELECT
-                N'dbo' AS SchemaName,
-                N'Stockline' AS TableName,
-                m.PKJson,
-                m.ColumnName,
-                m.Action,
-                m.OldValue,
-                m.NewValue
-            FROM merged m
-            WHERE
-            m.ColumnName <> 'StockLineId' and (
-                (m.Action = 'U' AND (
-                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
-                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
-                  OR (m.OldValue <> m.NewValue)
-                ))
-                OR
-                (m.Action = 'I' AND m.NewValue IS NOT NULL)
-                OR
-                (m.Action = 'D' AND m.OldValue IS NOT NULL));
-        END;
+        UNION ALL
+
+        SELECT
+            n.[PKJson],
+            n.[ColumnName],
+            NULL AS [OldValue],
+            n.[NewValue],
+            p.[Action]
+        FROM paired p
+        LEFT JOIN newv n ON n.[StockLineId] = p.[StockLineId]
+        WHERE NOT EXISTS
+        (
+            SELECT 1
+            FROM oldv o2
+            WHERE o2.[StockLineId] = p.[StockLineId]
+              AND o2.[ColumnName] = n.[ColumnName]
+        )
+    )
+    INSERT INTO [dbo].[AuditLog]
+    (
+        [SchemaName], [TableName], [PKJson], [ColumnName], [Action], [OldValue], [NewValue]
+    )
+    SELECT
+        N'dbo',
+        N'Stockline',
+        m.[PKJson],
+        m.[ColumnName],
+        m.[Action],
+        m.[OldValue],
+        m.[NewValue]
+    FROM merged m
+    WHERE m.[ColumnName] <> 'StockLineId'
+      AND
+      (
+          (m.[Action] = 'U' AND
+          (
+              (m.[OldValue] IS NULL AND m.[NewValue] IS NOT NULL)
+              OR (m.[OldValue] IS NOT NULL AND m.[NewValue] IS NULL)
+              OR (m.[OldValue] <> m.[NewValue])
+          ))
+          OR (m.[Action] = 'I' AND m.[NewValue] IS NOT NULL)
+          OR (m.[Action] = 'D' AND m.[OldValue] IS NOT NULL)
+      );
+END;
+
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_ROPart_Date]
     ON [dbo].[Stockline]([RepairOrderPartRecordId] ASC, [CreatedDate] ASC)

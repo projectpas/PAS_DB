@@ -49,6 +49,7 @@
 	41	 02-JULY-2026       Ayushi Patel            [PN-16862]Generate vendorCode and CustomerCode dynamically
 	42    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	43	 18-Aug-2026        Ayushi Patel            [PN-17672] Handle 'Y'/'N' values along with 'YES'/'NO' to store corresponding 0/1 values for all modules.
+	44   27-Aug-2026        Ayushi Patel            [PN-17379] Added ItemMasterNonStock module
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -100,7 +101,7 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT, @chargeModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @ItemMasterNonStockModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT, @chargeModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -128,6 +129,7 @@ BEGIN
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
+		SET @ItemMasterNonStockModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @VendorModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor');
@@ -492,6 +494,19 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 					UPDATE #ImportFields
 					SET FieldValue = @PurchaseUnitOfMeasureId
 					WHERE FieldName = 'ConsumeUnitOfMeasureId';
+				END
+			END
+			IF (@ModuleId = @ItemMasterNonStockModule)
+			BEGIN
+				IF (ISNULL(LTRIM(RTRIM((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'IsService'))), '') = '')
+				BEGIN
+					UPDATE #DynamicKeyValue SET FieldValue = 'Yes' WHERE FieldName = 'IsService';
+					UPDATE #ImportFields SET FieldValue = 'Yes' WHERE FieldName = 'IsService';
+				END
+				IF (ISNULL(LTRIM(RTRIM((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'IsAcquiredMethodBuy'))), '') = '')
+				BEGIN
+					UPDATE #DynamicKeyValue SET FieldValue = 'Yes' WHERE FieldName = 'IsAcquiredMethodBuy';
+					UPDATE #ImportFields SET FieldValue = 'Yes' WHERE FieldName = 'IsAcquiredMethodBuy';
 				END
 			END
 			IF(@ModuleId = @POROCategory)
@@ -887,6 +902,83 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 									0, 0, 0, 0,
 									0, 0, 0, 0,
 									0, 0, @UtcNow, @UtcNow, 3,'
+			END
+			ELSE IF(@ModuleId = @ItemMasterNonStockModule)
+			BEGIN
+				DECLARE @NonStockCurrencyId VARCHAR(50) = (SELECT TOP 1 FieldValue FROM #DynamicKeyValue WHERE FieldName = 'CurrencyId');
+				IF (ISNULL(@NonStockCurrencyId, '') = '')
+				BEGIN
+					SET @NonStockCurrencyId = CAST(ISNULL((SELECT TOP 1 CurrencyId FROM DBO.Currency WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1), 0) AS VARCHAR(50));
+				END
+
+				DECLARE @NSInventoryGLSettingId BIGINT = (
+					SELECT TOP 1 InventoryGLSettingId FROM DBO.InventoryGLSetting WITH(NOLOCK)
+					WHERE ISNULL(IsStock, 1) = 0 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1
+					  AND MasterCompanyId = @MasterCompanyId
+					  AND StockInventoryName = 'Default Non-Stock Inventory GL Setting'
+				);
+				DECLARE @NSGLAccountId VARCHAR(20) = 'NULL', @NSGoodsReceivedNotInvoicesGLAccId VARCHAR(20) = 'NULL', @NSWorkInProgressGLAccId VARCHAR(20) = 'NULL',
+						@NSInventoryToBillGLAccId VARCHAR(20) = 'NULL', @NSFinishedGoodsGLAccId VARCHAR(20) = 'NULL', @NSInventoryExchAgreementGLAccId VARCHAR(20) = 'NULL',
+						@NSInventoryReserveGLAccId VARCHAR(20) = 'NULL', @NSCOGS_WorkOrderGLAccId VARCHAR(20) = 'NULL', @NSCOGS_SalesOrderGLAccId VARCHAR(20) = 'NULL',
+						@NSCOGS_QtyVarianceGLAccId VARCHAR(20) = 'NULL', @NSCOGS_UnitCostVarianceGLAccId VARCHAR(20) = 'NULL', @NSRevenueMroGLAccId VARCHAR(20) = 'NULL',
+						@NSRevenueSoGLAccId VARCHAR(20) = 'NULL', @NSRevenueExchGLAccId VARCHAR(20) = 'NULL', @NSCOGS_ExchSalesOrderGLAccId VARCHAR(20) = 'NULL',
+						@NSInventoryGLSettingIdStr VARCHAR(20) = 'NULL';
+
+				IF (@NSInventoryGLSettingId IS NOT NULL)
+				BEGIN
+					SET @NSInventoryGLSettingIdStr = CAST(@NSInventoryGLSettingId AS VARCHAR(20));
+					SELECT
+						@NSGLAccountId = ISNULL(CAST(InventoryGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSGoodsReceivedNotInvoicesGLAccId = ISNULL(CAST(GoodsReceivedNotInvoicesGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSWorkInProgressGLAccId = ISNULL(CAST(WorkInProgressGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSInventoryToBillGLAccId = ISNULL(CAST(InventoryToBillGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSFinishedGoodsGLAccId = ISNULL(CAST(FinishedGoodsGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSInventoryExchAgreementGLAccId = ISNULL(CAST(InventoryExchAgreementGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSInventoryReserveGLAccId = ISNULL(CAST(InventoryReserveGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSCOGS_WorkOrderGLAccId = ISNULL(CAST(COGS_WorkOrderGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSCOGS_SalesOrderGLAccId = ISNULL(CAST(COGS_SalesOrderGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSCOGS_QtyVarianceGLAccId = ISNULL(CAST(COGS_QtyVarianceGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSCOGS_UnitCostVarianceGLAccId = ISNULL(CAST(COGS_UnitCostVarianceGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSRevenueMroGLAccId = ISNULL(CAST(RevenueMroGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSRevenueSoGLAccId = ISNULL(CAST(RevenueSoGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSRevenueExchGLAccId = ISNULL(CAST(RevenueExchGLAccId AS VARCHAR(20)), 'NULL'),
+						@NSCOGS_ExchSalesOrderGLAccId = ISNULL(CAST(COGS_ExchSalesOrderGLAccId AS VARCHAR(20)), 'NULL')
+					FROM DBO.InventoryGLSetting WITH(NOLOCK)
+					WHERE InventoryGLSettingId = @NSInventoryGLSettingId;
+				END
+
+				IF (@NSGLAccountId = 'NULL')
+				BEGIN
+					SET @NSGLAccountId = ISNULL((SELECT TOP 1 CAST(GLAccountId AS VARCHAR(20)) FROM DBO.GLAccount WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1), 'NULL');
+				END
+
+				DECLARE @NSItemClassificationId VARCHAR(50) = (SELECT TOP 1 FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemNonStockClassificationId');
+				SET @NSItemClassificationId = CASE WHEN ISNULL(@NSItemClassificationId, '') = '' THEN '0' ELSE @NSItemClassificationId END;
+
+				SET @RefFieldName += ' ,ItemTypeId, IsNonStock, ItemClassificationId, IsReceivedDateAvailable, DaysReceived, IsManufacturingDateAvailable, ManufacturingDays,
+										IsTagDateAvailable, TagDays, IsOpenDateAvailable, OpenDays, IsShippedDateAvailable,
+										ShippedDays, IsOtherDateAvailable, OtherDays, IsSchematic, OverhaulHours,
+										RPHours, TestHours,
+										TurnTimeOverhaulHours, TurnTimeRepairHours, ShelfLife,
+										ShelfLifeAvailable, mfgHours, turnTimeMfg, turnTimeBenchTest,
+										NE, NS, OH,
+										REP, SVC, PurchaseCurrencyId, SalesCurrencyId,
+										InventoryGLSettingId, GLAccountId, GoodsReceivedNotInvoicesGLAccId, WorkInProgressGLAccId, InventoryToBillGLAccId, FinishedGoodsGLAccId,
+										InventoryExchAgreementGLAccId, InventoryReserveGLAccId, COGS_WorkOrderGLAccId, COGS_SalesOrderGLAccId, COGS_QtyVarianceGLAccId,
+										COGS_UnitCostVarianceGLAccId, RevenueMroGLAccId, RevenueSoGLAccId, RevenueExchGLAccId, COGS_ExchSalesOrderGLAccId,
+										CreatedDate, UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += '2, 1, '+@NSItemClassificationId+', 0, 0, 0, 0,
+									0, 0, 0, 0, 0,
+									0, 0, 0, 0, 0,
+									0, 0,
+									0, 0, 0,
+									0, 0, 0, 0,
+									0, 0, 0,
+									0, 0, '+@NonStockCurrencyId+', '+@NonStockCurrencyId+',
+									'+@NSInventoryGLSettingIdStr+', '+@NSGLAccountId+', '+@NSGoodsReceivedNotInvoicesGLAccId+', '+@NSWorkInProgressGLAccId+', '+@NSInventoryToBillGLAccId+', '+@NSFinishedGoodsGLAccId+',
+									'+@NSInventoryExchAgreementGLAccId+', '+@NSInventoryReserveGLAccId+', '+@NSCOGS_WorkOrderGLAccId+', '+@NSCOGS_SalesOrderGLAccId+', '+@NSCOGS_QtyVarianceGLAccId+',
+									'+@NSCOGS_UnitCostVarianceGLAccId+', '+@NSRevenueMroGLAccId+', '+@NSRevenueSoGLAccId+', '+@NSRevenueExchGLAccId+', '+@NSCOGS_ExchSalesOrderGLAccId+',
+									@UtcNow, @UtcNow,'
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
@@ -1292,7 +1384,7 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 			BEGIN
 				EXEC sp_executesql @RefQuery, N'@UtcNow DATETIME2(7), @ModuleTableId BIGINT OUTPUT', @UtcNow = @UtcNow, @ModuleTableId = @ModuleTableId OUTPUT;
 			END
-			IF(@ModuleId = @ItemMasterModule)
+			IF(@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
 			BEGIN
 				EXEC sp_executesql @RefQuery, N'@UtcNow DATETIME2(7), @ModuleTableId BIGINT OUTPUT', @UtcNow = @UtcNow, @ModuleTableId = @ModuleTableId OUTPUT;
 			END
@@ -1388,6 +1480,43 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 				EXEC [DBO].[usp_UpdateItemMasterWithGLAccountNames] @ModuleTableId, @PartSourceVal, @MasterCompanyId;
 				EXEC [DBO].[UpdateItemMasterDetail] @ModuleTableId;
 				EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterAccountingModuleId;
+			END
+
+			IF(@ModuleId = @ItemMasterNonStockModule)
+			BEGIN
+				EXEC [DBO].[UpdateItemMasterDetail] @ModuleTableId;
+
+				UPDATE IM SET
+					GoodsReceivedNotInvoicesGLAccName = CASE WHEN GL2.GLAccountId IS NOT NULL THEN CONCAT(GL2.AccountCode, '-', GL2.AccountName) ELSE NULL END,
+					WorkInProgressGLAccName = CASE WHEN GL3.GLAccountId IS NOT NULL THEN CONCAT(GL3.AccountCode, '-', GL3.AccountName) ELSE NULL END,
+					InventoryToBillGLAccName = CASE WHEN GL4.GLAccountId IS NOT NULL THEN CONCAT(GL4.AccountCode, '-', GL4.AccountName) ELSE NULL END,
+					FinishedGoodsGLAccName = CASE WHEN GL5.GLAccountId IS NOT NULL THEN CONCAT(GL5.AccountCode, '-', GL5.AccountName) ELSE NULL END,
+					InventoryExchAgreementGLAccName = CASE WHEN GL6.GLAccountId IS NOT NULL THEN CONCAT(GL6.AccountCode, '-', GL6.AccountName) ELSE NULL END,
+					InventoryReserveGLAccName = CASE WHEN GL7.GLAccountId IS NOT NULL THEN CONCAT(GL7.AccountCode, '-', GL7.AccountName) ELSE NULL END,
+					COGS_WorkOrderGLAccName = CASE WHEN GL8.GLAccountId IS NOT NULL THEN CONCAT(GL8.AccountCode, '-', GL8.AccountName) ELSE NULL END,
+					COGS_SalesOrderGLAccName = CASE WHEN GL9.GLAccountId IS NOT NULL THEN CONCAT(GL9.AccountCode, '-', GL9.AccountName) ELSE NULL END,
+					COGS_QtyVarianceGLAccName = CASE WHEN GL10.GLAccountId IS NOT NULL THEN CONCAT(GL10.AccountCode, '-', GL10.AccountName) ELSE NULL END,
+					COGS_UnitCostVarianceGLAccName = CASE WHEN GL11.GLAccountId IS NOT NULL THEN CONCAT(GL11.AccountCode, '-', GL11.AccountName) ELSE NULL END,
+					RevenueMroGLAccName = CASE WHEN GL12.GLAccountId IS NOT NULL THEN CONCAT(GL12.AccountCode, '-', GL12.AccountName) ELSE NULL END,
+					RevenueSoGLAccName = CASE WHEN GL13.GLAccountId IS NOT NULL THEN CONCAT(GL13.AccountCode, '-', GL13.AccountName) ELSE NULL END,
+					RevenueExchGLAccName = CASE WHEN GL14.GLAccountId IS NOT NULL THEN CONCAT(GL14.AccountCode, '-', GL14.AccountName) ELSE NULL END,
+					COGS_ExchSalesOrderGLAccName = CASE WHEN GL15.GLAccountId IS NOT NULL THEN CONCAT(GL15.AccountCode, '-', GL15.AccountName) ELSE NULL END
+				FROM DBO.ItemMaster IM
+				LEFT JOIN DBO.GLAccount GL2 WITH(NOLOCK) ON GL2.GLAccountId = IM.GoodsReceivedNotInvoicesGLAccId
+				LEFT JOIN DBO.GLAccount GL3 WITH(NOLOCK) ON GL3.GLAccountId = IM.WorkInProgressGLAccId
+				LEFT JOIN DBO.GLAccount GL4 WITH(NOLOCK) ON GL4.GLAccountId = IM.InventoryToBillGLAccId
+				LEFT JOIN DBO.GLAccount GL5 WITH(NOLOCK) ON GL5.GLAccountId = IM.FinishedGoodsGLAccId
+				LEFT JOIN DBO.GLAccount GL6 WITH(NOLOCK) ON GL6.GLAccountId = IM.InventoryExchAgreementGLAccId
+				LEFT JOIN DBO.GLAccount GL7 WITH(NOLOCK) ON GL7.GLAccountId = IM.InventoryReserveGLAccId
+				LEFT JOIN DBO.GLAccount GL8 WITH(NOLOCK) ON GL8.GLAccountId = IM.COGS_WorkOrderGLAccId
+				LEFT JOIN DBO.GLAccount GL9 WITH(NOLOCK) ON GL9.GLAccountId = IM.COGS_SalesOrderGLAccId
+				LEFT JOIN DBO.GLAccount GL10 WITH(NOLOCK) ON GL10.GLAccountId = IM.COGS_QtyVarianceGLAccId
+				LEFT JOIN DBO.GLAccount GL11 WITH(NOLOCK) ON GL11.GLAccountId = IM.COGS_UnitCostVarianceGLAccId
+				LEFT JOIN DBO.GLAccount GL12 WITH(NOLOCK) ON GL12.GLAccountId = IM.RevenueMroGLAccId
+				LEFT JOIN DBO.GLAccount GL13 WITH(NOLOCK) ON GL13.GLAccountId = IM.RevenueSoGLAccId
+				LEFT JOIN DBO.GLAccount GL14 WITH(NOLOCK) ON GL14.GLAccountId = IM.RevenueExchGLAccId
+				LEFT JOIN DBO.GLAccount GL15 WITH(NOLOCK) ON GL15.GLAccountId = IM.COGS_ExchSalesOrderGLAccId
+				WHERE IM.ItemMasterId = @ModuleTableId;
 			END
 
 

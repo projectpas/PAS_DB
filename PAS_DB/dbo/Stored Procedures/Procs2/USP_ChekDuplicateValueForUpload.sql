@@ -12,7 +12,8 @@
 	2	 24-Feb-2025		Abhishek Jirawla		Modified this SP to check when 1 reference is checked
 	3	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for @ItemMasterModule too
 	4	 13-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for @StockLineModule too
-	5    15-May-2026		Ayushi Patel			[PN-16321] Added optional third reference field support in duplicate validation 
+	5    15-May-2026		Ayushi Patel			[PN-16321] Added optional third reference field support in duplicate validation
+	6    27-Aug-2026		Ayushi Patel			[PN-17379] Added ItemMasterNonStock to the in-batch (within same upload file) duplicate check, alongside ItemMaster/Stockline/AlternateItemMaster
 DECLARE @IsDuplicate BIT;
 
 EXEC [dbo].[USP_ChekDuplicateValueForUpload]
@@ -57,9 +58,11 @@ BEGIN
     DECLARE @AlterModule AS BIGINT;
 	DECLARE @ItemMasterModule AS BIGINT;
     DECLARE @StocklineModule AS BIGINT;
+	DECLARE @ItemMasterNonStockModule AS BIGINT;
 	SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 	SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
 	SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+	SET @ItemMasterNonStockModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
     
 	SET @IsDuplicate = 0;
 
@@ -122,7 +125,7 @@ BEGIN
 			@DuplicateRefeValue3 = @DuplicateRefeValue3,
 			@IsDuplicate = @IsDuplicate OUTPUT;
 
-		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule OR @ModuleId = @StocklineModule
+		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule OR @ModuleId = @StocklineModule OR @ModuleId = @ItemMasterNonStockModule
 		BEGIN
 			IF @IsDuplicate != 1
 			BEGIN

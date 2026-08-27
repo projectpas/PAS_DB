@@ -12,6 +12,10 @@
                                       Summary View's TailNum shows the single Part Number or 'Multiple' when more than one part exists
     3    19/08/2026   Amit Ghediya    Summary View's StartDate/EndDate now bind too - single part shows its own dates,
                                       multiple parts show the overall MIN(StartDate)/MAX(EndDate) range across them
+    4    21/08/2026   Amit Ghediya    LeaseStockline is now the primary Lease entity - both views now read PN/PNDescription/
+                                      StartDate/EndDate directly from LeaseStockline (no more LeasePart join). AC Section is
+                                      dropped (kept as an always-empty column/parameter to avoid breaking the existing
+                                      caller signature and its FieldMaster-driven grid column, which is hidden instead)
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
@@ -167,10 +171,10 @@ BEGIN
 				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
-			   ,ISNULL(LP.PN,'')
-			   ,ISNULL(LP.PNDescription,'')
+			   ,ISNULL(LSL.PN,'')
+			   ,ISNULL(LSL.PNDescription,'')
 			   ,ISNULL(LSL.SN,'')
-			   ,ISNULL(ACS.Section,'')
+			   ,''
 			   ,ISNULL(LSL.StocklineNumber,'')
 			   ,ISNULL(LSL.BillingMethod,'')
 			   ,ISNULL(LSL.BillingInterval,'')
@@ -178,14 +182,12 @@ BEGIN
 					 ELSE CAST(ISNULL(LSL.MinimumCycles,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumCycles,0) AS VARCHAR(20)) END
 			   ,CASE WHEN LSL.MinimumTimes IS NULL AND LSL.MaximumTimes IS NULL THEN ''
 					 ELSE CAST(ISNULL(LSL.MinimumTimes,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumTimes,0) AS VARCHAR(20)) END
-			   ,ISNULL(CONVERT(VARCHAR(20), LP.StartDate, 101),'')
-			   ,ISNULL(CONVERT(VARCHAR(20), LP.EndDate, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), LSL.StartDate, 101),'')
+			   ,ISNULL(CONVERT(VARCHAR(20), LSL.EndDate, 101),'')
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
-				LEFT JOIN dbo.LeasePart LP WITH(NOLOCK) ON LP.LeaseHeaderId = LH.LeaseHeaderId AND LP.IsDeleted = 0
-				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.LeasePartId = LP.LeasePartId AND LSL.IsDeleted = 0
-				LEFT JOIN dbo.AircraftSection ACS WITH(NOLOCK) ON ACS.AircraftSectionId = LP.AircraftSectionId
+				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.LeaseHeaderId = LH.LeaseHeaderId AND LSL.IsDeleted = 0
 			WHERE LH.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR LH.IsActive=@IsActive) AND LH.MasterCompanyId = @MasterCompanyId
 		END
 		ELSE
@@ -228,10 +230,10 @@ BEGIN
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
 				OUTER APPLY (
-					SELECT COUNT(1) AS PartCount, MIN(LP2.StartDate) AS MinStartDate, MAX(LP2.EndDate) AS MaxEndDate,
-						   MAX(LP2.PN) AS AnyPN, MAX(LP2.StartDate) AS AnyStartDate, MAX(LP2.EndDate) AS AnyEndDate
-					FROM dbo.LeasePart LP2 WITH(NOLOCK)
-					WHERE LP2.LeaseHeaderId = LH.LeaseHeaderId AND LP2.IsDeleted = 0
+					SELECT COUNT(1) AS PartCount, MIN(LSL2.StartDate) AS MinStartDate, MAX(LSL2.EndDate) AS MaxEndDate,
+						   MAX(LSL2.PN) AS AnyPN, MAX(LSL2.StartDate) AS AnyStartDate, MAX(LSL2.EndDate) AS AnyEndDate
+					FROM dbo.LeaseStockline LSL2 WITH(NOLOCK)
+					WHERE LSL2.LeaseHeaderId = LH.LeaseHeaderId AND LSL2.IsDeleted = 0
 				) AS PartAgg
 			WHERE LH.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR LH.IsActive=@IsActive) AND LH.MasterCompanyId = @MasterCompanyId
 		END

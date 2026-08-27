@@ -14,7 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30-07-2026	  Moin Bloch	Created 
-	
+	2    26-08-2026   Ayushi Patel  [PN-17781] changed qty fields data type from int to decimal
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStocklineForNosStockSalesOrderPart]
 @SalesOrderId BIGINT = 0,
@@ -31,14 +31,14 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 
-		DECLARE @PartNumber VARCHAR(50),@ManufacturerId BIGINT, @ConditionId BIGINT,@QtyOrder INT,@SerialNumber VARCHAR(30) = ''
+		DECLARE @PartNumber VARCHAR(50),@ManufacturerId BIGINT, @ConditionId BIGINT,@QtyOrder DECIMAL(18,6),@SerialNumber VARCHAR(30) = ''
 		DECLARE @SiteId BIGINT,@WarehouseId BIGINT = NULL,@LocationId BIGINT = NULL, @ShelfId BIGINT = NULL,@BinId BIGINT= NULL
 		DECLARE @GLAccountId BIGINT = NULL,@IsPMA BIT,@IsDER BIT,@IsOEM BIT,@PurchaseUnitOfMeasureId BIGINT = NULL
 		DECLARE @ItemGroup VARCHAR(256) = NULL,@ItemType VARCHAR(20) = 'Non-Stock'
 		DECLARE @CreatedDate DATETIME2(7) = GETUTCDATE(),@ManagementStructureId BIGINT,@LegalEntityId BIGINT,@IsSerialized BIT
 		DECLARE @Memo NVARCHAR(MAX) ='Stockline Created For Sales Order Non-Stock Item'
 		DECLARE @ObtainFromType INT=4, @OwnerType INT=4, @TraceableToType INT=4
-		DECLARE @QuantityReserved INT = 0,@QuantityIssued INT = 0,@QuantityOnHand INT = 0,@QuantityAvailable INT = 0,@QtyReserved INT = 0,@QtyIssued INT = 0
+		DECLARE @QuantityReserved DECIMAL(18,6) = 0,@QuantityIssued DECIMAL(18,6) = 0,@QuantityOnHand DECIMAL(18,6) = 0,@QuantityAvailable DECIMAL(18,6) = 0,@QtyReserved DECIMAL(18,6) = 0,@QtyIssued DECIMAL(18,6) = 0
 		DECLARE @IsCustomerStock BIT = 0,@ItemTypeId INT= 2
 		DECLARE @UnitCost DECIMAL(18,2) = 0,@IsStkTimeLife BIT,@ItemNonStockClassificationId BIGINT
 		DECLARE @StkManagementStructureModuleId BIGINT=0,@StockLineModuleID INT=0

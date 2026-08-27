@@ -4798,9 +4798,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetReservedLeaseStockPartsListByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePartsByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLeaseStockLine.sql" />
-    <Build Include="dbo\Stored Procedures\USP_DeleteLeasePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseStockLine.sql" />
-    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeasePart.sql" />
     <Build Include="dbo\Tables\ILSConditionMapping.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />

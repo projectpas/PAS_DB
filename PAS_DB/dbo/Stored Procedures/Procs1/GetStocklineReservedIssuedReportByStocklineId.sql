@@ -491,7 +491,6 @@ BEGIN
 					LSL.CreatedDate  ReservedIssuedDate,
 					LSL.CreatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
 				FROM dbo.[LeaseStockline] LSL WITH(NOLOCK)
-					--INNER JOIN [dbo].[LeasePart] LP WITH(NOLOCK) ON LP.LeasePartId = LSL.LeasePartId
 					INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON LH.LeaseHeaderId = LSL.LeaseHeaderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = LSL.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND LSL.MasterCompanyId = SLM.MasterCompanyId

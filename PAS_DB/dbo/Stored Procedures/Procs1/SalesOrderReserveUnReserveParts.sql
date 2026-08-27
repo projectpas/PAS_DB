@@ -543,12 +543,12 @@ BEGIN
 						BEGIN
 							IF(@ReserveStatusId = @PartStatusId)
 							BEGIN
-								--UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+								UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
 								UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
 							END
 							ELSE IF(@UnReserveStatusId = @PartStatusId)
 							BEGIN
-								--UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+								UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
 								UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
 							END
 						END

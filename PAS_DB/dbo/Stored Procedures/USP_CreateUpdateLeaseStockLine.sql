@@ -10,17 +10,23 @@
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked for denormalized PNDescription/SN/StocklineNumber schema
     3    18/08/2026     Amit Ghediya            Added Notes
+    4    20/08/2026     Amit Ghediya            Added StartDate/EndDate (now entered directly per-stockline instead of only on LeasePart)
+    5    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - added @PN/@LeaseHeaderId/@ItemMasterId,
+                                                 removed @LeasePartId (always written as 0 - LeasePart is deprecated), removed QtyAvailable/QtyOH
+                                                 (now read live from Stockline instead of stored)
 
 exec USP_CreateUpdateLeaseStockLine
-@LeaseStocklineId=0,@LeasePartId=1,@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
+@LeaseStocklineId=0,@LeaseHeaderId=1,@ItemMasterId=1,@PN='ABC-123',@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
 @PricingMethod=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
 @UsagePerUnitCycles=NULL,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=NULL,@OverrunPerUnitTimes=NULL,
 @Maintenance=NULL,@Insurance=NULL,@Taxes=NULL,@RepairOrderId=NULL,@WorkOrderId=NULL,
-@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL,@StartDate=NULL,@EndDate=NULL
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
+CREATE     PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@LeaseStocklineId BIGINT = 0,
-	@LeasePartId BIGINT,
+	@LeaseHeaderId BIGINT,
+	@ItemMasterId BIGINT,
+	@PN NVARCHAR(100) = NULL,
 	@StockLineId BIGINT,
 	@QtyOrder INT,
 	@OutrightPrice DECIMAL(18,2) = NULL,
@@ -48,7 +54,9 @@ CREATE   PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(256),
 	@UpdatedBy VARCHAR(256),
-	@Notes NVARCHAR(MAX) = NULL
+	@Notes NVARCHAR(MAX) = NULL,
+	@StartDate DATETIME = NULL,
+	@EndDate DATETIME = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -56,15 +64,13 @@ BEGIN
 	BEGIN TRY
 
 		DECLARE @PNDescription NVARCHAR(500), @SN NVARCHAR(100), @StocklineNumber VARCHAR(100),
-				@ConditionId BIGINT, @QtyAvailable INT, @QtyOH INT, @RONumber VARCHAR(100), @WorkOrderNo VARCHAR(100);
+				@ConditionId BIGINT, @RONumber VARCHAR(100), @WorkOrderNo VARCHAR(100);
 
 		SELECT
 			@PNDescription = IM.PartDescription,
 			@SN = SL.SerialNumber,
 			@StocklineNumber = SL.StockLineNumber,
-			@ConditionId = SL.ConditionId,
-			@QtyAvailable = SL.QuantityAvailable,
-			@QtyOH = SL.QuantityOnHand
+			@ConditionId = SL.ConditionId
 		FROM [dbo].[Stockline] SL WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
 		WHERE SL.StockLineId = @StockLineId;
@@ -80,10 +86,11 @@ BEGIN
 			UPDATE [dbo].[LeaseStockline]
 			SET
 				StockLineId           = @StockLineId,
+				LeaseHeaderId         = @LeaseHeaderId,
+				ItemMasterId          = @ItemMasterId,
+				PN                    = @PN,
 				PNDescription         = @PNDescription,
 				QtyOrder              = @QtyOrder,
-				QtyAvailable          = @QtyAvailable,
-				QtyOH                 = @QtyOH,
 				SN                    = @SN,
 				StocklineNumber       = @StocklineNumber,
 				ConditionId           = @ConditionId,
@@ -112,6 +119,8 @@ BEGIN
 				WorkOrderId           = @WorkOrderId,
 				WorkOrderNo           = @WorkOrderNo,
 				Notes                 = @Notes,
+				StartDate             = @StartDate,
+				EndDate               = @EndDate,
 				UpdatedBy             = @UpdatedBy,
 				UpdatedDate           = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
@@ -120,18 +129,18 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[LeaseStockline]
 			(
-				LeasePartId, PNDescription, QtyOrder, QtyReserved, QtyAvailable, QtyOH, SN, StockLineId, StocklineNumber, ConditionId,
+				LeaseHeaderId, ItemMasterId, PN, PNDescription, QtyOrder, QtyReserved, SN, StockLineId, StocklineNumber, ConditionId,
 				OutrightPrice, FlatRate, PricingMethod, RateUnit, BillingInterval, BillingMethod, MinimumCycles, MinimumTimes, MaximumCycles, MaximumTimes,
 				UsagePerUnitCycles, UsagePerUnitTimes, OverrunPerUnitCycles, OverrunPerUnitTimes, Maintenance, MaintenancePer, Insurance, InsurancePer, Taxes, TaxesPer,
-				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes,
+				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes, StartDate, EndDate,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
 			)
 			VALUES
 			(
-				@LeasePartId, @PNDescription, @QtyOrder, 0, @QtyAvailable, @QtyOH, @SN, @StockLineId, @StocklineNumber, @ConditionId,
+				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @QtyOrder, 0, @SN, @StockLineId, @StocklineNumber, @ConditionId,
 				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
-				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes,
+				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes, @StartDate, @EndDate,
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 

@@ -159,6 +159,9 @@
     <Build Include="dbo\Functions\FN_GetTatStandardDays.sql" />
     <Build Include="dbo\Functions\FN_GetTatCurrentDays.sql" />
     <Build Include="dbo\Functions\FN_GetCurrentLaborHours.sql" />
+    <Build Include="dbo\Functions\FN_PurchaseOrderHasAnyReceipt.sql" />
+    <Build Include="dbo\Functions\FN_IsModulePartReservedOrIssued.sql" />
+    <Build Include="dbo\Functions\FN_HasPOStockBeenUsedInTargetReference.sql" />
     <Build Include="dbo\Functions\ConvertUTCtoLocal.sql" />
     <Build Include="dbo\Functions\udfGenerateCodeNumberWithOutDash.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialKitType.sql" />
@@ -3418,6 +3421,7 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDataForAddMultipleSOWOForVendorRFQPO.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDataForNeedBydateViewByPOId.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDataFromPurchaseOrder.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDataFromPurchaseOrderPartReference.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDataFromVendorRFQPurchaseOrderPartReference.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetDateTimeByTimeZone.sql" />
@@ -4112,6 +4116,7 @@
     <Build Include="dbo\Stored Procedures\Procs3\usp_UnIssueSubWorkOrderMaterialsStockline.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\usp_UnIssueWorkOrderMaterialsStockline.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_UnMappedPOByWorkOrderMaterialsId.sql" />
+    <Build Include="dbo\Stored Procedures\Procs3\USP_UnlinkPurchaseOrderPartReference.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\usp_UnReserveAndUnIssueWorkOrderMaterialsStockline.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\usp_UnReserveSubWorkOrderMaterialsStockline.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\usp_UnReserveUnIssueSubWorkOrderMaterialsStockline.sql" />
@@ -4484,6 +4489,7 @@
     <Build Include="dbo\User Defined Types\PurchaseOrderPartWOSOEXCHType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartReferenceType.sql" />
+    <Build Include="dbo\User Defined Types\POPartReferenceUnlinkType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderFreightType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderChargesType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderApprovalType.sql" />

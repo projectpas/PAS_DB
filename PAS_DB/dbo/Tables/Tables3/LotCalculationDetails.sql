@@ -44,6 +44,7 @@
     [IsFixedAmount]            BIT             NULL,
     [PercentId]                BIGINT          NULL,
     [PerAmount]                DECIMAL (18, 2) NULL,
+    [HowCalculate]             VARCHAR (50)    NULL,
     CONSTRAINT [PK_LotCalculationDetails] PRIMARY KEY CLUSTERED ([LotCalculationId] ASC),
     CONSTRAINT [FK_LotCalculationDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

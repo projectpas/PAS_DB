@@ -44,10 +44,19 @@ BEGIN
     DECLARE @lineBreak NVARCHAR(10) = '<br/>';
     DECLARE @newLine NVARCHAR(10) = '<br/>';
 
+    -- Append SiteName
+    -- SiteName is nullable. It is only appended when a valid value is supplied.
+    IF (COALESCE(NULLIF(TRIM(@SiteName), '-'), '') <> '')
+    BEGIN
+        SET @address = @SiteName;
+    END
+
     -- Append Address1
     IF (COALESCE(NULLIF(TRIM(@Address1), '-'), '') <> '')
     BEGIN
-        SET @address = @Address1;
+        SET @address = @address
+            + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END
+            + @Address1
     END
 
     -- Append Address2
@@ -64,15 +73,6 @@ BEGIN
         SET @address = @address
             + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END
             + @Address3;
-    END
-
-    -- Append SiteName
-    -- SiteName is nullable. It is only appended when a valid value is supplied.
-    IF (COALESCE(NULLIF(TRIM(@SiteName), '-'), '') <> '')
-    BEGIN
-        SET @address = @address
-            + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END
-            + @SiteName;
     END
 
     -- Append City

@@ -268,7 +268,7 @@ SET NOCOUNT ON
 						UPDATE DBO.SalesOrderPartV1 
 						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId),
 						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId),
-						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId)
+						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.ToTalReservedQty, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 					ELSE
@@ -276,7 +276,7 @@ SET NOCOUNT ON
 						UPDATE DBO.SalesOrderPartV1 
 						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
 						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
-						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
+						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.ToTalReservedQty, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 				END

@@ -30,6 +30,7 @@
 									   in both the insert gate above and the Stockline.LOTQty/IsLotAssigned update gate
 									   below - 'Trans In (Lot)' is left in place since the manual Lot Trans-In quantity
 									   transfer flow (USP_Lot_AddUpdateLotTransInOutDetails) still legitimately uses it.
+	8   26-Aug-2026   RAJESH GAMI      [PN-17799] Added HowCalculate to LotCalculationDetails: same FIXED AMOUNT/REVENUE+MARGIN/REVENUE/MARGIN/REVENUE SPLIT label used by the Commission tab (USP_Lot_GetAllLotViewsByLotId_Filter), computed from LotConsignment and stored on the 'Trans Out (SO)' row so it doesn't need to be recomputed on every read.
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -59,6 +60,7 @@ BEGIN
 		DECLARE @ExistingLotCalculationId BIGINT = NULL;
 		Select @lotNumber = LotNumber, @lotDesc = LotName from dbo.Lot WITH(NOLOCK) WHERE LotId = @LotId
 		DECLARE @ConsignmentRevenuePercent DECIMAL(18,2),@ConsignmentMarginPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
+		DECLARE @HowCalculate VARCHAR(50) = '';
 		SET @count = 1;
 		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0),@IsUseMargin =ISNULL(IsUseMargin,0)  ,@MarginPercentageId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
 		IF OBJECT_ID(N'tempdb..#tmpLotCalculationDetailsType') IS NOT NULL
@@ -270,6 +272,7 @@ BEGIN
 		
 			SELECT @TotalCounts = COUNT(ID) FROM #tmpLotCalculationDetailsType;
 			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent  = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0) , @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)   FROM DBO.LotConsignment LC WHERE LotId = @LotId
+			SET @HowCalculate = (CASE WHEN @IsFixedAmount = 1 THEN 'FIXED AMOUNT' WHEN @IsRevenue = 1 AND @IsMargin = 1 THEN 'REVENUE+MARGIN' WHEN @IsRevenue = 1 THEN 'REVENUE' WHEN @IsMargin = 1 THEN 'MARGIN' WHEN @IsRevenueSplit = 1 THEN 'REVENUE SPLIT' ELSE '' END)
 
 			WHILE @count<= @TotalCounts
 			BEGIN	
@@ -351,7 +354,7 @@ BEGIN
 
 				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost,
 						--TransferredOutCost = COGS , 
-						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END)  WHERE LotCalculationId = @LatestId; 
+						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END), HowCalculate = @HowCalculate  WHERE LotCalculationId = @LatestId; 
 
 				IF(@IsFixedAmount = 1)
 				BEGIN

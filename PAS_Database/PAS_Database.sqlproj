@@ -4671,6 +4671,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryDropdownList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

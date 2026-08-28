@@ -8,6 +8,7 @@
     [FlatRatePrice]    DECIMAL (18, 6) NULL,
     [StartDate]        DATETIME2 (7)   NULL,
     [EndDate]          DATETIME2 (7)   NULL,
+    [EffectiveDate]    DATETIME2 (7)   NULL,
     [CreatedBy]        VARCHAR (50)    NULL,
     [UpdatedBy]        VARCHAR (50)    NULL);
 

@@ -27,5 +27,6 @@
     [MasterCompanyId]                    INT             NULL,
     [UpdatedBy]                          VARCHAR (256)   NULL,
     [IsActive]                           BIT             NULL,
-    [IsDeleted]                          BIT             NULL);
+    [IsDeleted]                          BIT             NULL,
+    [EffectiveDate]                      DATETIME        NULL);
 

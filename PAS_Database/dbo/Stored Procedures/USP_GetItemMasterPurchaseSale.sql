@@ -11,7 +11,7 @@
 ** --    --------     -------           -------------------------------          
 ** 1     27-Oct-2025   Bhargav Saliya      Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-
+	3    28/08/2026    Ayushi Patel      [PN-16987] added effective date 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
@@ -282,7 +282,8 @@ BEGIN
         ISNULL(iM.SP_CalSPByPP_SaleDiscPercValue, 0) AS SP_CalSPByPP_SaleDiscPercValue,
         iM.SalePriceSelectId,
         ISNULL(iM.SalePriceSelectName, '') AS SalePriceSelectName,
-        ISNULL(sp.RecommendedPrice, 0) AS SuggestedPrice
+        ISNULL(sp.RecommendedPrice, 0) AS SuggestedPrice,
+        iM.EffectiveDate
 
     FROM dbo.ItemMasterPurchaseSale iM WITH(NOLOCK)
     LEFT JOIN dbo.[ItemMasterPurchaseSaleMaster] spdrp WITH(NOLOCK) ON iM.SalePriceSelectId = spdrp.ItemMasterPurchaseSaleMasterId

@@ -3138,6 +3138,7 @@
     <Build Include="dbo\Stored Procedures\CheckEmailContactExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckEmailContactExistsForVendor.sql" />
     <Build Include="dbo\Functions\ValidatePDFAddress.sql" />
+    <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
     <Build Include="dbo\Functions\FN_PurchaseOrderHasAnyReceipt.sql" />
     <Build Include="dbo\Functions\FN_IsModulePartReservedOrIssued.sql" />
     <Build Include="dbo\Functions\FN_HasPOStockBeenUsedInTargetReference.sql" />

@@ -49,6 +49,9 @@
 	                                        blanket FN_PurchaseOrderHasAnyReceipt (reason 1); other modules keep
 	                                        the blanket check. Added ReferenceNumber/ModuleName to #Diagnosis so
 	                                        the rejection message can name the specific WO.
+    5    28/08/2026   Abhishek Jirawala	#Validated is now an explicitly-typed temp table (was SELECT...INTO)
+	                                        so IssuedQty is guaranteed DECIMAL(18,6) - the UOM branch's quantity
+	                                        standard - rather than relying on implicit type inheritance.
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UnlinkPurchaseOrderPartReference]
     @tbl_POPartReferenceUnlink [dbo].[POPartReferenceUnlinkType] READONLY,
@@ -63,12 +66,17 @@ BEGIN
     BEGIN TRANSACTION
 
     IF OBJECT_ID('tempdb..#Validated') IS NOT NULL DROP TABLE #Validated
+    CREATE TABLE #Validated (
+        PurchaseOrderPartReferenceId BIGINT, PurchaseOrderId BIGINT, PurchaseOrderPartId BIGINT,
+        ModuleId INT, ReferenceId BIGINT, ReferencePartId BIGINT, IsKit BIT,
+        IssuedQty DECIMAL(18,6), NotFound BIT);
+
+    INSERT INTO #Validated
     SELECT
         T.PurchaseOrderPartReferenceId, T.PurchaseOrderId, T.PurchaseOrderPartId, T.ModuleId, T.ReferenceId,
         T.ReferencePartId, ISNULL(T.IsKit,0) AS IsKit,
-        ISNULL(POR.IssuedQty,0) AS IssuedQty,
+        CAST(ISNULL(POR.IssuedQty,0) AS DECIMAL(18,6)) AS IssuedQty,
         CASE WHEN POR.PurchaseOrderPartReferenceId IS NULL THEN 1 ELSE 0 END AS NotFound
-    INTO #Validated
     FROM @tbl_POPartReferenceUnlink T
     LEFT JOIN dbo.PurchaseOrderPartReference POR WITH (UPDLOCK, HOLDLOCK)
         ON POR.PurchaseOrderPartReferenceId = T.PurchaseOrderPartReferenceId

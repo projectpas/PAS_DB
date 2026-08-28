@@ -47,6 +47,10 @@
 	                                        of the blanket FN_PurchaseOrderHasAnyReceipt (reason 1). Other modules
 	                                        (SO/Exchange/RepairOrder/Lot) keep the blanket check unchanged - no
 	                                        verified per-stockline usage mechanism for them yet.
+    5    28/08/2026   Abhishek Jirawala	Explicitly CAST QtyReceivedOnLine/GridQtyReserved/GridQtyIssued to
+	                                        DECIMAL(18,6) - the UOM branch's quantity standard - instead of relying
+	                                        on implicit type inheritance from the source columns, so the Unlink PO
+	                                        popup consistently shows the same decimal precision as the rest of the app.
 
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 1, @PurchaseOrderId = 1863, @PurchaseOrderPartRecordId = 100
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 2, @SourceModuleId = 1, @ReferenceId = 500, @ReferencePartId = 900, @IsKit = 0
@@ -140,12 +144,12 @@ BEGIN
              WHEN R.ModuleId = 4 THEN 'Exchange'
              WHEN R.ModuleId = 5 THEN 'Sub Work Order'
              WHEN R.ModuleId = 6 THEN 'Lot' ELSE NULL END AS ModuleName,
-        ISNULL((SELECT SUM(Quantity) FROM dbo.Stockline WITH (NOLOCK)
+        CAST(ISNULL((SELECT SUM(Quantity) FROM dbo.Stockline WITH (NOLOCK)
                 WHERE PurchaseOrderId = R.PurchaseOrderId
                       AND (PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
-                           OR PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart WITH (NOLOCK) WHERE ParentId = POP.PurchaseOrderPartRecordId))), 0) AS QtyReceivedOnLine,
-        ISNULL(wom.QuantityReserved, ISNULL(womk.QuantityReserved, ISNULL(swom.QuantityReserved, ISNULL(sop.QtyReserved,0)))) AS GridQtyReserved,
-        ISNULL(wom.QuantityIssued, ISNULL(womk.QuantityIssued, ISNULL(swom.QuantityIssued,0))) AS GridQtyIssued,
+                           OR PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart WITH (NOLOCK) WHERE ParentId = POP.PurchaseOrderPartRecordId))), 0) AS DECIMAL(18,6)) AS QtyReceivedOnLine,
+        CAST(ISNULL(wom.QuantityReserved, ISNULL(womk.QuantityReserved, ISNULL(swom.QuantityReserved, ISNULL(sop.QtyReserved,0)))) AS DECIMAL(18,6)) AS GridQtyReserved,
+        CAST(ISNULL(wom.QuantityIssued, ISNULL(womk.QuantityIssued, ISNULL(swom.QuantityIssued,0))) AS DECIMAL(18,6)) AS GridQtyIssued,
         PORc.HasAnyReceipt,
         dbo.FN_IsModulePartReservedOrIssued(
             R.ModuleId, R.ReferenceId,

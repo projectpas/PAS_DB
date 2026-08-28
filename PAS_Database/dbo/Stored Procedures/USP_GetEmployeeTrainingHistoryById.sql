@@ -14,7 +14,8 @@
     1    04-11-2025    Bhargav Saliya		Created 
 	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    03-May-2026   Sahdev Saliya        Added CategoryId, CategoryType, CurrencyId, CurrencyCode (PN-16203)
-
+	4    13-Jul-2026   Bhargav Saliya       GET start Date (PN-17217)
+	5    14-Jul-2026   Bhargav Saliya       Get Duration with perfect formate (PN-17311)
 	exec [USP_GetEmployeeTrainingHistoryById]  @EmployeeTrainingId = 20 , @EmployeeId = 2
 ********************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetEmployeeTrainingHistoryById]    
@@ -43,8 +44,9 @@ BEGIN
 			,ETA.[Provider]
 			,ETA.[IndustryCode]
 			,FT.[FrequencyName] as FrequencyofTraining
-			,ETA.[Cost] as EstimatedCost
-			,CAST(ETA.DurationHours AS VARCHAR(max)) + ' : ' + RIGHT('00' + CAST(ETA.DurationMinutes AS VARCHAR(2)), 2) AS Duration
+			,ETA.[Cost] as EstimatedCost,
+			CASE WHEN ETA.DurationHours IS NULL AND ETA.DurationMinutes IS NULL THEN NULL
+					ELSE CONCAT(FORMAT(ISNULL(ETA.DurationHours, 0), '00'), ' : ', FORMAT(ISNULL(ETA.DurationMinutes, 0), '00')) END AS Duration
 			,ETA.[ScheduleDate]
 			,ETA.[CompletionDate]
 			,ETA.[ExpirationDate]
@@ -64,6 +66,7 @@ BEGIN
 			,ETA.CategoryType
 			,ETA.CurrencyId
 			,CR.[Code] as CurrencyCode
+			,ETA.StartDate
 		FROM [dbo].[EmployeeTrainingAudit] ETA WITH(NOLOCK)  
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ETA.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ETA.AircraftManufacturerId = AFT.AircraftTypeId
@@ -74,7 +77,7 @@ BEGIN
 		LEFT JOIN dbo.Currency CR WITH (NOLOCK) ON ETA.CurrencyId = CR.CurrencyId
 		WHERE ETA.[EmployeeTrainingId] = @EmployeeTrainingId 
 		GROUP BY ETA.EmployeeTrainingId,ETA.EmployeeId,ETP.[TrainingType],AFT.[Description],ETA.[Provider],ETA.[IndustryCode],FT.[FrequencyName],ETA.[Cost],
-			ETA.[DurationHours],ETA.[DurationMinutes],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId],TN.[Name],ETA.[ProviderId],ETA.[ProviderType],ETA.[IsRecurring],ETA.[CategoryId],ETA.[CategoryType],ETA.[CurrencyId],CR.[Code]
+			ETA.[DurationHours],ETA.[DurationMinutes],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId],TN.[Name],ETA.[ProviderId],ETA.[ProviderType],ETA.[IsRecurring],ETA.[CategoryId],ETA.[CategoryType],ETA.[CurrencyId],CR.[Code],ETA.StartDate
 	order by ETA.[EmployeeTrainingId] desc	
   END    
   END TRY    

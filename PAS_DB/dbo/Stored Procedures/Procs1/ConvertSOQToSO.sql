@@ -35,7 +35,8 @@
 	18   09/July/2026  RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	19   20/July/2026  RAJESH GAMI	    [PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from SOQ-to-SO revenue view and stock reservation logic.
 	20   01/Aug/2026   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
-	21   15/Ayg/2026   Kishor Makwana	[PN-17439] - Add SequenceNumber
+	21   15/Aug/2026   Kishor Makwana	[PN-17439] - Add SequenceNumber
+	22   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -400,7 +401,8 @@ BEGIN
 					SELECT @StocklineId = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 					UPDATE SOPSTK
-					SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
+					SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END,
+					SOPSTK.ToTalReservedQty = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
@@ -547,7 +549,8 @@ BEGIN
 						SELECT @StocklineId2 = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 						UPDATE SOPSTK
-						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
+						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END,
+						SOPSTK.ToTalReservedQty = (CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END)
 						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId

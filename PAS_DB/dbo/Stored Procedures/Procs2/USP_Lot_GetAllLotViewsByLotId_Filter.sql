@@ -43,6 +43,7 @@
    21   17-Aug-2026	  Ayushi Patel		 [PN-17678] added two fields salesOrderQuoteNumber and invoiceNumber
    22   21-Aug-2026	  RAJESH GAMI		 [PN-17745] HowAcquired/AcquiredRef now recognize the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" still show correctly. NOTE: the separate LOT/RO exclusion filter further down (NOT IN (@LOT_TransIn_LOT, @LOT_TransIn_PO) AND EXISTS(...)) was intentionally left unchanged pending confirmation of intended behavior for 'Turn In' rows.
    23   24-Aug-2026   RAJESH GAMI      BAG LOT: Added a new flag, IsExcludedFromOnHand, for the PARTS ON HAND tab (PNInStockView). Only records where IsExcludedFromOnHand is NULL or 0 will be included.
+   24   26-Aug-2026   RAJESH GAMI      [PN-17799] HowCalculate now prefers the value stored on LotCalculationDetails (ltCal.HowCalculate, populated going forward by USP_Lot_AddUpdateLotCalculationDetails) and only falls back to recomputing live from LotConsignment for older rows where it isn't populated yet.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -2109,7 +2110,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName
-			    ,(CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
+			    ,ISNULL(NULLIF(ltCal.HowCalculate,''), (CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END)) HowCalculate -- [PN-17799] prefer stored value, fall back for old rows
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId

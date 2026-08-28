@@ -25,6 +25,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12   20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from both UNION branches' StockLine and ItemMaster joins.
+	13    25/08/2026		    Bhargav Saliya		                [PN-17774] - added ControlNumber and CertificateNumber (PartCertificationNumber) from StockLine.
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
 CREATE PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
@@ -57,10 +58,12 @@ BEGIN
 			[PartNumber] VARCHAR(MAX) NULL,
 			[PartDescription] VARCHAR(MAX) NULL,
 			[ShortName] VARCHAR(100) NULL,
-			[Customer] VARCHAR(150) NULL
+			[Customer] VARCHAR(150) NULL,
+			[ControlNumber] VARCHAR(50) NULL,
+			[CertificateNumber] VARCHAR(50) NULL
 		)
 
-		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer])	
+		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer],[ControlNumber],[CertificateNumber])	
 		SELECT 
 			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN rpart.QtyToReserve ELSE [dbo].[fn_ConvertUOM](rpart.QtyToReserve, uomStock.ShortName, uomConsume.ShortName, 0, part.MasterCompanyId) END AS Qty,
 			UPPER(qs.StockLineNumber) AS StockLineNumber,
@@ -69,7 +72,9 @@ BEGIN
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
 			UPPER(ISNULL(uomConsume.ShortName,'')) AS ShortName,
-			UPPER(CU.Name) AS Customer
+			UPPER(CU.Name) AS Customer,
+			UPPER(ISNULL(qs.ControlNumber,'')) AS ControlNumber,
+			UPPER(ISNULL(qs.PartCertificationNumber,'')) AS CertificateNumber	
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -94,7 +99,9 @@ BEGIN
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
 			UPPER(ISNULL(uomConsume.ShortName,'')) AS ShortName,
-			UPPER(CU.Name) AS Customer
+			UPPER(CU.Name) AS Customer,
+			UPPER(ISNULL(qs.ControlNumber,'')) AS ControlNumber,
+			UPPER(ISNULL(qs.PartCertificationNumber,'')) AS CertificateNumber
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -111,9 +118,9 @@ BEGIN
 			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
-				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer
+				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer,ControlNumber,CertificateNumber
 		FROM #tmprShipDetails
-		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName,Customer
+		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName,Customer,ControlNumber,CertificateNumber
   END    
   END TRY    
  BEGIN CATCH          

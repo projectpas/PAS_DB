@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_GetLotSummaryByLotId]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot summary by lot id
@@ -15,6 +15,7 @@
 	3    09/July/2026	 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026	 RAJESH GAMI	[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	5    25/Aug/2026	 RAJESH GAMI	[PN-17745] Ported from PAS_DB - TransferredInCost SUM now also recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" are still included/calculated correctly.
+	6    27/Aug/2026	 RAJESH GAMI	[PN-17799] Ported from other branch - added Freight/Charges (SalesOrderFreight/SalesOrderCharges.MarkupFixedPrice, flat-rate lines excluded, folded into Revenue), NetMargin (GrossMargin-CommissionExpense) and NetMarginPercent (NetMargin/Revenue as %).
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -40,7 +41,12 @@ BEGIN
 			DECLARE @OriginalCostUnit int=0,@RepairCostUnit int=0,@TransferredInCostUnit int=0,@TransferredOutCostUnit int=0,@OtherCostUnit int=0,@RevenueCostUnit int=0;
 			DECLARE @CogsPartCostUnit int=0,@CommissionExpenseUnit int=0,@TotalExpenseUnit int=0,@LotCostRemainingUnit int=0;
 			DECLARE @AppModuleId INT = 0,@AdjustmentAmount decimal(18,2) = 0,@TransferredOutROCost decimal(18,2) = 0;
+			-- [PN-17799] Freight/Charges (real values from SalesOrderFreight/SalesOrderCharges), NetMargin, NetMarginPercent
+			DECLARE @Freight decimal(18,2) = 0,@Charges decimal(18,2) = 0,@NetMargin decimal(18,2) = 0,@NetMarginPercent decimal(18,2) = 0;
+			DECLARE @FlatRateBillingMethodId BIGINT = NULL;
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
+			-- [PN-17799] flat-rate freight/charge lines are excluded from @Freight/@Charges (and so from Revenue)
+			SELECT TOP 1 @FlatRateBillingMethodId = BillingMethodId FROM DBO.BillingMethod WITH(NOLOCK) WHERE Memo = 'FlateRate' AND ISNULL(IsDeleted,0) = 0
 			
 			/************ COST Calculation ***************/
 			--SELECT TOP 1 @OriginalCost = ISNULL(OriginalCost,0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId ORDER BY LCD.LotCalculationId DESC
@@ -144,10 +150,38 @@ BEGIN
 
 			SET @CommissionExpense = ISNULL((SELECT SUM(ISNULL(CommissionExpense,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId),0);
 			SET @RevenueCost = ISNULL((SELECT SUM(ISNULL(ExtSalesUnitPrice,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0)
+
+			-- [PN-17799] Freight: SalesOrderFreight.MarkupFixedPrice for the parts sold out of this Lot (flat-rate lines excluded)
+			SET @Freight = ISNULL((
+				SELECT SUM(ISNULL(SOF.MarkupFixedPrice,0))
+				FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+				INNER JOIN DBO.SalesOrderFreight SOF WITH(NOLOCK) ON SOF.SalesOrderId = SO.SalesOrderId AND SOF.SalesOrderPartId = LCD.ChildId
+				WHERE LCD.LotId = @LotId AND ISNULL(SOF.IsDeleted,0) = 0 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+					AND (@FlatRateBillingMethodId IS NULL OR ISNULL(SOF.BillingMethodId,0) <> @FlatRateBillingMethodId)
+			),0);
+
+			-- [PN-17799] Charges: SalesOrderCharges.MarkupFixedPrice for the parts sold out of this Lot (flat-rate lines excluded)
+			SET @Charges = ISNULL((
+				SELECT SUM(ISNULL(SOC.MarkupFixedPrice,0))
+				FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+				INNER JOIN DBO.SalesOrderCharges SOC WITH(NOLOCK) ON SOC.SalesOrderId = SO.SalesOrderId AND SOC.SalesOrderPartId = LCD.ChildId
+				WHERE LCD.LotId = @LotId AND ISNULL(SOC.IsDeleted,0) = 0 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+					AND (@FlatRateBillingMethodId IS NULL OR ISNULL(SOC.BillingMethodId,0) <> @FlatRateBillingMethodId)
+			),0);
+
+			-- [PN-17799] Revenue now includes Freight and Charges collected on the sale (e.g. 1000 + 50 + 50 = 1100)
+			SET @RevenueCost = ISNULL(@RevenueCost,0) + ISNULL(@Freight,0) + ISNULL(@Charges,0);
+
 			SET @CogsPartCost = ISNULL((SELECT SUM(ISNULL(Cogs,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
 			SET @TotalExpense = @CogsPartCost + @CommissionExpense
 			SET @MarginAmount = ISNULL((SELECT SUM(ISNULL(MarginAmount,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
 			SET @MarginPercent = CASE WHEN @RevenueCost >0 THEN (CONVERT(DECIMAL(18,2),(@MarginAmount/@RevenueCost)*100)) ELSE 0 END
+			-- [PN-17799] NetMargin = GrossMargin (floored at 0, same as displayed) - CommissionExpense
+			SET @NetMargin = (CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END) - ISNULL(@CommissionExpense,0);
+			-- [PN-17799] % of Revenue = Margin (NetMargin) / Revenue * 100, to 2 decimals
+			SET @NetMarginPercent = CASE WHEN ISNULL(@RevenueCost,0) > 0 THEN CONVERT(DECIMAL(18,2),(ISNULL(@NetMargin,0)/@RevenueCost)*100) ELSE 0 END;
 			--SET @LotCostRemaining = (@TotalLotCost - @CogsPartCost)
 			SET @LotCostRemaining = (CASE WHEN @TotalLotCost - (@TransferredOutCost + @SoldCost) <0 THEN 0 ELSE (@TotalLotCost - (@TransferredOutCost + @SoldCost)) END)
 			SET @RemainingCostPercentage = (CASE WHEN @TotalLotCost > 0 THEN ((@LotCostRemaining / @TotalLotCost) * 100) ELSE 0 END)
@@ -170,6 +204,10 @@ BEGIN
 			   ,ISNULL(@TotalExpense,0) AS TotalExpense
 			   ,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount
 			   ,ISNULL(@MarginPercent,0) AS MarginPercent
+			   ,ISNULL(@Freight,0) AS Freight
+			   ,ISNULL(@Charges,0) AS Charges
+			   ,ISNULL(@NetMargin,0) AS NetMargin
+			   ,ISNULL(@NetMarginPercent,0) AS NetMarginPercent
 	
 			   ,ISNULL(@OtherSalesExpenses,0) AS OtherSalesExpenses
 

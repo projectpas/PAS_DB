@@ -4670,6 +4670,7 @@
     <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivitySerialDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

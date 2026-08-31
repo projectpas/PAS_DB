@@ -2717,6 +2717,7 @@
     <Build Include="dbo\Stored Procedures\MigrateWOMaterialRecords.sql" />
     <Build Include="dbo\Stored Procedures\UpdateBatchDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_TenderStockLineForSubAssembly.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOStocklineUpdateStockQtyAdjust.sql" />
     <Build Include="dbo\Stored Procedures\CreateSubWorkOrderForTenderStockline.sql" />
     <Build Include="dbo\Stored Procedures\RPT_PrintWorkOrderQuoteTermCondiitonById.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuotePrintPdfData.sql" />

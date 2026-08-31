@@ -20,6 +20,7 @@
 	4    17/10/2025  Rajesh Gami		Added PageSize and PageNo
 	5    23/03/2026  Ayushi Patel       PN-15799 Added partDescription
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    28/08/2026  Ayushi Patel       [PN-16987]added effective date
 --exec dbo.ItemMasterPriceListForBulkUpdate @ItemMasterId=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -204,10 +205,11 @@ BEGIN
 			IMPS.SP_FSP_UOMId,
 			IMPS.SP_FSP_UOMName,
 			IMPS.IsActive,
-			IMPS.IsDeleted
+			IMPS.IsDeleted,
+			IMPS.EffectiveDate
 			,CAST(ISNULL(P.PercentValue,0) as INT) AS SP_CalSPByPP_MarkUpPercValueOnListPrice,
 			 ISNULL(R.RecommendedPrice,0) AS SuggestedPrice
-			FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK) 
+			FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK)
 			INNER JOIN #tmpItemMasterFilterData IM  WITH (NOLOCK)  ON IMPS.ItemMasterId = IM.ItemMasterId 
 			LEFT JOIN [DBO].[Percent] P  WITH (NOLOCK)  ON ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) = P.PercentId 
 			LEFT JOIN #RFQHistory R ON R.PartNumber = IM.PartNumber AND R.Condition = IMPS.ConditionName
@@ -264,10 +266,11 @@ BEGIN
 				IMPS.SP_FSP_UOMId,
 				IMPS.SP_FSP_UOMName,
 				IMPS.IsActive,
-				IMPS.IsDeleted
+				IMPS.IsDeleted,
+				IMPS.EffectiveDate
 				,CAST(ISNULL(P.PercentValue,0) as INT) AS SP_CalSPByPP_MarkUpPercValueOnListPrice,
 				 CAST(0 AS DECIMAL(18,2))  AS SuggestedPrice
-				INTO #tmpPriceMaster FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK) 
+				INTO #tmpPriceMaster FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK)
 				INNER JOIN #tmpItemMaster IM  WITH (NOLOCK)  ON IMPS.ItemMasterId = IM.ItemMasterId 
 				LEFT JOIN [DBO].[Percent] P  WITH (NOLOCK)  ON ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) = P.PercentId 
 				--LEFT JOIN #RFQHistory R ON R.PartNumber = IM.PartNumber AND R.Condition = IMPS.ConditionName
@@ -381,10 +384,11 @@ BEGIN
 				IMPS.SP_FSP_UOMId,
 				IMPS.SP_FSP_UOMName,
 				IMPS.IsActive,
-				IMPS.IsDeleted
+				IMPS.IsDeleted,
+				IMPS.EffectiveDate
 				,CAST(ISNULL(P.PercentValue,0) as INT) AS SP_CalSPByPP_MarkUpPercValueOnListPrice,
 				 CAST(0 AS DECIMAL(18,2))  AS SuggestedPrice
-				INTO #tmpPriceMasterSecond FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK) 
+				INTO #tmpPriceMasterSecond FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK)
 				INNER JOIN #tmpItemMasterFilterData IM  WITH (NOLOCK)  ON IMPS.ItemMasterId = IM.ItemMasterId 
 				LEFT JOIN [DBO].[Percent] P  WITH (NOLOCK)  ON ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) = P.PercentId 
 				--LEFT JOIN #RFQHistory R ON R.PartNumber = IM.PartNumber AND R.Condition = IMPS.ConditionName

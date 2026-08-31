@@ -20,6 +20,7 @@
     1    18-Nov-2025  Bhargav Saliya     Created
     2    01-May-2026  Rajesh Gami		 Handle NULL value [PN-16265]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    28/08/2026  Ayushi Patel       [PN-16987]added effective date 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
  @ItemMasterPurchaseSaleType [PurchaseSalesType] readonly,
@@ -85,7 +86,8 @@ BEGIN
 	[UpdatedBy] varchar(256) NULL,
 	[UpdatedDate] DATETIME NULL,
 	[IsActive] bit NULL,
-	[IsDeleted] bit NULL
+	[IsDeleted] bit NULL,
+	[EffectiveDate] DATETIME2(7) NULL
 	);
 
 	INSERT INTO #PurchaseSalesTemp
@@ -95,7 +97,7 @@ BEGIN
 	SP_CalSPByPP_MarkUpPercOnListPrice,SP_CalSPByPP_MarkUpAmount,SP_CalSPByPP_LastMarkUpDate,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_SaleDiscPerc,
 	SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_LastSalesDiscDate,SP_CalSPByPP_UnitSalePrice,SalePriceSelectId,ConditionName,PP_UOMName,
 	PP_CurrencyName,SP_FSP_UOMName,SP_FSP_CurrencyName,PP_PurchaseDiscPercValue,SP_CalSPByPP_MarkUpPercOnListPriceValue,
-	SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,ManufacturerName,SP_CalSPByPP_MarkUpPercValueOnListPrice,SuggestedPrice,[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+	SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,ManufacturerName,SP_CalSPByPP_MarkUpPercValueOnListPrice,SuggestedPrice,[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[EffectiveDate])
 
 	SELECT ItemMasterPurchaseSaleId,ItemMasterId,PartNumber,ConditionId,PP_UOMId,PP_CurrencyId,PP_FXRatePerc,PP_VendorListPrice,
 		PP_LastListPriceDate,PP_PurchaseDiscPerc,PP_PurchaseDiscAmount,PP_LastPurchaseDiscDate,PP_UnitPurchasePrice,SP_FSP_UOMId,SP_FSP_CurrencyId,
@@ -103,7 +105,7 @@ BEGIN
 		SP_CalSPByPP_LastMarkUpDate,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_SaleDiscPerc,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_LastSalesDiscDate,
 		SP_CalSPByPP_UnitSalePrice,SalePriceSelectId,ConditionName,PP_UOMName,PP_CurrencyName,SP_FSP_UOMName,SP_FSP_CurrencyName,PP_PurchaseDiscPercValue,
 		SP_CalSPByPP_MarkUpPercOnListPriceValue,SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,ManufacturerName,SP_CalSPByPP_MarkUpPercValueOnListPrice,SuggestedPrice,
-		[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted]
+		[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[EffectiveDate]
 	FROM @ItemMasterPurchaseSaleType;
 
 	UPDATE #PurchaseSalesTemp
@@ -159,7 +161,8 @@ BEGIN
 				IMP.PP_PurchaseDiscPercValue = PST.PP_PurchaseDiscPercValue,
 				IMP.SP_CalSPByPP_SaleDiscPercValue = PST.SP_CalSPByPP_SaleDiscPercValue,
 				IMP.SP_CalSPByPP_MarkUpPercOnListPriceValue = PST.SP_CalSPByPP_MarkUpPercOnListPriceValue,
-				IMP.SalePriceSelectName = PST.SalePriceSelectName
+				IMP.SalePriceSelectName = PST.SalePriceSelectName,
+				IMP.EffectiveDate = PST.EffectiveDate
 			FROM dbo.ItemMasterPurchaseSale IMP WITH(NOLOCK)
 			JOIN #PurchaseSalesTemp PST ON IMP.ItemMasterPurchaseSaleId = PST.ItemMasterPurchaseSaleId AND IMP.ItemMasterId = PST.ItemMasterId AND IMP.MasterCompanyId = PST.MasterCompanyId
 			WHERE PST.Id = @MinId;
@@ -193,7 +196,7 @@ BEGIN
 					SP_CalSPByPP_MarkUpPercOnListPrice,SP_CalSPByPP_MarkUpAmount,SP_CalSPByPP_LastMarkUpDate,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_SaleDiscPerc,
 					SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_LastSalesDiscDate,SP_CalSPByPP_UnitSalePrice,SalePriceSelectId,ConditionName,PP_UOMName,
 					PP_CurrencyName,SP_FSP_UOMName,SP_FSP_CurrencyName,PP_PurchaseDiscPercValue,SP_CalSPByPP_MarkUpPercOnListPriceValue,
-					SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+					SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[EffectiveDate])
 
 				select	ItemMasterId,PartNumber,ConditionId,PP_UOMId,PP_CurrencyId,PP_FXRatePerc,PP_VendorListPrice,
 						PP_LastListPriceDate,PP_PurchaseDiscPerc,PP_PurchaseDiscAmount,PP_LastPurchaseDiscDate,PP_UnitPurchasePrice,SP_FSP_UOMId,SP_FSP_CurrencyId,
@@ -201,7 +204,7 @@ BEGIN
 						SP_CalSPByPP_LastMarkUpDate,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_SaleDiscPerc,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_LastSalesDiscDate,
 						SP_CalSPByPP_UnitSalePrice,SalePriceSelectId,ConditionName,PP_UOMName,PP_CurrencyName,SP_FSP_UOMName,SP_FSP_CurrencyName,PP_PurchaseDiscPercValue,
 						SP_CalSPByPP_MarkUpPercOnListPriceValue,SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,
-						[MasterCompanyId],[CreatedBy],CreatedDate,[UpdatedBy],UpdatedDate,1,0 
+						[MasterCompanyId],[CreatedBy],CreatedDate,[UpdatedBy],UpdatedDate,1,0,EffectiveDate
 			   from #PurchaseSalesTemp where Id = @MinId
 
 			END

@@ -15,7 +15,7 @@
  ** --   --------         -------          --------------------------------
     1    21-08-2026     Ayushi Patel         [PN-17565] created
     2    25-08-2026     Ayushi Patel         [PN-17780] Renamed date filters 'From Date'/'To Date' to 'Start Date'/'End Date'
-
+	3    27-08-2026     Ayushi Patel		 [PN-17799] prefer stored value, fall back for old rows
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetLotCommissionReport]
 	@mastercompanyid INT,
@@ -131,12 +131,13 @@ BEGIN
 				UPPER(im.[ManufacturerName]) AS 'manufacturer',
 				UPPER(sl.[SerialNumber]) AS 'serialNum',
 				UPPER(sl.[StockLineNumber]) AS 'stkLineNum',
-				(CASE WHEN ISNULL(lc.[IsFixedAmount],0) = 1 THEN 'FIXED AMOUNT'
-					  WHEN ISNULL(lc.[IsRevenue],0) = 1 AND ISNULL(lc.[IsMargin],0) = 1 THEN 'REVENUE+MARGIN'
-					  WHEN ISNULL(lc.[IsRevenue],0) = 1 THEN 'REVENUE'
-					  WHEN ISNULL(lc.[IsMargin],0) = 1 THEN 'MARGIN'
-					  WHEN ISNULL(lc.[IsRevenueSplit],0) = 1 THEN 'REVENUE SPLIT'
-					  ELSE '' END) AS 'howCalculate',
+				--(CASE WHEN ISNULL(lc.[IsFixedAmount],0) = 1 THEN 'FIXED AMOUNT'
+				--	  WHEN ISNULL(lc.[IsRevenue],0) = 1 AND ISNULL(lc.[IsMargin],0) = 1 THEN 'REVENUE+MARGIN'
+				--	  WHEN ISNULL(lc.[IsRevenue],0) = 1 THEN 'REVENUE'
+				--	  WHEN ISNULL(lc.[IsMargin],0) = 1 THEN 'MARGIN'
+				--	  WHEN ISNULL(lc.[IsRevenueSplit],0) = 1 THEN 'REVENUE SPLIT'
+				--	  ELSE '' END) AS 'howCalculate',
+				ISNULL(NULLIF(ltCal.HowCalculate,''), (CASE WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenue,0) = 1 AND  ISNULL(lc.IsMargin,0) = 1  THEN 'REVENUE+MARGIN' WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN'  WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END)) howCalculate,
 				ISNULL(ltCal.[CommissionExpense],0) AS 'commission',
 				UPPER(so.[SalesOrderNumber]) AS 'soNum',
 				UPPER(MSD.[Level1Name]) AS 'level1',

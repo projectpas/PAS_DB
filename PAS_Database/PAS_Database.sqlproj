@@ -66,6 +66,7 @@
     <Folder Include="dbo\Stored Procedures\" />
     <Folder Include="dbo\Stored Procedures\Procs1\" />
     <Folder Include="dbo\Stored Procedures\Procs2\" />
+    <Folder Include="dbo\Stored Procedures\Procs3\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
     <Folder Include="Snapshots" />
@@ -2624,6 +2625,7 @@
     <Build Include="dbo\Stored Procedures\Procs2\WorkOrderSummarizedHistoryByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\WorkOrderSummarizedHistoryByMPN.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\WOSummarizedHistory.sql" />
+    <Build Include="dbo\Stored Procedures\Procs3\USP_UnlinkPurchaseOrderPartReference.sql" />
     <Build Include="Database Triggers\backup_objects.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialListType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMaterialKitType.sql" />
@@ -3136,6 +3138,10 @@
     <Build Include="dbo\Stored Procedures\CheckEmailContactExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckEmailContactExistsForVendor.sql" />
     <Build Include="dbo\Functions\ValidatePDFAddress.sql" />
+    <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
+    <Build Include="dbo\Functions\FN_PurchaseOrderHasAnyReceipt.sql" />
+    <Build Include="dbo\Functions\FN_IsModulePartReservedOrIssued.sql" />
+    <Build Include="dbo\Functions\FN_HasPOStockBeenUsedInTargetReference.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetPurchaseAnalysis_ROStock.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetPurchaseAnalysis_POStock.sql" />
     <Build Include="dbo\Stored Procedures\GetPOAnalysisDetail_ROByIMId.sql" />
@@ -4406,6 +4412,7 @@
     <Build Include="dbo\Stored Procedures\usp_MergePurchaseOrderPartReference.sql" />
     <Build Include="dbo\Stored Procedures\usp_MapRFQReferences.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartReferenceType.sql" />
+    <Build Include="dbo\User Defined Types\POPartReferenceUnlinkType.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetILSRFQPartDetails.sql" />
     <Build Include="dbo\Stored Procedures\usp_CheckIntegrationEmailExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAMappedByItemMasterId.sql" />
@@ -4691,6 +4698,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

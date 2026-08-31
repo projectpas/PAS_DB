@@ -11,6 +11,7 @@
  ** --   --------      -------			---------------------------     
     1    16/10/2025    Priyansh Patel   Created
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
+	3	 31/08/2026	   Ayushi Patel		[PN-16987] Added EffectiveDate
 
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterHistory 1001
@@ -35,6 +36,7 @@ BEGIN
 				   MPM.[CurrencyId],
                   MPM.[StartDate],
 				  MPM.[EndDate],
+				  MPM.[EffectiveDate],
                   MPM.[CreatedBy],
                   MPM.[CreatedDate],
                   MPM.[UpdatedBy],

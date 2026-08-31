@@ -17,6 +17,7 @@
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter on the ItemMaster lookup - this proc's pricing data (PartNumber/MasterCompanyId, which the entire rest of the proc depends on) was returning NULL/empty for every Non-Stock item.
+	3    31/Aug/2026			 Ayushi Patel						[PN-16987] Added EffectiveDate
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
@@ -286,7 +287,8 @@ BEGIN
         ISNULL(iM.SP_CalSPByPP_SaleDiscPercValue, 0) AS SP_CalSPByPP_SaleDiscPercValue,
         iM.SalePriceSelectId,
         ISNULL(iM.SalePriceSelectName, '') AS SalePriceSelectName,
-        ISNULL(sp.RecommendedPrice, 0) AS SuggestedPrice
+        ISNULL(sp.RecommendedPrice, 0) AS SuggestedPrice,
+        iM.EffectiveDate
 
     FROM dbo.ItemMasterPurchaseSale iM WITH(NOLOCK)
     LEFT JOIN dbo.[ItemMasterPurchaseSaleMaster] spdrp WITH(NOLOCK) ON iM.SalePriceSelectId = spdrp.ItemMasterPurchaseSaleMasterId

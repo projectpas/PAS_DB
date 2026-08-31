@@ -15,6 +15,7 @@
     [IsActive]              BIT             NOT NULL,
     [IsDeleted]             BIT             NOT NULL,
     [EndDate]               DATETIME2 (7)   NULL,
+    [EffectiveDate]         DATETIME2 (7)   NULL,
     CONSTRAINT [PK_MROPriceMasterAudit] PRIMARY KEY CLUSTERED ([MROPriceMasterAuditId] ASC),
     CONSTRAINT [FK_MROPriceMasterAudit_MROPriceMaster] FOREIGN KEY ([MROPriceMasterId]) REFERENCES [dbo].[MROPriceMaster] ([MROPriceMasterId])
 );

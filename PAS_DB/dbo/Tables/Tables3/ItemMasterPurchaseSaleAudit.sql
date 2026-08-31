@@ -43,6 +43,7 @@
     [SP_CalSPByPP_SaleDiscPercValue]          DECIMAL (18, 2) NULL,
     [SP_CalSPByPP_MarkUpPercOnListPriceValue] DECIMAL (18, 2) NULL,
     [SalePriceSelectName]                     VARCHAR (200)   NULL,
+    [EffectiveDate]                           DATETIME2 (7)   NULL,
     PRIMARY KEY CLUSTERED ([AuditItemMasterPurchaseSaleId] ASC)
 );
 

@@ -14,7 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    20/09/2024  Ekta Chandegra     Created
-     
+    2    31/08/2026  Ayushi Patel       [PN-16987] Added EffectiveDate
+
 ************************************************************************/
 
 CREATE   PROCEDURE [DBO].[UpdatePriceMasterDetails]
@@ -60,7 +61,8 @@ BEGIN
 						TARGET.[UpdatedBy] = SOURCE.[UpdatedBy],
 						TARGET.[UpdatedDate] = GETUTCDATE(),
 						TARGET.[IsActive] = SOURCE.[IsActive] ,
-						TARGET.[IsDeleted] = SOURCE.[IsDeleted];
+						TARGET.[IsDeleted] = SOURCE.[IsDeleted],
+						TARGET.[EffectiveDate] = SOURCE.[EffectiveDate];
 					END
 			END
 		COMMIT TRANSACTION

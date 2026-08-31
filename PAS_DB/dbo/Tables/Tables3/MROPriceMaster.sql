@@ -14,6 +14,7 @@
     [IsActive]         BIT             CONSTRAINT [DF__MROPriceMaster__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT             CONSTRAINT [DF__MROPriceMaster__IsDeleted] DEFAULT ((0)) NOT NULL,
     [EndDate]          DATETIME2 (7)   NULL,
+    [EffectiveDate]    DATETIME2 (7)   NULL,
     CONSTRAINT [PK_MROPriceMaster] PRIMARY KEY CLUSTERED ([MROPriceMasterId] ASC),
     CONSTRAINT [FK_MROPriceMaster_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_MROPriceMaster_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),

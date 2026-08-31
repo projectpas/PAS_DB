@@ -32,6 +32,7 @@
     [CategoryType]           VARCHAR (50)    NULL,
     [CurrencyId]             BIGINT          NULL,
     [CurrencyCode]           VARCHAR (200)   NULL,
+    [StartDate]              DATETIME2 (7)   NULL,
     CONSTRAINT [PK_EmployeeTraining] PRIMARY KEY CLUSTERED ([EmployeeTrainingId] ASC),
     CONSTRAINT [FK_EmployeeTraining_AircraftManufacturer] FOREIGN KEY ([AircraftManufacturerId]) REFERENCES [dbo].[AircraftType] ([AircraftTypeId]),
     CONSTRAINT [FK_EmployeeTraining_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
@@ -39,6 +40,8 @@
     CONSTRAINT [FK_EmployeeTraining_EmployeeTrainingType] FOREIGN KEY ([EmployeeTrainingTypeId]) REFERENCES [dbo].[EmployeeTrainingType] ([EmployeeTrainingTypeId]),
     CONSTRAINT [FK_EmployeeTraining_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

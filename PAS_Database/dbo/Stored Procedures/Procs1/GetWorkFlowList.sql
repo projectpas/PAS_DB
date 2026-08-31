@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkFlowList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Work Flow List    
@@ -24,8 +24,9 @@
 	10   04-05-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 	11   07-05-2026   Priyansh Patel   Global filter updated [PN-16341]
 	12   18-05-2026   Priyansh Patel   Updated maintenance type and Work scope return column [PN-16419]
-	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	14   29-06-2026	  Moin Bloch	   Added MaintenanceType PN-17043
+	13   04-06-2026   Amit Ghediya     Added AC Template releted Fields MaintenanceClassId [PN-16668]
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15   29-06-2026	  Moin Bloch	   Added MaintenanceType PN-17043
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@WorkScopeCode=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
@@ -59,6 +60,8 @@ CREATE    PROCEDURE [dbo].[GetWorkFlowList]
 	@AircraftModel	varchar(100) = NULL,
 	@AircraftMake	varchar(100) = NULL,
 	@MaintenanceType varchar(100) = NULL,
+	@MaintenanceClassName varchar(100) = NULL,
+	@AircraftRegistryNumber varchar(100) = NULL,
 	@EmployeeId bigint
 
 AS
@@ -153,6 +156,8 @@ BEGIN
 					ACM.ModelName AS AircraftModel,
 					ACT.[Description] AS AircraftMake,
 					wf.[MaintenanceType] AS MaintenanceType,
+					MC.[Name] AS MaintenanceClassName,
+					ARH.AircraftRegistryNumber,
 					wf.Verified,
 					wf.VerifiedBy,
 					wf.VerifiedDate
@@ -166,6 +171,8 @@ BEGIN
 					LEFT JOIN dbo.AircraftModel ACM WITH (NOLOCK) on ACM.AircraftModelId =  wf.AircraftModelId
 					LEFT JOIN dbo.AircraftType ACT WITH (NOLOCK) on ACT.AircraftTypeId =  wf.MakeTypeId
 					--LEFT JOIN dbo.MaintenanceType MT WITH (NOLOCK) on MT.MaintenanceTypeId =  wf.MaintenanceTypeId
+					LEFT JOIN dbo.[MaintenanceClass] MC WITH (NOLOCK) on MC.MaintenanceClassId =  wf.MaintenanceClassId
+					LEFT JOIN dbo.[AircraftRegistryHeader] ARH WITH (NOLOCK) on ARH.AircraftRegistryId =  wf.AircraftRegistryId
 					WHERE ((ISNULL(wf.IsDeleted, 0) = @IsDeleted) and (@IsActive is null or wf.IsActive=@IsActive))
 					AND wf.MasterCompanyId=@MasterCompanyId	
 			), ResultCount AS(Select COUNT(WorkflowId) AS totalItems FROM Result)
@@ -178,6 +185,9 @@ BEGIN
 					(ManufacturerName like '%' +@GlobalFilter+'%') OR
 					(WorkScopeCode like '%' +@GlobalFilter+'%') OR
 					(Name like '%' +@GlobalFilter+'%') OR
+					(MaintenanceType like '%' +@GlobalFilter+'%') OR
+					(MaintenanceClassName like '%' +@GlobalFilter+'%') OR
+					(AircraftRegistryNumber like '%' +@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
 					(UpdatedBy like '%' +@GlobalFilter+'%') 
 					)
@@ -204,6 +214,8 @@ BEGIN
 					(IsNull(@AircraftModel,'') ='' OR AircraftModel like '%' + @AircraftModel+'%') and
 					(IsNull(@AircraftMake,'') ='' OR AircraftMake like '%' + @AircraftMake+'%') and
 					(IsNull(@MaintenanceType,'') ='' OR MaintenanceType like '%' + @MaintenanceType+'%') and
+					(IsNull(@MaintenanceClassName,'') ='' OR MaintenanceClassName like '%' + @MaintenanceClassName+'%') and
+					(IsNull(@AircraftRegistryNumber,'') ='' OR AircraftRegistryNumber like '%' + @AircraftRegistryNumber+'%') and
 					(@AcTemplate IS NULL OR TemplateType = CASE WHEN @AcTemplate = 1 THEN 2 ELSE 1 END) and
 					(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as Date)=Cast(@UpdatedDate as date)))
 					)
@@ -231,6 +243,8 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='AIRCRAFTMODEL')  THEN AircraftModel END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='AIRCRAFTMAKE')  THEN AircraftMake END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='MAINTENANCETYPE')  THEN MaintenanceType END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='MAINTENANCECLASSNAME')  THEN MaintenanceClassName END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='AIRCRAFTREGISTRYNUMBER')  THEN AircraftRegistryNumber END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -250,8 +264,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ACSERIALNUMBER')  THEN AcSerialNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='AIRCRAFTMODEL')  THEN AircraftModel END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='AIRCRAFTMAKE')  THEN AircraftMake END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='MAINTENANCETYPE')  THEN MaintenanceType END DESC
-
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MAINTENANCETYPE')  THEN MaintenanceType END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MAINTENANCECLASSNAME')  THEN MaintenanceClassName END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='AIRCRAFTREGISTRYNUMBER')  THEN AircraftRegistryNumber END DESC
 
 
 

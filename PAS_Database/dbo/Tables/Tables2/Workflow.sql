@@ -57,6 +57,8 @@
     [TemplateType]                 INT             DEFAULT ((1)) NOT NULL,
     [MaintenanceTypeId]            BIGINT          NULL,
     [MaintenanceType]              VARCHAR (MAX)   NULL,
+    [MaintenanceClassId]           BIGINT          NULL,
+    [AircraftRegistryId]           BIGINT          NULL,
     CONSTRAINT [PK_Process] PRIMARY KEY CLUSTERED ([WorkflowId] ASC),
     FOREIGN KEY ([ChangedPartNumberId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -65,6 +67,8 @@
     CONSTRAINT [FK_Workflow_AircraftType] FOREIGN KEY ([MakeTypeId]) REFERENCES [dbo].[AircraftType] ([AircraftTypeId]),
     CONSTRAINT [FK_WorkFlow_WFParentId] FOREIGN KEY ([WFParentId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

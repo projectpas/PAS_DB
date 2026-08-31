@@ -58,6 +58,8 @@
     [TemplateType]                 INT             DEFAULT ((1)) NOT NULL,
     [MaintenanceTypeId]            BIGINT          NULL,
     [MaintenanceType]              VARCHAR (MAX)   NULL,
+    [MaintenanceClassId]           BIGINT          NULL,
+    [AircraftRegistryId]           BIGINT          NULL,
     CONSTRAINT [PK_WorkflowAudit] PRIMARY KEY CLUSTERED ([WorkflowAuditId] ASC)
 );
 

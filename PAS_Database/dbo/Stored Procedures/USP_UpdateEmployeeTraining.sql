@@ -15,10 +15,11 @@
     1    24-09-2025    Sahdev Saliya       Created  
 	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    04-May-2026   Sahdev Saliya       Added CategoryId, CategoryType, CurrencyId (PN-16203)
-
+    4    13-Jul-2026   Bhargav Saliya      Added New Field start Date (PN-17217)
+    5    17-Jul-2026   Bhargav Saliya      Scoped EmployeeAircraftModelMapping delete to employee + manufacturer so editing one training no longer removes other trainings' AC models (PN-17320)
 	exec [USP_UpdateEmployeeTraining] 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_UpdateEmployeeTraining]
+CREATE    PROCEDURE [dbo].[USP_UpdateEmployeeTraining]
     @Id BIGINT = NULL,
     @MasterCompanyId BIGINT,
     @AircraftModelId BIGINT = NULL,
@@ -49,7 +50,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateEmployeeTraining]
 	@DurationMinutes VARCHAR(200) = NULL,
 	@CategoryId BIGINT= NULL,
 	@CategoryType VARCHAR(50) = NULL,
-	@CurrencyId BIGINT = NULL
+	@CurrencyId BIGINT = NULL,
+    @StartDate DATETIME = NULL
 
 AS
 BEGIN
@@ -87,14 +89,16 @@ BEGIN
                 DurationMinutes       = @DurationMinutes,
 				CategoryId            = @CategoryId,
                 CategoryType          = @CategoryType,
-				CurrencyId            = @CurrencyId
+				CurrencyId            = @CurrencyId,
+                StartDate             = @StartDate
             WHERE EmployeeTrainingId = @id;
+
+            DELETE FROM [DBO].EmployeeAircraftModelMapping
+            WHERE EmployeeId = @EmployeeId
+              AND AircraftManufacturerId = @AircraftManufacturerId;
 
             IF (LEN(@AircraftModelIds) > 0)
             BEGIN
-                DELETE FROM [DBO].EmployeeAircraftModelMapping
-                WHERE EmployeeId = (SELECT EmployeeId FROM [DBO].EmployeeTraining WITH(NOLOCK) WHERE EmployeeTrainingId = @id);
-
                 ;WITH CTE_AircraftModels AS
                 (
                     SELECT TRIM([value]) AS AircraftModelId
@@ -104,14 +108,14 @@ BEGIN
                 )
                 INSERT INTO EmployeeAircraftModelMapping
                 (
-                    EmployeeId, 
+                    EmployeeId,
 					AircraftManufacturerId,
 					AircraftModelId,
                     MasterCompanyId,
 					CreatedBy,
 					UpdatedBy,
                     CreatedDate,
-					UpdatedDate, 
+					UpdatedDate,
 					IsActive,
 					IsDeleted
                 )
@@ -156,6 +160,7 @@ BEGIN
 			,[CategoryId]
 			,[CategoryType]
 			,[CurrencyId]
+			,[StartDate]
 		    FROM [DBO].[EmployeeTraining] WITH(NOLOCK) 
 		    WHERE [EmployeeTrainingId] = @id;
 

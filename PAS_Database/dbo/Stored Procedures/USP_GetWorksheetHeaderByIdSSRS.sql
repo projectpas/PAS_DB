@@ -13,6 +13,7 @@
  ** --   --------     -------          --------------------------------     
     1    21/05/2026   Ayushi Patel         [PN-16530]Created
     2    22/05/2026   Ayushi Patel         [PN-16535]Return WorksheetType from AircraftSection table
+	3    10/07/2026   AMIT GHEDIYA         Get maintanace text [PN-17186]
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderByIdSSRS]
@@ -58,9 +59,9 @@ BEGIN
             WH.UpdatedBy,
             WH.CreatedDate,
             WH.UpdatedDate,
-            MT.MaintenanceType AS InspectionTypeName
+            CASE WHEN ISNULL(WH.InspectionTypeId,0) = 0 THEN WH.InspectionType ELSE MT.MaintenanceType END AS InspectionTypeName
         FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
-        LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType
+         LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionTypeId
         LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
         WHERE WH.WorksheetHeaderId = @WorksheetHeaderId AND WH.MasterCompanyId =  @MasterCompanyId
           AND WH.IsDeleted = 0;

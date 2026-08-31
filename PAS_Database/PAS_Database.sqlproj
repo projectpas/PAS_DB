@@ -4678,6 +4678,8 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BulkUpdateStocklineLocation.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

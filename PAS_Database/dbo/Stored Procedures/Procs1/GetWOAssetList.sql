@@ -135,7 +135,8 @@ BEGIN
        JOIN dbo.Asset A WITH(NOLOCK) ON WOA.AssetRecordId = A.AssetRecordId  
        LEFT JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = WOA.TaskId  
 	   LEFT JOIN dbo.WorkOrderTask WOT WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOA.TaskId 
-	   LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOA.WorkOrderId 
+	   LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOA.WorkOrderId
+       LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId 
        LEFT JOIN dbo.DeprNonDeprTangibleAssets AAT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AAT.DeprNonDeprTangibleAssetsId  	
        LEFT JOIN dbo.TangibleClass TY WITH(NOLOCK) ON AAT.TangibleClassId=TY.TangibleClassId 
        LEFT JOIN dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) ON WOA.WorkOrderAssetId = COCI.WorkOrderAssetId AND COCI.IsQtyCheckOut = 1  

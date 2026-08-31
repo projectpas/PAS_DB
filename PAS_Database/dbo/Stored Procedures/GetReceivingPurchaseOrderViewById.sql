@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetReceivingOurchaseOrderViewById]             
  ** Author:    
  ** Description: Get Search Data for SOQ List   
@@ -17,6 +17,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the StockLineDraftCount CASE branch and the standalone NonStockInventoryDraft SELECT resultset to StocklineDraft (IsNonStock=1)
 	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Completed the fix: (a) added ISNULL(SLD.IsNonStock,0)=0 to the Stock-side StocklineDraft SELECT so Non-Stock draft rows are not duplicated across both the Stock and Non-Stock draft resultsets; (b) removed the hard ISNULL(SL.IsNonStock,0)=0 exclusion on the posted Stockline SELECT (Non-Stock posted stockline rows were never returned on this view at all); (c) removed leftover soft NHA/TLA ItemMaster IsNonStock exclusions in both the draft and posted sections.
+	7    26.08.2026	  Nakul               Added alias as per model: MfgExpirationDate
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
 
@@ -215,7 +216,7 @@ BEGIN
 		'' AS 'CertifiedBy',
 		'' AS 'TagType',
 		NULL AS 'TagDate',
-		SLD.ExpirationDate,
+		SLD.ExpirationDate AS MfgExpirationDate,
 		NULL AS 'CertifiedDueDate',
 		'' AS 'AircraftTailNumber',
 		SLD.GLAccountId,

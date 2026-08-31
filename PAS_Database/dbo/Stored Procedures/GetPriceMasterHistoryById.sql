@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    08/10/2024  Ekta Chandegra     Created
 	2    04/02/2025  Ayushi Patel       converted the date into utc (created , updated) , Added a case to get timeZone
-     
+    3    28/08/2026  Ayushi Patel       [PN-16987] added effective date
 -- exec [dbo].[GetPriceMasterHistoryById] @ItemMasterPurchaseSaleId=716
 ************************************************************************/
 
@@ -58,7 +58,7 @@ BEGIN
 			--UpdatedDate,
 			(Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
 			(Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
-			UpdatedBy, IsActive, IsDeleted
+			UpdatedBy, IsActive, IsDeleted, EffectiveDate
 			FROM [dbo].[PriceMasterHistory] WITH (NOLOCK)
 			WHERE ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId
 			ORDER BY UpdatedDate DESC

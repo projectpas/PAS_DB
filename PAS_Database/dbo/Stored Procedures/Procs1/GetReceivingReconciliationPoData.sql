@@ -32,7 +32,8 @@
 	20   20/July/2026   RAJESH GAMI	[PN-17350] - Removed the 4 dead PO Non-Stock UNION branches (dbo.NonStockInventory/NonStockInventoryDraft) from the not-Multiple and Multiple Type=1 sections; the adjacent PO Stock branches already return non-stock rows unfiltered post PN-17271, making these branches unreachable duplicates.
 	21   22/07/2026   Priyansh Patel   Added StockUnitOfMeasure property [PN-16941]
 	22   06/08/2026   Priyansh Patel   Replace the StockLineDraft quantity with Stockline quantity [PN-16941]
-	23   19/Aug/2026    RAJESH GAMI	[PN-17683] - Added RepairOrderId OR PurchaseOrderId condition in the respective JOIN with StocklineDraft (po.PurchaseOrderId = stkdf.PurchaseOrderId OR po.RepairOrderId = stkdf.RepairOrderId)
+	23   19/Aug/2026    RAJESH GAMI			[PN-17683] - Added RepairOrderId OR PurchaseOrderId condition in the respective JOIN with StocklineDraft (po.PurchaseOrderId = stkdf.PurchaseOrderId OR po.RepairOrderId = stkdf.RepairOrderId)
+	24   26/Aug/2026    Divyesh Kathiriya	[PN-17784] - Removed the remaining IsNonStock = 0 condition from the single-part Purchase Order branch so both Stock and Non-Stock rows are returned.
 
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
@@ -97,7 +98,7 @@ BEGIN
 				) CV
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 					AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
-					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0 AND ISNULL(stk.IsNonStock,0) = 0
+					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId,pop.UnitOfMeasure,stk.StockUnitOfMeasure,po.MasterCompanyId
 

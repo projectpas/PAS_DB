@@ -13,7 +13,7 @@
     1    27/10/2025    Priyansh Patel   Created
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-
+    4    28/08/2026    Ayushi Patel      [PN-16987] added effective date
 **********************/
 -- Example: EXEC [USP_GetMROPriceMasterList] 0, 0, 1, 1, 10
 
@@ -111,6 +111,7 @@ BEGIN
         MPM.CurrencyId,
         MPM.StartDate,
         MPM.EndDate,
+        MPM.EffectiveDate,
         MPM.CreatedBy,
         MPM.CreatedDate,
         MPM.UpdatedBy,

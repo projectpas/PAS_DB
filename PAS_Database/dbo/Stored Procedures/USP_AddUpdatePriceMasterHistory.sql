@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    08/10/2024  Ekta Chandegra     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    28/08/2026  Ayushi Patel       [PN-16987]added effective date 
 -- exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=716,@ModuleId=20,@MasterCompanyId=1,@RefferenceId=716
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddUpdatePriceMasterHistory]
@@ -44,15 +45,15 @@ BEGIN
 								[PP_PurchaseDiscPerc] ,[PP_PurchaseDiscAmount] ,[PP_UnitPurchasePrice] ,[SalePriceSelectId] ,[SalePriceSelectName] ,
 								[SP_FSP_UOMId] ,[SP_FSP_UOMName] ,[SP_FSP_CurrencyId] ,[SP_FSP_CurrencyName] ,[SP_FSP_FlatPriceAmount] ,
 								[SP_CalSPByPP_MarkUpPercOnListPrice] ,[SP_CalSPByPP_MarkUpAmount] ,[SP_CalSPByPP_UnitSalePrice] ,[CreatedBy] ,
-								[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive] , [IsDeleted])
-						
+								[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive] , [IsDeleted], [EffectiveDate])
+
 						SELECT @ModuleId, @ModuleName, @RefferenceId, @ReferenceNumber , IMPS.ItemMasterId,
 						IMPS.PartNumber,IM.PartDescription ,IM.ManufacturerName ,IMPS.ItemMasterPurchaseSaleId, IMPS.ConditionId,
 						IMPS.ConditionName, IMPS.PP_UOMId, IMPS.PP_UOMName, IMPS.PP_CurrencyId, IMPS.PP_CurrencyName, IMPS.PP_VendorListPrice,
 						IMPS.PP_PurchaseDiscPerc , IMPS.PP_PurchaseDiscAmount , IMPS.PP_UnitPurchasePrice , IMPS.SalePriceSelectId , IMPS.SalePriceSelectName ,
 						IMPS.SP_FSP_UOMId , IMPS.SP_FSP_UOMName , IMPS.SP_FSP_CurrencyId , IMPS.SP_FSP_CurrencyName , IMPS.SP_FSP_FlatPriceAmount,
 						IMPS.SP_CalSPByPP_MarkUpPercOnListPrice , IMPS.SP_CalSPByPP_MarkUpAmount, IMPS.SP_CalSPByPP_UnitSalePrice , IMPS.CreatedBy ,
-						GETUTCDATE(),IMPS.UpdatedBy, GETUTCDATE(),IMPS.IsActive , IMPS.IsDeleted
+						GETUTCDATE(),IMPS.UpdatedBy, GETUTCDATE(),IMPS.IsActive , IMPS.IsDeleted, IMPS.EffectiveDate
 						FROM [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) 
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
 						 AND ISNULL(IM.IsNonStock,0) = 0

@@ -102,6 +102,10 @@
 
 
 
+
+
+
+
 GO
 
 
@@ -115,7 +119,7 @@ Create TRIGGER [dbo].[Trg_WorkOrderQuoteMemoUpdate]
 
    AFTER INSERT,UPDATE
 
-AS 
+AS
 
 BEGIN
 
@@ -137,6 +141,5 @@ BEGIN
 
 END
 GO
-
 
 GO

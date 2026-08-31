@@ -15,6 +15,7 @@
     3    13/11/2025    Ayushi Patel     Sort By created Date
 	4    14/11/2025    Moin Bloch       Added Some Field
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    6    28/08/2026    Ayushi Patel      [PN-16987] added effective date 
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
@@ -51,6 +52,7 @@ BEGIN
 				  MPM.[CurrencyId],
                   MPM.[StartDate],
 				  MPM.[EndDate],
+				  MPM.[EffectiveDate],
                   MPM.[CreatedBy],
                   MPM.[CreatedDate],
                   MPM.[UpdatedBy],

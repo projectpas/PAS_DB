@@ -25,9 +25,10 @@
 	9    11/05/2026   Nakul Chandigra       Added a new function to apply upper or lower case formatting based on the employee and legal entity.(PN-16181)
 	10   17/07/2026   Ayushi Patel          [PN-17323]Added a condition to return qty and amount related fields with 2 decimal for all Module
 	11   20/07/2026   Ayushi Patel          [PN-17323]Replaced temporary table with CTE for field list generation.
+	12   27/08/2026   Ayushi Patel          [PN-17379] Added ItemMaster and ItemMasterNonStock modules ("Download Full Data List" for Item Master Stock/Non-Stock), filtered by IsNonStock so each only returns its own item type.
  EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
+CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
 (
     @ModuleId INT,
     @MasterCompanyId INT,
@@ -59,6 +60,8 @@ BEGIN
 		DECLARE @EmployeeModule AS INT;
 		DECLARE @StocklineModule AS INT;
 		DECLARE @ManualJournalModule AS INT;
+		DECLARE @ItemMasterModule AS INT;
+		DECLARE @ItemMasterNonStockModule AS INT;
 
 		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
@@ -68,6 +71,8 @@ BEGIN
 		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf');
 		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin');
 		SET @ManualJournalModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal');
+		SET @ItemMasterModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+		SET @ItemMasterNonStockModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 
 		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId) 
@@ -201,11 +206,19 @@ BEGIN
 		BEGIN
 			SET @WhereCondition  = 'AND AspNetUsers.MasterCompanyId = @MasterCompanyId
 									AND Employee.FirstName <> ''TBD''
-									AND Employee.EmployeeId Not in  (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
-																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId 
-																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'									
-		END		
-		
+									AND Employee.EmployeeId Not in  (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK)
+																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'
+		END
+		IF(@ModuleId = @ItemMasterModule)
+		BEGIN
+			SET @WhereCondition = 'AND ISNULL(ItemMaster.IsNonStock,0) = 0'
+		END
+		IF(@ModuleId = @ItemMasterNonStockModule)
+		BEGIN
+			SET @WhereCondition = 'AND ISNULL(ItemMaster.IsNonStock,0) = 1'
+		END
+
 		IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @BaseTable AND COLUMN_NAME ='SequenceNo')
 		BEGIN 
 			SET @OrderByColumn = '.SequenceNo ASC;'
@@ -303,6 +316,19 @@ BEGIN
 				AND ' + @BaseTable + '.IsDeleted = 0
 				ORDER BY '+  @BaseTable +@OrderByColumn;		
 		END
+		ELSE IF(@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
+		BEGIN
+			SET @SQL  = '
+				SELECT ' + @TransformedSelectList + '
+				FROM ' + @BaseTable + '  WITH(NOLOCK)
+				' + ISNULL(@JoinList, '') + '
+				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
+				AND ' + @BaseTable + '.IsActive = 1
+				AND ' + @BaseTable + '.IsDeleted = 0
+				' + ISNULL(@WhereCondition, '') + '
+				ORDER BY '+  @BaseTable +@OrderByColumn;
+
+		END
 		ELSE
 		BEGIN
 			SET @SQL  = '
@@ -313,7 +339,7 @@ BEGIN
 				AND ' + @BaseTable + '.IsActive = 1
 				AND ' + @BaseTable + '.IsDeleted = 0
 				ORDER BY '+  @BaseTable +@OrderByColumn;
-		
+
 		END
 --------------Final SQL Query END--------------
 		IF(@ModuleId = @StocklineModule)

@@ -13,6 +13,7 @@
  ** PR   Date         Author		     Change Description            
  ** --   --------     -------		     --------------------------------          
     1    04/04/2024   Abhishek Jirawla   Created
+    2    31-Aug-2026   Ayushi Patel       [PN-16393] UOM Changes
 
 ************************************************************************/
 
@@ -23,7 +24,7 @@ CREATE PROCEDURE [dbo].[SaveAssetDepreciationMonthRemovalData]
 @DepreciableLife BIGINT = NULL,
 @DepreciationMethod VARCHAR(30) = NULL,
 @DepreciationFrequencyName VARCHAR(30) = NULL,
-@InstalledCost DECIMAL(18,2) = NULL,
+@InstalledCost DECIMAL(18,6) = NULL,
 @MasterCompanyId BIGINT = NULL,
 @IsActive BIT = NULL,
 @IsDeleted BIT = NULL,
@@ -40,10 +41,10 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN	
 
-		DECLARE @DepreciationAmount DECIMAL(18,2);
-		DECLARE @AccumlatedDepr DECIMAL(18,2);
-		DECLARE @NetBookValue DECIMAL(18,2);
-		DECLARE @NBVAfterDepreciation DECIMAL(18,2);
+		DECLARE @DepreciationAmount DECIMAL(18,6);
+		DECLARE @AccumlatedDepr DECIMAL(18,6);
+		DECLARE @NetBookValue DECIMAL(18,6);
+		DECLARE @NBVAfterDepreciation DECIMAL(18,6);
 		DECLARE @LastDeprRunPeriod VARCHAR(30);
 		DECLARE @DepreciationStartDate DATETIME;
 

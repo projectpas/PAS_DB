@@ -16,6 +16,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters (MPNName/PiecePN lookups).
 	7  	 07/07/2026	    Moin Bloch              Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	8  	 31-Aug-2026	    Ayushi Patel            [PN-16393] UOM Changes
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
 insert into @p1 values(619,1,60.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -46,7 +47,7 @@ BEGIN
 			[DepreciableInventoryID] BIGINT NOT NULL IDENTITY,
 			[AssetInventoryId] [bigint] NULL,
 			[Qty] [int] NULL,
-			[Amount] [decimal](18,2) NULL,
+			[Amount] [decimal](18,6) NULL,
 			[ModuleName] [varchar](30) NULL,
 			[UpdateBy] [varchar](50) NULL,
 			[MasterCompanyId] [bigint] NULL,
@@ -56,7 +57,7 @@ BEGIN
 
 		DECLARE @AssetInventoryId bigint=NULL,
 		@Qty int=0,
-		@Amount Decimal(18,2),
+		@Amount Decimal(18,6),
 		@ModuleName varchar(200),
 		@UpdateBy varchar(200),
 		@MasterCompanyId bigint,
@@ -64,7 +65,7 @@ BEGIN
 		@SelectedAccountingPeriodId bigint=NULL;
 		DECLARE @TotalRecords BIGINT = 0;
 		DECLARE @StartCount BIGINT = 1;
-		declare @TotalAmount decimal(18,2)=0
+		declare @TotalAmount decimal(18,6)=0
 
 		Declare @JournalTypeId int
 	    Declare @JournalTypeCode varchar(200) 
@@ -86,13 +87,13 @@ BEGIN
 	    Declare @PieceItemmasterId bigint
 	    Declare @CustRefNumber varchar(200)
 	    declare @LineNumber int=1
-	    declare @TotalDebit decimal(18,2)=0
-	    declare @TotalCredit decimal(18,2)=0
-	    declare @TotalBalance decimal(18,2)=0
-	    declare @UnitPrice decimal(18,2)=0
-	    declare @LaborHrs decimal(18,2)=0
-	    declare @DirectLaborCost decimal(18,2)=0
-	    declare @OverheadCost decimal(18,2)=0
+	    declare @TotalDebit decimal(18,6)=0
+	    declare @TotalCredit decimal(18,6)=0
+	    declare @TotalBalance decimal(18,6)=0
+	    declare @UnitPrice decimal(18,6)=0
+	    declare @LaborHrs decimal(18,6)=0
+	    declare @DirectLaborCost decimal(18,6)=0
+	    declare @OverheadCost decimal(18,6)=0
 	    declare @partId bigint=0
 		declare @batch varchar(100)
 		declare @AccountingPeriod varchar(100)
@@ -104,16 +105,16 @@ BEGIN
 		declare @DistributionSetupId int=0
 		declare @IsAccountByPass bit=0
 		declare @DistributionCode varchar(200)
-		declare @InvoiceTotalCost decimal(18,2)=0
-	    declare @MaterialCost decimal(18,2)=0
-	    declare @LaborOverHeadCost decimal(18,2)=0
-	    declare @FreightCost decimal(18,2)=0
-		declare @SalesTax decimal(18,2)=0
+		declare @InvoiceTotalCost decimal(18,6)=0
+	    declare @MaterialCost decimal(18,6)=0
+	    declare @LaborOverHeadCost decimal(18,6)=0
+	    declare @FreightCost decimal(18,6)=0
+		declare @SalesTax decimal(18,6)=0
 		declare @InvoiceNo varchar(100)
-		declare @MiscChargesCost decimal(18,2)=0
-		declare @LaborCost decimal(18,2)=0
-		declare @InvoiceLaborCost decimal(18,2)=0
-		declare @RevenuWO decimal(18,2)=0
+		declare @MiscChargesCost decimal(18,6)=0
+		declare @LaborCost decimal(18,6)=0
+		declare @InvoiceLaborCost decimal(18,6)=0
+		declare @RevenuWO decimal(18,6)=0
 		declare @CurrentManagementStructureId bigint=0
 
 		DECLARE @DistributionMasterId bigint;
@@ -154,12 +155,12 @@ BEGIN
         DECLARE @MonthDIFF bigint=0;
         DECLARE @DividedDaysDIFF int=0;
         DECLARE @AssetLife int;
-		DECLARE @AssetTotalPrice decimal(18,2)=0;
-		DECLARE @ResidualPercentage decimal(18,2)=0;
-		DECLARE @DepreciationAmount decimal(18,2)=0;
-		DECLARE @PercentageAmount decimal(18,2)=0;
-		DECLARE @MonthlyDepAmount decimal(18,2)=0;
-		DECLARE @ARCaseAmount decimal(18,2)=0;
+		DECLARE @AssetTotalPrice decimal(18,6)=0;
+		DECLARE @ResidualPercentage decimal(18,6)=0;
+		DECLARE @DepreciationAmount decimal(18,6)=0;
+		DECLARE @PercentageAmount decimal(18,6)=0;
+		DECLARE @MonthlyDepAmount decimal(18,6)=0;
+		DECLARE @ARCaseAmount decimal(18,6)=0;
         DECLARE @TangibleClassId int;
 		DECLARE @StocktypeAsset varchar(50)='ASSET';
 		declare @CommonJournalBatchDetailId bigint=0;

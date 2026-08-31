@@ -23,6 +23,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 6 leftover IsNonStock=0 exclusion filters (MPNName/PiecePN lookups).
 	12	 07/07/2026	 Moin Bloch         Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	13	 31-Aug-2026	 Ayushi Patel       [PN-16393] UOM Changes
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -31,7 +32,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateBatch_Asset_inventory]
 (
 	@AssetInventoryId bigint=NULL,
 	@Qty int=0,
-	@Amount Decimal(18,2),
+	@Amount Decimal(18,6),
 	@ModuleName varchar(200),
 	@UpdateBy varchar(200),
 	@MasterCompanyId bigint,
@@ -66,13 +67,13 @@ BEGIN
 	    Declare @PieceItemmasterId bigint
 	    Declare @CustRefNumber varchar(200)
 	    declare @LineNumber int=1
-	    declare @TotalDebit decimal(18,2)=0
-	    declare @TotalCredit decimal(18,2)=0
-	    declare @TotalBalance decimal(18,2)=0
-	    declare @UnitPrice decimal(18,2)=0
-	    declare @LaborHrs decimal(18,2)=0
-	    declare @DirectLaborCost decimal(18,2)=0
-	    declare @OverheadCost decimal(18,2)=0
+	    declare @TotalDebit decimal(18,6)=0
+	    declare @TotalCredit decimal(18,6)=0
+	    declare @TotalBalance decimal(18,6)=0
+	    declare @UnitPrice decimal(18,6)=0
+	    declare @LaborHrs decimal(18,6)=0
+	    declare @DirectLaborCost decimal(18,6)=0
+	    declare @OverheadCost decimal(18,6)=0
 	    declare @partId bigint=0
 		declare @batch varchar(100)
 		declare @AccountingPeriod varchar(100)
@@ -84,16 +85,16 @@ BEGIN
 		declare @DistributionSetupId int=0
 		declare @IsAccountByPass bit=0
 		declare @DistributionCode varchar(200)
-		declare @InvoiceTotalCost decimal(18,2)=0
-	    declare @MaterialCost decimal(18,2)=0
-	    declare @LaborOverHeadCost decimal(18,2)=0
-	    declare @FreightCost decimal(18,2)=0
-		declare @SalesTax decimal(18,2)=0
+		declare @InvoiceTotalCost decimal(18,6)=0
+	    declare @MaterialCost decimal(18,6)=0
+	    declare @LaborOverHeadCost decimal(18,6)=0
+	    declare @FreightCost decimal(18,6)=0
+		declare @SalesTax decimal(18,6)=0
 		declare @InvoiceNo varchar(100)
-		declare @MiscChargesCost decimal(18,2)=0
-		declare @LaborCost decimal(18,2)=0
-		declare @InvoiceLaborCost decimal(18,2)=0
-		declare @RevenuWO decimal(18,2)=0
+		declare @MiscChargesCost decimal(18,6)=0
+		declare @LaborCost decimal(18,6)=0
+		declare @InvoiceLaborCost decimal(18,6)=0
+		declare @RevenuWO decimal(18,6)=0
 		declare @CurrentManagementStructureId bigint=0
 
 		DECLARE @DistributionMasterId bigint;
@@ -134,12 +135,12 @@ BEGIN
         DECLARE @MonthDIFF bigint=0;
         DECLARE @DividedDaysDIFF int=0;
         DECLARE @AssetLife int;
-		DECLARE @AssetTotalPrice decimal(18,2)=0;
-		DECLARE @ResidualPercentage decimal(18,2)=0;
-		DECLARE @DepreciationAmount decimal(18,2)=0;
-		DECLARE @PercentageAmount decimal(18,2)=0;
-		DECLARE @MonthlyDepAmount decimal(18,2)=0;
-		DECLARE @ARCaseAmount decimal(18,2)=0;
+		DECLARE @AssetTotalPrice decimal(18,6)=0;
+		DECLARE @ResidualPercentage decimal(18,6)=0;
+		DECLARE @DepreciationAmount decimal(18,6)=0;
+		DECLARE @PercentageAmount decimal(18,6)=0;
+		DECLARE @MonthlyDepAmount decimal(18,6)=0;
+		DECLARE @ARCaseAmount decimal(18,6)=0;
         DECLARE @TangibleClassId int;
 		DECLARE @StocktypeAsset varchar(50)='ASSET';
 		declare @CommonJournalBatchDetailId bigint=0;

@@ -1,7 +1,7 @@
 ﻿CREATE TYPE [dbo].[DepreciableInventory] AS TABLE (
     [AssetInventoryId]           BIGINT          NULL,
     [Qty]                        INT             NULL,
-    [Amount]                     DECIMAL (18, 2) NULL,
+    [Amount]                     DECIMAL (18, 6) NULL,
     [ModuleName]                 VARCHAR (30)    NULL,
     [UpdateBy]                   VARCHAR (50)    NULL,
     [MasterCompanyId]            BIGINT          NULL,

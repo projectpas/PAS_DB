@@ -15,7 +15,8 @@
  ** --   --------     -------		--------------------------------          
     1    18/04/2024   Abhishek Jirawla     Created
 	2    03/12/2024   Abhishek Jirawla     Added IsPosted Column
-     
+	3    31-Aug-2026   Ayushi Patel         [PN-16393] UOM Changes
+
 -- EXEC USP_GetAssetInventoryBillingInvoicingPdfData 2
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveAssetInventoryBillingInvoicing]
@@ -24,12 +25,12 @@ CREATE   PROCEDURE [dbo].[USP_SaveAssetInventoryBillingInvoicing]
 	@CustomerId BIGINT,
 	@MasterCompanyId BIGINT,
 	@Remarks VARCHAR(MAX),
-	@SalesTotal DECIMAL(18,2),
+	@SalesTotal DECIMAL(18,6),
 	@EmployeeId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@InvoiceStatus VARCHAR(50),
 	@NoofPieces INT,
-	@UnitPrice DECIMAL
+	@UnitPrice DECIMAL(18,6)
 AS  
 BEGIN  
  SET NOCOUNT ON;  

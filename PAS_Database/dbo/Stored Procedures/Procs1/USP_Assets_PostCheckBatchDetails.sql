@@ -31,6 +31,7 @@
    15	 12/03/2025	  AMIT GHEDIYA		Added Missing accounting for Written Off
    16	 07/07/2026	  Moin Bloch         Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
    17	 08/10/2026	  Abhishek Jirawala  Added WrittenDownReverse accounting (reverses the WrittenDown Dr/Cr) via new @Amount param
+   18	 31-Aug-2026	  Ayushi Patel       [PN-16393] UOM Changes
 
 **************************************************************/
 
@@ -71,15 +72,15 @@ BEGIN
 		DECLARE @StartsFrom varchar(200)='00'
 		DECLARE @GlAccountName varchar(200) 
 		DECLARE @GlAccountNumber varchar(200) 
-		DECLARE @ExtAmount DECIMAL(18,2)
+		DECLARE @ExtAmount DECIMAL(18,6)
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId bigint
 		DECLARE @LastMSLevel varchar(200)
 		DECLARE @AllMSlevels varchar(max)
 		DECLARE @ModuleId INT
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit decimal(18, 6) =0;
+		DECLARE @TotalCredit decimal(18, 6) =0;
+		DECLARE @TotalBalance decimal(18, 6) =0;
 		DECLARE @ExtNumber VARCHAR(20);
 		DECLARE @VendorName VARCHAR(50);
 		DECLARE @ExtDate Datetime;
@@ -87,8 +88,8 @@ BEGIN
 		DECLARE @DistributionCodeName VARCHAR(100);
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
-		DECLARE @FinalSaleAsset DECIMAL(18,2)=0;
-		DECLARE @BenifitAmount DECIMAL(18,2)=0;
+		DECLARE @FinalSaleAsset DECIMAL(18,6)=0;
+		DECLARE @BenifitAmount DECIMAL(18,6)=0;
 		DECLARE @IsSaleAssetDRCR INT = 0;
 		DECLARE @SaleAssetDRCR INT = 1;
 		DECLARE @AssetInventoryStatusId BIGINT;
@@ -134,7 +135,7 @@ BEGIN
 		DECLARE @ReferenceModule VARCHAR(100) = 'AssetInventory';
 		DECLARE @InventoryNumber VARCHAR(100) ='';
 
-		DECLARE @CashAmount DECIMAL(18,2), @DepreciationAmount DECIMAL(18,2), @InstallCost DECIMAL(18,2);
+		DECLARE @CashAmount DECIMAL(18,6), @DepreciationAmount DECIMAL(18,6), @InstallCost DECIMAL(18,6);
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 

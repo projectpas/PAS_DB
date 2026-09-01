@@ -16,6 +16,7 @@
 	4    23/July/2026	 RAJESH GAMI	[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	5    25/Aug/2026	 RAJESH GAMI	[PN-17745] Ported from PAS_DB - TransferredInCost SUM now also recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" are still included/calculated correctly.
 	6    27/Aug/2026	 RAJESH GAMI	[PN-17799] Ported from other branch - added Freight/Charges (SalesOrderFreight/SalesOrderCharges.MarkupFixedPrice, flat-rate lines excluded, folded into Revenue), NetMargin (GrossMargin-CommissionExpense) and NetMarginPercent (NetMargin/Revenue as %).
+	7    27/Aug/2026	 RAJESH GAMI	[PN-17809] Ported from other branch - Gross Margin is now Revenue(incl. Freight+Charges) - COGS instead of summing the per-row MarginAmount (computed before Freight/Charges existed). Commission Expense is now recalculated here off the new Revenue/Margin using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails, instead of summing the per-row CommissionExpense (also computed before Freight/Charges existed). @QtyLot kept DECIMAL(18,6) here (not INT) to match this branch's Qty precision.
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -43,6 +44,8 @@ BEGIN
 			DECLARE @AppModuleId INT = 0,@AdjustmentAmount decimal(18,2) = 0,@TransferredOutROCost decimal(18,2) = 0;
 			-- [PN-17799] Freight/Charges (real values from SalesOrderFreight/SalesOrderCharges), NetMargin, NetMarginPercent
 			DECLARE @Freight decimal(18,2) = 0,@Charges decimal(18,2) = 0,@NetMargin decimal(18,2) = 0,@NetMarginPercent decimal(18,2) = 0;
+			-- [PN-17809] used to recalculate Commission Expense off the new Revenue/Margin (same fields/logic as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails) - @QtyLot is DECIMAL(18,6) here to match this branch's LotCalculationDetails.Qty type
+			DECLARE @ConsignmentRevenuePercent decimal(18,2) = 0,@ConsignmentMarginPercent decimal(18,2) = 0,@ConsignmentFixedAmt decimal(18,2) = 0,@IsRevenue bit = 0,@IsMargin bit = 0,@IsFixedAmount bit = 0,@ConPercentId bigint = 0,@QtyLot decimal(18,6) = 0,@RevenueCommissionCost decimal(18,2) = 0,@MarginCommissionCost decimal(18,2) = 0;
 			DECLARE @FlatRateBillingMethodId BIGINT = NULL;
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
 			-- [PN-17799] flat-rate freight/charge lines are excluded from @Freight/@Charges (and so from Revenue)
@@ -148,7 +151,6 @@ BEGIN
 			--SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost) - (@TransferredOutCost);
 			SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost + (@AdjustmentAmount));
 
-			SET @CommissionExpense = ISNULL((SELECT SUM(ISNULL(CommissionExpense,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId),0);
 			SET @RevenueCost = ISNULL((SELECT SUM(ISNULL(ExtSalesUnitPrice,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0)
 
 			-- [PN-17799] Freight: SalesOrderFreight.MarkupFixedPrice for the parts sold out of this Lot (flat-rate lines excluded)
@@ -175,8 +177,31 @@ BEGIN
 			SET @RevenueCost = ISNULL(@RevenueCost,0) + ISNULL(@Freight,0) + ISNULL(@Charges,0);
 
 			SET @CogsPartCost = ISNULL((SELECT SUM(ISNULL(Cogs,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
+			-- [PN-17809] Gross Margin = Revenue (now includes Freight+Charges) - COGS, recalculated here instead of summing the per-row MarginAmount (which was computed before Freight/Charges existed)
+			SET @MarginAmount = ISNULL(@RevenueCost,0) - ISNULL(@CogsPartCost,0);
+
+			-- [PN-17809] Commission Expense recalculated here off the NEW Revenue/Margin (which now include Freight+Charges), using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails - instead of summing the per-row CommissionExpense (computed against the OLD Revenue/Margin, before Freight/Charges existed)
+			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0), @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0), @IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0) FROM DBO.LotConsignment LC WHERE LotId = @LotId
+
+			IF(@IsFixedAmount = 1)
+			BEGIN
+				SET @QtyLot = ISNULL((SELECT SUM(ISNULL(Qty,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','')),0)
+				SET @CommissionExpense = CONVERT(DECIMAL(18,2),ISNULL((@ConsignmentFixedAmt * @QtyLot),0))
+			END
+			ELSE IF(@IsRevenue = 1 OR @IsMargin = 1)
+			BEGIN
+				IF(@IsRevenue = 1)
+				BEGIN
+					SET @RevenueCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@RevenueCost * @ConsignmentRevenuePercent)/100)),0)
+				END
+				IF(@IsMargin = 1)
+				BEGIN
+					SET @MarginCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@MarginAmount * @ConsignmentMarginPercent)/100)),0)
+				END
+				SET @CommissionExpense = ISNULL(@RevenueCommissionCost,0) + ISNULL(@MarginCommissionCost,0)
+			END
+
 			SET @TotalExpense = @CogsPartCost + @CommissionExpense
-			SET @MarginAmount = ISNULL((SELECT SUM(ISNULL(MarginAmount,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
 			SET @MarginPercent = CASE WHEN @RevenueCost >0 THEN (CONVERT(DECIMAL(18,2),(@MarginAmount/@RevenueCost)*100)) ELSE 0 END
 			-- [PN-17799] NetMargin = GrossMargin (floored at 0, same as displayed) - CommissionExpense
 			SET @NetMargin = (CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END) - ISNULL(@CommissionExpense,0);

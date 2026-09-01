@@ -26,9 +26,10 @@
 	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
   	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
     12   06/30/2026   Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on recalculated MarginAmount so the child SP stores it in the same stock-UOM convention as USP_AddUpdateSalesOrderPart
+    13   22/Aug/2026  Kishor Makwana   [PN-17732] - Skip Pick Ticket removal for a ticket that already has a SalesOrderShippingItem against it
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
+CREATE     PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 (
 	@SalesOrderId BIGINT = NULL,
 	@SalesOrderPartId BIGINT = NULL,
@@ -293,7 +294,8 @@ SET NOCOUNT ON
 					BEGIN
 						UPDATE DBO.SalesOrderPartV1 
 						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
-						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
+						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
+						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 				END
@@ -361,6 +363,12 @@ SET NOCOUNT ON
 					WHILE (@LoopID > 0)
 					BEGIN
 						SELECT @PickTicketId = PickTicketId, @QtyRemove = QtyPtickTicketRemove, @QtyAvilable = PickTicketQtyToShip FROM #tmpremovePT WHERE ID = @LoopID;
+
+					IF EXISTS (SELECT 1 FROM dbo.SalesOrderShippingItem SSI WHERE SSI.SOPickTicketId = @PickTicketId)
+					BEGIN
+						SET @LoopID = @LoopID - 1;
+						CONTINUE;
+					END
 
 						IF @QtyRemove = 0 
 						BEGIN

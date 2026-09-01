@@ -10,10 +10,11 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    11/12/2024   Shrey Chandegara	     CREATED
+	2    23/Aug/2026  Kishor Makwana        [PN-17685] - Multiple shipment rows for the same part were only showing the last row's QtyShipped on the label; now SUMs QtyShipped and GROUPs BY the rest of the selected columns so all shipments for the part aggregate onto one label line.
 
 exec GetSOShippingLabelBySalesorderId 1570,1973,621
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetSOShippingLabelBySalesorderId]
+CREATE    PROCEDURE [dbo].[GetSOShippingLabelBySalesorderId]
     @SalesOrderId INT,
     @SalesOrderPartId INT,
     @SoShippingId INT
@@ -53,7 +54,7 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					sosi.QtyShipped AS NoOfPiece,
+					Sum(sosi.QtyShipped) AS NoOfPiece,
 					so.UpdatedDate
 				FROM 
 					dbo.[SalesOrder] so WITH(NOLOCK)
@@ -64,10 +65,16 @@ BEGIN
 					LEFT JOIN dbo.[UnitOfMeasure] uom WITH(NOLOCK) ON sos.ShipWeightUnit = uom.UnitOfMeasureId
 					LEFT JOIN dbo.[UnitOfMeasure] uomn WITH(NOLOCK) ON sos.ShipSizeUnitOfMeasureId = uomn.UnitOfMeasureId
 					LEFT JOIN dbo.[Countries] country WITH(NOLOCK) ON sos.ShipToCountryId = country.countries_id
-				WHERE 
-					sos.SalesOrderId = @SalesOrderId 
-					AND sosi.SalesOrderPartId = @SalesOrderPartId
-					AND sos.SalesOrderShippingId = @SoShippingId;
+				WHERE
+					sos.SalesOrderId = @SalesOrderId
+					--AND sosi.SalesOrderPartId = @SalesOrderPartId
+					AND sos.SalesOrderShippingId = @SoShippingId
+
+					GROUP BY sos.ServiceClass,so.CustomerReference,	so.SalesOrderNumber,sos.ShipDate,sos.Weight,uom.ShortName,
+					uomn.ShortName,sos.AirwayBill,sos.OriginName,sos.OriginAddress1,	sos.OriginCity,
+					sos.OriginState,sos.OriginZip,sos.OriginCountryName,sos.ShipToName,	shipToSite.SiteName,
+					shipToSite.Attention ,sos.ShipToAddress1,sos.ShipToCity,sos.ShipToState,sos.ShipToZip,country.countries_name,
+					cust.CustomerPhone,	sos.ShipSizeLength,	sos.ShipSizeWidth,	sos.ShipSizeHeight,	sos.NoOfContainer,	so.UpdatedDate;
 			END
 			COMMIT  TRANSACTION
 

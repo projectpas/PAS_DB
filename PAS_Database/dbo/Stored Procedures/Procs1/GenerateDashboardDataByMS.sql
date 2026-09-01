@@ -1,4 +1,4 @@
-/*********************           
+﻿/*********************           
  ** File:   [GenerateDashboardDataByMS]        
  ** Author:   JEVIK RAIYANI
  ** Description: This stored procedure is used Display snapshot count in DashBoard
@@ -29,6 +29,8 @@
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	17   24/Aug/2026   Kishor Makwana      [PN-17439] - Added Sequence Number with Part Number
+
 **********************/
 
 CREATE PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -189,7 +191,7 @@ BEGIN
 		--Selecting SO Billing Parts Sale		:(DashboardType = 3)
 		SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM (
 			SELECT DISTINCT
-				IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
+				CAST(SOP.SequenceNumber AS VARCHAR(10))+' - '+IM.PartNumber as PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
 				ISNULL(SUM(SOBIII.GrandTotal),0) - (ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0)) AS 'GrandTotal',
 				cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
 			FROM DBO.BillingInvoicing SOBI WITH (NOLOCK)
@@ -213,7 +215,7 @@ BEGIN
 			AND sobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 			AND SOBI.ModuleId = @SOModuleId
-			 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
+			 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName,SOP.SequenceNumber
 		) AS SOBillingResult
 
 		--Selecting Workable Backlog MRO (Units)		:(DashboardType = 4)
@@ -257,7 +259,7 @@ BEGIN
 
 		INSERT INTO #tmpNonInvoiceDashboard ([PartNumber],[PartDescription],[Condition],[ItemGroup],[GrandTotal],[CustomerName],[SalesOrderNumber],[SalesPerson],[SalesOrderId],[SalesOrderPartId],[MasterCompanyId])
 		SELECT 
-			item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+			CAST(SOP.SequenceNumber AS VARCHAR(10))+' - '+item.PartNumber as PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
 			ISNULL(SUM(SOPC.NetSaleAmount),0) AS GrandTotal,
 			cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 		FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
@@ -277,7 +279,7 @@ BEGIN
 		AND SO.IsDeleted = 0
 		AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
 		AND SO.MasterCompanyId = @MasterCompanyId
-		GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
+		GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId,SOP.SequenceNumber
 		ORDER BY SO.SalesOrderNumber
 
 		UPDATE TMP

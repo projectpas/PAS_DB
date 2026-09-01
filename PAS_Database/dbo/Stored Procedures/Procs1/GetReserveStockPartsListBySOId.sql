@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [GetReserveStockPartsListBySOId]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get the stocklines to be reserved from SO Parts
@@ -272,13 +272,14 @@ BEGIN
 		WHERE
 		((CASE WHEN ISNULL(QuantityOnOrder,0) = 0 THEN QtyToBeReserved ELSE
 			CASE WHEN (QuantityReserved - PartQuantityOnOrder) > 0 THEN QtyToBeReserved
-			ELSE (PartQuantityOnOrder - QuantityReserved - (SELECT ISNULL(CASE WHEN ISNULL(MAX(qs_w.StockUnitOfMeasure),'') = ISNULL(MAX(qs_w.ConsumeUnitOfMeasure),'') THEN SUM(ISNULL(SOSI.QtyShipped,0)) ELSE dbo.fn_ConvertUOM(SUM(ISNULL(SOSI.QtyShipped,0)),MAX(qs_w.StockUnitOfMeasure),MAX(qs_w.ConsumeUnitOfMeasure),0,MAX(SOS.MasterCompanyId)) END,0)
+			ELSE (PartQuantityOnOrder - QuantityReserved - 
+			(SELECT ISNULL(CASE WHEN ISNULL(MAX(qs_w.StockUnitOfMeasure),'') = ISNULL(MAX(qs_w.ConsumeUnitOfMeasure),'') THEN SUM(ISNULL(SOSI.QtyShipped,0)) ELSE dbo.fn_ConvertUOM(SUM(ISNULL(SOSI.QtyShipped,0)),MAX(qs_w.StockUnitOfMeasure),MAX(qs_w.ConsumeUnitOfMeasure),0,MAX(SOS.MasterCompanyId)) END,0)
 			--ISNULL(SUM(SOSI.QtyShipped), 0)
 			FROM [dbo].[SalesOrderShipping] SOS WITH (NOLOCK)
 			INNER JOIN [dbo].[SalesOrderShippingItem] SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 			INNER JOIN [dbo].[SOPickTicket] SOPick ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
 			INNER JOIN [dbo].[SalesOrderStocklineV1] Stk ON Stk.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
-			 LEFT JOIN [dbo].[StockLine] qs_w WITH (NOLOCK) ON Stk.StockLineId = qs_w.StockLineId
+			 LEFT JOIN [dbo].[StockLine] qs_w WITH (NOLOCK) ON qs_w.StockLineId = Stk.StockLineId
 			WHERE  Stk.StockLineId = FinalReserveList.StockLineId AND SOSI.SalesOrderPartId = FinalReserveList.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) END
 		END)) > 0;
 	END

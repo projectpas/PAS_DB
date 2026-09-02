@@ -45,6 +45,8 @@
     [UnitSalesPrice]        DECIMAL (18, 6) NULL,
     [SequenceNumber]        BIGINT          NULL,
     [ToTalReservedQty]      DECIMAL (18, 6) NULL,
+    [SequenceNumber] BIGINT NULL,
+     [ToTalReservedQty] DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
 

@@ -1,11 +1,4 @@
--- PN-14788: purpose-built settlement-grid history. Grid-mirroring design per explicit request - one row
--- per grid column key (materialIssued/laborConfirmed/toolsChecked/releaseCerts/mpnLocation/movedToFG/
--- unitShipped/woInvoiced/closeWO/disposition/revisedPart), OldValue/NewValue already display-ready text
--- (Yes/No/NA for tri-state checkboxes, resolved PartNumber for revisedPart), grouped/read by
--- usp_Get_WorkOrderSettlementGridHistory into one "diff row" per save event so the Angular grid can render
--- it directly under the matching PN row with the same column layout as the live Settlement tab. Populated
--- by trg_History_WorkOrderSettlementDetails (on WorkOrderSettlementDetails.sql) and
--- trg_History_WorkOrderPartNumber (on WorkOrderPartNumber.sql).
+
 CREATE TABLE [dbo].[WorkOrderSettlementFieldHistory] (
     [WorkOrderSettlementFieldHistoryId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [WorkOrderPartNoId]                 BIGINT        NOT NULL,

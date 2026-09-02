@@ -12,7 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    05-Mar-2025   Abhishek Jirawla	Created
-     
+    2    26/Aug/2026  [PN-17439] - Add PN with SequenceNumber
  EXECUTE [GetSalesOrderChargesBySOId] 1, 10
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderChargesBySOId]
@@ -53,11 +53,19 @@ BEGIN
 			soc.RefNum,
 			ISNULL(gl.AccountName, '') AS GLAccountName,
 			soc.ItemMasterId,
-			soc.ConditionId
+			soc.ConditionId,
+			im.PartNumber,
+			CAST(sop.SequenceNumber as VARCHAR(10)) + ' - ' +im.PartNumber as ItemNo,
+           im.PartNumber as PN,
+		   um.ShortName as UOM
 		FROM DBO.SalesOrderCharges soc WITH (NOLOCK)
 		INNER JOIN DBO.Charge ct WITH (NOLOCK) ON soc.ChargesTypeId = ct.ChargeId
 		LEFT JOIN DBO.Vendor v WITH (NOLOCK) ON soc.VendorId = v.VendorId
 		LEFT JOIN DBO.GLAccount gl WITH (NOLOCK) ON ct.GLAccountId = gl.GLAccountId
+		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId= soc.ItemMasterId
+		LEFT JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderPartId =soc.SalesOrderPartId
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId =soc.ConditionId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON um.UnitOfMeasureId =soc.UOMId
 		WHERE soc.IsDeleted = @IsDeleted
 		  AND soc.SalesOrderId = @SalesOrderId;
 

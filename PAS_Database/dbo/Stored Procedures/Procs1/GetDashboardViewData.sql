@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetDashboardViewData]
  ** Author: unknown
  ** Description: This stored procedure is used to Get Dashboard View Data
@@ -33,6 +33,7 @@
 	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	23   24/Aug/2026   Kishor Makwana      [PN-17439] - Added Sequence Number with Part Number
 -- EXEC GetDashboardViewData  1,'2025-11-14',2,2,1
 ************************************************************************/
 
@@ -189,7 +190,7 @@ BEGIN
 			BEGIN
 				;WITH Result AS (	
 					SELECT DISTINCT
-					IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
+					CAST(SOP.SequenceNumber AS VARCHAR(10))+' - '+IM.PartNumber AS PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
 					--ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
 					ISNULL(SUM(SOBIII.GrandTotal),0) - (ISNULL(SUM(SOBIII.SalesTax), 0) + ISNULL(SUM(SOBIII.OtherTax), 0)) AS 'GrandTotal',
 					cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
@@ -214,7 +215,7 @@ BEGIN
 					AND sobi.MasterCompanyId = @MasterCompanyId
 					AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 					AND SOBI.ModuleId = @SOModuleId
-					 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
+					 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName,SOP.SequenceNumber
 				), ResultCount AS(Select COUNT(PartNumber) AS totalItems FROM Result) 
 
 				Select * from Result
@@ -262,7 +263,7 @@ BEGIN
 
 				INSERT INTO #tmpNonInvoiceDashboard ([PartNumber],[PartDescription],[Condition],[ItemGroup],[GrandTotal],[CustomerName],[SalesOrderNumber],[SalesPerson],[SalesOrderId],[SalesOrderPartId],[MasterCompanyId])
 				SELECT 
-				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				CAST(SOP.SequenceNumber AS VARCHAR(10))+' - '+item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
 				ISNULL(SUM(SOPC.NetSaleAmount),0) AS GrandTotal,
 				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
@@ -282,8 +283,8 @@ BEGIN
 				AND SO.IsDeleted = 0
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @Date)
 				AND SO.MasterCompanyId = @MasterCompanyId
-				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
-				ORDER BY SO.SalesOrderNumber
+				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId,SOP.SequenceNumber
+				ORDER BY SO.SalesOrderNumber,SOP.SequenceNumber
 
 				UPDATE TMP
 				SET TMP.GrandTotal = ISNULL(TMP.GrandTotal,0) + ISNULL(partAmount.MiscCharges,0) - ISNULL(billedData.MiscCharges,0)

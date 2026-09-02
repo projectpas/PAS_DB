@@ -4682,6 +4682,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryDropdownList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
     <Build Include="dbo\Stored Procedures\USP_BulkUpdateStocklineLocation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

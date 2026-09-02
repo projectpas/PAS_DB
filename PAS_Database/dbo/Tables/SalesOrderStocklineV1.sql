@@ -30,13 +30,15 @@
     [SizeHeight]            DECIMAL (18, 6) NULL,
     [ReferenceNumber]       VARCHAR (100)   NULL,
     [PriorityId]            BIGINT          NULL,
-    [ToTalReservedQty] DECIMAL (18, 6) NULL,
+    [ToTalReservedQty]      DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderStocklineV1] PRIMARY KEY CLUSTERED ([SalesOrderStocklineId] ASC),
     CONSTRAINT [FK_SalesOrderStocklineV1_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderStocklineV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderStocklineV1_SalesOrderPartV1] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPartV1] ([SalesOrderPartId]),
     CONSTRAINT [FK_SalesOrderStocklineV1_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

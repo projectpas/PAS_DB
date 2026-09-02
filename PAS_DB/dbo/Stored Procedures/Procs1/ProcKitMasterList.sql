@@ -1,6 +1,13 @@
 ﻿/*
 exec ProcKitMasterList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@Manufacturer=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
 */
+/**********************
+ ** Change History
+ **********************
+ ** PR   Date          Author           Change Description
+ ** --   --------      -------          --------------------------------
+    1    02-Sep-2026   Bhargav Saliya   [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+**********************/
 CREATE   PROCEDURE [dbo].[ProcKitMasterList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
@@ -126,7 +133,7 @@ BEGIN
 			), ResultCount AS(SELECT COUNT(KitId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(KitNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -139,7 +146,7 @@ BEGIN
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND

@@ -12,6 +12,7 @@
 	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	3    30/01/2025   Ayushi Patel      converted the date into utc (created , updated, verified) , Added a case to get timeZone
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/
 /***************************************************************************************************************************************
   ** Change History
@@ -141,7 +142,7 @@ BEGIN
 
 				SELECT * INTO #TempResult FROM  Result
 				WHERE ((@GlobalFilter <>'' AND ((capabilityType LIKE '%' +@GlobalFilter+'%') OR
-			        (partNo LIKE '%' +@GlobalFilter+'%') OR	
+			        (partNo LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(partNo,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR	
 					(pnDiscription LIKE '%' +@GlobalFilter+'%') OR	
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR			
 					(verifiedBy LIKE '%' +@GlobalFilter+'%') OR						
@@ -155,7 +156,7 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 					OR
 					(@GlobalFilter='' AND (ISNULL(@capabilityType,'') ='' OR capabilityType LIKE '%' + @capabilityType+'%') AND
-					(ISNULL(@partNo,'') ='' OR partNo LIKE '%' + @partNo + '%') AND
+					(ISNULL(@partNo,'') ='' OR partNo LIKE '%' + @partNo + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(partNo,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@partNo,'-',''),'/',''),'_',''),'\','')+'%') AND
 					(ISNULL(@pnDiscription,'') ='' OR pnDiscription LIKE '%' + @pnDiscription + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@verifiedBy,'') ='' OR verifiedBy LIKE '%' + @verifiedBy + '%') AND

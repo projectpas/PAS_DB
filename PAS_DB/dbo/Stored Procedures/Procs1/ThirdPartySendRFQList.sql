@@ -25,6 +25,7 @@
 	9    03-02-2026   Vishal Suthar   Fixed ItemMaster duplicate issue with same partnumber with different description we have in PAS
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
+	12   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************
 **************************************************************/
@@ -289,8 +290,8 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
 					(VendorNames LIKE '%' +@GlobalFilter+'%') OR
 					(PONumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR   
-					(AltPartNumber LIKE '%' +@GlobalFilter+'%') OR   
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR   
+					(AltPartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(AltPartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR   
 					(Exchange LIKE '%' +@GlobalFilter+'%') OR   
 					(Description LIKE '%' +@GlobalFilter+'%') OR   
 					(CAST(Qty AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -311,8 +312,8 @@ BEGIN
 					(ISNULL(@IntegrationPortal,'') ='' OR IntegrationPortal LIKE '%' + @IntegrationPortal + '%') AND	
 					(ISNULL(@StatusFilter,'') ='' OR StatusFilter LIKE '%' + @StatusFilter + '%') AND	
 					(ISNULL(@DeliverByDate,'') ='' OR CAST(DeliverByDate AS Date)=CAST(@DeliverByDate AS date)) AND
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
-					(ISNULL(@AltPartNumber,'') ='' OR AltPartNumber LIKE '%' + @AltPartNumber + '%') AND	
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND	
+					(ISNULL(@AltPartNumber,'') ='' OR AltPartNumber LIKE '%' + @AltPartNumber + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(AltPartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@AltPartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND	
 					(ISNULL(@Description,'') ='' OR Description LIKE '%' + @Description + '%') AND	
 					(ISNULL(@Exchange,'') ='' OR Exchange LIKE '%' + @Exchange + '%') AND	
 					(ISNULL(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) = @Qty) AND

@@ -18,6 +18,7 @@
  2   25/12/2023		AMIT GHEDIYA		Updated (Get AlterItemMasterId,EquiItemMasterId for viewInventory display).
  3   01/01/2024     EKTA CHANDEGRA      Add manufacturer , Alt PN Manufacturer and Equiv PN Manufacturer fields
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/  
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
@@ -104,16 +105,16 @@ BEGIN
 			 (
 			 @GlobalFilter <>'' AND 
 			 (
-					(PartNumber LIKE '%' +@GlobalFilter+'%') 
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') 
 					OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
-					(AlternatePart LIKE '%' +@GlobalFilter+'%') OR
+					(AlternatePart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(AlternatePart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
 				
-					(NhaPart LIKE '%' +@GlobalFilter+'%') OR
+					(NhaPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(NhaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
 				
-					(EquivalentPart LIKE '%' +@GlobalFilter+'%') OR
+					(EquivalentPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(EquivalentPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
 				
-					(TlaPart LIKE '%' +@GlobalFilter+'%') OR
+					(TlaPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(TlaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
 					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(AltPNManufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(EquivPNManufacturer LIKE '%' +@GlobalFilter+'%') 
@@ -122,15 +123,15 @@ BEGIN
 					OR   
 					(
 					@GlobalFilter='' AND 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
-					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%') AND
+					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(NhaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@NhaPart,'-',''),'/',''),'_',''),'\','')+'%') AND
 				
-					(ISNULL(@TlaPart,'') ='' OR TlaPart LIKE '%' + @TlaPart + '%') AND
+					(ISNULL(@TlaPart,'') ='' OR TlaPart LIKE '%' + @TlaPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(TlaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@TlaPart,'-',''),'/',''),'_',''),'\','')+'%') AND
 					
-					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%') AND
+					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(EquivalentPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@EquivalentPart,'-',''),'/',''),'_',''),'\','')+'%') AND
 				
-					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') AND 				
+					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(AlternatePart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@AlternatePart,'-',''),'/',''),'_',''),'\','')+'%') AND 				
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer+ '%') AND 				
 					(ISNULL(@AltPNManufacturer,'') ='' OR AltPNManufacturer LIKE '%' + @AltPNManufacturer + '%') AND 				
 					(ISNULL(@EquivPNManufacturer,'') ='' OR EquivPNManufacturer LIKE '%' + @EquivPNManufacturer + '%')  				

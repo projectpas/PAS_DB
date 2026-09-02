@@ -22,9 +22,10 @@
 	10   21/05/2026    Moin Bloch        Added  [WorksheetId] PN-16469
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12   02/07/2026    Moin Bloch        Fix For Credit Terms [PN-17098]
+	13   27/08/2026   Amit Ghediya      Added [IsFromLease],[LeaseStocklineId] [PN-17597]
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
+CREATE      PROCEDURE [dbo].[USP_UpdateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -192,7 +193,9 @@ BEGIN
 		[AircraftInstalledPartDetailsId] [BIGINT] NULL,
 		[AircraftSerialNumber] [VARCHAR](100)  NULL,
 		[AircraftRegistryId] [BIGINT] NULL,
-		[ProgramId] [BIGINT] NULL
+		[ProgramId] [BIGINT] NULL,
+		[IsFromLease] [BIT] NULL,
+		[LeaseStocklineId] [BIGINT] NULL
 	)
 
 	IF OBJECT_ID(N'tempdb..#tmpNewAddedWorkOrderPartNumber') IS NOT NULL
@@ -225,7 +228,7 @@ BEGIN
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],[Isadd],Notes,
-		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
+		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId])
 	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
 		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
@@ -233,7 +236,7 @@ BEGIN
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],0,Notes,
-		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId] FROM @tbl_WorkOrderPartNumberType
+		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId] FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -544,7 +547,7 @@ BEGIN
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,[IncomingPartNumber],
-					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
+					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId])
 			 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
@@ -552,7 +555,7 @@ BEGIN
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],ItemMasterId,[PartNumber],[PartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,[PartNumber],
-					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId]
+					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId]
 			   FROM #tmprCreateWorkOrderPartNumber 
 			  WHERE [PKID] = @MinId
 

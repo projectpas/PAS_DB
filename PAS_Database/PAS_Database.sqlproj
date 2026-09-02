@@ -4682,6 +4682,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryDropdownList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
     <Build Include="dbo\Stored Procedures\USP_BulkUpdateStocklineLocation.sql" />
+    <Build Include="dbo\Tables\TaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTaskInstructionImages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteTaskInstructionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -142,7 +142,7 @@ BEGIN
 
 				SELECT * INTO #TempResult FROM  Result
 				WHERE ((@GlobalFilter <>'' AND ((capabilityType LIKE '%' +@GlobalFilter+'%') OR
-			        (partNo LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(partNo,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR	
+			        (partNo LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(partNo) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR	
 					(pnDiscription LIKE '%' +@GlobalFilter+'%') OR	
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR			
 					(verifiedBy LIKE '%' +@GlobalFilter+'%') OR						
@@ -156,7 +156,7 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 					OR
 					(@GlobalFilter='' AND (ISNULL(@capabilityType,'') ='' OR capabilityType LIKE '%' + @capabilityType+'%') AND
-					(ISNULL(@partNo,'') ='' OR partNo LIKE '%' + @partNo + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(partNo,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@partNo,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(ISNULL(@partNo,'') ='' OR partNo LIKE '%' + @partNo + '%' OR dbo.fn_NormalizePartNumber(partNo) LIKE '%' +dbo.fn_NormalizePartNumber(@partNo)+'%') AND
 					(ISNULL(@pnDiscription,'') ='' OR pnDiscription LIKE '%' + @pnDiscription + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@verifiedBy,'') ='' OR verifiedBy LIKE '%' + @verifiedBy + '%') AND

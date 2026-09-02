@@ -290,8 +290,8 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
 					(VendorNames LIKE '%' +@GlobalFilter+'%') OR
 					(PONumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR   
-					(AltPartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(AltPartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR   
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR   
+					(AltPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AltPartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR   
 					(Exchange LIKE '%' +@GlobalFilter+'%') OR   
 					(Description LIKE '%' +@GlobalFilter+'%') OR   
 					(CAST(Qty AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -312,8 +312,8 @@ BEGIN
 					(ISNULL(@IntegrationPortal,'') ='' OR IntegrationPortal LIKE '%' + @IntegrationPortal + '%') AND	
 					(ISNULL(@StatusFilter,'') ='' OR StatusFilter LIKE '%' + @StatusFilter + '%') AND	
 					(ISNULL(@DeliverByDate,'') ='' OR CAST(DeliverByDate AS Date)=CAST(@DeliverByDate AS date)) AND
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND	
-					(ISNULL(@AltPartNumber,'') ='' OR AltPartNumber LIKE '%' + @AltPartNumber + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(AltPartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@AltPartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND	
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@PartNumber)+'%') AND	
+					(ISNULL(@AltPartNumber,'') ='' OR AltPartNumber LIKE '%' + @AltPartNumber + '%' OR dbo.fn_NormalizePartNumber(AltPartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@AltPartNumber)+'%') AND	
 					(ISNULL(@Description,'') ='' OR Description LIKE '%' + @Description + '%') AND	
 					(ISNULL(@Exchange,'') ='' OR Exchange LIKE '%' + @Exchange + '%') AND	
 					(ISNULL(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) = @Qty) AND

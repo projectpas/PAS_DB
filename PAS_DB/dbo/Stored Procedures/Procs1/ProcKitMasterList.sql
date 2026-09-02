@@ -133,7 +133,7 @@ BEGIN
 			), ResultCount AS(SELECT COUNT(KitId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (
-					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(KitNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -146,7 +146,7 @@ BEGIN
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@PartNumber)+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND

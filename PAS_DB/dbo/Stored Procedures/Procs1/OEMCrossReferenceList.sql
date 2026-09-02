@@ -105,16 +105,16 @@ BEGIN
 			 (
 			 @GlobalFilter <>'' AND 
 			 (
-					(PartNumber LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') 
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') 
 					OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
-					(AlternatePart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(AlternatePart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
+					(AlternatePart LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AlternatePart) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 				
-					(NhaPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(NhaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
+					(NhaPart LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(NhaPart) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 				
-					(EquivalentPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(EquivalentPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
+					(EquivalentPart LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(EquivalentPart) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 				
-					(TlaPart LIKE '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(TlaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@GlobalFilter,'-',''),'/',''),'_',''),'\','')+'%') OR
+					(TlaPart LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(TlaPart) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(AltPNManufacturer LIKE '%' +@GlobalFilter+'%') OR
 					(EquivPNManufacturer LIKE '%' +@GlobalFilter+'%') 
@@ -123,15 +123,15 @@ BEGIN
 					OR   
 					(
 					@GlobalFilter='' AND 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(PartNumber,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@PartNumber,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@PartNumber)+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
-					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(NhaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@NhaPart,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%' OR dbo.fn_NormalizePartNumber(NhaPart) LIKE '%' +dbo.fn_NormalizePartNumber(@NhaPart)+'%') AND
 				
-					(ISNULL(@TlaPart,'') ='' OR TlaPart LIKE '%' + @TlaPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(TlaPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@TlaPart,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(ISNULL(@TlaPart,'') ='' OR TlaPart LIKE '%' + @TlaPart + '%' OR dbo.fn_NormalizePartNumber(TlaPart) LIKE '%' +dbo.fn_NormalizePartNumber(@TlaPart)+'%') AND
 					
-					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(EquivalentPart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@EquivalentPart,'-',''),'/',''),'_',''),'\','')+'%') AND
+					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%' OR dbo.fn_NormalizePartNumber(EquivalentPart) LIKE '%' +dbo.fn_NormalizePartNumber(@EquivalentPart)+'%') AND
 				
-					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(AlternatePart,'-',''),'/',''),'_',''),'\','') LIKE '%' +REPLACE(REPLACE(REPLACE(REPLACE(@AlternatePart,'-',''),'/',''),'_',''),'\','')+'%') AND 				
+					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%' OR dbo.fn_NormalizePartNumber(AlternatePart) LIKE '%' +dbo.fn_NormalizePartNumber(@AlternatePart)+'%') AND 				
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer+ '%') AND 				
 					(ISNULL(@AltPNManufacturer,'') ='' OR AltPNManufacturer LIKE '%' + @AltPNManufacturer + '%') AND 				
 					(ISNULL(@EquivPNManufacturer,'') ='' OR EquivPNManufacturer LIKE '%' + @EquivPNManufacturer + '%')  				

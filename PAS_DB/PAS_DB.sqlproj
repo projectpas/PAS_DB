@@ -1982,6 +1982,7 @@
     <Build Include="dbo\Functions\FN_GetTatCurrentDays.sql" />
     <Build Include="dbo\Functions\fn_GetRevenuePercentage.sql" />
     <Build Include="dbo\Functions\fn_GetMarginPercentage.sql" />
+    <Build Include="dbo\Functions\fn_NormalizePartNumber.sql" />
     <Build Include="dbo\Functions\FN_GetExpireDaysStockline.sql" />
     <Build Include="dbo\Functions\FN_GetCurrentLaborHours.sql" />
     <Build Include="dbo\Functions\DistinctList.sql" />

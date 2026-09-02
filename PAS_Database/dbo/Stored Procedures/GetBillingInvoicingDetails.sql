@@ -412,7 +412,6 @@ BEGIN
 			SET @DefaultInvoiceTypeId = ISNULL((SELECT TOP 1 InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
 			IF(@BillingInvoicingId > 0)
 			BEGIN
-					PRINT '3'
 				  SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				  		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				  		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId CurrencyId,

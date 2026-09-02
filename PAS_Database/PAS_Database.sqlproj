@@ -1386,6 +1386,7 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementDetailsAudit.sql" />
+    <Build Include="dbo\Tables\Tables2\WorkOrderSettlementFieldHistory.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShipping.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShippingAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShippingItem.sql" />
@@ -4359,6 +4360,8 @@
     <Build Include="dbo\Tables\SupportAssignmentMaster.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportAssignmentMaster_ById.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderMaterialsCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderSettlementGridHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />

@@ -460,10 +460,70 @@ BEGIN
 	  
 	  ,[IsSubWorkOrder]
 
-	FROM INSERTED 
+	FROM INSERTED
 
 	SET NOCOUNT ON;
 
 
 
 END
+GO
+
+
+CREATE TRIGGER [dbo].[trg_History_WorkOrderPartNumber]
+    ON [dbo].[WorkOrderPartNumber]
+    AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT (UPDATE(IsFinishGood) OR UPDATE(IsClosed) OR UPDATE(RevisedSerialNumber) OR UPDATE(RevisedConditionId))
+        RETURN;
+
+    DECLARE @Now DATETIME2(3) = SYSUTCDATETIME();
+
+    ;WITH
+    d AS (SELECT [ID], [IsFinishGood], [IsClosed], [RevisedSerialNumber], [RevisedConditionId] FROM deleted),
+    i AS (SELECT [ID], [IsFinishGood], [IsClosed], [RevisedSerialNumber], [RevisedConditionId], [UpdatedBy] FROM inserted),
+    paired AS (
+        SELECT
+            i.ID AS WorkOrderPartNoId,
+            d.IsFinishGood AS OldFG, i.IsFinishGood AS NewFG,
+            d.IsClosed AS OldClosed, i.IsClosed AS NewClosed,
+            d.RevisedSerialNumber AS OldSerial, i.RevisedSerialNumber AS NewSerial,
+            d.RevisedConditionId AS OldRevisedConditionId, i.RevisedConditionId AS NewRevisedConditionId,
+            i.UpdatedBy AS ChangedBy
+        FROM i
+        JOIN d ON d.ID = i.ID
+    )
+    INSERT INTO dbo.WorkOrderSettlementFieldHistory (WorkOrderPartNoId, ColumnKey, OldValue, NewValue, ChangedBy, ChangedAt)
+    SELECT WorkOrderPartNoId, N'movedToFG',
+           CASE WHEN OldFG = 1 THEN N'Yes' WHEN OldFG = 0 THEN N'No' ELSE NULL END,
+           CASE WHEN NewFG = 1 THEN N'Yes' WHEN NewFG = 0 THEN N'No' ELSE NULL END,
+           ChangedBy, @Now
+    FROM paired
+    WHERE ISNULL(OldFG, -1) <> ISNULL(NewFG, -1)
+
+    UNION ALL
+
+    SELECT WorkOrderPartNoId, N'closeWO',
+           CASE WHEN OldClosed = 1 THEN N'Yes' WHEN OldClosed = 0 THEN N'No' ELSE NULL END,
+           CASE WHEN NewClosed = 1 THEN N'Yes' WHEN NewClosed = 0 THEN N'No' ELSE NULL END,
+           ChangedBy, @Now
+    FROM paired
+    WHERE ISNULL(OldClosed, -1) <> ISNULL(NewClosed, -1)
+
+    UNION ALL
+
+    SELECT WorkOrderPartNoId, N'revisedSerialNumber', OldSerial, NewSerial, ChangedBy, @Now
+    FROM paired
+    WHERE ISNULL(OldSerial, N'') <> ISNULL(NewSerial, N'')
+
+    UNION ALL
+
+    SELECT p.WorkOrderPartNoId, N'disposition', CondOld.Code, CondNew.Code, p.ChangedBy, @Now
+    FROM paired p
+    LEFT JOIN dbo.Condition CondOld WITH (NOLOCK) ON CondOld.ConditionId = p.OldRevisedConditionId
+    LEFT JOIN dbo.Condition CondNew WITH (NOLOCK) ON CondNew.ConditionId = p.NewRevisedConditionId
+    WHERE ISNULL(p.OldRevisedConditionId, 0) <> ISNULL(p.NewRevisedConditionId, 0);
+END
+GO

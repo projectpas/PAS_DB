@@ -27,7 +27,7 @@ Exec [ReverseWorkOrder]
 ** 16   12/22/2025  Hemant Saliya        Handle Reopen Billing case for Posted Invoice.
 ** 17   27/03/2026  Moin Bloch	         Rename Internal To Internal Repair   PN-15850
 ** 18   25/06/2026   Moin Bloch	         Replace To Common Accounting SP PN-16871
-
+** 19   02/09/2026   Ayushi Patel        [PN-14788] history marker for the Re-Open Finish Good action itself (the triggers above capture its side-effects, not the action that caused them).
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_ReOpen_FinishGood_WorkOrder]
@@ -155,9 +155,13 @@ AS
 
 					UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, isLocked = 0 WHERE ID = @workOrderPartNoId;
 
-					UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
+					UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0
 					WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)
-				
+
+					
+					INSERT INTO dbo.WorkOrderSettlementFieldHistory (WorkOrderPartNoId, ColumnKey, OldValue, NewValue, ChangedBy, ChangedAt)
+					VALUES (@workOrderPartNoId, N'reOpenFinishGood', N'No', N'Yes', @UpdatedBy, SYSUTCDATETIME());
+
 					DECLARE @ActionId INT;
 					SELECT @ActionId  = ActionId FROM StklineHistory_Action WHERE UPPER([Type]) = UPPER('Re-OpenFinishedGood') -- Re-Open Finished Good
 

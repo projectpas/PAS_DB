@@ -38,6 +38,7 @@
 	25    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	26    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries and StockLine/ItemMaster joins.
     27    05/Aug/2026			 KISHOR MAKWANA						[PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
+	27    01/Sep/2026			 KISHOR MAKWANA						[PN-17439] - use it PP_UnitPurchasePrice instead of SP_CalSPByPP_UnitSalePrice.
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -308,7 +309,7 @@ BEGIN
 		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
 		part.UnitSalesPrice MainUnitSalesPrice,
 		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart,
-		ISNULL(imps.SP_CalSPByPP_UnitSalePrice,0) AS ItemMasterUnitCost,
+		ISNULL(imps.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 		ISNULL(PS.NetSaleAmount,0) AS TotalPartCost
 		INTO #tmpSOPartTblV1
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)

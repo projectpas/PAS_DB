@@ -24,13 +24,14 @@
 	8    02 JAN 2026   Moin Bloch		 UOM Related Changes
 	9    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	10   02 APR 2026   Moin Bloch		 UOM Related Changes PN-15067
+	11   20 Aug 2026   Kishor Makwana	[PN-17734] Added ToTalReservedQty tracking on SalesOrderPartV1 and SalesOrderStocklineV1 (increment on Reserve, decrement on Unreserve).
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
 insert into @p1 values(NULL,1357,1629,161083,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,39,33,2,N'OH',0,NULL,50,3,NULL,0,NULL,33,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864063',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000003',N'CNTL-001277',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864060','2024-11-18 13:51:53.2864060',1,0)
 
 exec dbo.SalesOrderReserveUnReserveParts @tbl_SalesOrderReserveIssueParts=@p1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[SalesOrderReserveUnReserveParts] 
+CREATE    PROCEDURE [dbo].[SalesOrderReserveUnReserveParts] 
 (
 	@tbl_SalesOrderReserveIssueParts SalesOrderReserveIssueParts READONLY,
 	@afterShipping BIT,
@@ -204,7 +205,7 @@ BEGIN
 			SET @Quantity = ([dbo].[fn_ConvertUOM](ISNULL(@Quantity, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
 			SET @QtyToReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
 			SET @QtyToUnReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToUnReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
-
+			
 			DECLARE @PartQty DECIMAL(18,6) = 0,
 					@PartQtyRequested DECIMAL(18,6) = 0,
 					@PartCurrencyId INT = 0,
@@ -263,7 +264,7 @@ BEGIN
 				--Checking for part data without stockline
 				IF NOT EXISTS(SELECT SOP.SalesOrderPartId FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					  LEFT JOIN [DBO].[SalesOrderStocklineV1] SOSP WITH(NOLOCK) ON SOSP.SalesOrderPartId = SOP.SalesOrderPartId
-					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOSP.StockLineId = @StockLineId)
+					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOSP.StockLineId = @StockLineId AND SOP.SalesOrderPartId = @SalesOrderPartId)
 				BEGIN 
 					DECLARE @QtyRequested DECIMAL(18, 6) = 0 
 					DECLARE @QtyAdded DECIMAL(18, 6) = 0
@@ -293,7 +294,7 @@ BEGIN
 						   @SizeHeight = SOP.SizeHeight
 					FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
-					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
+					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId AND SOP.SalesOrderPartId = @SalesOrderPartId
 					AND SOP.ConditionId = @ConditionId;
 
 					SELECT @QtyAdded = ISNULL(SUM(SOPS.QtyOrder), 0) FROM [DBO].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) WHERE SOPS.SalesOrderPartId = @PartSalesOrderPartId;
@@ -352,13 +353,13 @@ BEGIN
 					--Checking for part data with stockline
 					IF EXISTS(SELECT TOP 1 1 FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 						 LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOP.SalesOrderPartId
-						 WHERE SOP.SalesOrderId = @SalesOrderId AND SOS.StockLineId = @StockLineId)
+						 WHERE SOP.SalesOrderId = @SalesOrderId AND SOS.StockLineId = @StockLineId AND SOP.SalesOrderPartId = @SalesOrderPartId)
 					BEGIN
 						--Get Part Data
 						SELECT @PartSalesOrderPartId = SOP.SalesOrderPartId
 						FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 						INNER JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
-						WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
+						WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId AND SOP.SalesOrderPartId = @SalesOrderPartId
 						AND SOP.ConditionId = @ConditionId;
 
 						--Update SO Part While Create Stockline On Reserve
@@ -387,13 +388,13 @@ BEGIN
 			
 			--Checking in ReservePart Table for add/update
 			IF EXISTS(SELECT TOP 1 1 FROM [DBO].[SalesOrderReserveParts] WITH(NOLOCK)
-					 WHERE StockLineId = @StockLineId AND SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId)
+					 WHERE StockLineId = @StockLineId AND SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND SalesOrderPartId = @SalesOrderPartId)
 			BEGIN 
 				--Get Part Data
 				SELECT @ReservePartQtyReserved = SORP.QtyToReserve,
 					   @ReservePartTotalReserved = SORP.TotalReserved
 					FROM [DBO].[SalesOrderReserveParts] SORP WITH(NOLOCK)
-					WHERE SORP.SalesOrderId = @SalesOrderId AND SORP.ItemMasterId = @ItemMasterId
+					WHERE SORP.SalesOrderId = @SalesOrderId AND SORP.ItemMasterId = @ItemMasterId AND SORP.SalesOrderPartId = @SalesOrderPartId
 					AND SORP.StockLineId = @StockLineId;
 
 				--For Reserve
@@ -413,8 +414,8 @@ BEGIN
 				IF(@UnReserveStatusId = @PartStatusId)
 				BEGIN
 					SET @ReservePartQtyToReserve = CASE WHEN ISNULL(@ReservePartQtyReserved,0) = NULL THEN 0 ELSE (ISNULL(@ReservePartQtyReserved,0) - ISNULL(@QtyToUnReserve,0)) END;
-					SET @ReservePartTotalReserved = CASE WHEN ISNULL(@ReservePartQtyReserved,0) = NULL THEN 0 ELSE (ISNULL(@ReservePartQtyReserved,0) - ISNULL(@QtyToUnReserve,0)) END;
-					
+					SET @ReservePartTotalReserved = CASE WHEN ISNULL(@ReservePartTotalReserved,0) = NULL THEN 0 ELSE (ISNULL(@ReservePartTotalReserved,0) - ISNULL(@QtyToUnReserve,0)) END;
+
 					IF((ISNULL(@PartQty,0) >= 0) AND (@ReservePartQtyReserved = ISNULL(@PartQty,0)))
 					BEGIN
 						--Update Part Status to open
@@ -431,13 +432,28 @@ BEGIN
 					PartStatusId = @PartStatusId,
 					QtyToReserve = @ReservePartQtyToReserve,
 					TotalReserved = @ReservePartTotalReserved
-				WHERE SalesOrderPartId = @SalesOrderPartId 
+				WHERE SalesOrderPartId = @SalesOrderPartId
 					AND SalesOrderId = @SalesOrderId
 					AND StockLineId = @StockLineId
 					AND ItemMasterId = @ItemMasterId;
 
+					
+				IF (ISNULL(@isFromShipping,0) = 0)
+				BEGIN
+					IF(@ReserveStatusId = @PartStatusId)
+					BEGIN
+						UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+						UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
+					END
+					ELSE IF(@UnReserveStatusId = @PartStatusId)
+					BEGIN
+						UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+						UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
+					END
+				END
+
 				--Update Reserve Part into SalesOrderReserveParts
-				UPDATE [DBO].[SalesOrderStocklineV1] 
+				UPDATE [DBO].[SalesOrderStocklineV1]
 				SET UpdatedBy = @CreatedBy,
 					UpdatedDate = GETUTCDATE(),
 					QtyReserved = @ReservePartTotalReserved,
@@ -480,13 +496,13 @@ BEGIN
 					DECLARE @ReservedQty DECIMAL(18, 6) = 0;
 
 					SELECT @ReservedQty = SOS.QtyReserved FROM DBO.SalesOrderStocklineV1 SOS WITH (NOLOCK) WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StockLineId = @StockLineId;
-
+					
 					IF (ISNULL(@ReservedQty, 0) > 0)
 					BEGIN
 						--Get Part Data
 						SELECT @PartQty = SOP.QtyOrder 
 							FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
-							WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
+							WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId AND SOP.SalesOrderPartId = @SalesOrderPartId
 							AND SOP.ConditionId = @ConditionId;
 
 						--For Reserve
@@ -537,6 +553,20 @@ BEGIN
 							   0,NULL,@ReservePartQtyToReserve,0,@ReservedById,@ReservedDate,
 							   0,NULL,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),
 							   1,0,@SalesOrderPartId,@ReservePartTotalReserved,0,@MasterCompanyId;
+
+						IF (ISNULL(@isFromShipping,0) = 0)
+						BEGIN
+							IF(@ReserveStatusId = @PartStatusId)
+							BEGIN							
+								UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+								UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
+							END
+							ELSE IF(@UnReserveStatusId = @PartStatusId)
+							BEGIN
+								UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+								UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
+							END
+						END
 
 						IF(@ReserveStatusId = @PartStatusId)
 						BEGIN

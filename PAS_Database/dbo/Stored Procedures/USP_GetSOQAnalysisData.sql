@@ -23,6 +23,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 exclusions from the StockLine (qs) and ItemMaster joins; Non-Stock parts were showing blank PN/description/qty/PO-RO details in the SOQ Analysis view.
+	10   26/Aug/2026             Kishor Makwana                     [PN-17439] - Added Sequence Number  with Part Number
 EXEC [dbo].[USP_GetSOQAnalysisData] 1300
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQAnalysisData]
@@ -68,7 +69,7 @@ BEGIN
 				part.CreatedDate createdDate,
 				part.UpdatedBy updatedBy,
 				part.UpdatedDate updatedDate,
-				itemMaster.PartNumber partNumber,
+				CAST(part.SequenceNumber as VARCHAR(10) ) + ' - ' +itemMaster.PartNumber AS partNumber,
 				itemMaster.PartDescription partDescription,
 				itemMaster.IsOEM isOEM,
 				itemMaster.IsPma AS isPMA,

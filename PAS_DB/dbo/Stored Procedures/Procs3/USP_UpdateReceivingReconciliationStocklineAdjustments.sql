@@ -12,7 +12,7 @@
 	1    09/10/2023   Moin Bloch    Created 
 	2    06/11/2023   Moin Bloch    Modified(added FreightAdjustmentPerUnit And TaxAdjustmentPerUnit) 
 	3    28/01/2025   Moin Bloch    Modified(Removed POUnitCost & RoUnitCost update in stockline)
-	4    01/09/2026   Moin Bloch    Modified(added [COGSUnitCost] calculation) PN-17835
+	4    01/09/2026   Moin Bloch    Modified(added [COGSUnitCost],[MiscAdjustment] calculation) PN-17835
 	       
 EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 217
 
@@ -127,15 +127,18 @@ BEGIN
 					       @RepairOrderUnitCost = [RepairOrderUnitCost]
 						   --@UnitCost = [UnitCost],
 						   --@COGSUnitCost = ISNULL([COGSUnitCost],0)
-					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;					
+					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;	
 					  
 					UPDATE SL
 					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
 						   SL.[FreightAdjustment] = ISNULL(SL.[FreightAdjustment],0) + ISNULL(@FreightAdjustment,0),
+						   SL.[MiscAdjustment] = ISNULL(SL.[MiscAdjustment],0) + ISNULL(@MiscAdjustment,0),
 				  	       SL.[TaxAdjustment] = ISNULL(SL.[TaxAdjustment],0) + ISNULL(@TaxAdjustment,0),					      						   			     					
 						   SL.[UnitCost] = (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0) + ISNULL(@MiscAdjustment,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
 						   SL.[COGSUnitCost] = ISNULL([COGSUnitCost],0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@MiscAdjustment,0) + ISNULL(@TaxAdjustment,0))
 					  FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;	
+
+					  EXEC [dbo].[USP_Lot_UpdateCOGSByStocklineId] @StocklineId,@FreightAdjustment,@MiscAdjustment,@TaxAdjustment
 				END
 				IF(UPPER(@StockType) = 'NONSTOCK')
 				BEGIN

@@ -252,6 +252,7 @@
     [NonStockClassification]              VARCHAR (100)   NULL,
     [IsService]                           BIT             NULL,
     [COGSUnitCost]                        DECIMAL (18, 2) DEFAULT ((0)) NULL,
+    [MiscAdjustment]                      DECIMAL (18, 2) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

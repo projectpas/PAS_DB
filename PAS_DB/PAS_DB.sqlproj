@@ -4817,6 +4817,9 @@
     <Build Include="dbo\Stored Procedures\USP_SOStocklineUpdateStockQtyAdjust.sql" />
     <Build Include="dbo\Stored Procedures\usp_PopulateCustomerAging.sql" />
     <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_CleanUpUserActivityLogs.sql" />
   </ItemGroup>
   <ItemGroup>

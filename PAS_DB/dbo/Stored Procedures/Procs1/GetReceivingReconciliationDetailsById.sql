@@ -21,7 +21,7 @@
 	10    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11    20/July/2026   RAJESH GAMI   [PN-17350] - Removed IsNonStock=0 from the Stockline LEFT JOIN's ON clause. Since a Non-Stock stockline added via a PO now flows through the same 'STOCK'-tagged branch as a real Stock stockline (per the PN-17271 unification), this join was silently failing to match on reload, leaving RemainingRRQty/IsSerialized/ControlNumber null/0 for Non-Stock rows even when nothing had been reconciled yet.
 	12    20/July/2026   RAJESH GAMI   [PN-17350] - Repointed Non-Stock management-structure lookup (NMSD) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails, and resolved @NONStockModuleID dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoding 11.
-
+	13   02/09/2026   Moin Bloch    Added [MiscAdjustment] PN-17835
 	
 --  EXEC GetReceivingReconciliationDetailsById 321
 ************************************************************************/
@@ -78,6 +78,8 @@ BEGIN
 					 ,[JBD].[TaxAdjustment]
 					 ,[JBD].[FreightAdjustmentPerUnit]
 					 ,[JBD].[TaxAdjustmentPerUnit]
+					 ,[JBD].[MiscAdjustment]
+					 ,[JBD].[MiscAdjustmentPerUnit]
 					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(SLI.ControlNumber) 
 						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NSI.ControlNumber) 
 						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(ASI.ControlNumber) ELSE '' END AS ControlNumber
@@ -137,8 +139,8 @@ BEGIN
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'GetReceivingReconciliationDetailsById' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceivingReconciliationId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'GetReceivingReconciliationDetailsById'             
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ReceivingReconciliationId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

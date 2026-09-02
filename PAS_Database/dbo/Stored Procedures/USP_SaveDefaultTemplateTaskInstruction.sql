@@ -11,7 +11,8 @@
     1    11-March-2025		Devendra Shekh			Created
     2    12-March-2025		Devendra Shekh			Changed Cursor to While Loop
     3    14-May-2025		Devendra Shekh			passing Selected TaskIds to Save task if not exists
-	4    23-May-2025        Sahdev Saliya           Setting Value For @IsNewAdded to 1           
+	4    23-May-2025        Sahdev Saliya           Setting Value For @IsNewAdded to 1
+	5    02-Sep-2026		SUMIT KUMAR				[PN-17813] Copy images from TaskInstructionImage to WorkFlowDirectionImage for each inserted WorkflowDirectionId           
 
 declare @p5 bit
 set @p5=NULL
@@ -35,12 +36,17 @@ BEGIN
 		DECLARE @MaxSequence INT;
 		DECLARE @TotalRow INT, @CurrentRow INT;
 		DECLARE @NewWorkflowDirectionId BIGINT;
+		DECLARE @WorkFlowTaskId BIGINT = NULL;
 		DECLARE @WorkFlowNumber VARCHAR(256),
 				@TaskDescription VARCHAR(200),
 				@SequenceNumber INT,
 				@Descrepancy NVARCHAR(MAX) = '',
 				@Resolution NVARCHAR(MAX) = '',
 				@IsVersionIncrease BIT = 0;
+
+		SELECT TOP 1 @WorkFlowTaskId = WorkFlowTaskId 
+		FROM [dbo].[WorkFlowTask] WITH (NOLOCK) 
+		WHERE WorkFlowId = @WorkflowId AND TaskId = @TaskId AND ISNULL(IsDeleted, 0) = 0;
 
 		IF OBJECT_ID(N'tempdb..#TempTaskInstructions') IS NOT NULL
 		BEGIN
@@ -128,6 +134,16 @@ BEGIN
 			INSERT INTO @IdMapping (TaskInstructionId, WorkflowDirectionId)
 			VALUES (@TaskInstructionId, @NewWorkflowDirectionId);
 
+			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage if available
+			INSERT INTO [dbo].[WorkFlowDirectionImage]
+				([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			SELECT 
+				@NewWorkflowDirectionId, @WorkflowId, @TaskId, @WorkFlowTaskId, [FileName], [Link], [FileType], [FileSize], @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0
+			FROM [dbo].[TaskInstructionImage] WITH (NOLOCK)
+			WHERE [TaskInstructionId] = @TaskInstructionId
+			  AND ISNULL([IsActive], 1) = 1
+			  AND ISNULL([IsDeleted], 0) = 0;
+
 			SET @CurrentRow += 1;
 		END
 
@@ -154,6 +170,13 @@ BEGIN
 			(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, CAST(@SequenceNumber AS VARCHAR(10)), @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 				@UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
 			);
+
+			SET @WorkFlowTaskId = SCOPE_IDENTITY();
+
+			-- Update any copied images with the newly created WorkFlowTaskId
+			UPDATE [dbo].[WorkFlowDirectionImage]
+			SET [WorkFlowTaskId] = @WorkFlowTaskId
+			WHERE [WorkflowId] = @WorkflowId AND [TaskId] = @TaskId AND [WorkFlowTaskId] IS NULL;
 
 			SET @IsNewAdded = 1;
 		END

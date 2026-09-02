@@ -24,6 +24,7 @@
 	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
 	8    29/04/2026   Divyesh Kathiriya		Added New Module "ManualJournal" [PN-16139]
 	9    11/05/2026   Nakul Chandigra       Added a new function to apply upper or lower case formatting based on the employee and legal entity.(PN-16181)
+	10   27-Aug-2026  Ayushi Patel          [PN-17379] Added ItemMaster and ItemMasterNonStock modules ("Download Full Data List" for Item Master Stock/Non-Stock), filtered by IsNonStock so each only returns its own item type.
 
  EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
@@ -59,6 +60,8 @@ BEGIN
 		DECLARE @EmployeeModule AS INT;
 		DECLARE @StocklineModule AS INT;
 		DECLARE @ManualJournalModule AS INT;
+		DECLARE @ItemMasterModule AS INT;
+		DECLARE @ItemMasterNonStockModule AS INT;
 
 		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
@@ -68,6 +71,8 @@ BEGIN
 		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf');
 		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin');
 		SET @ManualJournalModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal');
+		SET @ItemMasterModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+		SET @ItemMasterNonStockModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 
 		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId) 
@@ -173,8 +178,17 @@ BEGIN
 									AND Employee.EmployeeId Not in  (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
 																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId 
 																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'									
-		END		
-		
+		END
+
+		IF(@ModuleId = @ItemMasterModule)
+		BEGIN
+			SET @WhereCondition = 'AND ISNULL(ItemMaster.IsNonStock,0) = 0'
+		END
+		IF(@ModuleId = @ItemMasterNonStockModule)
+		BEGIN
+			SET @WhereCondition = 'AND ISNULL(ItemMaster.IsNonStock,0) = 1'
+		END
+
 		IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @BaseTable AND COLUMN_NAME ='SequenceNo')
 		BEGIN 
 			SET @OrderByColumn = '.SequenceNo ASC;'
@@ -259,7 +273,7 @@ BEGIN
 				Level7Name = LTRIM(RTRIM(LEFT(Level7Name, CHARINDEX('-', Level7Name) - 1))),
 				Level8Name = LTRIM(RTRIM(LEFT(Level8Name, CHARINDEX('-', Level8Name) - 1))),
 				Level9Name = LTRIM(RTRIM(LEFT(Level9Name, CHARINDEX('-', Level9Name) - 1))),
-				Level10Name = LTRIM(RTRIM(LEFT(Level10Name, CHARINDEX('-', Level10Name) - 1)))  
+				Level10Name = LTRIM(RTRIM(LEFT(Level10Name, CHARINDEX('-', Level10Name) - 1)))
 			FROM #EntityList;
 
 
@@ -270,7 +284,19 @@ BEGIN
 				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
 				AND ' + @BaseTable + '.IsActive = 1
 				AND ' + @BaseTable + '.IsDeleted = 0
-				ORDER BY '+  @BaseTable +@OrderByColumn;		
+				ORDER BY '+  @BaseTable +@OrderByColumn;
+		END
+		ELSE IF(@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
+		BEGIN
+			SET @SQL  = '
+				SELECT ' + @TransformedSelectList + '
+				FROM ' + @BaseTable + '  WITH(NOLOCK)
+				' + ISNULL(@JoinList, '') + '
+				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
+				AND ' + @BaseTable + '.IsActive = 1
+				AND ' + @BaseTable + '.IsDeleted = 0
+				' + ISNULL(@WhereCondition, '') + '
+				ORDER BY '+  @BaseTable +@OrderByColumn;
 		END
 		ELSE
 		BEGIN

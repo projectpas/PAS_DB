@@ -15,6 +15,7 @@
 	5	 31-Oct-2025		Priyansh Patel			Updated the conditions for the MRO price master
 	6	 10-Nov-2025		Priyansh Patel			Added Delimiter logic for item master SiteId
 	7    15-Jun-2026        Ayushi Patel            Added FieldValue sanitization to standardize apostrophe characters for accurate dropdown value matching
+	8    27-Aug-2026        Ayushi Patel            [PN-17379] ItemClassification resolution for ItemMaster/ItemMasterNonStock now also filters by ItemTypeId (1=Stock, 2=Non-Stock), matching the /itemmasterclassificationdropdown endpoint used at manual creation time - a Stock upload can no longer match a Non-Stock-only classification code, or vice versa.
 
 DECLARE @FieldValueId VARCHAR(50);
 
@@ -71,13 +72,28 @@ BEGIN
 	DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 	DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
 	DECLARE @ItemMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+	DECLARE @ItemMasterNonStockModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 
 	DECLARE @Delimiter CHAR(1);
 
-	SET @Delimiter = CASE 
+	SET @Delimiter = CASE
                    WHEN @ModuleId = @ItemMasterModule  AND @DropdownListId = 'SiteId' THEN '|'
                    ELSE ','
                  END;
+
+	-- Item Classification is shared by Stock and Non-Stock, distinguished by ItemClassification.ItemTypeId
+	-- (1 = Stock, 2 = Non-Stock, same as manual creation's /itemmasterclassificationdropdown endpoint).
+	-- Restrict resolution to the matching type so a Stock upload can't match a Non-Stock-only classification
+	-- (or vice versa).
+	DECLARE @ItemClassificationTypeFilter VARCHAR(50) = '';
+	IF (@DropdownListTable = 'ItemClassification' AND @ModuleId = @ItemMasterModule)
+	BEGIN
+		SET @ItemClassificationTypeFilter = ' AND ItemTypeId = 1';
+	END
+	ELSE IF (@DropdownListTable = 'ItemClassification' AND @ModuleId = @ItemMasterNonStockModule)
+	BEGIN
+		SET @ItemClassificationTypeFilter = ' AND ItemTypeId = 2';
+	END
 
 	IF(@ModuleId = @AlterModule AND @IsChekColumnRef = 1 AND ISNULL(@ColumnReferenceName,'') != '')
 		BEGIN
@@ -110,14 +126,14 @@ BEGIN
 		BEGIN
 			IF(ISNULL(@MasterCompanyId, 0) > 0)
 			BEGIN
-				SET @RefQuery 
-				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + ' ) AS DropDownResult';
+				SET @RefQuery
+				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + @ItemClassificationTypeFilter + ' ) AS DropDownResult';
 
 			END
 			ELSE
 			BEGIN
-				SET @RefQuery 
-				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + ' ) AS DropDownResult';
+				SET @RefQuery
+				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + @ItemClassificationTypeFilter + ' ) AS DropDownResult';
 			END
 		END
 

@@ -62,6 +62,7 @@
 	48	 14-Aug-2026        Ayushi Patel			Fixed: Stockline duplicate check call to USP_ChekDuplicateValueForUpload was missing Ref3/Value3 params , causing type clash error for serialized parts. Fixed by using named parameters.
 	49   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
 	50	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
+	51   27-Aug-2026        Ayushi Patel            [PN-17379] Added ItemMasterNonStock module
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -122,7 +123,7 @@ BEGIN
 		DECLARE @WarehouseId BIGINT;
 		DECLARE @LocationId BIGINT;
 		DECLARE @ShelfId BIGINT;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @ItemMasterNonStockModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
 		DECLARE @AssetAttributeType AS BIGINT
 	
@@ -132,6 +133,7 @@ BEGIN
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+		SET @ItemMasterNonStockModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
@@ -570,7 +572,7 @@ BEGIN
 				END
 			END
 	
-			IF(@ModuleId = @ItemMasterModule)
+			IF(@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
 			BEGIN
 				IF OBJECT_ID('tempdb..#ItemMasterFields') IS NOT NULL
 				DROP TABLE #ItemMasterFields		
@@ -669,8 +671,11 @@ BEGIN
 													 )
 												THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
-												WHEN (@ModuleId = @ItemMasterModule)
+												WHEN (@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
+												WHEN @ModuleId = @ItemMasterNonStockModule AND IMF.FieldName = 'MfgExpirationDate' AND ISNULL(TMP.FieldValue, '') = ''
+													 AND LOWER(LTRIM(RTRIM(ISNULL((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'IsMfgExpirationDate'), '')))) IN ('yes', 'y', 'true')
+												THEN 'Mfg Expiration Date is Required'
+												WHEN (@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
 												THEN LTRIM(RTRIM(
 															CASE 
 															WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
@@ -991,6 +996,15 @@ BEGIN
 								@IsDuplicate = @IsDuplicate OUTPUT;
 						END
 					END
+					ELSE IF (@ModuleId = @ItemMasterModule OR @ModuleId = @ItemMasterNonStockModule)
+					BEGIN
+						SET @ChekDuplticateRef3 = 'ItemTypeId';
+						SET @DuplicateRefeValue3 = CASE WHEN @ModuleId = @ItemMasterModule THEN '1' ELSE '2' END;
+						IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
+						BEGIN
+							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2, @DuplicateRefeValue3 , @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						END
+					END
 					ELSE
 					BEGIN
 						IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
@@ -1005,6 +1019,7 @@ BEGIN
 						SET DuplicateErrorMsg = CASE	WHEN @ModuleId = @AlterModule THEN 'Entered PN and Alterate PN Already Exits!'
 														WHEN @ModuleId = @GLModule THEN 'Entered Account Code Already Exits!'
 														WHEN @ModuleId = @ItemMasterModule THEN 'Entered PN And Manufacturer Already Exits!'
+														WHEN @ModuleId = @ItemMasterNonStockModule THEN 'Entered PN And Manufacturer Already Exits!'
 														WHEN @ModuleId = @CustomerModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @StocklineModule THEN 'Entered Serial Number Already Exits for This PartNumber'
 														WHEN @ModuleId = @PriceMasterModule THEN 'Part and Condition mapping already exists'

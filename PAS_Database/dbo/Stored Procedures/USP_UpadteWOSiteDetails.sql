@@ -1,15 +1,20 @@
-﻿/***************************************************************  
- ** File:   [USP_UpadteWOSiteDetails]             
+﻿/***************************************************************
+ ** File:   [USP_UpadteWOSiteDetails]
  ** Author:   Shrey Chandegara
  ** Description: Update WorkOrder Site Details
  ** Date:  01-04-2025
-            
-  ** Change   
- **************************************************************             
- ** PR   Date				Author  				Change Description              
- ** --   --------			-------				--------------------------------            
-    1    01-04-2025		Shrey Chandegara		Created  	
-		
+
+  ** Change
+ **************************************************************
+ ** PR   Date				Author  				Change Description
+ ** --   --------			-------				--------------------------------
+    1    01-04-2025		Shrey Chandegara		Created
+    2    02-09-2026        Ayushi Patel            Added @UpdatedBy - the WorkOrderSettlementDetails UPDATE
+                                                    never set UpdatedBy, so every "Location Change" confirm
+                                                    left the settlement row attributed to whoever last
+                                                    touched it, not the person who actually confirmed the
+                                                    location change (PN-14788 - found via settlement history)
+
 	exec dbo.USP_UpadteWOSiteDetails 5837
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpadteWOSiteDetails]
@@ -18,7 +23,8 @@ CREATE   PROCEDURE [dbo].[USP_UpadteWOSiteDetails]
 @WarehouseId BIGINT = 0,
 @LocationId BIGINT = 0,
 @ShelfId BIGINT = 0,
-@BinId BIGINT = 0
+@BinId BIGINT = 0,
+@UpdatedBy VARCHAR(256) = NULL
 
 AS BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -70,13 +76,14 @@ AS BEGIN
 			END
 
 			UPDATE WSD
-			SET 
+			SET
 				WSD.WorkOrderId = @WorkOrderId,
 				WSD.workOrderPartNoId = @WorkOrderPartId,
 				WSD.WorkFlowWorkOrderId = @workFlowWorkOrderId,
 				WSD.WorkOrderSettlementId = @MPN_Location_Changed,
 				WSD.IsMastervalue = 1,
 				WSD.Isvalue_NA = 0,
+				WSD.UpdatedBy = ISNULL(@UpdatedBy, WSD.UpdatedBy),
 				WSD.UpdatedDate = GETUTCDATE(),
 				WSD.sattlement_DateTime = GETUTCDATE()
 			FROM [dbo].[WorkOrderSettlementDetails] WSD

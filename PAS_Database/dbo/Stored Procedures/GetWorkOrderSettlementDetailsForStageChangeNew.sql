@@ -15,6 +15,7 @@
 	2    21/07/2026   Moin Bloch 	    added ControlNumber to display Confirm Outgoing MPN and Final Disposition Popup List
 	3    27/07/2026   Moin Bloch 	    Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
 	4    06/08/2026   Moin Bloch 	    Added MaterialOrKitAvailFlagAgg Flag For Check Material Or Kit Avail Or Not
+	5    24/08/2026   Moin Bloch 	    Added IsInternalKitAssembly Flag [PN-17373]
 
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 4345,2
   EXEC [GetWorkOrderSettlementDetailsForStageChangeNew] 14353,2
@@ -48,7 +49,7 @@ BEGIN
 				DECLARE @AvailableStatusID INT;
 				DECLARE @ProvisionId INT;
 				DECLARE @RepairProvisionId INT;
-				DECLARE @MaterialSettlement INT,@LaborSettlement INT,@AllToolsSettlement INT
+				DECLARE @MaterialSettlement INT,@LaborSettlement INT,@AllToolsSettlement INT,@IsInternalKitAssembly BIT = 0
 
 				SELECT @ProvisionId = [ProvisionId] FROM [DBO].[Provision] WITH (NOLOCK) WHERE [StatusCode] = 'REPLACE';
 				SELECT @RepairProvisionId = [ProvisionId] FROM [DBO].[Provision] WITH (NOLOCK) WHERE [StatusCode] = 'REPAIR';
@@ -57,7 +58,7 @@ BEGIN
 				SELECT @LaborSettlement = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH (NOLOCK) WHERE [WorkOrderSettlementName] = 'Labor Entries Confirmed';
 				SELECT @AllToolsSettlement = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH (NOLOCK) WHERE [WorkOrderSettlementName] = 'All Tools Checked Out of Work Order';
 
-				SELECT @MasterCompanyID = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkorderId
+				SELECT @MasterCompanyID = [MasterCompanyId],@IsInternalKitAssembly = ISNULL([IsInternalKitAssembly],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkorderId
 
 				SELECT @TaskStatusID = [TaskStatusId] FROM [dbo].[TaskStatus] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyID AND UPPER([StatusCode]) = 'COMPLETED'
 
@@ -317,13 +318,17 @@ BEGIN
 						ISNULL(SC.[ScrapCertificateId],0) AS [ScrapCertificateId],
 						CASE WHEN ISNULL(c.[IsMaterialOrKitAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsMaterialOrKitAvailable],
 						CASE WHEN ISNULL(c.[IsLaborAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsLaborAvailable],
-						CASE WHEN ISNULL(c.[IsToolsAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsToolsAvailable]
+						CASE WHEN ISNULL(c.[IsToolsAvailable],0) = 1 THEN 1 ELSE 0 END AS [IsToolsAvailable],
+						ISNULL(WOP.[KitsToPrepare],0) AS [KitsToPrepare],
+						@IsInternalKitAssembly AS [IsInternalKitAssembly],
+						ISNULL(ITM.isSerialized,0) [IsSerialized]
 				INTO #SettlementRows
 				FROM [DBO].[WorkOrderSettlement] wos  WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosd WITH(NOLOCK) ON wosd.[WorkOrderSettlementId] = wos.[WorkOrderSettlementId]
 					LEFT JOIN Combined c ON c.[WorkFlowWorkOrderId] = wosd.[WorkFlowWorkOrderId] AND c.[workOrderPartNoId] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[ItemMaster] IM ON IM.[ItemMasterId] = wosd.[RevisedPartId] AND ISNULL(IM.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
+					LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON ITM.[ItemMasterId] = WOP.[ItemMasterId]
 					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
 					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]
@@ -379,7 +384,10 @@ BEGIN
 					MAX([ScrapCertificateId]) AS [ScrapCertificateId],
 					MAX(CAST([IsMaterialOrKitAvailable] AS INT)) AS [IsMaterialOrKitAvailable],
 					MAX(CAST([IsLaborAvailable] AS INT)) AS [IsLaborAvailable],
-					MAX(CAST([IsToolsAvailable] AS INT)) AS [IsToolsAvailable]'
+					MAX(CAST([IsToolsAvailable] AS INT)) AS [IsToolsAvailable],
+					MAX([KitsToPrepare]) AS [KitsToPrepare],
+					MAX(CAST([IsInternalKitAssembly] AS INT)) AS [IsInternalKitAssembly],
+					MAX(CAST([IsSerialized] AS INT)) AS [IsSerialized]'
 					+ @cols + N'
 				FROM #SettlementRows
 				GROUP BY [WorkOrderId], [WorkFlowWorkOrderId], [workOrderPartNoId]';

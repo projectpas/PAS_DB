@@ -4714,6 +4714,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\SearchStockLineForLeaseAddPnPopup.sql" />
     <Build Include="dbo\Stored Procedures\SearchItemMasterForLeaseAddPnPopup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

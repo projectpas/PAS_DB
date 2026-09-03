@@ -36,17 +36,12 @@ BEGIN
 		DECLARE @MaxSequence INT;
 		DECLARE @TotalRow INT, @CurrentRow INT;
 		DECLARE @NewWorkflowDirectionId BIGINT;
-		DECLARE @WorkFlowTaskId BIGINT = NULL;
 		DECLARE @WorkFlowNumber VARCHAR(256),
 				@TaskDescription VARCHAR(200),
 				@SequenceNumber INT,
 				@Descrepancy NVARCHAR(MAX) = '',
 				@Resolution NVARCHAR(MAX) = '',
 				@IsVersionIncrease BIT = 0;
-
-		SELECT TOP 1 @WorkFlowTaskId = WorkFlowTaskId 
-		FROM [dbo].[WorkFlowTask] WITH (NOLOCK) 
-		WHERE WorkFlowId = @WorkflowId AND TaskId = @TaskId AND ISNULL(IsDeleted, 0) = 0;
 
 		IF OBJECT_ID(N'tempdb..#TempTaskInstructions') IS NOT NULL
 		BEGIN
@@ -134,16 +129,6 @@ BEGIN
 			INSERT INTO @IdMapping (TaskInstructionId, WorkflowDirectionId)
 			VALUES (@TaskInstructionId, @NewWorkflowDirectionId);
 
-			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage if available
-			INSERT INTO [dbo].[WorkFlowDirectionImage]
-				([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-			SELECT 
-				@NewWorkflowDirectionId, @WorkflowId, @TaskId, @WorkFlowTaskId, [FileName], [Link], [FileType], [FileSize], @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0
-			FROM [dbo].[TaskInstructionImage] WITH (NOLOCK)
-			WHERE [TaskInstructionId] = @TaskInstructionId
-			  AND ISNULL([IsActive], 1) = 1
-			  AND ISNULL([IsDeleted], 0) = 0;
-
 			SET @CurrentRow += 1;
 		END
 
@@ -171,12 +156,15 @@ BEGIN
 				@UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
 			);
 
-			SET @WorkFlowTaskId = SCOPE_IDENTITY();
-
-			-- Update any copied images with the newly created WorkFlowTaskId
-			UPDATE [dbo].[WorkFlowDirectionImage]
-			SET [WorkFlowTaskId] = @WorkFlowTaskId
-			WHERE [WorkflowId] = @WorkflowId AND [TaskId] = @TaskId AND [WorkFlowTaskId] IS NULL;
+			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage using @IdMapping and direct WorkFlowTask JOIN
+			INSERT INTO [dbo].[WorkFlowDirectionImage]
+				([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			SELECT 
+				MAP.WorkflowDirectionId, @WorkflowId, @TaskId, WFT.WorkFlowTaskId, TIMG.[FileName], TIMG.[Link], TIMG.[FileType], TIMG.[FileSize], @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0
+			FROM [dbo].[TaskInstructionImage] TIMG WITH (NOLOCK)
+			INNER JOIN @IdMapping MAP ON TIMG.TaskInstructionId = MAP.TaskInstructionId
+			LEFT JOIN [dbo].[WorkFlowTask] WFT WITH (NOLOCK) ON WFT.WorkFlowId = @WorkflowId AND WFT.TaskId = @TaskId AND ISNULL(WFT.IsDeleted, 0) = 0
+			WHERE ISNULL(TIMG.[IsActive], 1) = 1 AND ISNULL(TIMG.[IsDeleted], 0) = 0;
 
 			SET @IsNewAdded = 1;
 		END

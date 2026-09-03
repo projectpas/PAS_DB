@@ -36,10 +36,11 @@
 	23   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	25   14/07/2026   Bhargav saliya    Revert Changes For Part Cost [PN-16986]
--- EXEC USP_AddBillingInvoicingDetails 
+	26   24/08/2026   Kishor Makwana [PN-17763] - Update BillingInvoicingItems.ShippingId based on the SalesOrderPart + Stockline + PickTicket chain (added to both the new-invoice and existing-invoice INSERT paths for SO).
+-- EXEC USP_AddBillingInvoicingDetails
 ************************************************************************/  
   
-CREATE       PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE      PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -508,9 +509,20 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
+
+				--- [PN-17763] Update Shipping ID based on the Stockline ID and PickticktetID
+				IF(@ModuleId = @SOModuleId)
+				BEGIN
+					UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
+					INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
+					INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
+					INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+					INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
+					WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+				END
 			END
 			ELSE
-			BEGIN				
+			BEGIN
 				DECLARE @VersionNums INT= 0, @StatusId INT= 0 , @CreditMemoHeaderId BIGINT = 0 
 				SELECT @VersionNo = [VersionNo] FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId; 
 				
@@ -595,10 +607,21 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
-			   
-			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
 
-			END						
+					--- [PN-17763] Update Shipping ID based on the Stockline ID and PickticktetID
+					IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
+						INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
+						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
+						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
+						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+					END
+
+			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew;
+
+			END
 
 			IF(@ModuleId = @WOModuleId)
 			BEGIN

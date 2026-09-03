@@ -21,6 +21,7 @@
     6    18/02/2025		VISHAL SUTHAR	 Modified to change SO Status to always OPEN when duplicated from any other status
 	9	 28/02/2024		Ayushi Patel	 Cast OpenDate As A Date
     10   07/May/2026	Rajesh Gami	      ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092] 
+	11   24/Aug/2026   Kishor Makwana   [PN-17439] - Added Sequence 
 exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
 @CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
 @ReportCurrencyId=3,@EmployeeId=211
@@ -249,6 +250,7 @@ BEGIN
 					[SizeWidth] [decimal](10, 2) NULL,
 					[SizeHeight] [decimal](10, 2) NULL,
 					[AltOrEqType] [varchar](50) NULL,
+					[SequenceNumber] [BIGINT] NULL
 				)
 
 				INSERT INTO #sopartList
@@ -294,10 +296,11 @@ BEGIN
 					[SizeLength],
 					[SizeWidth],
 					[SizeHeight],
-					[AltOrEqType]
+					[AltOrEqType],
+					[SequenceNumber]
 				)
 
-				SELECT DISTINCT 
+				SELECT DISTINCT
 					SOPV1.[SalesOrderPartId],
 					SOPV1.[SalesOrderId],
 					SOPV1.[ItemMasterId],
@@ -339,7 +342,8 @@ BEGIN
 					SOPV1.[SizeLength],
 					SOPV1.[SizeWidth],
 					SOPV1.[SizeHeight],
-					SOPV1.[AltOrEqType]  FROM [dbo].[SalesOrderPartV1] SOPV1 WITH (NOLOCK) WHERE SOPV1.SalesOrderId = @OldSalesOrderId;
+					SOPV1.[AltOrEqType],
+					SOPV1.[SequenceNumber] FROM [dbo].[SalesOrderPartV1] SOPV1 WITH (NOLOCK) WHERE SOPV1.SalesOrderId = @OldSalesOrderId;
 
 				SELECT @SOLoopID = MAX(ID) FROM #sopartList;
 				WHILE (@SOLoopID > 0)
@@ -358,7 +362,7 @@ BEGIN
 				    [POId],[PONumber],[PONextDlvrDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
 					[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],[PartDescription],[ConditionName],[CurrencyName],
 					[PriorityName],[StatusName],[SalesOrderQuotePartId],[LotId],[IsLotAssigned],[ECCN],[HSCODE],[Weight],
-					[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType])
+					[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType],[SequenceNumber])
 
 					SELECT
 					@SalesOrderId,SOP.[ItemMasterId],SOP.[ConditionId],SOP.[QtyRequested],SOP.[QtyOrder],0,
@@ -366,7 +370,7 @@ BEGIN
 				    SOP.[POId],SOP.[PONumber],SOP.[PONextDlvrDate],SOP.[Notes],SOP.[MasterCompanyId],SOP.[CreatedBy],GETDATE(),SOP.[CreatedBy],GETDATE(),
 					1,0,SOP.[OldSalesOrderPartId],SOP.[PartNumber],SOP.[PartDescription],SOP.[ConditionName],SOP.[CurrencyName],
 					SOP.[PriorityName],SOP.[StatusName],SOP.[SalesOrderQuotePartId],SOP.[LotId],SOP.[IsLotAssigned],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],
-					IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],SOP.[AltOrEqType]
+					IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],SOP.[AltOrEqType],SOP.[SequenceNumber]
 
 					FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 					LEFT JOIN [dbo].[ItemMasterExportInfo] IMEI WITH (NOLOCK) ON IMEI.ItemMasterId = SOP.ItemMasterId

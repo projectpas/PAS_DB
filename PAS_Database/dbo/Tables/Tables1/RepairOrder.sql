@@ -65,6 +65,8 @@
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [IntegrationTypeId]              INT             NULL,
     [HasPieceParts]                  BIT             CONSTRAINT [DF_RepairOrder_HasCSP] DEFAULT ((0)) NOT NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeasePartId]                    BIGINT          NULL,
     CONSTRAINT [PK_RepairOrder] PRIMARY KEY CLUSTERED ([RepairOrderId] ASC),
     CONSTRAINT [FK_RepairOrder_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_RepairOrder_CreditTermsId] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -75,6 +77,8 @@
     CONSTRAINT [FK_RepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_RepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

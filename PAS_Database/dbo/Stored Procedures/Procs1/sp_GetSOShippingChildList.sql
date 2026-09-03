@@ -1,4 +1,4 @@
-/**********************           
+﻿/**********************           
  ** File:   [sp_GetSOShippingChildList]           
  ** Author:   
  ** Description: Returns shipping child list for a given SalesOrder part.
@@ -28,6 +28,7 @@
     9	 19/06/2026	   Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
     10   09/July/2026   Rajesh Gami       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
+    12   24/Aug/2026   Kishor Makwana    [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
@@ -72,7 +73,7 @@ BEGIN
             -- QtyShipped converted to consume UOM
             ISNULL(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END,0) AS QtyShipped,
 
-            0                                                                 AS ItemNo,  -- sop.ItemNo intentionally hardcoded
+            sop.SequenceNumber                                               AS ItemNo,
 
             sos.SalesOrderId,
             COALESCE(sosi.SalesOrderPartId, sop.SalesOrderPartId)            AS SalesOrderPartId,
@@ -139,7 +140,7 @@ BEGIN
         ) InvoiceData
 
         WHERE  sopt.SalesOrderId  = @SalesOrderId
-          AND  sop.ItemMasterId   = @SalesOrderPartId
+          AND  sop.SalesOrderPartId = @SalesOrderPartId
           AND  sop.ConditionId    = @ConditionId
           AND  sopt.IsConfirmed   = 1 AND sopt.MasterCompanyId = @masterCompanyId;  -- Avoid ISNULL() to allow index seek
 

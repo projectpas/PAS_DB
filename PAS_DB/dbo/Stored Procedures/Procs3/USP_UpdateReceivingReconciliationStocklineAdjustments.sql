@@ -131,7 +131,7 @@ BEGIN
 					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;	
 					  
 					UPDATE SL
-					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
+					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0) + ISNULL(@MiscAdjustment,0)),
 						   SL.[FreightAdjustment] = ISNULL(SL.[FreightAdjustment],0) + ISNULL(@FreightAdjustment,0),
 						   SL.[MiscAdjustment] = ISNULL(SL.[MiscAdjustment],0) + ISNULL(@MiscAdjustment,0),
 				  	       SL.[TaxAdjustment] = ISNULL(SL.[TaxAdjustment],0) + ISNULL(@TaxAdjustment,0),					      						   			     					

@@ -24,6 +24,7 @@
 	5    31/12/2025	  Bhargav Saliya		Fixed an issue (PN-15053)
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    22/July/2026				RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter is no longer needed)
+	8   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/
 CREATE        PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
@@ -126,7 +127,7 @@ BEGIN
 				  AND (@ConditionId IS NULL OR SP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 			), ResultCount AS(SELECT COUNT(SalesOrderQuoteId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
-			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
@@ -141,7 +142,7 @@ BEGIN
 					(SalesPersonName LIKE '%' +@GlobalFilter+'%') OR
 					(CustomerName LIKE '%' +@GlobalFilter+'%'))
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND

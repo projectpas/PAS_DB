@@ -18,6 +18,7 @@
 	2    10/01/2025   Moin Bloch		Updated Added WorkOrderTask Table to Manage Task Name
 	3    02/04/2025   Bhargav Saliya    UTC Date Changes
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
@@ -287,7 +288,7 @@ BEGIN
         (@WorkOrderNum like '%' +@GlobalFilter+'%') OR  
 		(@TaskName like '%' +@GlobalFilter+'%') OR 
 		(@TaskStatusGr like '%' +@GlobalFilter+'%') OR  
-        (@PartNumber like '%' +@GlobalFilter+'%') OR  
+        (@PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(@PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
         (@PartDescription like '%' +@GlobalFilter+'%') OR  
         (@StartTime like '%' +@GlobalFilter+'%') OR  
         (@EndTime like '%' +@GlobalFilter+'%') OR  
@@ -299,7 +300,7 @@ BEGIN
         ))  
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
-		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
+		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
         (IsNull(@TaskName,'') ='' OR TaskName like '%' + @TaskName+'%') AND 
 		(IsNull(@TaskStatusGr,'') ='' OR TaskStatusGr like '%' + @TaskStatusGr+'%') AND 
         (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND
@@ -446,7 +447,7 @@ BEGIN
         (@WorkOrderNum like '%' +@GlobalFilter+'%') OR  
 		(@TaskName like '%' +@GlobalFilter+'%') OR 
 		(@TaskStatusGr like '%' +@GlobalFilter+'%') OR  
-        (@PartNumber like '%' +@GlobalFilter+'%') OR  
+        (@PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(@PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
         (@PartDescription like '%' +@GlobalFilter+'%') OR  
         (@StartTime like '%' +@GlobalFilter+'%') OR  
         (@EndTime like '%' +@GlobalFilter+'%') OR  
@@ -458,7 +459,7 @@ BEGIN
         ))  
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
-		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
+		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
         (IsNull(@TaskName,'') ='' OR TaskName like '%' + @TaskName+'%') AND 
 	    (IsNull(@TaskStatusGr,'') ='' OR TaskStatusGr like '%' + @TaskStatusGr+'%') AND 
         (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND

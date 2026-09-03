@@ -34,6 +34,7 @@
 										 pass (now COUNT(*) OVER()). See
 										 ProcItemMasterStockList_Performance_Recommendations.sql
 										 for the full before/after review.
+	17   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **********************/
 CREATE     PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -206,7 +207,7 @@ BEGIN
 			FilteredResult AS (
 			SELECT *, COUNT(*) OVER() AS NumberOfItems
 			FROM Result
-			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@GlobalFilter)+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(Manufacturerdesc LIKE '%' +@GlobalFilter+'%') OR					
 					(Classificationdesc LIKE '%' +@GlobalFilter+'%') OR						
@@ -224,7 +225,7 @@ BEGIN
 					(workOrderType LIKE '%' +@GlobalFilter+'%') OR
 					(RoSubAssy LIKE '%' +@GlobalFilter+'%')))	
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' +dbo.fn_NormalizePartNumber(@PartNumber)+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@Manufacturerdesc,'') ='' OR Manufacturerdesc LIKE '%' + @Manufacturerdesc + '%') AND
 					(ISNULL(@Classificationdesc,'') ='' OR Classificationdesc LIKE '%' + @Classificationdesc + '%') AND

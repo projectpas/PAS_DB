@@ -63,11 +63,12 @@ BEGIN
 				[StockType] [VARCHAR](20),
 				[FreightAdjustmentPerUnit] [DECIMAL](18,2) NULL,  
 				[TaxAdjustmentPerUnit] [DECIMAL](18,2) NULL,
+				[MiscAdjustmentPerUnit] [DECIMAL](18,2) NULL,
 				[RowNum] [BIGINT] NULL          -- NEW: dense sequence for the loop
 			) 			
 
-			INSERT INTO #RRStockAdjustment ([StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit])
-									 SELECT [StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit]
+			INSERT INTO #RRStockAdjustment ([StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit],[MiscAdjustmentPerUnit])
+									 SELECT [StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit],[MiscAdjustmentPerUnit]
 									   FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) 
 									  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 

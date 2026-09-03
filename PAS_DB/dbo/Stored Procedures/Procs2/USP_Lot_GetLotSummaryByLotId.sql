@@ -22,6 +22,15 @@
 	9    27/Aug/2026	 RAJESH GAMI	[PN-17799] Freight/Charges now EXCLUDE lines billed at a 'FlateRate' BillingMethod (looked up per-company from BillingMethod.Memo='FlateRate') - a flat-rate freight/charge line contributes 0 to @Freight/@Charges (and therefore to Revenue), same as before this ticket existed.
 	10   27/Aug/2026	 RAJESH GAMI	[PN-17809] Gross Margin is now Revenue(incl. Freight+Charges) - COGS instead of summing the per-row MarginAmount (computed before Freight/Charges existed). Commission Expense is now recalculated here off the new Revenue/Margin using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails, instead of summing the per-row CommissionExpense (also computed before Freight/Charges existed).
 	11    02/09/2026     Ayushi Patel   [PN-17850] Updated the MarginAmount calculation to allow negative values by removing the condition that was converting negative MarginAmount to 0
+	12    03/09/2026     RAJESH GAMI    [PN-17853] Margin Summary rework, per the "Changes to Margin Summary" spec (uploaded xlsx): added
+	                                     @MarginSummaryFreight/@MarginSummaryOtherCost - SUM(UnReconciledFreight)+SUM(ManualAdjFreight) and
+	                                     SUM(UnReconciledCharges)+SUM(ManualAdjCharges) from the Other Cost tab's manually-entered
+	                                     LOTOtherCostDetails rows for this Lot (these only ever have values on manually-added rows - PO/RO/SO
+	                                     -sourced Other Cost rows have no Un-Reconciled/Manual-Adj breakdown). NOT the same as the pre-existing
+	                                     @Freight/@Charges above (SalesOrderFreight/Charges.MarkupFixedPrice, added to Revenue) - do not confuse
+	                                     the two. Gross Margin (@MarginAmount) is now Revenue - (COGS + @MarginSummaryFreight +
+	                                     @MarginSummaryOtherCost) instead of just Revenue - COGS; Commission Expense/Margin/%-of-Revenue below
+	                                     recalculate off this new Gross Margin automatically, no other formula changes needed.
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -45,6 +54,8 @@ BEGIN
 			DECLARE @TotalLotCost decimal(18,2) = 0,@RevenueCost decimal(18,2) = 0,@CogsPartCost decimal(18,2) = 0,@CommissionExpense decimal(18,2) = 0,@TotalExpense decimal(18,2) = 0;
 			DECLARE @MarginAmount decimal(18,2) = 0,@MarginPercent decimal(18,2) = 0,@LotCostRemaining decimal(18,2) = 0,@OtherSalesExpenses decimal(18,2) = 0,@SoldCost decimal(18,2) = 0,@RemainingCostPercentage decimal(18,2) = 0;
 			DECLARE @Freight decimal(18,2) = 0,@Charges decimal(18,2) = 0,@NetMargin decimal(18,2) = 0,@NetMarginPercent decimal(18,2) = 0;
+			-- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3) rows - see change history #12 above, NOT the same as @Freight/@Charges above
+			DECLARE @MarginSummaryFreight decimal(18,2) = 0,@MarginSummaryOtherCost decimal(18,2) = 0;
 			-- [PN-17809] used to recalculate Commission Expense off the new Revenue/Margin (same fields/logic as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails)
 			DECLARE @ConsignmentRevenuePercent decimal(18,2) = 0,@ConsignmentMarginPercent decimal(18,2) = 0,@ConsignmentFixedAmt decimal(18,2) = 0,@IsRevenue bit = 0,@IsMargin bit = 0,@IsFixedAmount bit = 0,@ConPercentId bigint = 0,@QtyLot int = 0,@RevenueCommissionCost decimal(18,2) = 0,@MarginCommissionCost decimal(18,2) = 0;
 			DECLARE @OriginalCostUnit int=0,@RepairCostUnit int=0,@TransferredInCostUnit int=0,@TransferredOutCostUnit int=0,@OtherCostUnit int=0,@RevenueCostUnit int=0;
@@ -181,8 +192,15 @@ BEGIN
 			-- [PN-17799] Revenue now includes Freight and Charges collected on the sale (e.g. 1000 + 50 + 50 = 1100)
 			SET @RevenueCost = ISNULL(@RevenueCost,0) + ISNULL(@Freight,0) + ISNULL(@Charges,0);
 
+			-- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3): SUM(UnReconciled + Manual Adj) freight/charges from this
+			-- Lot's manually-entered Other Cost rows (LOTOtherCostDetails) - see change history #12 above.
+			SELECT @MarginSummaryFreight = ISNULL(SUM(ISNULL(UnReconciledFreight,0)) + SUM(ISNULL(ManualAdjFreight,0)), 0),
+			       @MarginSummaryOtherCost = ISNULL(SUM(ISNULL(UnReconciledCharges,0)) + SUM(ISNULL(ManualAdjCharges,0)), 0)
+			FROM DBO.LOTOtherCostDetails WITH(NOLOCK) WHERE LotId = @LotId AND ISNULL(IsDeleted,0) = 0;
+
 			-- [PN-17809] Gross Margin = Revenue (now includes Freight+Charges) - COGS, recalculated here instead of summing the per-row MarginAmount (which was computed before Freight/Charges existed)
-			SET @MarginAmount = ISNULL(@RevenueCost,0) - ISNULL(@CogsPartCost,0);
+			-- [PN-17853] ...now also subtracts the new Margin Summary Freight(2)/Other Cost(3) rows: Gross Margin = Total Revenue - (COGS + Freight + Other Cost)
+			SET @MarginAmount = ISNULL(@RevenueCost,0) - (ISNULL(@CogsPartCost,0) + ISNULL(@MarginSummaryFreight,0) + ISNULL(@MarginSummaryOtherCost,0));
 
 			-- [PN-17809] Commission Expense recalculated here off the NEW Revenue/Margin (which now include Freight+Charges), using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails - instead of summing the per-row CommissionExpense (computed against the OLD Revenue/Margin, before Freight/Charges existed)
 			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0), @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0), @IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0) FROM DBO.LotConsignment LC WHERE LotId = @LotId
@@ -233,6 +251,9 @@ BEGIN
 			   ,ISNULL(@CogsPartCost,0) AS CogsPartCost
 			   ,ISNULL(@Freight,0) AS Freight
 			   ,ISNULL(@Charges,0) AS Charges
+			   -- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3) rows - see change history #12 above
+			   ,ISNULL(@MarginSummaryFreight,0) AS MarginSummaryFreight
+			   ,ISNULL(@MarginSummaryOtherCost,0) AS MarginSummaryOtherCost
 			   ,ISNULL(@CommissionExpense,0) AS CommissionExpense
 			   ,ISNULL(@TotalExpense,0) AS TotalExpense
 			   --,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount

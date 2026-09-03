@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_DeleteLeaseStockLine]
- ** Description: Soft-deletes a single LeaseStockline. Refuses if it currently has
- **              reserved quantity (must UnReserve first).
+ ** Description: Permanently deletes a single LeaseStockline. Refuses if it currently
+ **              has reserved quantity (must UnReserve first).
  **
  **************************************************************
  ** Change History
@@ -10,6 +10,10 @@
  ** --   --------       -------                 --------------------------------
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked to check QtyReserved directly (no ledger table)
+    3    26/08/2026     Amit Ghediya            Switched from soft delete (IsActive/IsDeleted flags) to a
+                                                 permanent DELETE, for both the per-row Remove action and
+                                                 the "delete all unreserved" bulk action (both call this
+                                                 same SP)
 
 exec USP_DeleteLeaseStockLine @LeaseStocklineId=1,@UpdatedBy=''
 ************************************************************************/
@@ -34,8 +38,7 @@ BEGIN
 			RETURN;
 		END
 
-		UPDATE [dbo].[LeaseStockline]
-		SET IsActive = 0, IsDeleted = 1, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+		DELETE FROM [dbo].[LeaseStockline]
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		SELECT 1 AS Status, 'Removed successfully' AS Message;

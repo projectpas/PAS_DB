@@ -4798,9 +4798,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetReservedLeaseStockPartsListByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePartsByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLeaseStockLine.sql" />
-    <Build Include="dbo\Stored Procedures\USP_DeleteLeasePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseStockLine.sql" />
-    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeasePart.sql" />
     <Build Include="dbo\Tables\ILSConditionMapping.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveILSConditionMapping.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetILSConditions.sql" />
@@ -4818,6 +4816,15 @@
     <Build Include="dbo\Stored Procedures\SearchItemMasterForLeaseAddPnPopup.sql" />
     <Build Include="dbo\Stored Procedures\USP_SOStocklineUpdateStockQtyAdjust.sql" />
     <Build Include="dbo\Stored Procedures\usp_PopulateCustomerAging.sql" />
+    <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
+    <Build Include="dbo\Tables\LeaseType.sql" />
+    <Build Include="dbo\Tables\LeaseStatus.sql" />
+    <Build Include="dbo\Views\vw_LeaseType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CleanUpUserActivityLogs.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_UpdateCOGSByStocklineId.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

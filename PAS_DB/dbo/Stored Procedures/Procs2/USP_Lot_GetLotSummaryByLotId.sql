@@ -21,10 +21,11 @@
 	8    26/Aug/2026	 RAJESH GAMI	[PN-17799] Revenue now includes Freight and Charges (e.g. Revenue 1000 + Freight 50 + Charges 50 = 1100). Added NetMarginPercent = NetMargin / Revenue * 100 (2 decimals). UI now shows Revenue, COGS, Gross Margin, Commission Expense, Margin, % of Revenue - Freight, Charges, Other Sales Expenses, old Margin %, and Net Margin rows are commented out on the Angular side, not removed.
 	9    27/Aug/2026	 RAJESH GAMI	[PN-17799] Freight/Charges now EXCLUDE lines billed at a 'FlateRate' BillingMethod (looked up per-company from BillingMethod.Memo='FlateRate') - a flat-rate freight/charge line contributes 0 to @Freight/@Charges (and therefore to Revenue), same as before this ticket existed.
 	10   27/Aug/2026	 RAJESH GAMI	[PN-17809] Gross Margin is now Revenue(incl. Freight+Charges) - COGS instead of summing the per-row MarginAmount (computed before Freight/Charges existed). Commission Expense is now recalculated here off the new Revenue/Margin using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails, instead of summing the per-row CommissionExpense (also computed before Freight/Charges existed).
+	11    02/09/2026     Ayushi Patel   [PN-17850] Updated the MarginAmount calculation to allow negative values by removing the condition that was converting negative MarginAmount to 0
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE   PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN
@@ -207,7 +208,8 @@ BEGIN
 			SET @TotalExpense = @CogsPartCost + @CommissionExpense
 			SET @MarginPercent = CASE WHEN @RevenueCost >0 THEN (CONVERT(DECIMAL(18,2),(@MarginAmount/@RevenueCost)*100)) ELSE 0 END
 			-- [PN-17799] NetMargin = GrossMargin (floored at 0, same as displayed) - CommissionExpense
-			SET @NetMargin = (CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END) - ISNULL(@CommissionExpense,0);
+			--SET @NetMargin = (CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END) - ISNULL(@CommissionExpense,0);
+			SET @NetMargin = ISNULL(@MarginAmount, 0) - ISNULL(@CommissionExpense, 0);
 			-- [PN-17799] % of Revenue = Margin (NetMargin) / Revenue * 100, to 2 decimals
 			SET @NetMarginPercent = CASE WHEN ISNULL(@RevenueCost,0) > 0 THEN CONVERT(DECIMAL(18,2),(ISNULL(@NetMargin,0)/@RevenueCost)*100) ELSE 0 END;
 			--SET @LotCostRemaining = (@TotalLotCost - @CogsPartCost)
@@ -233,7 +235,8 @@ BEGIN
 			   ,ISNULL(@Charges,0) AS Charges
 			   ,ISNULL(@CommissionExpense,0) AS CommissionExpense
 			   ,ISNULL(@TotalExpense,0) AS TotalExpense
-			   ,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount
+			   --,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount
+			   ,ISNULL(@MarginAmount, 0) AS MarginAmount
 			   ,ISNULL(@MarginPercent,0) AS MarginPercent
 	
 			   ,ISNULL(@OtherSalesExpenses,0) AS OtherSalesExpenses

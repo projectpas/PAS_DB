@@ -4820,6 +4820,8 @@
     <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
     <Build Include="dbo\Tables\LeaseType.sql" />
     <Build Include="dbo\Tables\LeaseStatus.sql" />
+	<Build Include="dbo\Tables\Tables3\LOTOtherCostDetailsAudit.sql" />
+	<Build Include="dbo\Tables\Tables3\LOTOtherCostDetails.sql" />
     <Build Include="dbo\Views\vw_LeaseType.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />

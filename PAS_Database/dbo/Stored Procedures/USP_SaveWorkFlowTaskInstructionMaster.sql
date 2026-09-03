@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_SaveWorkFlowTaskInstructionMaster]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to save task Instruction Master For Work Flow
@@ -15,8 +15,9 @@
     5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
     6    11-March-2025		Devendra Shekh					Modified (adding WorkFlowTask if not exists)
     7    24-March-2025		Ekta Chandegra					Cast GETUTCDATE value as DATE
-    8    02-Sep-2026		SUMIT KUMAR						[PN-17813] Modified (Copying TaskInstructionImage to WorkFlowDirectionImage and linking WorkFlowTaskId)
-
+     8    02-Sep-2026		SUMIT KUMAR						[PN-17813] Modified (Copying TaskInstructionImage to WorkFlowDirectionImage and linking WorkFlowTaskId)
+     9    03-Sep-2026		SUMIT KUMAR						[PN-17813] Fixed child node image copying from template and returned newly inserted WorkflowDirectionId
+ 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
 @ParentId=default,@IsParent=default,@MasterCompanyId=1,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',
@@ -250,6 +251,25 @@ BEGIN
 			@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails);
 
 			SET @InsertedWorkflowDirectionId = SCOPE_IDENTITY();
+
+			-- Resolve WorkFlowTaskId for image linking
+			DECLARE @ChildWorkFlowTaskId BIGINT = NULL;
+			SELECT TOP 1 @ChildWorkFlowTaskId = WorkFlowTaskId 
+			FROM [dbo].[WorkFlowTask] WITH (NOLOCK) 
+			WHERE WorkFlowId = @WorkflowId AND TaskId = @TaskId AND ISNULL(IsDeleted, 0) = 0;
+
+			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage if child node is created from template @InstructionListId
+			IF (ISNULL(@InstructionListId, 0) > 0)
+			BEGIN
+				INSERT INTO [dbo].[WorkFlowDirectionImage]
+					([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				SELECT 
+					@InsertedWorkflowDirectionId, @WorkflowId, @TaskId, @ChildWorkFlowTaskId, [FileName], [Link], [FileType], [FileSize], @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+				FROM [dbo].[TaskInstructionImage] WITH (NOLOCK)
+				WHERE [TaskInstructionId] = @InstructionListId
+				  AND ISNULL([IsActive], 1) = 1
+				  AND ISNULL([IsDeleted], 0) = 0;
+			END
 		END
 		ELSE
 		BEGIN
@@ -264,8 +284,8 @@ BEGIN
 			WHERE [WorkflowDirectionId] = @WorkflowDirectionId AND [MasterCompanyId] = @MasterCompanyId AND WorkflowId = @WorkflowId;
 		END
 
-		-- Output created or updated WorkflowDirectionId result set
-		SELECT ISNULL(NULLIF(@WorkflowDirectionId, 0), @InsertedWorkflowDirectionId) AS WorkflowDirectionId;
+		-- Output created or updated WorkflowDirectionId result set (Return @InsertedWorkflowDirectionId for newly created nodes/children)
+		SELECT CASE WHEN ISNULL(@InsertedWorkflowDirectionId, 0) > 0 THEN @InsertedWorkflowDirectionId ELSE @WorkflowDirectionId END AS WorkflowDirectionId;
 
 	END TRY   
 	BEGIN CATCH      

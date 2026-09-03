@@ -3505,7 +3505,9 @@
     <Build Include="dbo\User Defined Types\WorkFlowTaskType.sql" />
     <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
-    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
@@ -3594,7 +3596,9 @@
     <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
-    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
@@ -4439,7 +4443,9 @@
     <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
-    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSettlementDetails.sql" />
@@ -4714,6 +4720,10 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\SearchStockLineForLeaseAddPnPopup.sql" />
     <Build Include="dbo\Stored Procedures\SearchItemMasterForLeaseAddPnPopup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionForInternalKitAssembly.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForInternalKitAssemblyInWO.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -82,5 +82,6 @@
     [AircraftRegistryId]             BIGINT          NULL,
     [ProgramId]                      BIGINT          NULL,
     [IsFromLease]                    BIT             NULL,
-    [LeaseStocklineId]               BIGINT          NULL);
+    [LeaseStocklineId]               BIGINT          NULL,
+    [KitsToPrepare]                  INT             NULL);
 

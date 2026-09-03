@@ -34,6 +34,7 @@
 	22    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	23    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(im.IsNonStock,0) = 0 / ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filters to the RestrictedParts/StockLine customer PN lookups, the Workflow lookup, and the @RevisedPartId lookup, to match the other ItemMaster lookups in this proc
 	24   27/08/2026   Amit Ghediya    Get LeaseNumber [PN-17597]
+	25   18/08/2026   Moin Bloch	   Added [IsInternalKitAssembly] on WorkOrder and [KitsToPrepare] on WorkOrderPartNumber PN-17372
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -761,6 +762,7 @@ BEGIN
 			DECLARE @Days INT=0,@NetDays INT=0,@ForeignExchangeRate  DECIMAL(18,2) = 0
 			DECLARE @WOReceivingCustomerWorkId BIGINT=NULL
 			DECLARE @AllowPrintReleaseForm BIT = 0,@MtcCategoryId BIGINT = NULL,@IsFromAircraft BIT = NULL
+			DECLARE @IsInternalKitAssembly BIT = 0
 			
 			IF OBJECT_ID(N'tempdb..#TempWOPartShippingDetails') IS NOT NULL
 			BEGIN
@@ -894,7 +896,8 @@ BEGIN
 				[IsFromAircraft] [BIT] NULL,
 				[AircraftInstalledPartDetailsId] [BIGINT] NULL,
 				[AircraftSerialNumber] [VARCHAR](100),
-				[LeaseNumber] [VARCHAR](100) NULL
+				[LeaseNumber] [VARCHAR](100) NULL,
+				[KitsToPrepare] [INT] NULL
 			)
 
 			SELECT @WorkOrderNum=[WorkOrderNum],@PrimarySalesPersonId=[SalesPersonId],@CsrId =[CsrId] ,@EmployeeId=[EmployeeId],@CustomerId = [CustomerId],
@@ -905,7 +908,8 @@ BEGIN
 				   @OpenDate = [OpenDate],@IsActive=[IsActive],@IsDeleted=[IsDeleted],@IsWarranty=[IsWarranty],@IsAccepted = [IsAccepted],@IsManualForm=[IsManualForm],
 				   @IsWoAlwaysOrOndemandId=[IsWoAlwaysOrOndemandId],@ReasonId=[ReasonId],@PercentId=[PercentId],@RMAHeaderId=[RMAHeaderId],@Memo=[Memo],@Notes=[Notes],
 				   @CustomerType=[CustomerType],@Reason=[Reason],@Days=[Days],@NetDays=[NetDays],@ForeignExchangeRate=[ForeignExchangeRate],
-				   @WOReceivingCustomerWorkId = [ReceivingCustomerWorkId],@MtcCategoryId = [MtcCategoryId],@IsFromAircraft = ISNULL([IsFromAircraft],0)
+				   @WOReceivingCustomerWorkId = [ReceivingCustomerWorkId],@MtcCategoryId = [MtcCategoryId],@IsFromAircraft = ISNULL([IsFromAircraft],0),
+				   @IsInternalKitAssembly = ISNULL([IsInternalKitAssembly],0)
 			  FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 
 			IF(@WorkOrderNum IS NOT NULL)
@@ -924,13 +928,14 @@ BEGIN
 				--LEFT JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON LH.LeaseHeaderId = LSL.LeaseHeaderId
 				--WHERE [WorkOrderId] = @WorkOrderId AND IsDeleted = 0 ORDER BY ID 	
 				INSERT INTO #TempWorkOrderPartNumberDetails(
-					[ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo],[NOTES],[IncomingPartNumber],[lineNum],[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[LeaseNumber]
+					[ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo],[NOTES],[IncomingPartNumber],[lineNum],[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[LeaseNumber],[KitsToPrepare]
 				)
 				SELECT
 					WOPN.[ID], WOPN.[WorkOrderId], WOPN.[WorkOrderScopeId], WOPN.[EstimatedShipDate], WOPN.[CustomerRequestDate], WOPN.[PromisedDate], WOPN.[EstimatedCompletionDate], WOPN.[NTE], WOPN.[Quantity], WOPN.[StockLineId], WOPN.[CMMIds], WOPN.[WorkflowId], WOPN.[WorkOrderStageId], WOPN.[WorkOrderStatusId], WOPN.[WorkOrderPriorityId], WOPN.[IsPMA], WOPN.[IsDER], WOPN.[TechStationId], WOPN.[TATDaysStandard], WOPN.[MasterCompanyId], WOPN.[CreatedBy], WOPN.[UpdatedBy], WOPN.[CreatedDate], WOPN.[UpdatedDate], WOPN.[IsActive], WOPN.[IsDeleted], WOPN.[ItemMasterId], WOPN.[TechnicianId], WOPN.[ConditionId], WOPN.[TATDaysCurrent], WOPN.[RevisedPartId], WOPN.[ManagementStructureId], WOPN.[IsMPNContract], WOPN.[ContractNo], WOPN.[WorkScope], WOPN.[isLocked], WOPN.[ReceivedDate], WOPN.[IsClosed], WOPN.[ACTailNum], WOPN.[ClosedDate], WOPN.[PDFPath], WOPN.[IsFinishGood], WOPN.[RevisedConditionId], WOPN.[CustomerReference], WOPN.[Level1], WOPN.[Level2], WOPN.[Level3], WOPN.[Level4], WOPN.[AssignDate], WOPN.[ReceivingCustomerWorkId], WOPN.[ExpertiseId], WOPN.[RevisedItemmasterid], WOPN.[RevisedPartNumber], WOPN.[RevisedPartDescription], WOPN.[IsTraveler], WOPN.[AllowInvoiceBeforeShipping], WOPN.[WOFPrintDate], WOPN.[CurrentSerialNumber], WOPN.[StocklineCost], WOPN.[TendorStocklineCost], WOPN.[RepairOrderId], WOPN.[RONumber], WOPN.[RevisedSerialNumber], WOPN.[IsROCreated], WOPN.[PartNumber], WOPN.[PartDescription], WOPN.[WorkOrderStatus], WOPN.[Priority], WOPN.[WorkOrderStage], WOPN.[ManufacturerName], WOPN.[TechName], WOPN.[EmployeeStation], WOPN.[PublicationNo], WOPN.[NOTES], WOPN.[IncomingPartNumber],
 					ROW_NUMBER() OVER (ORDER BY WOPN.ID),
 					WOPN.[AircraftRegistryNumber], WOPN.[IsFromAircraft], WOPN.[AircraftInstalledPartDetailsId], WOPN.[AircraftSerialNumber],
-					LH.LeaseNumber
+					LH.LeaseNumber,
+					WOPN.[KitsToPrepare]
 				FROM [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK)
 				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.WorkOrderId = @WorkOrderId AND LSL.StockLineId = WOPN.StockLineId AND LSL.IsDeleted = 0
 				LEFT JOIN dbo.LeaseHeader LH WITH(NOLOCK) ON LH.LeaseHeaderId = LSL.LeaseHeaderId
@@ -1269,7 +1274,8 @@ BEGIN
 						@ForeignExchangeRate [ForeignExchangeRate],
 						@AllowPrintReleaseForm [AllowPrintReleaseForm],
 						@MtcCategoryId [MtcCategoryId],
-						@IsFromAircraft [IsFromAircraft]
+						@IsFromAircraft [IsFromAircraft],
+						@IsInternalKitAssembly [IsInternalKitAssembly]
 
 				SELECT * FROM #TempWOPartShippingDetails
 

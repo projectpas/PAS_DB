@@ -46,6 +46,8 @@
    24   26-Aug-2026   RAJESH GAMI      [PN-17799] HowCalculate now prefers the value stored on LotCalculationDetails (ltCal.HowCalculate, populated going forward by USP_Lot_AddUpdateLotCalculationDetails) and only falls back to recomputing live from LotConsignment for older rows where it isn't populated yet.
    25   02-Sep-2026   RAJESH GAMI      [PN-17853] Added Freight/Charges to PNSoldView (Sales Activity tab): T&M/Actual billing method rows -> SUM(BillingAmount) filtered by SalesOrderPartId; FlatRate billing method rows -> MarkupFixedPrice of the LAST SalesOrderFreight/SalesOrderCharges record for the whole SalesOrderId (no SalesOrderPartId filter, since flat-rate lines aren't tied to a specific part). Also recalculated Commission tab's MarginAmt/Margin%/CommissionExpense off row-level Revenue (ExtSalesUnitPrice + this same Freight + Charges), using the same LotConsignment-based formula as USP_Lot_GetLotSummaryByLotId, instead of the old ltCal.MarginAmount/CommissionExpense (computed before Freight/Charges existed) - for consistency between the Commission tab and the Lot Summary tab.
    26   02-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab (PurchaseOrder/RepairOrder Freight+Charges view) now also UNIONs in SalesOrder Freight/Charges, using the same FlatRate-vs-T&M/Actual rule as the PNSoldView/Commission additions above. Reused the existing PoNum/PoDate fields for SalesOrderNumber/SO CreatedDate (no new columns). Vendor/VendorCode/VendorId left blank for these rows (no vendor concept on a Sales Order).
+   27   02-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab: added a 4th UNION ALL sourcing LOTOtherCostDetails (manually-added Freight/Charges rows from the tab's new "+" Add popup), plus LotOtherCostDetailId/ItemMasterId/StocklineId/IsNA/ReconciledFreight/UnReconciledFreight/ManualAdjFreight/ReconciledCharges/UnReconciledCharges/ManualAdjCharges across all 4 OtherCost blocks (CAST(NULL...) placeholders on the PO/RO/SO blocks) for UNION ALL alignment, and to the outer GROUP BY. LotOtherCostDetailId drives the grid's Edit action (only set for manually-created rows).
+   28   03-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab: added LotNumber (all 4 blocks) plus StocklineNumber/ConditionId (real values on the manual block, NULL placeholders on PO/RO/SO) to match the tab's current FieldMaster field list (lotNumber column) and so the grid/Edit popup gets the manual row's Stockline Number/Condition back correctly. Added to the outer GROUP BY too.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -1961,6 +1963,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,part.Condition
 				,part.Manufacturer
 				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
 				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
 					 INNER JOIN DBO.LOT lot WITH(NOLOCK) on po.LotId = lot.LotId
@@ -1992,6 +2007,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,part.Condition
 					,part.Manufacturer
 					,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
 					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
 						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
@@ -2023,6 +2051,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,c.Description AS Condition
 						 	,im.ManufacturerName AS Manufacturer
 						 	,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
 						 	FROM DBO.LOT lot WITH(NOLOCK)
 						 		 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 						 		 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -2047,7 +2088,43 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 		 ),0) ) chg
 						 	 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
 						 		   AND (ISNULL(frt.Freight,0) > 0 OR ISNULL(chg.Charges,0) > 0)
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+
+						 UNION ALL
+
+						 	SELECT DISTINCT
+						 	 lot.LotId
+						 	,0 PurchaseOrderId
+						 	,'' Vendor -- [PN-17853] no vendor concept on a manual Other Cost entry
+						 	,'' VendorCode
+						 	,0 VendorId
+						 	,ISNULL(loc.TotalFreight,0) AS FreightCost
+						 	,ISNULL(loc.TotalOtherCost,0) AS ChargesCost
+						 	,case when CAST(loc.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(loc.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate
+						 	,'Manual Entry' AS PoNum -- [PN-17853] marks this row as a manually-added Other Cost entry, distinct from PO/RO/SO-sourced rows
+						 	,ISNULL(loc.PartNumber,'NA') PartNumber
+						 	,loc.PartDescription
+						 	,loc.Condition
+						 	,loc.ManufacturerName AS Manufacturer
+						 	,ISNULL(sl2.IsCustomerStock, 0) IsCustomerStock
+						 	,lot.LotNumber -- [PN-17853] 03-Sep-2026
+						 	,loc.LotOtherCostDetailId -- [PN-17853] drives the grid's Action/Edit column - only manual rows have this set
+						 	,loc.ItemMasterId -- [PN-17853]
+						 	,loc.StocklineId -- [PN-17853]
+						 	,loc.StocklineNumber -- [PN-17853] 03-Sep-2026
+						 	,loc.ConditionId -- [PN-17853] 03-Sep-2026
+						 	,ISNULL(loc.IsNA,0) IsNA -- [PN-17853]
+						 	,loc.ReconciledFreight -- [PN-17853]
+						 	,loc.UnReconciledFreight -- [PN-17853]
+						 	,loc.ManualAdjFreight -- [PN-17853]
+						 	,loc.ReconciledCharges -- [PN-17853]
+						 	,loc.UnReconciledCharges -- [PN-17853]
+						 	,loc.ManualAdjCharges -- [PN-17853]
+						 	FROM DBO.LOT lot WITH(NOLOCK)
+						 		 INNER JOIN DBO.LOTOtherCostDetails loc WITH(NOLOCK) on lot.LotId = loc.LotId AND ISNULL(loc.IsDeleted,0) = 0
+						 		 LEFT JOIN DBO.Stockline sl2 WITH(NOLOCK) on loc.StocklineId = sl2.StockLineId
+						 	 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND loc.MasterCompanyId = @MasterCompanyId
+
+								 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				 SELECT * INTO #OtherCostTbl FROM  Result 
 				WHERE 
@@ -2081,7 +2158,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl

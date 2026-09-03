@@ -20,6 +20,12 @@
                                       Stockline dropdowns are now scoped to Sales Activity/sold parts only,
                                       so every manual Other Cost row - including NA rows - is an SO-context
                                       entry now, per Rajesh)
+    3    03-Sep-2026  RAJESH GAMI     [PN-17853] Now also derives and persists ReferenceId/ReferenceNumber/
+                                      ReferenceDate (SalesOrderId/SalesOrderNumber/SO CreatedDate) off the
+                                      selected Stockline's Trans Out(SO) LotCalculationDetails record, so the
+                                      Other Cost grid can show which Sales Order a manual row belongs to
+                                      (Rajesh, 03-Sep-2026 - also drives the 'SO-xxxx (Manual Entry)' PoNum
+                                      label in USP_Lot_GetAllLotViewsByLotId_Filter's OtherCost branch)
 **************************************************************
  EXEC USP_LOTOtherCostDetails_AddUpdate
 **************************************************************/
@@ -80,6 +86,25 @@ BEGIN
 			WHERE stk.StockLineId = @StocklineId;
 		END
 
+		-- [PN-17853] 03-Sep-2026: ReferenceId/ReferenceNumber/ReferenceDate = the Sales Order this Stockline
+		-- was actually sold on (Trans Out(SO)), same join/Type-literal pattern used elsewhere in this codebase
+		-- (see USP_Lot_GetAllLotViewsByLotId_Filter's PNSoldView/OtherCost branches). Most recent SO wins if a
+		-- Stockline was somehow sold more than once. NULL for NA rows (no Stockline selected).
+		DECLARE @ReferenceId bigint = NULL, @ReferenceNumber varchar(100) = NULL, @ReferenceDate datetime2(7) = NULL;
+		IF (ISNULL(@IsNA,0) = 0 AND ISNULL(@StocklineId,0) > 0)
+		BEGIN
+			SELECT TOP 1
+				 @ReferenceId = so.SalesOrderId
+				,@ReferenceNumber = so.SalesOrderNumber
+				,@ReferenceDate = so.CreatedDate
+			FROM [dbo].[LotTransInOutDetails] ltin WITH(NOLOCK)
+			INNER JOIN [dbo].[LotCalculationDetails] ltCal WITH(NOLOCK) ON ltin.LotTransInOutId = ltCal.LotTransInOutId
+				AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
+			INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON ltCal.ReferenceId = so.SalesOrderId
+			WHERE ltin.StockLineId = @StocklineId AND ltin.LotId = @LotId
+			ORDER BY so.SalesOrderId DESC;
+		END
+
 		DECLARE @PartNumber varchar(200) = NULL, @PartDescription varchar(max) = NULL, @ManufacturerId bigint = NULL, @ManufacturerName varchar(200) = NULL;
 		IF (ISNULL(@IsNA,0) = 0 AND ISNULL(@ItemMasterId,0) > 0)
 		BEGIN
@@ -107,13 +132,15 @@ BEGIN
 				([LotId],[LotNumber],[ReconciledFreight],[UnReconciledFreight],[ManualAdjFreight],[TotalFreight]
 				,[ReconciledCharges],[UnReconciledCharges],[ManualAdjCharges],[TotalOtherCost]
 				,[StocklineId],[StocklineNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName]
-				,[ConditionId],[Condition],[IsNA],[ModuleId],[ModuleName],[Memo]
+				,[ConditionId],[Condition],[IsNA],[ModuleId],[ModuleName]
+				,[ReferenceId],[ReferenceNumber],[ReferenceDate],[Memo]
 				,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 			VALUES
 				(@LotId,@LotNumber,@ReconciledFreight,@UnReconciledFreight,@ManualAdjFreight,@TotalFreight
 				,@ReconciledCharges,@UnReconciledCharges,@ManualAdjCharges,@TotalOtherCost
 				,@StocklineId,@StocklineNumber,@ItemMasterId,@PartNumber,@PartDescription,@ManufacturerId,@ManufacturerName
-				,@ConditionId,@Condition,@IsNA,@OtherCostModuleId,@OtherCostModuleName,@Memo
+				,@ConditionId,@Condition,@IsNA,@OtherCostModuleId,@OtherCostModuleName
+				,@ReferenceId,@ReferenceNumber,@ReferenceDate,@Memo
 				,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 			SET @LotOtherCostDetailId = SCOPE_IDENTITY();
 		END
@@ -140,6 +167,9 @@ BEGIN
 			      ,[IsNA] = @IsNA
 			      ,[ModuleId] = @OtherCostModuleId
 			      ,[ModuleName] = @OtherCostModuleName
+			      ,[ReferenceId] = @ReferenceId
+			      ,[ReferenceNumber] = @ReferenceNumber
+			      ,[ReferenceDate] = @ReferenceDate
 			      ,[Memo] = @Memo
 			      ,[UpdatedBy] = @CreatedBy
 			      ,[UpdatedDate] = GETUTCDATE()

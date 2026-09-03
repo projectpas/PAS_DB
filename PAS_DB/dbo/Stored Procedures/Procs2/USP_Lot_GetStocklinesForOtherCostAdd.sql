@@ -10,7 +10,11 @@
  **              LotCalculationDetails Type = 'Trans Out(SO)'), matching the same restriction now applied to
  **              USP_Lot_GetPartsForOtherCostAdd's Part Number dropdown. Also returns
  **              FreightAdjustment/MiscAdjustment so the UI can auto-populate Reconciled Freight/Reconciled
- **              Charges once a Stockline is selected.
+ **              Charges once a Stockline is selected. Also returns IsAlreadyAdded, flagging any Stockline
+ **              that already has a non-deleted manual LOTOtherCostDetails row for this Lot (Condition is
+ **              inherent to a Stockline, so "same Stockline + Condition" reduces to "same Stockline"), so
+ **              the Angular popup can block Save and show a duplicate-entry message (Rajesh, 03-Sep-2026).
+ **              @ExcludeLotOtherCostDetailId lets Edit exclude the row currently being edited from that check.
  ** Date:   02-Sep-2026 (updated 03-Sep-2026)
  ** PARAMETERS:
  ** RETURN VALUE:
@@ -21,13 +25,16 @@
  ** --   --------     -------       ---------------------------
     1    02-Sep-2026  RAJESH GAMI   [PN-17853] Created
     2    03-Sep-2026  RAJESH GAMI   [PN-17853] Restricted to SOLD (Trans Out(SO)) stocklines only, per Rajesh
+    3    03-Sep-2026  RAJESH GAMI   [PN-17853] Added IsAlreadyAdded (+ @ExcludeLotOtherCostDetailId) to flag
+                                     Stocklines already used by a manual Other Cost entry on this Lot, per Rajesh
 **************************************************************
  EXEC USP_Lot_GetStocklinesForOtherCostAdd 1,1,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetStocklinesForOtherCostAdd]
 @LotId BIGINT = 0,
 @ItemMasterId BIGINT = 0,
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@ExcludeLotOtherCostDetailId BIGINT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -43,7 +50,16 @@ BEGIN
 			stk.ConditionId AS 'ConditionId',
 			ISNULL(c.Description, stk.Condition) AS 'Condition',
 			ISNULL(stk.FreightAdjustment,0) AS 'ReconciledFreight',
-			ISNULL(stk.MiscAdjustment,0) AS 'ReconciledCharges'
+			ISNULL(stk.MiscAdjustment,0) AS 'ReconciledCharges',
+			-- [PN-17853] 03-Sep-2026: 1 when this Stockline already has a non-deleted manual Other Cost row
+			-- on this Lot (excluding the row currently being edited, if any) - drives the Angular
+			-- "already exists" validation message below the Stockline Number dropdown.
+			CASE WHEN EXISTS (
+				SELECT 1 FROM [dbo].[LOTOtherCostDetails] loc WITH (NOLOCK)
+				WHERE loc.LotId = @LotId AND loc.StocklineId = stk.StockLineId
+				AND ISNULL(loc.IsDeleted,0) = 0
+				AND loc.LotOtherCostDetailId <> ISNULL(@ExcludeLotOtherCostDetailId,0)
+			) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS 'IsAlreadyAdded'
 		FROM [dbo].[LotTransInOutDetails] lin  WITH (NOLOCK)
 		-- [PN-17853] 03-Sep-2026: only stocklines actually SOLD off this Lot (Sales Activity tab) are eligible
 		INNER JOIN [dbo].[LotCalculationDetails] ltCal WITH (NOLOCK) ON lin.LotTransInOutId = ltCal.LotTransInOutId

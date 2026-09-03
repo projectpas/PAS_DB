@@ -50,6 +50,7 @@
    28   03-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab: added LotNumber (all 4 blocks) plus StocklineNumber/ConditionId (real values on the manual block, NULL placeholders on PO/RO/SO) to match the tab's current FieldMaster field list (lotNumber column) and so the grid/Edit popup gets the manual row's Stockline Number/Condition back correctly. Added to the outer GROUP BY too.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
+   29   03-Sep-2026   RAJESH GAMI      [PN-17853] Round 2 of Rajesh's Other Cost feedback: OtherCost branch now also returns StkLineNum (FieldMaster 'stkLineNum' column) and Memo (was missing entirely - Edit popup showed it blank); manual-entry StocklineNumber now falls back to a live Stockline join if not captured at save time; manual-entry PoNum is now '<SalesOrderNumber> (Manual Entry)' when the row is tied to a Sales Order (via LOTOtherCostDetails.ReferenceNumber, now populated by USP_LOTOtherCostDetails_AddUpdate), else plain 'Manual Entry'.
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
@@ -1968,6 +1969,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
 				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
 				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
@@ -1976,6 +1978,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
 					 INNER JOIN DBO.LOT lot WITH(NOLOCK) on po.LotId = lot.LotId
@@ -2012,6 +2015,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
 				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
 				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
@@ -2020,6 +2024,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
 						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
@@ -2056,6 +2061,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
 				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
 				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
@@ -2064,6 +2070,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 						 	FROM DBO.LOT lot WITH(NOLOCK)
 						 		 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 						 		 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -2100,7 +2107,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,ISNULL(loc.TotalFreight,0) AS FreightCost
 						 	,ISNULL(loc.TotalOtherCost,0) AS ChargesCost
 						 	,case when CAST(loc.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(loc.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate
-						 	,'Manual Entry' AS PoNum -- [PN-17853] marks this row as a manually-added Other Cost entry, distinct from PO/RO/SO-sourced rows
+						 	,CASE WHEN ISNULL(loc.ReferenceNumber,'') <> '' THEN loc.ReferenceNumber + ' (Manual Entry)' ELSE 'Manual Entry' END AS PoNum -- [PN-17853] 03-Sep-2026: SO-prefixed (e.g. 'SO-230423 (Manual Entry)') when this manual row is tied to a Sales Order (Rajesh, 03-Sep-2026)
 						 	,ISNULL(loc.PartNumber,'NA') PartNumber
 						 	,loc.PartDescription
 						 	,loc.Condition
@@ -2110,7 +2117,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,loc.LotOtherCostDetailId -- [PN-17853] drives the grid's Action/Edit column - only manual rows have this set
 						 	,loc.ItemMasterId -- [PN-17853]
 						 	,loc.StocklineId -- [PN-17853]
-						 	,loc.StocklineNumber -- [PN-17853] 03-Sep-2026
+						 	,ISNULL(loc.StocklineNumber, sl2.StockLineNumber) StocklineNumber -- [PN-17853] 03-Sep-2026 (fallback to live Stockline join in case StocklineNumber wasn't captured at save time)
+						 	,ISNULL(loc.StocklineNumber, sl2.StockLineNumber) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 						 	,loc.ConditionId -- [PN-17853] 03-Sep-2026
 						 	,ISNULL(loc.IsNA,0) IsNA -- [PN-17853]
 						 	,loc.ReconciledFreight -- [PN-17853]
@@ -2119,6 +2127,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,loc.ReconciledCharges -- [PN-17853]
 						 	,loc.UnReconciledCharges -- [PN-17853]
 						 	,loc.ManualAdjCharges -- [PN-17853]
+						 	,loc.Memo -- [PN-17853] 03-Sep-2026: was missing entirely, Edit popup showed it blank (Rajesh)
 						 	FROM DBO.LOT lot WITH(NOLOCK)
 						 		 INNER JOIN DBO.LOTOtherCostDetails loc WITH(NOLOCK) on lot.LotId = loc.LotId AND ISNULL(loc.IsDeleted,0) = 0
 						 		 LEFT JOIN DBO.Stockline sl2 WITH(NOLOCK) on loc.StocklineId = sl2.StockLineId
@@ -2158,7 +2167,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl

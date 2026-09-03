@@ -43,7 +43,7 @@
 	29    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	30    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	31    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
-
+	32    02-Sep-2026			 Bhargav Saliya						[PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_) 
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -455,7 +455,7 @@ BEGIN
 							(Contact like '%' +@contact+'%') OR
 							(companyName like '%' +@GlobalFilter+'%') OR
 							(country like '%' +@GlobalFilter+'%') OR
-							(partNumber like '%'+@GlobalFilter+'%') OR
+							(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(DateAssigned like '%' +@GlobalFilter+'%') OR
 							(QuotedBy like '%' +@GlobalFilter+'%') OR
 							(QuotedDate like '%' +@GlobalFilter+'%') OR
@@ -484,7 +484,7 @@ BEGIN
 							(IsNull(@QuoteSentDate,'') ='' OR Cast(QuoteSentDate as date)=Cast(@QuoteSentDate as date)) and
 							(IsNull(@BuyerCompanyName,'') ='' OR companyName like '%'+@BuyerCompanyName+'%') and
 							(IsNull(@BuyerCountry,'') ='' OR country like '%'+ @BuyerCountry+'%') and
-							(IsNull(@LinePartNumber,'') ='' OR partNumber like '%'+@LinePartNumber+'%') and
+							(ISNULL(@LinePartNumber,'') ='' OR partNumber LIKE '%' + @LinePartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@LinePartNumber) +'%') and
 							(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%'+ @CreatedBy+'%') and
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
 							(IsNull(@EmployeeName,'') ='' OR EmployeeName like '%'+ @EmployeeName +'%') and

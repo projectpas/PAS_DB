@@ -49,6 +49,7 @@
 	41	 02-JULY-2026       Ayushi Patel            [PN-16862]Generate vendorCode and CustomerCode dynamically
 	42    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	43	 18-Aug-2026        Ayushi Patel            [PN-17672] Handle 'Y'/'N' values along with 'YES'/'NO' to store corresponding 0/1 values for all modules.
+	44   31-Aug-2026        Ayushi Patel            [PN-16987] Added EffectiveDate for Sales Price Master/MRO Price Master upload; fixed update-with-date "Incorrect syntax near '='" error by rebuilding the update field list from #ImportFields instead of re-splitting the built value string.
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -1208,25 +1209,23 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 			BEGIN
 					DECLARE @UpdateFields NVARCHAR(MAX) = '';
 
-						;WITH Fields AS (
-							SELECT LTRIM(RTRIM(value)) AS FieldName,
-								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
-							FROM STRING_SPLIT(@RefFieldName, ',')
-						),
-						Vals AS (
-							SELECT LTRIM(RTRIM(value)) AS FieldValue,
-								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
-							FROM STRING_SPLIT(@FieldValue, ',')
-						),
-						Pairs AS (
-							SELECT f.FieldName, v.FieldValue
-							FROM Fields f
-							JOIN Vals v ON f.rn = v.rn
-							WHERE f.FieldName NOT IN ('CreatedDate','CreatedBy')
-						)
-						SELECT @UpdateFields = STRING_AGG(f.FieldName + ' = ' + f.FieldValue, ', ')
-						FROM Pairs f;
-						SET @RefQuery = 'UPDATE [' + @ReferenceTable + '] SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
+					
+					;WITH Vals AS (
+						SELECT
+							FieldName,
+							CASE
+								WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''''
+								WHEN FieldType = 'boolean' THEN (CASE WHEN (LOWER(REPLACE(FieldValue, '''', '''''')) IN (SELECT Value FROM @YesValues) OR LOWER(REPLACE(FieldValue, '''', '''''')) = 'true') THEN '1' ELSE '0' END)
+								WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101)' ELSE 'NULL' END
+								WHEN FieldType = 'number' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END
+								WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN 'NULL' ELSE FieldValue END
+								ELSE ISNULL(FieldValue, '0')
+							END AS ValueExpr
+						FROM #ImportFields
+						WHERE ISNULL(IsModuleTableColumn, 0) = 1 AND FieldName NOT IN ('CreatedDate','CreatedBy')
+					)
+					SELECT @UpdateFields = STRING_AGG(FieldName + ' = ' + ValueExpr, ', ') FROM Vals;
+					SET @RefQuery = 'UPDATE [' + @ReferenceTable + '] SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
 			END
 			ELSE IF( (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )  AND @isMROPriceDataExist = 1 AND @MatchedId IS NOT NULL)
 			BEGIN
@@ -1234,7 +1233,7 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 							SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
 						FROM ImportModuleFieldMaster IMF
 						WHERE IMF.ModuleId = @ModuleId
-						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','FlatRatePrice','CurrencyId');
+						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','FlatRatePrice','CurrencyId','EffectiveDate');
 								;WITH Fields AS (
 									SELECT LTRIM(RTRIM(value)) AS FieldName,
 										   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn

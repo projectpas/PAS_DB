@@ -12,6 +12,7 @@
     1    26/09/2025    Priyansh Patel   Created
     2    15/10/2025    Priyansh Patel   Updated the Parameter to user defiend table type
 	3	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
+	4	 31/08/2026	   Ayushi Patel		[PN-16987] Added EffectiveDate
 **********************/
 
 CREATE PROCEDURE [dbo].[USP_AddOrUpdateMROPriceMaster]
@@ -40,6 +41,7 @@ BEGIN
         FlatRatePrice DECIMAL(18,2) NULL,
         StartDate DATETIME2(7) NULL,
         EndDate DATETIME2(7) NULL,
+        EffectiveDate DATETIME2(7) NULL,
         CreatedBy VARCHAR(50) NULL,
         UpdatedBy VARCHAR(50) NULL
     );
@@ -55,10 +57,11 @@ BEGIN
         FlatRatePrice,
         StartDate,
 		EndDate,
+        EffectiveDate,
         CreatedBy,
         UpdatedBy
     )
-    SELECT 
+    SELECT
         MROPriceMasterId,
         ItemMasterId,
         MasterCompanyId,
@@ -68,6 +71,7 @@ BEGIN
         FlatRatePrice,
         StartDate,
 		EndDate,
+        EffectiveDate,
         CreatedBy,
         UpdatedBy
     FROM @MROPriceMasterList;
@@ -93,6 +97,7 @@ BEGIN
                 @FlatRatePrice DECIMAL(18,2),
                 @StartDate DATETIME2(7),
                 @EndDate DATETIME2(7),
+                @EffectiveDate DATETIME2(7),
                 @CreatedBy VARCHAR(50),
                 @UpdatedBy VARCHAR(50);
 
@@ -107,6 +112,7 @@ BEGIN
                 @FlatRatePrice = FlatRatePrice,
                 @StartDate = StartDate,
                 @EndDate = EndDate,
+                @EffectiveDate = EffectiveDate,
                 @CreatedBy = CreatedBy,
                 @UpdatedBy = UpdatedBy
             FROM #MROPriceMasterTemp
@@ -118,14 +124,14 @@ BEGIN
                     INSERT INTO dbo.MROPriceMaster
                     (
                         ItemMasterId, MasterCompanyId, CustomerId, WorkscopeId,
-                        FlatRatePrice, CurrencyId, StartDate,EndDate,
+                        FlatRatePrice, CurrencyId, StartDate,EndDate,EffectiveDate,
                         CreatedBy, CreatedDate,
                         UpdatedBy, UpdatedDate, IsActive, IsDeleted
                     )
                     VALUES
                     (
                         @ItemMasterId, @MasterCompanyId, @CustomerId, @WorkscopeId,
-                        @FlatRatePrice, @CurrencyId, @StartDate,@EndDate,
+                        @FlatRatePrice, @CurrencyId, @StartDate,@EndDate,@EffectiveDate,
                         @CreatedBy, GETUTCDATE(),
                         @UpdatedBy, GETUTCDATE(),
                         1, 0
@@ -140,6 +146,7 @@ BEGIN
                         mp.WorkscopeId = @WorkscopeId,
                         mp.StartDate = @StartDate,
                         mp.EndDate = @EndDate,
+                        mp.EffectiveDate = @EffectiveDate,
                         mp.CurrencyId = @CurrencyId,
                         mp.FlatRatePrice = @FlatRatePrice,
                         mp.UpdatedBy = @UpdatedBy,

@@ -42,6 +42,7 @@
     [SP_CalSPByPP_SaleDiscPercValue]          DECIMAL (18, 2) NULL,
     [SP_CalSPByPP_MarkUpPercOnListPriceValue] DECIMAL (18, 2) NULL,
     [SalePriceSelectName]                     VARCHAR (200)   NULL,
+    [EffectiveDate]                           DATETIME2 (7)   NULL,
     PRIMARY KEY CLUSTERED ([ItemMasterPurchaseSaleId] ASC),
     CONSTRAINT [FK_ItemMasterPurchaseSale_Currency] FOREIGN KEY ([PP_CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_ItemMasterPurchaseSale_Currency1] FOREIGN KEY ([SP_FSP_CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),

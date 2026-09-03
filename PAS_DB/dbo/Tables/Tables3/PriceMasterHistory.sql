@@ -34,6 +34,7 @@
     [UpdatedBy]                          VARCHAR (100)   NULL,
     [UpdatedDate]                        DATETIME2 (7)   NULL,
     [IsActive]                           BIT             NULL,
-    [IsDeleted]                          BIT             NULL
+    [IsDeleted]                          BIT             NULL,
+    [EffectiveDate]                      DATETIME2 (7)   NULL
 );
 

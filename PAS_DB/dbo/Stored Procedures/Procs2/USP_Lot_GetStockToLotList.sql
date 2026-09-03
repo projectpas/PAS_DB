@@ -21,6 +21,7 @@
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	10   21/Aug/2026			 RAJESH GAMI						[PN-17745] - IsFromPreCostStk-based eligibility check now also excludes the new 'Turn In' type (in addition to 'Trans In(Lot)'), matching existing behavior for stocklines created via "Create Stockline from Lot".
+	11   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -158,7 +159,7 @@ BEGIN
 				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') OR REPLACE([Type],' ','') = REPLACE('Turn In',' ','')) ) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
-					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 
+					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR 
 							(PNDescription like '%' +@GlobalFilter+'%') OR
 							(ManufacturerName like '%' +@GlobalFilter+'%') OR
 							(SerialNum like '%' +@GlobalFilter+'%') OR
@@ -184,7 +185,7 @@ BEGIN
 							))
 							OR   
 							(@GlobalFilter='' AND 
-							(IsNull(@PN,'') ='' OR PN like  '%'+@PN+'%') AND
+							(IsNull(@PN,'') ='' OR PN like  '%'+@PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND
 							(IsNull(@PNDescription,'') ='' OR PNDescription like  '%'+@PNDescription+'%') AND
 							(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%'+@ManufacturerName+'%') AND
 							(IsNull(@SerialNum,'') ='' OR SerialNum like '%'+ @SerialNum+'%') AND
@@ -318,7 +319,7 @@ BEGIN
 				WHERE ISNULL(ind.QtyToTransOut,0) != 0 AND ind.LotId = @LotId AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND REPLACE([Type],' ','') = REPLACE('Trans Out(Lot)',' ','') ) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
-					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 
+					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR 
 							(PNDescription like '%' +@GlobalFilter+'%') OR
 							(ManufacturerName like '%' +@GlobalFilter+'%') OR
 							(SerialNum like '%' +@GlobalFilter+'%') OR
@@ -343,7 +344,7 @@ BEGIN
 							))
 							OR   
 							(@GlobalFilter='' AND 
-							(IsNull(@PN,'') ='' OR PN like  '%'+@PN+'%') AND
+							(IsNull(@PN,'') ='' OR PN like  '%'+@PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND
 							(IsNull(@PNDescription,'') ='' OR PNDescription like  '%'+@PNDescription+'%') AND
 							(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%'+@ManufacturerName+'%') AND
 							(IsNull(@SerialNum,'') ='' OR SerialNum like '%'+ @SerialNum+'%') AND

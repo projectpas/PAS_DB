@@ -12,11 +12,14 @@
  ** PR   Date			Author				Change Description
  ** --   --------		-------				--------------------------------
     1    01-Sep-2026	SAHDEV SALIYA		Created
+    2    03-Sep-2026	SAHDEV SALIYA		Aligned OnHand/OnOrder/OpenSales/OnRepair/OnWO/
+                                                YtdSales/PriorYrSales to confirmed business
+                                                definitions
 
 --  EXEC [dbo].[USP_GetPNStockSummary] @ItemMasterId = 95632, @MasterCompanyId = 1
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetPNStockSummary]
+CREATE    PROCEDURE [dbo].[USP_GetPNStockSummary]
 	@ItemMasterId BIGINT,
 	@MasterCompanyId INT
 AS
@@ -28,16 +31,12 @@ BEGIN
 
 		DECLARE @YtdFrom DATE = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
 		DECLARE @YtdTo DATE = CAST(GETDATE() AS DATE);
-		DECLARE @PriorYrFrom DATE = DATEFROMPARTS(YEAR(GETDATE()) - 1, 1, 1);
-		DECLARE @PriorYrTo DATE = DATEFROMPARTS(YEAR(GETDATE()) - 1, 12, 31);
-		DECLARE @SOModuleId INT;
 		DECLARE @ClosedStatusId INT;
 		DECLARE @CancelledStatusId INT;
 		DECLARE @ExpiredStatusId INT;
 		DECLARE @RejectedStatusId INT;
 		DECLARE @ShippedStatusId INT;
 		DECLARE @InvoicedStatusId INT;
-		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @ClosedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Closed';
 		SELECT @CancelledStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Cancelled';
 		SELECT @ExpiredStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Expired';
@@ -51,7 +50,7 @@ BEGIN
 			CN.Description AS ConditionDescription,
 
 			ISNULL((
-				SELECT SUM(ISNULL(stl.QuantityOnHand, 0))
+				SELECT SUM(ISNULL(stl.QuantityAvailable, 0))
 				FROM dbo.Stockline stl WITH (NOLOCK)
 				WHERE stl.ItemMasterId = @ItemMasterId AND stl.ConditionId = CN.ConditionId
 					AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsActive = 1
@@ -66,11 +65,13 @@ BEGIN
 				WHERE pop.ItemMasterId = @ItemMasterId AND pop.ConditionId = CN.ConditionId
 					AND ISNULL(pop.isParent, 0) = 1 AND ISNULL(pop.IsDeleted, 0) = 0
 					AND po.IsDeleted = 0 AND po.MasterCompanyId = @MasterCompanyId
-					AND po.[Status] NOT IN ('Closed', 'Canceled')
+					-- Open POs (nothing received yet) + remaining Receive Qty from Fulfilling
+					-- (partially received) POs; Pending POs are intentionally excluded.
+					AND po.[Status] IN ('Open', 'Fulfilling')
 			), 0) AS OnOrder,
 
 			ISNULL((
-				SELECT SUM(ISNULL(sop.QtyOrder, 0))
+				SELECT SUM(ISNULL(sop.QtyReserved, 0))
 				FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				WHERE sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = CN.ConditionId
@@ -92,44 +93,52 @@ BEGIN
 				WHERE rop.ItemMasterId = @ItemMasterId AND rop.ConditionId = CN.ConditionId
 					AND ISNULL(rop.IsParent, 0) = 1 AND rop.IsDeleted = 0
 					AND ro.MasterCompanyId = @MasterCompanyId
-					AND ro.[Status] NOT IN ('Closed', 'Canceled')
+					-- Open ROs (nothing shipped back yet) + remaining Receive Qty from Fulfilling
+					-- (partially received) ROs; Pending/Shipped ROs are intentionally excluded.
+					AND ro.[Status] IN ('Open', 'Fulfilling')
 			), 0) AS OnRepair,
 
 			0 AS OnLease,
 
 			ISNULL((
-				SELECT SUM(ISNULL(stl.QuantityReserved, 0) + ISNULL(stl.QuantityIssued, 0))
-				FROM dbo.Stockline stl WITH (NOLOCK)
-				WHERE stl.ItemMasterId = @ItemMasterId AND stl.ConditionId = CN.ConditionId
-					AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsActive = 1
-					AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted = 0
-					AND ISNULL(stl.IsCustomerStock, 0) = 0
+				SELECT SUM(ISNULL(QuantityReserved, 0) + ISNULL(QuantityIssued, 0))
+				FROM (
+					SELECT QuantityReserved, QuantityIssued FROM dbo.WorkOrderMaterials WITH (NOLOCK)
+					WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = CN.ConditionId
+						AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+					UNION ALL
+					SELECT QuantityReserved, QuantityIssued FROM dbo.WorkOrderMaterialsKit WITH (NOLOCK)
+					WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = CN.ConditionId
+						AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+					UNION ALL
+					SELECT QuantityReserved, QuantityIssued FROM dbo.SubWorkOrderMaterials WITH (NOLOCK)
+					WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = CN.ConditionId
+						AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+					UNION ALL
+					SELECT QuantityReserved, QuantityIssued FROM dbo.SubWorkOrderMaterialsKit WITH (NOLOCK)
+					WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = CN.ConditionId
+						AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+				) wo
 			), 0) AS OnWO,
 
 			ISNULL((
 				SELECT SUM(ISNULL(sop.QtyOrder, 0))
 				FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-				INNER JOIN dbo.BillingInvoicingItems bii WITH (NOLOCK) ON bii.SubReferenceId = sop.SalesOrderPartId
-					AND ISNULL(bii.IsPerformaInvoice, 0) = 0 AND bii.ModuleId = @SOModuleId
-				INNER JOIN dbo.BillingInvoicing bi WITH (NOLOCK) ON bi.BillingInvoicingId = bii.BillingInvoicingId
-					AND bi.InvoiceStatus = 'Invoiced' AND ISNULL(bi.IsPerformaInvoice, 0) = 0
 				WHERE sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = CN.ConditionId
-					AND sop.IsDeleted = 0 AND so.MasterCompanyId = @MasterCompanyId
-					AND CAST(bi.InvoiceDate AS DATE) BETWEEN @YtdFrom AND @YtdTo
+					AND ISNULL(sop.IsDeleted, 0) = 0 AND ISNULL(so.IsDeleted, 0) = 0 AND so.MasterCompanyId = @MasterCompanyId
+					AND so.StatusId = @ClosedStatusId
+					AND CAST(so.CreatedDate AS DATE) BETWEEN CAST(@YtdFrom AS DATE) AND CAST(@YtdTo AS DATE)
 			), 0) AS YtdSales,
 
 			ISNULL((
 				SELECT SUM(ISNULL(sop.QtyOrder, 0))
 				FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-				INNER JOIN dbo.BillingInvoicingItems bii WITH (NOLOCK) ON bii.SubReferenceId = sop.SalesOrderPartId
-					AND ISNULL(bii.IsPerformaInvoice, 0) = 0 AND bii.ModuleId = @SOModuleId
-				INNER JOIN dbo.BillingInvoicing bi WITH (NOLOCK) ON bi.BillingInvoicingId = bii.BillingInvoicingId
-					AND bi.InvoiceStatus = 'Invoiced' AND ISNULL(bi.IsPerformaInvoice, 0) = 0
 				WHERE sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = CN.ConditionId
-					AND sop.IsDeleted = 0 AND so.MasterCompanyId = @MasterCompanyId
-					AND CAST(bi.InvoiceDate AS DATE) BETWEEN @PriorYrFrom AND @PriorYrTo
+					AND ISNULL(sop.IsDeleted, 0) = 0 AND ISNULL(so.IsDeleted, 0) = 0 AND so.MasterCompanyId = @MasterCompanyId
+					AND so.StatusId = @ClosedStatusId
+					AND CAST(so.CreatedDate AS DATE) < CAST(@YtdFrom AS DATE)
 			), 0) AS PriorYrSales
 
 		FROM dbo.Condition CN WITH (NOLOCK)

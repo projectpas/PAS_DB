@@ -24,6 +24,7 @@
 	7    20-March-2025   Ekta Chandegra        Convert date using dbo.ConvertUTCtoLocal
 	8    4 Apr 2025   RAJESH GAMI			Resolved issue: Need to display latest record on the top
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -193,7 +194,7 @@ BEGIN
 			  (CreatedBy like '%' +@GlobalFilter+'%') OR  
 			  (quoteStatus like '%' +@GlobalFilter+'%') OR  
 			  (UpdatedBy like '%' +@GlobalFilter+'%') OR  
-			  (PartNumber like '%' +@GlobalFilter+'%') OR  
+			  (PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
 			  (PartDescription like '%' +@GlobalFilter+'%') OR  
 			  (SerialNumber like '%' +@GlobalFilter+'%') OR  
 			  (WoStage like '%' +@GlobalFilter+'%') OR  
@@ -218,7 +219,7 @@ BEGIN
 			  (IsNull(@estCompletionDate,'') ='' OR Cast(estCompletionDate as Date)=Cast(@estCompletionDate as date)) AND  
 			  (IsNull(@promiseDate,'') ='' OR Cast(promisedDate as Date)=Cast(@promiseDate as date)) AND  
 			  (IsNull(@EstShipDate,'') ='' OR Cast(estShipDate as Date)=Cast(@EstShipDate as date)) AND  
-			  (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
+			  (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
 			  (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND  
 			  (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
 			  (IsNull(@WoStage,'') ='' OR WoStage like '%' + @WoStage+'%') AND  

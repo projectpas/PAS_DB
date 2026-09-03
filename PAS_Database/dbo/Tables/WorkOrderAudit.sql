@@ -57,6 +57,7 @@
     [IsFromAircraft]                   BIT             DEFAULT ((0)) NULL,
     [MtcCategoryId]                    BIGINT          NULL,
     [HasPieceParts]                    BIT             CONSTRAINT [DF_WorkOrderAudit_HasCSP] DEFAULT ((0)) NOT NULL,
+    [IsInternalKitAssembly]            BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
 

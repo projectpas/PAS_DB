@@ -43,6 +43,14 @@ BEGIN
 		SELECT @RejectedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Rejected';
 		SELECT @ShippedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Shipped';
 		SELECT @InvoicedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Invoiced';
+		DECLARE @POOpenStatus VARCHAR(256);
+		DECLARE @POFulfillingStatus VARCHAR(256);
+		DECLARE @ROOpenStatus VARCHAR(256);
+		DECLARE @ROFulfillingStatus VARCHAR(256);
+		SELECT @POOpenStatus = [Status] FROM [dbo].[POStatus] WITH (NOLOCK) WHERE [Description] = 'Open' AND IsActive = 1 AND ISNULL(IsDeleted, 0) = 0;
+		SELECT @POFulfillingStatus = [Status] FROM [dbo].[POStatus] WITH (NOLOCK) WHERE [Description] = 'Fulfilling' AND IsActive = 1 AND ISNULL(IsDeleted, 0) = 0;
+		SELECT @ROOpenStatus = [Status] FROM [dbo].[ROStatus] WITH (NOLOCK) WHERE [Description] = 'Open' AND IsActive = 1 AND ISNULL(IsDeleted, 0) = 0;
+		SELECT @ROFulfillingStatus = [Status] FROM [dbo].[ROStatus] WITH (NOLOCK) WHERE [Description] = 'Fulfilling' AND IsActive = 1 AND ISNULL(IsDeleted, 0) = 0;
 
 		SELECT
 			CN.ConditionId,
@@ -67,7 +75,7 @@ BEGIN
 					AND po.IsDeleted = 0 AND po.MasterCompanyId = @MasterCompanyId
 					-- Open POs (nothing received yet) + remaining Receive Qty from Fulfilling
 					-- (partially received) POs; Pending POs are intentionally excluded.
-					AND po.[Status] IN ('Open', 'Fulfilling')
+					AND po.[Status] IN (@POOpenStatus, @POFulfillingStatus)
 			), 0) AS OnOrder,
 
 			ISNULL((
@@ -95,7 +103,7 @@ BEGIN
 					AND ro.MasterCompanyId = @MasterCompanyId
 					-- Open ROs (nothing shipped back yet) + remaining Receive Qty from Fulfilling
 					-- (partially received) ROs; Pending/Shipped ROs are intentionally excluded.
-					AND ro.[Status] IN ('Open', 'Fulfilling')
+					AND ro.[Status] IN (@ROOpenStatus, @ROFulfillingStatus)
 			), 0) AS OnRepair,
 
 			0 AS OnLease,

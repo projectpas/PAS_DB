@@ -124,7 +124,7 @@ BEGIN
                     AircraftModel,
                     SerialNum,
                     ROW_NUMBER() OVER (ORDER BY AircraftRegistryId) AS RowNum
-                FROM MatchedAircraftRaw
+                FROM dbo.MatchedAircraftRaw WITH(NOLOCK)
             )
             INSERT INTO [dbo].[AircraftMaintenanceProgram]
             (
@@ -164,7 +164,7 @@ BEGIN
                 GETUTCDATE(),
                 1,
                 0
-            FROM MatchedAircraft ma;
+            FROM dbo.MatchedAircraft ma WITH(NOLOCK);
 
             SET @AffectedRows = @@ROWCOUNT;
 

@@ -26,6 +26,10 @@
                                       Other Cost grid can show which Sales Order a manual row belongs to
                                       (Rajesh, 03-Sep-2026 - also drives the 'SO-xxxx (Manual Entry)' PoNum
                                       label in USP_Lot_GetAllLotViewsByLotId_Filter's OtherCost branch)
+    4    04-Sep-2026  RAJESH GAMI     [PN-17853] Added @PostedDate (datetime2(7), plain calendar date - no
+                                      timezone conversion) - now persisted on INSERT/UPDATE. Was previously
+                                      missing from this file (only added to an orphaned duplicate copy under
+                                      Procs2\, which is not part of the SSDT build) 
 **************************************************************
  EXEC USP_LOTOtherCostDetails_AddUpdate
 **************************************************************/
@@ -40,6 +44,7 @@ CREATE   PROCEDURE [dbo].[USP_LOTOtherCostDetails_AddUpdate]
 @UnReconciledCharges decimal(18,2) = NULL,
 @ManualAdjCharges decimal(18,2) = NULL,
 @Memo nvarchar(max) = NULL,
+@PostedDate datetime2(7) = NULL,
 @MasterCompanyId int,
 @CreatedBy varchar(256)
 AS
@@ -133,14 +138,14 @@ BEGIN
 				,[ReconciledCharges],[UnReconciledCharges],[ManualAdjCharges],[TotalOtherCost]
 				,[StocklineId],[StocklineNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName]
 				,[ConditionId],[Condition],[IsNA],[ModuleId],[ModuleName]
-				,[ReferenceId],[ReferenceNumber],[ReferenceDate],[Memo]
+				,[ReferenceId],[ReferenceNumber],[ReferenceDate],[PostedDate],[Memo]
 				,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 			VALUES
 				(@LotId,@LotNumber,@ReconciledFreight,@UnReconciledFreight,@ManualAdjFreight,@TotalFreight
 				,@ReconciledCharges,@UnReconciledCharges,@ManualAdjCharges,@TotalOtherCost
 				,@StocklineId,@StocklineNumber,@ItemMasterId,@PartNumber,@PartDescription,@ManufacturerId,@ManufacturerName
 				,@ConditionId,@Condition,@IsNA,@OtherCostModuleId,@OtherCostModuleName
-				,@ReferenceId,@ReferenceNumber,@ReferenceDate,@Memo
+				,@ReferenceId,@ReferenceNumber,@ReferenceDate,@PostedDate,@Memo
 				,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 			SET @LotOtherCostDetailId = SCOPE_IDENTITY();
 		END
@@ -170,6 +175,7 @@ BEGIN
 			      ,[ReferenceId] = @ReferenceId
 			      ,[ReferenceNumber] = @ReferenceNumber
 			      ,[ReferenceDate] = @ReferenceDate
+			      ,[PostedDate] = @PostedDate
 			      ,[Memo] = @Memo
 			      ,[UpdatedBy] = @CreatedBy
 			      ,[UpdatedDate] = GETUTCDATE()

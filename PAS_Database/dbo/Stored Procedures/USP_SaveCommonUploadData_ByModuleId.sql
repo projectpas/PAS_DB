@@ -51,6 +51,8 @@
 	41	 18-Aug-2026        Ayushi Patel            [PN-17672] Handle 'Y'/'N' values along with 'YES'/'NO' to store corresponding 0/1 values for all modules.
 	42	 27-Aug-2026        Ayushi Patel			Added ItemMasterNonStock module 
 	43   28/08/2026         Ayushi Patel            [PN-16987] added effective date
+	44   04/09/2026         Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
+
   exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -96,13 +98,14 @@ BEGIN
 		DECLARE @IsEnabled BIT;
 		DECLARE @isPriceDataExist BIT = 0, @ItemMasterPurchaseSaleId BIGINT = 0
 		DECLARE @IsAutoGenerate BIT = 0;
+		DECLARE @IsNonStock BIT = 0;
 		DECLARE @CodeTypeId BIGINT = 0;
 		DECLARE @CurrentNumber BIGINT;
 		DECLARE @AutoGenerateNumber NVARCHAR(50),@PartNumber NVARCHAR(150) ='';
 		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT, @chargeModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @StocklineNonStockModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT, @chargeModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -119,7 +122,8 @@ BEGIN
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		DECLARE @EnumEmployeeGeneralInfo INT;
 		DECLARE @ItemMasterAssetTypeId INT;
-		DECLARE @PriorityId AS BIGINT, @Priority AS BIGINT, @PurchaseUnitOfMeasureId AS BIGINT, @StockUnitOfMeasureId AS BIGINT,@ConsumeUnitOfMeasureId AS BIGINT;
+		DECLARE @PriorityId AS BIGINT, @Priority AS BIGINT, @PurchaseUnitOfMeasureId AS BIGINT, @StockUnitOfMeasureId AS BIGINT,@ConsumeUnitOfMeasureId AS BIGINT, @OtherModuleTypeId AS BIGINT;
+		DECLARE @StockUnitOfMeasure VARCHAR(250), @ConsumeUnitOfMeasure VARCHAR(250);
 
 		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK)
 					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
@@ -132,6 +136,8 @@ BEGIN
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
 		DECLARE @ItemMasterNonStockModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMasterNonStock');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		SET @StocklineNonStockModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'StocklineNonStock');
+		SET @IsNonStock = CASE WHEN @ModuleId = @StocklineNonStockModule THEN 1 ELSE 0 END;		
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @VendorModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor');
 		SET @PublicationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Publication');
@@ -210,7 +216,7 @@ BEGIN
 
 			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule  OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END;
 
-			IF(@ModuleId = @StocklineModule)
+			IF(@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 			BEGIN
 				SET @UploadRecord = JSON_MODIFY(
 							JSON_MODIFY(
@@ -250,7 +256,7 @@ BEGIN
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
 
-			IF (@ModuleId = @StocklineModule) -- Stockline
+			IF (@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 			BEGIN
 				DECLARE @StockLineNumber VARCHAR(100);
 				DECLARE @currentNo AS BIGINT = 0;
@@ -266,7 +272,8 @@ BEGIN
 				SELECT @SerialNumber = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SerialNumber';
 				SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
 				SELECT @ManufacturerId = ManufacturerId from Manufacturer where Name = (select FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId') and MasterCompanyId=@MasterCompanyId;
-					IF @ManufacturerId IS NOT NULL
+
+				IF @ManufacturerId IS NOT NULL
 				BEGIN
 					-- Update the ManufacturerId in #DynamicKeyValue
 					UPDATE #DynamicKeyValue
@@ -387,7 +394,7 @@ BEGIN
 				ON CSTL.StockLineId = STL.StockLineId
                 /* PN Manufacturer Combination Stockline logic */
 
-				 WHERE ISNULL(IM.IsNonStock,0) = 0
+                WHERE ISNULL(IM.IsNonStock,0) = @IsNonStock
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
 
 				IF (@currentNo <> 0)
@@ -475,8 +482,32 @@ BEGIN
 					SET FieldValue = '0'  -- Set isSerialized to 0
 					WHERE FieldName = 'isSerialized';
 				END
-				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
-				SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.ManagementStructure WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+				SET @StockUnitOfMeasureId = NULL;
+				SET @StockUnitOfMeasure = NULL;
+				SET @ConsumeUnitOfMeasureId = NULL;
+				SET @ConsumeUnitOfMeasure = NULL;
+
+				SELECT @PurchaseUOMId = IM.[PurchaseUnitOfMeasureId],
+					   @StockUnitOfMeasureId = IM.[StockUnitOfMeasureId],
+					   @StockUnitOfMeasure = ISNULL(SUOM.[ShortName], ''),
+					   @ConsumeUnitOfMeasureId = IM.[ConsumeUnitOfMeasureId],
+					   @ConsumeUnitOfMeasure = ISNULL(CUOM.[ShortName], '')
+				FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+				LEFT JOIN [DBO].[UnitOfMeasure] SUOM WITH(NOLOCK) ON SUOM.[UnitOfMeasureId] = IM.[StockUnitOfMeasureId]
+				LEFT JOIN [DBO].[UnitOfMeasure] CUOM WITH(NOLOCK) ON CUOM.[UnitOfMeasureId] = IM.[ConsumeUnitOfMeasureId]
+				WHERE IM.[ItemMasterId] = @ItemMasterId
+					AND ISNULL(IM.[IsNonStock], 0) = @IsNonStock
+					AND IM.[MasterCompanyId] = @MasterCompanyId;
+
+				SELECT @ManagementStructureId = [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId AND [MasterCompanyId] = @MasterCompanyId;
+
+				IF ISNULL(@ManagementStructureId, 0) = 0
+				BEGIN
+					SELECT TOP 1 @ManagementStructureId = [ManagementStructureId] FROM [DBO].[ManagementStructure] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				END
+
+				SET @LegalEntityId = NULL;
+				SELECT @LegalEntityId = [LegalEntityId]	FROM [DBO].[ManagementStructure] WITH(NOLOCK) WHERE [ManagementStructureId] = @ManagementStructureId AND [MasterCompanyId] = @MasterCompanyId;
 			END
 			IF(@ModuleId = @ItemMasterModule)
 			BEGIN
@@ -988,8 +1019,7 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
-
-				DECLARE @OtherModuleTypeId BIGINT = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'Others');
+				SET @OtherModuleTypeId  = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'Others');
 				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,ObtainFromType,OwnerType,TraceableToType,MasterCompanyId,CreatedBy,UpdatedBy'
 				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+
 				 '''' + CAST(@StockLineNumber AS VARCHAR(50)) + ''',' +
@@ -998,7 +1028,25 @@ BEGIN
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','
-
+			END
+			ELSE IF( @ModuleId = @StocklineNonStockModule)
+			BEGIN
+				SET @OtherModuleTypeId  = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'Others');
+				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,ObtainFromType,OwnerType,TraceableToType,IsNonStock,LegalEntityId,StockUnitOfMeasureId,StockUnitOfMeasure,ConsumeUnitOfMeasureId,ConsumeUnitOfMeasure,EntryDate,MasterCompanyId,CreatedBy,UpdatedBy'
+				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+
+				'''' + CAST(@StockLineNumber AS VARCHAR(50)) + ''',' +
+				'''' + CAST(@ControlNumber AS VARCHAR(50)) + ''',' +
+				'''' + CAST(@IDNumber AS VARCHAR(50)) + ''','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
+				CAST(@IsNonStock AS VARCHAR(1)) +','+
+				ISNULL(CAST(@LegalEntityId AS VARCHAR(50)), 'NULL') +','+
+				ISNULL(CAST(@StockUnitOfMeasureId AS VARCHAR(50)), 'NULL') +','+
+				'''' + ISNULL(REPLACE(@StockUnitOfMeasure, '''', ''''''), '') + ''','+
+				ISNULL(CAST(@ConsumeUnitOfMeasureId AS VARCHAR(50)), 'NULL') +','+
+				'''' + ISNULL(REPLACE(@ConsumeUnitOfMeasure, '''', ''''''), '') + ''','+
+				'CAST(CAST(GETUTCDATE() AS DATE) AS DATETIME),'
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 			BEGIN
@@ -1521,7 +1569,7 @@ BEGIN
 			END
 
 
-			IF(@ModuleId = @StocklineModule)
+			IF(@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 			BEGIN
 				DECLARE @StkManagementStructureModuleId BIGINT = 2;
 				DECLARE @ManagementStructureEntityId BIGINT = 0;

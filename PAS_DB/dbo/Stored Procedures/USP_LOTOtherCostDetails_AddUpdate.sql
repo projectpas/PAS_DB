@@ -29,7 +29,7 @@
     4    04-Sep-2026  RAJESH GAMI     [PN-17853] Added @PostedDate (datetime2(7), plain calendar date - no
                                       timezone conversion) - now persisted on INSERT/UPDATE. Was previously
                                       missing from this file (only added to an orphaned duplicate copy under
-                                      Procs2\, which is not part of the SSDT build)
+                                      Procs2\, which is not part of the SSDT build) 
 **************************************************************
  EXEC USP_LOTOtherCostDetails_AddUpdate
 **************************************************************/

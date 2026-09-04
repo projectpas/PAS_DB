@@ -58,3 +58,59 @@ BEGIN
 
 
 END
+GO
+
+CREATE TRIGGER [dbo].[trg_History_WorkOrderSettlementDetails]
+    ON [dbo].[WorkOrderSettlementDetails]
+    AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Now DATETIME2(3) = SYSUTCDATETIME();
+
+    ;WITH
+    d AS (SELECT [WorkOrderSettlementDetailId],[workOrderPartNoId],[WorkOrderSettlementId],[IsMastervalue],[Isvalue_NA],[conditionName],[RevisedPartId],[UpdatedBy] FROM deleted),
+    i AS (SELECT [WorkOrderSettlementDetailId],[workOrderPartNoId],[WorkOrderSettlementId],[IsMastervalue],[Isvalue_NA],[conditionName],[RevisedPartId],[UpdatedBy] FROM inserted),
+    paired AS (
+        SELECT
+            COALESCE(i.workOrderPartNoId, d.workOrderPartNoId) AS WorkOrderPartNoId,
+            COALESCE(i.WorkOrderSettlementId, d.WorkOrderSettlementId) AS WorkOrderSettlementId,
+            d.IsMastervalue AS OldIsMastervalue, i.IsMastervalue AS NewIsMastervalue,
+            d.Isvalue_NA AS OldIsvalueNA, i.Isvalue_NA AS NewIsvalueNA,
+            d.conditionName AS OldConditionName, i.conditionName AS NewConditionName,
+            d.RevisedPartId AS OldRevisedPartId, i.RevisedPartId AS NewRevisedPartId,
+            COALESCE(i.UpdatedBy, d.UpdatedBy) AS ChangedBy
+        FROM d
+        FULL OUTER JOIN i ON i.WorkOrderSettlementDetailId = d.WorkOrderSettlementDetailId
+    ),
+    tri AS (
+        SELECT
+            p.*,
+            CASE WHEN p.OldIsvalueNA = 1 THEN N'NA' WHEN p.OldIsMastervalue = 1 THEN N'Yes' WHEN p.OldIsMastervalue = 0 THEN N'No' ELSE NULL END AS OldTri,
+            CASE WHEN p.NewIsvalueNA = 1 THEN N'NA' WHEN p.NewIsMastervalue = 1 THEN N'Yes' WHEN p.NewIsMastervalue = 0 THEN N'No' ELSE NULL END AS NewTri,
+            CASE p.WorkOrderSettlementId
+                WHEN 6  THEN N'toolsChecked'
+                WHEN 7  THEN N'releaseCerts'
+                WHEN 8  THEN N'mpnLocation'
+                WHEN 10 THEN N'unitShipped'
+                WHEN 11 THEN N'woInvoiced'
+                ELSE NULL
+            END AS TriColumnKey
+        FROM paired p
+    )
+    INSERT INTO dbo.WorkOrderSettlementFieldHistory (WorkOrderPartNoId, ColumnKey, OldValue, NewValue, ChangedBy, ChangedAt)
+    SELECT WorkOrderPartNoId, TriColumnKey, OldTri, NewTri, ChangedBy, @Now
+    FROM tri
+    WHERE TriColumnKey IS NOT NULL
+      AND ISNULL(OldTri, N'') <> ISNULL(NewTri, N'')
+
+    UNION ALL
+
+    SELECT t.WorkOrderPartNoId, N'revisedPart', RevOld.PartNumber, RevNew.PartNumber, t.ChangedBy, @Now
+    FROM tri t
+    LEFT JOIN dbo.ItemMaster RevOld WITH (NOLOCK) ON RevOld.ItemMasterId = t.OldRevisedPartId
+    LEFT JOIN dbo.ItemMaster RevNew WITH (NOLOCK) ON RevNew.ItemMasterId = t.NewRevisedPartId
+    WHERE t.WorkOrderSettlementId = 9
+      AND ISNULL(t.OldRevisedPartId, 0) <> ISNULL(t.NewRevisedPartId, 0);
+END
+GO

@@ -1386,6 +1386,7 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderSettlementDetailsAudit.sql" />
+    <Build Include="dbo\Tables\Tables2\WorkOrderSettlementFieldHistory.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShipping.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShippingAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderShippingItem.sql" />
@@ -3504,7 +3505,9 @@
     <Build Include="dbo\User Defined Types\WorkFlowTaskType.sql" />
     <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
-    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
@@ -3593,7 +3596,9 @@
     <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
-    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
@@ -4359,6 +4364,8 @@
     <Build Include="dbo\Tables\SupportAssignmentMaster.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportAssignmentMaster_ById.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderMaterialsCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderSettlementGridHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderNonStockPartStockline.sql" />
@@ -4436,7 +4443,9 @@
     <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
-    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSettlementDetails.sql" />
@@ -4715,6 +4724,11 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\SearchStockLineForLeaseAddPnPopup.sql" />
     <Build Include="dbo\Stored Procedures\SearchItemMasterForLeaseAddPnPopup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionForInternalKitAssembly.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForInternalKitAssemblyInWO.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

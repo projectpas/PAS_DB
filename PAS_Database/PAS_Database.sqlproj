@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -4695,6 +4695,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveTaskInstructionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTaskInstructionImages.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteTaskInstructionImage.sql" />
+    <Build Include="dbo\Tables\WorkFlowDirectionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowDirectionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkFlowDirectionImages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkFlowDirectionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
     <Build Include="dbo\Tables\LeaseStocklineAudit.sql" />
     <Build Include="dbo\Tables\LeaseStockline.sql" />

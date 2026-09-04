@@ -1982,6 +1982,7 @@
     <Build Include="dbo\Functions\FN_GetTatCurrentDays.sql" />
     <Build Include="dbo\Functions\fn_GetRevenuePercentage.sql" />
     <Build Include="dbo\Functions\fn_GetMarginPercentage.sql" />
+    <Build Include="dbo\Functions\fn_NormalizePartNumber.sql" />
     <Build Include="dbo\Functions\FN_GetExpireDaysStockline.sql" />
     <Build Include="dbo\Functions\FN_GetCurrentLaborHours.sql" />
     <Build Include="dbo\Functions\DistinctList.sql" />
@@ -4817,7 +4818,22 @@
     <Build Include="dbo\Stored Procedures\USP_SOStocklineUpdateStockQtyAdjust.sql" />
     <Build Include="dbo\Stored Procedures\usp_PopulateCustomerAging.sql" />
     <Build Include="dbo\Functions\ValidatePDFAddressWithSiteName.sql" />
+    <Build Include="dbo\Tables\LeaseType.sql" />
+    <Build Include="dbo\Tables\LeaseStatus.sql" />
+    <Build Include="dbo\Tables\Tables3\LOTOtherCostDetailsAudit.sql" />
+    <Build Include="dbo\Tables\Tables3\LOTOtherCostDetails.sql" />
+    <Build Include="dbo\Views\vw_LeaseType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_CleanUpUserActivityLogs.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_UpdateCOGSByStocklineId.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportInvoiceDate.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_Delete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_AddUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetPartsForOtherCostAdd.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

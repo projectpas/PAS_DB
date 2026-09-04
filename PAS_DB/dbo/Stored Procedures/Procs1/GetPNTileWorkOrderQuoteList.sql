@@ -21,6 +21,7 @@
  ** --   --------     -------          --------------------------------     
     1    27/02/2026   Bhargav Saliya       PN-15581: Added New Fields [QuoteAmount],[Qty],[Notes]
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
 @PageNumber int = 1,
@@ -107,7 +108,7 @@ BEGIN
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
-			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(WorkOrderQuoteNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -120,7 +121,7 @@ BEGIN
 					(Qty LIKE '%' +@GlobalFilter+'%') OR
 					(Notes LIKE '%' +@GlobalFilter+'%'))									
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@WorkOrderQuoteNumber,'') ='' OR WorkOrderQuoteNumber LIKE '%' + @WorkOrderQuoteNumber + '%') AND

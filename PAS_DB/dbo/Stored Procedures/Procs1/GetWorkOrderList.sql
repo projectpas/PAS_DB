@@ -49,6 +49,7 @@
 	30	 06/03/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
 	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
 	32	 09/July/2026   RAJESH GAMI		    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	33   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -57,7 +58,7 @@
 	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
      
 **************************************************************/
-CREATE     PROCEDURE [dbo].[GetWorkOrderList]
+CREATE   PROCEDURE [dbo].[GetWorkOrderList]
  -- Add the parameters for the stored procedure here  
 	 @PageNumber INT,  
 	 @PageSize INT,  
@@ -384,8 +385,8 @@ BEGIN
 			(  
 			([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
 			([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
-			([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
-			([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%') OR  			
+			([PartNos] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([PartNos]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+			([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([IncomingPartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
 			([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
 			([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR  
 			([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
@@ -414,8 +415,8 @@ BEGIN
 		)  
         OR     
         (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
-        (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
-		(ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%') AND  		
+        (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNos]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
+        (ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%' OR dbo.fn_NormalizePartNumber([IncomingPartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@IncomingPartNumber) + '%') AND  
         (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND 
 		(ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  
         (ISNULL(@WorkScope,'') ='' OR [WorkScope] LIKE '%' + @WorkScope+'%') AND  
@@ -711,9 +712,8 @@ BEGIN
            (@GlobalFilter <>'' AND (  
            ([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
            ([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
-           ([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
-		   ([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%') OR  
-
+           ([PartNos] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([PartNos]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+           ([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([IncomingPartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
            ([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
 		   ([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR 
            ([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
@@ -740,8 +740,8 @@ BEGIN
            ))  
            OR     
            (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
-           (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
-		   (ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%') AND  
+           (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNos]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
+           (ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%' OR dbo.fn_NormalizePartNumber([IncomingPartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@IncomingPartNumber) + '%') AND  
            (ISNULL(@WorkOrderType,'') ='' OR [WorkOrderType] LIKE '%' + @WorkOrderType+'%') AND  
            (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND
 		   (ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  

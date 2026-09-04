@@ -21,6 +21,7 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
+	9   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
@@ -131,7 +132,7 @@ BEGIN
 			), ResultCount AS(SELECT COUNT(SalesOrderId) AS totalItems FROM Result)
 
 			SELECT * INTO #TempResult FROM  Result
-			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 				(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 				(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 				(StatusValue LIKE '%' +@GlobalFilter+'%') OR
@@ -146,7 +147,7 @@ BEGIN
 				(SalesPersonName LIKE '%' +@GlobalFilter+'%') OR
 				(CustomerName LIKE '%' +@GlobalFilter+'%'))
 				OR   
-				(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
+				(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND 
 				(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 				(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 				(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND

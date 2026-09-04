@@ -19,6 +19,7 @@
 ** 13   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
 ** 14   29/JUL/2026     Kishor Makwana      [PN-17466] PERFORMANCE REWRITE - Sales Order List filter slowness
 ** 15	05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+** 16   02-Sep-2026   Bhargav Saliya      [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
   
 ***********************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]
@@ -270,7 +271,7 @@ BEGIN
 					AND (@VersionNumber        IS NULL OR SOQ.VersionNumber         LIKE '%' + @VersionNumber        + '%')
 					AND (@PriorityType         IS NULL OR SP.PriorityName           LIKE '%' + @PriorityType         + '%')
 					AND (@ManufacturerType     IS NULL OR M.[Name]                  LIKE '%' + @ManufacturerType     + '%')
-					AND (@PartNumberType       IS NULL OR IM.PartNumber             LIKE '%' + @PartNumberType       + '%')
+					AND (@PartNumberType       IS NULL OR IM.PartNumber             LIKE '%' + @PartNumberType       + '%' OR dbo.fn_NormalizePartNumber(IM.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%')
 					AND (@PartDescriptionType  IS NULL OR IM.PartDescription        LIKE '%' + @PartDescriptionType  + '%')
 					AND (@Status               IS NULL OR MST.[Name]                LIKE '%' + @Status               + '%')
 					AND (@CreatedBy            IS NULL OR SO.CreatedBy              LIKE '%' + @CreatedBy            + '%')
@@ -312,7 +313,7 @@ BEGIN
 					OR SO.MarketplaceRef         LIKE @GF
 					OR SOQ.VersionNumber         LIKE @GF        -- BUG 1 fixed
 					OR SP.PriorityName           LIKE @GF
-					OR IM.PartNumber             LIKE @GF
+					OR IM.PartNumber             LIKE @GF OR dbo.fn_NormalizePartNumber(IM.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%'
 					OR IM.PartDescription        LIKE @GF
 					OR M.[Name]                  LIKE @GF
 					OR MST.[Name]                LIKE @GF

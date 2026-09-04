@@ -16,7 +16,7 @@
                                       StartDate/EndDate directly from LeaseStockline (no more LeasePart join). AC Section is
                                       dropped (kept as an always-empty column/parameter to avoid breaking the existing
                                       caller signature and its FieldMaster-driven grid column, which is hidden instead)
-
+	9   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
 @CustomerName=NULL,@LeaseStatusId=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,
@@ -244,7 +244,7 @@ BEGIN
 					(CustomerName LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(TailNum LIKE '%' +@GlobalFilter+'%') OR
+					(TailNum LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(TailNum) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PnDescription LIKE '%' +@GlobalFilter+'%') OR
 					(SerialNum LIKE '%' +@GlobalFilter+'%') OR
 					(AcSection LIKE '%' +@GlobalFilter+'%') OR
@@ -262,7 +262,7 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
-					(ISNULL(@TailNum,'') ='' OR TailNum LIKE '%' + @TailNum + '%') AND
+					(ISNULL(@TailNum,'') ='' OR TailNum LIKE '%' + @TailNum+'%' OR dbo.fn_NormalizePartNumber(TailNum) LIKE '%' + dbo.fn_NormalizePartNumber(@TailNum) + '%') AND
 					(ISNULL(@PnDescription,'') ='' OR PnDescription LIKE '%' + @PnDescription + '%') AND
 					(ISNULL(@SerialNum,'') ='' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@AcSection,'') ='' OR AcSection LIKE '%' + @AcSection + '%') AND

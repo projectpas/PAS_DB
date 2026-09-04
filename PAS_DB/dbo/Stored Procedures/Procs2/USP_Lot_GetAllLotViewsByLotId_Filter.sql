@@ -1979,6 +1979,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
 				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
@@ -2025,6 +2026,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
 				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
@@ -2071,6 +2073,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
 				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 						 	FROM DBO.LOT lot WITH(NOLOCK)
 						 		 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
@@ -2128,6 +2131,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,loc.ReconciledCharges -- [PN-17853]
 						 	,loc.UnReconciledCharges -- [PN-17853]
 						 	,loc.ManualAdjCharges -- [PN-17853]
+						 	,loc.PostedDate -- [PN-17853] 04-Sep-2026: plain user-entered "Date" field on the Add/Edit popup (Rajesh)
 						 	,loc.Memo -- [PN-17853] 03-Sep-2026: was missing entirely, Edit popup showed it blank (Rajesh)
 						 	FROM DBO.LOT lot WITH(NOLOCK)
 						 		 INNER JOIN DBO.LOTOtherCostDetails loc WITH(NOLOCK) on lot.LotId = loc.LotId AND ISNULL(loc.IsDeleted,0) = 0
@@ -2168,7 +2172,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,PostedDate,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum; 04-Sep-2026: added PostedDate
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl

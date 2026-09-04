@@ -25,6 +25,7 @@
     [ReferenceId]          BIGINT          NULL,
     [ReferenceNumber]      VARCHAR (100)   NULL,
     [ReferenceDate]        DATETIME2 (7)   NULL,
+    [PostedDate]           DATETIME2 (7)   NULL,
     [Memo]                 NVARCHAR (MAX)  NULL,
     [MasterCompanyId]      INT             CONSTRAINT [DF_LOTOtherCostDetails_MasterCompanyId] DEFAULT ((1)) NOT NULL,
     [CreatedBy]            VARCHAR (256)   NOT NULL,

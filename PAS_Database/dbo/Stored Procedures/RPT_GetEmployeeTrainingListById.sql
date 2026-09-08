@@ -13,13 +13,15 @@
 	2    17-APR-2026		Divyesh Kathiriya	Handle Boolean Issuse AND Other Change [PN-16047]
 	3    05-MAY-2026		Bhargav Saliya  	Add Para @IsCategoryType and  [CategoryType] [PN-16203]
 	4    08-MAY-2026		Bhargav Saliya  	Modified @IsCategoryType to @CategoryId
+	5    10-JUL-2026		Divyesh Kathiriya	Return "All" as CategoryType when @CategoryId is 0. [PN-17218]
+	6    13-JUL-2026		Divyesh Kathiriya	Remove "All" as CategoryType And Add [CategoryId] And [StartDate]. [PN-17218]
     
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1,@CategoryId = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
+CREATE PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
-@MasterCompanyId BIGINT ,
-@CategoryId BIGINT = null
+@MasterCompanyId BIGINT,
+@CategoryId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -39,10 +41,11 @@ BEGIN
 				WHEN ET.[DurationHours] IS NULL OR ET.[DurationMinutes] IS NULL THEN NULL
 				ELSE CONCAT(FORMAT(ET.[DurationHours], '00'), ':', FORMAT(ET.[DurationMinutes], '00'))
 			END AS [Duration],
-			ET.[ScheduleDate],			
+			ET.[StartDate],			
 			ET.[CompletionDate],			
-			ET.[ExpirationDate],			
-			ET.[CategoryType]			
+			ET.[ExpirationDate],
+			ET.[CategoryId],
+			ET.[CategoryType]
 		FROM [DBO].[EmployeeTraining] ET WITH(NOLOCK)
 		LEFT JOIN [DBO].[TrainingName] ETN WITH(NOLOCK) ON ET.[TrainingNameId] = ETN.[TrainingNameId]
 		LEFT JOIN [DBO].[EmployeeTrainingType] ETP WITH(NOLOCK) ON ET.[EmployeeTrainingTypeId] = ETP.[EmployeeTrainingTypeId]		

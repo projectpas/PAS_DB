@@ -700,6 +700,8 @@
     <Build Include="dbo\Tables\Tables1\LotCalculationDetails.sql" />
     <Build Include="dbo\Tables\Tables1\LotConsignment.sql" />
     <Build Include="dbo\Tables\Tables1\LotConsignmentAudit.sql" />
+    <Build Include="dbo\Tables\Tables1\LOTOtherCostDetails.sql" />
+    <Build Include="dbo\Tables\Tables1\LOTOtherCostDetailsAudit.sql" />
     <Build Include="dbo\Tables\Tables1\LotCostSourceReference.sql" />
     <Build Include="dbo\Tables\Tables1\LotCostSourceReferenceAudit.sql" />
     <Build Include="dbo\Tables\Tables1\LotDetail.sql" />
@@ -4683,6 +4685,13 @@
     <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportInvoiceDate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_AddUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_Delete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetPartsForOtherCostAdd.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_UpdateCOGSByStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CleanUpUserActivityLogs.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />

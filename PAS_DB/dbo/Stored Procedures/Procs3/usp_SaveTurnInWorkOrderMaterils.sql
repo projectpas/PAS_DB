@@ -1,5 +1,4 @@
-﻿
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:       Hemant Saliya    
 ** Create date:  07/30/2021    
 ** Description:  Creates Turn-In/Tender Materials Stockline for Work Orders    
@@ -32,6 +31,7 @@
    23   27/05/2026  Hemant Saliya        Performance optimization and code cleanup  
    24   29/05/2026  Nakul Chandigra      Added AircraftTail, AircraftSN field 
    25   27/07/2025  SUMIT                Added notes field in material list [PN-16818]
+   26   02/09/2026  Moin Bloch	         Added COGSUnitCost IN SP PN-17835
 
    exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=0,@IsCustomerStock=0,
 @IsCustomerstockType=0,@ItemMasterId=557,@UnitOfMeasureId=1,@ConditionId=9,@Quantity=1,@IsSerialized=1,
@@ -143,7 +143,8 @@ BEGIN
         @LotCreatedDate         DATETIME,
         @currentNo              BIGINT,
         @stockLineCurrentNo     BIGINT,
-        @isExchange             BIT;
+        @isExchange             BIT,
+		@COGSUnitCost           DECIMAL(18,2)   = 0
 
     BEGIN TRY
     BEGIN TRANSACTION;
@@ -228,7 +229,7 @@ BEGIN
         -- =============================================
         -- STEP 3: CHECK IF MPN STOCKLINE IS LOT STOCKLINE
         -- =============================================
-        SELECT @SourceLotId = ISNULL(LotId, 0)
+        SELECT @SourceLotId = ISNULL(LotId, 0), @COGSUnitCost = ISNULL([COGSUnitCost],0) 
         FROM DBO.Stockline WITH(NOLOCK)
         WHERE StockLineId = @MPNStockLineId
           AND ISNULL(LotId, 0) > 0;
@@ -381,7 +382,7 @@ BEGIN
             [OEM], IsPMA, IsDER, IsOemPNId, OEMPNNumber,
             GLAccountId, [IsStkTimeLife], [EvidenceId],
             [IntegrationPortal], [LotId], [IsLotAssigned], LOTQty
-            , AircraftTailNumber, AircraftSN
+            , AircraftTailNumber, AircraftSN, [COGSUnitCost]
         )
         VALUES (
             @StockLineNumber, @ControlNumber, @IDNumber,
@@ -407,7 +408,7 @@ BEGIN
             @IntegrationPortal,
             @SourceLotId,
             CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END,
-            @Quantity, @AircraftTail, @AircraftSN 
+            @Quantity, @AircraftTail, @AircraftSN, @COGSUnitCost
         );
 
         SELECT @StockLineId = SCOPE_IDENTITY();

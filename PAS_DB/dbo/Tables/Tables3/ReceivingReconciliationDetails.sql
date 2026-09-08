@@ -38,8 +38,12 @@
     [PriceVariance]                   DECIMAL (9, 2)  NULL,
     [VendorProformaAmount]            DECIMAL (18, 2) NULL,
     [VendorProformaInvoiceId]         BIGINT          NULL,
+    [MiscAdjustment]                  DECIMAL (18, 2) DEFAULT ((0)) NULL,
+    [MiscAdjustmentPerUnit]           DECIMAL (18, 2) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetails] PRIMARY KEY CLUSTERED ([ReceivingReconciliationDetailId] ASC)
 );
+
+
 
 
 

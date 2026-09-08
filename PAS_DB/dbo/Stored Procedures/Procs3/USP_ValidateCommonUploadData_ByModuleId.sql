@@ -1,5 +1,4 @@
-﻿
--- ---------------------------------------------------------------------------------------------------
+﻿-- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_ValidateCommonUploadData_ByModuleId   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_ValidateCommonUploadData_ByModuleId.sql)
 -- ---------------------------------------------------------------------------------------------------
 /*******  
@@ -62,6 +61,7 @@
 	48	 14-Aug-2026        Ayushi Patel			Fixed: Stockline duplicate check call to USP_ChekDuplicateValueForUpload was missing Ref3/Value3 params , causing type clash error for serialized parts. Fixed by using named parameters.
 	49   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
 	50	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
+	51   28-Aug-2026        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -239,6 +239,7 @@ BEGIN
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
+		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1241,6 +1242,8 @@ BEGIN
 															THEN 'Entered Maintenance Category Already Exits!'
 														WHEN @ModuleId = @RFQTraceabilityModule
 															THEN 'Entered Traceability Already Exits!'
+														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
+															THEN 'Entered Lease Type Already Exists!'
 															
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_UpdateReceivingReconciliationStocklineAdjustments]             
  ** Author:   
  ** Description: This stored procedure is used to update  Stockline Adjustment,Freight Adjustment,Tax Adjustment
@@ -13,8 +12,9 @@
 	1    09/10/2023   Moin Bloch    Created 
 	2    06/11/2023   Moin Bloch    Modified(added FreightAdjustmentPerUnit And TaxAdjustmentPerUnit) 
 	3    28/01/2025   Moin Bloch    Modified(Removed POUnitCost & RoUnitCost update in stockline)
+	4    01/09/2026   Moin Bloch    Modified(added [COGSUnitCost],[MiscAdjustment] calculation) PN-17835
 	       
-EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 118
+EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 217
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments]
@@ -31,15 +31,18 @@ BEGIN
 			DECLARE @StocklineId BIGINT;  
 			DECLARE @IsManual BIT;	
 			DECLARE @Type INT;
-			DECLARE @InvoicedQty INT;
-			DECLARE @InvoicedUnitCost DECIMAL(18,2) 
-			DECLARE @AdjUnitCost DECIMAL(18,2) 
+			-- DECLARE @InvoicedQty INT;  comment Due to not in use
+			DECLARE @InvoicedUnitCost DECIMAL(18,2) = 0
+			DECLARE @AdjUnitCost DECIMAL(18,2) = 0
 			DECLARE @Freight INT  = 1
+			DECLARE @MISC INT  = 2
 			DECLARE @Tax INT  = 3
-			DECLARE @TotalFreight DECIMAL(18,2) 
-			DECLARE @TotalTax DECIMAL(18,2) 
-			DECLARE @FreightAdjustment DECIMAL(18,2) 
-			DECLARE @TaxAdjustment DECIMAL(18,2) 
+			--DECLARE @TotalFreight DECIMAL(18,2) = 0  comment Due to not in use
+			--DECLARE @TotalMisc DECIMAL(18,2) = 0     comment Due to not in use
+			--DECLARE @TotalTax DECIMAL(18,2) = 0      comment Due to not in use 
+			DECLARE @FreightAdjustment DECIMAL(18,2) = 0
+			DECLARE @MiscAdjustment DECIMAL(18,2) = 0
+			DECLARE @TaxAdjustment DECIMAL(18,2) = 0
 			DECLARE @StockType VARCHAR(20)
 									
 			IF OBJECT_ID(N'tempdb..#RRStockAdjustment') IS NOT NULL    
@@ -59,31 +62,49 @@ BEGIN
 				[PackagingId] [INT] NULL,
 				[StockType] [VARCHAR](20),
 				[FreightAdjustmentPerUnit] [DECIMAL](18,2) NULL,  
-				[TaxAdjustmentPerUnit] [DECIMAL](18,2) NULL
-			) 
+				[TaxAdjustmentPerUnit] [DECIMAL](18,2) NULL,
+				[MiscAdjustmentPerUnit] [DECIMAL](18,2) NULL,
+				[RowNum] [BIGINT] NULL          -- NEW: dense sequence for the loop
+			) 			
 
-			INSERT INTO #RRStockAdjustment ([StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit])
-									 SELECT [StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit]
+			INSERT INTO #RRStockAdjustment ([StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit],[MiscAdjustmentPerUnit])
+									 SELECT [StocklineId],[IsManual],[Type],[InvoicedQty],[InvoicedUnitCost],[AdjUnitCost],[PackagingId],[StockType],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit],[MiscAdjustmentPerUnit]
 									   FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) 
 									  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
+
+			-- assign a gapless sequence only across IsManual = 0 rows
+			;WITH CTE AS
+			(
+				SELECT [ID], ROW_NUMBER() OVER (ORDER BY [ID]) AS [RN]
+				FROM #RRStockAdjustment
+				WHERE [IsManual] = 0
+			)
+
+			UPDATE t SET t.[RowNum] = c.[RN] FROM #RRStockAdjustment t JOIN CTE c ON c.[ID] = t.[ID];
+
             -- Total Invoice Qty
-			SELECT @InvoicedQty = SUM(ISNULL([InvoicedQty],0)) FROM #RRStockAdjustment WHERE [IsManual] = 0; 
+			-- SELECT @InvoicedQty = SUM(ISNULL([InvoicedQty],0)) FROM #RRStockAdjustment WHERE [IsManual] = 0; 
 			
 			-- Total Freight
-			SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] = @Freight;
+			--SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] = @Freight;
+
+			-- Total Freight
+			--SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] = @MISC;
 			
 			-- Total Tax
-			SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] =  @Tax;
-				
-		    SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #RRStockAdjustment WHERE [IsManual] = 0;   
-
+			--SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] =  @Tax;
+					   				
+			SELECT @TotalRecord = COUNT(*), @MinId = MIN([RowNum]) FROM #RRStockAdjustment WHERE [IsManual] = 0;
+					
 			WHILE @MinId <= @TotalRecord
-			BEGIN	
+			BEGIN					
 				DECLARE @PurchaseOrderUnitCost DECIMAL(18,2) = 0;
 				DECLARE @RepairOrderUnitCost DECIMAL(18,2) = 0;
-				DECLARE @UnitCost DECIMAL(18,2) = 0;
+				--DECLARE @UnitCost DECIMAL(18,2) = 0;
 				DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) = 0;
 				DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) = 0;
+				DECLARE @MiscAdjustmentPerUnit DECIMAL(18,2) = 0;
+				--DECLARE @COGSUnitCost DECIMAL(18,2) = 0;
 
 				SELECT @StocklineId = [StocklineId],
 				       @IsManual = [IsManual],
@@ -91,13 +112,12 @@ BEGIN
 			           @AdjUnitCost = [AdjUnitCost],
 					   @StockType = [StockType],
 					   @FreightAdjustmentPerUnit = ISNULL([FreightAdjustmentPerUnit],0),					  
-					   @TaxAdjustmentPerUnit = ISNULL([TaxAdjustmentPerUnit],0)
-				  FROM #RRStockAdjustment WHERE [ID] = @MinId;	
+					   @TaxAdjustmentPerUnit = ISNULL([TaxAdjustmentPerUnit],0),
+					   @MiscAdjustmentPerUnit = ISNULL([MiscAdjustmentPerUnit],0)
+				  FROM #RRStockAdjustment WHERE [RowNum] = @MinId;	
 				  
-				--SET @FreightAdjustment = (@TotalFreight / @InvoicedQty);
-
-				--SET @TaxAdjustment = (@TotalTax / @InvoicedQty);
-
+				SET @MiscAdjustment = @MiscAdjustmentPerUnit;
+				
 				SET @FreightAdjustment = @FreightAdjustmentPerUnit;
 
 				SET @TaxAdjustment = @TaxAdjustmentPerUnit;
@@ -105,18 +125,21 @@ BEGIN
 				IF(UPPER(@StockType) = 'STOCK')
 				BEGIN					
 					SELECT @PurchaseOrderUnitCost = [PurchaseOrderUnitCost],
-					       @RepairOrderUnitCost = [RepairOrderUnitCost],
-						   @UnitCost = [UnitCost]
-					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;
+					       @RepairOrderUnitCost = [RepairOrderUnitCost]
+						   --@UnitCost = [UnitCost],
+						   --@COGSUnitCost = ISNULL([COGSUnitCost],0)
+					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;	
 					  
 					UPDATE SL
-					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
+					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0) + ISNULL(@MiscAdjustment,0)),
 						   SL.[FreightAdjustment] = ISNULL(SL.[FreightAdjustment],0) + ISNULL(@FreightAdjustment,0),
-				  	       SL.[TaxAdjustment] = ISNULL(SL.[TaxAdjustment],0) + ISNULL(@TaxAdjustment,0),					      
-						   --SL.[PurchaseOrderUnitCost] = CASE WHEN @Type = 1 THEN (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @PurchaseOrderUnitCost END,
-				           --SL.[RepairOrderUnitCost] = CASE WHEN @Type = 2 THEN (ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @RepairOrderUnitCost END,				     					
-						   SL.[UnitCost] = (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0))
-				      FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;	
+						   SL.[MiscAdjustment] = ISNULL(SL.[MiscAdjustment],0) + ISNULL(@MiscAdjustment,0),
+				  	       SL.[TaxAdjustment] = ISNULL(SL.[TaxAdjustment],0) + ISNULL(@TaxAdjustment,0),					      						   			     					
+						   SL.[UnitCost] = (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0) + ISNULL(@MiscAdjustment,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
+						   SL.[COGSUnitCost] = ISNULL([COGSUnitCost],0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@MiscAdjustment,0) + ISNULL(@TaxAdjustment,0))
+					  FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;	
+
+					  EXEC [dbo].[USP_Lot_UpdateCOGSByStocklineId] @StocklineId,@FreightAdjustment,@MiscAdjustment,@TaxAdjustment
 				END
 				IF(UPPER(@StockType) = 'NONSTOCK')
 				BEGIN

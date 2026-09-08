@@ -21,10 +21,10 @@
 	9    03-02-2026   Vishal Suthar   Fixed ItemMaster duplicate issue with same partnumber with different description we have in PAS
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
-
+	12   08/09/2026   Ayushi Patel    [PN-17866] changed datatype of @RequestedQty @Qty from INT to DECIMAL(18,6)
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
+CREATE    PROCEDURE [dbo].[ThirdPartySendRFQList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -40,7 +40,7 @@ CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
 @TypeName varchar(50) = NULL,
 @IntegrationPortal varchar(50) = NULL,
 @Priority varchar(50) = NULL,
-@RequestedQty int = NULL,
+@RequestedQty DECIMAL(18,6) = NULL,
 @QuoteWithinDays int = NULL,
 @DeliverByDate datetime2 = NULL,
 @PreparedBy varchar(50) = NULL,
@@ -48,7 +48,7 @@ CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
 @AltPartNumber varchar(70) = NULL,
 @Exchange varchar(70) = NULL,
 @Description varchar(max) = NULL,
-@Qty int = NULL,
+@Qty DECIMAL(18,6) = NULL,
 @Condition varchar(20) = NULL,
 @IsEmail bit = NULL,
 @IsFax bit = NULL,

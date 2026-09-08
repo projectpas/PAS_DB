@@ -16,6 +16,7 @@
 	5    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
 	8    14/05/2026   Bhargav Saliya	Remove VendorId Condition [PN-16416]
+	9   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]  
@@ -192,7 +193,7 @@ BEGIN
      (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
      (VendorName LIKE '%' +@GlobalFilter+'%') OR    
      (RequestedBy LIKE '%' +@GlobalFilter+'%') OR  
-     (PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
+     (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
      (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
      (StockTypeType LIKE '%' +@GlobalFilter+'%') OR  
      (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR  
@@ -223,7 +224,7 @@ BEGIN
      (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND  
      (ISNULL(@NeedByDate,'') ='' OR CAST(NeedByDateType AS Date)=CAST(@NeedByDate AS date)) AND  
      (ISNULL(@PromisedDate,'') ='' OR CAST(PromisedDateType AS Date)=CAST(@PromisedDate AS date)) AND  
-     (ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' + @PartNumber + '%') AND  
+     (ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
      (ISNULL(@PartDescription,'') ='' OR PartDescriptionType LIKE '%' + @PartDescription + '%') AND  
      (ISNULL(@StockType,'') ='' OR StockTypeType LIKE '%' + @StockType + '%') AND  
      (ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND  

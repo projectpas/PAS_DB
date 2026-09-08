@@ -25,9 +25,11 @@
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   11/12/2025   Rajesh Gami	  UPDATE: StockUnitOfMeasure,ConsumeUnitOfMeasure
 	11   09/02/2026   Sahdev Saliya   UPDATED: ItemGroup
-	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	14    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 more leftover soft IsNonStock=0 exclusions (IMRI/IMoem/IMTLA/IMNHA aliases) missed by the earlier PN-17009 bugfix pass.
+	12   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14   23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 more leftover soft IsNonStock=0 exclusions (IMRI/IMoem/IMTLA/IMNHA aliases) missed by the earlier PN-17009 bugfix pass.
+	15   04/Sep/2026    Divyesh Kathriya		[PN-17842] - Populate the Non-Stock classification display value after Stockline bulk upload.
+
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -77,6 +79,7 @@ BEGIN
 					SL.WorkOrderNumber = ISNULL(WO.WorkOrderNum,''),
 					SL.SubWorkOrderNumber = ISNULL(SWO.SubWorkOrderNo,''),
 					SL.itemGroup = ISNULL(IG.[ItemGroupCode],''),
+					SL.NonStockClassification = ISNULL(IC.[Description],''),
 					SL.TLAPartNumber = ISNULL(IMTLA.partnumber,''),
 					SL.NHAPartNumber = ISNULL(IMNHA.partnumber,''),
 					SL.TLAPartDescription = ISNULL(IMTLA.PartDescription,''),
@@ -107,6 +110,7 @@ BEGIN
 					 LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
 					 LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
 					 LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
+					 LEFT JOIN [dbo].[ItemClassification] IC WITH(NOLOCK) ON SL.ItemNonStockClassificationId = IC.ItemClassificationId
 					 LEFT JOIN [dbo].[ItemType] IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
 					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
 					 LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SL.WorkOrderId = WO.WorkOrderId 

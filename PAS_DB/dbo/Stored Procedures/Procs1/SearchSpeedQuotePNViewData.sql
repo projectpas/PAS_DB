@@ -9,6 +9,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 ****************************************************************************************************************************************/
 CREATE     PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
 	-- Add the parameters for the stored procedure here
@@ -166,7 +167,7 @@ BEGIN
 							(SalesPerson like '%' +@GlobalFilter+'%') OR
 							(Status like '%' +@GlobalFilter+'%') OR
 							--(PriorityType like '%' +@GlobalFilter+'%') OR
-							(PartNumberType like '%' +@GlobalFilter+'%') OR
+							(PartNumberType like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(PartDescriptionType like '%' +@GlobalFilter+'%') OR
 							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CustomerReference like '%' +@GlobalFilter+'%') OR
@@ -189,7 +190,7 @@ BEGIN
 							--(@SoAmount is  null or SoAmount=@SoAmount) and
 							(@QuoteDate is  null or Cast(QuoteDate as date)=Cast(@QuoteDate as date)) and
 							(IsNull(@SalesPerson,'') ='' OR SalesPerson like '%'+ @SalesPerson+'%') and
-							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%') and
+							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%') and
 							(IsNull(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') and
 							(IsNull(@ManufacturerNameType,'') ='' OR ManufacturerNameType like '%'+@ManufacturerNameType+'%') and
 							(IsNull(@CustomerReference,'') ='' OR CustomerReference like '%'+@CustomerReference+'%') and

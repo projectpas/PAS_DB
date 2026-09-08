@@ -31,6 +31,7 @@
 	13   04-06-2026   Amit Ghediya     Added AC Template releted Fields MaintenanceClassId [PN-16668]
 	14   29-06-2026	  Moin Bloch	   Added MaintenanceType PN-17043
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@WorkScopeCode=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
@@ -186,7 +187,7 @@ BEGIN
 			WHERE (
 			(@GlobalFilter <>'' AND ((WorkOrderNumber like '%' +@GlobalFilter+'%' ) OR 
 					(Version like '%' +@GlobalFilter+'%') OR
-					(PartNumber like '%' +@GlobalFilter+'%') OR					
+					(PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR					
 					(PartDescription like '%' +@GlobalFilter+'%') OR
 					(ManufacturerName like '%' +@GlobalFilter+'%') OR
 					(WorkScopeCode like '%' +@GlobalFilter+'%') OR
@@ -202,7 +203,7 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') and 
 					(IsNull(@Version,'') ='' OR Version like '%' + @Version+'%') and
-					(IsNull(@PartNumber,'') ='' OR partnumber like '%' + @PartNumber+'%') and
+					(IsNull(@PartNumber,'') ='' OR partnumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 					(IsNull(@TemplateDescription,'') ='' OR TemplateDescription like '%' + @TemplateDescription+'%') and
 					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
 					(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') and

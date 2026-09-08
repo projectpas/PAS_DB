@@ -30,6 +30,15 @@
          they are now inherently per-row/per-payment proportional, not a Lot-wide total. New InvoiceAmount
          output column (FieldsMaster). New blank-line branch: one row per Lot with LessFreight/LessOtherCost
          only, for LOTOtherCostDetails IsNA=1 rows (Other Cost entries with no Part/Stockline) in range.
+    3    04/September/2026   Claude (Rajesh Gami)   [PN-17853] ConsigneePortion/ConsignorPortionGross now
+         branch on LotConsignment.IsRevenue/IsMargin/IsFixedAmount instead of always using the
+         revenue-percent (CRP/CRP1) formula: IsFixedAmount=1 uses LG.PerAmount directly (Consignor =
+         CashReceipt - PerAmount); IsRevenue=1 AND IsMargin=1 sums the revenue-percent share of CashReceipt
+         with the margin-percent share of (CashReceipt - LessCOGSRepair); IsMargin=1 alone uses only the
+         margin-percent share of (CashReceipt - LessCOGSRepair); IsRevenue=1 alone is unchanged from before.
+         LessCOGSRepair is now computed once in CashCTE (LCR CROSS APPLY) instead of being recomputed in
+         CalcCTE, so both the new Consignee/Consignor branching and the existing Less* columns share one
+         calculation.
     
  **************************************************************
  EXEC usprpt_GetLotCommissionReportCashPosted @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Cash Post Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Cash Post Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
@@ -207,8 +216,44 @@ BEGIN
         -- compute LessCOGSRepair's payment-percentage (Rajesh, 04-Sep-2026).
         BI.GrandTotal AS InvoiceAmount,
         IPY.PaymentAmount AS CashReceipt,
-        ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP.PercentValue, CRMP.PercentValue),0) / 100, 2) AS ConsigneePortion,
-        ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP1.PercentValue, CRMP1.PercentValue),0) / 100, 2) AS ConsignorPortionGross,
+        -- [PN-17853] 04-Sep-2026 round 5: LessCOGSRepair is now computed once here in CashCTE (was previously
+        -- only computed downstream in CalcCTE) so it's available for the LotConsignment.IsMargin-based
+        -- ConsigneePortion/ConsignorPortionGross splits below - CalcCTE now just reads this column back
+        -- instead of recomputing it (Rajesh, 04-Sep-2026).
+        LCR.LessCOGSRepairCalc,
+        -- [PN-17853] 04-Sep-2026 round 5: ConsigneePortion/ConsignorPortionGross now branch on
+        -- LotConsignment.IsRevenue/IsMargin/IsFixedAmount (Rajesh, 04-Sep-2026):
+        --   IsFixedAmount=1            -> Consignee = LG.PerAmount, Consignor = CashReceipt - PerAmount
+        --   IsRevenue=1 AND IsMargin=1 -> sum of the revenue-percent share of CashReceipt AND the
+        --                                 margin-percent share of (CashReceipt - LessCOGSRepair)
+        --   IsMargin=1 (only)          -> margin-percent share of (CashReceipt - LessCOGSRepair)
+        --   IsRevenue=1 (only)         -> revenue-percent share of CashReceipt (previous/default behavior)
+        --   none of the above set     -> legacy fallback (unchanged, for any pre-existing config with no
+        --                                 flags set)
+        CASE
+          WHEN ISNULL(LG.IsFixedAmount,0) = 1 THEN ISNULL(LG.PerAmount,0)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 AND ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP.PercentValue,0) / 100, 2)
+             + ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP.PercentValue,0) / 100, 2)
+          ELSE
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP.PercentValue, CRMP.PercentValue),0) / 100, 2)
+        END AS ConsigneePortion,
+        CASE
+          WHEN ISNULL(LG.IsFixedAmount,0) = 1 THEN ISNULL(IPY.PaymentAmount,0) - ISNULL(LG.PerAmount,0)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 AND ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP1.PercentValue,0) / 100, 2)
+             + ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP1.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP1.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP1.PercentValue,0) / 100, 2)
+          ELSE
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP1.PercentValue, CRMP1.PercentValue),0) / 100, 2)
+        END AS ConsignorPortionGross,
         CASE WHEN UPPER(MSD.Level1Name) IS NOT NULL THEN UPPER(MSD.Level1Name) ELSE UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) END AS level1,
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
@@ -226,6 +271,21 @@ BEGIN
       LEFT JOIN dbo.[Percent] CRP1 WITH (NOLOCK) ON CRP1.PercentId = LG.ConsignorPercentId
       LEFT JOIN dbo.[Percent] CRMP  WITH (NOLOCK) ON CRMP.PercentId  = LG.MarginPercentId
       LEFT JOIN dbo.[Percent] CRMP1 WITH (NOLOCK) ON CRMP1.PercentId = LG.MarginConsignorPercentId
+      -- [PN-17853] 04-Sep-2026 round 5: LessCOGSRepairCalc computed here (once, per CashCTE row) so the
+      -- ConsigneePortion/ConsignorPortionGross CASE expressions above can use it for IsMargin-based splits
+      -- (Rajesh, 04-Sep-2026).
+      CROSS APPLY (
+        SELECT ROUND(
+          ISNULL((
+            SELECT SUM(ISNULL(STK2.UnitCost,0))
+            FROM dbo.BillingInvoicingItems BII2 WITH (NOLOCK)
+            INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = BII2.StocklineId
+            WHERE BII2.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BII2.IsDeleted,0) = 0
+          ),0)
+          * ISNULL(IPY.PaymentAmount,0)
+          / NULLIF(ISNULL(BI.GrandTotal,0),0)
+        , 2) AS LessCOGSRepairCalc
+      ) LCR
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
       LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
       LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -262,8 +322,44 @@ BEGIN
         -- compute LessCOGSRepair's payment-percentage (Rajesh, 04-Sep-2026).
         BI.GrandTotal AS InvoiceAmount,
         IPY.PaymentAmount AS CashReceipt,
-        ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP.PercentValue, CRMP.PercentValue),0) / 100, 2) AS ConsigneePortion,
-        ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP1.PercentValue, CRMP1.PercentValue),0) / 100, 2) AS ConsignorPortionGross,
+        -- [PN-17853] 04-Sep-2026 round 5: LessCOGSRepair is now computed once here in CashCTE (was previously
+        -- only computed downstream in CalcCTE) so it's available for the LotConsignment.IsMargin-based
+        -- ConsigneePortion/ConsignorPortionGross splits below - CalcCTE now just reads this column back
+        -- instead of recomputing it (Rajesh, 04-Sep-2026).
+        LCR.LessCOGSRepairCalc,
+        -- [PN-17853] 04-Sep-2026 round 5: ConsigneePortion/ConsignorPortionGross now branch on
+        -- LotConsignment.IsRevenue/IsMargin/IsFixedAmount (Rajesh, 04-Sep-2026):
+        --   IsFixedAmount=1            -> Consignee = LG.PerAmount, Consignor = CashReceipt - PerAmount
+        --   IsRevenue=1 AND IsMargin=1 -> sum of the revenue-percent share of CashReceipt AND the
+        --                                 margin-percent share of (CashReceipt - LessCOGSRepair)
+        --   IsMargin=1 (only)          -> margin-percent share of (CashReceipt - LessCOGSRepair)
+        --   IsRevenue=1 (only)         -> revenue-percent share of CashReceipt (previous/default behavior)
+        --   none of the above set     -> legacy fallback (unchanged, for any pre-existing config with no
+        --                                 flags set)
+        CASE
+          WHEN ISNULL(LG.IsFixedAmount,0) = 1 THEN ISNULL(LG.PerAmount,0)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 AND ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP.PercentValue,0) / 100, 2)
+             + ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP.PercentValue,0) / 100, 2)
+          ELSE
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP.PercentValue, CRMP.PercentValue),0) / 100, 2)
+        END AS ConsigneePortion,
+        CASE
+          WHEN ISNULL(LG.IsFixedAmount,0) = 1 THEN ISNULL(IPY.PaymentAmount,0) - ISNULL(LG.PerAmount,0)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 AND ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP1.PercentValue,0) / 100, 2)
+             + ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP1.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsMargin,0) = 1 THEN
+               ROUND((ISNULL(IPY.PaymentAmount,0) - ISNULL(LCR.LessCOGSRepairCalc,0)) * ISNULL(CRMP1.PercentValue,0) / 100, 2)
+          WHEN ISNULL(LG.IsRevenue,0) = 1 THEN
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(CRP1.PercentValue,0) / 100, 2)
+          ELSE
+               ROUND(ISNULL(IPY.PaymentAmount,0) * ISNULL(ISNULL(CRP1.PercentValue, CRMP1.PercentValue),0) / 100, 2)
+        END AS ConsignorPortionGross,
         CASE WHEN UPPER(MSD.Level1Name) IS NOT NULL THEN UPPER(MSD.Level1Name) ELSE UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) END AS level1,
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
@@ -281,6 +377,21 @@ BEGIN
       LEFT JOIN dbo.[Percent] CRP1 WITH (NOLOCK) ON CRP1.PercentId = LG.ConsignorPercentId
       LEFT JOIN dbo.[Percent] CRMP  WITH (NOLOCK) ON CRMP.PercentId  = LG.MarginPercentId
       LEFT JOIN dbo.[Percent] CRMP1 WITH (NOLOCK) ON CRMP1.PercentId = LG.MarginConsignorPercentId
+      -- [PN-17853] 04-Sep-2026 round 5: LessCOGSRepairCalc computed here (once, per CashCTE row) so the
+      -- ConsigneePortion/ConsignorPortionGross CASE expressions above can use it for IsMargin-based splits
+      -- (Rajesh, 04-Sep-2026).
+      CROSS APPLY (
+        SELECT ROUND(
+          ISNULL((
+            SELECT SUM(ISNULL(STK2.UnitCost,0))
+            FROM dbo.BillingInvoicingItems BII2 WITH (NOLOCK)
+            INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = BII2.StocklineId
+            WHERE BII2.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BII2.IsDeleted,0) = 0
+          ),0)
+          * ISNULL(IPY.PaymentAmount,0)
+          / NULLIF(ISNULL(BI.GrandTotal,0),0)
+        , 2) AS LessCOGSRepairCalc
+      ) LCR
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
       LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
       LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -315,16 +426,10 @@ BEGIN
           -- by how much of THIS invoice this specific cash receipt represents (CashReceipt / InvoiceAmount) -
           -- e.g. InvoiceAmount=1000, CashReceipt=600 (60% paid), stockline UnitCost sum=500 -> LessCOGSRepair
           -- = 500 * 60% = 300 (Rajesh, 04-Sep-2026). Replaces the old Lot.InitialPOCost + RepairCost basis.
-          ROUND(
-            ISNULL((
-              SELECT SUM(ISNULL(STK2.UnitCost,0))
-              FROM dbo.BillingInvoicingItems BII2 WITH (NOLOCK)
-              INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = BII2.StocklineId
-              WHERE BII2.BillingInvoicingId = G.BillingInvoicingId AND ISNULL(BII2.IsDeleted,0) = 0
-            ),0)
-            * ISNULL(G.CashReceipt,0)
-            / NULLIF(ISNULL(G.InvoiceAmount,0),0)
-          , 2) AS LessCOGSRepair,
+          -- [PN-17853] 04-Sep-2026 round 5: LessCOGSRepair is now just read back from CashCTE's
+          -- LCR.LessCOGSRepairCalc (computed once, up in CashCTE, so ConsigneePortion/ConsignorPortionGross
+          -- can also use it) instead of being recomputed here (Rajesh, 04-Sep-2026).
+          G.LessCOGSRepairCalc AS LessCOGSRepair,
           -- [PN-17853] 04-Sep-2026: LessFreight/LessOtherCost now come from LOTOtherCostDetails (the Other
           -- Cost tab's manual entries), scoped to this Lot + this invoice's own stockline(s), and to the
           -- report's date range via LOTOtherCostDetails.PostedDate - replaces the old PO/RO Freight/Charges

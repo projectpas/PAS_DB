@@ -66,21 +66,24 @@
 	56   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
 	57	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 	58	 27-Aug-2026        Rajesh Gami				Added ItemMasterNonStock module 
+	59   04-Sep-2026        Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
+
 	declare @p4 dbo.UploadModuleDataTableType
-insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
-  "partnumber": "AEIN122",
-  "PartDescription": "Aein description",
-  "IsOEM": "",
-  "IsPma": "",
-  "IsDER": "",
-  "ItemClassificationId": "ROTABLE ",
-  "ItemGroupId": "BRAKES ",
-  "ManufacturerId": "ARMSTRONG ",
-  "PurchaseUnitOfMeasureId": "KG",
-  "PurchaseCurrencyId": "USD",
-  "SalesCurrencyId": "USD",
-  "SiteId": "MESA"
-}')					
+	insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
+	  "partnumber": "AEIN122",
+	  "PartDescription": "Aein description",
+	  "IsOEM": "",
+	  "IsPma": "",
+	  "IsDER": "",
+	  "ItemClassificationId": "ROTABLE ",
+	  "ItemGroupId": "BRAKES ",
+	  "ManufacturerId": "ARMSTRONG ",
+	  "PurchaseUnitOfMeasureId": "KG",
+	  "PurchaseCurrencyId": "USD",
+	  "SalesCurrencyId": "USD",
+	  "SiteId": "MESA"
+	}')		
+	
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
 CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
@@ -125,9 +128,10 @@ BEGIN
 		DECLARE @WarehouseId BIGINT;
 		DECLARE @LocationId BIGINT;
 		DECLARE @ShelfId BIGINT;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT, @StocklineNonStockModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
-		DECLARE @AssetAttributeType AS BIGINT
+		DECLARE @AssetAttributeType AS BIGINT;
+		DECLARE @RequiredItemIsNonStock BIT;
 	
 		DECLARE @POROCategory AS BIGINT , @CapabilityTypeModule AS BIGINT , @VendorClassificationModule AS BIGINT , @chargeModule AS BIGINT;;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
@@ -152,6 +156,8 @@ BEGIN
 		SET @VendorClassificationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorClassification');
 		SET @chargeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'charge');
 		SET @AssetAttributeType = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetAttributeType');
+		SET @StocklineNonStockModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'StocklineNonStock');
+		SET @RequiredItemIsNonStock = CASE WHEN @ModuleId = @StocklineNonStockModule THEN 1 ELSE 0 END;
 
 		DECLARE @PriorityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Priority');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -453,9 +459,7 @@ BEGIN
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule
-			OR @ModuleId = @MROPriceMasterListModule
-			)
+			IF (@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -478,7 +482,7 @@ BEGIN
 									  AND ISNULL(IM.IsDeleted,0) = 0 
 									  AND ISNULL(IM.IsActive,0) = 1
 									  AND IM.MasterCompanyId = @MasterCompanyId
-							 AND ISNULL(IM.IsNonStock,0) = 0 )
+							 AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock )
 							BEGIN
 								-- Case 1: @ManufacturerId is actually a ManufacturerName
 								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
@@ -490,7 +494,7 @@ BEGIN
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
 								  AND IM.MasterCompanyId = @MasterCompanyId
-								  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
+								  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 							END
 							ELSE
 							BEGIN
@@ -503,7 +507,7 @@ BEGIN
 								  AND IMF.DropdownListValue = 'PartNumber'
 								  AND ISNULL(IM.IsDeleted,0) = 0
 								  AND ISNULL(IM.IsActive,0) = 1
-								  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
+								  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 							END
 
 							Update IMF SET IMF.DropdownListValueId = MNF.PartNumberId FROM #ImportFields IMF 
@@ -513,7 +517,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 							
 					--  Check how many different manufacturers were found
 					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
@@ -728,7 +732,7 @@ BEGIN
 													 AND
 													 (
 														 (
-															 @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+													 @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
 															 AND
 															 (
 																 TRY_CAST(TMP.FieldValue AS INT) IS NULL
@@ -739,7 +743,7 @@ BEGIN
 														 OR
 
 														 (
-															 @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+													 @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
 															 AND
 															 (
 																  TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
@@ -765,7 +769,7 @@ BEGIN
 															 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 														THEN IMF.HeaderName + ' must be greater than 0'
 
-														WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+												WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
 														THEN IMF.HeaderName + ' allows only 2 decimal places'
 
 														ELSE IMF.HeaderName + ' must be a whole number (decimals not allowed)'
@@ -838,7 +842,7 @@ BEGIN
 														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
-												WHEN IMF.FieldName = 'QuantityOnHand'
+											    WHEN IMF.FieldName = 'QuantityOnHand'
 													 AND (
 														 SELECT LOWER(FieldValue)
 														 FROM #DynamicKeyValue
@@ -891,7 +895,7 @@ BEGIN
 			LEFT JOIN #ColumnInfo CI ON CI.ColumnName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			
-			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule) 
+			IF (@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
@@ -943,14 +947,14 @@ BEGIN
 				BEGIN
 					SELECT	@DuplicateRefeValue1 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef1;
 					SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef2;
-					IF(@ModuleId=@StocklineModule AND @ChekDuplticateRef2='PartNumber')
+					IF(@ModuleId IN (@StocklineModule, @StocklineNonStockModule) AND @ChekDuplticateRef2='PartNumber')
 					BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = @RequiredItemIsNonStock
 					END
 					SET @IsDuplicate = 0;
-					IF(@ModuleId=@StocklineModule)
+					IF(@ModuleId IN (@StocklineModule, @StocklineNonStockModule))
 					BEGIN
 						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
 						BEGIN
@@ -1038,7 +1042,7 @@ BEGIN
 														WHEN @ModuleId = @ItemMasterModule THEN 'Entered PN And Manufacturer Already Exits!'
 														WHEN @ModuleId = @ItemMasterNonStockModule THEN 'Entered PN And Manufacturer Already Exits!'
 														WHEN @ModuleId = @CustomerModule THEN 'Entered Name Already Exits!'
-														WHEN @ModuleId = @StocklineModule THEN 'Entered Serial Number Already Exits for This PartNumber'
+														WHEN @ModuleId IN (@StocklineModule, @StocklineNonStockModule) THEN 'Entered Serial Number Already Exits for This PartNumber'
 														WHEN @ModuleId = @PriceMasterModule THEN 'Part and Condition mapping already exists'
 														WHEN @ModuleId = @EmployeeModule THEN 'Entered Email Already Exits!'
 														WHEN @ModuleId = @DiscountModule THEN 'Entered Discount Value Already Exits!'
@@ -1286,7 +1290,7 @@ BEGIN
 				SET @CurrentRow += 1;
 			END
 			
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule )
+			IF (@ModuleId = @StocklineModule OR @ModuleId =	@StocklineNonStockModule OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -1309,7 +1313,7 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted,0) = 0 
 						  AND ISNULL(IM.IsActive,0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-				 AND ISNULL(IM.IsNonStock,0) = 0 )
+						  AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock )
 				BEGIN
 					-- Case 1: @ManufacturerId is actually a ManufacturerName
 					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName, partnumber, PartNumberId)
@@ -1321,7 +1325,7 @@ BEGIN
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
 					  AND IM.MasterCompanyId = @MasterCompanyId
-					  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = 0 ;
+					  AND IM.ManufacturerName = @ManufacturerId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 				END
 				ELSE
 				BEGIN
@@ -1334,7 +1338,7 @@ BEGIN
 					  AND IMF.DropdownListValue = 'PartNumber'
 					  AND ISNULL(IM.IsDeleted,0) = 0
 					  AND ISNULL(IM.IsActive,0) = 1
-					  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
+					  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 				END
 
 				
@@ -1345,7 +1349,7 @@ BEGIN
 											  AND IMF.DropdownListValue = 'PartNumber'
 											  AND ISNULL(IM.IsDeleted,0) = 0
 											  AND ISNULL(IM.IsActive,0) = 1
-											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
+											  AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = @RequiredItemIsNonStock;
 							
 
 					--  Check how many different manufacturers were found
@@ -1387,6 +1391,48 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN @ModuleId IN (@StocklineModule, @StocklineNonStockModule)
+													 AND IMF.[FieldName] = 'isSerialized'
+													 AND LOWER(LTRIM(RTRIM(ISNULL(TMP.[FieldValue], '')))) = 'no'
+													 AND EXISTS
+													 (
+														 SELECT 1
+														 FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+														 WHERE IM.[ItemMasterId] = TRY_CAST
+														 (
+															 (
+																 SELECT TOP 1 [FieldValue]
+																 FROM #DynamicKeyValue WITH(NOLOCK)
+																 WHERE [FieldName] = 'ItemMasterId'
+															 ) AS BIGINT
+														 )
+														   AND ISNULL(IM.[IsSerialized], 0) = 1
+														   AND IM.[MasterCompanyId] = @MasterCompanyId
+														   AND ISNULL(IM.[IsActive], 0) = 1
+													   AND ISNULL(IM.[IsDeleted], 0) = 0
+													 )
+												THEN 'Part is Serialized'
+												WHEN @ModuleId IN (@StocklineModule, @StocklineNonStockModule)
+													 AND IMF.[FieldName] = 'isSerialized'
+													 AND LOWER(LTRIM(RTRIM(ISNULL(TMP.[FieldValue], '')))) = 'yes'
+													 AND EXISTS
+													 (
+														 SELECT 1
+														 FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+														 WHERE IM.[ItemMasterId] = TRY_CAST
+														 (
+															 (
+																 SELECT TOP 1 [FieldValue]
+																 FROM #DynamicKeyValue WITH(NOLOCK)
+																 WHERE [FieldName] = 'ItemMasterId'
+															 ) AS BIGINT
+														 )
+														   AND ISNULL(IM.[IsSerialized], 0) = 0
+														   AND IM.[MasterCompanyId] = @MasterCompanyId
+														   AND ISNULL(IM.[IsActive], 0) = 1
+														   AND ISNULL(IM.[IsDeleted], 0) = 0
+													 )
+												THEN 'Part is Not Serialized'
 												
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
 													AND (
@@ -1400,7 +1446,7 @@ BEGIN
 														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
-												    WHEN IMF.FieldName = 'QuantityOnHand'
+											    WHEN IMF.FieldName = 'QuantityOnHand'
 													 AND (
 														 SELECT LOWER(FieldValue)
 														 FROM #DynamicKeyValue
@@ -1434,7 +1480,7 @@ BEGIN
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
 			
-			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)  
+			IF (@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
@@ -1544,7 +1590,7 @@ BEGIN
 				[UploadRecord] = @json
 			WHERE RecordId = @CurrentRecord;
 
-			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule  OR @ModuleId = @WorkOrderMaterialsModule)
+			IF (@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule OR @ModuleId = @PriceMasterModule OR @ModuleId = @WorkOrderMaterialsModule)
 			BEGIN
 			IF (@ManufacturerName IS NOT NULL)
 				BEGIN

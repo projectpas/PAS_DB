@@ -30,6 +30,7 @@
 									current callers). Filters rows by ISNULL(Im.IsNonStock,0) = @IsNonStock
 									and appends ' (Stock)'/' (Non-Stock)' to the Label so the Stockline PN
 									dropdown can request either type with a decorated label.
+	14   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] 'Gal',1,50,'',1  
 **************************************************************/
@@ -130,7 +131,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -180,7 +181,7 @@ BEGIN
      SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -267,7 +268,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,    
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -316,7 +317,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,    
 		  Im.partnumber AS PartNumber,  
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + (CASE WHEN @IsNonStock = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 		  Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   

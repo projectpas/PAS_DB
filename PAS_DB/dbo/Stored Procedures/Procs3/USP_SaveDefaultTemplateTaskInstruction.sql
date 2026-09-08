@@ -11,7 +11,8 @@
     1    11-March-2025		Devendra Shekh			Created
     2    12-March-2025		Devendra Shekh			Changed Cursor to While Loop
     3    14-May-2025		Devendra Shekh			passing Selected TaskIds to Save task if not exists
-	4    23-May-2025        Sahdev Saliya           Setting Value For @IsNewAdded to 1           
+	4    23-May-2025        Sahdev Saliya           Setting Value For @IsNewAdded to 1
+	5    02-Sep-2026		SUMIT KUMAR				[PN-17813] Copy images from TaskInstructionImage to WorkFlowDirectionImage for each inserted WorkflowDirectionId           
 
 declare @p5 bit
 set @p5=NULL
@@ -154,6 +155,16 @@ BEGIN
 			(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, CAST(@SequenceNumber AS VARCHAR(10)), @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 				@UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
 			);
+
+			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage using @IdMapping and direct WorkFlowTask JOIN
+			INSERT INTO [dbo].[WorkFlowDirectionImage]
+				([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			SELECT 
+				MAP.WorkflowDirectionId, @WorkflowId, @TaskId, WFT.WorkFlowTaskId, TIMG.[FileName], TIMG.[Link], TIMG.[FileType], TIMG.[FileSize], @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0
+			FROM [dbo].[TaskInstructionImage] TIMG WITH (NOLOCK)
+			INNER JOIN @IdMapping MAP ON TIMG.TaskInstructionId = MAP.TaskInstructionId
+			LEFT JOIN [dbo].[WorkFlowTask] WFT WITH (NOLOCK) ON WFT.WorkFlowId = @WorkflowId AND WFT.TaskId = @TaskId AND ISNULL(WFT.IsDeleted, 0) = 0
+			WHERE ISNULL(TIMG.[IsActive], 1) = 1 AND ISNULL(TIMG.[IsDeleted], 0) = 0;
 
 			SET @IsNewAdded = 1;
 		END

@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_SaveWorkFlowTaskInstructionMaster]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to save task Instruction Master For Work Flow
@@ -15,7 +15,9 @@
     5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
     6    11-March-2025		Devendra Shekh					Modified (adding WorkFlowTask if not exists)
     7    24-March-2025		Ekta Chandegra					Cast GETUTCDATE value as DATE
-
+     8    02-Sep-2026		SUMIT KUMAR						[PN-17813] Modified (Copying TaskInstructionImage to WorkFlowDirectionImage and linking WorkFlowTaskId)
+     9    03-Sep-2026		SUMIT KUMAR						[PN-17813] Fixed child node image copying from template and returned newly inserted WorkflowDirectionId
+ 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
 @ParentId=default,@IsParent=default,@MasterCompanyId=1,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',
@@ -49,6 +51,12 @@ BEGIN
 
 		IF (ISNULL(@WorkflowDirectionId, 0) = 0)
 		BEGIN
+			-- Resolve existing WorkFlowTaskId for this Workflow and Task if already present
+			DECLARE @WorkFlowTaskId BIGINT = NULL;
+			SELECT TOP 1 @WorkFlowTaskId = WorkFlowTaskId 
+			FROM [dbo].[WorkFlowTask] WITH (NOLOCK) 
+			WHERE WorkFlowId = @WorkflowId AND TaskId = @TaskId AND ISNULL(IsDeleted, 0) = 0;
+
 			IF (ISNULL(@InstructionListId, '') <> '')
 			BEGIN
 
@@ -56,6 +64,16 @@ BEGIN
 				BEGIN
 					DROP TABLE #TempTaskInstructions
 				END
+
+				-- Create temporary table to store task instruction hierarchy
+				CREATE TABLE #TempTaskInstructions (
+					TaskInstructionId INT, 
+					Title NVARCHAR(MAX), 
+					ParentId INT, 
+					IsParent BIT, 
+					SequenceNumber INT,
+					[Description] NVARCHAR(MAX)
+				);
 
 				-- Temporary table to store mapping of old TaskInstructionId to new WorkflowDirectionId
 				DECLARE @IdMapping TABLE (
@@ -79,16 +97,8 @@ BEGIN
 					WHERE t.IsDeleted = 0
 				)
 
-				SELECT 
-					TaskInstructionId, 
-					Title, 
-					ParentId, 
-					IsParent, 
-					SequenceNumber,
-					[Description]
-				INTO #TempTaskInstructions
-				FROM RecursiveCTE
-				ORDER BY ISNULL(ParentId, TaskInstructionId), SequenceNumber;
+				INSERT INTO #TempTaskInstructions ([TaskInstructionId], [Title], [ParentId], [IsParent], [SequenceNumber], [Description])
+				SELECT TaskInstructionId, Title, ParentId, IsParent, SequenceNumber, [Description] FROM RecursiveCTE ORDER BY ISNULL(ParentId, TaskInstructionId), SequenceNumber;
 
 				-- Cursor to process records in the correct parent-child sequence
 				DECLARE TaskCursor CURSOR FOR
@@ -103,8 +113,8 @@ BEGIN
 
 				-- Variables to hold row data
 				DECLARE @TaskInstructionId INT,
-						@InstructionTitle NVARCHAR(MAX),
-						@InstructionkDescription NVARCHAR(MAX),
+						@InstructionTitle VARCHAR(8000),
+						@InstructionkDescription VARCHAR(MAX),
 						@InstructionParentId INT,
 						@IsInstructionParent BIT,
 						@InstructionSequenceNumber INT,
@@ -151,10 +161,22 @@ BEGIN
 					INSERT INTO @IdMapping (TaskInstructionId, WorkflowDirectionId)
 					VALUES (@TaskInstructionId, @NewWorkflowDirectionId);
 
+					-- Copy images from TaskInstructionImage to WorkFlowDirectionImage if available
+					INSERT INTO [dbo].[WorkFlowDirectionImage]
+						([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+					SELECT 
+						@NewWorkflowDirectionId, @WorkflowId, @TaskId, @WorkFlowTaskId, [FileName], [Link], [FileType], [FileSize], @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+					FROM [dbo].[TaskInstructionImage] WITH (NOLOCK)
+					WHERE [TaskInstructionId] = @TaskInstructionId
+					  AND ISNULL([IsActive], 1) = 1
+					  AND ISNULL([IsDeleted], 0) = 0;
+
 					-- Move to the next record
 					FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @InstructionTitle, @InstructionParentId, @IsInstructionParent, @InstructionSequenceNumber, @InstructionkDescription;
 				END
-
+				-- Close and deallocate cursor resources to prevent memory leaks and cursor collision errors
+				CLOSE TaskCursor;
+				DEALLOCATE TaskCursor;
 			END
 			ELSE
 			BEGIN
@@ -165,10 +187,13 @@ BEGIN
 				FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
 				WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
+				-- Insert new standalone top-level instruction node
 				INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
 				SELECT @WorkflowId, @Title, @Description, ISNULL(@TaskId, 0), (@MaxSequence + 1), NULL, 1, 
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails;
+
+				SET @InsertedWorkflowDirectionId = SCOPE_IDENTITY();
 			END
 
 			IF NOT EXISTS(SELECT [WorkFlowTaskId] FROM [dbo].[WorkFlowTask] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [WorkFlowId] = @WorkflowId AND [MasterCompanyId] = @MasterCompanyId)
@@ -199,6 +224,13 @@ BEGIN
 				(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, @TaskSequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 					@CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 				);
+
+				SET @WorkFlowTaskId = SCOPE_IDENTITY();
+
+				-- Update any copied images with the newly created WorkFlowTaskId
+				UPDATE [dbo].[WorkFlowDirectionImage]
+				SET [WorkFlowTaskId] = @WorkFlowTaskId
+				WHERE [WorkflowId] = @WorkflowId AND [TaskId] = @TaskId AND [WorkFlowTaskId] IS NULL;
 			END
 		END
 		ELSE IF (@IsAddChildNode = 1)
@@ -217,9 +249,31 @@ BEGIN
 			[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
 			VALUES (@WorkflowId, @Title, @Description,  ISNULL(@TaskId, 0), @NewSequenceNumber, @WorkflowDirectionId, 0, 
 			@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails);
+
+			SET @InsertedWorkflowDirectionId = SCOPE_IDENTITY();
+
+			-- Resolve WorkFlowTaskId for image linking
+			DECLARE @ChildWorkFlowTaskId BIGINT = NULL;
+			SELECT TOP 1 @ChildWorkFlowTaskId = WorkFlowTaskId 
+			FROM [dbo].[WorkFlowTask] WITH (NOLOCK) 
+			WHERE WorkFlowId = @WorkflowId AND TaskId = @TaskId AND ISNULL(IsDeleted, 0) = 0;
+
+			-- Copy images from TaskInstructionImage to WorkFlowDirectionImage if child node is created from template @InstructionListId
+			IF (ISNULL(@InstructionListId, 0) > 0)
+			BEGIN
+				INSERT INTO [dbo].[WorkFlowDirectionImage]
+					([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				SELECT 
+					@InsertedWorkflowDirectionId, @WorkflowId, @TaskId, @ChildWorkFlowTaskId, [FileName], [Link], [FileType], [FileSize], @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+				FROM [dbo].[TaskInstructionImage] WITH (NOLOCK)
+				WHERE [TaskInstructionId] = @InstructionListId
+				  AND ISNULL([IsActive], 1) = 1
+				  AND ISNULL([IsDeleted], 0) = 0;
+			END
 		END
 		ELSE
 		BEGIN
+			-- Update existing instruction details
 			UPDATE [dbo].[WorkFlowDirection]
 			SET 
 				[Action] = @Title,
@@ -229,6 +283,9 @@ BEGIN
 				[UpdatedDate] = GETUTCDATE()
 			WHERE [WorkflowDirectionId] = @WorkflowDirectionId AND [MasterCompanyId] = @MasterCompanyId AND WorkflowId = @WorkflowId;
 		END
+
+		-- Output created or updated WorkflowDirectionId result set (Return @InsertedWorkflowDirectionId for newly created nodes/children)
+		SELECT CASE WHEN ISNULL(@InsertedWorkflowDirectionId, 0) > 0 THEN @InsertedWorkflowDirectionId ELSE @WorkflowDirectionId END AS WorkflowDirectionId;
 
 	END TRY   
 	BEGIN CATCH      

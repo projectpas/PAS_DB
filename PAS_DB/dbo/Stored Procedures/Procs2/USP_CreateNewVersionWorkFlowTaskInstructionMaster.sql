@@ -9,6 +9,7 @@
  ** PR   Date				Author  					Change Description              
  ** --   --------			-------					--------------------------------            
     1    10-Feb-2025		Devendra Shekh					Created
+	2 	 2-Sept-2026		SUMIT KUMAR				[PN-17813] Copy images from WorkFlowDirectionImage for @CurrentWorkflowDirectionId to @NewWorkflowDirectionId
   
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateNewVersionWorkFlowTaskInstructionMaster]
@@ -25,6 +26,7 @@ BEGIN
 		IF OBJECT_ID('tempdb..#WorkFlowDirectionsData') IS NOT NULL
 			DROP TABLE #WorkFlowDirectionsData
 
+		-- Temp table to map old WorkflowDirectionId to new WorkflowDirectionId for copying direction images (WorkFlowDirectionImage)
 		CREATE TABLE #WorkFlowDirectionsData (
 			[TempWorkflowDirectionId] [bigint] IDENTITY(1,1) NOT NULL,
 			[WorkflowDirectionId] [bigint] NULL,
@@ -49,6 +51,7 @@ BEGIN
 			[IsParent] [bit] NULL,
 			[IsTaskDetails] [bit] NULL,
 			[NewParentId] [bigint] NULL,
+			[NewWorkflowDirectionId] [bigint] NULL
 		)
 
 		INSERT INTO #WorkFlowDirectionsData(
@@ -72,7 +75,12 @@ BEGIN
 					[UpdatedDate], [IsActive], [IsDeleted], [Order], [WFParentId], [IsVersionIncrease], [TaskName], [NewParentId], [IsParent], [IsTaskDetails]
 			FROM #WorkFlowDirectionsData WHERE [TempWorkflowDirectionId] = @CurrentRecordId;
 
-			SET @NewWorkflowDirectionId = SCOPE_IDENTITY()
+			SET @NewWorkflowDirectionId = SCOPE_IDENTITY();
+
+			-- Set the newly created WorkFlowDirectionId in the temp table for image copy
+			UPDATE #WorkFlowDirectionsData
+			SET NewWorkflowDirectionId = @NewWorkflowDirectionId
+			WHERE [TempWorkflowDirectionId] = @CurrentRecordId;
 
 			UPDATE WF
 			SET WF.NewParentId = @NewWorkflowDirectionId
@@ -80,6 +88,16 @@ BEGIN
 
 			SET @CurrentRecordId += 1;
 		END
+
+		-- Copy images from WorkFlowDirectionImage for mapped directions using #WorkFlowDirectionsData and link newly created WorkFlowTaskId directly
+		INSERT INTO [dbo].[WorkFlowDirectionImage]
+			([WorkflowDirectionId], [WorkflowId], [TaskId], [WorkFlowTaskId], [FileName], [Link], [FileType], [FileSize], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+		SELECT 
+			WF.NewWorkflowDirectionId, WF.WorkflowId, IMG.TaskId, WFT.WorkFlowTaskId, IMG.FileName, IMG.Link, IMG.FileType, IMG.FileSize, WF.MasterCompanyId, WF.CreatedBy, WF.UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+		FROM [dbo].[WorkFlowDirectionImage] IMG WITH (NOLOCK)
+		INNER JOIN #WorkFlowDirectionsData WF ON IMG.WorkflowDirectionId = WF.WorkflowDirectionId
+		LEFT JOIN [dbo].[WorkFlowTask] WFT WITH (NOLOCK) ON WFT.WorkFlowId = WF.WorkflowId AND WFT.TaskId = IMG.TaskId AND ISNULL(WFT.IsDeleted, 0) = 0
+		WHERE ISNULL(IMG.IsActive, 1) = 1 AND ISNULL(IMG.IsDeleted, 0) = 0;
 
 	END TRY   
 	BEGIN CATCH      

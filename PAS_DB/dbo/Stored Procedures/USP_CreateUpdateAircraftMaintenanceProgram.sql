@@ -26,6 +26,8 @@
    16    01/07/2026	    Amit Ghediya	        Add auto SequenceNo when insert data remove update
    16    01/07/2026	    Amit Ghediya	        Remove update time ac & engine id not required
    17    27/07/2026	    Amit Ghediya	        Remove VW_WorkScopeType & add new view VW_MaintenanceType
+   18    08/09/2026	    Kishor Makwana	        [PN-17374] - Convert TimeLimit (Months) to a day-equivalent via dbo.fn_GetDaysForMonths before calculating TimeLimit/TimeRemaining when FlightHoursLimitMonthsOrDays = 1
+   
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -100,6 +102,18 @@ BEGIN
 		-- ← NEW: normalize Days the same way
         IF @FlightHoursLimitMonthsOrDays IS NOT NULL
             SET @FlightHoursLimitMonthsOrDays = ISNULL(@FlightHoursLimitMonthsOrDays, 0);
+
+        IF (@NextScheduledMaintenance IS NULL AND @TimeLimit IS NOT NULL)
+        BEGIN
+            IF (@FlightHoursLimitMonthsOrDays = 1)
+                SET @NextScheduledMaintenance = DATEADD(MONTH, CAST(@TimeLimit AS INT), GETUTCDATE());
+            ELSE IF (@FlightHoursLimitMonthsOrDays = 2)
+                SET @NextScheduledMaintenance = DATEADD(DAY, CAST(@TimeLimit AS INT), GETUTCDATE());
+        END
+
+        DECLARE @RemainTimeLimit BIGINT = @TimeLimit;
+        IF (@FlightHoursLimitMonthsOrDays = 1 AND @TimeLimit IS NOT NULL)
+            SET @RemainTimeLimit = dbo.fn_GetDaysForMonths(CAST(@TimeLimit AS INT), @NextScheduledMaintenance);
 
         -- GET AC Details
 		IF(ISNULL(@IsFromAircraft,0) = 1)
@@ -282,8 +296,8 @@ BEGIN
                     END,
                 TimeRemaining =
                     CASE
-                        WHEN TimeRecorded IS NULL THEN @TimeLimit
-                        ELSE @TimeLimit - TimeRecorded
+                        WHEN TimeRecorded IS NULL THEN @RemainTimeLimit
+                        ELSE @RemainTimeLimit - TimeRecorded
                     END,
                 LandingsRemaining =
                     CASE

@@ -113,6 +113,8 @@
 
 
 
+
+
 GO
 
    
@@ -237,3 +239,8 @@ BEGIN
         OR
         (m.Action = 'D' AND m.OldValue IS NOT NULL));
 END;
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrderQuote_Search]
+    ON [dbo].[SalesOrderQuote]([MasterCompanyId] ASC, [IsDeleted] ASC, [StatusId] ASC)
+    INCLUDE([SalesOrderQuoteNumber], [OpenDate], [CustomerId], [CustomerName], [CustomerReference], [SalesPersonId], [AccountTypeName], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [Version], [SourceBy], [MarketplaceRef], [ManagementStructureId], [IsNewVersionCreated]);
+

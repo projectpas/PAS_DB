@@ -38,6 +38,8 @@
 
 
 
+
+
 GO
 
 CREATE   TRIGGER [dbo].[trg_Audit_dbo_StocklineManagementStructureDetails]
@@ -191,6 +193,12 @@ BEGIN
 END;
 GO
 CREATE NONCLUSTERED INDEX [IX_SLMSD_Module_Ref]
+    ON [dbo].[StocklineManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC)
+    INCLUDE([EntityMSID], [Level1Id], [Level2Id], [Level3Id], [Level4Id], [Level5Id], [Level6Id], [Level7Id], [Level8Id], [Level9Id], [Level10Id], [Level1Name], [Level2Name], [Level3Name], [Level4Name], [Level5Name], [Level6Name], [Level7Name], [Level8Name], [Level9Name], [Level10Name]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SMSD_Report]
     ON [dbo].[StocklineManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC)
     INCLUDE([EntityMSID], [Level1Id], [Level2Id], [Level3Id], [Level4Id], [Level5Id], [Level6Id], [Level7Id], [Level8Id], [Level9Id], [Level10Id], [Level1Name], [Level2Name], [Level3Name], [Level4Name], [Level5Name], [Level6Name], [Level7Name], [Level8Name], [Level9Name], [Level10Name]);
 

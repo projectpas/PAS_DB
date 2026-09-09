@@ -44,7 +44,7 @@ CREATE TABLE [dbo].[WorkOrderLabor] (
 GO
 ----------------------------------------------
 
-CREATE OR ALTER TRIGGER [dbo].[Trg_WorkOrderLaborAudit]
+CREATE TRIGGER [dbo].[Trg_WorkOrderLaborAudit]
    ON dbo.WorkOrderLabor
    AFTER INSERT, UPDATE, DELETE
 AS

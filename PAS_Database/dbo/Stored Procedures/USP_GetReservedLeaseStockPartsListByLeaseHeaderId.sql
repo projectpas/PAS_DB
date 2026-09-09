@@ -12,10 +12,12 @@
     2    10/08/2026     Amit Ghediya            Reworked against LeaseStockline.QtyReserved directly (no ledger table)
     3    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - removed LeasePart join,
                                                  QuantityOnHand/QuantityAvailable now read live from Stockline instead of a stored snapshot
+    4    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM, ControlNumber, IdNumber so the UnReserve
+                                                 Stock popup can show the same stockline identity fields as the part lineitem grid
 
 exec USP_GetReservedLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetReservedLeaseStockPartsListByLeaseHeaderId]
+CREATE       PROCEDURE [dbo].[USP_GetReservedLeaseStockPartsListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -35,9 +37,14 @@ BEGIN
 			LSL.QtyReserved AS TotalReserved,
 			SLIVE.QuantityOnHand AS QuantityOnHand,
 			SLIVE.QuantityAvailable AS QuantityAvailable,
+			C.Description AS ConditionDescription,
+			SLIVE.UnitOfMeasure AS UOM,
+			SLIVE.ControlNumber,
+			SLIVE.IdNumber,
 			LSL.MasterCompanyId
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
+		LEFT JOIN [dbo].[Condition] C WITH (NOLOCK) ON C.ConditionId = LSL.ConditionId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
 		  AND LSL.QtyReserved > 0

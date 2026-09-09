@@ -32,6 +32,7 @@
     [LegalEntityId]         BIGINT          NULL,
     [BankType]              VARCHAR (50)    NULL,
     [CurrencyId]            INT             NULL,
+    [IsNonPOGenerated]      BIT             NULL,
     CONSTRAINT [PK_CustomerPaymentsAudit] PRIMARY KEY CLUSTERED ([ReceiptAuditId] ASC)
 );
 

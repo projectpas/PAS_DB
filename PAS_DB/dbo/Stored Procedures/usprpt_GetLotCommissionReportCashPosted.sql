@@ -120,7 +120,7 @@ BEGIN
           AND (@FromCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) >= @FromCashPostDt)
           AND (@ToCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) <= @ToCashPostDt)
           AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-          AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+          --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
           AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
           AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
           AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -148,7 +148,7 @@ BEGIN
           AND (@FromCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) >= @FromCashPostDt)
           AND (@ToCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) <= @ToCashPostDt)
           AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-          AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+          --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
           AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
           AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
           AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -185,7 +185,7 @@ BEGIN
         AND (@FromCashPostDt IS NULL OR CAST(LOC.PostedDate AS DATE) >= @FromCashPostDt)
         AND (@ToCashPostDt IS NULL OR CAST(LOC.PostedDate AS DATE) <= @ToCashPostDt)
         AND (ISNULL(@InvoiceNum,'') = '')
-        AND (ISNULL(@PN,'') = '')
+        --AND (ISNULL(@PN,'') = '')
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -258,7 +258,7 @@ BEGIN
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
-        IM.PartNumber AS pn
+        '' AS pn
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -296,7 +296,7 @@ BEGIN
         AND (@FromCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) >= @FromCashPostDt)
         AND (@ToCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) <= @ToCashPostDt)
         AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-        AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+        --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -364,7 +364,7 @@ BEGIN
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
-        IM.PartNumber AS pn
+        '' AS pn
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -402,7 +402,7 @@ BEGIN
         AND (@FromCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) >= @FromCashPostDt)
         AND (@ToCashPostDt IS NULL OR CAST(CP.PostedDate AS DATE) <= @ToCashPostDt)
         AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-        AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+        --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -591,7 +591,7 @@ BEGIN
         AND (@FromCashPostDt IS NULL OR CAST(LOC.PostedDate AS DATE) >= @FromCashPostDt)
         AND (@ToCashPostDt IS NULL OR CAST(LOC.PostedDate AS DATE) <= @ToCashPostDt)
         AND (ISNULL(@InvoiceNum,'') = '')
-        AND (ISNULL(@PN,'') = '')
+        --AND (ISNULL(@PN,'') = '')
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

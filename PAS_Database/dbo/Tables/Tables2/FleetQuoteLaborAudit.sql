@@ -1,0 +1,45 @@
+/*************************************************************           
+ ** File:   [FleetQuoteLaborAudit.sql]           
+ ** Author:   SUMIT KUMAR
+ ** Description: This Table is used to store Audit history for Fleet Quote Labor Entries
+ ** Date:   09/08/2026        
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    09/08/2026   SUMIT KUMAR		Created [PN-17706]
+ **************************************************************/
+CREATE TABLE [dbo].[FleetQuoteLaborAudit] (
+    [AuditFleetQuoteLaborId]  BIGINT          IDENTITY (1, 1) NOT NULL,
+    [FleetQuoteLaborId]       BIGINT          NOT NULL,
+    [FleetQuoteLaborHeaderId] BIGINT          NOT NULL,
+    [ExpertiseId]             SMALLINT        NOT NULL,
+    [Hours]                   DECIMAL (10, 2) NOT NULL,
+    [BillableId]              INT             NOT NULL,
+    [CreatedBy]               VARCHAR (256)   NOT NULL,
+    [UpdatedBy]               VARCHAR (256)   NOT NULL,
+    [CreatedDate]             DATETIME2 (7)   NOT NULL,
+    [UpdatedDate]             DATETIME2 (7)   NOT NULL,
+    [IsActive]                BIT             NOT NULL,
+    [IsDeleted]               BIT             NOT NULL,
+    [TaskId]                  BIGINT          NOT NULL,
+    [DirectLaborOHCost]       DECIMAL (18, 6) NULL,
+    [MarkupPercentageId]      BIGINT          NULL,
+    [BurdenRateAmount]        DECIMAL (18, 6) NULL,
+    [TotalCostPerHour]        DECIMAL (18, 6) NULL,
+    [TotalCost]               DECIMAL (18, 6) NULL,
+    [BillingRate]             DECIMAL (18, 6) NULL,
+    [BillingAmount]           DECIMAL (18, 6) NULL,
+    [BurdaenRatePercentageId] BIGINT          NULL,
+    [BillingMethodId]         INT             NULL,
+    [MasterCompanyId]         INT             NULL,
+    [TaskName]                VARCHAR (100)   NULL,
+    [Expertise]               VARCHAR (50)    NULL,
+    [Billabletype]            VARCHAR (50)    NULL,
+    [BurdaenRatePercentage]   VARCHAR (50)    NULL,
+    [BillingName]             VARCHAR (50)    NULL,
+    [MarkUp]                  VARCHAR (50)    NULL,
+    [EmployeeId]              BIGINT          NULL,
+    CONSTRAINT [PK_FleetQuoteLaborAudit] PRIMARY KEY CLUSTERED ([AuditFleetQuoteLaborId] ASC)
+);

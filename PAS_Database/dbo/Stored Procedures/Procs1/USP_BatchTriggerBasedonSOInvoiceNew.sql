@@ -54,6 +54,7 @@
 																a genuine duplicate post is still blocked but a post-after-Re-Open now creates fresh entries.
 	28	 23/06/2026	 Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	29	  23/Aug/2026	          Moin Bloch                    [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings)
+	30    03/Sep/2026   Vishal Suthar							[Back-dated Ship Date] - Modify: When PAS Accounting is enabled, the SO_SHIPMENT distribution block now resolves @AccountingPeriodId/@AccountingPeriod from the shipment's ShipDate (SalesOrderShipping.ShipDate) instead of GETUTCDATE()
 
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -168,7 +169,15 @@ BEGIN
 		DECLARE @COGSSalesOrderGLAccId BIGINT = 0;
 		DECLARE @RevenueSoGLAccId BIGINT = 0;
 		DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
+
+		DECLARE @ShipDate DATETIME2(7) = NULL;
+		DECLARE @IsPASAccounting BIT = 0;
+		DECLARE @IsPeriodClosed BIT = 0;
+		DECLARE @TransactionDateToUse DATETIME2(7) = GETUTCDATE(); -- default preserves legacy behavior
+		-- =================================================================================================== --
+
 		SELECT @IsAccountByPass =IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
+		SET @IsPASAccounting = CASE WHEN ISNULL(@IsAccountByPass, 0) = 0 THEN 1 ELSE 0 END;
 	    SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
 	    SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 	    SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId
@@ -816,7 +825,7 @@ BEGIN
 
 							IF(@IsBypassAccounting = 0)
 							BEGIN
-
+				    		
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -875,6 +884,43 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('SO_SHIPMENT'))
 	        BEGIN				
+				SELECT @ShipDate = [ShipDate]
+				FROM [dbo].[SalesOrderShipping] WITH(NOLOCK)
+				WHERE [SalesOrderShippingId] = @InvoiceId;
+
+				IF(@ShipDate IS NOT NULL)
+				BEGIN
+					SET @ShipDate = DATEADD(HOUR, 9, CAST(CAST(@ShipDate AS DATE) AS DATETIME2(7)));
+				END
+
+				IF(@IsPASAccounting = 1 AND @ShipDate IS NOT NULL)
+				BEGIN
+					SELECT TOP 1
+						   @AccountingPeriodId = AccountingCalendarId,
+						   @AccountingPeriod   = PeriodName,
+						   @IsPeriodClosed     = CASE WHEN UPPER(ISNULL([Status], '')) = 'CLOSED' THEN 1 ELSE 0 END
+					FROM [dbo].[AccountingCalendar] WITH(NOLOCK)
+					WHERE [IsDeleted] = 0
+					  AND [LegalEntityId] = @LegalEntityId
+					  AND [MasterCompanyId] = @MasterCompanyId
+					  AND CAST(@ShipDate AS DATE) >= CAST([FromDate] AS DATE)
+					  AND CAST(@ShipDate AS DATE) <= CAST([ToDate] AS DATE);
+
+					IF(@AccountingPeriodId IS NULL OR @AccountingPeriodId = 0)
+					BEGIN
+						RAISERROR('No accounting period is defined for the selected Ship Date. Please contact your administrator.', 16, 1);
+						RETURN(1);
+					END
+
+					IF(@IsPeriodClosed = 1)
+					BEGIN
+						RAISERROR('The accounting period covering the selected Ship Date is closed. The shipment accounting entry cannot be posted to a closed period.', 16, 1);
+						RETURN(1);
+					END
+
+					SET @TransactionDateToUse = @ShipDate;
+				END
+				
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
@@ -900,11 +946,7 @@ BEGIN
 					
 					IF(@PartUnitSalesPrices > 0)
 					BEGIN
-						-- Exclude batch headers that only hold a Re-Open accounting reversal (see USP_ReverseSOInvoiceAccountingEntry) -
-					-- those match the same Type/Company/Date/Status/CustomerType keys as a normal day's posting batch, so
-					-- without this exclusion a same-day re-invoice after a Re-Open was gluing its fresh (non-reversal) lines
-					-- onto the reversal's batch header instead of getting its own new sequential batch.
-					IF NOT EXISTS(SELECT BH.JournalBatchHeaderId FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.MasterCompanyId=@MasterCompanyId and  CAST(BH.EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and BH.StatusId=@StatusId AND BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1))
+						IF NOT EXISTS(SELECT BH.JournalBatchHeaderId FROM dbo.BatchHeader BH WITH(NOLOCK)  WHERE BH.JournalTypeId= @JournalTypeId and BH.MasterCompanyId=@MasterCompanyId and  CAST(BH.EntryDate AS DATE) = CAST(@TransactionDateToUse AS DATE) and BH.StatusId=@StatusId AND BH.CustomerTypeId=@CustomerTypeId AND NOT EXISTS (SELECT 1 FROM dbo.BatchDetails BDChk WITH(NOLOCK) WHERE BDChk.JournalBatchHeaderId = BH.JournalBatchHeaderId AND ISNULL(BDChk.IsReversedJE,0) = 1))
 						BEGIN
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 							BEGIN
@@ -942,7 +984,6 @@ BEGIN
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 					
-				          
 							INSERT INTO [dbo].[BatchHeader]
 										([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
 							VALUES
@@ -964,9 +1005,10 @@ BEGIN
 
 							SET @IsBatchGenerated = 1;
 						END
+						
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 							[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
-						VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
+						VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @TransactionDateToUse, GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 						
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
 					END
@@ -1117,7 +1159,7 @@ BEGIN
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 							VALUES
-								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@TransactionDateToUse,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @PartUnitSalesPrices ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @PartUnitSalesPrices END,
@@ -1182,11 +1224,11 @@ BEGIN
 							IF(@IsBypassAccounting = 0)
 							BEGIN
 				            
-				    		INSERT INTO [dbo].[CommonBatchDetails]
+							INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				    		VALUES
-				    			(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+				    			(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@TransactionDateToUse,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @PartUnitSalesPrices ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @PartUnitSalesPrices END,

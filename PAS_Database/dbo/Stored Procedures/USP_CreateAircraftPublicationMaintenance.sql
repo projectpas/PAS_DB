@@ -17,7 +17,7 @@
 ** 2    14/07/2026  Amit Ghediya		Allow to create maintanace for allow except ser num [PN-17223]
 ** 3    14/08/2026  Amit Ghediya		Update new code for get default Maintenance category
 ************************************************************/
-CREATE         PROCEDURE [dbo].[USP_CreateAircraftPublicationMaintenance]
+CREATE       PROCEDURE [dbo].[USP_CreateAircraftPublicationMaintenance]
     @AircraftPublicationId BIGINT,
     @MasterCompanyId       INT,
     @CreatedBy              VARCHAR(256)
@@ -124,7 +124,7 @@ BEGIN
                     AircraftModel,
                     SerialNum,
                     ROW_NUMBER() OVER (ORDER BY AircraftRegistryId) AS RowNum
-                FROM dbo.MatchedAircraftRaw WITH(NOLOCK)
+                FROM MatchedAircraftRaw
             )
             INSERT INTO [dbo].[AircraftMaintenanceProgram]
             (
@@ -164,7 +164,7 @@ BEGIN
                 GETUTCDATE(),
                 1,
                 0
-            FROM dbo.MatchedAircraft ma WITH(NOLOCK);
+            FROM MatchedAircraft ma;
 
             SET @AffectedRows = @@ROWCOUNT;
 

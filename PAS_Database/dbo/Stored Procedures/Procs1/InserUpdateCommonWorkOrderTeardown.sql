@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2021   Vishal Suthar Created
+	2    09/09/2026   Ayushi Patel  [PN-14788] removed CommonWorkOrderTearDownAudit insertion logic as Trg_CommonWorkOrderTearDownAudit will do that now
 **************************************************************/
 Create   PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
     @CommonWorkOrderTeardownId bigint = 0,
@@ -48,6 +49,23 @@ BEGIN
 			BEGIN
 			    IF (@CommonWorkOrderTeardownId = 0)
 				BEGIN 
+
+					DECLARE @ReasonName NVARCHAR(500) = NULL,
+                    @InspectorName NVARCHAR(500) = NULL,
+                    @TechnicalName NVARCHAR(500) = NULL;
+
+					SELECT @ReasonName = TR.Reason
+					FROM dbo.TeardownReason TR WITH (NOLOCK)
+					WHERE TR.TeardownReasonId = @ReasonId;
+
+					SELECT @InspectorName = E.FirstName + ' ' + E.LastName
+					FROM dbo.Employee E WITH (NOLOCK)
+					WHERE E.EmployeeId = @inspectorId;
+
+					SELECT @TechnicalName = E.FirstName + ' ' + E.LastName
+					FROM dbo.Employee E WITH (NOLOCK)
+					WHERE E.EmployeeId = @technicianId;
+
 				      INSERT INTO [dbo].[CommonWorkOrderTearDown](
 									[CommonTeardownTypeId]
 								   ,[WorkOrderId]
@@ -85,7 +103,9 @@ BEGIN
 									@inspectorId,
 									@inspectorDate,
 									@IsDocument,
-									NULL, NULL, NULL,
+									@ReasonName,
+									@InspectorName,
+									@TechnicalName,
 									@CreatedBy,
 									@UpdatedBy,
 									@CreatedDate,
@@ -98,18 +118,6 @@ BEGIN
 									@SubWOPartNoId)
 
 						SELECT @CommonWorkOrderTeardownId = SCOPE_IDENTITY()
-
-						UPDATE WoTD SET
-							WoTD.ReasonName = wdr.Reason,
-							WoTD.InspectorName = E.FirstName + ' ' + E.LastName,
-						    WoTD.TechnicalName = E1.FirstName + ' ' + E1.LastName,
-							WoTD.UpdatedBy = @UpdatedBy,
-							WoTD.UpdatedDate = @UpdatedDate
-						FROM [dbo].[CommonWorkOrderTearDown] WoTD WITH(NOLOCK)
-						LEFT JOIN dbo.TeardownReason wdr WITH(NOLOCK) ON @ReasonId = wdr.TeardownReasonId
-						LEFT JOIN dbo.Employee E WITH(NOLOCK) ON @inspectorId = E.EmployeeId
-						LEFT JOIN dbo.Employee E1 WITH(NOLOCK) ON @technicianId = E1.EmployeeId
-						WHERE WoTD.CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
 				END
 
 				IF (@ReasonId = 0)
@@ -145,46 +153,6 @@ BEGIN
 					LEFT JOIN dbo.Employee E WITH(NOLOCK) ON @inspectorId = E.EmployeeId
 					LEFT JOIN dbo.Employee E1 WITH(NOLOCK) ON @technicianId = E1.EmployeeId
 					WHERE WoTD.CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
-
-					Declare @CommonTeardownType varchar(250)
-
-					Select @CommonTeardownType=Name from CommonTeardownType   where CommonTeardownTypeId= @CommonTeardownTypeId
-					
-					INSERT INTO [dbo].[CommonWorkOrderTearDownAudit]
-                               ([CommonWorkOrderTearDownId]
-                               ,[CommonTeardownType]
-                               ,[Memo]
-                               ,[TechnicianDate]
-                               ,[InspectorDate]
-                               ,[ReasonName]
-                               ,[InspectorName]
-                               ,[TechnicalName]
-                               ,[CreatedBy]
-                               ,[UpdatedBy]
-                               ,[CreatedDate]
-                               ,[UpdatedDate]
-                               ,[IsActive]
-                               ,[IsDeleted]
-                               ,[MasterCompanyId]
-                               ,[IsSubWorkOrder])
-                        Select  @CommonWorkOrderTeardownId
-                               ,@CommonTeardownType
-                               ,@memo
-                               ,@technicianDate
-                               ,@inspectorDate
-                               ,ReasonName
-                               ,InspectorName
-                               ,TechnicalName
-                               ,CreatedBy
-                               ,UpdatedBy
-                               ,CreatedDate
-                               ,GETDATE()
-                               ,IsActive
-                               ,IsDeleted
-                               ,MasterCompanyId
-                               ,IsSubWorkOrder from CommonWorkOrderTearDown
-							   WHERE CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
-
 				 END
 			END
 			COMMIT  TRANSACTION

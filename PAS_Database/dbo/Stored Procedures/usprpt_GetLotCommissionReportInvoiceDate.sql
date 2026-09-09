@@ -1,4 +1,6 @@
-﻿/*************************************************************
+﻿
+
+/*************************************************************
  ** File:   [usprpt_GetLotCommissionReportInvoiceDate]
  ** Author: Kishor Makwana (AI-assisted via Claude)
  ** Description: [PN-17830] Custom Commission Setup - BAG. "Commission Payment Tracking"
@@ -135,7 +137,7 @@ BEGIN
           AND (@FromInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) >= @FromInvoiceDt)
           AND (@ToInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) <= @ToInvoiceDt)
           AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-          AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+          --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
           AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
           AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
           AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -163,7 +165,7 @@ BEGIN
           AND (@FromInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) >= @FromInvoiceDt)
           AND (@ToInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) <= @ToInvoiceDt)
           AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-          AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+          --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
           AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
           AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
           AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -200,7 +202,7 @@ BEGIN
         AND (@FromInvoiceDt IS NULL OR CAST(LOC.PostedDate AS DATE) >= @FromInvoiceDt)
         AND (@ToInvoiceDt IS NULL OR CAST(LOC.PostedDate AS DATE) <= @ToInvoiceDt)
         AND (ISNULL(@InvoiceNum,'') = '')
-        AND (ISNULL(@PN,'') = '')
+       -- AND (ISNULL(@PN,'') = '')
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -312,7 +314,7 @@ BEGIN
         AND (@FromInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) >= @FromInvoiceDt)
         AND (@ToInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) <= @ToInvoiceDt)
         AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-        AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+        --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -419,7 +421,7 @@ BEGIN
         AND (@FromInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) >= @FromInvoiceDt)
         AND (@ToInvoiceDt IS NULL OR CAST(BI.InvoiceDate AS DATE) <= @ToInvoiceDt)
         AND (ISNULL(@InvoiceNum,'') = '' OR BI.InvoiceNo LIKE '%' + @InvoiceNum + '%')
-        AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
+        --AND (ISNULL(@PN,'') = '' OR BII.ItemMasterId = @PN)
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -611,7 +613,7 @@ BEGIN
         AND (@FromInvoiceDt IS NULL OR CAST(LOC.PostedDate AS DATE) >= @FromInvoiceDt)
         AND (@ToInvoiceDt IS NULL OR CAST(LOC.PostedDate AS DATE) <= @ToInvoiceDt)
         AND (ISNULL(@InvoiceNum,'') = '')
-        AND (ISNULL(@PN,'') = '')
+        --AND (ISNULL(@PN,'') = '')
         AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
         AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
         AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

@@ -16,11 +16,12 @@
 ** 4    04/06/2026   Sumit Kumar        Added missing fields for the view PN-16214.
 ** 5    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 6    17/July/2026   Amit Ghediya       return IsFromAircraft/EngineRegistryId per row
+** 7    09/09/2026     Kishor Makwana     Fixed LIKE filters silently failing to match values containing '[', ']', '%' or '_' (e.g. a part description like 'ALTIMETER [STBY]') by escaping those characters before building each LIKE pattern
 
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
 CREATE   PROCEDURE [dbo].[USP_SearchInstalledComponents]
-(   
+(
     @MasterCompanyId    INT,
     @ItemMasterId       BIGINT          = NULL,
     @PartDescription    VARCHAR(500)    = NULL,
@@ -31,7 +32,7 @@ CREATE   PROCEDURE [dbo].[USP_SearchInstalledComponents]
     @ACTailNum          VARCHAR(100)    = NULL,
     @MakeType           VARCHAR(100)    = NULL,
     @AircraftModel      VARCHAR(100)    = NULL,
-    @ColumnSerialNum    VARCHAR(100)    = NULL,  
+    @ColumnSerialNum    VARCHAR(100)    = NULL,
     @TotalTSN           DECIMAL(18,6)   = NULL,
     @TotalCSN           DECIMAL(18,6)   = NULL,
     @Hobbs              DECIMAL(18,6)   = NULL,
@@ -51,7 +52,15 @@ CREATE   PROCEDURE [dbo].[USP_SearchInstalledComponents]
 AS
 BEGIN
     SET NOCOUNT ON;
-    BEGIN TRY
+    BEGIN TRY    
+    DECLARE @EscPartDescription VARCHAR(500) = REPLACE(REPLACE(REPLACE(REPLACE(@PartDescription, '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscACTailNum       VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@ACTailNum,       '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscMakeType        VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@MakeType,        '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscAircraftModel   VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@AircraftModel,   '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscSerialNum       VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@SerialNum,       '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscColumnSerialNum VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@ColumnSerialNum, '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscATACode         VARCHAR(200) = REPLACE(REPLACE(REPLACE(REPLACE(@ATACode,         '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
+    DECLARE @EscFlightHours     VARCHAR(100) = REPLACE(REPLACE(REPLACE(REPLACE(@FlightHours,     '\', '\\'), '%', '\%'), '_', '\_'), '[', '\[');
 
     ;WITH Base AS (
         SELECT
@@ -110,20 +119,20 @@ BEGIN
     Result AS (
         SELECT * FROM Base
         WHERE (@ItemMasterId      IS NULL OR @ItemMasterId = 0  OR ItemMasterId = @ItemMasterId)
-            AND (@PartDescription   IS NULL OR PartDescription LIKE '%' + @PartDescription + '%')
-            AND (@ACTailNum         IS NULL OR ACTailNum          LIKE '%' + @ACTailNum       + '%')
-            AND (@MakeType          IS NULL OR MakeType         LIKE '%' + @MakeType        + '%')
-            AND (@AircraftModel     IS NULL OR AircraftModel    LIKE '%' + @AircraftModel   + '%')
-            AND (@SerialNum       IS NULL OR SerialNum LIKE '%' + @SerialNum       + '%')
-            AND (@ColumnSerialNum IS NULL OR SerialNum LIKE '%' + @ColumnSerialNum + '%')
-            AND (@ATACode           IS NULL OR ATACode LIKE '%' + @ATACode + '%')
+            AND (@PartDescription   IS NULL OR PartDescription LIKE '%' + @EscPartDescription + '%' ESCAPE '\')
+            AND (@ACTailNum         IS NULL OR ACTailNum          LIKE '%' + @EscACTailNum       + '%' ESCAPE '\')
+            AND (@MakeType          IS NULL OR MakeType         LIKE '%' + @EscMakeType        + '%' ESCAPE '\')
+            AND (@AircraftModel     IS NULL OR AircraftModel    LIKE '%' + @EscAircraftModel   + '%' ESCAPE '\')
+            AND (@SerialNum       IS NULL OR SerialNumber LIKE '%' + @EscSerialNum       + '%' ESCAPE '\')
+            AND (@ColumnSerialNum IS NULL OR SerialNumber LIKE '%' + @EscColumnSerialNum + '%' ESCAPE '\')
+            AND (@ATACode           IS NULL OR ATACode LIKE '%' + @EscATACode + '%' ESCAPE '\')
             AND (@DateInstalled     IS NULL OR CAST(DateInstalled          AS DATE) = @DateInstalled)
             AND (@LastMaintenance   IS NULL OR CAST(LastMaintenance     AS DATE) = @LastMaintenance)
             AND (@NextMaintenance   IS NULL OR CAST(NextMaintenance           AS DATE) = @NextMaintenance)
             AND (@TotalTSN          IS NULL OR TotalTSN      = @TotalTSN)
             AND (@TotalCSN          IS NULL OR TotalCSN      = @TotalCSN)
             AND (@Hobbs             IS NULL OR Hobbs         = @Hobbs)
-            AND (@FlightHours       IS NULL OR CAST(RawFlightHours  AS VARCHAR) LIKE '%' + @FlightHours + '%' OR CAST(RawFlightMinutes  AS VARCHAR) LIKE '%' + @FlightHours + '%')
+            AND (@FlightHours       IS NULL OR CAST(RawFlightHours  AS VARCHAR) LIKE '%' + @EscFlightHours + '%' ESCAPE '\' OR CAST(RawFlightMinutes  AS VARCHAR) LIKE '%' + @EscFlightHours + '%' ESCAPE '\')
             AND (@Cycles            IS NULL OR Cycles       = @Cycles)
     ),
     TotalCounted AS (
@@ -143,8 +152,8 @@ BEGIN
         CASE WHEN @SortColumn = 'aircraftModel'     AND @SortOrder = 1  THEN AircraftModel   END ASC,
         CASE WHEN @SortColumn = 'aircraftModel'     AND @SortOrder = -1 THEN AircraftModel   END DESC,
         -- SerialNum
-        CASE WHEN @SortColumn = 'serialNum'         AND @SortOrder = 1  THEN SerialNum       END ASC,
-        CASE WHEN @SortColumn = 'serialNum'         AND @SortOrder = -1 THEN SerialNum       END DESC,
+        CASE WHEN @SortColumn = 'serialNum'         AND @SortOrder = 1  THEN SerialNumber       END ASC,
+        CASE WHEN @SortColumn = 'serialNum'         AND @SortOrder = -1 THEN SerialNumber       END DESC,
         -- TotalTSN
         CASE WHEN @SortColumn = 'totalTSN'          AND @SortOrder = 1  THEN TotalTSN        END ASC,
         CASE WHEN @SortColumn = 'totalTSN'          AND @SortOrder = -1 THEN TotalTSN        END DESC,

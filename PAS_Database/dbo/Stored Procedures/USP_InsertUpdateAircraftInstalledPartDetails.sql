@@ -19,6 +19,7 @@
  **  7   09/06/2026   Amit Ghediya		Adding Header data in History module [PN-16581]
  **  8   30/06/2026	  Amit Ghediya	    Update for Engine data [PN-17075]
  **  9   07/07/2026	  Kishor Makwana	[PN-17162] insert/Update ServiceLifeUnitMonthsOrDays, ServiceLifeLimit 
+ ** 10   09/08/2026	  Kishor Makwana	[PN-17374] -Added RemainingTimeDayMonth: day-equivalent of ServiceLifeLimit (via dbo.fn_GetDaysForMonths, anchored to DateInstalled, when ServiceLifeUnitMonthsOrDays = 1/Months; carried through unchanged for Days/unset)
  ************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -71,6 +72,10 @@ BEGIN
 				@ConditionId BIGINT = 0,
 				@OldStockLineId BIGINT = 0,
 				@IsUpdate       INT    = 0;
+
+		DECLARE @RemainingTimeDayMonth BIGINT = @ServiceLifeLimit;
+		IF (@ServiceLifeUnitMonthsOrDays = 1 AND @ServiceLifeLimit IS NOT NULL)
+			SET @RemainingTimeDayMonth = dbo.fn_GetDaysForMonths(CAST(@ServiceLifeLimit AS INT), @DateInstalled);
 
 		-- ── OLD value holders ─────────────────────────────────
         DECLARE @Old_ATAChapterId       VARCHAR(256),
@@ -226,7 +231,8 @@ BEGIN
 				InstallFlightTime = @InstallFlightTime,
 				InstallCycles = @InstallCycles,
 				ServiceLifeUnitMonthsOrDays = @ServiceLifeUnitMonthsOrDays,
-				ServiceLifeLimit = @ServiceLifeLimit
+				ServiceLifeLimit = @ServiceLifeLimit,
+				RemainingTimeDayMonth = @RemainingTimeDayMonth
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 			
 			--Update stockline for part
@@ -284,7 +290,8 @@ BEGIN
 				InstallFlightTime,
 				InstallCycles,
 				ServiceLifeUnitMonthsOrDays,
-				ServiceLifeLimit
+				ServiceLifeLimit,
+				RemainingTimeDayMonth
 			)
 			VALUES
 			(
@@ -326,7 +333,8 @@ BEGIN
 				@InstallFlightTime,
 				@InstallCycles,
 				@ServiceLifeUnitMonthsOrDays,
-				@ServiceLifeLimit
+				@ServiceLifeLimit,
+				@RemainingTimeDayMonth
 			);
 
 			SELECT @AircraftPartDetailsId = SCOPE_IDENTITY() 

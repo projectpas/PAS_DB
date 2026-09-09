@@ -4834,6 +4834,7 @@
     <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_AddUpdate.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetPartsForOtherCostAdd.sql" />
+    <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

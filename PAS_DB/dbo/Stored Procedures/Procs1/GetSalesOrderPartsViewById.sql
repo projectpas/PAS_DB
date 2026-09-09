@@ -24,7 +24,8 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10   20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from both UNION branches' StockLine and ItemMaster joins.
-	11    25/08/2026		    Bhargav Saliya		                [PN-17774] - added ControlNumber and CertificateNumber (PartCertificationNumber) from StockLine.
+	11   25/08/2026		         Bhargav Saliya		                [PN-17774] - added ControlNumber and CertificateNumber (PartCertificationNumber) from StockLine.
+	12   25/08/2026		         Bhargav Saliya		                [PN-17859] - Added Case for Non-Stock stocklines are excluded from the CoC form.
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
@@ -86,6 +87,8 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
+			  -- Non-Stock stocklines are excluded from the CoC form.
+			  AND ISNULL(qs.IsNonStock, 0) = 0
 
 		UNION 
 
@@ -113,6 +116,8 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
+			  -- Non-Stock stocklines are excluded from the CoC form.
+			  AND ISNULL(qs.IsNonStock, 0) = 0
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
 				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer,ControlNumber,CertificateNumber

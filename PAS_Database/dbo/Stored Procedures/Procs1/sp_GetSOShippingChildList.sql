@@ -41,7 +41,7 @@ BEGIN
  	 DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
 	  SELECT DISTINCT sopt.SOPickTicketId, sos.SalesOrderShippingId, CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 			 CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.SOShippingNum ELSE NULL END AS SOShippingNum,  
-			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
+			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber, sl.StockLineId, ISNULL(sl.IsNonStock, 0) AS IsNonStock,  
 			 sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, 0 AS ItemNo,-- sop.ItemNo,  
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   

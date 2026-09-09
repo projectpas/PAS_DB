@@ -28,6 +28,7 @@
 										 IsNonStock=0 rows) so the dropdown text is consistent with the Non-Stock label
 										 suffix added in AutoCompleteDropdowns.sql / @TableName='ItemMasterNonStock'.
 	10   05-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
+	11   08-09/2026    Ayushi Patel         [PN-17009] removed the (Stock) appended to the Label output for the ItemMaster and ItemMasterNonStock branches
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '100',1,50,'',18
 **************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 		  Im.ItemMasterId,
 		  Im.ItemMasterId AS Value,
 		  Im.partnumber AS PartNumber,
-		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) ) AS Label,
 		  Im.PartDescription,
 		  Im.ItemClassificationId,
 		  Im.ManufacturerId,
@@ -93,7 +94,7 @@ BEGIN
      SELECT DISTINCT Im.ItemMasterId,
 		  Im.ItemMasterId AS Value,
 		  Im.partnumber AS PartNumber,
-		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) ) AS Label,
 		  Im.PartDescription,
 		  Im.ItemClassificationId,
 		  Im.ManufacturerId,
@@ -138,7 +139,7 @@ BEGIN
 		  Im.ItemMasterId,
 		  Im.ItemMasterId AS Value,
 		  Im.partnumber AS PartNumber,
-		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) ) AS Label,
 		  Im.PartDescription,
 		  Im.ItemClassificationId,
 		  Im.ManufacturerId,
@@ -180,7 +181,7 @@ BEGIN
 		  Im.ItemMasterId,
 		  Im.ItemMasterId AS Value,
 		  Im.partnumber AS PartNumber,
-		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) + ' (Stock)') AS Label,
+		  (im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) ) AS Label,
 		  Im.PartDescription,
 		  Im.ItemClassificationId,
 		  Im.ManufacturerId,

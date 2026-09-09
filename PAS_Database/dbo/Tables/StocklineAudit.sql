@@ -258,6 +258,7 @@
     [NonStockClassification]              VARCHAR (100)   NULL,
     [IsService]                           BIT             NULL,
     [LeasePartId]                         BIGINT          NULL,
+    [MiscAdjustment]                      DECIMAL(18,6)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

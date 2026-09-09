@@ -27,7 +27,7 @@
     [TaskName]                    VARCHAR (256)   NULL,
     [LabourExpertise]             VARCHAR (256)   NULL,
     [LabourEmployee]              VARCHAR (256)   NULL,
-    [Billable]                    VARCHAR (10)    NULL,
+    [Billable]                    VARCHAR (15)    NULL,
     [DirectLaborOHCost]           DECIMAL (18, 2) CONSTRAINT [DF__tmp_ms_xx__Direc__49E8B652] DEFAULT ((0)) NULL,
     [BurdaenRatePercentageId]     BIGINT          NULL,
     [BurdenRateAmount]            DECIMAL (18, 2) CONSTRAINT [DF__tmp_ms_xx__Burde__4ADCDA8B] DEFAULT ((0)) NULL,
@@ -37,6 +37,7 @@
     [StatusChangedDate]           DATETIME2 (7)   NULL,
     [IsBegin]                     BIT             NULL,
     [IsAdjustmentTask]            BIT             NULL,
+    [IsRowDeleted]                BIT             NOT NULL CONSTRAINT [DF_WorkOrderLaborAudit_IsRowDeleted] DEFAULT ((0)),
     CONSTRAINT [PK_WorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
 

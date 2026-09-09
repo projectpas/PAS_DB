@@ -4739,6 +4739,7 @@
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
+    <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

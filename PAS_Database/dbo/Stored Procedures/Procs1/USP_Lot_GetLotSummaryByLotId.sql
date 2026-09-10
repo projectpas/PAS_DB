@@ -28,6 +28,15 @@
 	                                     @MarginSummaryFreight + @MarginSummaryOtherCost) instead of just Revenue - COGS; Commission
 	                                     Expense/Margin/%-of-Revenue below recalculate off this new Gross Margin automatically, no other
 	                                     formula changes needed.
+	10   10-Sep-2026     Claude (Rajesh Gami)   [PN-17888] Ported from RG_S67_LOTChange (change history #13 there) -
+	                                     reworked @TransferredOutCost/@TransferredInCost so each only sums
+	                                     LotTransInOutId's that actually have QtyToTransOut/QtyToTransIn<>0 in
+	                                     LotTransInOutDetails (previously summed every matching LotCalculationDetails
+	                                     row regardless of transfer quantity). Added the @MSModuleId DECLARE this
+	                                     needs. ADAPTED for this branch: preserved the existing [PN-17745] 'Turn In'
+	                                     type inclusion for @TransferredInCost (Rajesh's original edit on
+	                                     RG_S67_LOTChange only matched 'Trans In (Lot)', which would have dropped
+	                                     'Turn In' rows here - flagged back to him, not applied as-is).
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -60,6 +69,8 @@ BEGIN
 			-- [PN-17809] used to recalculate Commission Expense off the new Revenue/Margin (same fields/logic as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails) - @QtyLot is DECIMAL(18,6) here to match this branch's LotCalculationDetails.Qty type
 			DECLARE @ConsignmentRevenuePercent decimal(18,2) = 0,@ConsignmentMarginPercent decimal(18,2) = 0,@ConsignmentFixedAmt decimal(18,2) = 0,@IsRevenue bit = 0,@IsMargin bit = 0,@IsFixedAmount bit = 0,@ConPercentId bigint = 0,@QtyLot decimal(18,6) = 0,@RevenueCommissionCost decimal(18,2) = 0,@MarginCommissionCost decimal(18,2) = 0;
 			DECLARE @FlatRateBillingMethodId BIGINT = NULL;
+			-- [PN-17888] ported from RG_S67_LOTChange - needed by the reworked @TransferredOutCost/@TransferredInCost below
+			DECLARE @MSModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM dbo.ManagementStructureModule  WITH(NOLOCK)  WHERE ModuleName = 'Stockline');
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
 			-- [PN-17799] flat-rate freight/charge lines are excluded from @Freight/@Charges (and so from Revenue)
 			SELECT TOP 1 @FlatRateBillingMethodId = BillingMethodId FROM DBO.BillingMethod WITH(NOLOCK) WHERE Memo = 'FlateRate' AND ISNULL(IsDeleted,0) = 0
@@ -67,8 +78,59 @@ BEGIN
 			/************ COST Calculation ***************/
 			--SELECT TOP 1 @OriginalCost = ISNULL(OriginalCost,0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId ORDER BY LCD.LotCalculationId DESC
 			SELECT TOP 1 @OriginalCost = ISNULL(InitialPOCost,0) FROM DBO.Lot LT WITH(NOLOCK) WHERE LT.LotId = @LotId 
-			SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(TransferredOutCost,0)),0)
-				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ',''))
+			-- [PN-17888] ported from RG_S67_LOTChange (change history #13, Rajesh's manual fix) - restricts to
+			-- LotTransInOutId's that actually have QtyToTransOut<>0 in LotTransInOutDetails, instead of summing
+			-- every matching LotCalculationDetails row regardless of whether a transfer quantity exists.
+			SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(LC.TransferredOutCost, 0)), 0)
+				FROM
+				(
+					SELECT DISTINCT
+						ind.LotTransInOutId
+					FROM dbo.LotTransInOutDetails ind WITH (NOLOCK)
+					INNER JOIN dbo.Lot lt WITH (NOLOCK)
+						ON ind.LotId = lt.LotId
+					INNER JOIN dbo.StockLine stl WITH (NOLOCK)
+						ON ind.StockLineId = stl.StockLineId
+					INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
+						ON stl.ItemMasterId = im.ItemMasterId
+					INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
+						ON MSD.ReferenceID = stl.StockLineId
+						AND MSD.ModuleID = @MSModuleId
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK)
+						ON stl.ManagementStructureId = RMS.EntityStructureId
+					LEFT JOIN dbo.PurchaseOrder po WITH (NOLOCK)
+						ON stl.PurchaseOrderId = po.PurchaseOrderId
+					LEFT JOIN dbo.RepairOrder ro WITH (NOLOCK)
+						ON stl.RepairOrderId = ro.RepairOrderId
+					LEFT JOIN dbo.Vendor vp WITH (NOLOCK)
+						ON stl.VendorId = vp.VendorId
+					LEFT JOIN dbo.Condition con WITH (NOLOCK)
+						ON stl.ConditionId = con.ConditionId
+					WHERE ISNULL(ind.QtyToTransOut, 0) <> 0
+					  AND ind.LotId = @LotId
+					  AND EXISTS
+					  (
+						  SELECT 1
+						  FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+						  WHERE LCD.LotTransInOutId = ind.LotTransInOutId
+							AND REPLACE(LCD.[Type], ' ', '') =
+								REPLACE('Trans Out (Lot)', ' ', '')
+							AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
+					  )
+				) X
+				INNER JOIN
+				(
+					SELECT
+						LotTransInOutId,
+						SUM(ISNULL(TransferredOutCost, 0)) AS TransferredOutCost
+					FROM dbo.LotCalculationDetails WITH (NOLOCK)
+					WHERE LotId = @LotId
+					  AND REPLACE([Type], ' ', '') =
+						  REPLACE('Trans Out (Lot)', ' ', '')
+					  AND ISNULL(IsFromPreCostStk, 0) = 0
+					GROUP BY LotTransInOutId
+				) LC
+					ON LC.LotTransInOutId = X.LotTransInOutId;
 
 			--SELECT @SoldCost = ISNULL(SUM(ISNULL(ExtSalesUnitPrice,0)),0)
 			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
@@ -81,12 +143,60 @@ BEGIN
 				   WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
 
 
-			SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
-				   FROM 
-					DBO.LotCalculationDetails LCD WITH(NOLOCK)
-					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ','')), UPPER(REPLACE('Turn In',' ','')))
-					--AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
-					--AND (SELECT ISNULL(LT.IsStockLineUnitCost,0) FROM DBO.LotTransInOutDetails LT WITH(NOLOCK) WHERE LT.LotTransInOutId = LCD.LotTransInOutId ) = 1
+			-- [PN-17888] ported from RG_S67_LOTChange (change history #13, Rajesh's manual fix), ADAPTED for this
+			-- branch: restricts to LotTransInOutId's that actually have QtyToTransIn<>0 in LotTransInOutDetails,
+			-- instead of summing every matching LotCalculationDetails row regardless of transfer quantity.
+			-- NOTE: this branch's [PN-17745] 'Turn In' type inclusion (Change History #5 below) is preserved
+			-- here via the IN(...) list below - Rajesh's original RG_S67 edit only checked 'Trans In (Lot)',
+			-- which would have silently dropped 'Turn In' rows; flagged back to Rajesh, not applied as-is.
+			SELECT @TransferredInCost =  SUM(ISNULL(LC.TransferredInCost, 0)) FROM
+			(
+				SELECT DISTINCT
+					ind.LotTransInOutId
+				FROM dbo.LotTransInOutDetails ind WITH (NOLOCK)
+				INNER JOIN dbo.Lot lt WITH (NOLOCK)
+					ON ind.LotId = lt.LotId
+				INNER JOIN dbo.StockLine stl WITH (NOLOCK)
+					ON ind.StockLineId = stl.StockLineId
+				INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
+					ON stl.ItemMasterId = im.ItemMasterId
+				INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
+					ON MSD.ReferenceID = stl.StockLineId
+					AND MSD.ModuleID = @MSModuleId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK)
+					ON stl.ManagementStructureId = RMS.EntityStructureId
+				LEFT JOIN dbo.PurchaseOrder po WITH (NOLOCK)
+					ON stl.PurchaseOrderId = po.PurchaseOrderId
+				LEFT JOIN dbo.RepairOrder ro WITH (NOLOCK)
+					ON stl.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN dbo.Vendor vp WITH (NOLOCK)
+					ON stl.VendorId = vp.VendorId
+				LEFT JOIN dbo.Condition con WITH (NOLOCK)
+					ON stl.ConditionId = con.ConditionId
+				WHERE ISNULL(ind.QtyToTransIn, 0) <> 0
+				  AND ind.LotId = @LotId
+				  AND ISNULL(po.PurchaseOrderId, 1) <> ISNULL(lt.InitialPOId, 0)
+				  AND EXISTS
+				  (
+					  SELECT 1
+					  FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+					  WHERE LCD.LotTransInOutId = ind.LotTransInOutId
+						AND REPLACE(LCD.[Type], ' ', '') IN (REPLACE('Trans In(Lot)', ' ', ''))
+						AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
+				  )
+			) X
+			INNER JOIN
+			(
+				SELECT
+					LotTransInOutId,
+					SUM(ISNULL(TransferredInCost, 0)) AS TransferredInCost
+				FROM dbo.LotCalculationDetails WITH (NOLOCK)
+				WHERE LotId =@LotId
+				  AND REPLACE([Type], ' ', '') IN (REPLACE('Trans In(Lot)', ' ', ''))
+				  AND ISNULL(IsFromPreCostStk, 0) = 0
+				GROUP BY LotTransInOutId
+			) LC
+				ON LC.LotTransInOutId = X.LotTransInOutId;
 			
 			SELECT @RepairCost = SUM(ISNULL(RepairCost,0))
 				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId

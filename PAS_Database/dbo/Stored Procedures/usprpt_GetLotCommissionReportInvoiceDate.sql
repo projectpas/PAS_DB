@@ -57,6 +57,17 @@
          "Initiate Consignor Payment" once a NON PO invoice has already been generated for that
          cash receipt (USP_AddUpdate_NonPOInvoiceHeader now sets IsNonPOGenerated=1 on
          CustomerPayments when it stores the ReceiptId passed from that flow).
+    6    10/September/2026   Claude (Rajesh Gami)   [PN-17830] Added npoNumber to the
+         final SELECT output (frontend's new "Manual Inv Num" column, sourced from
+         NonPOInvoiceHeader.NPONumber). Looked up in CashCTE (both branches) via an OUTER APPLY +
+         TOP 1 (NOT a plain JOIN) keyed on NPOH2.ReceiptId = CP.ReceiptId AND
+         ISNULL(CP.IsNonPOGenerated,0) = 1, excluding soft-deleted headers and ordered by
+         NonPOInvoiceId DESC - guarantees at most one NPONumber per cash-receipt row (and so can
+         never duplicate/fan-out CashCTE's rows) even though NonPOInvoiceHeader.ReceiptId has no
+         DB-level unique constraint. Threaded through CalcCTE/AppliedCTE/DueCTE/OwedCTE (all
+         SELECT *), explicitly through AllRowsCTE's three UNION ALL branches (NULL placeholder for
+         the PaymentCTE/NACTE branches, which have no corresponding CustomerPayments row), and the
+         final SELECT.
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -276,7 +287,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
         '' AS pn,
-        CP.IsNonPOGenerated
+        CP.IsNonPOGenerated,
+        NPOH.NPONumber
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -304,6 +316,20 @@ BEGIN
           / NULLIF(ISNULL(BI.GrandTotal,0),0)
         , 2) AS LessCOGSRepairCalc
       ) LCR
+      -- [PN-17830] 10-Sep-2026: NonPOInvoiceHeader lookup for the new npoNumber ("Manual Inv Num")
+      -- column. OUTER APPLY + TOP 1 (not a plain JOIN) guarantees at most one NPONumber per
+      -- cash-receipt row even if more than one NonPOInvoiceHeader row ever shares a ReceiptId (no
+      -- DB-level unique constraint on NonPOInvoiceHeader.ReceiptId) - excludes soft-deleted headers
+      -- and picks the most recently created one, so this can never fan out/duplicate CashCTE's rows
+      -- (Rajesh, 10-Sep-2026).
+      OUTER APPLY (
+        SELECT TOP 1 NPOH2.NPONumber
+        FROM dbo.NonPOInvoiceHeader NPOH2 WITH (NOLOCK)
+        WHERE ISNULL(CP.IsNonPOGenerated,0) = 1
+          AND NPOH2.ReceiptId = CP.ReceiptId
+          AND ISNULL(NPOH2.IsDeleted,0) = 0
+        ORDER BY NPOH2.NonPOInvoiceId DESC
+      ) NPOH
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
       LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
       LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -383,7 +409,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
         '' AS pn,
-        CP.IsNonPOGenerated
+        CP.IsNonPOGenerated,
+        NPOH.NPONumber
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -411,6 +438,20 @@ BEGIN
           / NULLIF(ISNULL(BI.GrandTotal,0),0)
         , 2) AS LessCOGSRepairCalc
       ) LCR
+      -- [PN-17830] 10-Sep-2026: NonPOInvoiceHeader lookup for the new npoNumber ("Manual Inv Num")
+      -- column. OUTER APPLY + TOP 1 (not a plain JOIN) guarantees at most one NPONumber per
+      -- cash-receipt row even if more than one NonPOInvoiceHeader row ever shares a ReceiptId (no
+      -- DB-level unique constraint on NonPOInvoiceHeader.ReceiptId) - excludes soft-deleted headers
+      -- and picks the most recently created one, so this can never fan out/duplicate CashCTE's rows
+      -- (Rajesh, 10-Sep-2026).
+      OUTER APPLY (
+        SELECT TOP 1 NPOH2.NPONumber
+        FROM dbo.NonPOInvoiceHeader NPOH2 WITH (NOLOCK)
+        WHERE ISNULL(CP.IsNonPOGenerated,0) = 1
+          AND NPOH2.ReceiptId = CP.ReceiptId
+          AND ISNULL(NPOH2.IsDeleted,0) = 0
+        ORDER BY NPOH2.NonPOInvoiceId DESC
+      ) NPOH
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
       LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
       LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -599,7 +640,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
         CAST(NULL AS VARCHAR(100)) AS pn,
         CAST(NULL AS BIGINT) AS ReceiptId,
-        CAST(NULL AS BIT) AS IsNonPOGenerated
+        CAST(NULL AS BIT) AS IsNonPOGenerated,
+        CAST(NULL AS VARCHAR(150)) AS npoNumber
       FROM dbo.LOTOtherCostDetails LOC WITH (NOLOCK)
       INNER JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = LOC.LotId AND ISNULL(LT.IsDeleted,0) = 0
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
@@ -647,7 +689,7 @@ BEGIN
         CAST(NULL AS VARCHAR(10)) AS PaymentDate,
         CAST(NULL AS VARCHAR(100)) AS PaymentRef,
         level1, level2, level3, level4, pn,
-        ReceiptId, IsNonPOGenerated
+        ReceiptId, IsNonPOGenerated, npoNumber
       FROM OwedCTE
 
       UNION ALL
@@ -671,7 +713,7 @@ BEGIN
         PaymentDate,
         PaymentRef,
         level1, level2, level3, level4, pn,
-        CAST(NULL AS BIGINT) AS ReceiptId, CAST(NULL AS BIT) AS IsNonPOGenerated
+        CAST(NULL AS BIGINT) AS ReceiptId, CAST(NULL AS BIT) AS IsNonPOGenerated, CAST(NULL AS VARCHAR(150)) AS npoNumber
       FROM PaymentCTE
 
       UNION ALL
@@ -695,7 +737,7 @@ BEGIN
         PaymentDate,
         PaymentRef,
         level1, level2, level3, level4, pn,
-        ReceiptId, IsNonPOGenerated
+        ReceiptId, IsNonPOGenerated, npoNumber
       FROM NACTE
     ),
     RunningBalanceCTE AS (
@@ -716,6 +758,7 @@ BEGIN
       LotId,
       ReceiptId,
       IsNonPOGenerated,
+      npoNumber,
       LOTNum,
       CashReceipt,
       ConsigneePortion,

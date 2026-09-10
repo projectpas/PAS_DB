@@ -22,10 +22,12 @@
                                                  also live from Stockline (LeaseStockline has no such column at all)
     8    26/08/2026     Amit Ghediya            Added UnitCost, live from Stockline (for the Edit Item popup's Qty/Qty
                                                  OH/Qty Avail/Unit Cost/Ext Cost row)
+    9    09/09/2026     Amit Ghediya            Added IdNumber (Cntrl ID), live from Stockline - was missing entirely,
+                                                 so the Add Item grid's Cntrl ID column was always blank
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
+CREATE    PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT = 0
 AS
@@ -53,6 +55,7 @@ BEGIN
 			SLIVE.QuantityOnHand AS QtyOH,
 			SLIVE.SerialNumber,
 			SLIVE.ControlNumber,
+			SLIVE.IdNumber,
 			SLIVE.UnitCost,
 			LSL.StocklineNumber,
 			LSL.OutrightPrice,

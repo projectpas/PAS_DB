@@ -29,6 +29,7 @@
     10   09/July/2026   Rajesh Gami       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
     12   24/Aug/2026   Kishor Makwana    [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
+    13   09-Sep-2026		Bhargav Saliya		[PN-17859] - Get IsNonStock and StocklineId
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
@@ -42,50 +43,37 @@ BEGIN
 
     BEGIN TRY
 
-        DECLARE @soModuleId INT = (
-            SELECT TOP 1 ModuleId
-            FROM   dbo.Module WITH (NOLOCK)
-            WHERE  ModuleName = 'SalesOrder'
-        );
+        DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH (NOLOCK) WHERE  ModuleName = 'SalesOrder');
         DECLARE @masterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)
         SELECT DISTINCT
             sopt.SOPickTicketId,
             sos.SalesOrderShippingId,
-
             -- ShipDate and SOShippingNum: only populate when shipping item exists
             IIF(sosi.SalesOrderPartId IS NOT NULL, sos.ShipDate,      NULL) AS ShipDate,
             IIF(sosi.SalesOrderPartId IS NOT NULL, sos.SOShippingNum,  NULL) AS SOShippingNum,
-
             sopt.SOPickTicketNumber,
-
             -- QtyToShip converted to consume UOM
             ISNULL(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0),imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END,0) AS QtyToShip,
-
             so.SalesOrderNumber,
             imt.PartNumber,
             imt.PartDescription,
             sl.StockLineNumber,
             sl.SerialNumber,
-            cr.[Name]                                                         AS CustomerName,
+            cr.[Name] AS CustomerName,
             soc.CustomsValue,
             soc.CommodityCode,
-
             -- QtyShipped converted to consume UOM
             ISNULL(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END,0) AS QtyShipped,
-
-            sop.SequenceNumber                                               AS ItemNo,
-
+            sop.SequenceNumber AS ItemNo,
             sos.SalesOrderId,
-            COALESCE(sosi.SalesOrderPartId, sop.SalesOrderPartId)            AS SalesOrderPartId,
+            COALESCE(sosi.SalesOrderPartId, sop.SalesOrderPartId) AS SalesOrderPartId,
             sos.AirwayBill,
             SPB.PackagingSlipNo,
             SPB.PackagingSlipId,
-            IIF(sos.SalesOrderShippingId IS NOT NULL, sos.SmentNum, 0)       AS SmentNo,
-
+            IIF(sos.SalesOrderShippingId IS NOT NULL, sos.SmentNum, 0) AS SmentNo,
             -- SOShippingId: only return when invoice is posted
             IIF(ISNULL(InvoiceData.IsInvoicePosted, 0) = 1,
-                InvoiceData.ShippingId, 0)                                    AS SOShippingId,
-
+            InvoiceData.ShippingId, 0) AS SOShippingId,
             sosi.FedexPdfPath,
             Stk.ECCN,
             Stk.HSCODE,
@@ -93,32 +81,21 @@ BEGIN
             Stk.SizeLength,
             Stk.SizeWidth,
             Stk.SizeHeight,
-            ISNULL(sosi.UPSPdfPath, '')                                       AS UpsPdfPath
-
-        FROM       [dbo].[SOPickTicket]            sopt WITH (NOLOCK)
-
-        INNER JOIN [dbo].[SalesOrderPartV1]        sop  WITH (NOLOCK)
-                ON sop.SalesOrderId    = sopt.SalesOrderId
-               AND sop.SalesOrderPartId = sopt.SalesOrderPartId
-
-         LEFT JOIN [dbo].[SalesOrderStocklineV1]   stk  WITH (NOLOCK)
-                ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-
-         LEFT JOIN [dbo].[SalesOrderShippingItem]  sosi WITH (NOLOCK)
-                ON sosi.SalesOrderPartId = sop.SalesOrderPartId
-               AND sosi.SOPickTicketId   = sopt.SOPickTicketId
-
-         LEFT JOIN [dbo].[SalesOrderShipping]      sos  WITH (NOLOCK)
-                ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
-               AND sos.SalesOrderId         = sopt.SalesOrderId
-	  INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
-	  LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-	  LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
-	  LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) ON soc.SalesOrderShippingId = sos.SalesOrderShippingId  
-	  LEFT JOIN DBO.Customer cr WITH (NOLOCK)  on cr.CustomerId = so.CustomerId  
-	  LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   
-		 AND SPI.SalesOrderPartId = sop.SalesOrderPartId AND SPI.MasterCompanyId = @masterCompanyId AND ISNULL(SPI.IsDeleted,0) = 0
-	  LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  AND SPB.SalesOrderId = sopt.SalesOrderId AND ISNULL(SPB.IsDeleted,0) = 0
+            ISNULL(sosi.UPSPdfPath, '') AS UpsPdfPath,
+            sl.StockLineId,
+            ISNULL(sl.IsNonStock, 0) AS IsNonStock 
+        FROM [dbo].[SOPickTicket] sopt WITH (NOLOCK)
+        INNER JOIN [dbo].[SalesOrderPartV1] sop  WITH (NOLOCK) ON sop.SalesOrderId    = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+        LEFT JOIN [dbo].[SalesOrderStocklineV1] stk  WITH (NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+        LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId AND sosi.SOPickTicketId   = sopt.SOPickTicketId
+        LEFT JOIN [dbo].[SalesOrderShipping] sos  WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sos.SalesOrderId = sopt.SalesOrderId
+	    INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
+	    LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
+	    LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+	    LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) ON soc.SalesOrderShippingId = sos.SalesOrderShippingId  
+	    LEFT JOIN DBO.Customer cr WITH (NOLOCK)  on cr.CustomerId = so.CustomerId  
+	    LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.SalesOrderPartId = sop.SalesOrderPartId AND SPI.MasterCompanyId = @masterCompanyId AND ISNULL(SPI.IsDeleted,0) = 0
+	    LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  AND SPB.SalesOrderId = sopt.SalesOrderId AND ISNULL(SPB.IsDeleted,0) = 0
 	  --LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0
 	  --LEFT JOIN DBO.BillingInvoicing BI  WITH (NOLOCK) ON SOBI.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0 
         OUTER APPLY
@@ -127,15 +104,13 @@ BEGIN
             SELECT TOP 1
                 SOBI.ShippingId,
                 BI.IsInvoicePosted
-            FROM       [dbo].[BillingInvoicingItems] SOBI WITH (NOLOCK)
-            INNER JOIN [dbo].[BillingInvoicing]      BI   WITH (NOLOCK)
-                    ON BI.BillingInvoicingId = SOBI.BillingInvoicingId
-            WHERE  SOBI.ShippingId            = sosi.SalesOrderShippingId
-              AND  ISNULL(SOBI.IsPerformaInvoice,  0) = 0
-              AND  SOBI.ModuleId                       = @soModuleId
-              AND  ISNULL(SOBI.IsVersionIncrease, 0)  = 0
-              AND  BI.ModuleId                         = @soModuleId
-              AND  ISNULL(BI.IsVersionIncrease,   0)  = 0
+            FROM [dbo].[BillingInvoicingItems] SOBI WITH (NOLOCK)
+            INNER JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = SOBI.BillingInvoicingId
+            WHERE  SOBI.ShippingId = sosi.SalesOrderShippingId 
+                AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND SOBI.ModuleId = @soModuleId
+                AND  ISNULL(SOBI.IsVersionIncrease, 0)  = 0
+                AND  BI.ModuleId = @soModuleId
+                AND  ISNULL(BI.IsVersionIncrease, 0)  = 0
             ORDER BY BI.BillingInvoicingId DESC
         ) InvoiceData
 

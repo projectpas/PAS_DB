@@ -11,6 +11,8 @@
     [IsDeleted]           BIT           CONSTRAINT [DF_ItemMasterRanking_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ItemMasterRanking] PRIMARY KEY CLUSTERED ([ItemMasterRankingId] ASC)
 );
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_ItemMasterId_Perf]
     ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC)
@@ -22,4 +24,10 @@ CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_ItemMasterId_Perf]
 GO
 CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking_IM]
     ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC, [RankingId] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ItemMasterRanking]
+    ON [dbo].[ItemMasterRanking]([ItemMasterId] ASC)
+    INCLUDE([RankingId]);
 

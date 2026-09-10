@@ -47,6 +47,8 @@ BEGIN
 
 	    SELECT @LegalEntityId = [LegalEntityId] FROM [dbo].[ManagementStructure] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ManagementStructureId] = @ManagementStructureId;
 
+		SET @KitsToPrepare = 1
+
 		SELECT @PartNumber = ITM.[PartNumber], 
 		       @ManufacturerId = ITM.[ManufacturerId],	
 			   @ItemTypeId = ITM.[ItemTypeId],

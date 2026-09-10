@@ -97,6 +97,8 @@
 
 
 
+
+
 GO
 
 
@@ -125,3 +127,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RepairOrder_MC_IsDeleted_Perf]
+    ON [dbo].[RepairOrder]([MasterCompanyId] ASC, [IsDeleted] ASC)
+    INCLUDE([RepairOrderId], [VendorId], [VendorName], [VendorCode], [RepairOrderNumber], [Status]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

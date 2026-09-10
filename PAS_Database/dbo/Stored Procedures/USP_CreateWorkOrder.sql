@@ -581,7 +581,7 @@ BEGIN
 					   @MasterCompanyId = @MasterCompanyId,
 					   @StockLineId = @StockLineId OUTPUT;
 
-			SET @NPMStockQTY = @KitsToPrepare;
+			SET @NPMStockQTY = 1;
 
 			UPDATE #tmprCreateWorkOrderPartNumber SET [StockLineId] = @StockLineId WHERE [PKID] = @MinId
 		END

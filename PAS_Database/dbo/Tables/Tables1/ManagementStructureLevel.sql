@@ -16,6 +16,8 @@
 );
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_ManagementStructureLevelAudit] ON [dbo].[ManagementStructureLevel]
@@ -42,3 +44,8 @@ BEGIN
  SET NOCOUNT ON;  
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_MSL_ID_Code_Perf]
+    ON [dbo].[ManagementStructureLevel]([ID] ASC)
+    INCLUDE([Code]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

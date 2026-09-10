@@ -3508,7 +3508,7 @@
     <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
@@ -4708,6 +4708,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowDirectionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowDirectionImages.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkFlowDirectionImage.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionImages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderTaskInstructionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
     <Build Include="dbo\Tables\LeaseStocklineAudit.sql" />
     <Build Include="dbo\Tables\LeaseStockline.sql" />
@@ -4740,6 +4744,15 @@
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReallocateSOShipmentAccountingPeriod.sql" />
+    <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
+    <Build Include="dbo\Tables\AISettingMaster.sql" />
+    <Build Include="dbo\Tables\AIChatMessages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetInternalKitAssemblyWorkorderCostDeatils.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftTechnicalRecordCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreAircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftDataByWorkOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

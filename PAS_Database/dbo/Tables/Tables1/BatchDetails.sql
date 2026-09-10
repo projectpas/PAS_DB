@@ -39,8 +39,21 @@
 );
 
 
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_BatchDetails_JBD_Status]
     ON [dbo].[BatchDetails]([JournalBatchDetailId] ASC)
     INCLUDE([StatusId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BatchDetails_Status]
+    ON [dbo].[BatchDetails]([JournalBatchDetailId] ASC, [StatusId] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BatchDetails_Period_Status]
+    ON [dbo].[BatchDetails]([AccountingPeriodId] ASC, [StatusId] ASC, [IsDeleted] ASC)
+    INCLUDE([JournalBatchDetailId], [JournalBatchHeaderId], [AccountingPeriod], [JournalTypeNumber]);
 

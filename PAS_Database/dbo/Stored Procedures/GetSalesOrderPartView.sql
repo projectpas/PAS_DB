@@ -44,6 +44,7 @@
 	31    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries and StockLine/ItemMaster joins.
 	32    05/Aug/2026  Kishor Makwana   [PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
 	33    01/Sep/2026  KISHOR MAKWANA	[PN-17439] - use it PP_UnitPurchasePrice instead of SP_CalSPByPP_UnitSalePrice.
+	34    09/Sep/2026  BHARGAV SALIYA   [PN-17859] - Get IsNonStock Flag.
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
 -- EXEC [DBO].[GetSalesOrderPartView] 1306,0
 **************************************************************/
@@ -272,7 +273,7 @@ BEGIN
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeLength ELSE part.SizeLength END SizeLength,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeWidth ELSE part.SizeWidth END SizeWidth,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight,
-
+		ISNULL(qs.IsNonStock, 0) AS IsNonStock,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
 		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) > 0 THEN @LOTNumber ELSE '' END) END  AS LotNumber, 	

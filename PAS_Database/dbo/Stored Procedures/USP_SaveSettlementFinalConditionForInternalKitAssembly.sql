@@ -112,7 +112,7 @@ BEGIN
 			
 			SELECT @KitsToPrepare = ISNULL([KitsToPrepare],0),@Stocklineid = [Stocklineid],@MasterCompanyId = [MasterCompanyId],@ManagementStructureId = [ManagementStructureId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNoId;
 
-			SELECT @TotalCost = ISNULL(SUM([TotalCost]), 0) FROM [dbo].[WorkOrderMPNCostDetails] WITH (NOLOCK)	WHERE [WorkOrderId] = @WorkOrderId AND [WOPartNoId] = @WorkOrderPartNoId;
+			SELECT @TotalCost = (ISNULL([PartsCost],0) + ISNULL([LaborCost],0) + ISNULL([ChargesCost],0) + ISNULL([FreightCost],0)) FROM [dbo].[WorkOrderMPNCostDetails] WITH (NOLOCK)	WHERE [WorkOrderId] = @WorkOrderId AND [WOPartNoId] = @WorkOrderPartNoId;
 
 			SELECT @TotalCost / @KitsToPrepare
 

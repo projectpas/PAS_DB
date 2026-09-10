@@ -361,6 +361,8 @@
 
 
 
+
+
 GO
 
 
@@ -812,4 +814,10 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_Report]
     ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
     INCLUDE([StockLineId], [ItemMasterId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [PurchaseOrderId], [RepairOrderId], [VendorId], [CustomerId], [GLAccountId], [IsCustomerStock], [IsNonStock]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_TaggedByName]
+    ON [dbo].[Stockline]([TaggedByName] ASC)
+    INCLUDE([TaggedByType], [TaggedByTypeName], [MasterCompanyId]) WHERE ([TaggedByName] IS NOT NULL);
 

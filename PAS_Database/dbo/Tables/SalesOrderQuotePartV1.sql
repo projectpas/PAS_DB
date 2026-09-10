@@ -56,6 +56,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderQuotePartV1Audit]
    ON  [dbo].[SalesOrderQuotePartV1]
@@ -66,3 +68,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SOQPartV1_QuoteId]
+    ON [dbo].[SalesOrderQuotePartV1]([SalesOrderQuoteId] ASC, [IsDeleted] ASC)
+    INCLUDE([SalesOrderQuotePartId], [ItemMasterId], [ConditionId], [PriorityName], [QtyQuoted], [QtyRequested], [UnitSalesPrice]);
+

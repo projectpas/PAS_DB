@@ -15,10 +15,14 @@
     4    27/08/2026     Amit Ghediya            Exclude stocklines whose linked Work Order is still open (not yet
                                                  Closed/Canceled) - that stock is out being worked on, so it can't be
                                                  reserved again for the lease until the WO finishes
+    5    03/09/2026     Amit Ghediya            QtyOrder no longer shrinks on Reserve, so "remaining to reserve" is now
+                                                 QtyOrder - QtyReserved instead of QtyOrder alone
+    6    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM, ControlNumber, IdNumber so the Reserve
+                                                 Stock popup can show the same stockline identity fields as the part lineitem grid
 
 exec USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId]
+CREATE      PROCEDURE [dbo].[USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -40,17 +44,22 @@ BEGIN
 			LSL.PNDescription AS PartDescription,
 			LSL.StocklineNumber,
 			LSL.SN AS SerialNumber,
-			LSL.QtyOrder AS QtyAvailableToReserve,
+			ISNULL(LSL.QtyOrder,0) - ISNULL(LSL.QtyReserved,0) AS QtyAvailableToReserve,
 			LSL.QtyReserved AS TotalReserved,
 			SLIVE.QuantityOnHand AS QuantityOnHand,
 			SLIVE.QuantityAvailable AS QuantityAvailable,
+			C.Description AS ConditionDescription,
+			SLIVE.UnitOfMeasure AS UOM,
+			SLIVE.ControlNumber,
+			SLIVE.IdNumber,
 			LSL.MasterCompanyId
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
+		LEFT JOIN [dbo].[Condition] C WITH (NOLOCK) ON C.ConditionId = LSL.ConditionId
 		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
-		  AND LSL.QtyOrder > 0
+		  AND ISNULL(LSL.QtyOrder,0) - ISNULL(LSL.QtyReserved,0) > 0
 		  AND (LSL.WorkOrderId IS NULL OR WO.WorkOrderStatusId IN (SELECT Item FROM DBO.SPLITSTRING(@WorkOrderStatusId,',')))
 		ORDER BY LSL.LeaseStocklineId;
 

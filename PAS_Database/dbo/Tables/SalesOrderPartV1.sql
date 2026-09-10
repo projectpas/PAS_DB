@@ -74,6 +74,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderPartV1Audit]
    ON  [dbo].[SalesOrderPartV1]
@@ -84,3 +86,7 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrderPartV1_SOId]
+    ON [dbo].[SalesOrderPartV1]([SalesOrderId] ASC, [ConditionId] ASC, [ItemMasterId] ASC);
+

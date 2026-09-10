@@ -27,4 +27,26 @@
     CONSTRAINT [PK_CommonWorkOrderTearDown] PRIMARY KEY CLUSTERED ([CommonWorkOrderTearDownId] ASC),
     CONSTRAINT [FK_CommonWorkOrderTearDown_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+GO
+
+CREATE TRIGGER [dbo].[Trg_CommonWorkOrderTearDownAudit]
+   ON dbo.CommonWorkOrderTearDown
+   AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @CommonTeardownTypeId BIGINT, @TypeName VARCHAR(250);
+    SELECT @CommonTeardownTypeId = CommonTeardownTypeId FROM INSERTED;
+    SELECT @TypeName = [Name] FROM dbo.CommonTeardownType WHERE CommonTeardownTypeId = @CommonTeardownTypeId;
+
+    INSERT INTO [dbo].[CommonWorkOrderTearDownAudit]
+               ([CommonWorkOrderTearDownId], [CommonTeardownType], [Memo], [TechnicianDate], [InspectorDate],
+                [ReasonName], [InspectorName], [TechnicalName],
+                [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MasterCompanyId], [IsSubWorkOrder])
+    SELECT [CommonWorkOrderTearDownId], @TypeName, [Memo], [TechnicianDate], [InspectorDate],
+           [ReasonName], [InspectorName], [TechnicalName],
+           [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MasterCompanyId], [IsSubWorkOrder]
+    FROM INSERTED;
+END
 

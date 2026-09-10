@@ -37,6 +37,7 @@
 	21   01/Aug/2024   Moin Bloch		[PN-17485] - Create Stockline For Non-Stock Parts And Auto Reserved
 	22   13/Aug/2026   Ayushi Patel		[PN-17604] @ReservedQty/@ReservedQty2 declared decimal 
 	23   24/Aug/2026   Kishor Makwana   [PN-17439] - Added Sequence Number with Part Number
+	24   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -176,7 +177,7 @@ BEGIN
 	[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CreditLimit],[CreditTermId],[CreditLimitName],[CreditTermName],
 	[VersionNumber],[TotalFreight],[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[EnforceEffectiveDate],[IsEnforceApproval],
 	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath],
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef])
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[SourceBy],[MarketplaceRef])
 	SELECT 1, SOQ.QuoteTypeId, cast(GETUTCDATE() as date), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
 	CASE WHEN @CustomerReference IS NULL THEN SOQ.CustomerReference ELSE @CustomerReference END, SOQ.[CurrencyId], 0, 0 , 0, 0, SOQ.SalesPersonId, SOQ.[AgentId], SOQ.[CustomerSeviceRepId],
 	SOQ.[EmployeeId], NULL, NULL, CASE WHEN @TransferMemos = 1 THEN SOQ.Memo ELSE '' END, @FulfillingStatusId, GETUTCDATE(), CASE WHEN @TransferNotes = 1 THEN SOQ.Notes ELSE '' END, SOQ.[RestrictPMA], SOQ.[RestrictDER], SOQ.[ManagementStructureId],
@@ -185,7 +186,7 @@ BEGIN
 	NULL, NULL, NULL, NULL, @CreditLimit, @CreditTermsId, NULL, @CreditTermsName,
 	NULL, SOQ.[TotalFreight], SOQ.[TotalCharges], SOQ.[FreightBilingMethodId], SOQ.[ChargesBilingMethodId], NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef]
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[SourceBy],[MarketplaceRef]
 	FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 	
 	SELECT @SalesOrderId = SCOPE_IDENTITY();
@@ -549,7 +550,7 @@ BEGIN
 
 						UPDATE SOPSTK
 						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END,
-						SOPSTK.ToTalReservedQty = ISNULL(SOPSTK.ToTalReservedQty,0) + (CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END)
+						SOPSTK.ToTalReservedQty = (CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END)
 						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId

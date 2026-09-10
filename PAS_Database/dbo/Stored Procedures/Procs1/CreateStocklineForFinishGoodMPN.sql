@@ -42,7 +42,9 @@
 	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	26   15/07/2026   Priyansh Patel	Added missing [StockUnitOfMeasureId],[StockUnitOfMeasure] for new stockline [PN-17283]
 	27   23/06/2026   Moin Bloch	    Replace To Common Accounting SP PN-16871
--- EXEC [CreateStocklineForFinishGoodMPN] 947  
+	28   22/07/2026	  Amit Ghediya      Skip new stockline creation and existing stockline deactivation when WO IsFromAircraft = 1 [PN-16898]
+	29   02/09/2026   Moin Bloch	    Added COGSUnitCost IN SP PN-17835
+-- EXEC [CreateStocklineForFinishGoodMPN] 947
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
 @WorkOrderPartNumberId BIGINT  
@@ -99,9 +101,10 @@ BEGIN
 	DECLARE @InternalWOTypeId INT= 0;
 	DECLARE @WOPartSerNumber VARCHAR(200) = '';  
 	DECLARE @LOTModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'Lot')
-    SET @ModuleID = 2; -- Stockline Module ID  
-    SET @InternalWorkOrderTypeId = 2 -- Internal WO  
-  
+    SET @ModuleID = 2; -- Stockline Module ID
+    SET @InternalWorkOrderTypeId = 2 -- Internal WO
+	DECLARE @IsFromAircraft BIT = 0; -- Aircraft flag
+
     SELECT @MaterialsCost = ISNULL(PartsCost, 0),  @LaborCost =  ISNULL(LaborCost, 0) FROM dbo.WorkOrderMPNCostDetails WITH(NOLOCK) WHERE WOPartNoId = @WorkOrderPartNumberId  
 
 	SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
@@ -128,7 +131,7 @@ BEGIN
      AND ISNULL(IM.IsNonStock,0) = 0
     WHERE WOP.ID = @WorkOrderPartNumberId
   
-    SELECT @WorkOrderNumber = WorkOrderNum, @CustomerId = CustomerId, @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId  
+    SELECT @WorkOrderNumber = WorkOrderNum, @CustomerId = CustomerId, @WorkOrderTypeId = WorkOrderTypeId, @IsFromAircraft = ISNULL(IsFromAircraft, 0) FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
     SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @WorkOrderPartNumberId  
     SELECT @IsCustomerStock = CASE WHEN ISNULL(CustomerAffiliationId, 0) = 2 THEN 1 ELSE 0 END FROM dbo.Customer WITH(NOLOCK) WHERE CustomerId = @CustomerId --2 For Customer Stock  
     SELECT @IsExchangeWO = CASE WHEN ISNULL(ExchangeSalesOrderId , 0) > 0 THEN 1 ELSE 0 END  
@@ -254,8 +257,13 @@ BEGIN
 	 AND ISNULL(iM.IsNonStock,0) = 0
 	GROUP BY iM.ItemMasterId
 
-    INSERT INTO [dbo].[Stockline]  
-       ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]  
+	-- ══════════════════════════════════════════════════════
+    -- SKIP new stockline creation when WO is from Aircraft
+    -- ══════════════════════════════════════════════════════
+    IF(ISNULL(@IsFromAircraft, 0) = 0)
+    BEGIN
+    INSERT INTO [dbo].[Stockline]
+       ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
        ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
        ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]  
@@ -278,7 +286,7 @@ BEGIN
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
 	   ,[LotId],[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
-	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, [IntegrationPortal])  
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, [IntegrationPortal],[COGSUnitCost])
     SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ) ELSE [PartNumber] END,  
      @StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -307,11 +315,11 @@ BEGIN
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
 	   LotId,[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
-	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, @IntegrationPortal
-   FROM [dbo].[Stockline] WITH(NOLOCK)  
-   WHERE [StockLineId] = @StocklineId  
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, @IntegrationPortal,[COGSUnitCost]
+   FROM [dbo].[Stockline] WITH(NOLOCK)
+   WHERE [StockLineId] = @StocklineId
 
-    SELECT @NewStocklineId = SCOPE_IDENTITY()  
+    SELECT @NewStocklineId = SCOPE_IDENTITY()
   
     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId  
 	
@@ -398,18 +406,30 @@ BEGIN
 
 	IF(ISNULL(@WOPartSerNumber, '') != '')
 	BEGIN
-		UPDATE [dbo].[Stockline] 
+		UPDATE [dbo].[Stockline]
 		SET [SerialNumber] = @WOPartSerNumber, isSerialized = 1
-		WHERE StockLineId = @NewStocklineId  
+		WHERE StockLineId = @NewStocklineId
 	END
-  
+
+    UPDATE [dbo].[Stockline] SET Quantity=0, QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0,QuantityReserved=0,QuantityIssued=0,
+     Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + ControlNumber
+       WHERE StockLineId = @StocklineId
+	END
+	ELSE
+	BEGIN
+		 UPDATE [dbo].[Stockline]
+			SET [QuantityAvailable] = ISNULL(QuantityAvailable, 0) + 1,
+				[QuantityReserved] = ISNULL(QuantityReserved, 0) - 1,
+				[ConditionId] = @RevisedConditionId,
+				[PartNumber] = (CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END),
+				[PNDescription] = (CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartDescription FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PNDescription] END),
+				[ItemMasterId] = @ItemMasterId
+		WHERE StockLineId = @StocklineId;
+	END
+
 	DECLARE @ActionId INT = 0;
-
-    UPDATE [dbo].[Stockline] SET Quantity=0, QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0,QuantityReserved=0,QuantityIssued=0,   
-     Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + ControlNumber  
-       WHERE StockLineId = @StocklineId  
-
 	DECLARE @HistoryModuleId INT = 15;
+
 	SET @ActionId = 6; -- RemoveOnHand
 	EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdateBy;
   
@@ -419,11 +439,14 @@ BEGIN
         WHERE workOrderPartNoId = @WorkOrderPartNumberId and WorkOrderId=@WorkOrderId  
     END  
   
-	SET @ActionId = 11; -- Add-From-Module
-	EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdateBy;
+	IF(ISNULL(@IsFromAircraft, 0) = 0)
+	BEGIN
+		SET @ActionId = 11; -- Add-From-Module
+		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdateBy;
 
-    EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'WO Close Job'  
-    
+		 EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'WO Close Job'
+	END
+
 	SELECT TOP 1 @WOTypeId =WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 	DECLARE @IsRestrict BIT;

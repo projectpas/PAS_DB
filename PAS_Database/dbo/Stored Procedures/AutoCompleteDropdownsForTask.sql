@@ -18,7 +18,8 @@
 	4    28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 	5    20/01/2026   Rajesh Gami	    Sequence issue fixed
     6    14/08/2026   SUMIT KUMAR       Modified to prepend sequence number to task label only for duplicated tasks (e.g. '1 - TEARDOWN') on Dynamic WOs [PN-17643]
-    EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305 
+	7    21/08/2026   Moin Bloch	    Modified sequence number to task
+    EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305
 	EXEC AutoCompleteDropdownsForTask 'WorkOrderTask','TaskId','TaskName','',1,0,'11',1,4739,4304 
 	exec dbo.AutoCompleteDropdownsForTask @TableName=N'WorkOrderTask',@Parameter1=N'TaskId',@Parameter2=N'TaskName',@Parameter3=N'',@Parameter4=1,@Count=0,@Idlist=N'0',@MasterCompanyId=1,@WorkOrderId=4742,@WorkOrderPartNumberId=606,@IsSubWorkOrder=0
 **************************************************************/
@@ -64,7 +65,7 @@ AS BEGIN
 				BEGIN                      
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 									-- Prepend sequence number to label if the task is duplicated on the Work Order part
-									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -82,7 +83,7 @@ AS BEGIN
 
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 									-- Prepend sequence number to label if the task is duplicated on the Work Order part
-									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 									 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -101,7 +102,7 @@ AS BEGIN
 					BEGIN                        
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
 									-- Prepend sequence number to label if the task is duplicated on the Work Order part
-									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label],
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label],
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -119,7 +120,7 @@ AS BEGIN
                          
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
 									-- Prepend sequence number to label if the task is duplicated on the Work Order part
-									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label],
+									CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label],
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -209,7 +210,7 @@ AS BEGIN
 				BEGIN				
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 					                -- Prepend sequence number to label if the task is duplicated on the Work Order part
-					                CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+					                CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -229,7 +230,7 @@ AS BEGIN
                     
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 					                -- Prepend sequence number to label if the task is duplicated on the Work Order part
-					                CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+					                CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -250,7 +251,7 @@ AS BEGIN
 				BEGIN
 						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 						                 -- Prepend sequence number to label if the task is duplicated on the Work Order part
-						                 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+						                 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
@@ -270,7 +271,7 @@ AS BEGIN
                          
 						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 						                 -- Prepend sequence number to label if the task is duplicated on the Work Order part
-						                 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END AS [Label], 
+						                 CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END AS [Label], 
 									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 

@@ -21,6 +21,7 @@
 	5    03/12/2024   Abhishek Jirawla		Added IsPosted Column
 	6    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
 	7    28-Mar-2025  Divyesh Kathiriya		Update CreatedDate based on Employee time zone
+	8   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	8    12-Aug-2026  Abhishek Jirawla		Remove AssetAttributeTypeId
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
@@ -261,7 +262,7 @@ BEGIN
 								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
 								(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName+'%') AND
-								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@ManufacturerPN) + '%') AND
 								(ISNULL(@Model,'') ='' OR Model like '%' + @Model+'%') AND
 								(ISNULL(@StklineNumber,'') ='' OR StklineNumber LIKE '%' + @StklineNumber+'%') AND
 								(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND

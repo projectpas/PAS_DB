@@ -23,7 +23,7 @@
  ** --   --------     -------  --------------------------------            
     1    05/04/2020   Subhash Saliya Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	3    02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	3    10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
   
        
  EXECUTE [GetAssetCapesList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  

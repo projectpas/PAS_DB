@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_Lot_GetStockToLotList]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get Stock To Lot Listing 
@@ -20,9 +21,10 @@
 	8	 13-JULY-2026 Priyansh Patel   change the uom to stock uom from stockline [PN-17070]
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	10   25-Aug-2026			 RAJESH GAMI						[PN-17745] Ported from PAS_DB - The IsFromPreCostStk=0 eligibility filter for 'Trans In(Lot)' rows now also recognizes the new 'Turn In' type so stocklines created via "Create Stockline from Lot" are still included correctly.
+	11   03-Sep-2026   RAJESH GAMI      [PN-17853] - Fixed the Extended Cost Amount Issue 
 **************************************************************
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
+CREATE  PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -118,7 +120,8 @@ BEGIN
 					CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
 					CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 					CAST(stl.UnitCost AS varchar) 'UnitCost',		
-					CAST((ISNULL(stl.UnitCost,0) * ISNULL(ind.QtyToTransIn,0)) AS varchar) 'ExtUnitCost',
+					--CAST((ISNULL(stl.UnitCost,0) * ISNULL(ind.QtyToTransIn,0)) AS varchar) 'ExtUnitCost',
+					CAST((ISNULL((SELECT ISNULL(SUM(ISNULL(TransferredInCost,0)),0) FROM dbo.LotCalculationDetails LC WHERE  LC.LotTransInOutId = ind.LotTransInOutId AND LC.LotId = lt.LotId AND (REPLACE(LC.Type,' ','') = REPLACE('Trans In(Lot)',' ','')) And ISNULL(IsFromPreCostStk,0) = 0 ),0)) AS varchar) 'ExtUnitCost',
 					UPPER((ISNULL(po.PurchaseOrderNumber,''))) 'PONum',
 					UPPER((ISNULL(ro.RepairOrderNumber,''))) 'RepairOrderNumber',		
 					vp.VendorName AS Vendor,						  
@@ -154,7 +157,7 @@ BEGIN
 				LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId
 				LEFT JOIN [dbo].[Vendor] vp WITH (NOLOCK) ON stl.VendorId = vp.VendorId
 				LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON stl.ConditionId = con.ConditionId
-				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') OR REPLACE([Type],' ','') = REPLACE('Turn In',' ','')) ) = 0 ) ,FinalResult AS (
+				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','')) ) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
 					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 
@@ -278,7 +281,8 @@ BEGIN
 					CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
 					CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 					CAST(ind.UnitCost AS varchar) 'UnitCost',		
-					CAST((ISNULL(ind.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
+					--CAST((ISNULL(ind.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
+					CAST((ISNULL((SELECT ISNULL(SUM(ISNULL(TransferredOutCost,0)),0) FROM dbo.LotCalculationDetails LC WHERE  LC.LotTransInOutId = ind.LotTransInOutId AND LC.LotId = lt.LotId AND (REPLACE(LC.Type,' ','') = REPLACE('Trans Out (Lot)',' ','')) And ISNULL(IsFromPreCostStk,0) = 0 ),0)) AS varchar) 'ExtUnitCost',
 					UPPER((ISNULL(po.PurchaseOrderNumber,''))) 'PONum',
 					UPPER((ISNULL(ro.RepairOrderNumber,''))) 'RepairOrderNumber',		
 					vp.VendorName AS Vendor,						  

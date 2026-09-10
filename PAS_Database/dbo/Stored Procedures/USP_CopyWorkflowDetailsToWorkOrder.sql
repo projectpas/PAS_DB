@@ -28,6 +28,7 @@
 	12	 07-16-2026	  SUMIT KUMAR		Fixed workflow direction copy to preserve template instruction order and append below existing instructions
 	13    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @IsIgnorePartExist ItemMaster EXISTS checks (DER/PMA cases)
 	14   21/08/2026   SUMIT KUMAR		Append the sequence of task just after existing task seq [PN-17753].
+	15   04-Sep-2026   SUMIT KUMAR		Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814].
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -1415,6 +1416,18 @@ SET NOCOUNT ON;
 										FROM #tmpWorkflowDirection WHERE ID = @CurrentRecordId
 
 										SET @NewOrderTaskInstId = SCOPE_IDENTITY();
+
+										-- Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814]
+										INSERT INTO [dbo].[WorkOrderTaskInstructionImage]
+											([WorkOrderTaskInstructionId], [WorkOrderTaskId], [FileName], [Link], [FileType], [FileSize],
+											 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+										SELECT
+											@NewOrderTaskInstId, @WorkOrderTaskId, IMG.[FileName], IMG.[Link], IMG.[FileType], IMG.[FileSize],
+											IMG.[MasterCompanyId], @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+										FROM [dbo].[WorkFlowDirectionImage] IMG WITH (NOLOCK)
+										WHERE IMG.[WorkflowDirectionId] = @ParentWorkflowDirectionId
+										  AND ISNULL(IMG.[IsDeleted], 0) = 0
+										  AND ISNULL(IMG.[IsActive], 1) = 1;
 
 										UPDATE #tmpWorkflowDirection SET NewParentId  = @NewOrderTaskInstId FROM #tmpWorkflowDirection WHERE ParentId = @ParentWorkflowDirectionId
 

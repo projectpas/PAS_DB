@@ -11,6 +11,11 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    12/08/2026     Amit Ghediya            Created
+    2    10/09/2026     Amit Ghediya            Threshold/rate/usage params widened from DECIMAL(18,2) to DECIMAL(18,6)
+                                                 to match the LeaseStockline column precision - at (18,2) SQL Server
+                                                 silently rounded HH:MM-derived values (e.g. 6h07m = 6.116667) down to
+                                                 2 decimals before they ever reached the table, corrupting the minutes
+                                                 on the next load
 
 exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@PricingMethod=N'FlatRate',@OutrightPrice=NULL,
 @FlatRate=500,@RateUnit=N'Cycle',@BillingMethod=N'FlatRatePlusOverrun',@BillingInterval=N'Monthly',
@@ -25,14 +30,14 @@ CREATE    PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@RateUnit NVARCHAR(50) = NULL,
 	@BillingMethod NVARCHAR(50) = NULL,
 	@BillingInterval NVARCHAR(100) = NULL,
-	@MinimumCycles DECIMAL(18,2) = NULL,
-	@MinimumTimes DECIMAL(18,2) = NULL,
-	@MaximumCycles DECIMAL(18,2) = NULL,
-	@MaximumTimes DECIMAL(18,2) = NULL,
-	@UsagePerUnitCycles DECIMAL(18,2) = NULL,
-	@UsagePerUnitTimes DECIMAL(18,2) = NULL,
-	@OverrunPerUnitCycles DECIMAL(18,2) = NULL,
-	@OverrunPerUnitTimes DECIMAL(18,2) = NULL,
+	@MinimumCycles DECIMAL(18,6) = NULL,
+	@MinimumTimes DECIMAL(18,6) = NULL,
+	@MaximumCycles DECIMAL(18,6) = NULL,
+	@MaximumTimes DECIMAL(18,6) = NULL,
+	@UsagePerUnitCycles DECIMAL(18,6) = NULL,
+	@UsagePerUnitTimes DECIMAL(18,6) = NULL,
+	@OverrunPerUnitCycles DECIMAL(18,6) = NULL,
+	@OverrunPerUnitTimes DECIMAL(18,6) = NULL,
 	@UpdatedBy VARCHAR(256)
 AS
 BEGIN

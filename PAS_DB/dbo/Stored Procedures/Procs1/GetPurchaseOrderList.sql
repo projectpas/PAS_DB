@@ -35,9 +35,10 @@
 	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
 	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
 	21    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
+	22   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/      
-CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
+CREATE   PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -299,7 +300,7 @@ BEGIN
 			(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
 			([Status]  LIKE '%' +@GlobalFilter+'%') OR
 			(M.CustomerRFQNo like '%' +@GlobalFilter+'%') OR    
-			(M.PartNumberType like '%' +@GlobalFilter+'%') OR      
+			(M.PartNumberType like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(M.PartNumberType) like '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR      
 			(M.PartDescription like '%' +@GlobalFilter+'%') OR      
 			(M.ManufacturerType like '%' +@GlobalFilter+'%') OR      
 			(M.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR      
@@ -321,7 +322,7 @@ BEGIN
 			(ISNULL(@OpenDate, '') = '' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND               
 			(ISNULL(@CreatedDate, '') = '' OR CAST(CreatedDate AS Date) = CAST(@CreatedDate AS date)) AND      
 			(ISNULL(@UpdatedDate, '') = '' OR CAST(UpdatedDate AS date) = CAST(@UpdatedDate AS date)) AND      
-			(IsNull(@PartNumberType, '') = '' OR M.PartNumberType like '%'+ @PartNumberType +'%') and      
+			(IsNull(@PartNumberType, '') = '' OR M.PartNumberType like '%'+ @PartNumberType +'%' OR dbo.fn_NormalizePartNumber(M.PartNumberType) like '%'+ dbo.fn_NormalizePartNumber(@PartNumberType) +'%') and      
 			(IsNull(@PartDescription, '') = '' OR M.PartDescription like '%'+ @PartDescription +'%') and   
 			(IsNull(@CustomerRFQNo, '') = '' OR M.CustomerRFQNo like '%'+ @CustomerRFQNo +'%') and   		
 			(ISNULL(@EstDeliveryType, '') = '' OR M.EstDeliveryType like '%'+ @EstDeliveryType +'%') AND      
@@ -467,7 +468,7 @@ BEGIN
 				(RequestedBy LIKE '%' +@GlobalFilter+'%') OR      
 				(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
 				([Status]  LIKE '%' +@GlobalFilter+'%') OR      
-				(PartNumber LIKE '%' +@GlobalFilter+'%') OR      
+				(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR      
 				(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 				(CustomerRFQNo LIKE '%' +@GlobalFilter+'%') OR  
 				(Manufacturer LIKE '%' +@GlobalFilter+'%') OR      
@@ -490,7 +491,7 @@ BEGIN
 				(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND               
 				(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND      
 				(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND      
-				(ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') AND      
+				(ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumber) like '%'+ dbo.fn_NormalizePartNumber(@PartNumberType)+'%') AND      
 				(ISNULL(@PartDescription,'') ='' OR PartDescription like '%'+ @PartDescription+'%') AND 
 				(ISNULL(@CustomerRFQNo,'') ='' OR CustomerRFQNo like '%'+ @CustomerRFQNo+'%') AND 
 				(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and      

@@ -20,15 +20,17 @@
 	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
 	5    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	6    17-12-2025  Bhargav Saliya    Get Asset Status
+	
 	7    07-08-2026  Abhishek Jirawala	AssetType (shown as "Asset Class") now resolves directly off
 	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                    then to the intangible type name, instead of the AssetAttributeType table join.
 
+    8   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 --  EXEC [GetAssetInventoryList]
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
+CREATE    PROCEDURE [dbo].[GetAssetInventoryList]
 -- Add the parameters for the stored procedure here	
 @PageSize int,
 @PageNumber int,
@@ -271,7 +273,7 @@ BEGIN
 					SELECT * INTO #TempResult from  Result
 					WHERE (
 						(@GlobalFilter <> '' AND (
-								(AssetId LIKE '%' +@GlobalFilter+'%') OR
+								(AssetId like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AssetId) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 								(Name LIKE '%' +@GlobalFilter+'%') OR
 								(AlternateAssetId LIKE '%' +@GlobalFilter+'%') OR
 								(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR		
@@ -296,7 +298,7 @@ BEGIN
 								(StatusOfAsset LIKE '%' +@GlobalFilter+'%')
 								))
 							OR   
-							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
+							(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId +'%' OR dbo.fn_NormalizePartNumber(AssetId) LIKE '%' + dbo.fn_NormalizePartNumber(@AssetId) + '%') AND
 								(ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
 								(ISNULL(@AlternateAssetId,'') ='' OR AlternateAssetId LIKE '%' + @AlternateAssetId+'%') AND
 								(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%') AND
@@ -315,7 +317,7 @@ BEGIN
 								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
 								(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName+'%') AND
-								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@ManufacturerPN) + '%') AND
 								(ISNULL(@Model,'') ='' OR Model like '%' + @Model+'%') AND
 								(ISNULL(@StklineNumber,'') ='' OR StklineNumber LIKE '%' + @StklineNumber+'%') AND
 								(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND

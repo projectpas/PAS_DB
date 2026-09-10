@@ -32,6 +32,7 @@
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	17    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	18   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
@@ -196,7 +197,7 @@ BEGIN
        (ShippedDate LIKE '%' +@GlobalFilter+'%') OR  
        (ShipRefrence LIKE '%'+@GlobalFilter+'%') OR  
        (ReferenceNumberType LIKE '%' +@GlobalFilter+'%') OR  
-       (PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
+       (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
        (SerialNumberType LIKE '%' +@GlobalFilter+'%') OR  
        (StockLineNumberType LIKE '%' +@GlobalFilter+'%') OR  
        (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
@@ -221,7 +222,7 @@ BEGIN
        (ISNULL(@ShippedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ShippedDate , @CurrntEmpTimeZoneDesc )AS date) = CAST(@ShippedDate AS DATE)) AND
 	   (ISNULL(@ShipRefrence,'') ='' OR ShipRefrence LIKE '%'+@ShipRefrence+'%') AND
        (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumberType LIKE '%'+@ReferenceNumber+'%') AND  
-       (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%') AND  
+       (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND  
        (ISNULL(@SerialNumber,'') ='' OR SerialNumberType LIKE '%'+ @SerialNumber+'%') AND  
        (ISNULL(@StockLineNumber,'') ='' OR StockLineNumberType LIKE '%'+ @StockLineNumber +'%') AND  
        (ISNULL(@PartDescription,'') ='' OR PartDescriptionType LIKE '%'+ @PartDescription +'%') AND  
@@ -652,7 +653,7 @@ BEGIN
 		   (ShippedDate LIKE '%' +@GlobalFilter+'%') OR  
 		   (ShipRefrence LIKE '%'+@GlobalFilter+'%') OR  
 		   (M.ReferenceNumberType LIKE '%' +@GlobalFilter+'%') OR  
-		   (M.PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(M.PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
 		   (M.SerialNumberType LIKE '%' +@GlobalFilter+'%') OR  
 		   (M.StockLineNumberType LIKE '%' +@GlobalFilter+'%') OR  
 		   (M.PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
@@ -676,7 +677,7 @@ BEGIN
 		   (ISNULL(@VendorRMAReturnReason,'') ='' OR ReasonType LIKE '%'+@VendorRMAReturnReason+'%') AND  
 		   (ISNULL(@ShippedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ShippedDate , @CurrntEmpTimeZoneDesc )AS date) = CAST(@ShippedDate AS DATE)) AND
 		   (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumberType LIKE '%'+@ReferenceNumber+'%') AND  
-		   (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%') AND  
+		   (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND  
 		   (ISNULL(@SerialNumber,'') ='' OR SerialNumberType LIKE '%'+ @SerialNumber+'%') AND  
 		   (ISNULL(@StockLineNumber,'') ='' OR StockLineNumberType LIKE '%'+ @StockLineNumber +'%') AND  
 		   (ISNULL(@PartDescription,'') ='' OR PartDescriptionType LIKE '%'+ @PartDescription +'%') AND  

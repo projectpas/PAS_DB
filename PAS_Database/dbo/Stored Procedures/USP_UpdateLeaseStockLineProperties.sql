@@ -16,6 +16,8 @@
                                                  silently rounded HH:MM-derived values (e.g. 6h07m = 6.116667) down to
                                                  2 decimals before they ever reached the table, corrupting the minutes
                                                  on the next load
+    3    10/09/2026     Amit Ghediya            @OutrightPrice/@FlatRate widened from DECIMAL(18,2) to DECIMAL(18,6)
+                                                 for the same reason - the LeaseStockline columns are (18,6)
 
 exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@PricingMethod=N'FlatRate',@OutrightPrice=NULL,
 @FlatRate=500,@RateUnit=N'Cycle',@BillingMethod=N'FlatRatePlusOverrun',@BillingInterval=N'Monthly',
@@ -25,8 +27,8 @@ exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@PricingMethod=N'Fla
 CREATE    PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@LeaseStocklineId BIGINT,
 	@PricingMethod NVARCHAR(100) = NULL,
-	@OutrightPrice DECIMAL(18,2) = NULL,
-	@FlatRate DECIMAL(18,2) = NULL,
+	@OutrightPrice DECIMAL(18,6) = NULL,
+	@FlatRate DECIMAL(18,6) = NULL,
 	@RateUnit NVARCHAR(50) = NULL,
 	@BillingMethod NVARCHAR(50) = NULL,
 	@BillingInterval NVARCHAR(100) = NULL,

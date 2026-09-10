@@ -22,6 +22,11 @@
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	10   21/Aug/2026			 RAJESH GAMI						[PN-17745] - IsFromPreCostStk-based eligibility check now also excludes the new 'Turn In' type (in addition to 'Trans In(Lot)'), matching existing behavior for stocklines created via "Create Stockline from Lot".
 	11   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	12   03-Sep-2026   RAJESH GAMI      [PN-17853] - Fixed the Extended Cost Amount Issue 
+	13   10-Sep-2026   Claude (Rajesh Gami)  [PN-17888] Added a ResultSums CTE (QuantitySum/UnitCostSum/
+	     ExtUnitCostSum), cross-joined alongside the existing ResultCount CTE in both the IsInOut=1 (Trans-In)
+	     and else (Trans-Out) branches, so the grid's totals row can show a grand total across ALL matching
+	     rows (computed from FinalResult before OFFSET/FETCH paging) instead of just the current page.
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -120,7 +125,9 @@ BEGIN
 					CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
 					CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 					CAST(stl.UnitCost AS varchar) 'UnitCost',		
-					CAST((ISNULL(stl.UnitCost,0) * ISNULL(ind.QtyToTransIn,0)) AS varchar) 'ExtUnitCost',
+					--CAST((ISNULL(stl.UnitCost,0) * ISNULL(ind.QtyToTransIn,0)) AS varchar) 'ExtUnitCost',
+					--CAST((ISNULL(LCAL.TransferredInCost,0)) AS varchar) 'ExtUnitCost',
+					CAST((ISNULL((SELECT ISNULL(SUM(ISNULL(TransferredInCost,0)),0) FROM dbo.LotCalculationDetails LC WHERE  LC.LotTransInOutId = ind.LotTransInOutId AND LC.LotId = lt.LotId AND (REPLACE(LC.Type,' ','') = REPLACE('Trans In(Lot)',' ','')) And ISNULL(IsFromPreCostStk,0) = 0 ),0)) AS varchar) 'ExtUnitCost',
 					UPPER((ISNULL(po.PurchaseOrderNumber,''))) 'PONum',
 					UPPER((ISNULL(ro.RepairOrderNumber,''))) 'RepairOrderNumber',		
 					vp.VendorName AS Vendor,						  
@@ -146,6 +153,7 @@ BEGIN
 					lt.LotNumber,
 					ISNULL(stl.TransferredFromLotNumber,'')TransferredFromLotNumber
 				FROM [dbo].LotTransInOutDetails ind WITH (NOLOCK)
+				--INNER JOIN dbo.LotCalculationDetails LCAL WITH(NOLOCK) ON ind.LotTransInOutId = LCAL.LotTransInOutId
 				INNER JOIN DBO.Lot lt WITH(NOLOCK) on ind.LotId = lt.LotId
 				INNER JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON ind.StockLineId = stl.StockLineId
 				INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
@@ -156,7 +164,7 @@ BEGIN
 				LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId
 				LEFT JOIN [dbo].[Vendor] vp WITH (NOLOCK) ON stl.VendorId = vp.VendorId
 				LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON stl.ConditionId = con.ConditionId
-				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') OR REPLACE([Type],' ','') = REPLACE('Turn In',' ','')) ) = 0 ) ,FinalResult AS (
+				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND (REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','')) ) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
 					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR 
@@ -208,7 +216,10 @@ BEGIN
 							)
 								,
 							ResultCount AS (Select COUNT(LotTransInOutId) AS NumberOfItems FROM FinalResult)
-							SELECT * FROM FinalResult, ResultCount
+							-- [PN-17888] 10-Sep-2026: grand totals across ALL matching rows (unaffected by
+							-- OFFSET/FETCH paging below), same idea as ResultCount/NumberOfItems above.
+							,ResultSums AS (Select SUM(CAST(Quantity AS DECIMAL(18,2))) AS QuantitySum, SUM(CAST(UnitCost AS DECIMAL(18,2))) AS UnitCostSum, SUM(CAST(ExtUnitCost AS DECIMAL(18,2))) AS ExtUnitCostSum FROM FinalResult)
+							SELECT * FROM FinalResult, ResultCount, ResultSums
 
 							ORDER BY  
 							CASE WHEN (@SortOrder=1  AND @SortColumn='PN')  THEN PN END ASC,
@@ -280,7 +291,8 @@ BEGIN
 					CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
 					CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 					CAST(ind.UnitCost AS varchar) 'UnitCost',		
-					CAST((ISNULL(ind.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
+					--CAST((ISNULL(ind.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
+					CAST((ISNULL((SELECT ISNULL(SUM(ISNULL(TransferredOutCost,0)),0) FROM dbo.LotCalculationDetails LC WHERE  LC.LotTransInOutId = ind.LotTransInOutId AND LC.LotId = lt.LotId AND (REPLACE(LC.Type,' ','') = REPLACE('Trans Out (Lot)',' ','')) And ISNULL(IsFromPreCostStk,0) = 0 ),0)) AS varchar) 'ExtUnitCost',
 					UPPER((ISNULL(po.PurchaseOrderNumber,''))) 'PONum',
 					UPPER((ISNULL(ro.RepairOrderNumber,''))) 'RepairOrderNumber',		
 					vp.VendorName AS Vendor,						  
@@ -306,6 +318,7 @@ BEGIN
 					lt.LotNumber,
 					ISNULL(stl.TransferredFromLotNumber,'')TransferredFromLotNumber
 				FROM DBO.LotTransInOutDetails ind WITH (NOLOCK)
+
 				INNER JOIN DBO.Lot lt WITH(NOLOCK) on ind.LotId = lt.LotId
 				INNER JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON ind.StockLineId = stl.StockLineId
 				INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
@@ -365,7 +378,10 @@ BEGIN
 							)))
 								,
 							ResultCount AS (Select COUNT(LotTransInOutId) AS NumberOfItems FROM FinalResult)
-							SELECT * FROM FinalResult, ResultCount
+							-- [PN-17888] 10-Sep-2026: grand totals across ALL matching rows (unaffected by
+							-- OFFSET/FETCH paging below), same idea as ResultCount/NumberOfItems above.
+							,ResultSums AS (Select SUM(CAST(Quantity AS DECIMAL(18,2))) AS QuantitySum, SUM(CAST(UnitCost AS DECIMAL(18,2))) AS UnitCostSum, SUM(CAST(ExtUnitCost AS DECIMAL(18,2))) AS ExtUnitCostSum FROM FinalResult)
+							SELECT * FROM FinalResult, ResultCount, ResultSums
 
 						ORDER BY  
 						CASE WHEN (@SortOrder=1  AND @SortColumn='PN')  THEN PN END ASC,

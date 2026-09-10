@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_AddUpdateWorkOrderTasks]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -16,6 +16,7 @@
 	5    24/Apr/2025  RAJESH GAMI    add the WorkOrderPartNumberId where condition while adding the Sequence Number (We need to increase Sequence By Part No Id)
 	6    10/Feb/2025  Moin Bloch     Added @@IsPrintAdmin
 	7    02/07/2026   Vishal Suthar  PN-17034 Adding Default Instructions while adding task into WO
+	8    04-Sep-2026  SUMIT KUMAR    Copy default task instruction images to WorkOrderTaskInstructionImage [PN-17814]
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
@@ -203,6 +204,18 @@ BEGIN
 			);
 
 			SET @NewInstructionId = SCOPE_IDENTITY();
+
+			-- Copy images from TaskInstructionImage to WorkOrderTaskInstructionImage [PN-17814]
+			INSERT INTO [dbo].[WorkOrderTaskInstructionImage]
+				([WorkOrderTaskInstructionId], [WorkOrderTaskId], [FileName], [Link], [FileType], [FileSize],
+				 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			SELECT
+				@NewInstructionId, @InsertedWorkOrderTaskId, IMG.[FileName], IMG.[Link], IMG.[FileType], IMG.[FileSize],
+				IMG.[MasterCompanyId], @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+			FROM [dbo].[TaskInstructionImage] IMG WITH (NOLOCK)
+			WHERE IMG.[TaskInstructionId] = @OldId
+			  AND ISNULL(IMG.[IsDeleted], 0) = 0
+			  AND ISNULL(IMG.[IsActive], 1) = 1;
 
 			INSERT INTO @InstructionMapping (OldTaskInstructionId, NewWorkOrderTaskInstructionId)
 			VALUES (@OldId, @NewInstructionId);

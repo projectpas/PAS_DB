@@ -26,25 +26,20 @@
 
 
 GO
-CREATE   TRIGGER [dbo].[Trg_WorkOrderAssetsAudit]
 
-   ON  [dbo].[WorkOrderAssets]
-
-   AFTER INSERT,UPDATE
-
-AS 
-
+CREATE TRIGGER [dbo].[Trg_WorkOrderAssetsAudit]
+   ON dbo.WorkOrderAssets
+   AFTER INSERT, UPDATE
+AS
 BEGIN
+    SET NOCOUNT ON;
 
-
-	INSERT INTO [dbo].[WorkOrderAssetsAudit] 
-
-    SELECT *
-
-	FROM INSERTED 
-
-	SET NOCOUNT ON;
-
-
-
+    INSERT INTO [dbo].[WorkOrderAssetsAudit]
+               ([WorkOrderAssetId], [WorkOrderId], [WorkFlowWorkOrderId], [AssetRecordId], [Quantity], [MasterCompanyId],
+                [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsFromWorkFlow],
+                [WOPartNoId], [TaskId])
+    SELECT [WorkOrderAssetId], [WorkOrderId], [WorkFlowWorkOrderId], [AssetRecordId], [Quantity], [MasterCompanyId],
+           [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsFromWorkFlow],
+           [WOPartNoId], [TaskId]
+    FROM INSERTED;
 END

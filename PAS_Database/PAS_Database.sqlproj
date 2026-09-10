@@ -3508,7 +3508,7 @@
     <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
@@ -4743,6 +4743,9 @@
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
+    <Build Include="dbo\Tables\AISettingMaster.sql" />
+    <Build Include="dbo\Tables\AIChatMessages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetInternalKitAssemblyWorkorderCostDeatils.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftTechnicalRecordCompliance.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestoreAircraftEffectivity.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftHistory.sql" />

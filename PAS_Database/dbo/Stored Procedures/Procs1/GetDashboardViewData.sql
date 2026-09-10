@@ -352,9 +352,12 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 8)
 			BEGIN
-				SELECT DISTINCT
-				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SOQM.NetSales AS GrandTotal,SOQPC.NetSaleAmount NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				SELECT 
+				CAST(SOQP.SequenceNumber AS VARCHAR(10))+' - '+item.PartNumber AS PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				--SOQM.NetSales AS GrandTotal,
+				SOQPC.NetSaleAmount AS GrandTotal,
+				SOQPC.NetSaleAmount NetSales, 
+				cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
 				INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 				INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId
@@ -372,6 +375,9 @@ BEGIN
 				AND SOQ.IsDeleted = 0
 				AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND SOQ.MasterCompanyId = @MasterCompanyId
+				GROUP BY SOQP.SequenceNumber,item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup,
+			SOQM.NetSales,SOQPC.NetSaleAmount, cust.Name, SOQ.SalesOrderQuoteNumber, emp.FirstName, emp.LastName
+			ORDER BY SOQ.SalesOrderQuoteNumber,SOQP.SequenceNumber
 			END
 			ELSE IF (@DashboardType = 9)
 			BEGIN

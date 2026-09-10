@@ -29,7 +29,7 @@
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
-	17   24/Aug/2026   Kishor Makwana      [PN-17439] - Added Sequence Number with Part Number
+	17   14/Aug/2026	Kishor Makwana		[PN-17439] - Added Sequence Number  witn PArt Number and Commented --SOQM.NetSales AS GrandTotal and Added	SOQPC.NetSaleAmount as GrandTotal,				
 
 **********************/
 
@@ -350,8 +350,10 @@ BEGIN
 		-- selecting Sales Order Quote Parts Sale		:(DashboardType = 8)
 		SELECT @SOQProcessed = SUM(NetSales) FROM (
 			SELECT DISTINCT
-				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SOQM.NetSales AS GrandTotal,SOQPC.NetSaleAmount NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				CAST(SOQP.SequenceNumber AS VARCHAR(10))+' - '+item.PartNumber as PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				--SOQM.NetSales AS GrandTotal,
+				SOQPC.NetSaleAmount as GrandTotal,
+				SOQPC.NetSaleAmount NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 			FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
 			INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 			INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId

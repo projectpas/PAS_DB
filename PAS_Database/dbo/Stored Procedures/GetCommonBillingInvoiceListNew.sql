@@ -26,6 +26,7 @@
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	14    31/July/2026			 Moin Bloch							[PN-17513] - Include Service/Non-Stock parts in SO billing list even when @AllowBillingBeforeShipping = 0 and no shipment has been done, since these items are never physically shipped.
 	15    24/Aug/2026			 Kishor Makwana						[PN-17439] - Stopped hardcoding ItemNo to 0 (now uses sop.SequenceNumber) in the four original SO branches, and added sop.SequenceNumber to each corresponding GROUP BY, so duplicate Part+Condition lines (different SequenceNumber) are distinguishable on the SO billing/invoicing list. Newly-added Service/Non-Stock branch (PN-17513) intentionally left untouched - out of scope for this ticket.
+	16    27/Aug/2026            Kishor Makwana                     [PN-17821] - Proforma Invoice SalesOrderShipping and SalesOrderShippingItem changesInner join to Left join and commetented AND ISNULL(stk.StockLineId, 0) > 0
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 1162, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -290,7 +291,7 @@ BEGIN
 				BEGIN 
 					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 					(
-					SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	sop.SequenceNumber AS ItemNo,so.CustomerId
+					SELECT DISTINCT so.SalesOrderNumber, CAST(sop.SequenceNumber as VARCHAR(10))+' - '+ imt.partnumber as partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	sop.SequenceNumber AS ItemNo,so.CustomerId
 					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
 								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
@@ -311,8 +312,8 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-					INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
-					INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
+					LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
+					LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 					 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sos.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
@@ -320,14 +321,14 @@ BEGIN
 								AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sosi.QtyShipped
 								AND ISNULL(sobii.IsVersionIncrease,0) = 0 AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId 
-					WHERE sop.SalesOrderId = @ReferenceId AND ISNULL(stk.StockLineId, 0) > 0
+					WHERE sop.SalesOrderId = @ReferenceId --AND ISNULL(stk.StockLineId, 0) > 0
 					GROUP BY so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription,
 					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId, sop.SequenceNumber)
 
 					-- Service / Non-Stock parts are never physically shipped, so include them even when no shipment has been done
 					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 					(
-					SELECT DISTINCT so.SalesOrderNumber, im.partnumber,im.ItemMasterId, im.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	0 AS ItemNo,so.CustomerId
+					SELECT DISTINCT so.SalesOrderNumber, CAST(sop.SequenceNumber as VARCHAR(10))+' - '+ im.partnumber as partnumber,im.ItemMasterId, im.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	0 AS ItemNo,so.CustomerId
 					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0))
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK)
 								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId]
@@ -362,7 +363,7 @@ BEGIN
 					IF (@SalesOrderShippingId > 0)
 					BEGIN 					
 						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
-						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
+						(SELECT DISTINCT so.SalesOrderNumber, CAST(sop.SequenceNumber as VARCHAR(10))+' - '+ imt.partnumber as partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId, sop.SalesOrderPartId AS SubReferenceId,	'' as [Status], sop.SequenceNumber AS ItemNo,so.CustomerId
 						,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
@@ -403,7 +404,7 @@ BEGIN
 					ELSE 
 					BEGIN						
 						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
-						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
+						(SELECT DISTINCT so.SalesOrderNumber, CAST(sop.SequenceNumber as VARCHAR(10))+' - '+ imt.partnumber as partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId,sop.SalesOrderPartId AS SubReferenceId,'' as [Status],sop.SequenceNumber AS ItemNo,so.CustomerId
 						,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 

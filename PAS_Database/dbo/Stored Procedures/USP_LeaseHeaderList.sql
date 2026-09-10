@@ -16,6 +16,10 @@
                                       StartDate/EndDate directly from LeaseStockline (no more LeasePart join). AC Section is
                                       dropped (kept as an always-empty column/parameter to avoid breaking the existing
                                       caller signature and its FieldMaster-driven grid column, which is hidden instead)
+    5    10/09/2026   Amit Ghediya    Detail View's ContractCycle/ContractTime were dumping raw DECIMAL(18,6) text
+                                      (e.g. "5.083333 - 10.1") straight from MinimumTimes/MaximumTimes with no rounding
+                                      or HH:MM conversion. ContractCycle now rounds to 2 decimals; ContractTime now
+                                      renders as HH:MM - HH:MM to match the Add Item grid's Times (HH:MM) columns
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
@@ -179,15 +183,26 @@ BEGIN
 			   ,ISNULL(LSL.BillingMethod,'')
 			   ,ISNULL(LSL.BillingInterval,'')
 			   ,CASE WHEN LSL.MinimumCycles IS NULL AND LSL.MaximumCycles IS NULL THEN ''
-					 ELSE CAST(ISNULL(LSL.MinimumCycles,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumCycles,0) AS VARCHAR(20)) END
+					 ELSE CONVERT(VARCHAR(20), CAST(ISNULL(LSL.MinimumCycles,0) AS DECIMAL(18,2))) + ' - ' + CONVERT(VARCHAR(20), CAST(ISNULL(LSL.MaximumCycles,0) AS DECIMAL(18,2))) END
 			   ,CASE WHEN LSL.MinimumTimes IS NULL AND LSL.MaximumTimes IS NULL THEN ''
-					 ELSE CAST(ISNULL(LSL.MinimumTimes,0) AS VARCHAR(20)) + ' - ' + CAST(ISNULL(LSL.MaximumTimes,0) AS VARCHAR(20)) END
+					 ELSE
+						RIGHT('0' + CAST(TimeParts.MinHH AS VARCHAR(20)), CASE WHEN TimeParts.MinHH < 10 THEN 2 ELSE LEN(CAST(TimeParts.MinHH AS VARCHAR(20))) END) + ':' + RIGHT('0' + CAST(TimeParts.MinMM AS VARCHAR(20)), 2)
+						+ ' - ' +
+						RIGHT('0' + CAST(TimeParts.MaxHH AS VARCHAR(20)), CASE WHEN TimeParts.MaxHH < 10 THEN 2 ELSE LEN(CAST(TimeParts.MaxHH AS VARCHAR(20))) END) + ':' + RIGHT('0' + CAST(TimeParts.MaxMM AS VARCHAR(20)), 2)
+				  END
 			   ,ISNULL(CONVERT(VARCHAR(20), LSL.StartDate, 101),'')
 			   ,ISNULL(CONVERT(VARCHAR(20), LSL.EndDate, 101),'')
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
 				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.LeaseHeaderId = LH.LeaseHeaderId AND LSL.IsDeleted = 0
+				CROSS APPLY (
+					SELECT
+						CAST(FLOOR(ISNULL(LSL.MinimumTimes,0)) AS BIGINT) AS MinHH,
+						CAST(ROUND((ISNULL(LSL.MinimumTimes,0) - FLOOR(ISNULL(LSL.MinimumTimes,0))) * 60, 0) AS BIGINT) AS MinMM,
+						CAST(FLOOR(ISNULL(LSL.MaximumTimes,0)) AS BIGINT) AS MaxHH,
+						CAST(ROUND((ISNULL(LSL.MaximumTimes,0) - FLOOR(ISNULL(LSL.MaximumTimes,0))) * 60, 0) AS BIGINT) AS MaxMM
+				) TimeParts
 			WHERE LH.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR LH.IsActive=@IsActive) AND LH.MasterCompanyId = @MasterCompanyId
 		END
 		ELSE

@@ -4779,6 +4779,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftDataByWorkOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
+    <Build Include="dbo\Tables\LeaseRateUnit.sql" />
+    <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

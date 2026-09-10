@@ -47,6 +47,7 @@
 	36    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 	37  19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
 	38 19/AUG/2026       SUMIT KUMAR			[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
+	39 21/AUG/2026      Moin Bloch              [PN-17716] - Append sequence number to task name
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -778,7 +779,7 @@ SET NOCOUNT ON
 						WOM.TaskId,
 						--T.Description AS TaskName,
 						CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END
 						ELSE T.[Description] END AS TaskName,
 						MM.[Name] AS MandatoryOrSupplemental,
 						WOM.MaterialMandatoriesId,
@@ -1025,7 +1026,7 @@ SET NOCOUNT ON
 						WOM.TaskId,
 						--T.Description AS TaskName,
 						CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END
 						ELSE T.[Description] END AS TaskName,
 						MM.[Name] AS MandatoryOrSupplemental,
 						WOM.MaterialMandatoriesId,
@@ -1286,7 +1287,7 @@ SET NOCOUNT ON
 						WOM.TaskId,
 						--T.Description AS TaskName,
 						CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END
 						ELSE T.[Description] END AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,
 						WOM.MaterialMandatoriesId,
@@ -1532,7 +1533,7 @@ SET NOCOUNT ON
 						WOM.TaskId,
 						--T.Description AS TaskName,
 						CASE WHEN @WorkOrderFormTypeId = 1 THEN  
-							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END  
+							CASE WHEN ISNULL(Dup.TaskCount, 0) > 1 AND ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE CASE WHEN ISNULL(WOT.[SequenceNumber], '') <> '' THEN WOT.[SequenceNumber] + ' - ' + WOT.[TaskName] ELSE WOT.[TaskName] END END
 						ELSE T.[Description] END AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,
 						WOM.MaterialMandatoriesId,

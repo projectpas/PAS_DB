@@ -1394,6 +1394,8 @@
     <Build Include="dbo\Tables\Tables2\FleetQuoteMaterialAudit.sql" />
     <Build Include="dbo\Tables\Tables2\FleetQuoteSettings.sql" />
     <Build Include="dbo\Tables\Tables2\FleetQuoteSettingsAudit.sql" />
+    <Build Include="dbo\Tables\Tables2\FleetQuoteStatus.sql" />
+    <Build Include="dbo\Tables\Tables2\FleetQuoteStatusAudit.sql" />
     <Build Include="dbo\Tables\Tables2\FleetQuoteTask.sql" />
     <Build Include="dbo\Tables\Tables2\FleetQuoteTaskAudit.sql" />
     <Build Include="dbo\Tables\Tables2\FleetQuoteTaskDetails.sql" />

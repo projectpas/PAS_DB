@@ -6,9 +6,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------          
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
     1    09/08/2026   SUMIT KUMAR		Created [PN-17706]
+    2    09/10/2026   Kishor Makwana	Added FK_FleetQuote_FleetQuoteStatus -> dbo.FleetQuoteStatus [PN-17698]
  **************************************************************/
 CREATE TABLE [dbo].[FleetQuote] (
     [FleetQuoteId]              BIGINT          IDENTITY (1, 1) NOT NULL,
@@ -64,6 +65,7 @@ CREATE TABLE [dbo].[FleetQuote] (
     CONSTRAINT [FK_FleetQuote_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_FleetQuote_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_FleetQuote_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
+    CONSTRAINT [FK_FleetQuote_FleetQuoteStatus] FOREIGN KEY ([FleetQuoteStatusId]) REFERENCES [dbo].[FleetQuoteStatus] ([FleetQuoteStatusId]),
     CONSTRAINT [FK_FleetQuote_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_FleetQuote_QuoteParentId] FOREIGN KEY ([QuoteParentId]) REFERENCES [dbo].[FleetQuote] ([FleetQuoteId]),
     CONSTRAINT [FK_FleetQuote_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),

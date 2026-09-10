@@ -259,6 +259,7 @@
     [IsService]                           BIT             NULL,
     [LeasePartId]                         BIGINT          NULL,
     [MiscAdjustment]                      DECIMAL(18,6)   NULL,
+    [COGSUnitCost]                        DECIMAL (18, 6) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

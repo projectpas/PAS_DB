@@ -35,6 +35,7 @@
    26   26/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
    27   27/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
    28   27/07/2025  SUMIT                Added notes field in material list [PN-16818]
+   29   02/09/2026  Moin Bloch           Added COGSUnitCost IN SP PN-17835
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
@@ -143,7 +144,8 @@ BEGIN
         @HistoryModuleId            INT             = 0,
         @currentNo                  BIGINT,
         @stockLineCurrentNo         BIGINT,
-        @isExchange                 BIT;
+        @isExchange                 BIT,
+        @COGSUnitCost               DECIMAL(18,6)   = 0;
 
     -- Initialise StockUOMId from input (may be overridden by ItemMaster values below)
     SET @StockUOMId = @UnitOfMeasureId;
@@ -237,6 +239,10 @@ BEGIN
         FROM DBO.Stockline WITH(NOLOCK)
         WHERE StockLineId = @MPNStockLineId
           AND ISNULL(LotId, 0) > 0;
+
+        SELECT @COGSUnitCost = ISNULL([COGSUnitCost], 0)
+        FROM DBO.Stockline WITH(NOLOCK)
+        WHERE StockLineId = @MPNStockLineId;
 
         -- =============================================
         -- STEP 4: LOAD INTEGRATION PORTAL
@@ -386,7 +392,8 @@ BEGIN
             [IntegrationPortal],
             StockUnitOfMeasureId, ConsumeUnitOfMeasureId,
             AircraftTailNumber, AircraftSN,
-            [LotId], [IsLotAssigned], LOTQty
+            [LotId], [IsLotAssigned], LOTQty,
+            [COGSUnitCost]
         )
         VALUES (
             @StockLineNumber, @ControlNumber, @IDNumber,
@@ -414,7 +421,8 @@ BEGIN
             @AircraftTail, @AircraftSN,
             @SourceLotId,
             CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END,
-            @Quantity
+            @Quantity,
+            @COGSUnitCost
         );
 
         SELECT @StockLineId = SCOPE_IDENTITY();

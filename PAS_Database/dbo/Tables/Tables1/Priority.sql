@@ -15,6 +15,8 @@
 );
 
 
+
+
 GO
 
 
@@ -43,3 +45,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_Priority_PriorityId_Perf]
+    ON [dbo].[Priority]([PriorityId] ASC)
+    INCLUDE([Description]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

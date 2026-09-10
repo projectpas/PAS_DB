@@ -4743,6 +4743,11 @@
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftTechnicalRecordCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreAircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftDataByWorkOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

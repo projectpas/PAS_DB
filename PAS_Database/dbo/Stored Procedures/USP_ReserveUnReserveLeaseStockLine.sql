@@ -14,10 +14,13 @@
     2    19/08/2026     Amit Ghediya            LeasePart.QtyOrder now moves with QtyReserved (Reserve/UnReserve), mirroring LeaseStockline
     3    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - reads LeaseHeaderId directly instead of
                                                  joining LeasePart, removed dead LeasePart mirroring, added ReservedBy/UnReservedBy tracking
+    4    03/09/2026     Amit Ghediya            QtyOrder ("Qty Requested") no longer moves on Reserve/UnReserve - only QtyReserved
+                                                 changes now. The UI computes "Qty to be Reserved" as QtyOrder - QtyReserved instead
+                                                 of relying on QtyOrder itself shrinking.
 
 exec USP_ReserveUnReserveLeaseStockLine @LeaseStocklineId=1,@Qty=1,@IsReserve=1,@UpdatedBy=''
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_ReserveUnReserveLeaseStockLine]
+CREATE     PROCEDURE [dbo].[USP_ReserveUnReserveLeaseStockLine]
 	@LeaseStocklineId BIGINT,
 	@Qty INT,
 	@IsReserve BIT,
@@ -51,7 +54,7 @@ BEGIN
 
 		IF (@IsReserve = 1)
 		BEGIN
-			IF (@Qty > @CurrentQtyOrder)
+			IF (ISNULL(@Qty,0) > ISNULL(@CurrentQtyOrder,0) - ISNULL(@CurrentQtyReserved,0))
 			BEGIN
 				ROLLBACK TRANSACTION;
 				SELECT 0 AS Status, 'Qty to reserve exceeds the available order quantity.' AS Message;
@@ -59,16 +62,15 @@ BEGIN
 			END
 
 			UPDATE [dbo].[LeaseStockline]
-			SET QtyOrder = QtyOrder - @Qty,
-				QtyReserved = QtyReserved + @Qty,
+			SET QtyReserved = ISNULL(QtyReserved,0) + ISNULL(@Qty,0),
 				ReservedBy = @UpdatedBy,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 
 			UPDATE [dbo].[Stockline]
-			SET QuantityAvailable = QuantityAvailable - @Qty,
-				QuantityReserved = QuantityReserved + @Qty
+			SET QuantityAvailable = ISNULL(QuantityAvailable,0) - ISNULL(@Qty,0),
+				QuantityReserved = ISNULL(QuantityReserved,0) + ISNULL(@Qty,0)
 			WHERE StockLineId = @StockLineId;
 
 			--FOR STOCK LINE HISTORY
@@ -85,16 +87,15 @@ BEGIN
 			END
 
 			UPDATE [dbo].[LeaseStockline]
-			SET QtyReserved = QtyReserved - @Qty,
-				QtyOrder = QtyOrder + @Qty,
+			SET QtyReserved = ISNULL(QtyReserved,0) - ISNULL(@Qty,0),
 				UnReservedBy = @UpdatedBy,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 
 			UPDATE [dbo].[Stockline]
-			SET QuantityAvailable = QuantityAvailable + @Qty,
-				QuantityReserved = QuantityReserved - @Qty
+			SET QuantityAvailable = ISNULL(QuantityAvailable,0) + ISNULL(@Qty,0),
+				QuantityReserved = ISNULL(QuantityReserved,0) - ISNULL(@Qty,0)
 			WHERE StockLineId = @StockLineId;
 
 			--FOR STOCK LINE HISTORY

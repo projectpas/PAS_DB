@@ -50,3 +50,26 @@
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+GO
+CREATE TRIGGER [dbo].[Trg_LeaseStocklineAudit]
+   ON  [dbo].[LeaseStockline]
+   AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	-- Handles INSERT and UPDATE (rows exist in INSERTED)
+	IF EXISTS (SELECT 1 FROM INSERTED)
+	BEGIN
+		INSERT INTO [dbo].[LeaseStocklineAudit]
+		SELECT * FROM INSERTED
+	END
+
+	-- Handles DELETE (rows exist only in DELETED)
+	IF EXISTS (SELECT 1 FROM DELETED) AND NOT EXISTS (SELECT 1 FROM INSERTED)
+	BEGIN
+		INSERT INTO [dbo].[LeaseStocklineAudit]
+		SELECT * FROM DELETED
+	END
+END

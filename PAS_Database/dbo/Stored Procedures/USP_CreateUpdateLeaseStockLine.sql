@@ -14,6 +14,8 @@
     5    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - added @PN/@LeaseHeaderId/@ItemMasterId,
                                                  removed @LeasePartId (always written as 0 - LeasePart is deprecated), removed QtyAvailable/QtyOH
                                                  (now read live from Stockline instead of stored)
+    6    10/09/2026     Amit Ghediya            Threshold/rate/usage params widened from DECIMAL(18,2) to DECIMAL(18,6)
+                                                 to match the LeaseStockline column precision (see USP_UpdateLeaseStockLineProperties)
 
 exec USP_CreateUpdateLeaseStockLine
 @LeaseStocklineId=0,@LeaseHeaderId=1,@ItemMasterId=1,@PN='ABC-123',@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
@@ -35,14 +37,14 @@ CREATE      PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@RateUnit NVARCHAR(50) = NULL,
 	@BillingInterval NVARCHAR(100) = NULL,
 	@BillingMethod NVARCHAR(50) = NULL,
-	@MinimumCycles DECIMAL(18,2) = NULL,
-	@MinimumTimes DECIMAL(18,2) = NULL,
-	@MaximumCycles DECIMAL(18,2) = NULL,
-	@MaximumTimes DECIMAL(18,2) = NULL,
-	@UsagePerUnitCycles DECIMAL(18,2) = NULL,
-	@UsagePerUnitTimes DECIMAL(18,2) = NULL,
-	@OverrunPerUnitCycles DECIMAL(18,2) = NULL,
-	@OverrunPerUnitTimes DECIMAL(18,2) = NULL,
+	@MinimumCycles DECIMAL(18,6) = NULL,
+	@MinimumTimes DECIMAL(18,6) = NULL,
+	@MaximumCycles DECIMAL(18,6) = NULL,
+	@MaximumTimes DECIMAL(18,6) = NULL,
+	@UsagePerUnitCycles DECIMAL(18,6) = NULL,
+	@UsagePerUnitTimes DECIMAL(18,6) = NULL,
+	@OverrunPerUnitCycles DECIMAL(18,6) = NULL,
+	@OverrunPerUnitTimes DECIMAL(18,6) = NULL,
 	@Maintenance DECIMAL(18,2) = NULL,
 	@MaintenancePer NVARCHAR(50) = NULL,
 	@Insurance DECIMAL(18,2) = NULL,

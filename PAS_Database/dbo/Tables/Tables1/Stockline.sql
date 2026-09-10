@@ -405,7 +405,7 @@ BEGIN
     (
         SELECT
             d.[StockLineId],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN N'Non-Stock' END AS [Type],
+            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN N'Non-Stock' ELSE N'Stock' END AS [Type],
             d.[PartNumber],
             d.[PNDescription],
             d.[Manufacturer],
@@ -415,48 +415,36 @@ BEGIN
                 THEN CASE WHEN ISNULL(d.[IsService], 0) = 1 THEN N'Service' ELSE N'Non-Service' END
             END AS [Service],
             d.[StockLineNumber],
-            d.[NonStockClassification],           
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[ExpirationDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), d.[ExpirationDate], 126)
-            END AS [ExpirationDate],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(daat.[Name], '') END AS [AcquisitionType],
+            d.[NonStockClassification],
+            ISNULL(CONVERT(NVARCHAR(33), d.[ExpirationDate], 126), '') AS [ExpirationDate],
+            CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(daat.[Name], '') END AS [AcquisitionType],
             d.[UnitOfMeasure],
             d.[StockUnitOfMeasure],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[OrderDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), d.[OrderDate], 126)
-            END AS [OrderDate],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[EntryDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), d.[EntryDate], 126)
-            END AS [EntryDate],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[PurchaseOrderNumber], '')
-                ELSE d.[PurchaseOrderNumber]
-            END AS [PurchaseOrderNumber],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(dv.[VendorName], '') END AS [Vendor],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1
+            ISNULL(CONVERT(NVARCHAR(33), d.[OrderDate], 126), '') AS [OrderDate],
+            ISNULL(CONVERT(NVARCHAR(33), d.[EntryDate], 126), '') AS [EntryDate],
+            d.[PurchaseOrderNumber],
+            CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(dv.[VendorName], '') END AS [Vendor],
+            CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0
                 THEN LTRIM(RTRIM(CONCAT(ISNULL(de.[FirstName], ''), ' ', ISNULL(de.[LastName], ''))))
             END AS [Requestor],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[ReceiverNumber], '')
-                ELSE d.[ReceiverNumber]
-            END AS [ReceiverNumber],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), d.[ReceivedDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), d.[ReceivedDate], 126)
-            END AS [ReceivedDate],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN d.[IsHazardousMaterial] END AS [IsHazardousMaterial],
+            d.[ReceiverNumber],
+            ISNULL(CONVERT(NVARCHAR(33), d.[ReceivedDate], 126), '') AS [ReceivedDate],
+            d.[IsHazardousMaterial],
             d.[QuantityOnHand],
             d.[QuantityReserved],
             d.[QuantityIssued],
             d.[QuantityAvailable],
             d.[QuantityAdjustment],
             d.[UnitCost],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(d.[Currency], '') END AS [Currency],
+            d.[Currency],
             d.[GlAccountName],          
             d.[Site],
             d.[Warehouse],
             d.[Location],
             d.[Shelf],
             d.[Bin],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(dms.[LastMSLevel], '') END AS [ManagementStructure],
-            CASE WHEN ISNULL(d.[IsNonStock], 0) = 1 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
+            CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(dms.[LastMSLevel], '') END AS [ManagementStructure],
+            CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
             d.[InventoryGLAccName],
             d.[GoodsReceivedNotInvoicesGLAccName],
             d.[RevenueSoGLAccName],
@@ -513,7 +501,7 @@ BEGIN
     (
         SELECT
             i.[StockLineId],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN N'Non-Stock' END AS [Type],
+            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN N'Non-Stock' ELSE N'Stock' END AS [Type],
             i.[PartNumber],
             i.[PNDescription],
             i.[Manufacturer],
@@ -524,47 +512,35 @@ BEGIN
             END AS [Service],
             i.[StockLineNumber],
             i.[NonStockClassification],            
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[ExpirationDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), i.[ExpirationDate], 126)
-            END AS [ExpirationDate],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iaat.[Name], '') END AS [AcquisitionType],
+            ISNULL(CONVERT(NVARCHAR(33), i.[ExpirationDate], 126), '') AS [ExpirationDate],
+            CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(iaat.[Name], '') END AS [AcquisitionType],
             i.[UnitOfMeasure],
             i.[StockUnitOfMeasure],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[OrderDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), i.[OrderDate], 126)
-            END AS [OrderDate],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[EntryDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), i.[EntryDate], 126)
-            END AS [EntryDate],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[PurchaseOrderNumber], '')
-                ELSE i.[PurchaseOrderNumber]
-            END AS [PurchaseOrderNumber],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iv.[VendorName], '') END AS [Vendor],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1
+            ISNULL(CONVERT(NVARCHAR(33), i.[OrderDate], 126), '') AS [OrderDate],
+            ISNULL(CONVERT(NVARCHAR(33), i.[EntryDate], 126), '') AS [EntryDate],
+            i.[PurchaseOrderNumber],
+            CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(iv.[VendorName], '') END AS [Vendor],
+            CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0
                 THEN LTRIM(RTRIM(CONCAT(ISNULL(ie.[FirstName], ''), ' ', ISNULL(ie.[LastName], ''))))
             END AS [Requestor],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[ReceiverNumber], '')
-                ELSE i.[ReceiverNumber]
-            END AS [ReceiverNumber],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(CONVERT(NVARCHAR(33), i.[ReceivedDate], 126), '')
-                ELSE CONVERT(NVARCHAR(33), i.[ReceivedDate], 126)
-            END AS [ReceivedDate],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN i.[IsHazardousMaterial] END AS [IsHazardousMaterial],
+            i.[ReceiverNumber],         
+            ISNULL(CONVERT(NVARCHAR(33), i.[ReceivedDate], 126), '') AS [ReceivedDate],
+            i.[IsHazardousMaterial],
             i.[QuantityOnHand],
             i.[QuantityReserved],
             i.[QuantityIssued],
             i.[QuantityAvailable],
             i.[QuantityAdjustment],
             i.[UnitCost],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(i.[Currency], '') END AS [Currency],            
+            i.[Currency],            
             i.[GlAccountName],          
             i.[Site],
             i.[Warehouse],
             i.[Location],
             i.[Shelf],
             i.[Bin],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(ims.[LastMSLevel], '') END AS [ManagementStructure],
-            CASE WHEN ISNULL(i.[IsNonStock], 0) = 1 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],            
+            CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(ims.[LastMSLevel], '') END AS [ManagementStructure],
+            CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],            
             i.[InventoryGLAccName],
             i.[GoodsReceivedNotInvoicesGLAccName],
             i.[RevenueSoGLAccName],

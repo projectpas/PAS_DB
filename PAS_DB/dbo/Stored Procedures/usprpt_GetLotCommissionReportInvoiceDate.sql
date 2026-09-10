@@ -42,6 +42,19 @@
          LessCOGSRepair is now computed once in CashCTE (LCR CROSS APPLY) instead of being recomputed in
          CalcCTE, so both the new Consignee/Consignor branching and the existing Less* columns share one
          calculation.
+    4    09/September/2026   Claude (Rajesh Gami)   [PN-17830] Added LotId to the returned result
+         set (PaymentCTE, NACTE + its GROUP BY, all three AllRowsCTE UNION ALL branches, and the
+         final SELECT) so the LOT Commission Report grid's "Initiate Consignor Payment" action can
+         resolve the row's Lot (previously only LOTNum/LotNumber text was returned, so rowData.lotId
+         was always undefined on the frontend).
+    5    09/September/2026   Claude (Rajesh Gami)   [PN-17830] Added ReceiptId to the
+         final SELECT output, and threaded CustomerPayments.IsNonPOGenerated through CashCTE
+         (both branches, real value from CP.IsNonPOGenerated), PaymentCTE/NACTE (NULL placeholder -
+         neither branch corresponds to a specific CustomerPayments row), all three AllRowsCTE
+         UNION ALL branches, and the final SELECT. Lets the LOT Commission Report grid disable
+         "Initiate Consignor Payment" once a NON PO invoice has already been generated for that
+         cash receipt (USP_AddUpdate_NonPOInvoiceHeader now sets IsNonPOGenerated=1 on
+         CustomerPayments when it stores the ReceiptId passed from that flow).
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -260,7 +273,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
-        '' AS pn
+        '' AS pn,
+        CP.IsNonPOGenerated
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -366,7 +380,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
-        '' AS pn
+        '' AS pn,
+        CP.IsNonPOGenerated
       FROM dbo.CustomerPayments CP WITH (NOLOCK)
       INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
       INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
@@ -493,6 +508,7 @@ BEGIN
         VRPD.CheckDate AS CashReceiptDateRaw,
         CAST(VRPD.CheckNumber AS VARCHAR(100)) AS CustomerPaymentRef,
         CAST(CASE WHEN ISNULL(RRH.ReceivingReconciliationId,0) > 0 THEN RRH.InvoiceNum  WHEN ISNULL(NPIH.NonPOInvoiceId,0) > 0 THEN NPIH.InvoiceNumber ELSE '' END AS VARCHAR(100)) AS InvoiceNum,
+        LotResolved.LotId,
         CAST(ISNULL(LotResolved.LotNumber,'') AS VARCHAR(100)) AS LotNumber,
         CAST(0 AS DECIMAL(20,2)) AS CashReceipt,
         CAST(0 AS DECIMAL(20,2)) AS ConsigneePortion,
@@ -561,6 +577,7 @@ BEGIN
         CAST(NULL AS DATETIME2(7)) AS CashReceiptDateRaw,
         CAST(NULL AS VARCHAR(100)) AS CustomerPaymentRef,
         CAST(NULL AS VARCHAR(100)) AS InvoiceNum,
+        LT.LotId,
         LT.LotNumber AS LOTNum,
         CAST(0 AS DECIMAL(20,2)) AS CashReceipt,
         CAST(0 AS DECIMAL(20,2)) AS ConsigneePortion,
@@ -579,7 +596,8 @@ BEGIN
         CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,
         CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,
         CAST(NULL AS VARCHAR(100)) AS pn,
-        CAST(NULL AS BIGINT) AS ReceiptId
+        CAST(NULL AS BIGINT) AS ReceiptId,
+        CAST(NULL AS BIT) AS IsNonPOGenerated
       FROM dbo.LOTOtherCostDetails LOC WITH (NOLOCK)
       INNER JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = LOC.LotId AND ISNULL(LT.IsDeleted,0) = 0
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LT.LotId AND MSD.EntityMSID = LT.ManagementStructureId
@@ -604,7 +622,7 @@ BEGIN
         AND (ISNULL(@Level8,'')  = '' OR MSD.Level8Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
         AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
         AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-      GROUP BY LT.LotNumber, MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
+      GROUP BY LT.LotId, LT.LotNumber, MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
         MSL1.Code, MSL1.[Description], MSL2.Code, MSL2.[Description], MSL3.Code, MSL3.[Description], MSL4.Code, MSL4.[Description]
     ),
     AllRowsCTE AS (
@@ -613,6 +631,7 @@ BEGIN
         CashReceiptDate AS CashReceiptDateRaw,
         CustomerPaymentRef,
         InvoiceNum,
+        LotId,
         LotNumber AS LOTNum,
         CashReceipt,
         ConsigneePortion,
@@ -626,7 +645,7 @@ BEGIN
         CAST(NULL AS VARCHAR(10)) AS PaymentDate,
         CAST(NULL AS VARCHAR(100)) AS PaymentRef,
         level1, level2, level3, level4, pn,
-        ReceiptId
+        ReceiptId, IsNonPOGenerated
       FROM OwedCTE
 
       UNION ALL
@@ -636,6 +655,7 @@ BEGIN
         CashReceiptDateRaw,
         CustomerPaymentRef,
         InvoiceNum,
+        LotId,
         LotNumber AS LOTNum,
         CashReceipt,
         ConsigneePortion,
@@ -649,7 +669,7 @@ BEGIN
         PaymentDate,
         PaymentRef,
         level1, level2, level3, level4, pn,
-        CAST(NULL AS BIGINT) AS ReceiptId
+        CAST(NULL AS BIGINT) AS ReceiptId, CAST(NULL AS BIT) AS IsNonPOGenerated
       FROM PaymentCTE
 
       UNION ALL
@@ -659,6 +679,7 @@ BEGIN
         CashReceiptDateRaw,
         CustomerPaymentRef,
         InvoiceNum,
+        LotId,
         LOTNum,
         CashReceipt,
         ConsigneePortion,
@@ -672,7 +693,7 @@ BEGIN
         PaymentDate,
         PaymentRef,
         level1, level2, level3, level4, pn,
-        ReceiptId
+        ReceiptId, IsNonPOGenerated
       FROM NACTE
     ),
     RunningBalanceCTE AS (
@@ -690,6 +711,9 @@ BEGIN
       FORMAT(CashReceiptDateRaw, 'MM-dd-yyyy') AS CashReceiptDate,
       CustomerPaymentRef,
       InvoiceNum,
+      LotId,
+      ReceiptId,
+      IsNonPOGenerated,
       LOTNum,
       CashReceipt,
       ConsigneePortion,

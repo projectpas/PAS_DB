@@ -18,6 +18,7 @@
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
     8    01/04/2026   Ayushi Patel      PN-15880 Changed varchar size from 10 to 50 for UnitCost casting in global search
     9    14/05/2026   Bhargav Saliya    Remove VendorId Condition [PN-16416]
+	10   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
     exec SP_GetVendorRFQPNViewList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'open',@GlobalFilter=N'',@VendorRFQPurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=2,@MasterCompanyId=1,@VendorId=NULL,@PartNumber=NULL,@PartDescription=NULL,@StockType=NULL,@Manufacturer=NULL,@Priority=NULL,@NeedByDate=NULL,@PromisedDate=NULL,@Condition=NULL,@UnitCost=N'210.00',@QuantityOrdered=N'10.00000',@WorkOrderNo=NULL,@SubWorkOrderNo=NULL,@SalesOrderNo=NULL,@PurchaseOrderNumber=NULL,@mgmtStructure=NULL,@Level2Type=N'',@Level3Type=N'',@Level4Type=N'',@Memo=NULL,@SourceBy=NULL,@MarketplaceRef=NULL,@CustomerRFQNo=NULL
 **********************/  
 
@@ -238,7 +239,7 @@ SET NOCOUNT ON;
      (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
      (VendorName LIKE '%' +@GlobalFilter+'%') OR    
      (RequestedBy LIKE '%' +@GlobalFilter+'%') OR  
-     (PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
+     (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
      (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
      (StockTypeType LIKE '%' +@GlobalFilter+'%') OR  
      (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR  
@@ -267,7 +268,7 @@ SET NOCOUNT ON;
      (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND  
      (ISNULL(@NeedByDate,'') ='' OR NeedByDateType LIKE '%' + @NeedByDate + '%') AND  
      (ISNULL(@PromisedDate,'') ='' OR PromisedDateType LIKE '%' + @PromisedDate + '%') AND  
-     (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND  
+     (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
      (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND  
      (ISNULL(@StockType,'') ='' OR StockTypeType LIKE '%' + @StockType + '%') AND  
      (ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND  

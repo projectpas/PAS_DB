@@ -48,6 +48,7 @@
    27   08-Sep-2026   Claude (for Rajesh Gami)   [PN-17853] Ported from BETA/RG_S67_LOTChange: (a) Added the missing @FlatRateBillingMethodId DECLARE (used by the OtherCost CROSS APPLY added in item 26, and now by PNSoldView below - this was a gap in item 26's port that would have caused "Must declare the scalar variable" at runtime). (b) PNSoldView branch (Sales Activity tab): added Freight/Charges columns to the Result CTE - FlatRate billing method rows use the MarkupFixedPrice of the LAST SalesOrderFreight/SalesOrderCharges record for the whole SalesOrderId (no part filter, since flat-rate lines aren't tied to a specific part); T&M/Actual billing method rows use SUM(BillingAmount) filtered by this SalesOrderPartId. Other untagged BETA changes in this branch (fn_NormalizePartNumber calls, VARCHAR(50)->VARCHAR(10) cast-width cleanups) were left untouched per scope.
    28   08-Sep-2026   Claude (for Rajesh Gami)   [PN-17853] Ported from BETA/RG_S67_LOTChange: Commission branch (Commission Activity tab) - MarginAmt/Margin%/CommissionExpense are now computed off row-level Revenue (ExtSalesUnitPrice + Freight + Charges, same FlatRate-vs-T&M/Actual rule as PNSoldView) using the same LotConsignment-based Commission formula as USP_Lot_GetLotSummaryByLotId (IsFixedAmount / IsRevenue+IsMargin percent-based), replacing the old ltCal.MarginAmount/CommissionExpense columns (computed before Freight/Charges existed) - so the Commission tab lines up with the Lot Summary tab. Other untagged BETA changes in this branch (fn_NormalizePartNumber calls, VARCHAR(50)->VARCHAR(10) cast-width cleanups) were left untouched per scope.
    29   03-Sep-2026   RAJESH GAMI      [PN-17853] Repair Cost Mismatch fix
+	30   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
    30   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] Ported from RG_S67_LOTChange: Display Total Amount Based on All Records in LOT Tabs - added page-independent SUM() grand totals (computed against the fully-filtered #temp table, before OFFSET/FETCH paging - same pattern as the existing @Count/NumberOfItems) for the PNInStockView, PNQuoteView, PNSoldView, RepairedView, OtherCost and Commission branches. Each branch now also returns its new '<Column>Sum' totals alongside NumberOfItems so the UI no longer has to (incorrectly) sum only the current page of rows.
    31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2, ported from RG_S67_LOTChange: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
@@ -386,7 +387,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
-					(Partnumber LIKE '%' + @GlobalFilter + '%') OR
+					(Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -440,7 +441,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					OR
 					(@GlobalFilter = '' AND 
 	
-					(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -508,7 +509,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--	(LotNumber LIKE '%' + @GlobalFilter + '%') OR
 				--	(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 				--	(LotName LIKE '%' + @GlobalFilter + '%') OR
-				--	(Partnumber LIKE '%' + @GlobalFilter + '%') OR
+				--	(Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 				--	([Description] LIKE '%' + @GlobalFilter + '%') OR
 				--	(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 				--	(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -561,7 +562,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--	OR
 				--	(@GlobalFilter = '' AND 
 	
-				--	(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+				--	(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 				--	(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 				--	(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 				--	(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -854,7 +855,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 					SELECT * INTO #PNInStockTbl FROM  Result
 					WHERE 
-					((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%') OR
+					((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -902,7 +903,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(VendorCode like '%' + @GlobalFilter + '%')
 					))
 					OR
-					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -1150,7 +1151,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				
 				SELECT * INTO #PNQuoteViewTbl FROM  Result 
 				WHERE 
-				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%') OR
+				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -1193,7 +1194,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					([Status] like '%' + @GlobalFilter + '%')
 					))
 					OR
-					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -1446,7 +1447,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				
 				SELECT * INTO #PNSoldViewTbl FROM  Result 
 				WHERE 
-				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%') OR
+				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -1499,7 +1500,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					([Status] like '%' + @GlobalFilter + '%')
 					))
 					OR
-					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -1774,7 +1775,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 				SELECT * INTO #RepairedViewTbl FROM  Result 
 				WHERE 
-				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%') OR
+				((@GlobalFilter <>'' AND ((Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -1825,7 +1826,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 					))
 					OR
-					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
@@ -2339,7 +2340,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
-					(Partnumber LIKE '%' + @GlobalFilter + '%') OR
+					(Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
@@ -2365,7 +2366,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					))
 					OR
 					(@GlobalFilter = '' AND 	
-					(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND

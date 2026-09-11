@@ -27,6 +27,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) from SO and Exchange-SO branches so Non-Stock parts appear in QuickBooks invoice extract (WorkOrder branch untouched).
+	4   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -407,7 +408,7 @@ BEGIN
       (OrderNumber like '%' +@GlobalFilter+'%') OR    
       (CustomerName like '%' +@GlobalFilter+'%') OR  
       (CustomerType like '%' +@GlobalFilter+'%') OR
-      (PN like '%' +@GlobalFilter+'%') OR  
+      (PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
       (PNDescription like '%' +@GlobalFilter+'%') OR  
       (VersionNo like '%' +@GlobalFilter+'%') OR  
 	  (QuoteNumber like '%' +@GlobalFilter+'%') OR  
@@ -424,7 +425,7 @@ BEGIN
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
       (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
       (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
-      (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%') AND  
+      (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND  
       (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
       (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND 
 	  (IsNull(@QuoteNumber,'') ='' OR QuoteNumber like '%' + @QuoteNumber+'%') AND
@@ -645,7 +646,7 @@ BEGIN
 				  (OrderNumber like '%' +@GlobalFilter+'%') OR    
 				  (CustomerName like '%' +@GlobalFilter+'%') OR  
 				  (CustomerType like '%' +@GlobalFilter+'%') OR 
-				  (PN like '%' +@GlobalFilter+'%') OR  
+				  (PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
 				  (PNDescription like '%' +@GlobalFilter+'%') OR  
 				  (VersionNo like '%' +@GlobalFilter+'%') OR 
 				  (QuoteNumber like '%' +@GlobalFilter+'%') OR 
@@ -661,7 +662,7 @@ BEGIN
 				  (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
 				  (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
 				  (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
-				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%') AND  
+				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND  
 				  (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
 				  (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND   
 				  (IsNull(@QuoteNumber,'') ='' OR QuoteNumber like '%' + @QuoteNumber+'%') AND   

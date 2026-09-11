@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
     1    --------		Unknown
 	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
+	4	 10-Sep-2026  Bhargav Saliya	 [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
 
@@ -124,7 +125,7 @@ BEGIN
 					(@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR 
 							(PORO like '%' + @GlobalFilter +'%') OR
 							(OpenDate like '%' + @GlobalFilter +'%') OR
-							(PartNumber like '%' + @GlobalFilter +'%') OR
+							(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(PartDescription like '%'+ @GlobalFilter +'%') OR
 							(Requisitioner like '%' + @GlobalFilter +'%') OR
 							(Currency like '%' + @GlobalFilter +'%') OR
@@ -146,7 +147,7 @@ BEGIN
 							(IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and 
 							(IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') and
 							(IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and
-							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 							(IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 							(IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') and
 							(IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and

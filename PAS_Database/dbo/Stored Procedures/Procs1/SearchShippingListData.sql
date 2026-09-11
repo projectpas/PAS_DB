@@ -17,6 +17,7 @@
 	12   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13   23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	14   31/Aug/2026			 Vishal Suthar						[PN-17822] - Added Customer Reference Field
+	15   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[SearchShippingListData] 
@@ -270,7 +271,7 @@ BEGIN
 							FROM Result 
 							where (
 								(@GlobalFilter <> '' AND ((RefNumber like '%' + @GlobalFilter +'%') OR
-										(PartNumber like '%' + @GlobalFilter +'%') OR
+										(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 										(PartDescription like '%'+ @GlobalFilter +'%') OR
 										(Customer like '%' + @GlobalFilter +'%') OR
 										(CustomerId like '%' + @GlobalFilter +'%') OR
@@ -290,7 +291,7 @@ BEGIN
 										OR   
 										(@GlobalFilter = '' AND 
 										(ISNULL(@RefNumber, '') = '' OR RefNumber like  '%'+ @RefNumber +'%') and
-										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 										(ISNULL(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 										(ISNULL(@Customer, '') = '' OR Customer like '%'+ @Customer +'%') and
 										(ISNULL(@Priority, '') = '' OR [Priority] like '%'+ @Priority +'%') and
@@ -563,7 +564,7 @@ BEGIN
 							FROM Result 
 							where (
 								(@GlobalFilter <> '' AND ((RefNumber like '%' + @GlobalFilter +'%') OR
-										(PartNumber like '%' + @GlobalFilter +'%') OR
+										(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 										(PartDescription like '%'+ @GlobalFilter +'%') OR
 										(Customer like '%' + @GlobalFilter +'%') OR
 										(CustomerId like '%' + @GlobalFilter +'%') OR
@@ -583,7 +584,7 @@ BEGIN
 										OR   
 										(@GlobalFilter = '' AND 
 										(ISNULL(@RefNumber, '') = '' OR RefNumber like  '%'+ @RefNumber +'%') and
-										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 										(ISNULL(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 										(ISNULL(@Customer, '') = '' OR Customer like '%'+ @Customer +'%') and
 										(ISNULL(@Priority, '') = '' OR [Priority] like '%'+ @Priority +'%') and
@@ -864,7 +865,7 @@ BEGIN
 							FROM Result 
 							where (
 								(@GlobalFilter <> '' AND ((RefNumber like '%' + @GlobalFilter +'%') OR
-										(PartNumber like '%' + @GlobalFilter +'%') OR
+										(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 										(PartDescription like '%'+ @GlobalFilter +'%') OR
 										(Customer like '%' + @GlobalFilter +'%') OR
 										(CustomerId like '%' + @GlobalFilter +'%') OR
@@ -884,7 +885,7 @@ BEGIN
 										OR   
 										(@GlobalFilter = '' AND 
 										(ISNULL(@RefNumber, '') = '' OR RefNumber like  '%'+ @RefNumber +'%') and
-										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+										(ISNULL(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 										(ISNULL(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 										(ISNULL(@Customer, '') = '' OR Customer like '%'+ @Customer +'%') and
 										(ISNULL(@Priority, '') = '' OR [Priority] like '%'+ @Priority +'%') and

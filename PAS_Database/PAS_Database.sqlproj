@@ -1491,6 +1491,7 @@
     <Build Include="dbo\Functions\FN_GetExpireDaysStockline.sql" />
     <Build Include="dbo\Functions\FN_GetCurrentLaborHours.sql" />
     <Build Include="dbo\Functions\ConvertUTCtoLocal.sql" />
+    <Build Include="dbo\Functions\fn_NormalizePartNumber.sql" />
     <Build Include="dbo\Functions\udfGetAllEntityMSLevelString.sql" />
     <Build Include="dbo\Functions\udfGenerateCodeNumberWithOutDash.sql" />
     <Build Include="dbo\Functions\udfGenerateCodeNumber.sql" />

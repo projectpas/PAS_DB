@@ -24,6 +24,7 @@
 ** 11   22/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filter
     12   29/JUL/2026 Kishor Makwana     PERFORMANCE ONLY - Sales Order List filter slowness.
     13	 05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+	14   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 ***************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchSalesOrderPNViewData]
 	@PageNumber              INT,
@@ -323,7 +324,7 @@ BEGIN
 					AND (@ManufacturerType     IS NULL OR M.[Name]                  LIKE '%' + @ManufacturerType     + '%')
 					AND (@VersionNumber        IS NULL OR SOQ.VersionNumber         LIKE '%' + @VersionNumber        + '%')
 					AND (@SalesPerson          IS NULL OR (E.FirstName + ' ' + E.LastName) LIKE '%' + @SalesPerson    + '%')
-					AND (@PartNumberType       IS NULL OR ISNULL(IM.PartNumber, '') LIKE '%' + @PartNumberType       + '%')
+					AND (@PartNumberType       IS NULL OR ISNULL(IM.PartNumber, '') LIKE '%' + @PartNumberType       + '%' OR dbo.fn_NormalizePartNumber(ISNULL(IM.PartNumber, '')) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%')
 					AND (@PartDescriptionType  IS NULL OR ISNULL(IM.PartDescription, '') LIKE '%' + @PartDescriptionType + '%')
 					AND (@CreatedBy            IS NULL OR SO.CreatedBy              LIKE '%' + @CreatedBy            + '%')
 					AND (@UpdatedBy            IS NULL OR SO.UpdatedBy              LIKE '%' + @UpdatedBy            + '%')

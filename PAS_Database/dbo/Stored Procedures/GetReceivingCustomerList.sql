@@ -36,6 +36,7 @@
 	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	21   15-JUL-2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table
+	22   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -242,7 +243,7 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (
 					(@GlobalFilter <>'' AND (([CustomerName] LIKE '%' +@GlobalFilter+'%' ) OR 
-					([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([PartNumber] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([PartDescription] LIKE '%' +@GlobalFilter+'%') OR
 					([SerialNumber] LIKE '%' +@GlobalFilter+'%') OR
 					([StocklineNumber] LIKE '%' +@GlobalFilter+'%') OR
@@ -262,7 +263,7 @@ BEGIN
 					))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND 
-					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 					(ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND
 					(ISNULL(@StocklineNumber,'') ='' OR [StocklineNumber] LIKE '%' + @StocklineNumber+'%') AND

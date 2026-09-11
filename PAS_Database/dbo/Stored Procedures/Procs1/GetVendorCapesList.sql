@@ -1,4 +1,5 @@
 ﻿
+-- 10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 CREATE   PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
@@ -133,7 +134,7 @@ BEGIN
 			(@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%' ) OR 
 					(VendorCode LIKE '%' +@GlobalFilter+'%') OR
 					(CapabilityTypeName LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(VendorRanking LIKE '%' +@GlobalFilter+'%') OR
@@ -147,7 +148,7 @@ BEGIN
 					(@GlobalFilter='' AND (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND 
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode+'%') AND
 					(ISNULL(@CapabilityType,'') ='' OR CapabilityTypeName LIKE '%' + @CapabilityType+'%') AND
-					(ISNULL(@PN,'') ='' OR partnumber LIKE '%' + @PN+'%') AND
+					(ISNULL(@PN,'') ='' OR partnumber LIKE '%' + @PN+'%' OR dbo.fn_NormalizePartNumber(partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND
 					(ISNULL(@PNDescription,'') ='' OR PartDescription LIKE '%' + @PNDescription+'%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%') AND
 					(ISNULL(@Ranking,'') ='' OR VendorRanking LIKE '%' + @Ranking+'%') AND

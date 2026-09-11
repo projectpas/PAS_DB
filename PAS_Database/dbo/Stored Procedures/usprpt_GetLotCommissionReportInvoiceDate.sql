@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************
+﻿/*************************************************************
  ** File:   [usprpt_GetLotCommissionReportInvoiceDate]
  ** Author: Kishor Makwana (AI-assisted via Claude)
  ** Description: [PN-17830] Custom Commission Setup - BAG. "Commission Payment Tracking"
@@ -68,6 +66,15 @@
          SELECT *), explicitly through AllRowsCTE's three UNION ALL branches (NULL placeholder for
          the PaymentCTE/NACTE branches, which have no corresponding CustomerPayments row), and the
          final SELECT.
+    7    11/September/2026   Claude (Rajesh Gami)   [PN-17830] PaymentCTE's LotResolved OUTER APPLY
+         (resolves the Lot shown against an already-issued Consignor AP payment) now covers
+         NonPOInvoiceHeader-based rows only (the ReceivingReconciliationDetails-based/RRH branch is
+         intentionally not used here per Rajesh): two branches trace CP.ReceiptId = NPIH.ReceiptId
+         through InvoicePayments/BillingInvoicing/BillingInvoicingItems (WO and SO ModuleId) to the
+         Stockline's Lot. Both branches now feed one UNION ALL wrapped in an outer SELECT TOP 1
+         (was a plain UNION, which could return two rows - one per WO/SO match - and duplicate the
+         PaymentCTE row for a payment whose customer payment touches both a WO and a SO billing
+         invoice item).
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -575,12 +582,38 @@ BEGIN
       LEFT JOIN dbo.NonPOInvoiceHeader NPIH WITH (NOLOCK) ON NPIH.NonPOInvoiceId = VRPD.NonPOInvoiceId
       LEFT JOIN dbo.ReceivingReconciliationHeader RRH WITH (NOLOCK) ON RRH.ReceivingReconciliationId = VRPD.ReceivingReconciliationId
       OUTER APPLY (
-        SELECT TOP 1 LT2.LotNumber, LT2.LotId, LT2.ManagementStructureId
-        FROM dbo.ReceivingReconciliationDetails RRD2 WITH (NOLOCK)
-        INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = RRD2.StocklineId
-        INNER JOIN dbo.Lot LT2 WITH (NOLOCK) ON LT2.LotId = STK2.LotId AND ISNULL(LT2.IsDeleted,0) = 0
-        WHERE RRD2.ReceivingReconciliationId = RRH.ReceivingReconciliationId
-        ORDER BY RRD2.ReceivingReconciliationDetailId
+        SELECT TOP 1 LotResolvedX.LotNumber, LotResolvedX.LotId, LotResolvedX.ManagementStructureId
+        FROM (
+          -- [PN-17830] 11-Sep-2026: NPIH branch, WO billing side (non-PO/consignment invoice based
+          -- vendor payment) - resolves Lot via the customer payment that generated this NON PO
+          -- invoice. UNION ALL + outer TOP 1 (not a plain UNION, which had returned one row per
+          -- matching branch and so could fan out/duplicate this VRPD row in PaymentCTE) guarantees
+          -- at most one Lot even when the customer payment touches both a WO and a SO billing
+          -- invoice item (Rajesh, 11-Sep-2026).
+          SELECT TOP 1 LT.LotNumber, LT.LotId, LT.ManagementStructureId, 1 AS SortOrder
+          FROM dbo.CustomerPayments CP WITH (NOLOCK)
+          INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
+          INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
+          INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND BII.ModuleId = @WOModuleId
+          LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = BII.StocklineId
+          LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = STK.LotId AND ISNULL(LT.IsDeleted,0) = 0
+          WHERE CP.ReceiptId = NPIH.ReceiptId
+          ORDER BY BI.BillingInvoicingId DESC, STK.StockLineId DESC
+
+          UNION ALL
+
+          -- [PN-17830] 11-Sep-2026: NPIH branch, SO billing side (same idea, sales-order side).
+          SELECT TOP 1 LT.LotNumber, LT.LotId, LT.ManagementStructureId, 2 AS SortOrder
+          FROM dbo.CustomerPayments CP WITH (NOLOCK)
+          INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0
+          INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = IPY.SOBillingInvoicingId
+          INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND BII.ModuleId = @SOModuleId
+          LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = BII.StocklineId
+          LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = STK.LotId AND ISNULL(LT.IsDeleted,0) = 0
+          WHERE CP.ReceiptId = NPIH.ReceiptId
+          ORDER BY BI.BillingInvoicingId DESC, STK.StockLineId DESC
+        ) LotResolvedX
+        ORDER BY LotResolvedX.SortOrder
       ) LotResolved
       LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = LotResolved.LotId AND MSD.EntityMSID = LotResolved.ManagementStructureId
       LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID

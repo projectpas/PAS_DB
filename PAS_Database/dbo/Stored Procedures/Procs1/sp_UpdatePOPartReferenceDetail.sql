@@ -19,6 +19,7 @@
     2    08/13/2023   Vishal Suthar		Modified to update PO Number and Est Dlvry Date when Alt or Equ part is mapped
 	3	 11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	4	 12/30/2025	  Devendra Shekh	Modified WOM Kit Update Logic to WOM Update
+	5    11/09/2026   Sahdev Saliya     Fixed SO Part PO Num/Est Dlvry Date not updating when PO is placed against an Alt/Equ mapped part (mirrors existing WOM Alt/Equ fix) - [PN-17885]
 
  EXEC sp_UpdatePOPartReferenceDetail 214  
 **************************************************************/
@@ -64,13 +65,14 @@ BEGIN
 	INNER JOIN dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.SubWorkOrderId = PP.ReferenceId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId  
 	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 5    AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
-  
-	UPDATE dbo.SalesOrderPartV1  
-	SET PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate  
+
+	UPDATE dbo.SalesOrderPartV1
+	SET PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
 	FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 	LEFT JOIN dbo.PurchaseOrderPartReference PP WITH (NOLOCK) ON PP.PurchaseOrderId = POP.PurchaseOrderId AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
-	INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = PP.ReferenceId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId  
-	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
+	LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
+	INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = PP.ReferenceId and SOP.ConditionId = POP.ConditionId and (SOP.ItemMasterId = POP.ItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId)
+	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 3   AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
   
 	UPDATE dbo.ExchangeSalesOrderPart  

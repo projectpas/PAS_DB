@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [[USP_GetWorksheetHeaderById]]          
  ** Author:   
  ** Description: This stored procedure is used to get records from [WorksheetHeader].
@@ -14,6 +13,11 @@
  ** --   --------     -------            --------------------------------     
     1    14/05/2026   Priyansh Patel     Created [PN-16408]
     2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
+    3    10/09/2026   Amit Ghediya       Added IsFromAircraft/AircraftRegistryId/EngineRegistryId - the Edit
+                                     Worksheet screen uses IsFromAircraft to decide whether to show
+                                     "AC ..." or "Engine ..." field labels, but this SP never returned
+                                     it, so every worksheet fell back to showing "Engine ..." labels
+                                     on reload regardless of how it was actually created
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderById]
@@ -34,11 +38,13 @@ BEGIN
             WH.AircraftModel,
             WH.WorksheetType,
             WH.WorksheetTypeId,
+			WH.MtcCategoryId,
             WH.WorkOrderNo,
             WH.TailNum,
             WH.SerialNum,
             WH.AFHours,
             WH.InspectionType,
+			WH.InspectionTypeId,
             WH.InspectionDate,
             WH.QualitySafetyDeptSignOutBy,
             WH.QualitySafetyDeptSignOutDate,
@@ -62,13 +68,17 @@ BEGIN
             WH.DupInspSignatory2By,
             WH.DupInspSignatory2LicAppNo,
             WH.DupInspSignatory2Time,
+			WH.IsFromAircraft,
+			WH.AircraftRegistryId,
+			WH.EngineRegistryId,
             WH.IsActive,
             WH.IsDeleted,
             WH.MasterCompanyId,
             WH.CreatedBy,
             WH.UpdatedBy,
             WH.CreatedDate,
-            WH.UpdatedDate
+            WH.UpdatedDate,
+			WH.IsScheduled
         FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
         WHERE WH.WorksheetHeaderId = @WorksheetHeaderId AND WH.MasterCompanyId =  @MasterCompanyId
           AND WH.IsDeleted = 0;

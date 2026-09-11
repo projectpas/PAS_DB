@@ -31,23 +31,33 @@
 
 GO
 
-
-
-
 CREATE TRIGGER [dbo].[Trg_WorkorderPickTicketAudit]
-
-   ON  [dbo].[WorkorderPickTicket]
-
-   AFTER INSERT,DELETE,UPDATE
-
+   ON dbo.WorkorderPickTicket
+   AFTER INSERT, UPDATE, DELETE
 AS
-
 BEGIN
+    SET NOCOUNT ON;
 
-	INSERT INTO WorkorderPickTicketAudit
-
-	SELECT * FROM INSERTED
-
-	SET NOCOUNT ON;
-
+    IF EXISTS (SELECT 1 FROM INSERTED)
+    BEGIN
+        INSERT INTO [dbo].[WorkorderPickTicketAudit]
+                   ([PickTicketId],[PickTicketNumber],[WorkorderId],[WorkOrderMaterialsId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
+                    [IsActive],[IsDeleted],[OrderPartId],[Qty],[QtyToShip],[MasterCompanyId],[Status],[PickedById],[ConfirmedById],
+                    [Memo],[IsConfirmed],[ConfirmedDate],[StocklineId],[PDFPath],[IsKitType],[QtyRemaining])
+        SELECT [PickTicketId],[PickTicketNumber],[WorkorderId],[WorkOrderMaterialsId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
+               [IsActive],[IsDeleted],[OrderPartId],[Qty],[QtyToShip],[MasterCompanyId],[Status],[PickedById],[ConfirmedById],
+               [Memo],[IsConfirmed],[ConfirmedDate],[StocklineId],[PDFPath],[IsKitType],[QtyRemaining]
+        FROM INSERTED;
+    END
+    ELSE IF EXISTS (SELECT 1 FROM DELETED)
+    BEGIN
+        INSERT INTO [dbo].[WorkorderPickTicketAudit]
+                   ([PickTicketId],[PickTicketNumber],[WorkorderId],[WorkOrderMaterialsId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
+                    [IsActive],[IsDeleted],[OrderPartId],[Qty],[QtyToShip],[MasterCompanyId],[Status],[PickedById],[ConfirmedById],
+                    [Memo],[IsConfirmed],[ConfirmedDate],[StocklineId],[PDFPath],[IsKitType],[QtyRemaining])
+        SELECT [PickTicketId],[PickTicketNumber],[WorkorderId],[WorkOrderMaterialsId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
+               [IsActive], 1 ,[OrderPartId],[Qty],[QtyToShip],[MasterCompanyId],[Status],[PickedById],[ConfirmedById],
+               [Memo],[IsConfirmed],[ConfirmedDate],[StocklineId],[PDFPath],[IsKitType],[QtyRemaining]
+        FROM DELETED;
+    END
 END

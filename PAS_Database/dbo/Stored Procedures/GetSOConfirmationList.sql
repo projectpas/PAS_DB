@@ -22,6 +22,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	8   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/     
 CREATE PROCEDURE [dbo].[GetSOConfirmationList]
 @PageNumber int = 1,
@@ -129,7 +130,7 @@ BEGIN
 			 WHERE ((@GlobalFilter <>'' AND ((CAST(SOConformationNumber AS NVARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(CAST(Qty AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 					(UOM LIKE '%' +@GlobalFilter+'%') OR
@@ -142,7 +143,7 @@ BEGIN
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date)=CAST(@OpenDate AS date)) AND
 					(ISNULL(@Qty, '') = '' OR CAST(CAST(Qty AS FLOAT) AS VARCHAR(50)) LIKE '%' + @Qty + '%') AND
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@UOM,'') ='' OR UOM LIKE '%' + @UOM + '%') AND
@@ -253,7 +254,7 @@ BEGIN
 					(CAST(SOConformationNumber AS NVARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(CAST(Qty AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 					(UOM LIKE '%' +@GlobalFilter+'%') OR
@@ -267,7 +268,7 @@ BEGIN
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date)=CAST(@OpenDate AS date)) AND
 					(ISNULL(@Qty, '') = '' OR CAST(CAST(Qty AS FLOAT) AS VARCHAR(50)) LIKE '%' + @Qty + '%') AND
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND				
 					(ISNULL(@UOM,'') ='' OR UOM LIKE '%' + @UOM + '%') AND

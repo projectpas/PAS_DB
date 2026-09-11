@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[AccountingCalendar] (
     [AccountingCalendarId]  BIGINT         IDENTITY (1, 1) NOT NULL,
-    [Name]                  VARCHAR (30)   NULL,
+    [Name]                  VARCHAR (100)   NULL,
     [Description]           VARCHAR (200)  NULL,
     [FiscalName]            VARCHAR (30)   NOT NULL,
     [FiscalYear]            INT            NULL,

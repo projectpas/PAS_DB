@@ -12,6 +12,7 @@
  1   19/12/2023		Seema Mansuri		Created  
  2   21/04/2025		AMIT GHEDIYA		Updated (For tile page with extra filter).
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/  
 /*
@@ -101,7 +102,7 @@ BEGIN
 			 (
 			 @GlobalFilter <>'' AND 
 			 (
-					(PartNumber LIKE '%' +@GlobalFilter+'%') 
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') 
 					OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(AlternatePart LIKE '%' +@GlobalFilter+'%') OR
@@ -119,7 +120,7 @@ BEGIN
 					OR   
 					(
 					@GlobalFilter='' AND 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%') AND
 				

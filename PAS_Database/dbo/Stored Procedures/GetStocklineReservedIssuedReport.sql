@@ -26,6 +26,7 @@
 	10   09-06-2026   BHARGAV SALIYA		Resolved converting data type varchar to numeric issue
 	11    09/July/2026   RAJESH GAMI		    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12   23/July/2026   RAJESH GAMI		    [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	13   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/   
 CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
@@ -1166,7 +1167,7 @@ BEGIN
 		 SELECT * INTO #finalResult
 		 FROM #tmptmpStockline
 		 WHERE (
-		 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+		 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 		 (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 		 (ISNULL(@Condition,'') ='' OR [Condition] LIKE '%' + @Condition+'%') AND
 		 (ISNULL(@StocklineNumber,'') ='' OR [StocklineNumber] LIKE '%' + @StocklineNumber+'%') AND

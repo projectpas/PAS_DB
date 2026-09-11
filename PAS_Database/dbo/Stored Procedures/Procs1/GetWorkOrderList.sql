@@ -47,6 +47,7 @@
 	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
     32   17/03/2026   HEMANT SALIYA			Optimize SP to Hnadle with .net core upgrade
 	33   09/July/2026  Rajesh Gami			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	34   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
@@ -460,8 +461,8 @@ BEGIN
                         (
                             WorkOrderNum LIKE ''%'' + @GlobalFilter + ''%''
                             OR WorkOrderType LIKE ''%'' + @GlobalFilter + ''%''
-                            OR PartNos LIKE ''%'' + @GlobalFilter + ''%''
-                            OR IncomingPartNumber LIKE ''%'' + @GlobalFilter + ''%''
+                            OR PartNos LIKE ''%'' + @GlobalFilter + ''%'' OR dbo.fn_NormalizePartNumber(PartNos) LIKE ''%'' + dbo.fn_NormalizePartNumber(@GlobalFilter) + ''%''
+                            OR IncomingPartNumber LIKE ''%'' + @GlobalFilter + ''%'' OR dbo.fn_NormalizePartNumber(IncomingPartNumber) LIKE ''%'' + dbo.fn_NormalizePartNumber(@GlobalFilter) + ''%''
                             OR PNDescription LIKE ''%'' + @GlobalFilter + ''%''
                             OR ManufacturerName LIKE ''%'' + @GlobalFilter + ''%''
                             OR WorkScope LIKE ''%'' + @GlobalFilter + ''%''
@@ -492,8 +493,8 @@ BEGIN
                     OR
                     (@GlobalFilter = '''' AND
                         (ISNULL(@WorkOrderNum, '''') = '''' OR WorkOrderNum LIKE ''%'' + @WorkOrderNum + ''%'')
-                        AND (ISNULL(@PartNumber, '''') = '''' OR PartNos LIKE ''%'' + @PartNumber + ''%'')
-                        AND (ISNULL(@IncomingPartNumber, '''') = '''' OR IncomingPartNumber LIKE ''%'' + @IncomingPartNumber + ''%'')
+                        AND (ISNULL(@PartNumber, '''') = '''' OR PartNos LIKE ''%'' + @PartNumber + ''%'' OR dbo.fn_NormalizePartNumber(PartNos) LIKE ''%'' + dbo.fn_NormalizePartNumber(@PartNumber) + ''%'')
+                        AND (ISNULL(@IncomingPartNumber, '''') = '''' OR IncomingPartNumber LIKE ''%'' + @IncomingPartNumber + ''%'' OR dbo.fn_NormalizePartNumber(IncomingPartNumber) LIKE ''%'' + dbo.fn_NormalizePartNumber(@IncomingPartNumber) + ''%'')
                         AND (ISNULL(@PartDescription, '''') = '''' OR PNDescription LIKE ''%'' + @PartDescription + ''%'')
                         AND (ISNULL(@ManufacturerName, '''') = '''' OR ManufacturerName LIKE ''%'' + @ManufacturerName + ''%'')
                         AND (ISNULL(@WorkScope, '''') = '''' OR WorkScope LIKE ''%'' + @WorkScope + ''%'')
@@ -732,8 +733,8 @@ BEGIN
                         (
                             WorkOrderNum LIKE ''%'' + @GlobalFilter + ''%''
                             OR WorkOrderType LIKE ''%'' + @GlobalFilter + ''%''
-                            OR PartNos LIKE ''%'' + @GlobalFilter + ''%''
-                            OR IncomingPartNumber LIKE ''%'' + @GlobalFilter + ''%''
+                            OR PartNos LIKE ''%'' + @GlobalFilter + ''%'' OR dbo.fn_NormalizePartNumber(PartNos) LIKE ''%'' + dbo.fn_NormalizePartNumber(@GlobalFilter) + ''%''
+                            OR IncomingPartNumber LIKE ''%'' + @GlobalFilter + ''%'' OR dbo.fn_NormalizePartNumber(IncomingPartNumber) LIKE ''%'' + dbo.fn_NormalizePartNumber(@GlobalFilter) + ''%''
                             OR PNDescription LIKE ''%'' + @GlobalFilter + ''%''
                             OR ManufacturerName LIKE ''%'' + @GlobalFilter + ''%''
                             OR WorkScope LIKE ''%'' + @GlobalFilter + ''%''
@@ -764,8 +765,8 @@ BEGIN
                     OR
                     (@GlobalFilter = '''' AND
                         (ISNULL(@WorkOrderNum, '''') = '''' OR WorkOrderNum LIKE ''%'' + @WorkOrderNum + ''%'')
-                        AND (ISNULL(@PartNumber, '''') = '''' OR PartNos LIKE ''%'' + @PartNumber + ''%'')
-                        AND (ISNULL(@IncomingPartNumber, '''') = '''' OR IncomingPartNumber LIKE ''%'' + @IncomingPartNumber + ''%'')
+                        AND (ISNULL(@PartNumber, '''') = '''' OR PartNos LIKE ''%'' + @PartNumber + ''%'' OR dbo.fn_NormalizePartNumber(PartNos) LIKE ''%'' + dbo.fn_NormalizePartNumber(@PartNumber) + ''%'')
+                        AND (ISNULL(@IncomingPartNumber, '''') = '''' OR IncomingPartNumber LIKE ''%'' + @IncomingPartNumber + ''%'' OR dbo.fn_NormalizePartNumber(IncomingPartNumber) LIKE ''%'' + dbo.fn_NormalizePartNumber(@IncomingPartNumber) + ''%'')
                         AND (ISNULL(@PartDescription, '''') = '''' OR PNDescription LIKE ''%'' + @PartDescription + ''%'')
                         AND (ISNULL(@ManufacturerName, '''') = '''' OR ManufacturerName LIKE ''%'' + @ManufacturerName + ''%'')
                         AND (ISNULL(@WorkScope, '''') = '''' OR WorkScope LIKE ''%'' + @WorkScope + ''%'')

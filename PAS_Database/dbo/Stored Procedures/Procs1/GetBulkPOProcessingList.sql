@@ -22,6 +22,7 @@
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	17	 09/July/2027            Ayushi Patel						return PoPartUnitCost from stockline table insted of PurchaseOrderUnitCost / uom chnages [PN-17152]
 	18   12/May/2026             RAJESH GAMI						Blank the MPN when it is SO [PN-16401]
+	19   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -918,7 +919,7 @@ BEGIN
 			--SELECT *  INTO #TempResult111 FROM Result		
 			 WHERE Quantity > 0 
 					 AND
-					 ((@GlobalFilter <>'' AND ((PN LIKE '%' + @GlobalFilter + '%') OR                                            -- StatusName
+					 ((@GlobalFilter <>'' AND ((PN LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR                                            -- StatusName
 							(StatusName LIKE '%' + @GlobalFilter + '%') OR
 							(poRfqNo LIKE '%' + @GlobalFilter + '%') OR
 							(PNDescription LIKE '%' + @GlobalFilter + '%') OR
@@ -939,7 +940,7 @@ BEGIN
 							(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 							(Customer LIKE '%' + @GlobalFilter + '%')))
 							OR
-							(@GlobalFilter = '' AND (ISNULL(@PN, '') = '' OR PN LIKE '%' + @PN + '%') AND
+							(@GlobalFilter = '' AND (ISNULL(@PN, '') = '' OR PN LIKE '%' + @PN + '%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND
 							(ISNULL(@statusName, '') = '' OR StatusName LIKE '%' + @statusName + '%') AND
 							(ISNULL(@PoRfqNo, '') = '' OR poRfqNo LIKE '%' + @PoRfqNo + '%') AND
 							(ISNULL(@PNDescription, '') = '' OR PNDescription LIKE '%' + @PNDescription + '%') AND
@@ -1830,7 +1831,7 @@ BEGIN
 			SELECT *  INTO #TempResult222 FROM #TEMPBulkPORecords		
 			 WHERE Quantity > 0 
 					 AND
-					 ((@GlobalFilter <>'' AND ((PN LIKE '%' + @GlobalFilter + '%') OR                                            -- StatusName
+					 ((@GlobalFilter <>'' AND ((PN LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR                                            -- StatusName
 							(StatusName LIKE '%' + @GlobalFilter + '%') OR
 							(poRfqNo LIKE '%' + @GlobalFilter + '%') OR
 							(PNDescription LIKE '%' + @GlobalFilter + '%') OR
@@ -1851,7 +1852,7 @@ BEGIN
 							(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 							(Customer LIKE '%' + @GlobalFilter + '%')))
 							OR
-							(@GlobalFilter = '' AND (ISNULL(@PN, '') = '' OR PN LIKE '%' + @PN + '%') AND
+							(@GlobalFilter = '' AND (ISNULL(@PN, '') = '' OR PN LIKE '%' + @PN + '%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND
 							(ISNULL(@statusName, '') = '' OR StatusName LIKE '%' + @statusName + '%') AND
 							(ISNULL(@PoRfqNo, '') = '' OR poRfqNo LIKE '%' + @PoRfqNo + '%') AND
 							(ISNULL(@PNDescription, '') = '' OR PNDescription LIKE '%' + @PNDescription + '%') AND

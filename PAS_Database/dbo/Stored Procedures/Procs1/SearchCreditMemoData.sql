@@ -22,6 +22,7 @@
 	9    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	10   23-Mar-2026  Sahdev Saliya     Updated to Length in UnitPrice field
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
   
@@ -330,7 +331,7 @@ BEGIN
             (WONum like '%' +@GlobalFilter+'%') OR   
             (CustomerName like '%' +@GlobalFilter+'%') OR   
             (ManufacturerName like '%' +@GlobalFilter+'%') OR   
-            (PartNumber like '%'+@GlobalFilter+'%') OR    
+            (PartNumber like '%'+@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR    
             (PartDescription like '%' +@GlobalFilter+'%') OR   
             (ReferenceNo like '%' +@GlobalFilter+'%') OR    
             (RequestedBy like '%' +@GlobalFilter+'%') OR    
@@ -349,7 +350,7 @@ BEGIN
             (ISNULL(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND    
             (ISNULL(@WONum,'') ='' OR WONum like '%' + @WONum+'%') AND    
             (ISNULL(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND    
-            (ISNULL(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND    
+            (ISNULL(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND    
             (ISNULL(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND    
             (ISNULL(@ReferenceNo,'') ='' OR ReferenceNo like '%' + @ReferenceNo +'%') AND    
             (ISNULL(@ReturnDate,'') ='' OR Cast(ReturnDate as Date)=Cast(@ReturnDate as date)) AND   

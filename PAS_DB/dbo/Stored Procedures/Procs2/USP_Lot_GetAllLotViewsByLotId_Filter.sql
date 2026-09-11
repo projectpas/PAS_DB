@@ -48,10 +48,13 @@
    26   02-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab (PurchaseOrder/RepairOrder Freight+Charges view) now also UNIONs in SalesOrder Freight/Charges, using the same FlatRate-vs-T&M/Actual rule as the PNSoldView/Commission additions above. Reused the existing PoNum/PoDate fields for SalesOrderNumber/SO CreatedDate (no new columns). Vendor/VendorCode/VendorId left blank for these rows (no vendor concept on a Sales Order).
    27   02-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab: added a 4th UNION ALL sourcing LOTOtherCostDetails (manually-added Freight/Charges rows from the tab's new "+" Add popup), plus LotOtherCostDetailId/ItemMasterId/StocklineId/IsNA/ReconciledFreight/UnReconciledFreight/ManualAdjFreight/ReconciledCharges/UnReconciledCharges/ManualAdjCharges across all 4 OtherCost blocks (CAST(NULL...) placeholders on the PO/RO/SO blocks) for UNION ALL alignment, and to the outer GROUP BY. LotOtherCostDetailId drives the grid's Edit action (only set for manually-created rows).
    28   03-Sep-2026   RAJESH GAMI      [PN-17853] OtherCost tab: added LotNumber (all 4 blocks) plus StocklineNumber/ConditionId (real values on the manual block, NULL placeholders on PO/RO/SO) to match the tab's current FieldMaster field list (lotNumber column) and so the grid/Edit popup gets the manual row's Stockline Number/Condition back correctly. Added to the outer GROUP BY too.
-	 29   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+   29   02-Sep-2026    Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+   28   03-Sep-2026   RAJESH GAMI      [PN-17853] Repair Cost Mismatch fix
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
    29   03-Sep-2026   RAJESH GAMI      [PN-17853] Round 2 of Rajesh's Other Cost feedback: OtherCost branch now also returns StkLineNum (FieldMaster 'stkLineNum' column) and Memo (was missing entirely - Edit popup showed it blank); manual-entry StocklineNumber now falls back to a live Stockline join if not captured at save time; manual-entry PoNum is now '<SalesOrderNumber> (Manual Entry)' when the row is tied to a Sales Order (via LOTOtherCostDetails.ReferenceNumber, now populated by USP_LOTOtherCostDetails_AddUpdate), else plain 'Manual Entry'.
+   30   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] Display Total Amount Based on All Records in LOT Tabs: added page-independent SUM() grand totals (computed against the fully-filtered #temp table, before OFFSET/FETCH paging - same pattern as the existing @Count/NumberOfItems) for the PNInStockView, PNQuoteView, PNSoldView, RepairedView, OtherCost and Commission branches. Each branch now also returns its new '<Column>Sum' totals alongside NumberOfItems so the UI no longer has to (incorrectly) sum only the current page of rows.
+   31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
@@ -142,6 +145,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRANSACTION
 		BEGIN		
 				DECLARE @Count Int;
+				-- [PN-17888] 10-Sep-2026: grand-total accumulators for the LOT Setup tabs' footer totals -
+				-- computed against the fully-filtered temp table before OFFSET/FETCH (same idea as @Count/
+				-- NumberOfItems above), so the frontend gets a total across ALL matching rows, not just the
+				-- current page. Each @Type branch below only sets the subset of these it actually returns.
+				DECLARE @QtyOnHandSum DECIMAL(18,2), @QtyResSum DECIMAL(18,2), @QtyIssSum DECIMAL(18,2), @QtyAvailableSum DECIMAL(18,2),
+					@UnitCostSum DECIMAL(18,2), @RepairCostSum DECIMAL(18,2), @TotalCostSum DECIMAL(18,2), @ExtCostSum DECIMAL(18,2),
+					@QtySum DECIMAL(18,2), @ExtendedPriceSum DECIMAL(18,2), @CostSum DECIMAL(18,2), @TotalDirectCostSum DECIMAL(18,2),
+					@MarginAmtSum DECIMAL(18,2), @FreightSum DECIMAL(18,2), @ChargesSum DECIMAL(18,2), @FreightCostSum DECIMAL(18,2),
+					@ChargesCostSum DECIMAL(18,2), @ExtPriceSum DECIMAL(18,2), @CommissionExpenseSum DECIMAL(18,2);
 				DECLARE @RecordFrom int, @AvailableQty int = 0;
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
@@ -941,8 +953,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNInStockTbl
+				SELECT @QtyOnHandSum = SUM(QtyOnHand), @QtyResSum = SUM(QtyRes), @QtyIssSum = SUM(QtyIss), @QtyAvailableSum = SUM(QtyAvailable),
+					@UnitCostSum = SUM(UnitCost), @RepairCostSum = SUM(RepairCost), @TotalCostSum = SUM(TotalCost), @ExtCostSum = SUM(ExtCost)
+					FROM #PNInStockTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNInStockTbl
+				SELECT *, @Count AS NumberOfItems, @QtyOnHandSum AS QtyOnHandSum, @QtyResSum AS QtyResSum, @QtyIssSum AS QtyIssSum,
+					@QtyAvailableSum AS QtyAvailableSum, @UnitCostSum AS UnitCostSum, @RepairCostSum AS RepairCostSum,
+					@TotalCostSum AS TotalCostSum, @ExtCostSum AS ExtCostSum
+				FROM #PNInStockTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -1217,8 +1235,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNQuoteViewTbl
+				SELECT @QtySum = SUM(Qty), @ExtendedPriceSum = SUM(ExtendedPrice) FROM #PNQuoteViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNQuoteViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtySum AS QtySum, @ExtendedPriceSum AS ExtendedPriceSum FROM #PNQuoteViewTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -1535,8 +1554,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNSoldViewTbl
+				SELECT @QtySum = SUM(Qty), @ExtendedPriceSum = SUM(ExtendedPrice), @CostSum = SUM(Cost), @RepairCostSum = SUM(RepairCost),
+					@TotalDirectCostSum = SUM(TotalDirectCost), @MarginAmtSum = SUM(MarginAmt), @FreightSum = SUM(Freight), @ChargesSum = SUM(Charges),
+					@ExtCostSum = SUM(ExtCost) -- [PN-17888] round 2: Sales Activity Ext Cost footer total
+					FROM #PNSoldViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNSoldViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtySum AS QtySum, @ExtendedPriceSum AS ExtendedPriceSum, @CostSum AS CostSum,
+					@RepairCostSum AS RepairCostSum, @TotalDirectCostSum AS TotalDirectCostSum, @MarginAmtSum AS MarginAmtSum,
+					@FreightSum AS FreightSum, @ChargesSum AS ChargesSum, @ExtCostSum AS ExtCostSum
+				FROM #PNSoldViewTbl
 				ORDER BY  
 				--CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN Status END ASC,
 				--CASE WHEN (@SortOrder=-1  AND @SortColumn='Status')  THEN Status END DESC,
@@ -1667,13 +1693,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) AS UnitPrice
 				--,(ISNULL(sl.UnitCost,0) * (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) AS ExtendedPrice
 				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) AS ExtendedPrice
-				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+				,ISNULL(ltCal.Qty, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) Cost
 				--,(ISNULL(sl.PurchaseOrderUnitCost,0)* (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) ExtCost
-				,(ISNULL(sl.UnitCost,0)* ltCal.Qty) ExtCost
+				--,(ISNULL(sl.RepairOrderUnitCost,0)* ltCal.Qty) ExtCost
+				,ltCal.RepairCost  ExtCost
 				,ISNULL(sl.RepairOrderUnitCost,0) RepairCost
 				,ISNULL(sl.UnitCost,0) AS TotalCost
 				--,(ISNULL(sl.RepairOrderUnitCost,0) + (ISNULL(sl.PurchaseOrderUnitCost,0))) TotalCost
@@ -1851,8 +1878,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #RepairedViewTbl
+				SELECT @QtyOnHandSum = SUM(QtyOnHand), @CostSum = SUM(Cost), @RepairCostSum = SUM(RepairCost), @TotalCostSum = SUM(TotalCost),
+					@ExtCostSum = SUM(ExtCost) FROM #RepairedViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #RepairedViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtyOnHandSum AS QtyOnHandSum, @CostSum AS CostSum, @RepairCostSum AS RepairCostSum,
+					@TotalCostSum AS TotalCostSum, @ExtCostSum AS ExtCostSum
+				FROM #RepairedViewTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -2176,8 +2207,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl
+				SELECT @FreightCostSum = SUM(FreightCost), @ChargesCostSum = SUM(ChargesCost) FROM #OtherCostTbl
 
-				SELECT *, @Count AS NumberOfItems FROM #OtherCostTbl
+				SELECT *, @Count AS NumberOfItems, @FreightCostSum AS FreightCostSum, @ChargesCostSum AS ChargesCostSum FROM #OtherCostTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
@@ -2359,8 +2391,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(10)) LIKE @UnitSalePrice)))
 
 				SELECT @Count = COUNT(*) FROM #CommisionResult
+				SELECT @ExtPriceSum = SUM(ExtPrice), @MarginAmtSum = SUM(MarginAmt), @CommissionExpenseSum = SUM(CommissionExpense) FROM #CommisionResult
 			
-				SELECT *, @Count AS NumberOfItems FROM #CommisionResult
+				SELECT *, @Count AS NumberOfItems, @ExtPriceSum AS ExtPriceSum, @MarginAmtSum AS MarginAmtSum, @CommissionExpenseSum AS CommissionExpenseSum FROM #CommisionResult
 				ORDER BY 	
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,

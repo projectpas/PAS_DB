@@ -213,7 +213,10 @@ BEGIN
 							)
 								,
 							ResultCount AS (Select COUNT(LotTransInOutId) AS NumberOfItems FROM FinalResult)
-							SELECT * FROM FinalResult, ResultCount
+							-- [PN-17888] 10-Sep-2026: grand totals across ALL matching rows (unaffected by
+							-- OFFSET/FETCH paging below), same idea as ResultCount/NumberOfItems above.
+							,ResultSums AS (Select SUM(CAST(Quantity AS DECIMAL(18,2))) AS QuantitySum, SUM(CAST(UnitCost AS DECIMAL(18,2))) AS UnitCostSum, SUM(CAST(ExtUnitCost AS DECIMAL(18,2))) AS ExtUnitCostSum FROM FinalResult)
+							SELECT * FROM FinalResult, ResultCount, ResultSums
 
 							ORDER BY  
 							CASE WHEN (@SortOrder=1  AND @SortColumn='PN')  THEN PN END ASC,
@@ -371,7 +374,10 @@ BEGIN
 							)))
 								,
 							ResultCount AS (Select COUNT(LotTransInOutId) AS NumberOfItems FROM FinalResult)
-							SELECT * FROM FinalResult, ResultCount
+							-- [PN-17888] 10-Sep-2026: grand totals across ALL matching rows (unaffected by
+							-- OFFSET/FETCH paging below), same idea as ResultCount/NumberOfItems above.
+							,ResultSums AS (Select SUM(CAST(Quantity AS DECIMAL(18,2))) AS QuantitySum, SUM(CAST(UnitCost AS DECIMAL(18,2))) AS UnitCostSum, SUM(CAST(ExtUnitCost AS DECIMAL(18,2))) AS ExtUnitCostSum FROM FinalResult)
+							SELECT * FROM FinalResult, ResultCount, ResultSums
 
 						ORDER BY  
 						CASE WHEN (@SortOrder=1  AND @SortColumn='PN')  THEN PN END ASC,

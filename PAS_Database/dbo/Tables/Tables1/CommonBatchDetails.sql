@@ -45,8 +45,28 @@
 );
 
 
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_CommonBatchDetails_MC_GL]
     ON [dbo].[CommonBatchDetails]([MasterCompanyId] ASC, [GlAccountId] ASC)
     INCLUDE([JournalBatchDetailId], [DebitAmount], [CreditAmount], [IsDeleted], [IsActive]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CommonBatchDetails_JBD]
+    ON [dbo].[CommonBatchDetails]([JournalBatchDetailId] ASC, [MasterCompanyId] ASC)
+    INCLUDE([CommonJournalBatchDetailId], [GlAccountId], [DebitAmount], [CreditAmount], [IsDeleted], [IsVersionIncrease]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CommonBatchDetails_GL]
+    ON [dbo].[CommonBatchDetails]([MasterCompanyId] ASC, [GlAccountId] ASC, [JournalBatchDetailId] ASC)
+    INCLUDE([DebitAmount], [CreditAmount], [IsDeleted], [IsActive]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CommonBatchDetails_CJBD]
+    ON [dbo].[CommonBatchDetails]([CommonJournalBatchDetailId] ASC)
+    INCLUDE([JournalBatchDetailId], [GlAccountId], [MasterCompanyId], [DebitAmount], [CreditAmount], [IsDeleted], [IsVersionIncrease]);
 

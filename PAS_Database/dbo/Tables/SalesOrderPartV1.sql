@@ -42,6 +42,8 @@
     [SizeHeight]            DECIMAL (18, 6) NULL,
     [AltOrEqType]           VARCHAR (50)    NULL,
     [UnitSalesPrice]        DECIMAL (18, 6) NULL,
+    [SequenceNumber]        BIGINT          NULL,
+    [ToTalReservedQty]      DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderPartV1] PRIMARY KEY CLUSTERED ([SalesOrderPartId] ASC),
     CONSTRAINT [FK_SalesOrderPartV1_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderPartV1_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -50,6 +52,10 @@
     CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
     CONSTRAINT [FK_SalesOrderPartV1_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
+
+
 
 
 
@@ -80,3 +86,7 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrderPartV1_SOId]
+    ON [dbo].[SalesOrderPartV1]([SalesOrderId] ASC, [ConditionId] ASC, [ItemMasterId] ASC);
+

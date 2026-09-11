@@ -133,6 +133,8 @@
 
 
 
+
+
 GO
 
 
@@ -161,3 +163,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrderPart_POId_Perf]
+    ON [dbo].[PurchaseOrderPart]([PurchaseOrderId] ASC)
+    INCLUDE([PurchaseOrderPartRecordId], [StockType], [QuantityOrdered], [QuantityReceived], [UnitCost], [FunctionalCurrency]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

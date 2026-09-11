@@ -27,6 +27,7 @@
 	15   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
 	16    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	17    11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
+	18   18/Aug/2026   Kishor Makwana  [PN-17687] - Display Freight and Charges Display as per Part
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -105,8 +106,9 @@ BEGIN
 												FROM DBO.SalesOrderFreight f WITH(NOLOCK)
 												WHERE f.SalesOrderId = so.SalesOrderId 
 												  AND f.ItemMasterId = sop.ItemMasterId 
-												  AND f.ConditionId = sop.ConditionId 
-												  AND ISNULL(f.IsActive,0) = 1 
+												  AND f.ConditionId = sop.ConditionId
+												  AND f.SalesOrderPartId = sop.SalesOrderPartId
+												  AND ISNULL(f.IsActive,0) = 1
 												  AND ISNULL(f.IsDeleted,0) = 0
 											), 'NA')
 										ELSE 'NA'
@@ -121,8 +123,9 @@ BEGIN
 												FROM dbo.SalesOrderCharges c WITH(NOLOCK) INNER JOIN dbo.Charge ct  WITH(NOLOCK) ON c.ChargesTypeId = ct.ChargeId
 												WHERE c.SalesOrderId = so.SalesOrderId 
 												  AND c.ItemMasterId = sop.ItemMasterId 
-												  AND c.ConditionId = sop.ConditionId 
-												  AND  ISNULL(c.IsActive,0) = 1 
+												  AND c.ConditionId = sop.ConditionId
+												  AND c.SalesOrderPartId = sop.SalesOrderPartId
+												  AND  ISNULL(c.IsActive,0) = 1
 												  AND  ISNULL(c.IsDeleted,0) = 0
 											), 'NA')
 										ELSE 'NA'

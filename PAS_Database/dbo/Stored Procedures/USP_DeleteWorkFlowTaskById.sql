@@ -9,7 +9,7 @@
  ** PR   Date				Author  			Change Description              
  ** --   --------			-------				--------------------------------            
     1    03-Dec-2025		Vishal Suthar		Created
- 
+    2    02-Sep-2026		SUMIT KUMAR			[PN-17813] Added deletion of WorkFlowDirectionImage records
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DeleteWorkFlowTaskById]
 	@WorkFlowId bigint,
@@ -23,6 +23,11 @@ BEGIN
 			BEGIN
 				DECLARE @WorkFlowTaskId BIGINT;
 				SELECT @WorkFlowTaskId = WorkFlowTaskId FROM DBO.WorkFlowTask WITH(NOLOCK) WHERE WorkFlowId = @WorkFlowId AND TaskId = @TaskId;
+
+				-- Delete associated image records for all workflow directions under this task and workflow
+				DELETE WDI FROM DBO.WorkFlowDirectionImage WDI
+				INNER JOIN DBO.WorkflowDirection WD ON WDI.WorkflowDirectionId = WD.WorkflowDirectionId
+				WHERE WD.WorkflowId = @WorkFlowId AND WD.TaskId = @TaskId;
 
 				DELETE FROM DBO.WorkflowDirection WHERE WorkflowId = @WorkFlowId AND TaskId = @TaskId;
 				DELETE FROM DBO.WorkflowChargesList WHERE WorkflowId = @WorkFlowId AND TaskId = @TaskId;

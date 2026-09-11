@@ -24,7 +24,7 @@
  **	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
 ** 12   01/JUL/2026     Rajesh Gami         [PN-17008] Merge Non Stock Inventory to ItemMaster
 ** 13   23/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filters
-**  14   29/JUL/2026     Kishor Makwana      PERFORMANCE ONLY - Sales Order List filter slowness.
+**  14   29/JUL/2026     Kishor Makwana     [PN-17466] PERFORMANCE REWRITE - Sales Order List filter slowness
 ** 15	 05/Aug/2026	 Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 
 ***********************************************************************************/
@@ -324,53 +324,9 @@ BEGIN
 			
 			OUTER APPLY
 			(
-				SELECT SUM(X.NetSales) AS SoAmount
-				FROM
-				(
-					SELECT
-						(
-							CASE
-								WHEN ISNULL(SOP.QtyRequested, 0) =
-								     ISNULL(SUM(CASE WHEN stk.SalesOrderStocklineId IS NOT NULL
-								                     THEN stk.QtyOrder
-								                     ELSE SOP.QtyOrder
-								                END), 0)
-								THEN 0
-								ELSE
-								(
-									(
-										ISNULL(SUM(
-											CASE WHEN stk.SalesOrderStocklineId IS NOT NULL
-											     THEN stk.QtyOrder
-											     ELSE CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0
-											               THEN ISNULL(SOP.QtyOrder, 0)
-											               ELSE ISNULL(SOP.QtyRequested, 0)
-											          END
-											END), 0) * -1
-										+ ISNULL(SOP.QtyRequested, 0)
-									) * ISNULL(SOP.UnitSalesPrice, 0)
-								)
-							END
-						)
-						+
-						ISNULL(SUM(
-							CASE WHEN SC.SalesOrderStocklineId IS NOT NULL
-							     THEN ISNULL(SC.NetSaleAmount,    0)
-							     ELSE ISNULL(SOQPS.NetSaleAmount, 0)
-							END), 0)                                    AS NetSales
-					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK)
-					INNER JOIN dbo.SalesOrderPartCost SOQPS WITH (NOLOCK)
-						ON  SOQPS.SalesOrderId     = SOP.SalesOrderId
-						AND SOQPS.SalesOrderPartId = SOP.SalesOrderPartId
-					LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH (NOLOCK)
-						ON stk.SalesOrderPartId = SOP.SalesOrderPartId
-					LEFT JOIN dbo.SalesOrderStockLineCost SC WITH (NOLOCK)
-						ON  SC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-						AND SC.SalesOrderId          = SOP.SalesOrderId
-					WHERE SOP.SalesOrderId  = SO.SalesOrderId
-					  AND @NeedSoAmountEarly = 1   -- folded to a constant by RECOMPILE
-					GROUP BY SOP.SalesOrderPartId, SOP.QtyRequested, SOP.UnitSalesPrice
-				) X
+				SELECT f.SoAmount
+				FROM dbo.fnGetSalesOrderSoAmount(SO.SalesOrderId) f
+				WHERE @NeedSoAmountEarly = 1        -- folded to a constant by RECOMPILE
 			) Z
 			/*==================== end KEEP IN SYNC block 2 ======================*/
 
@@ -683,56 +639,7 @@ BEGIN
 			) RAW
 		) AG
 		
-		OUTER APPLY
-		(
-			SELECT SUM(X.NetSales) AS SoAmount
-			FROM
-			(
-				SELECT
-					(
-						CASE
-							WHEN ISNULL(SOP.QtyRequested, 0) =
-							     ISNULL(SUM(CASE WHEN stk.SalesOrderStocklineId IS NOT NULL
-							                     THEN stk.QtyOrder
-							                     ELSE SOP.QtyOrder
-							                END), 0)
-							THEN 0
-							ELSE
-							(
-								(
-									ISNULL(SUM(
-										CASE WHEN stk.SalesOrderStocklineId IS NOT NULL
-										     THEN stk.QtyOrder
-										     ELSE CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0
-										               THEN ISNULL(SOP.QtyOrder, 0)
-										               ELSE ISNULL(SOP.QtyRequested, 0)
-										          END
-										END), 0) * -1
-									+ ISNULL(SOP.QtyRequested, 0)
-								) * ISNULL(SOP.UnitSalesPrice, 0)
-							)
-						END
-					)
-					+
-					ISNULL(SUM(
-						CASE WHEN SC.SalesOrderStocklineId IS NOT NULL
-						     THEN ISNULL(SC.NetSaleAmount,    0)
-						     ELSE ISNULL(SOQPS.NetSaleAmount, 0)
-						END), 0)                                    AS NetSales
-				FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK)
-				INNER JOIN dbo.SalesOrderPartCost SOQPS WITH (NOLOCK)
-					ON  SOQPS.SalesOrderId     = SOP.SalesOrderId
-					AND SOQPS.SalesOrderPartId = SOP.SalesOrderPartId
-				LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH (NOLOCK)
-					ON stk.SalesOrderPartId = SOP.SalesOrderPartId
-				LEFT JOIN dbo.SalesOrderStockLineCost SC WITH (NOLOCK)
-					ON  SC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-					AND SC.SalesOrderId          = SOP.SalesOrderId
-				WHERE SOP.SalesOrderId = k.SalesOrderId
-				GROUP BY SOP.SalesOrderPartId, SOP.QtyRequested, SOP.UnitSalesPrice
-			) X
-		) Z
-		
+		OUTER APPLY dbo.fnGetSalesOrderSoAmount(k.SalesOrderId) Z		
 
 		ORDER BY k.RowSeq;                                  -- deterministic grid order
 

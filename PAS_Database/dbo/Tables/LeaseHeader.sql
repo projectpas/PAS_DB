@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[LeaseHeader] (
+    [LeaseHeaderId]         BIGINT          IDENTITY (1, 1) NOT NULL,
+    [LeaseNumber]           VARCHAR (50)    NULL,
+    [LeaseName]             VARCHAR (200)   NOT NULL,
+    [LeaseTypeId]           INT             NOT NULL,
+    [LeaseStatusId]         INT             CONSTRAINT [DF_LeaseHeader_LeaseStatusId] DEFAULT ((1)) NOT NULL,
+    [ManagementStructureId] BIGINT          NOT NULL,
+    [CustomerId]            BIGINT          NOT NULL,
+    [CustomerRef]           VARCHAR (100)   NOT NULL,
+    [CustomerContactId]     BIGINT          NOT NULL,
+    [Email]                 VARCHAR (256)   NOT NULL,
+    [SalespersonEmployeeId] BIGINT          NULL,
+    [LocalCurrencyId]       INT             NULL,
+    [ForeignCurrencyId]     INT             NULL,
+    [ForeignExchangeRate]   DECIMAL (18, 6) NULL,
+    [EmployeeId]            BIGINT          NULL,
+    [Memo]                  VARCHAR (MAX)   NULL,
+    [Notes]                 VARCHAR (MAX)   NULL,
+    [MasterCompanyId]       INT             NOT NULL,
+    [CreatedBy]             VARCHAR (256)   NOT NULL,
+    [UpdatedBy]             VARCHAR (256)   NOT NULL,
+    [CreatedDate]           DATETIME2 (7)   CONSTRAINT [DF_LeaseHeader_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_LeaseHeader_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsActive]              BIT             CONSTRAINT [DF_LeaseHeader_Active] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]             BIT             CONSTRAINT [DF_LeaseHeader_Delete] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_LeaseHeader] PRIMARY KEY CLUSTERED ([LeaseHeaderId] ASC)
+);
+

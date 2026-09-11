@@ -9,3 +9,8 @@
     CONSTRAINT [PK_PersistedGrants] PRIMARY KEY CLUSTERED ([Key] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_PersistedGrants_SubjectId_ClientId_Type]
+    ON [dbo].[PersistedGrants]([SubjectId] ASC, [ClientId] ASC, [Type] ASC);
+

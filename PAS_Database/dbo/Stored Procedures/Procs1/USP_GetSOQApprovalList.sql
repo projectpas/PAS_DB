@@ -195,7 +195,7 @@ BEGIN
 	        	LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 	        	WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
 	        */
-                SELECT soq.SalesOrderQuoteId,
+                SELECT DISTINCT soq.SalesOrderQuoteId,
                         soq.SalesOrderQuoteNumber,
                         soq.Version,
                         soq.CustomerId,

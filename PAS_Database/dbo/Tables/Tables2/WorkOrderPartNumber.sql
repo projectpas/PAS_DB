@@ -88,6 +88,9 @@
     [AircraftSerialNumber]           VARCHAR (100)   NULL,
     [AircraftRegistryId]             BIGINT          NULL,
     [ProgramId]                      BIGINT          NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeaseStocklineId]               BIGINT          NULL,
+    [KitsToPrepare]                  INT             NULL,
     CONSTRAINT [PK_WorkOrderPartNumber] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_WorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -104,6 +107,10 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
+
+
 
 
 

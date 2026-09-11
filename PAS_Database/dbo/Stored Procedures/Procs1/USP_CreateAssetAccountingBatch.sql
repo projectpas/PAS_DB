@@ -13,8 +13,9 @@
  ** --   --------     -------		--------------------------------          
 	1    02/12/2022  Subhash Saliya     Created
 	2	 12/08/2023  Satish Gohil	 Modify(Formetted)
+	3	 31-Aug-2026  Ayushi Patel	 [PN-16393] UOM Changes
 
-     
+
 -- EXEC USP_CreateAssetAccountingBatch
 
 ************************************************************************/
@@ -31,15 +32,15 @@ BEGIN
         DECLARE @DeprFrequency varchar(50);
         DECLARE @AssetCreateDate Datetime2(7);
         DECLARE @ExistStatus varchar(50);
-        DECLARE @DATEDIFF decimal(18,2)=0;
+        DECLARE @DATEDIFF decimal(18,6)=0;
         DECLARE @YearDIFF bigint=0;
         DECLARE @MonthDIFF bigint=0;
-        DECLARE @DividedDaysDIFF decimal(18,2)=0;
+        DECLARE @DividedDaysDIFF decimal(18,6)=0;
         DECLARE @AssetLife int;
         DECLARE @TangibleClassId int;
         DECLARE @RC int
         DECLARE @Qty int =1
-        DECLARE @Amount decimal(18,2)
+        DECLARE @Amount decimal(18,6)
         DECLARE @ModuleName varchar(200) ='AssetInventory'
         DECLARE @UpdateBy varchar(200)
         DECLARE @StockType varchar(100)='AssetPeriodDepreciation'

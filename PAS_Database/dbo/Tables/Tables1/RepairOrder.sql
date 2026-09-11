@@ -59,12 +59,14 @@
     [IsUpdated]                      BIT             NULL,
     [LastSyncDate]                   DATETIME2 (7)   NULL,
     [SyncToken]                      VARCHAR (200)   NULL,
-    [IsEnforcePickTicket]            BIT             NULL,
+    [IsEnforcePickTicket]            BIT             CONSTRAINT [DF_RepairOrder_IsEnforcePickTicket] DEFAULT ((0)) NULL,
     [EnforcePickTicketConfirmation]  BIT             NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [IntegrationTypeId]              INT             NULL,
     [HasPieceParts]                  BIT             CONSTRAINT [DF_RepairOrder_HasCSP] DEFAULT ((0)) NOT NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeasePartId]                    BIGINT          NULL,
     CONSTRAINT [PK_RepairOrder] PRIMARY KEY CLUSTERED ([RepairOrderId] ASC),
     CONSTRAINT [FK_RepairOrder_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_RepairOrder_CreditTermsId] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -75,6 +77,10 @@
     CONSTRAINT [FK_RepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_RepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
+
+
 
 
 
@@ -121,3 +127,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_RepairOrder_MC_IsDeleted_Perf]
+    ON [dbo].[RepairOrder]([MasterCompanyId] ASC, [IsDeleted] ASC)
+    INCLUDE([RepairOrderId], [VendorId], [VendorName], [VendorCode], [RepairOrderNumber], [Status]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

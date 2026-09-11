@@ -28,6 +28,7 @@
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	17    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries, StockLine join, and main WHERE clause.
+    18   26/Aug/2026			 KISHOR MAKWANA						[PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -239,7 +240,7 @@ BEGIN
 			 QuantityOnHand,
 
         part.IsConvertedToSalesOrder,
-        0 AS ItemNo,
+        part.SequenceNumber AS ItemNo,
         (CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL
             THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SC.UnitSalesPrice, 0),itemMaster.[StockUnitOfMeasure],itemMaster.[ConsumeUnitOfMeasure],1,part.MasterCompanyId) END)
             ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(PS.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(PS.UnitSalesPrice, 0),itemMaster.[StockUnitOfMeasure],itemMaster.[ConsumeUnitOfMeasure],1,part.MasterCompanyId) END)

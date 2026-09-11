@@ -26,10 +26,11 @@
 	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	11    30/July/2026    Moin Bloch                                 [PN-17485] - Added [IsService],[IsNonStock] Conditions For Ristrict Non Stock List to Un-Reserved
 	12    12/Aug/2026    Moin Bloch                                 [PN-17485] - Changed IsService/IsNonStock filter from AND to OR
-	13    31/Aug/2026    Kishor Makwana   [PN-17808] -  Unreserve Button When Clicks so Page is Getting Unresponsive ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1 this block requiredin () breaket.s.
+	13    17/Aug/2026     Kishor Makwana		[PN-17685] - UnResered Row not Comming
+	14    21/Aug/2026     Kishor Makwana		[PN-17734] - Manage With New Column ToTalReservedQty - UnResered Row not Comming
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  10851,0,0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
+CREATE     PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
     @SalesOrderId BIGINT,
 	@ItemMasterId BIGINT = NULL,
 	@isFromShipping BIT = 0
@@ -96,7 +97,8 @@ BEGIN
 								 AND sobi.ModuleId = @SOModuleId
 								 AND sobii.StockLineId = stl.StockLineId
 				   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) 
-				ELSE 0 END AS NoofPieces
+				ELSE 0 END AS NoofPieces,
+			   sop.ToTalReservedQty
 		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
 		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1)
@@ -142,9 +144,11 @@ BEGIN
 			   StockLineNumber,
 			   ControlNumber,
 			   MasterCompanyId,
-			   ManufacturerName
+			   ManufacturerName,
+			   ToTalReservedQty
 			   FROM UnreserveList
-			   WHERE NoofPieces = 0;
+			   WHERE (ISNULL((ISNULL(ToTalReservedQty,0) - NoofPieces),0) > 0) OR  (ISNULL((ISNULL(QtyOrder,0) - NoofPieces),0) > 0)
+			   ORDER BY SalesOrderPartId ASC;
   END TRY
   BEGIN CATCH
   SELECT

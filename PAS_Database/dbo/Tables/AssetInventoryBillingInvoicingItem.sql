@@ -10,7 +10,7 @@
     [UpdatedDate]              DATETIME2 (7)   CONSTRAINT [DF_AssetInventoryBillingInvoicingItem_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                 BIT             CONSTRAINT [AssetInventoryBillingInvoicingItem_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT             CONSTRAINT [AssetInventoryBillingInvoicingItem_DC_Deleted] DEFAULT ((0)) NOT NULL,
-    [UnitPrice]                DECIMAL (20, 2) NULL,
+    [UnitPrice]                DECIMAL (18, 6) NULL,
     [AssetSaleShippingId]      BIGINT          NULL,
     [PDFPath]                  NVARCHAR (MAX)  NULL,
     [StockLineId]              BIGINT          NULL,

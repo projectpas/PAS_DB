@@ -16,7 +16,7 @@
 	4	 12 NOV 2024  HEMANT SALIYA		Verify the count and removed un used code 
 	5    11-DEC-2024  RAJESH GAMI       Modified to multyply the Est Revenue and Est Cost for every operation (SO & SOQ) :  Add the separate CTE and using it in JOIN (DeduplicatedRoles)
 	6	 30-Jun-2025  Devendra Shekh	Modified(SO Billing Table Changes)
-
+	7    24/Aug/2026  Kishor Makwana    [PN-17439] - Fixed Amount mismatch between this procedure's dashboard tiles and SOQSODashboardData's "More Info" grid: all 8 Amount calculations (SOQReceived, SOQApprovedInternal, SOQApprovedCustomer, SOApprovedInternal, SOApprovedCustomer, SOFullfilling, SOShipping, SOInvoiced) read Charges/Freight from the cached SalesOrderQuotePartCost/SalesOrderPartCost MiscCharges/Freight columns, which were out of sync with the live line-item data. Now summed directly from SalesOrderQuoteCharges/SalesOrderQuoteFreight/SalesOrderCharges/SalesOrderFreight via OUTER APPLY, matching how SOQSODashboardData.sql computes the grid totals.
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
 	@MasterCompanyId INT = 1,
@@ -116,12 +116,16 @@ BEGIN
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 			GROUP BY SOQ.StatusId
 
-		SELECT @SOQReceivedAmount = SUM(ISNULL(SOQPC.NetSaleAmount,0)) + SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0)) FROM 
+		SELECT @SOQReceivedAmount = SUM(ISNULL(SOQPC.NetSaleAmount,0))
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=SOQP.SalesOrderQuotePartId and ISNULL(SOQPC.IsDeleted, 0)=0
 				INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId) BFF
 			WHERE  (ISNULL(SOQ.IsDeleted, 0) = 0) and (ISNULL(SOQP.IsDeleted, 0) = 0) and (SOQ.StatusId =@SOQReceivedId) AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 			GROUP BY SOQ.StatusId
@@ -135,12 +139,16 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0))  FROM 
+	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderQuotePartV1 POP WITH (NOLOCK) INNER JOIN DBO.SalesOrderQuote PO WITH (NOLOCK) ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 				INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = PO.SalesOrderQuoteId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = PO.CustomerId
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND SOQAP.InternalStatusId=4
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId) BFF
 			WHERE ISNULL(PO.IsDeleted, 0) = 0 and ISNULL(POP.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
@@ -153,12 +161,16 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-       SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0))  FROM 
+   SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderQuotePartV1 POP WITH (NOLOCK) INNER JOIN DBO.SalesOrderQuote PO WITH (NOLOCK) ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 	   			INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = PO.SalesOrderQuoteId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = PO.CustomerId
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND SOQAP.CustomerStatusId=4
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFF
 			WHERE ISNULL(PO.IsDeleted, 0) = 0 and ISNULL(POP.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 				
@@ -171,12 +183,16 @@ BEGIN
 		WHERE ISNULL(RO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 			   AND RO.MasterCompanyId = @MasterCompanyId
 
-	   SELECT @SOApprovedInternalAmount = SUM(SOPC.NetSaleAmount)+ SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
+	   SELECT @SOApprovedInternalAmount = SUM(SOPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 				INNER JOIN dbo.SalesOrderApproval SOAPR WITH (NOLOCK) ON SOAPR.SalesOrderPartId = ROP.SalesOrderPartId AND SOAPR.InternalStatusId=4
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFF
 		WHERE ISNULL(RO.IsDeleted, 0) = 0  and ISNULL(ROP.IsDeleted, 0) = 0  AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId
 
@@ -189,12 +205,16 @@ BEGIN
 		WHERE ISNULL(RO.IsDeleted, 0) = 0  AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId
 
-	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
+	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				 INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 				INNER JOIN dbo.SalesOrderApproval SOAPR WITH (NOLOCK) ON SOAPR.SalesOrderPartId = ROP.SalesOrderPartId AND SOAPR.CustomerStatusId=4
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFF
 				Where ISNULL(RO.IsDeleted, 0) = 0  and ISNULL(ROP.IsDeleted, 0) = 0  AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId
 	
@@ -207,11 +227,15 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId
 
 
-	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
+	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
-				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId			
+				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFF
 	WHERE ISNULL(RO.IsDeleted, 0) = 0 and ISNULL(ROP.IsDeleted, 0) = 0 and (RO.StatusId = @SOFullfillingStatusId) AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId 
 
@@ -225,12 +249,16 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderShippingItem WITH (NOLOCK))
 
-	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
+	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrder RO WITH (NOLOCK) INNER JOIN DBO.SalesOrderPartV1 ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN DBO.SalesOrderApproval SOAPR WITH (NOLOCK) ON RO.SalesOrderId = SOAPR.SalesOrderId AND ROP.SalesOrderPartId = SOAPR.SalesOrderPartId AND SOAPR.CustomerStatusId=2
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFF
 	WHERE ISNULL(RO.IsDeleted, 0) = 0 and ISNULL(ROP.IsDeleted, 0) = 0 AND RO.StatusId != 2
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderShippingItem WITH (NOLOCK))
@@ -247,12 +275,16 @@ BEGIN
 				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 
 
-	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
+	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount)
+				+ SUM(ISNULL(BFC.Charges,0))
+				+ SUM(ISNULL(BFF.Freight,0)) FROM
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 			    INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON ROP.SalesOrderPartId = SOSI.SalesOrderPartId
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderPartId = ROP.SalesOrderPartId AND ISNULL(IsDeleted, 0) = 0) BFF
 	WHERE ISNULL(RO.IsDeleted, 0) = 0 and ISNULL(ROP.IsDeleted, 0) = 0
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)

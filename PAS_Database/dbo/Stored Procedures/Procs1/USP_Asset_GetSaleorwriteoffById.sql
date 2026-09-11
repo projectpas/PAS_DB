@@ -18,6 +18,7 @@
 	2    08/14/2023   Amit Ghediya    Updated Month calculation logic.
 	3    04/23/2024   Abhishek Jirawla Instead of calculating here we are getting the value from Asset Depr History table.
 	4	 12/31/2023   Abhishek Jirawla Adding IsNull to nullable fields
+	5	 31-Aug-2026   Ayushi Patel     [PN-16393] UOM Changes
 
 EXEC [dbo].[USP_Asset_GetSaleorwriteoffById]  438
 **************************************************************/
@@ -33,10 +34,10 @@ BEGIN
     BEGIN TRANSACTION
       BEGIN
 			DECLARE @DeprFrequency VARCHAR(50), @DATEDIFF INT=0,@MonthDIFF BIGINT=0,@DividedDaysDIFF INT=0,
-					@ExistStatus VARCHAR(50),@AssetLife INT,@AssetCreateDate DATETIME2(7),@DepreciationAmount DECIMAL(18,2)=0,
-					@MonthlyDepAmount DECIMAL(18,2)=0,@PercentageAmount DECIMAL(18,2)=0,@ResidualPercentage DECIMAL(18,2)=0,
-					@AssetId VARCHAR(200),@Name VARCHAR(200),@TotalInstallCost DECIMAL(18,2)=0,@AD DECIMAL(18,2)=0,
-					@NBV DECIMAL(18,2)=0,@CurrencyCode VARCHAR(50),@CurDateDayPart BIGINT=0,@CreateDateDayPart BIGINT=0;
+					@ExistStatus VARCHAR(50),@AssetLife INT,@AssetCreateDate DATETIME2(7),@DepreciationAmount DECIMAL(18,6)=0,
+					@MonthlyDepAmount DECIMAL(18,6)=0,@PercentageAmount DECIMAL(18,6)=0,@ResidualPercentage DECIMAL(18,6)=0,
+					@AssetId VARCHAR(200),@Name VARCHAR(200),@TotalInstallCost DECIMAL(18,6)=0,@AD DECIMAL(18,6)=0,
+					@NBV DECIMAL(18,6)=0,@CurrencyCode VARCHAR(50),@CurDateDayPart BIGINT=0,@CreateDateDayPart BIGINT=0;
 
 			SELECT 
 				@AssetId = AI.AssetId,

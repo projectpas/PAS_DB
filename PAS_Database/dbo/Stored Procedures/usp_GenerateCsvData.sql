@@ -26,6 +26,8 @@
 	10   17/07/2026   Ayushi Patel          [PN-17323]Added a condition to return qty and amount related fields with 2 decimal for all Module
 	11   20/07/2026   Ayushi Patel          [PN-17323]Replaced temporary table with CTE for field list generation.
 	12   27/08/2026   Ayushi Patel          [PN-17379] Added ItemMaster and ItemMasterNonStock modules ("Download Full Data List" for Item Master Stock/Non-Stock), filtered by IsNonStock so each only returns its own item type.
+	13   04/09/2026   Divyesh Kathriya      [PN-17842] Added Stockline Non-Stock modules.
+ 
  EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
@@ -59,6 +61,7 @@ BEGIN
 
 		DECLARE @EmployeeModule AS INT;
 		DECLARE @StocklineModule AS INT;
+		DECLARE @StocklineNonStockModule AS INT;
 		DECLARE @ManualJournalModule AS INT;
 		DECLARE @ItemMasterModule AS INT;
 		DECLARE @ItemMasterNonStockModule AS INT;
@@ -66,6 +69,7 @@ BEGIN
 		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
 		SET @StocklineModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		SET @StocklineNonStockModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'StocklineNonStock');
 		SET @EmployeeModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
 		SET @LocationModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Location');
 		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf');
@@ -190,7 +194,7 @@ BEGIN
 			) AS J;
 		END
 		
-		IF(@ModuleId = @StocklineModule)
+		IF(@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 		BEGIN
 
 			SET @JoinList  +=  ' INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = Stockline.StockLineId     
@@ -200,7 +204,8 @@ BEGIN
 
 			SET @WhereCondition  = 'AND ISNULL(Stockline.QuantityOnHand, 0) > 0 
 									AND ISNULL(Stockline.IsParent, 0) = 1 
-									AND ISNULL(Stockline.IsCustomerStock,0) = 0'									
+									AND ISNULL(Stockline.IsCustomerStock,0) = 0
+									AND ISNULL(ItemMaster.IsNonStock, 0) = ' + CASE WHEN @ModuleId = @StocklineNonStockModule THEN '1' ELSE '0' END
 		END
 		IF(@ModuleId = @EmployeeModule)
 		BEGIN
@@ -231,7 +236,7 @@ BEGIN
 		SET @TransformedSelectList = dbo.fn_TransformSelectList(@SelectList, @TextTransform);
 
 --------------Final SQL Query Start--------------
-		IF(@ModuleId = @StocklineModule)
+		IF(@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 		BEGIN
 			SET @SQL = '
 			SELECT ' + @TransformedSelectList + '
@@ -342,7 +347,7 @@ BEGIN
 
 		END
 --------------Final SQL Query END--------------
-		IF(@ModuleId = @StocklineModule)
+		IF(@ModuleId = @StocklineModule OR @ModuleId = @StocklineNonStockModule)
 		BEGIN		 
 			EXEC sp_executesql @SQL, N'@MasterCompanyId INT, @MSModuelId INT, @EmployeeId BIGINT', @MasterCompanyId, @MSModuelId , @EmployeeId;
 		END

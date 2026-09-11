@@ -80,5 +80,8 @@
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     [AircraftSerialNumber]           VARCHAR (100)   NULL,
     [AircraftRegistryId]             BIGINT          NULL,
-    [ProgramId]                      BIGINT          NULL);
+    [ProgramId]                      BIGINT          NULL,
+    [IsFromLease]                    BIT             NULL,
+    [LeaseStocklineId]               BIGINT          NULL,
+    [KitsToPrepare]                  INT             NULL);
 

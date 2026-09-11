@@ -12,9 +12,10 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
- **  S NO   Date         Author    Change Description                
- **  --   --------      --------  --------------------------------              
-      1  03-April-2025   Ayushi   created      
+ **  S NO   Date         Author             Change Description                
+ **  --   --------       --------           --------------------------------              
+      1  03-April-2025   Ayushi             created      
+      2  08-Sep-2026     Divyesh Kathriya   [PN-17854] - Return one history row. Remove Duplicate history rows.
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_GetPOHistory]
@@ -53,6 +54,14 @@ BEGIN
             po.IsDeleted
         FROM dbo.PurchaseOrderAudit po WITH (NOLOCK)
         WHERE po.PurchaseOrderId = @PurchaseOrderId
+          AND NOT EXISTS
+          (
+              SELECT 1
+              FROM [DBO].[PurchaseOrderAudit] poLatest WITH(NOLOCK)
+              WHERE poLatest.PurchaseOrderId = po.PurchaseOrderId
+                AND poLatest.UpdatedDate = po.UpdatedDate
+                AND poLatest.PurchaseOrderAuditId > po.PurchaseOrderAuditId
+          )
         ORDER BY po.PurchaseOrderAuditId DESC;
     END TRY
     BEGIN CATCH

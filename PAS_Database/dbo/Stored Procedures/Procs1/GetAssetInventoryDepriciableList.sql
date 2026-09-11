@@ -24,6 +24,7 @@
 	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                    then to the intangible type name, instead of the AssetAttributeType table join.
+	11  31-Aug-2026	 Ayushi Patel		[PN-16393] UOM Changes
 
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -96,8 +97,8 @@ BEGIN
 		DECLARE @DeprFrequencyMonthly VARCHAR(50) ='MTHLY,MONTHLY'
 		DECLARE @DeprFrequencyQUATERLY VARCHAR(50) ='QUATERLY,QTLY'
 		DECLARE @DeprFrequencyYEARLY VARCHAR(50) ='YEARLY,YRLY'
-		DECLARE @ReduceResidualPerc DECIMAL(18,2);
-		DECLARE @ResidualPercentage DECIMAL(18,2);
+		DECLARE @ReduceResidualPerc DECIMAL(18,6);
+		DECLARE @ResidualPercentage DECIMAL(18,6);
 		DECLARE @LastDateOfSelectedAccountingPeriod Date = NULL;
 		DECLARE @CurrentDateAccountingPeriod VARCHAR(200) = NULL;
 		DECLARE @AvailableAssetAvailableStatusId BIGINT = 0;

@@ -20,6 +20,7 @@
     1    09/01/2024   Ayesha Sultana     Created
 	2	 27/03/2024	  Abhishek Jirawla	 Added more conditions to the store procedure with correcting a few features of it as well
 	3	 19/12/2024	  Abhishek Jirawla	 Added Full Depreciating status once depreciation is done
+	4	 31-Aug-2026	  Ayushi Patel		 [PN-16393] UOM Changes
 
 ************************************************************************/
 
@@ -32,7 +33,7 @@ CREATE   PROCEDURE [dbo].[SaveAssetDeprciationData]
 @DepreciationFrequencyName VARCHAR(30) = NULL,
 @AssetId VARCHAR(30) = NULL,
 @AssetInventoryId BIGINT = NULL,
-@InstalledCost DECIMAL(18,2) = NULL,
+@InstalledCost DECIMAL(18,6) = NULL,
 @MasterCompanyId BIGINT = NULL,
 @CreatedBy VARCHAR(30) = NULL,
 @CreatedDate DATETIME = NULL,
@@ -51,14 +52,14 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN	
 
-		DECLARE @DepreciationAmount DECIMAL(18,2);
-		DECLARE @AccumlatedDepr DECIMAL(18,2);
-		DECLARE @NetBookValue DECIMAL(18,2);
-		DECLARE @NBVAfterDepreciation DECIMAL(18,2);
-		DECLARE @ResidualPercentage DECIMAL(18,2);
-		DECLARE @AfterReduceResidual DECIMAL(18,2);
-		DECLARE @ReduceResidualPerc DECIMAL(18,2);
-		DECLARE @Hundred DECIMAL(18,2) = 100;
+		DECLARE @DepreciationAmount DECIMAL(18,6);
+		DECLARE @AccumlatedDepr DECIMAL(18,6);
+		DECLARE @NetBookValue DECIMAL(18,6);
+		DECLARE @NBVAfterDepreciation DECIMAL(18,6);
+		DECLARE @ResidualPercentage DECIMAL(18,6);
+		DECLARE @AfterReduceResidual DECIMAL(18,6);
+		DECLARE @ReduceResidualPerc DECIMAL(18,6);
+		DECLARE @Hundred DECIMAL(18,6) = 100;
 		DECLARE @DepreciationStartDate DATETIME;
 		DECLARE @LastDeprRunPeriod VARCHAR(30)
 		DECLARE @FullyDepreciatedStatusId BIGINT; 

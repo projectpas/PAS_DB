@@ -191,6 +191,7 @@ BEGIN
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 					  ,wro.[VersionNo]
 					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
+					  ,0 AS [IsFromLogBook]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 						  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  

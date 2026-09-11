@@ -38,8 +38,12 @@
     [PriceVariance]                   DECIMAL (18, 6) NULL,
     [VendorProformaAmount]            DECIMAL (18, 6) NULL,
     [VendorProformaInvoiceId]         BIGINT          NULL,
+    [MiscAdjustment]                  DECIMAL (18, 6) DEFAULT ((0)) NULL,
+    [MiscAdjustmentPerUnit]           DECIMAL (18, 6) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetails] PRIMARY KEY CLUSTERED ([ReceivingReconciliationDetailId] ASC)
 );
+
+
 
 
 
@@ -82,4 +86,28 @@ GO
 CREATE NONCLUSTERED INDEX [IX_RecReconDetails_SL]
     ON [dbo].[ReceivingReconciliationDetails]([StocklineId] ASC)
     INCLUDE([ReceivingReconciliationId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRD_Stockline]
+    ON [dbo].[ReceivingReconciliationDetails]([StocklineId] ASC)
+    INCLUDE([ReceivingReconciliationId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRD_POID_POPARTID_TYPE_RRID_INVQTY]
+    ON [dbo].[ReceivingReconciliationDetails]([PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC, [Type] ASC)
+    INCLUDE([ReceivingReconciliationId], [InvoicedQty]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRCD_Recon_PO_Part_Type_Perf]
+    ON [dbo].[ReceivingReconciliationDetails]([ReceivingReconciliationId] ASC, [PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC, [Type] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RRCD_PO_Part_Type_Perf]
+    ON [dbo].[ReceivingReconciliationDetails]([PurchaseOrderId] ASC, [PurchaseOrderPartRecordId] ASC, [Type] ASC, [ReceivingReconciliationId] ASC)
+    INCLUDE([InvoicedQty], [ReceivingReconciliationDetailId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 

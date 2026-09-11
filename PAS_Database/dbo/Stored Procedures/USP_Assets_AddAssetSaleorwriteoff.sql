@@ -13,12 +13,13 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    11/29/2024   Abhishek Jirawla		Created
+	2    31-Aug-2026   Ayushi Patel		[PN-16393] UOM Changes
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_Assets_AddAssetSaleorwriteoff]
 (
 	@AssetInventoryId BIGINT,
-	@CashAmount DECIMAL(18,2),
+	@CashAmount DECIMAL(18,6),
 	@Status VARCHAR(100)
 )
 AS

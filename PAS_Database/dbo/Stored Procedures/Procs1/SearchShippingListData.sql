@@ -14,8 +14,10 @@
 	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO & fix the Currency related issue for the SO
 	10   04-12-2025				 Amit Ghediya						Added qtyShipped,qtyRemaining for shipping details
 	11   09-06-2026              Priyansh Patel						UOM changes releted to qtyshipped,qtyRemaining [PN-16778]
-	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	12   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	14   31/Aug/2026			 Vishal Suthar						[PN-17822] - Added Customer Reference Field
+
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
@@ -44,7 +46,8 @@ CREATE       PROCEDURE [dbo].[SearchShippingListData]
 	@Currency varchar(50) = null,
 	@InvoiceStatus varchar(50) = null,
 	@qtyShipped varchar(50) = NULL,
-	@qtyRemaining varchar(50) = NULL
+	@qtyRemaining varchar(50) = NULL,
+	@CustomerReference varchar(100) = NULL
 AS
 BEGIN
 
@@ -101,7 +104,8 @@ BEGIN
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus,
-							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining							
+							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining,
+							Max(wop.CustomerReference) as CustomerReference
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
@@ -146,7 +150,8 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+							Max(so.CustomerReference) as CustomerReference
 					FROM	DBO.SOPickTicket sopt WITH (NOLOCK)
 						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -189,7 +194,8 @@ BEGIN
 								NULL InvoiceDate,
 								'' Currency,
 								'' AS InvoiceStatus,
-								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+								Max(so.CustomerReference) as CustomerReference
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
@@ -231,10 +237,12 @@ BEGIN
 							NULL AS InvoiceDate,
 							'' AS Currency,
 							'' AS InvoiceStatus,
-							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining,
+							Max(CASE WHEN SLR.PurchaseOrderId > 0 THEN POR.PurchaseOrderNumber WHEN SLR.RepairOrderId > 0 THEN ROR.RepairOrderNumber ELSE NULL END) as CustomerReference
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
 						  INNER JOIN DBO.VendorRMA VR WITH (NOLOCK) ON VD.VendorRMAId = VR.VendorRMAId
+						  INNER JOIN DBO.VendorRMADetail rmad WITH (NOLOCK) ON VR.VendorRMAId = rmad.VendorRMAId
 						  INNER JOIN [dbo].[ItemMaster] IMT WITH (NOLOCK) ON VD.[ItemMasterId] = imt.[ItemMasterId]
 						  LEFT JOIN DBO.RMAShipping RS WITH (NOLOCK) ON VD.VendorRMAId=RS.VendorRMAId
 						  INNER JOIN DBO.Vendor V WITH (NOLOCK) ON VR.VENDORID = V.VendorId						 
@@ -242,6 +250,9 @@ BEGIN
 						  LEFT JOIN DBO.RMAShippingItem RSI WITH (NOLOCK) ON RSI.RMAShippingId=RS.RMAShippingId and RSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.VendorRMAPackaginSlipItems RPSI WITH (NOLOCK) ON RPSI.VendorRMADetailId = VD.VendorRMADetailId and RPSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = RS.ShipViaId -- and SV.IsPrimary=1
+						  LEFT JOIN DBO.Stockline SLR WITH (NOLOCK) ON SLR.StockLineId = rmad.StockLineId
+						  LEFT JOIN DBO.PurchaseOrder POR WITH (NOLOCK) ON SLR.PurchaseOrderId = POR.PurchaseOrderId
+						LEFT JOIN DBO.RepairOrder ROR WITH (NOLOCK) ON SLR.RepairOrderId = ROR.RepairOrderId
 
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0  and RPT.IsConfirmed = 1
 					 	--and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
@@ -253,7 +264,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining,CustomerReference
 										
 				
 							FROM Result 
@@ -273,7 +284,8 @@ BEGIN
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') OR
 										(qtyShipped like '%' +@GlobalFilter+'%') OR
-										(qtyRemaining like '%' +@GlobalFilter+'%')
+										(qtyRemaining like '%' +@GlobalFilter+'%') OR
+										(CustomerReference like '%' + @GlobalFilter +'%')
 										))
 										OR   
 										(@GlobalFilter = '' AND 
@@ -292,13 +304,14 @@ BEGIN
 										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') AND
 										(ISNULL(@qtyShipped,'') ='' OR qtyShipped like '%'+@qtyShipped+'%') AND
-										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%')
+										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%') AND
+										(IsNull(@CustomerReference,'') ='' OR CustomerReference like  '%'+@CustomerReference+'%')
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining,CustomerReference,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -325,6 +338,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='qtyShipped')  THEN qtyShipped END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='CustomerReference')  THEN CustomerReference END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -347,7 +361,9 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyShipped')  THEN qtyShipped END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC
+
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY			
 			
@@ -384,7 +400,8 @@ BEGIN
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus,
-							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining,
+							Max(wop.CustomerReference) as CustomerReference
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
@@ -428,7 +445,8 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+							Max(so.CustomerReference) as CustomerReference
 					FROM DBO.SOPickTicket sopt WITH (NOLOCK)
 						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -472,7 +490,8 @@ BEGIN
 								NULL AS InvoiceDate,
 								'' AS Currency,
 								'' AS InvoiceStatus,
-								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+								Max(so.CustomerReference) as CustomerReference
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
@@ -513,7 +532,8 @@ BEGIN
 							NULL AS InvoiceDate,
 							'' AS Currency,
 							'' AS InvoiceStatus,
-							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining,
+							Max(CASE WHEN SLR.PurchaseOrderId > 0 THEN POR.PurchaseOrderNumber WHEN SLR.RepairOrderId > 0 THEN ROR.RepairOrderNumber ELSE NULL END) as CustomerReference
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
 						  INNER JOIN DBO.VendorRMA VR WITH (NOLOCK) ON VD.VendorRMAId = VR.VendorRMAId
@@ -521,9 +541,13 @@ BEGIN
 						  LEFT JOIN DBO.RMAShipping RS WITH (NOLOCK) ON VD.VendorRMAId=RS.VendorRMAId
 						  INNER JOIN DBO.Vendor V WITH (NOLOCK) ON VR.VENDORID = V.VendorId						 
 						  LEFT JOIN DBO.RMAPickTicket RPT WITH (NOLOCK) ON VD.VendorRMADetailId = RPT.VendorRMADetailId
+						  INNER JOIN DBO.VendorRMADetail rmad WITH (NOLOCK) ON RPT.VendorRMAId = rmad.VendorRMAId AND RPT.VendorRMADetailId = rmad.VendorRMADetailId
 						  LEFT JOIN DBO.RMAShippingItem RSI WITH (NOLOCK) ON RSI.RMAShippingId=RS.RMAShippingId and RSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.VendorRMAPackaginSlipItems RPSI WITH (NOLOCK) ON RPSI.VendorRMADetailId = VD.VendorRMADetailId and RPSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = RS.ShipViaId -- and SV.IsPrimary=1
+						  LEFT JOIN DBO.Stockline SLR WITH (NOLOCK) ON SLR.StockLineId = rmad.StockLineId
+						  LEFT JOIN DBO.PurchaseOrder POR WITH (NOLOCK) ON SLR.PurchaseOrderId = POR.PurchaseOrderId
+						  LEFT JOIN DBO.RepairOrder ROR WITH (NOLOCK) ON SLR.RepairOrderId = ROR.RepairOrderId
 
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0 and RPT.IsConfirmed = 1 AND  RS.AirwayBill IS NOT NULL
 					 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RS.ShipDate,SV.Name,RS.AirwayBill,
@@ -533,7 +557,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,QtyRemaining,CustomerReference
 										
 				
 							FROM Result 
@@ -553,7 +577,8 @@ BEGIN
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') OR
 										(qtyShipped like '%' +@GlobalFilter+'%') OR
-										(qtyRemaining like '%' +@GlobalFilter+'%')
+										(qtyRemaining like '%' +@GlobalFilter+'%') OR
+										(CustomerReference like '%' + @GlobalFilter +'%')
 										))
 										OR   
 										(@GlobalFilter = '' AND 
@@ -572,7 +597,8 @@ BEGIN
 										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') AND
 										(ISNULL(@qtyShipped,'') ='' OR qtyShipped like '%'+@qtyShipped+'%') AND
-										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%')
+										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%') AND
+										(IsNull(@CustomerReference,'') ='' OR CustomerReference like  '%'+@CustomerReference+'%')
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
@@ -581,7 +607,7 @@ BEGIN
 										FORMAT(ISNULL(QtyShipped,0), 'N', 'en-us') AS QtyShipped,
 								
 										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,
-										FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,NumberOfItems
+										FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,CustomerReference,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -608,6 +634,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='qtyShipped') THEN qtyShipped END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='qtyRemaining') THEN qtyRemaining END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='CustomerReference')  THEN CustomerReference END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -630,7 +657,9 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyShipped') THEN qtyShipped END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining') THEN qtyRemaining END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining') THEN qtyRemaining END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC
+
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 				
@@ -665,7 +694,8 @@ BEGIN
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus,
-							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(wop.Quantity,0) - ISNULL(WOSI.QtyShipped,0) AS QtyRemaining,
+							Max(wop.CustomerReference) as CustomerReference
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
@@ -712,7 +742,8 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+							Max(so.CustomerReference) as CustomerReference
 					FROM	DBO.SOPickTicket sopt WITH (NOLOCK)
 						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -757,7 +788,8 @@ BEGIN
 								NULL AS InvoiceDate,
 								'' AS Currency,
 								'' AS InvoiceStatus,
-								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+								ISNULL(sop.QtyQuoted,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining,
+								Max(so.CustomerReference) as CustomerReference
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
@@ -800,7 +832,8 @@ BEGIN
 							NULL AS InvoiceDate,
 							'' AS Currency,
 							'' AS InvoiceStatus,
-							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining
+							ISNULL(VD.Qty,0) - ISNULL(RSI.QtyShipped,0) AS QtyRemaining,
+							Max(CASE WHEN SLR.PurchaseOrderId > 0 THEN POR.PurchaseOrderNumber WHEN SLR.RepairOrderId > 0 THEN ROR.RepairOrderNumber ELSE NULL END) as CustomerReference
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
 						  INNER JOIN DBO.VendorRMA VR WITH (NOLOCK) ON VD.VendorRMAId = VR.VendorRMAId
@@ -808,9 +841,13 @@ BEGIN
 						  LEFT JOIN DBO.RMAShipping RS WITH (NOLOCK) ON VD.VendorRMAId=RS.VendorRMAId
 						  INNER JOIN DBO.Vendor V WITH (NOLOCK) ON VR.VENDORID = V.VendorId						 
 						  LEFT JOIN DBO.RMAPickTicket RPT WITH (NOLOCK) ON VD.VendorRMADetailId = RPT.VendorRMADetailId
+						  INNER JOIN DBO.VendorRMADetail rmad WITH (NOLOCK) ON RPT.VendorRMAId = rmad.VendorRMAId AND RPT.VendorRMADetailId = rmad.VendorRMADetailId
 						  LEFT JOIN DBO.RMAShippingItem RSI WITH (NOLOCK) ON RSI.RMAShippingId=RS.RMAShippingId and RSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.VendorRMAPackaginSlipItems RPSI WITH (NOLOCK) ON RPSI.VendorRMADetailId = VD.VendorRMADetailId and RPSI.RMAPickTicketId = RPT.RMAPickTicketId
 						  LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = RS.ShipViaId -- and SV.IsPrimary=1
+						  LEFT JOIN DBO.Stockline SLR WITH (NOLOCK) ON SLR.StockLineId = rmad.StockLineId
+						  LEFT JOIN DBO.PurchaseOrder POR WITH (NOLOCK) ON SLR.PurchaseOrderId = POR.PurchaseOrderId
+						  LEFT JOIN DBO.RepairOrder ROR WITH (NOLOCK) ON SLR.RepairOrderId = ROR.RepairOrderId
 
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0  and RPT.IsConfirmed = 1 AND  RS.AirwayBill IS NULL
 								and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
@@ -841,7 +878,8 @@ BEGIN
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') OR
 										(qtyShipped like '%' +@GlobalFilter+'%') OR
-										(qtyRemaining like '%' +@GlobalFilter+'%')
+										(qtyRemaining like '%' +@GlobalFilter+'%') OR
+										(CustomerReference like '%' + @GlobalFilter +'%')
 										))
 										OR   
 										(@GlobalFilter = '' AND 
@@ -860,7 +898,8 @@ BEGIN
 										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') AND
 										(ISNULL(@qtyShipped,'') ='' OR qtyShipped like '%'+@qtyShipped+'%') AND
-										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%')
+										(ISNULL(@qtyRemaining,'') ='' OR qtyRemaining like '%'+@qtyRemaining+'%') AND
+										(IsNull(@CustomerReference,'') ='' OR CustomerReference like  '%'+@CustomerReference+'%')
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 

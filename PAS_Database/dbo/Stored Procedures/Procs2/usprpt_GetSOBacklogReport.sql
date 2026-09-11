@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usprpt_GetSOBacklogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SOBacklog Report  
@@ -23,7 +23,8 @@
 	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
 	8    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	10   23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	11   14/Aug/2026       Kishor Makwana      [PN-17666] - Concate Sequence Number in to Part. 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -137,7 +138,7 @@ BEGIN
 			UPPER(SO.SalesOrderNumber) AS 'sonum',
 			UPPER(SOQ.SalesOrderQuoteNumber) 'quotenum',
 			UPPER(ST.name) AS 'status',        
-			UPPER(IM.partnumber) AS 'pn',
+			CAST(SOP.SequenceNumber as VARCHAR(10))+' - '+ UPPER(IM.partnumber) AS 'pn',
 			UPPER(IM.PartDescription) AS 'pndescription',
 			UPPER(SO.CustomerName) AS 'customer',
 			UPPER(SO.customerreference) 'custref',
@@ -200,7 +201,7 @@ BEGIN
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END,
-			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, SO.MasterCompanyId
+			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, SO.MasterCompanyId,SOP.SequenceNumber
 			)
 			,FinalCTE(TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty, extcost, unitcost,
 				 opendate, custreqdate, shipdate,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 

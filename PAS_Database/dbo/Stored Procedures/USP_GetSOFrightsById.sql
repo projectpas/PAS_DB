@@ -12,7 +12,7 @@
     1    31-03-2025   Shrey Chandegara		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
-
+	4	 25/Aug/2026			 Kishor Makwana						[PN-17439] - Added Sequence Number with Part
 -- EXEC USP_GetSOFrightsById 760,0  
 **************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSOFrightsById]
@@ -58,7 +58,7 @@ BEGIN
 			ISNULL(uom.ShortName, '') AS UOM,
 			ISNULL(duom.ShortName, '') AS DimensionUOM,
 			ISNULL(cur.Code, '') AS Currency,
-			im.PartNumber,
+			cast(ISNULL(part.SequenceNumber,0) AS VARCHAR(10)) +' - ' +im.PartNumber as PartNumber,
 			sf.ItemMasterId,
 			sf.ConditionId
 		FROM [dbo].[SalesOrderFreight] sf WITH(NOLOCK)

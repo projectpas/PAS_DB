@@ -44,10 +44,16 @@
    23    17-Aug-2026	Ayushi Patel					[PN-17678] added two fields salesOrderQuoteNumber and invoiceNumber
    24   24-Aug-2026   RAJESH GAMI      BAG LOT: Added a new flag, IsExcludedFromOnHand, for the PARTS ON HAND tab (PNInStockView). Only records where IsExcludedFromOnHand is NULL or 0 will be included.
    25   25-Aug-2026   RAJESH GAMI      [PN-17745] Ported from PAS_DB - HowAcquired/AcquiredRef CASE expressions in the ViewAllPN branch now also recognize the new 'Turn In' type (in addition to 'Trans In(Lot)') so stocklines created via "Create Stockline from Lot" are still displayed correctly. (A separate pre-existing exclusion filter in the PNInStockView branch, around the NOT(...IN(@LOT_TransIn_LOT,@LOT_TransIn_PO)...) EXISTS block, was left untouched - its intended behavior for 'Turn In' is unclear and needs business confirmation.)
+   26   08-Sep-2026   Claude (for Rajesh Gami)   [PN-17853] Ported from BETA/RG_S67_LOTChange - replaced the OtherCost branch's CTE body wholesale (block was byte-identical at both boundaries so the swap only touches this branch) with the PN-17853 version: adds a 3rd UNION ALL for SalesOrder Freight/Charges and a 4th for manually-added LOTOtherCostDetails rows (from the new "+" Add popup), plus LotOtherCostDetailId/ItemMasterId/StocklineId/IsNA/ReconciledFreight/UnReconciledFreight/ManualAdjFreight/ReconciledCharges/UnReconciledCharges/ManualAdjCharges/LotNumber/StocklineNumber/ConditionId/StkLineNum/Memo/PostedDate columns across all 4 blocks. Other Lot view types (ViewAllPN, PNInStockView, etc.) in this SP were not touched.
+   27   08-Sep-2026   Claude (for Rajesh Gami)   [PN-17853] Ported from BETA/RG_S67_LOTChange: (a) Added the missing @FlatRateBillingMethodId DECLARE (used by the OtherCost CROSS APPLY added in item 26, and now by PNSoldView below - this was a gap in item 26's port that would have caused "Must declare the scalar variable" at runtime). (b) PNSoldView branch (Sales Activity tab): added Freight/Charges columns to the Result CTE - FlatRate billing method rows use the MarkupFixedPrice of the LAST SalesOrderFreight/SalesOrderCharges record for the whole SalesOrderId (no part filter, since flat-rate lines aren't tied to a specific part); T&M/Actual billing method rows use SUM(BillingAmount) filtered by this SalesOrderPartId. Other untagged BETA changes in this branch (fn_NormalizePartNumber calls, VARCHAR(50)->VARCHAR(10) cast-width cleanups) were left untouched per scope.
+   28   08-Sep-2026   Claude (for Rajesh Gami)   [PN-17853] Ported from BETA/RG_S67_LOTChange: Commission branch (Commission Activity tab) - MarginAmt/Margin%/CommissionExpense are now computed off row-level Revenue (ExtSalesUnitPrice + Freight + Charges, same FlatRate-vs-T&M/Actual rule as PNSoldView) using the same LotConsignment-based Commission formula as USP_Lot_GetLotSummaryByLotId (IsFixedAmount / IsRevenue+IsMargin percent-based), replacing the old ltCal.MarginAmount/CommissionExpense columns (computed before Freight/Charges existed) - so the Commission tab lines up with the Lot Summary tab. Other untagged BETA changes in this branch (fn_NormalizePartNumber calls, VARCHAR(50)->VARCHAR(10) cast-width cleanups) were left untouched per scope.
+   29   03-Sep-2026   RAJESH GAMI      [PN-17853] Repair Cost Mismatch fix
+   30   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] Ported from RG_S67_LOTChange: Display Total Amount Based on All Records in LOT Tabs - added page-independent SUM() grand totals (computed against the fully-filtered #temp table, before OFFSET/FETCH paging - same pattern as the existing @Count/NumberOfItems) for the PNInStockView, PNQuoteView, PNSoldView, RepairedView, OtherCost and Commission branches. Each branch now also returns its new '<Column>Sum' totals alongside NumberOfItems so the UI no longer has to (incorrectly) sum only the current page of rows.
+   31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2, ported from RG_S67_LOTChange: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
+CREATE  PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -136,6 +142,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRANSACTION
 		BEGIN		
 				DECLARE @Count Int;
+				-- [PN-17888] 10-Sep-2026: grand-total accumulators for the LOT Setup tabs' footer totals -
+				-- computed against the fully-filtered temp table before OFFSET/FETCH (same idea as @Count/
+				-- NumberOfItems above), so the frontend gets a total across ALL matching rows, not just the
+				-- current page. Each @Type branch below only sets the subset of these it actually returns.
+				DECLARE @QtyOnHandSum DECIMAL(18,2), @QtyResSum DECIMAL(18,2), @QtyIssSum DECIMAL(18,2), @QtyAvailableSum DECIMAL(18,2),
+					@UnitCostSum DECIMAL(18,2), @RepairCostSum DECIMAL(18,2), @TotalCostSum DECIMAL(18,2), @ExtCostSum DECIMAL(18,2),
+					@QtySum DECIMAL(18,2), @ExtendedPriceSum DECIMAL(18,2), @CostSum DECIMAL(18,2), @TotalDirectCostSum DECIMAL(18,2),
+					@MarginAmtSum DECIMAL(18,2), @FreightSum DECIMAL(18,2), @ChargesSum DECIMAL(18,2), @FreightCostSum DECIMAL(18,2),
+					@ChargesCostSum DECIMAL(18,2), @ExtPriceSum DECIMAL(18,2), @CommissionExpenseSum DECIMAL(18,2);
 				DECLARE @RecordFrom int, @AvailableQty int = 0;
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
@@ -144,6 +159,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 				DECLARE @SOModuleId INT
 				SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
+				DECLARE @FlatRateBillingMethodId BIGINT = NULL; -- [PN-17853]
+				SELECT TOP 1 @FlatRateBillingMethodId = BillingMethodId FROM DBO.BillingMethod WITH(NOLOCK) WHERE Memo = 'FlateRate' AND ISNULL(IsDeleted,0) = 0
 		
 				SELECT 
 						@CurrntEmpTimeZoneDesc = COALESCE(
@@ -936,8 +954,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNInStockTbl
+				SELECT @QtyOnHandSum = SUM(QtyOnHand), @QtyResSum = SUM(QtyRes), @QtyIssSum = SUM(QtyIss), @QtyAvailableSum = SUM(QtyAvailable),
+					@UnitCostSum = SUM(UnitCost), @RepairCostSum = SUM(RepairCost), @TotalCostSum = SUM(TotalCost), @ExtCostSum = SUM(ExtCost)
+					FROM #PNInStockTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNInStockTbl
+				SELECT *, @Count AS NumberOfItems, @QtyOnHandSum AS QtyOnHandSum, @QtyResSum AS QtyResSum, @QtyIssSum AS QtyIssSum,
+					@QtyAvailableSum AS QtyAvailableSum, @UnitCostSum AS UnitCostSum, @RepairCostSum AS RepairCostSum,
+					@TotalCostSum AS TotalCostSum, @ExtCostSum AS ExtCostSum
+				FROM #PNInStockTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -1212,8 +1236,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNQuoteViewTbl
+				SELECT @QtySum = SUM(Qty), @ExtendedPriceSum = SUM(ExtendedPrice) FROM #PNQuoteViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNQuoteViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtySum AS QtySum, @ExtendedPriceSum AS ExtendedPriceSum FROM #PNQuoteViewTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -1325,7 +1350,20 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.Qty Qty
 				,ltCal.SalesUnitPrice UnitPrice
 				,ltCal.ExtSalesUnitPrice ExtendedPrice		
-				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+				-- [PN-17853] Freight/Charges for this SO Part: FlatRate billing method -> MarkupFixedPrice of the LAST freight/charges record for the whole SalesOrderId (no part filter); otherwise (T&M/Actual) -> SUM(BillingAmount) filtered by this SalesOrderPartId
+				,ISNULL((
+					CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderFreight SOFChk WITH(NOLOCK) WHERE SOFChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOFChk.IsDeleted,0) = 0 AND SOFChk.BillingMethodId = @FlatRateBillingMethodId)
+						THEN (SELECT TOP 1 ISNULL(SOF2.MarkupFixedPrice,0) FROM DBO.SalesOrderFreight SOF2 WITH(NOLOCK) WHERE SOF2.SalesOrderId = so.SalesOrderId AND ISNULL(SOF2.IsDeleted,0) = 0 ORDER BY SOF2.SalesOrderFreightId DESC)
+						ELSE (SELECT SUM(ISNULL(SOF3.BillingAmount,0)) FROM DBO.SalesOrderFreight SOF3 WITH(NOLOCK) WHERE SOF3.SalesOrderId = so.SalesOrderId AND SOF3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOF3.IsDeleted,0) = 0)
+					END
+				),0) AS Freight
+				,ISNULL((
+					CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderCharges SOCChk WITH(NOLOCK) WHERE SOCChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOCChk.IsDeleted,0) = 0 AND SOCChk.BillingMethodId = @FlatRateBillingMethodId)
+						THEN (SELECT TOP 1 ISNULL(SOC2.MarkupFixedPrice,0) FROM DBO.SalesOrderCharges SOC2 WITH(NOLOCK) WHERE SOC2.SalesOrderId = so.SalesOrderId AND ISNULL(SOC2.IsDeleted,0) = 0 ORDER BY SOC2.SalesOrderChargesId DESC)
+						ELSE (SELECT SUM(ISNULL(SOC3.BillingAmount,0)) FROM DBO.SalesOrderCharges SOC3 WITH(NOLOCK) WHERE SOC3.SalesOrderId = so.SalesOrderId AND SOC3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOC3.IsDeleted,0) = 0)
+					END
+				),0) AS Charges
+								,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
@@ -1517,8 +1555,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #PNSoldViewTbl
+				SELECT @QtySum = SUM(Qty), @ExtendedPriceSum = SUM(ExtendedPrice), @CostSum = SUM(Cost), @RepairCostSum = SUM(RepairCost),
+					@TotalDirectCostSum = SUM(TotalDirectCost), @MarginAmtSum = SUM(MarginAmt), @FreightSum = SUM(Freight), @ChargesSum = SUM(Charges),
+					@ExtCostSum = SUM(ExtCost) -- [PN-17888] round 2: Sales Activity Ext Cost footer total
+					FROM #PNSoldViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #PNSoldViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtySum AS QtySum, @ExtendedPriceSum AS ExtendedPriceSum, @CostSum AS CostSum,
+					@RepairCostSum AS RepairCostSum, @TotalDirectCostSum AS TotalDirectCostSum, @MarginAmtSum AS MarginAmtSum,
+					@FreightSum AS FreightSum, @ChargesSum AS ChargesSum, @ExtCostSum AS ExtCostSum
+				FROM #PNSoldViewTbl
 				ORDER BY  
 				--CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN Status END ASC,
 				--CASE WHEN (@SortOrder=-1  AND @SortColumn='Status')  THEN Status END DESC,
@@ -1649,13 +1694,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) AS UnitPrice
 				--,(ISNULL(sl.UnitCost,0) * (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) AS ExtendedPrice
 				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) AS ExtendedPrice
-				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+				,ISNULL(ltCal.Qty, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) Cost
 				--,(ISNULL(sl.PurchaseOrderUnitCost,0)* (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) ExtCost
-				,(ISNULL(sl.UnitCost,0)* ltCal.Qty) ExtCost
+				,ltCal.RepairCost  ExtCost
 				,ISNULL(sl.RepairOrderUnitCost,0) RepairCost
 				,ISNULL(sl.UnitCost,0) AS TotalCost
 				--,(ISNULL(sl.RepairOrderUnitCost,0) + (ISNULL(sl.PurchaseOrderUnitCost,0))) TotalCost
@@ -1833,8 +1878,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				  )
 
 				SELECT @Count = COUNT(*) FROM #RepairedViewTbl
+				SELECT @QtyOnHandSum = SUM(QtyOnHand), @CostSum = SUM(Cost), @RepairCostSum = SUM(RepairCost), @TotalCostSum = SUM(TotalCost),
+					@ExtCostSum = SUM(ExtCost) FROM #RepairedViewTbl
 			
-				SELECT *, @Count AS NumberOfItems FROM #RepairedViewTbl
+				SELECT *, @Count AS NumberOfItems, @QtyOnHandSum AS QtyOnHandSum, @CostSum AS CostSum, @RepairCostSum AS RepairCostSum,
+					@TotalCostSum AS TotalCostSum, @ExtCostSum AS ExtCostSum
+				FROM #RepairedViewTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
@@ -1947,6 +1996,22 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,part.Condition
 				,part.Manufacturer
 				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
 					 INNER JOIN DBO.LOT lot WITH(NOLOCK) on po.LotId = lot.LotId
@@ -1978,6 +2043,22 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,part.Condition
 					,part.Manufacturer
 					,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
 					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
 						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
@@ -1991,7 +2072,104 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
 								OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
 				
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+
+						 UNION ALL
+
+						 	SELECT DISTINCT
+						 	 lot.LotId
+						 	,ISNULL(so.SalesOrderId,0) PurchaseOrderId
+						 	,'' Vendor -- [PN-17853] no vendor concept on a Sales Order, left blank
+						 	,'' VendorCode
+						 	,0 VendorId
+						 	,ISNULL(frt.Freight,0) AS FreightCost
+						 	,ISNULL(chg.Charges,0) AS ChargesCost
+						 	,case when CAST(so.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(so.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate -- [PN-17853] SO CreatedDate, reusing the PoDate field
+						 	,so.SalesOrderNumber AS PoNum -- [PN-17853] SalesOrderNumber, reusing the PoNum field
+						 	,im.PartNumber
+						 	,im.PartDescription
+						 	,c.Description AS Condition
+						 	,im.ManufacturerName AS Manufacturer
+						 	,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
+				,lot.LotNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS BIGINT) LotOtherCostDetailId -- [PN-17853] non-NULL only for manually-added rows (LOTOtherCostDetails)
+				,CAST(NULL AS BIGINT) ItemMasterId -- [PN-17853]
+				,CAST(NULL AS BIGINT) StocklineId -- [PN-17853]
+				,CAST(NULL AS VARCHAR(100)) StocklineNumber -- [PN-17853] 03-Sep-2026
+				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
+				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
+				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) UnReconciledCharges -- [PN-17853]
+				,CAST(NULL AS DECIMAL(18,2)) ManualAdjCharges -- [PN-17853]
+				,CAST(NULL AS DATETIME2(7)) PostedDate -- [PN-17853] 04-Sep-2026: only manual rows have a PostedDate
+				,CAST(NULL AS NVARCHAR(MAX)) Memo -- [PN-17853] 03-Sep-2026: only manual rows have a Memo
+						 	FROM DBO.LOT lot WITH(NOLOCK)
+						 		 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
+						 		 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
+						 		 INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on sl.ItemMasterId = im.ItemMasterId
+						 		 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
+						 		 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+						 		 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
+						 		 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
+						 		 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
+						 		 -- [PN-17853] SO Freight/Charges for this SO Part: same FlatRate-vs-T&M/Actual rule as the PNSoldView/Commission additions above
+						 		 CROSS APPLY ( SELECT Freight = ISNULL((
+						 		 	CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderFreight SOFChk WITH(NOLOCK) WHERE SOFChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOFChk.IsDeleted,0) = 0 AND SOFChk.BillingMethodId = @FlatRateBillingMethodId)
+						 		 		THEN (SELECT TOP 1 ISNULL(SOF2.MarkupFixedPrice,0) FROM DBO.SalesOrderFreight SOF2 WITH(NOLOCK) WHERE SOF2.SalesOrderId = so.SalesOrderId AND ISNULL(SOF2.IsDeleted,0) = 0 ORDER BY SOF2.SalesOrderFreightId DESC)
+						 		 		ELSE (SELECT SUM(ISNULL(SOF3.BillingAmount,0)) FROM DBO.SalesOrderFreight SOF3 WITH(NOLOCK) WHERE SOF3.SalesOrderId = so.SalesOrderId AND SOF3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOF3.IsDeleted,0) = 0)
+						 		 	END
+						 		 ),0) ) frt
+						 		 CROSS APPLY ( SELECT Charges = ISNULL((
+						 		 	CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderCharges SOCChk WITH(NOLOCK) WHERE SOCChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOCChk.IsDeleted,0) = 0 AND SOCChk.BillingMethodId = @FlatRateBillingMethodId)
+						 		 		THEN (SELECT TOP 1 ISNULL(SOC2.MarkupFixedPrice,0) FROM DBO.SalesOrderCharges SOC2 WITH(NOLOCK) WHERE SOC2.SalesOrderId = so.SalesOrderId AND ISNULL(SOC2.IsDeleted,0) = 0 ORDER BY SOC2.SalesOrderChargesId DESC)
+						 		 		ELSE (SELECT SUM(ISNULL(SOC3.BillingAmount,0)) FROM DBO.SalesOrderCharges SOC3 WITH(NOLOCK) WHERE SOC3.SalesOrderId = so.SalesOrderId AND SOC3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOC3.IsDeleted,0) = 0)
+						 		 	END
+						 		 ),0) ) chg
+						 	 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
+						 		   AND (ISNULL(frt.Freight,0) > 0 OR ISNULL(chg.Charges,0) > 0)
+
+						 UNION ALL
+
+						 	SELECT DISTINCT
+						 	 lot.LotId
+						 	,0 PurchaseOrderId
+						 	,'' Vendor -- [PN-17853] no vendor concept on a manual Other Cost entry
+						 	,'' VendorCode
+						 	,0 VendorId
+						 	,ISNULL(loc.TotalFreight,0) AS FreightCost
+						 	,ISNULL(loc.TotalOtherCost,0) AS ChargesCost
+						 	,case when CAST(loc.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(loc.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate
+						 	,CASE WHEN ISNULL(loc.ReferenceNumber,'') <> '' THEN loc.ReferenceNumber + ' (Manual Entry)' ELSE 'Manual Entry' END AS PoNum -- [PN-17853] 03-Sep-2026: SO-prefixed (e.g. 'SO-230423 (Manual Entry)') when this manual row is tied to a Sales Order (Rajesh, 03-Sep-2026)
+						 	,ISNULL(loc.PartNumber,'NA') PartNumber
+						 	,loc.PartDescription
+						 	,loc.Condition
+						 	,loc.ManufacturerName AS Manufacturer
+						 	,ISNULL(sl2.IsCustomerStock, 0) IsCustomerStock
+						 	,lot.LotNumber -- [PN-17853] 03-Sep-2026
+						 	,loc.LotOtherCostDetailId -- [PN-17853] drives the grid's Action/Edit column - only manual rows have this set
+						 	,loc.ItemMasterId -- [PN-17853]
+						 	,loc.StocklineId -- [PN-17853]
+						 	,ISNULL(loc.StocklineNumber, sl2.StockLineNumber) StocklineNumber -- [PN-17853] 03-Sep-2026 (fallback to live Stockline join in case StocklineNumber wasn't captured at save time)
+						 	,ISNULL(loc.StocklineNumber, sl2.StockLineNumber) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
+						 	,loc.ConditionId -- [PN-17853] 03-Sep-2026
+						 	,ISNULL(loc.IsNA,0) IsNA -- [PN-17853]
+						 	,loc.ReconciledFreight -- [PN-17853]
+						 	,loc.UnReconciledFreight -- [PN-17853]
+						 	,loc.ManualAdjFreight -- [PN-17853]
+						 	,loc.ReconciledCharges -- [PN-17853]
+						 	,loc.UnReconciledCharges -- [PN-17853]
+						 	,loc.ManualAdjCharges -- [PN-17853]
+						 	,loc.PostedDate -- [PN-17853] 04-Sep-2026: plain user-entered "Date" field on the Add/Edit popup (Rajesh)
+						 	,loc.Memo -- [PN-17853] 03-Sep-2026: was missing entirely, Edit popup showed it blank (Rajesh)
+						 	FROM DBO.LOT lot WITH(NOLOCK)
+						 		 INNER JOIN DBO.LOTOtherCostDetails loc WITH(NOLOCK) on lot.LotId = loc.LotId AND ISNULL(loc.IsDeleted,0) = 0
+						 		 LEFT JOIN DBO.Stockline sl2 WITH(NOLOCK) on loc.StocklineId = sl2.StockLineId
+						 	 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND loc.MasterCompanyId = @MasterCompanyId
+
+								 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				 SELECT * INTO #OtherCostTbl FROM  Result 
 				WHERE 
@@ -2020,17 +2198,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(IsNull(@ManufacturerName, '') = '' OR Manufacturer like '%' + @ManufacturerName + '%') AND
 					--(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					
-					(ISNULL(@FreightCost, 0) = 0 OR CAST(FreightCost as VARCHAR(50)) = @FreightCost) AND
-					(ISNULL(@ChargesCost, 0) = 0 OR CAST(ChargesCost as VARCHAR(50)) = @ChargesCost) AND
+					(ISNULL(@FreightCost, 0) = 0 OR CAST(FreightCost as VARCHAR(10)) = @FreightCost) AND
+					(ISNULL(@ChargesCost, 0) = 0 OR CAST(ChargesCost as VARCHAR(10)) = @ChargesCost) AND
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,PostedDate,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum; 04-Sep-2026: added PostedDate
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl
+				SELECT @FreightCostSum = SUM(FreightCost), @ChargesCostSum = SUM(ChargesCost) FROM #OtherCostTbl
 
-				SELECT *, @Count AS NumberOfItems FROM #OtherCostTbl
+				SELECT *, @Count AS NumberOfItems, @FreightCostSum AS FreightCostSum, @ChargesCostSum AS ChargesCostSum FROM #OtherCostTbl
 				ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
@@ -2079,10 +2258,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--,(CASE  WHEN ltCal.Type = @LOT_TransOut_SO OR ltCal.Type = @LOT_TransOut_LOT OR  ltCal.Type = @LOT_TransOut_RO THEN ltCal.TransferredOutCost ELSE ltCal.TransferredInCost END) TransUnitCost
 				,ltCal.SalesUnitPrice UnitSalesPrice
 				,ltCal.ExtSalesUnitPrice ExtPrice
-				,ltCal.MarginAmount MarginAmt
+				,ISNULL(mrg.MarginAmtNew,0) MarginAmt -- [PN-17853] Revenue(incl. Freight+Charges) - Cogs, was ltCal.MarginAmount (computed before Freight/Charges existed)
 				--,ltCal.Margin Margin
-				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
-				,ISNULL(ltCal.CommissionExpense,0) AS CommissionExpense
+				,CASE WHEN ISNULL(rev.Revenue,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(mrg.MarginAmtNew,0))/ISNULL(rev.Revenue,1))) END Margin -- [PN-17853] % of Revenue(incl. Freight+Charges), was % of raw ExtSalesUnitPrice
+				,ISNULL(comm.CommissionExpenseNew,0) AS CommissionExpense -- [PN-17853] recalculated off the new Revenue/Margin using the same consignment-based formula as USP_Lot_GetLotSummaryByLotId, was ltCal.CommissionExpense (computed before Freight/Charges existed)
 				,So.SalesOrderNumber SoNum
 				,sobi.InvoiceNo InvoiceNum 
 				,lot.ReferenceNumber ReferenceNum
@@ -2124,7 +2303,31 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
 					 INNER JOIN DBO.LotConsignment LC WITH(NOLOCK) on lot.LotId = LC.LotId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 -- [PN-17853] row-level Freight/Charges/Revenue/Margin/Commission - same FlatRate-vs-T&M/Actual rule as PNSoldView above, and the same LotConsignment-based Commission formula as USP_Lot_GetLotSummaryByLotId, but scoped to this SO Part so the Commission tab lines up with the Lot Summary tab
+					 CROSS APPLY ( SELECT Freight = ISNULL((
+					 	CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderFreight SOFChk WITH(NOLOCK) WHERE SOFChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOFChk.IsDeleted,0) = 0 AND SOFChk.BillingMethodId = @FlatRateBillingMethodId)
+					 		THEN (SELECT TOP 1 ISNULL(SOF2.MarkupFixedPrice,0) FROM DBO.SalesOrderFreight SOF2 WITH(NOLOCK) WHERE SOF2.SalesOrderId = so.SalesOrderId AND ISNULL(SOF2.IsDeleted,0) = 0 ORDER BY SOF2.SalesOrderFreightId DESC)
+					 		ELSE (SELECT SUM(ISNULL(SOF3.BillingAmount,0)) FROM DBO.SalesOrderFreight SOF3 WITH(NOLOCK) WHERE SOF3.SalesOrderId = so.SalesOrderId AND SOF3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOF3.IsDeleted,0) = 0)
+					 	END
+					 ),0) ) frt
+					 CROSS APPLY ( SELECT Charges = ISNULL((
+					 	CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderCharges SOCChk WITH(NOLOCK) WHERE SOCChk.SalesOrderId = so.SalesOrderId AND ISNULL(SOCChk.IsDeleted,0) = 0 AND SOCChk.BillingMethodId = @FlatRateBillingMethodId)
+					 		THEN (SELECT TOP 1 ISNULL(SOC2.MarkupFixedPrice,0) FROM DBO.SalesOrderCharges SOC2 WITH(NOLOCK) WHERE SOC2.SalesOrderId = so.SalesOrderId AND ISNULL(SOC2.IsDeleted,0) = 0 ORDER BY SOC2.SalesOrderChargesId DESC)
+					 		ELSE (SELECT SUM(ISNULL(SOC3.BillingAmount,0)) FROM DBO.SalesOrderCharges SOC3 WITH(NOLOCK) WHERE SOC3.SalesOrderId = so.SalesOrderId AND SOC3.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(SOC3.IsDeleted,0) = 0)
+					 	END
+					 ),0) ) chg
+					 CROSS APPLY ( SELECT Revenue = ISNULL(ltCal.ExtSalesUnitPrice,0) + frt.Freight + chg.Charges ) rev
+					 CROSS APPLY ( SELECT MarginAmtNew = rev.Revenue - ISNULL(ltCal.Cogs,0) ) mrg
+					 CROSS APPLY ( SELECT CommissionExpenseNew = (
+					 	CASE
+					 		WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN CONVERT(DECIMAL(18,2), ISNULL(lc.PerAmount,0) * ISNULL(ltCal.Qty,0))
+					 		WHEN ISNULL(lc.IsRevenue,0) = 1 OR ISNULL(lc.IsMargin,0) = 1 THEN
+					 			ISNULL(CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN CONVERT(DECIMAL(18,2), (rev.Revenue * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = lc.PercentId),0)) / 100) ELSE 0 END,0)
+					 			+ ISNULL(CASE WHEN ISNULL(lc.IsMargin,0) = 1 THEN CONVERT(DECIMAL(18,2), (mrg.MarginAmtNew * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = lc.MarginPercentId),0)) / 100) ELSE 0 END,0)
+					 		ELSE 0
+					 	END
+					 ) ) comm
+					 					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
 				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
@@ -2188,8 +2391,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(50)) LIKE @UnitSalePrice)))
 
 				SELECT @Count = COUNT(*) FROM #CommisionResult
+				SELECT @ExtPriceSum = SUM(ExtPrice), @MarginAmtSum = SUM(MarginAmt), @CommissionExpenseSum = SUM(CommissionExpense) FROM #CommisionResult
 			
-				SELECT *, @Count AS NumberOfItems FROM #CommisionResult
+				SELECT *, @Count AS NumberOfItems, @ExtPriceSum AS ExtPriceSum, @MarginAmtSum AS MarginAmtSum, @CommissionExpenseSum AS CommissionExpenseSum FROM #CommisionResult
 				ORDER BY 	
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,

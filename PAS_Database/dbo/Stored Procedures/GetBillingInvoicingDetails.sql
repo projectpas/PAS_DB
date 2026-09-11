@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetBillingInvoicingDetails]           
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
@@ -10,18 +10,29 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    28/04/2025   Moin Bloch    Created
-	2   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
-	3   29/06/2026    BHARGAV Saliya 	  get Terms and Id From WO Table [PN-17040]
-	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	6    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoicing details (WorkOrder branch untouched).
+ ** PR   Date			Author		Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    28/04/2025		Moin Bloch		Created
+	2    30 Apr 2025	RAJESH GAMI		Implemented Sales Order Module and Fix invoice Date issue
+	3    23 JUN 2025	RAJESH GAMI		FIXED CustomerDomensticShippingShipViaId related issue in SO
+	4    03 JUL 2025	RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
+	5    07 JUL 2025	RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default selected
+	6    08 JUL 2025	RAJESH GAMI		Fixed: When we revise the proforma that time getting error 
+	7    17 JUL 2025	RAJESH GAMI		Implement SO notes  
+	8    31 JUL 2025	BHARGAV Saliya  Handle [IsCustomerShipping] flage and Get AccountNo In SO
+	9    05 Aug 2025	BHARGAV Saliya	Fixed ShippingTerms Issue PN_13778
+	10   26/03/2026		Moin Bloch		Rename TearDown To Internal Teardown PN-15850
+	11   29/06/2026		BHARGAV Saliya	get Terms and Id From WO Table [PN-17040]
+	12   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	14   20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoicing details (WorkOrder branch untouched).
+	15   13/Aug/2026	Vishal Suthar	Fixed the shipTo and billTo siteId to get from address tab instead of customer record for SO Proforma Invoice
+	16   02/Sept/2026	Vishal Suthar	Fixed ShipVia to get it from address tab instead of customer record for SO
+
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetBillingInvoicingDetails]
+CREATE      PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @EmployeeId BIGINT=NULL,
@@ -427,17 +438,17 @@ BEGIN
 						@CostPlusType AS [CostPlusType],
 						[so].[CustomerId] AS [SoldToCustomerId],
 						[co].[Name] AS [SoldToCustomer],
-						[cust_bill].[CustomerBillingAddressId] AS [SoldToSiteId],
+						CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END AS [SoldToSiteId],
 						[co].[CustomerId] AS [ShipToCustomerId],
 						[co].[Name] AS [ShipToCustomer],
-						[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
+						CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
 						[so].[ManagementStructureId],
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						[cust_shipVia].[ShipViaId],
-							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
+						CASE WHEN [SOShipVia].AllShipViaId IS NOT NULL THEN [SOShipVia].ShipViaId ELSE [cust_shipVia].[ShipViaId] END AS ShipViaId,
+						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
 						so.Notes Notes,
 						ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 						ISNULL([st].[Name], '') AS ShippingTermsName
@@ -447,6 +458,8 @@ BEGIN
 				  	INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 					LEFT JOIN [dbo].[CustomerDomensticShipping] [cust_ship] WITH(NOLOCK) ON [so].[CustomerId] = [cust_ship].[CustomerId]
 					LEFT JOIN [dbo].[CustomerBillingAddress] [cust_bill] WITH(NOLOCK) ON [so].[CustomerId] = [cust_bill].[CustomerId]
+					LEFT JOIN [dbo].[AllAddress] [add_bill] WITH(NOLOCK) ON [add_bill].ReffranceId = @ReferenceId AND [add_bill].ModuleId = @SOModuleId AND [add_bill].IsShippingAdd = 0
+					LEFT JOIN [dbo].[AllAddress] [add_Ship] WITH(NOLOCK) ON [add_Ship].ReffranceId = @ReferenceId AND [add_Ship].ModuleId = @SOModuleId AND [add_Ship].IsShippingAdd = 1
 				  	LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
 				  	LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				  	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
@@ -459,6 +472,7 @@ BEGIN
 					 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
+					LEFT JOIN [DBO].[AllShipVia] [SOShipVia] WITH(NOLOCK) ON [SOShipVia].ReferenceId = sop.SalesOrderId AND [SOShipVia].ModuleId = @SOModuleId
 				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId
 			END
 			ELSE
@@ -551,15 +565,15 @@ BEGIN
 						@CostPlusType AS [CostPlusType],
 						[so].[CustomerId] AS [SoldToCustomerId],
 						[co].[Name] AS [SoldToCustomer],
-						[cust_bill].[CustomerBillingAddressId] AS [SoldToSiteId],
+						CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END AS [SoldToSiteId],
 						[co].[CustomerId] AS [ShipToCustomerId],
 						[co].[Name] AS [ShipToCustomer],
-						[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
+						CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
 						[so].[ManagementStructureId],
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
-					    ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipviaId,
+					    CASE WHEN [SOShipVia].AllShipViaId IS NOT NULL THEN [SOShipVia].ShipViaId ELSE ISNULL([cust_shipVia].[ShipViaId], 0) END AS ShipviaId,
 						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,so.Notes Notes,
 						ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 						ISNULL([st].[Name], '') AS ShippingTermsName
@@ -570,6 +584,8 @@ BEGIN
 				 	INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShipping] [cust_ship] WITH(NOLOCK) ON [so].[CustomerId] = [cust_ship].[CustomerId]
 					LEFT JOIN [dbo].[CustomerBillingAddress] [cust_bill] WITH(NOLOCK) ON [so].[CustomerId] = [cust_bill].[CustomerId]				 	
+					LEFT JOIN [dbo].[AllAddress] [add_bill] WITH(NOLOCK) ON [add_bill].ReffranceId = @ReferenceId AND [add_bill].ModuleId = @SOModuleId AND [add_bill].IsShippingAdd = 0
+					LEFT JOIN [dbo].[AllAddress] [add_Ship] WITH(NOLOCK) ON [add_Ship].ReffranceId = @ReferenceId AND [add_Ship].ModuleId = @SOModuleId AND [add_Ship].IsShippingAdd = 1
 					LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
 				 	LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				 	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
@@ -581,6 +597,7 @@ BEGIN
 					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]					
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
+					LEFT JOIN [DBO].[AllShipVia] [SOShipVia] WITH(NOLOCK) ON [SOShipVia].ReferenceId = sop.SalesOrderId AND [SOShipVia].ModuleId = @SOModuleId
 				 	WHERE so.SalesOrderId = @ReferenceId ;
 				 END
 			END			

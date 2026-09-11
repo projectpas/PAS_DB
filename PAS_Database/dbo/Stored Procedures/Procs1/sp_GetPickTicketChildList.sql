@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetPickTicketChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Pick ticket child table list
@@ -20,13 +20,15 @@
     4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	5    09/July/2026   Rajesh Gami       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    20/July/2026   RAJESH GAMI    [PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
+	7    24/Aug/2026   Kishor Makwana [PN-17439] - Added @SalesOrderPartId in Parameter
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
 CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
 	@SalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@SalesOrderPartId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -70,7 +72,7 @@ BEGIN
 		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
-		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId
+		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SalesOrderPartId
 	
 	END
 	COMMIT  TRANSACTION

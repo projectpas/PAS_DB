@@ -259,6 +259,9 @@
     [ItemNonStockClassificationId]        BIGINT          NULL,
     [NonStockClassification]              VARCHAR (100)   NULL,
     [IsService]                           BIT             CONSTRAINT [DF_Stockline_IsService] DEFAULT ((0)) NULL,
+    [LeasePartId]                         BIGINT          NULL,
+    [MiscAdjustment]                      DECIMAL (18, 6) NULL,
+    [COGSUnitCost]                        DECIMAL (18, 6) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -275,6 +278,10 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
+
+
 
 
 
@@ -808,4 +815,10 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_Report]
     ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC, [CreatedDate] ASC)
     INCLUDE([StockLineId], [ItemMasterId], [SiteId], [WarehouseId], [LocationId], [ShelfId], [BinId], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [PurchaseOrderId], [RepairOrderId], [VendorId], [CustomerId], [GLAccountId], [IsCustomerStock], [IsNonStock]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_TaggedByName]
+    ON [dbo].[Stockline]([TaggedByName] ASC)
+    INCLUDE([TaggedByType], [TaggedByTypeName], [MasterCompanyId]) WHERE ([TaggedByName] IS NOT NULL);
 

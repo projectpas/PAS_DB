@@ -78,7 +78,7 @@
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetLotCommissionReportInvoiceDate]
+CREATE PROCEDURE [dbo].[usprpt_GetLotCommissionReportInvoiceDate]
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,
@@ -590,6 +590,16 @@ BEGIN
           -- matching branch and so could fan out/duplicate this VRPD row in PaymentCTE) guarantees
           -- at most one Lot even when the customer payment touches both a WO and a SO billing
           -- invoice item (Rajesh, 11-Sep-2026).
+		  
+		  SELECT TOP 1 LT2.LotNumber, LT2.LotId, LT2.ManagementStructureId,  0 AS SortOrder
+			FROM dbo.ReceivingReconciliationDetails RRD2 WITH (NOLOCK)
+			INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = RRD2.StocklineId
+			INNER JOIN dbo.Lot LT2 WITH (NOLOCK) ON LT2.LotId = STK2.LotId AND ISNULL(LT2.IsDeleted,0) = 0
+			WHERE RRD2.ReceivingReconciliationId = RRH.ReceivingReconciliationId
+			ORDER BY RRD2.ReceivingReconciliationDetailId
+
+		  UNION ALL
+
           SELECT TOP 1 LT.LotNumber, LT.LotId, LT.ManagementStructureId, 1 AS SortOrder
           FROM dbo.CustomerPayments CP WITH (NOLOCK)
           INNER JOIN dbo.InvoicePayments IPY WITH (NOLOCK) ON IPY.ReceiptId = CP.ReceiptId AND ISNULL(IPY.IsDeleted,0) = 0

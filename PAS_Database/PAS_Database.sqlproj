@@ -4760,6 +4760,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
     <Build Include="dbo\Tables\LeaseRateUnit.sql" />
     <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

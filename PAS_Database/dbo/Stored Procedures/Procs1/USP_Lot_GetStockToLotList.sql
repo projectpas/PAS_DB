@@ -23,6 +23,10 @@
 	10   25-Aug-2026			 RAJESH GAMI						[PN-17745] Ported from PAS_DB - The IsFromPreCostStk=0 eligibility filter for 'Trans In(Lot)' rows now also recognizes the new 'Turn In' type so stocklines created via "Create Stockline from Lot" are still included correctly.
 	11   03-Sep-2026   RAJESH GAMI      [PN-17853] - Fixed the Extended Cost Amount Issue 
 	12   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	12   10-Sep-2026   Claude (Rajesh Gami)  [PN-17888] Ported from RG_S67_LOTChange: Added a ResultSums CTE (QuantitySum/UnitCostSum/
+	     ExtUnitCostSum), cross-joined alongside the existing ResultCount CTE in both the IsInOut=1 (Trans-In)
+	     and else (Trans-Out) branches, so the grid's totals row can show a grand total across ALL matching
+	     rows (computed from FinalResult before OFFSET/FETCH paging) instead of just the current page.
 **************************************************************
 **************************************************************/
 CREATE  PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 

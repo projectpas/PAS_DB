@@ -4367,7 +4367,11 @@
     <Build Include="dbo\Tables\SupportAssignmentMaster.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportAssignmentMaster_ById.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_CommonWorkOrderTeardownCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderAssetsCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderMaterialsCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WOPickTicketCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkorderPickTicketCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderSettlementGridHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />

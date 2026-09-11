@@ -22,6 +22,7 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters (poview and VendorRFQ view branches) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed). Also removed a third hard exclusion (ISNULL(ST.IsNonStock,0)=0) on the #TempStkList staging query that feeds ReceivedDate to both branches.
+	9   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -102,7 +103,7 @@ BEGIN
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -110,7 +111,7 @@ BEGIN
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND 
-					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
@@ -169,14 +170,14 @@ BEGIN
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND 
-					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND

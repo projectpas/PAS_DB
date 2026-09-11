@@ -22,6 +22,7 @@
 	6    19/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -126,7 +127,7 @@ BEGIN
 			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -134,7 +135,7 @@ BEGIN
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
-					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
@@ -196,7 +197,7 @@ BEGIN
 			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -204,7 +205,7 @@ BEGIN
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
-					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%') AND
+					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(IsNull(@PODate,'') ='' OR CAST(PODate AS date)=Cast(@PODate as date)) AND  

@@ -28,10 +28,11 @@
 	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
 	8    13/11/2025   Bhargav Saliya   Get Notes From the mapping Table
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[GetPublicationPNList]	
+CREATE   PROCEDURE [dbo].[GetPublicationPNList]	
 @PageNumber int=NULL,
 @PageSize int=NULL,
 @SortColumn varchar(50)=null,
@@ -184,7 +185,7 @@ BEGIN
 				  SELECT * INTO #TempResult FROM Result
 				  
 				  WHERE ((@GlobalFilter <>''
-				     AND ((PartNos LIKE '%' +@GlobalFilter+'%') OR
+				     AND ((PartNos LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNos) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 				    (PnDescription LIKE '%' +@GlobalFilter+'%') OR
 					(Manufacturers LIKE '%' +@GlobalFilter+'%') OR					
 					(RevisionNum LIKE '%' +@GlobalFilter+'%') OR
@@ -202,7 +203,7 @@ BEGIN
 					))
 					OR 
 					(@GlobalFilter=''  AND 			
-					(ISNULL(@PartNos,'') ='' OR PartNos LIKE '%' + @PartNos + '%') AND
+					(ISNULL(@PartNos,'') ='' OR PartNos LIKE '%' + @PartNos + '%' OR dbo.fn_NormalizePartNumber(PartNos) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNos) + '%') AND
 					(ISNULL(@PnDescription,'') ='' OR PnDescription LIKE '%' + @PnDescription + '%') AND
 					(ISNULL(@Manufacturers,'') ='' OR Manufacturers LIKE '%' + @Manufacturers + '%') AND
 					(ISNULL(@RevisionNum,'') ='' OR RevisionNum LIKE '%' + @RevisionNum + '%') AND

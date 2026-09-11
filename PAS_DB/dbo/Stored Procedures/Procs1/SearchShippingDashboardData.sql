@@ -18,6 +18,7 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	8    12-Aug-2026			 Nakul								Added CustomerReference column/filter/sort for Customer Reference # column on Shipping Dashboard
+	9    10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
@@ -270,7 +271,7 @@ BEGIN
 					(@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR
 							(RefNumber like '%' + @GlobalFilter +'%') OR
 							(Customer like '%' + @GlobalFilter +'%') OR
-							(PartNumber like '%' + @GlobalFilter +'%') OR
+							(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(PartDescription like '%'+ @GlobalFilter +'%') OR
 							(Carrier like '%' + @GlobalFilter +'%') OR
 							(ShippingMethod like '%' + @GlobalFilter +'%') OR
@@ -287,7 +288,7 @@ BEGIN
 							(@GlobalFilter = '' AND
 							(IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and
 							(IsNull(@RefNumber, '') = '' OR RefNumber like  '%'+ @RefNumber +'%') and
-							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 							(IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 							(IsNull(@Customer, '') = '' OR Customer like '%'+ @Customer +'%') and
 							(IsNull(@Carrier, '') = '' OR Carrier like '%'+ @Carrier +'%') and

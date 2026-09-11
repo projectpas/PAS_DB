@@ -17,10 +17,11 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    05-05-2025    Amit Ghediya       Created 
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    01/July/2026  RAJESH GAMI        [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3   10-Sep-2026    Bhargav Saliya     [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/  
-CREATE      PROCEDURE [dbo].[USP_GetROTemplateList]
+CREATE   PROCEDURE [dbo].[USP_GetROTemplateList]
 	@PageNumber INT = NULL,
 	@PageSize INT = NULL,
 	@SortColumn VARCHAR(50)=NULL,
@@ -124,7 +125,7 @@ BEGIN
 				SELECT RepairOrderTemplateId,RepairOrderTemplateNumber, partnumber,PartDescription,Manufacturer,WorkToPerform,CustomerName,PublicationId,VendorName,Instruction, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsDeleted FROM Result  
 				WHERE  (  
 				 (@GlobalFilter <>'' AND ((RepairOrderTemplateNumber LIKE '%' +@GlobalFilter+'%' ) OR   
-				   (partnumber LIKE '%' +@GlobalFilter+'%') OR 
+				   (partnumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR 
 				   (PartDescription LIKE '%' +@GlobalFilter+'%') OR 
 				   (Manufacturer LIKE '%' +@GlobalFilter+'%') OR 
 				   (WorkToPerform LIKE '%' +@GlobalFilter+'%') OR
@@ -139,7 +140,7 @@ BEGIN
 				   ))  
 				   OR     
 				   (@GlobalFilter='' AND (ISNULL(@RepairOrderTemplateNumber,'') ='' OR RepairOrderTemplateNumber LIKE  '%'+ @RepairOrderTemplateNumber+'%') AND   
-				   (ISNULL(@Partnumber,'') ='' OR partnumber LIKE '%'+ @Partnumber+'%') AND
+				   (ISNULL(@Partnumber,'') ='' OR partnumber LIKE '%'+ @Partnumber+'%' OR dbo.fn_NormalizePartNumber(partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@Partnumber)+'%') AND
 				   (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%'+ @PartDescription+'%') AND
 				   (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%'+ @Manufacturer+'%') AND
 				   (ISNULL(@WorkToPerform,'') ='' OR WorkToPerform LIKE '%'+ @WorkToPerform+'%') AND

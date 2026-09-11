@@ -24,7 +24,7 @@
  ** S NO   Date          Author          Change Description
  ** --     --------      -------------   --------------------------------
     1      08-SEP-2026   Ayushi Patel    Created (PN-14788)
-
+    2      10-SEP-2026   Ayushi Patel    use isDeleted instead of isRowDeleted (PN-14788)
 exec usp_Get_WorkOrderLaborCommonHistory @WorkOrderLaborHeaderId=12345, @EmployeeId=2
 **********************/
 
@@ -78,8 +78,7 @@ BEGIN
                 WLA.TotalCost,
                 WLA.Memo,
                 WLA.IsAdjustmentTask,
-                WLA.IsDeleted,
-                WLA.IsRowDeleted
+                WLA.IsDeleted
             FROM [dbo].[WorkOrderLaborAudit] WLA WITH (NOLOCK)
             LEFT JOIN [dbo].[TaskStatus] TS WITH (NOLOCK) ON TS.TaskStatusId = WLA.TaskStatusId
             WHERE WLA.WorkOrderLaborAuditHeaderId = @WorkOrderLaborHeaderId
@@ -90,10 +89,10 @@ BEGIN
                 *,
                 CHECKSUM(Task, TaskStatusName, Expertise, Employee, Billable, Hours, Adjustments, AdjustedHours,
                          StandardHours, StandardMinute, VarianceHours, VarianceMinute, DirectLaborOHCost, BurdenRateAmount,
-                         TotalCostPerHour, TotalCost, Memo, IsAdjustmentTask, IsDeleted, IsRowDeleted) AS RowHash,
+                         TotalCostPerHour, TotalCost, Memo, IsAdjustmentTask, IsDeleted) AS RowHash,
                 LAG(CHECKSUM(Task, TaskStatusName, Expertise, Employee, Billable, Hours, Adjustments, AdjustedHours,
                          StandardHours, StandardMinute, VarianceHours, VarianceMinute, DirectLaborOHCost, BurdenRateAmount,
-                         TotalCostPerHour, TotalCost, Memo, IsAdjustmentTask, IsDeleted, IsRowDeleted))
+                         TotalCostPerHour, TotalCost, Memo, IsAdjustmentTask, IsDeleted))
                     OVER (PARTITION BY WorkOrderLaborId ORDER BY WorkOrderLaborAuditId) AS PrevHash,
                 LAG(Task)             OVER (PARTITION BY WorkOrderLaborId ORDER BY WorkOrderLaborAuditId) AS PrevTask,
                 LAG(TaskStatusName)   OVER (PARTITION BY WorkOrderLaborId ORDER BY WorkOrderLaborAuditId) AS PrevTaskStatusName,
@@ -122,7 +121,7 @@ BEGIN
                 Task, TaskStatusName, StatusChangedDate, Expertise, Employee, Billable, Hours, Adjustments, AdjustedHours,
                 StandardHours, StandardMinute, VarianceHours, VarianceMinute, DirectLaborOHCost, BurdenRateAmount,
                 TotalCostPerHour, TotalCost, Memo, IsAdjustmentTask,
-                CASE WHEN PrevHash IS NULL THEN N'Added' WHEN IsRowDeleted = 1 THEN N'Deleted' ELSE N'Updated' END AS Action,
+                CASE WHEN PrevHash IS NULL THEN N'Added' WHEN IsDeleted = 1 THEN N'Deleted' ELSE N'Updated' END AS Action,
                 STUFF(
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(Task, '') <> ISNULL(PrevTask, '') THEN ',task' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(TaskStatusName, '') <> ISNULL(PrevTaskStatusName, '') THEN ',taskStatus' ELSE '' END +

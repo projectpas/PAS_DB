@@ -44,7 +44,7 @@ CREATE TABLE [dbo].[WorkOrderLabor] (
 GO
 ----------------------------------------------
 
-CREATE TRIGGER [dbo].[Trg_WorkOrderLaborAudit]
+CREATE  TRIGGER [dbo].[Trg_WorkOrderLaborAudit]
    ON dbo.WorkOrderLabor
    AFTER INSERT, UPDATE, DELETE
 AS
@@ -79,13 +79,13 @@ BEGIN
                     [Memo], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
                     [IsActive], [IsDeleted], [StartDate], [EndDate], [BillableId], [IsFromWorkFlow], [MasterCompanyId],
                     [TaskName], [LabourExpertise], [LabourEmployee], [Billable], [DirectLaborOHCost], [BurdaenRatePercentageId],
-                    [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask, IsRowDeleted)
+                    [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask)
         SELECT [WorkOrderLaborId], [WorkOrderLaborHeaderId], [TaskId], [ExpertiseId], [EmployeeId],
                [Hours], [Adjustments], [AdjustedHours], [StandardHours], [StandardMinute], [VarianceHours], [VarianceMinute],
                [Memo], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
                [IsActive], [IsDeleted], [StartDate], [EndDate], [BillableId], [IsFromWorkFlow], [MasterCompanyId],
                @Task, @Expertise, @Employee, @Billable, [DirectLaborOHCost], [BurdaenRatePercentageId],
-               [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask, 0
+               [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask
         FROM INSERTED;
     END
     ELSE IF EXISTS (SELECT 1 FROM DELETED)
@@ -113,13 +113,13 @@ BEGIN
                     [Memo], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
                     [IsActive], [IsDeleted], [StartDate], [EndDate], [BillableId], [IsFromWorkFlow], [MasterCompanyId],
                     [TaskName], [LabourExpertise], [LabourEmployee], [Billable], [DirectLaborOHCost], [BurdaenRatePercentageId],
-                    [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask, IsRowDeleted)
+                    [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask)
         SELECT [WorkOrderLaborId], [WorkOrderLaborHeaderId], [TaskId], [ExpertiseId], [EmployeeId],
                [Hours], [Adjustments], [AdjustedHours], [StandardHours], [StandardMinute], [VarianceHours], [VarianceMinute],
                [Memo], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
-               [IsActive], [IsDeleted], [StartDate], [EndDate], [BillableId], [IsFromWorkFlow], [MasterCompanyId],
+               [IsActive], 1 , [StartDate], [EndDate], [BillableId], [IsFromWorkFlow], [MasterCompanyId],
                @Task, @Expertise, @Employee, @Billable, [DirectLaborOHCost], [BurdaenRatePercentageId],
-               [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask, 1
+               [BurdenRateAmount], [TotalCostPerHour], [TotalCost], TaskStatusId, StatusChangedDate, IsAdjustmentTask
         FROM DELETED;
     END
 END

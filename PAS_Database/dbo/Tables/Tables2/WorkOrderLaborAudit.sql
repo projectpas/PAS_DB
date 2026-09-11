@@ -37,7 +37,6 @@
     [StatusChangedDate]           DATETIME2 (7)   NULL,
     [IsBegin]                     BIT             NULL,
     [IsAdjustmentTask]            BIT             NULL,
-    [IsRowDeleted]                BIT             NOT NULL CONSTRAINT [DF_WorkOrderLaborAudit_IsRowDeleted] DEFAULT ((0)),
     CONSTRAINT [PK_WorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
 

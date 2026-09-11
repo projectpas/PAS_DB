@@ -1,5 +1,4 @@
-﻿-----------------------------------------------------------------------------------------------------  
-  
+﻿  
 /*************************************************************             
  ** File:   [CreateStocklineForCustomerRMADeatils]             
  ** Author:   Subhash Saliya  
@@ -19,11 +18,12 @@
  ** --   --------     -------  --------------------------------            
     1    02/05/20221   Subhash Saliya  Created  
     2    06/14/2023   Devendra Shekh   changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]  
-	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    01/July/2026  RAJESH GAMI	   [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    4    11/Sep/2026   Sahdev Saliya   Customer RMA: preserve history, notes, documents and LOT linkage - [PN-17875]
 -- EXEC [CreateStocklineForCustomerRMADeatils] 44  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
+CREATE     PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
 @RMADeatilsId BIGINT,  
 @ModuleId INT  
 AS  
@@ -34,6 +34,11 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN    
+    DECLARE @RMAHeaderId BIGINT, @RMANumber VARCHAR(100), @RMAUpdatedBy VARCHAR(256);
+    DECLARE @RMAHistoryModuleId BIGINT, @RMAAttachmentModuleId INT, @StocklineAttachmentModuleId INT;
+    DECLARE @AddFromModuleActionId INT;
+    DECLARE @SourceAttachmentId BIGINT, @NewAttachmentId BIGINT;
+    DECLARE @RMADocuments TABLE (AttachmentId BIGINT PRIMARY KEY);
     DECLARE @StocklineId BIGINT;  
     DECLARE @NewStocklineId BIGINT;  
     DECLARE @RevisedConditionId BIGINT;  
@@ -51,12 +56,33 @@ BEGIN
   
     SELECT TOP 1 @StocklineId = StockLineId,@Qty=Qty,  
       @MasterCompanyId  = CRMH.MasterCompanyId,  
-      @EntityMSID = ManagementStructureId  
+      @EntityMSID = ManagementStructureId,
+      @RMAHeaderId = CRMH.RMAHeaderId, @RMANumber = CRMH.RMANumber,
+      @RMAUpdatedBy = CRMH.UpdatedBy
     FROM dbo.CustomerRMADeatils CRM WITH(NOLOCK)  
     INNER JOIN dbo.CustomerRMAHeader CRMH WITH(NOLOCK) ON CRMH.RMAHeaderId=CRM.RMAHeaderId  
     WHERE RMADeatilsId = @RMADeatilsId  
   
   
+    SELECT @RMAHistoryModuleId = ModuleId FROM dbo.Module WHERE ModuleName = 'CustomerRMA';
+    SELECT @RMAAttachmentModuleId = AttachmentModuleId FROM dbo.AttachmentModule WHERE Name = 'CustomerRMA';
+    SELECT @StocklineAttachmentModuleId = AttachmentModuleId FROM dbo.AttachmentModule WHERE Name = 'StockLine';
+    SELECT @AddFromModuleActionId = ActionId FROM dbo.StklineHistory_Action WHERE Type = 'Add-From-Module';
+
+    IF @RMAHistoryModuleId IS NULL OR @RMAAttachmentModuleId IS NULL
+       OR @StocklineAttachmentModuleId IS NULL OR @AddFromModuleActionId IS NULL
+        THROW 50001, 'Customer RMA stockline module or history action configuration is missing.', 1;
+
+    INSERT INTO @RMADocuments (AttachmentId)
+    SELECT DISTINCT CDD.AttachmentId
+    FROM dbo.CommonDocumentDetails CDD
+    INNER JOIN dbo.Attachment A ON A.AttachmentId = CDD.AttachmentId
+    WHERE CDD.ModuleId = @RMAAttachmentModuleId AND CDD.ReferenceId = @RMAHeaderId
+      AND CDD.MasterCompanyId = @MasterCompanyId AND A.MasterCompanyId = @MasterCompanyId
+      AND CDD.IsActive = 1 AND CDD.IsDeleted = 0 AND A.IsActive = 1 AND A.IsDeleted = 0
+      AND EXISTS (SELECT 1 FROM dbo.AttachmentDetails AD
+                  WHERE AD.AttachmentId = A.AttachmentId AND AD.IsActive = 1 AND AD.IsDeleted = 0);
+
   DECLARE @LoopID as int  
   SELECT  @LoopID = MAX(@Qty)   
   
@@ -187,14 +213,15 @@ BEGIN
        ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,IsCustomerRMA,RMADeatilsId)  
+       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,IsCustomerRMA,RMADeatilsId,[LotId],[IsLotAssigned])
     SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],[ControlNumber],[ItemMasterId],@DefultQty,[ConditionId]  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
        ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
        ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]  
        ,0,[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber]  
        ,[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER]  
-       ,[OEM],[Memo],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE()  
+       ,[OEM],CONCAT(N'Stockline Created from Customer RMA ', NCHAR(8211), N' ', @RMANumber)
+       ,[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE()
        ,[isSerialized],[ShelfId],[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]  
        ,[UnitSalePriceAdjustmentReasonTypeId],@IDNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace]  
        ,[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],0,[PurchaseOrderPartRecordId]  
@@ -208,11 +235,59 @@ BEGIN
        ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],0,[TaggedByType]  
-       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,1,@RMADeatilsId  
+       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,1,@RMADeatilsId,[LotId],[IsLotAssigned]
    FROM dbo.Stockline WITH(NOLOCK)  
    WHERE StockLineId = @StocklineId  
   
-    SELECT @NewStocklineId = SCOPE_IDENTITY()  
+    IF @@ROWCOUNT <> 1
+        THROW 50002, 'The original Customer RMA stockline was not found.', 1;
+    SELECT @NewStocklineId = SCOPE_IDENTITY();
+
+    -- Retain the original inventory events, including their notes and audit values.
+    INSERT INTO dbo.Stkline_History
+        (StocklineId, ModuleId, RefferenceId, RefferenceNumber, SubModuleId,
+         SubRefferenceId, SubRefferenceNumber, ActionId, Type, QtyOH, QtyAvailable,
+         QtyReserved, QtyIssued, QtyOnAction, Notes, UpdatedBy, UpdatedDate,
+         UnitSalesPrice, SalesPriceExpiryDate, UOM)
+    SELECT @NewStocklineId, ModuleId, RefferenceId, RefferenceNumber, SubModuleId,
+           SubRefferenceId, SubRefferenceNumber, ActionId, Type, QtyOH, QtyAvailable,
+           QtyReserved, QtyIssued, QtyOnAction, Notes, UpdatedBy, UpdatedDate,
+           UnitSalesPrice, SalesPriceExpiryDate, UOM
+    FROM dbo.Stkline_History WHERE StocklineId = @StocklineId;
+
+    -- Each new stockline owns its document metadata; physical files retain their existing links.
+    SELECT @SourceAttachmentId = MIN(AttachmentId) FROM @RMADocuments;
+    WHILE @SourceAttachmentId IS NOT NULL
+    BEGIN
+        INSERT INTO dbo.Attachment
+            (ModuleId, ReferenceId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
+        VALUES (@StocklineAttachmentModuleId, @NewStocklineId, @MasterCompanyId,
+                @RMAUpdatedBy, @RMAUpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+        SET @NewAttachmentId = SCOPE_IDENTITY();
+
+        INSERT INTO dbo.AttachmentDetails
+            (AttachmentId, FileName, Description, Link, FileFormat, FileSize, FileType,
+             CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted, Name, Memo, TypeId)
+        SELECT @NewAttachmentId, FileName, Description, Link, FileFormat, FileSize, FileType,
+               GETUTCDATE(), GETUTCDATE(), @RMAUpdatedBy, @RMAUpdatedBy, 1, 0, Name, Memo, TypeId
+        FROM dbo.AttachmentDetails
+        WHERE AttachmentId = @SourceAttachmentId AND IsActive = 1 AND IsDeleted = 0;
+
+        INSERT INTO dbo.CommonDocumentDetails
+            (ModuleId, ReferenceId, AttachmentId, DocName, DocMemo, DocDescription,
+             MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive,
+             IsDeleted, DocumentTypeId, ExpirationDate, ReferenceIndex, ModuleType)
+        SELECT @StocklineAttachmentModuleId, @NewStocklineId, @NewAttachmentId,
+               DocName, DocMemo, DocDescription, @MasterCompanyId, @RMAUpdatedBy, @RMAUpdatedBy,
+               GETUTCDATE(), GETUTCDATE(), 1, 0, DocumentTypeId, ExpirationDate, ReferenceIndex, ModuleType
+        FROM dbo.CommonDocumentDetails
+        WHERE AttachmentId = @SourceAttachmentId AND ModuleId = @RMAAttachmentModuleId
+          AND ReferenceId = @RMAHeaderId AND MasterCompanyId = @MasterCompanyId
+          AND IsActive = 1 AND IsDeleted = 0;
+
+        SELECT @SourceAttachmentId = MIN(AttachmentId) FROM @RMADocuments
+        WHERE AttachmentId > @SourceAttachmentId;
+    END;
   
   
       INSERT INTO [dbo].[TimeLife]  
@@ -271,6 +346,18 @@ BEGIN
   
     EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
   
+    -- The column refresh infers LOT membership from its display number. Restore the exact source link.
+    UPDATE TargetStockline
+    SET LotId = SourceStockline.LotId, IsLotAssigned = SourceStockline.IsLotAssigned
+    FROM dbo.Stockline TargetStockline
+    INNER JOIN dbo.Stockline SourceStockline ON SourceStockline.StockLineId = @StocklineId
+    WHERE TargetStockline.StockLineId = @NewStocklineId;
+
+    EXEC dbo.USP_AddUpdateStocklineHistory
+        @StocklineId = @NewStocklineId, @ModuleId = @RMAHistoryModuleId,
+        @ReferenceId = @RMAHeaderId, @ActionId = @AddFromModuleActionId,
+        @Qty = @DefultQty, @UpdatedBy = @RMAUpdatedBy;
+
     EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'Create RMA Stockline'  
   
     IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  

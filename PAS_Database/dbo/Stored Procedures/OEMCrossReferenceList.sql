@@ -14,6 +14,7 @@
  2   25/12/2023		AMIT GHEDIYA		Updated (Get AlterItemMasterId,EquiItemMasterId for viewInventory display).
  3   01/01/2024     EKTA CHANDEGRA      Add manufacturer , Alt PN Manufacturer and Equiv PN Manufacturer fields
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/  
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
@@ -100,7 +101,7 @@ BEGIN
 			 (
 			 @GlobalFilter <>'' AND 
 			 (
-					(PartNumber LIKE '%' +@GlobalFilter+'%') 
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') 
 					OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(AlternatePart LIKE '%' +@GlobalFilter+'%') OR
@@ -118,7 +119,7 @@ BEGIN
 					OR   
 					(
 					@GlobalFilter='' AND 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%') AND
 				

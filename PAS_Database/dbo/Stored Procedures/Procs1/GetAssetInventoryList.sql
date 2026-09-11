@@ -21,6 +21,7 @@
 	5    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	6    17-12-2025  Bhargav Saliya    Get Asset Status
 	7    07-08-2026  Abhishek Jirawala	AssetType (shown as "Asset Class") now resolves directly off
+	8   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                    then to the intangible type name, instead of the AssetAttributeType table join.
@@ -315,7 +316,7 @@ BEGIN
 								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
 								(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName+'%') AND
-								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@ManufacturerPN) + '%') AND
 								(ISNULL(@Model,'') ='' OR Model like '%' + @Model+'%') AND
 								(ISNULL(@StklineNumber,'') ='' OR StklineNumber LIKE '%' + @StklineNumber+'%') AND
 								(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND

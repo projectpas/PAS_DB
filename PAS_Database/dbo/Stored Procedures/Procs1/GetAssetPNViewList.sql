@@ -24,6 +24,7 @@
 	                                        asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                        and blank when neither resolves, instead of the Tangible/Intangible flag.
 	8    07-08-2026  Abhishek Jirawala		AssetType now uses the same TangibleClassId/DeprNonDeprTangibleAssetsId
+	9   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	                                        resolution as AssetClass, instead of the AssetAttributeType table join.
 
 ************************************************************************/
@@ -225,7 +226,7 @@ BEGIN
       (AssetClass like '%' +@GlobalFilter+'%') OR  
       (deprAmort like '%' +@GlobalFilter+'%') OR  
       (UpdatedBy like '%' +@GlobalFilter+'%') OR  
-      (PartNumber like '%' +@GlobalFilter+'%') OR  
+      (PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
       (PartDescription like '%' +@GlobalFilter+'%')  
       ))  
      OR     
@@ -243,7 +244,7 @@ BEGIN
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATE)=Cast(@UpdatedDate as DATE)) and  
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-      (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%') AND  
+      (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND  
       (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%')   
       ))  
         

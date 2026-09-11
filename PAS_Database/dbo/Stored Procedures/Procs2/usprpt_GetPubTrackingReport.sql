@@ -19,6 +19,7 @@
 	5    15-Jun-2026    Sahdev Saliya      Multi-select dropdown has been added in Publication Type.[PN-16971]
 	6    16-Jun-2026    Sahdev Saliya      Added PublicationTypeGloble [PN-15971]
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
@@ -278,7 +279,7 @@ BEGIN
 		 FROM #tmpPublication
 		 WHERE (
 			 (ISNULL(@PublicationId,'') ='' OR [PublicationId]  LIKE '%' +@PublicationId +'%') and
-			 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+			 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 			 (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 			 (ISNULL(@PublicationDescription, '') = '' OR [PublicationDescription] LIKE '%' + @PublicationDescription + '%') AND
 			 (ISNULL(@Verified, '') = '' OR [Verified] LIKE '%' + @Verified + '%') AND

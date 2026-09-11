@@ -12,6 +12,7 @@
  ** --   --------       -------                 --------------------------------
     1    19/08/2026     Amit Ghediya            Created
     2    25/08/2026     Amit Ghediya            Added TracableToName/OwnerName/ObtainFromName (StockLine columns) - were missing, showed blank in the Add Item popup
+	3    11/09/2026     Amit Ghediya            Get Stk internal stockline only [PN-17896]
 
 EXECUTE [SearchStockLineForLeaseAddPnPopup] '1636', 1, 1
 ************************************************************************/
@@ -81,6 +82,7 @@ BEGIN
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId
 				AND sl.isActive = 1 AND sl.IsDeleted = 0
 				AND sl.ConditionId = CASE WHEN @ConditionId IS NOT NULL THEN @ConditionId ELSE sl.ConditionId END
+				AND ISNULL(sl.IsCustomerStock,0) = 0
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId

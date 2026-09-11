@@ -24,6 +24,7 @@
                                                  OH/Qty Avail/Unit Cost/Ext Cost row)
     9    09/09/2026     Amit Ghediya            Added IdNumber (Cntrl ID), live from Stockline - was missing entirely,
                                                  so the Add Item grid's Cntrl ID column was always blank
+    10   11/09/2026     Amit Ghediya            Added LeaseStatusId (per-stockline status, editable from the Edit Item screen)
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -85,6 +86,7 @@ BEGIN
 			LSL.Notes,
 			LSL.ReservedBy,
 			LSL.UnReservedBy,
+			LSL.LeaseStatusId,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,

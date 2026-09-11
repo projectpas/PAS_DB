@@ -12,7 +12,7 @@
     2    10/08/2026     Amit Ghediya            Reworked against LeaseStockline.QtyReserved directly (no ledger table)
     3    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - removed LeasePart join,
                                                  QuantityOnHand/QuantityAvailable now read live from Stockline instead of a stored snapshot
-    4    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM, ControlNumber, IdNumber so the UnReserve
+    4    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM(Stock UOM), ControlNumber, IdNumber so the UnReserve
                                                  Stock popup can show the same stockline identity fields as the part lineitem grid
 
 exec USP_GetReservedLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
@@ -38,7 +38,7 @@ BEGIN
 			SLIVE.QuantityOnHand AS QuantityOnHand,
 			SLIVE.QuantityAvailable AS QuantityAvailable,
 			C.Description AS ConditionDescription,
-			SLIVE.UnitOfMeasure AS UOM,
+			SLIVE.StockUnitOfMeasure AS UOM,
 			SLIVE.ControlNumber,
 			SLIVE.IdNumber,
 			LSL.MasterCompanyId

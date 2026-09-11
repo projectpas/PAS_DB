@@ -17,7 +17,7 @@
                                                  reserved again for the lease until the WO finishes
     5    03/09/2026     Amit Ghediya            QtyOrder no longer shrinks on Reserve, so "remaining to reserve" is now
                                                  QtyOrder - QtyReserved instead of QtyOrder alone
-    6    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM, ControlNumber, IdNumber so the Reserve
+    6    09/09/2026     Amit Ghediya            Added ConditionDescription, UOM(Stock UOM), ControlNumber, IdNumber so the Reserve
                                                  Stock popup can show the same stockline identity fields as the part lineitem grid
 
 exec USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
@@ -49,7 +49,7 @@ BEGIN
 			SLIVE.QuantityOnHand AS QuantityOnHand,
 			SLIVE.QuantityAvailable AS QuantityAvailable,
 			C.Description AS ConditionDescription,
-			SLIVE.UnitOfMeasure AS UOM,
+			SLIVE.StockUnitOfMeasure AS UOM,
 			SLIVE.ControlNumber,
 			SLIVE.IdNumber,
 			LSL.MasterCompanyId

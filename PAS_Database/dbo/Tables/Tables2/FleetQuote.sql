@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [FleetQuote.sql]           
  ** Author:   SUMIT KUMAR
  ** Description: This Table is used to store Fleet Quote Header Information
@@ -10,6 +10,7 @@
  ** --   --------     -------			--------------------------------
     1    09/08/2026   SUMIT KUMAR		Created [PN-17706]
     2    09/10/2026   Kishor Makwana	Added FK_FleetQuote_FleetQuoteStatus -> dbo.FleetQuoteStatus [PN-17698]
+    3    11/09/2026   Kishor Makwana	Added QuoteScope/PromisedTatDays [PN-17698]
  **************************************************************/
 CREATE TABLE [dbo].[FleetQuote] (
     [FleetQuoteId]              BIGINT          IDENTITY (1, 1) NOT NULL,
@@ -61,6 +62,8 @@ CREATE TABLE [dbo].[FleetQuote] (
     [PostalCode]                VARCHAR (50)    NULL,
     [CountryId]                 BIGINT          NULL,
     [ApprovalCode]              VARCHAR (200)   NULL,
+    [QuoteScope]                VARCHAR (25)    NULL,
+    [PromisedTATDays]           BIGINT          NULL,
     CONSTRAINT [PK_FleetQuote] PRIMARY KEY CLUSTERED ([FleetQuoteId] ASC),
     CONSTRAINT [FK_FleetQuote_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_FleetQuote_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -71,6 +74,8 @@ CREATE TABLE [dbo].[FleetQuote] (
     CONSTRAINT [FK_FleetQuote_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_FleetQuote_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 GO
 

@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [FleetQuoteAudit.sql]           
  ** Author:   SUMIT KUMAR
  ** Description: This Table is used to store Audit history for Fleet Quote Header
@@ -6,9 +6,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------          
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
     1    09/08/2026   SUMIT KUMAR		Created [PN-17706]
+    2    11/09/2026   Kishor Makwana	Added QuoteScope/PromisedTatDays - MUST stay in the
+                                        same column order as dbo.FleetQuote, since
+                                        Trg_FleetQuoteAudit does INSERT ... SELECT *
+                                        FROM INSERTED [PN-17698]
  **************************************************************/
 CREATE TABLE [dbo].[FleetQuoteAudit] (
     [AuditFleetQuoteId]         BIGINT          IDENTITY (1, 1) NOT NULL,
@@ -61,5 +65,8 @@ CREATE TABLE [dbo].[FleetQuoteAudit] (
     [PostalCode]                VARCHAR (50)    NULL,
     [CountryId]                 BIGINT          NULL,
     [ApprovalCode]              VARCHAR (200)   NULL,
+    [QuoteScope]                VARCHAR (25)    NULL,
+    [PromisedTATDays]           BIGINT          NULL,
     CONSTRAINT [PK_FleetQuoteAudit] PRIMARY KEY CLUSTERED ([AuditFleetQuoteId] ASC)
 );
+

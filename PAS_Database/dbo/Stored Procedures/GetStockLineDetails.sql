@@ -41,6 +41,7 @@
 									 already scoped to one exact @StockLineId, so an IsNonStock=0 filter would
 									 make migrated Non-Stock records return zero rows (BETA hit exactly this bug
 									 and had to revert it - see BETA's PN-17009 bugfix note).
+	23   03-Sep-2026              Moin Bloch		                Added new field 'MiscAdjustment'
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -321,6 +322,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,ISNULL(stl.[Adjustment], 0) AS Adjustment
               ,ISNULL(stl.[FreightAdjustment], 0) AS FreightAdjustment
               ,ISNULL(stl.[TaxAdjustment], 0) AS TaxAdjustment
+			  ,ISNULL(stl.[MiscAdjustment], 0) AS MiscAdjustment
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
 			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo

@@ -23,13 +23,14 @@
 	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
 	5    28-03-2025  Shrey Chandegara		Modified Due to Filter Issue.
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	
 	7    06-08-2026  Abhishek Jirawala		AssetClass now returns the resolved Asset Class name via
 	                                        asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                        asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                        and blank when neither resolves, instead of the Tangible/Intangible flag.
 	8    07-08-2026  Abhishek Jirawala		AssetType now uses the same TangibleClassId/DeprNonDeprTangibleAssetsId
 	                                        resolution as AssetClass, instead of the AssetAttributeType table join.
-
+    9   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetAssetPNViewList]  
@@ -217,8 +218,8 @@ BEGIN
    SELECT * INTO #TempResult from  Results  
    WHERE (  
     (@GlobalFilter <> '' AND (  
-      (AssetId like '%' +@GlobalFilter+'%') OR  
-	  (ManufacturerPN like '%' +@GlobalFilter+'%') OR  
+      (AssetId like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AssetId) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+	  (ManufacturerPN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
       (Name like '%' +@GlobalFilter+'%') OR  
       (AlternateAssetId like '%' +@GlobalFilter+'%') OR  
       (ManufacturerName like '%' +@GlobalFilter+'%') OR    
@@ -229,13 +230,13 @@ BEGIN
       (AssetClass like '%' +@GlobalFilter+'%') OR  
       (deprAmort like '%' +@GlobalFilter+'%') OR  
       (UpdatedBy like '%' +@GlobalFilter+'%') OR  
-      (PartNumber like '%' +@GlobalFilter+'%') OR  
+      (PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
       (PartDescription like '%' +@GlobalFilter+'%')  
       ))  
      OR     
-     (@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND  
+     (@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId +'%' OR dbo.fn_NormalizePartNumber(AssetId) LIKE '%' + dbo.fn_NormalizePartNumber(@AssetId) + '%') AND  
       (IsNull(@Name,'') ='' OR Name like '%' + @Name+'%') AND  
-	  (IsNull(@ManufacturerPN,'') ='' OR ManufacturerPN like '%' + @ManufacturerPN+'%') AND 
+	  (IsNull(@ManufacturerPN,'') ='' OR ManufacturerPN like '%' + @ManufacturerPN+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@ManufacturerPN) + '%') AND 
       (IsNull(@AlternateAssetId,'') ='' OR AlternateAssetId like '%' + @AlternateAssetId+'%') AND  
       (IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
       (IsNull(@IsSerializedNew,'') ='' OR IsSerializedNew like '%' + @IsSerializedNew+'%') AND  
@@ -247,7 +248,7 @@ BEGIN
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATE)=Cast(@UpdatedDate as DATE)) and  
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-      (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%') AND  
+      (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND  
       (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%')   
       ))  
         

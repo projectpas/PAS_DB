@@ -20,6 +20,7 @@
 	7    08/05/2024  Devendra Shekh		Added lastDeprDate to List
 	8	 12/11/2024  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 	9   27-Mar-2025	 Divyesh Kathiriya	Update CreatedDate, UpdateDate and LastDeprDate based on Employee time zone
+	10   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	10  07-08-2026	 Abhishek Jirawala	AssetType (shown as "Asset Class") now resolves directly off
 	                                    asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                    asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
@@ -344,7 +345,7 @@ BEGIN
 								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
 								(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName+'%') AND
-								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%' OR dbo.fn_NormalizePartNumber(ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@ManufacturerPN) + '%') AND
 								(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model+'%') AND
 								(ISNULL(@StklineNumber,'') ='' OR StklineNumber LIKE '%' + @StklineNumber+'%') AND
 								(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND

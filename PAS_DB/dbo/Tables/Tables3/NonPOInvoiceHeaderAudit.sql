@@ -38,6 +38,7 @@
     [SyncToken]                 VARCHAR (200) NULL,
     [DueDate]                   DATETIME2 (7) NULL,
     [IntegrationTypeId]         INT           NULL,
+    [ReceiptId]                 BIGINT        NULL,
     CONSTRAINT [PK_NonPOInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([NonPOInvoiceHeaderAuditId] ASC)
 );
 

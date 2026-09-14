@@ -23,6 +23,7 @@
  ** --   --------     -------  --------------------------------            
     1    05/04/2020   Subhash Saliya Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
   
        
  EXECUTE [GetAssetCapesList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  
@@ -130,7 +131,7 @@ BEGIN
    SELECT * INTO #TempResult from  Result  
    WHERE (  
     (@GlobalFilter <>'' AND (  
-      (partNumber like '%' +@GlobalFilter+'%') OR  
+      (partNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(partNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
       (partDescription like '%' +@GlobalFilter+'%') OR  
       --(captypedescription like '%' +@GlobalFilter+'%') OR  
      -- (manufacturer like '%' +@GlobalFilter+'%') OR    
@@ -143,7 +144,7 @@ BEGIN
       (UpdatedBy like '%' +@GlobalFilter+'%')   
       ))  
      OR     
-     (@GlobalFilter='' AND (IsNull(@partNumber,'') ='' OR partNumber like '%' + @partNumber+'%') AND  
+     (@GlobalFilter='' AND (IsNull(@partNumber,'') ='' OR partNumber like '%' + @partNumber+'%' OR dbo.fn_NormalizePartNumber(partNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partNumber) + '%') AND  
       (IsNull(@partDescription,'') ='' OR partDescription like '%' + @partDescription+'%') AND  
      -- (IsNull(@captypedescription,'') ='' OR captypedescription like '%' + @captypedescription+'%') AND  
      -- (IsNull(@manufacturer,'') ='' OR manufacturer like '%' + @manufacturer+'%') AND  

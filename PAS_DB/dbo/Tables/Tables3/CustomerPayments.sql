@@ -31,6 +31,7 @@
     [LegalEntityId]         BIGINT          NULL,
     [BankType]              VARCHAR (50)    NULL,
     [CurrencyId]            INT             NULL,
+    [IsNonPOGenerated]      BIT             NULL,
     CONSTRAINT [PK_CustomerPayments] PRIMARY KEY CLUSTERED ([ReceiptId] ASC),
     CONSTRAINT [FK_CustomerPayments_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CustomerPayments_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

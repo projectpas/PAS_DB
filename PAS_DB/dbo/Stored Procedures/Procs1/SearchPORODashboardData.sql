@@ -13,6 +13,7 @@
     1    --------		Unknown
 	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
 	4    22/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
+	5    10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 **************************************************************/
 -- exec SearchPORODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@StatusID=1,@GlobalFilter=N'',@Module=N'RO',@RefId=0,@PORO=NULL,@OpenDate=NULL,@PartNumber=NULL,@PartDescription=NULL,@Requisitioner=NULL,@Age=0,@Amount=0,@Currency=NULL,@Vendor=NULL,@WorkOrderNo=NULL,@SalesOrderNo=NULL,@PromisedDate=NULL,@EstRecdDate=NULL,@Status=NULL,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=104,@Priority=NULL,@Qty=NULL,@UnitCost=NULL,@ExtCost=NULL,@SubWorkOrderNo=NULL
@@ -123,7 +124,7 @@ BEGIN
 					(@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR 
 							(PORO like '%' + @GlobalFilter +'%') OR
 							(OpenDate like '%' + @GlobalFilter +'%') OR
-							(PartNumber like '%' + @GlobalFilter +'%') OR
+							(PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(PartDescription like '%'+ @GlobalFilter +'%') OR
 							(Requisitioner like '%' + @GlobalFilter +'%') OR
 							(Currency like '%' + @GlobalFilter +'%') OR
@@ -145,7 +146,7 @@ BEGIN
 							(IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and 
 							(IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') and
 							(IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and
-							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and
+							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and
 							(IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and
 							(IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') and
 							(IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and

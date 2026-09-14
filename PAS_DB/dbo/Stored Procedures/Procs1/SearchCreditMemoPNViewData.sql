@@ -21,6 +21,7 @@
 	4    09/15/2024   HEAMNT SALIYA     Updated Status ID.
 	5    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and ReturnDate based on Employee time zone
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	
  -- exec SearchCreditMemoPNViewData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1	
 **************************************************************/ 
@@ -203,7 +204,7 @@ BEGIN
 		(RMANumber like '%' +@GlobalFilter+'%') OR 
 		(WONum like '%' +@GlobalFilter+'%') OR 
 		(CustomerName like '%' +@GlobalFilter+'%') OR 
-		(PartNumber like '%'+@GlobalFilter+'%') OR  
+		(PartNumber like '%'+@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
 		(PartDescription like '%' +@GlobalFilter+'%') OR 
 		(ManufacturerName like '%' +@GlobalFilter+'%') OR 
 		(ReferenceNo like '%' +@GlobalFilter+'%') OR  
@@ -222,7 +223,7 @@ BEGIN
 		(ISNULL(@RMANumber,'') ='' OR RMANumber like '%' + @RMANumber+'%') AND  
 		(ISNULL(@WONum,'') ='' OR WONum like '%' + @WONum+'%') AND  
 		(IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
-		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
+		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
         (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND  
 		(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
 		(IsNull(@ReferenceNo,'') ='' OR ReferenceNo like '%' + @ReferenceNo+'%') AND  

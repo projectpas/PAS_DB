@@ -27,9 +27,10 @@
 	9	09/July/2026 RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
 	11	05/Aug/2026 Kishor Makwana   [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
+	12   09-Sep-2026		Bhargav Saliya		[PN-17859] - Get IsNonStock and StocklineId
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **************************************************************/
-CREATE    PROCEDURE [dbo].[sp_GetSOShippingChildList]  
+CREATE   PROCEDURE [dbo].[sp_GetSOShippingChildList]  
  @SalesOrderId  bigint,  
  @SalesOrderPartId bigint,  
  @ConditionId bigint  
@@ -45,7 +46,7 @@ BEGIN
 	 DECLARE @masterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)
 	  SELECT DISTINCT sopt.SOPickTicketId, sos.SalesOrderShippingId, CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 			 CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.SOShippingNum ELSE NULL END AS SOShippingNum,  
-			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
+			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber, sl.StockLineId, ISNULL(sl.IsNonStock, 0) AS IsNonStock,  
 			 sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, sop.SequenceNumber AS ItemNo,
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   

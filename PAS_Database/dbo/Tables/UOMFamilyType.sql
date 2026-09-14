@@ -1,57 +1,54 @@
-﻿CREATE TABLE [dbo].[UOMConversion] (
-    [UOMConversionId] BIGINT          IDENTITY (1, 1) NOT NULL,
-    [FromUOM]         VARCHAR (100)   NULL,
-    [ToUOM]           VARCHAR (100)   NULL,
-    [Factor]          DECIMAL (18, 8) NULL,
-    [IsMultiply]      BIT             NULL,
-    [DecimalPlaces]   INT             NULL,
-    [MasterCompanyId] INT             NULL,
-    [CreatedBy]       VARCHAR (256)   NULL,
-    [UpdatedBy]       VARCHAR (256)   NULL,
-    [CreatedDate]     DATETIME2 (7)   NULL,
-    [UpdatedDate]     DATETIME2 (7)   NULL,
-    [IsActive]        BIT             NULL,
-    [IsDeleted]       BIT             NULL,
-    [UOMFamilyTypeId] INT             NULL,
-    CONSTRAINT [PK_UOMConversion] PRIMARY KEY CLUSTERED ([UOMConversionId] ASC),
-    CONSTRAINT [FK_UOMConversion_UOMFamilyType] FOREIGN KEY ([UOMFamilyTypeId]) REFERENCES [dbo].[UOMFamilyType] ([UOMFamilyTypeId])
+CREATE TABLE [dbo].[UOMFamilyType] (
+    [UOMFamilyTypeId] INT           IDENTITY (1, 1) NOT NULL,
+    [Code]            VARCHAR (50)  NOT NULL,
+    [Name]            VARCHAR (100) NOT NULL,
+    [Description]     VARCHAR (256) NULL,
+    [MasterCompanyId] INT           NOT NULL,
+    [IsActive]        BIT           CONSTRAINT [DF_UOMFamilyType_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]       BIT           CONSTRAINT [DF_UOMFamilyType_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [CreatedBy]       VARCHAR (256) NOT NULL,
+    [UpdatedBy]       VARCHAR (256) NOT NULL,
+    [CreatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    CONSTRAINT [PK_UOMFamilyType] PRIMARY KEY CLUSTERED ([UOMFamilyTypeId] ASC),
+    CONSTRAINT [Unique_UOMFamilyType_Code] UNIQUE NONCLUSTERED ([Code] ASC)
 );
 
 
 GO
 
-     
-     CREATE     TRIGGER [dbo].[trg_Audit_dbo_UOMConversion]
-        ON [dbo].[UOMConversion]
+
+     CREATE     TRIGGER [dbo].[trg_Audit_dbo_UOMFamilyType]
+        ON [dbo].[UOMFamilyType]
         AFTER INSERT, UPDATE, DELETE
         AS
         BEGIN
             SET NOCOUNT ON;
             ;WITH
-            d AS (SELECT d.[UOMConversionId],d.[FromUOM],d.[ToUOM],d.[Factor],d.[IsMultiply],d.[DecimalPlaces],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[UOMFamilyTypeId] FROM deleted d),
-            i AS (SELECT i.[UOMConversionId],i.[FromUOM],i.[ToUOM],i.[Factor],i.[IsMultiply],i.[DecimalPlaces],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[UOMFamilyTypeId] FROM inserted i),
+            d AS (SELECT d.[UOMFamilyTypeId],d.[Code],d.[Name],d.[Description],d.[IsActive],d.[IsDeleted],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate] FROM deleted d),
+            i AS (SELECT i.[UOMFamilyTypeId],i.[Code],i.[Name],i.[Description],i.[IsActive],i.[IsDeleted],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate] FROM inserted i),
             paired AS (
                 SELECT
-                    COALESCE(i.UOMConversionId, d.UOMConversionId ) AS UOMConversionId,
+                    COALESCE(i.UOMFamilyTypeId, d.UOMFamilyTypeId ) AS UOMFamilyTypeId,
                     (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
-                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json,
                     CASE
-                        WHEN i.UOMConversionId IS NOT NULL AND d.UOMConversionId IS NOT NULL THEN 'U'
-                        WHEN i.UOMConversionId IS NOT NULL AND d.UOMConversionId IS NULL     THEN 'I'
-                        WHEN i.UOMConversionId IS NULL     AND d.UOMConversionId IS NOT NULL THEN 'D'
+                        WHEN i.UOMFamilyTypeId IS NOT NULL AND d.UOMFamilyTypeId IS NOT NULL THEN 'U'
+                        WHEN i.UOMFamilyTypeId IS NOT NULL AND d.UOMFamilyTypeId IS NULL     THEN 'I'
+                        WHEN i.UOMFamilyTypeId IS NULL     AND d.UOMFamilyTypeId IS NOT NULL THEN 'D'
                     END AS Action,
 
-                    (SELECT COALESCE(i.UOMConversionId, d.UOMConversionId) AS UOMConversionId
+                    (SELECT COALESCE(i.UOMFamilyTypeId, d.UOMFamilyTypeId) AS UOMFamilyTypeId
                      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
                 FROM d
                 FULL OUTER JOIN i
-                    ON i.UOMConversionId = d.UOMConversionId
+                    ON i.UOMFamilyTypeId = d.UOMFamilyTypeId
             ),
 
             oldv AS (
                 SELECT
                     p.PKJson,
-                    p.UOMConversionId,
+                    p.UOMFamilyTypeId,
                     v.[key]  AS ColumnName,
                     v.value  AS OldValue
                 FROM paired p
@@ -60,13 +57,13 @@ GO
                     SELECT 1
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'UOMConversion'
-                      AND ign.ColumnName = N'UOMConversionId'
+                      AND ign.TableName  = N'UOMFamilyType'
+                      AND ign.ColumnName = N'UOMFamilyTypeId'
                 )),
             newv AS (
                 SELECT
                     p.PKJson,
-                    p.UOMConversionId ,
+                    p.UOMFamilyTypeId ,
                     v.[key]  AS ColumnName,
                     v.value  AS NewValue
                 FROM paired p
@@ -75,8 +72,8 @@ GO
                     SELECT 1
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
-                      AND ign.TableName  = N'UOMConversion'
-                      AND ign.ColumnName = N'UOMConversionId'
+                      AND ign.TableName  = N'UOMFamilyType'
+                      AND ign.ColumnName = N'UOMFamilyTypeId'
                 )),
             merged AS (
                 SELECT
@@ -87,9 +84,9 @@ GO
                     p.Action
                 FROM paired p
                 LEFT JOIN oldv o
-                    ON o.UOMConversionId = p.UOMConversionId
+                    ON o.UOMFamilyTypeId = p.UOMFamilyTypeId
                 LEFT JOIN newv n
-                    ON n.UOMConversionId = p.UOMConversionId
+                    ON n.UOMFamilyTypeId = p.UOMFamilyTypeId
                    AND n.ColumnName = o.ColumnName
                 UNION ALL
                 SELECT
@@ -100,18 +97,18 @@ GO
                     p.Action
                 FROM paired p
                 LEFT JOIN newv n
-                    ON n.UOMConversionId = p.UOMConversionId
+                    ON n.UOMFamilyTypeId = p.UOMFamilyTypeId
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM oldv o2
-                    WHERE o2.UOMConversionId = p.UOMConversionId
+                    WHERE o2.UOMFamilyTypeId = p.UOMFamilyTypeId
                       AND o2.ColumnName    = n.ColumnName
                 )
             )
             INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
             SELECT
                 N'dbo' AS SchemaName,
-                N'UOMConversion' AS TableName,
+                N'UOMFamilyType' AS TableName,
                 m.PKJson,
                 m.ColumnName,
                 m.Action,

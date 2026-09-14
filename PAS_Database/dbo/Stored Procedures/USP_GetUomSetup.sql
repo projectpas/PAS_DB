@@ -11,6 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
 	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
 	2	05-May-2026          Rajesh Gami		 Set @Factor = NULL When it is 0 or blank
+	3	14-09-2026           Aayushi Patel       Added UOMFamilyTypeId (PN-17906)
 exec dbo.USP_GetUomSetup @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@FromUOM=NULL,@ToUOM=NULL,@Factor=0,@CreatedBy=NULL,@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2
 **********************/
 CREATE   PROCEDURE [dbo].[USP_GetUomSetup]
@@ -69,7 +70,8 @@ BEGIN
 				CASE WHEN CAST(UOM.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, UOM.UpdatedDate)) END UpdatedDate,
                 UOM.IsActive,
                 UOM.IsDeleted,
-                UOM.MasterCompanyId
+                UOM.MasterCompanyId,
+                UOM.UOMFamilyTypeId
             FROM  dbo.UOMConversion UOM WITH (NOLOCK)
             
             WHERE UOM.MasterCompanyId = @MasterCompanyId AND UOM.IsDeleted = @IsDeleted 
@@ -87,7 +89,8 @@ BEGIN
                     UpdatedDate,
                     IsActive,
                     IsDeleted,
-                    MasterCompanyId
+                    MasterCompanyId,
+                    UOMFamilyTypeId
             FROM BaseResult
             WHERE
             (ISNULL(@GlobalFilter,'') <> '' AND(
@@ -126,6 +129,7 @@ BEGIN
             UpdatedDate,
             IsDeleted,
             MasterCompanyId,
+            UOMFamilyTypeId,
             NumberOfItems
         FROM FilteredResult,ResultCount
         ORDER BY

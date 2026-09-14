@@ -10,8 +10,8 @@
  **              depending on how many linked POs remain for that part/line.
  ** Purpose: Performs the actual Unlink PO / Unlink All PO batch operation for
  **          the Work Order Material Grid, Sales Order, and Purchase Order screens.
- **          Uses the same FN_PurchaseOrderHasAnyReceipt /
- **          FN_IsModulePartReservedOrIssued functions as
+ **          Uses the same FN_HasPOStockBeenUsedInTargetReference /
+ **          FN_PurchaseOrderHasAnyReceipt / FN_IsModulePartReservedOrIssued functions as
  **          USP_GetLinkedPOUnlinkEligibility so the guard here matches
  **          exactly what the Unlink PO popup showed the user.
  **          Requires each TVP row's ReferencePartId to already be resolved
@@ -52,6 +52,14 @@
     5    28/08/2026   Abhishek Jirawala	#Validated is now an explicitly-typed temp table (was SELECT...INTO)
 	                                        so IssuedQty is guaranteed DECIMAL(18,6) - the UOM branch's quantity
 	                                        standard - rather than relying on implicit type inheritance.
+    6    14/09/2026   Bhargav Saliya		[PN-17042] Match USP_GetLinkedPOUnlinkEligibility: Sales Order now uses
+	                                        the SAME per-line "stock used against the target reference" guard as
+	                                        Work Order/Sub Work Order (FN_HasPOStockBeenUsedInTargetReference, reason 6,
+	                                        now covering ModuleId IN (1,5,3)) instead of the PO-wide
+	                                        FN_PurchaseOrderHasAnyReceipt, which rejected a still-100%-pending SO line
+	                                        whenever ANY sibling line on the same PO had been received. An SO line now
+	                                        only blocks when its received stock is actually reserved to this Sales Order.
+	                                        RepairOrder/Exchange/Lot keep the blanket #POReceipt / HasAnyReceipt check.
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UnlinkPurchaseOrderPartReference]
     @tbl_POPartReferenceUnlink [dbo].[POPartReferenceUnlinkType] READONLY,
@@ -106,8 +114,8 @@ BEGIN
             WHEN V.NotFound = 1 THEN 4
             WHEN V.ReferencePartId IS NULL THEN 5
             WHEN @SourceModuleId <> 0 AND (@SourceModuleId <> V.ModuleId OR @SourceReferenceId <> V.ReferenceId) THEN 5
-            WHEN V.ModuleId IN (1,5) AND dbo.FN_HasPOStockBeenUsedInTargetReference(V.PurchaseOrderId, V.PurchaseOrderPartId, V.ModuleId, V.ReferenceId) = 1 THEN 6
-            WHEN V.ModuleId NOT IN (1,5) AND ISNULL(PORc.HasAnyReceipt,0) = 1 THEN 1
+            WHEN V.ModuleId IN (1,5,3) AND dbo.FN_HasPOStockBeenUsedInTargetReference(V.PurchaseOrderId, V.PurchaseOrderPartId, V.ModuleId, V.ReferenceId) = 1 THEN 6
+            WHEN V.ModuleId NOT IN (1,5,3) AND ISNULL(PORc.HasAnyReceipt,0) = 1 THEN 1
             WHEN ISNULL(V.IssuedQty,0) > 0 THEN 3
             WHEN @SourceModuleId <> 0 AND dbo.FN_IsModulePartReservedOrIssued(V.ModuleId, V.ReferenceId, V.ReferencePartId, V.IsKit, NULL, NULL) = 1 THEN 2
             ELSE 0

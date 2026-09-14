@@ -1,6 +1,5 @@
 CREATE TABLE [dbo].[UOMFamilyType] (
     [UOMFamilyTypeId] INT           IDENTITY (1, 1) NOT NULL,
-    [Code]            VARCHAR (50)  NOT NULL,
     [Name]            VARCHAR (100) NOT NULL,
     [Description]     VARCHAR (256) NULL,
     [MasterCompanyId] INT           NOT NULL,
@@ -10,8 +9,9 @@ CREATE TABLE [dbo].[UOMFamilyType] (
     [UpdatedBy]       VARCHAR (256) NOT NULL,
     [CreatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [Code]            AS ([Name]) PERSISTED,
     CONSTRAINT [PK_UOMFamilyType] PRIMARY KEY CLUSTERED ([UOMFamilyTypeId] ASC),
-    CONSTRAINT [Unique_UOMFamilyType_Code] UNIQUE NONCLUSTERED ([Code] ASC)
+    CONSTRAINT [Unique_UOMFamilyType_Name] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
 
 

@@ -16,6 +16,7 @@
 	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
 	7    27-Jul-2026     Bhargav					Convert reconciled qty (Stock UOM) back to Purchase UOM so partially-received PO rows are not hidden [PN-17360]
 	8	 30/July/2026	Kishor Makwana				[PN-17492]  PERFORMANCE ONLY. No change to any returned row, column, value or column order.
+	12   11/Sept/2026   Moin Bloch				    [PN-17411]  Added PartID,[IsGRNIAdjustment] for GRNI Adjusment
 **************************************************************/
 CREATE        PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
@@ -165,7 +166,7 @@ BEGIN
 			POP.PurchaseOrderPartRecordId PartID
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
-		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND ISNULL(POP.[IsGRNIAdjustment],0) = 0
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
 		LEFT JOIN DBO.NonStockInventory NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = AI.PurchaseOrderPartRecordId
@@ -240,7 +241,7 @@ BEGIN
 			ROP.RepairOrderPartRecordId PartID
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
-		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.[IsGRNIAdjustment],0) = 0
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = AI.RepairOrderPartRecordId
 
@@ -377,6 +378,7 @@ BEGIN
 						MAX(CreatedDate) CreatedDate,
 						MAX(Id) Id,
 						MAX(IsPO) IsPO,
+						MAX(PartID) PartID,
 						--MAX(UPPER(receivingReconNum)) receivingReconNum
 						CASE 
 							WHEN COUNT(DISTINCT receivingReconNum) > 1 

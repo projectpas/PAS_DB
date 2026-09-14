@@ -16,13 +16,16 @@
                                                  (now read live from Stockline instead of stored)
     6    10/09/2026     Amit Ghediya            Threshold/rate/usage params widened from DECIMAL(18,2) to DECIMAL(18,6)
                                                  to match the LeaseStockline column precision (see USP_UpdateLeaseStockLineProperties)
+    7    11/09/2026     Amit Ghediya            Added @LeaseStatusId - on insert, defaults to the parent Lease Header's
+                                                 current LeaseStatusId when not supplied; on update, preserves the existing
+                                                 value unless the Edit Item screen explicitly passes a new one
 
 exec USP_CreateUpdateLeaseStockLine
 @LeaseStocklineId=0,@LeaseHeaderId=1,@ItemMasterId=1,@PN='ABC-123',@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
 @PricingMethod=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
 @UsagePerUnitCycles=NULL,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=NULL,@OverrunPerUnitTimes=NULL,
 @Maintenance=NULL,@Insurance=NULL,@Taxes=NULL,@RepairOrderId=NULL,@WorkOrderId=NULL,
-@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL,@StartDate=NULL,@EndDate=NULL
+@MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL,@StartDate=NULL,@EndDate=NULL,@LeaseStatusId=NULL
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@LeaseStocklineId BIGINT = 0,
@@ -58,7 +61,8 @@ CREATE      PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@UpdatedBy VARCHAR(256),
 	@Notes NVARCHAR(MAX) = NULL,
 	@StartDate DATETIME = NULL,
-	@EndDate DATETIME = NULL
+	@EndDate DATETIME = NULL,
+	@LeaseStatusId INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -124,18 +128,22 @@ BEGIN
 				Notes                 = @Notes,
 				StartDate             = @StartDate,
 				EndDate               = @EndDate,
+				LeaseStatusId         = ISNULL(@LeaseStatusId, LeaseStatusId),
 				UpdatedBy             = @UpdatedBy,
 				UpdatedDate           = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
 		END
 		ELSE
 		BEGIN
+			IF (@LeaseStatusId IS NULL)
+				SELECT @LeaseStatusId = LeaseStatusId FROM [dbo].[LeaseHeader] WITH (NOLOCK) WHERE LeaseHeaderId = @LeaseHeaderId;
+
 			INSERT INTO [dbo].[LeaseStockline]
 			(
 				LeaseHeaderId, ItemMasterId, PN, PNDescription, QtyOrder, QtyReserved, SN, StockLineId, StocklineNumber, ConditionId,
 				OutrightPrice, FlatRate, PricingMethod, RateUnit, BillingInterval, BillingMethod, MinimumCycles, MinimumTimes, MaximumCycles, MaximumTimes,
 				UsagePerUnitCycles, UsagePerUnitTimes, OverrunPerUnitCycles, OverrunPerUnitTimes, Maintenance, MaintenancePer, Insurance, InsurancePer, Taxes, TaxesPer,
-				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes, StartDate, EndDate,
+				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes, StartDate, EndDate, LeaseStatusId,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
 			)
 			VALUES
@@ -143,7 +151,7 @@ BEGIN
 				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @QtyOrder, 0, @SN, @StockLineId, @StocklineNumber, @ConditionId,
 				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
-				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes, @StartDate, @EndDate,
+				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes, @StartDate, @EndDate, @LeaseStatusId,
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 			);
 

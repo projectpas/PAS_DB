@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [usprpt_GetLotCommissionReportInvoiceDate]
  ** Author: Kishor Makwana (AI-assisted via Claude)
  ** Description: [PN-17830] Custom Commission Setup - BAG. "Commission Payment Tracking"
@@ -75,6 +76,7 @@
          (was a plain UNION, which could return two rows - one per WO/SO match - and duplicate the
          PaymentCTE row for a payment whose customer payment touches both a WO and a SO billing
          invoice item).
+	8    14/September/2026   Rajesh Gami   [PN-17830] Added Qty in the COGS price (UnitCost * QtyBilled) --LessCOGSRepairCalc
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -314,7 +316,7 @@ BEGIN
       CROSS APPLY (
         SELECT ROUND(
           ISNULL((
-            SELECT SUM(ISNULL(STK2.UnitCost,0))
+            SELECT SUM(ISNULL(STK2.UnitCost,0)* ISNULL(BII2.QtyBilled,1))
             FROM dbo.BillingInvoicingItems BII2 WITH (NOLOCK)
             INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = BII2.StocklineId
             WHERE BII2.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BII2.IsDeleted,0) = 0
@@ -436,7 +438,7 @@ BEGIN
       CROSS APPLY (
         SELECT ROUND(
           ISNULL((
-            SELECT SUM(ISNULL(STK2.UnitCost,0))
+            SELECT SUM(ISNULL(STK2.UnitCost,0)* ISNULL(BII2.QtyBilled,1))
             FROM dbo.BillingInvoicingItems BII2 WITH (NOLOCK)
             INNER JOIN dbo.Stockline STK2 WITH (NOLOCK) ON STK2.StockLineId = BII2.StocklineId
             WHERE BII2.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BII2.IsDeleted,0) = 0

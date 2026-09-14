@@ -24,6 +24,11 @@
                                                  OH/Qty Avail/Unit Cost/Ext Cost row)
     9    09/09/2026     Amit Ghediya            Added IdNumber (Cntrl ID), live from Stockline - was missing entirely,
                                                  so the Add Item grid's Cntrl ID column was always blank
+    10   11/09/2026     Amit Ghediya            Added LeaseStatusId (per-stockline status, editable from the Edit Item screen)
+    11   11/09/2026     Amit Ghediya            Added RepairOrderStatusId (live from RepairOrder) - lets the Angular grid
+                                                 block "Create WO" until an already-created RO is fully received (Closed)
+    12   11/09/2026     Amit Ghediya            Added WorkOrderStatusId (live from WorkOrder) - lets the Angular grid
+                                                 lock "Edit RO"/"Edit WO" once the linked RO/WO is Closed
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -80,11 +85,14 @@ BEGIN
 			LSL.TaxesPer,
 			LSL.RepairOrderId,
 			LSL.RONumber,
+			RO.StatusId AS RepairOrderStatusId,
 			LSL.WorkOrderId,
 			LSL.WorkOrderNo,
+			WO.WorkOrderStatusId,
 			LSL.Notes,
 			LSL.ReservedBy,
 			LSL.UnReservedBy,
+			LSL.LeaseStatusId,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,
@@ -96,6 +104,8 @@ BEGIN
 		LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = LSL.ItemMasterId
 		LEFT JOIN [dbo].[Condition] C WITH (NOLOCK) ON C.ConditionId = LSL.ConditionId
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
+		LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = LSL.RepairOrderId
+		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
 		  AND (ISNULL(@LeaseStocklineId, 0) = 0 OR LSL.LeaseStocklineId = @LeaseStocklineId)

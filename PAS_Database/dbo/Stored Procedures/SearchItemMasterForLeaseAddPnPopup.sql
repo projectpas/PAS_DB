@@ -9,6 +9,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    19/08/2026     Amit Ghediya            Created
+	2    11/09/2026     Amit Ghediya            Get Stk internal stockline only [PN-17896]
 
 EXECUTE [SearchItemMasterForLeaseAddPnPopup] '1636', '1', 1
 ************************************************************************/
@@ -60,7 +61,7 @@ BEGIN
 			,ISNULL(imps.PP_FXRatePerc, 0) AS FixRate
 		FROM DBO.ItemMaster im WITH (NOLOCK)
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
-		LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 
+		LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1  AND ISNULL(sl.IsCustomerStock,0) = 0
 		LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 		LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

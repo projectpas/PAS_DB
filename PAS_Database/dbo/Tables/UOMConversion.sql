@@ -115,9 +115,17 @@ GO
                 m.PKJson,
                 m.ColumnName,
                 m.Action,
-                m.OldValue,
-                m.NewValue
+                CASE
+                    WHEN m.ColumnName = 'UOMFamilyTypeId' THEN FTOld.Name
+                    ELSE m.OldValue
+                END AS OldValue,
+                CASE
+                    WHEN m.ColumnName = 'UOMFamilyTypeId' THEN FTNew.Name
+                    ELSE m.NewValue
+                END AS NewValue
             FROM merged m
+            LEFT JOIN dbo.UOMFamilyType FTOld WITH (NOLOCK) ON m.ColumnName = 'UOMFamilyTypeId' AND TRY_CAST(m.OldValue AS INT) = FTOld.UOMFamilyTypeId
+            LEFT JOIN dbo.UOMFamilyType FTNew WITH (NOLOCK) ON m.ColumnName = 'UOMFamilyTypeId' AND TRY_CAST(m.NewValue AS INT) = FTNew.UOMFamilyTypeId
             WHERE
                 (m.Action = 'U' AND (
                      (m.OldValue IS NULL AND m.NewValue IS NOT NULL)

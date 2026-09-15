@@ -31,6 +31,7 @@
 									   below - 'Trans In (Lot)' is left in place since the manual Lot Trans-In quantity
 									   transfer flow (USP_Lot_AddUpdateLotTransInOutDetails) still legitimately uses it.
 	8   26-Aug-2026   RAJESH GAMI      [PN-17799] Added HowCalculate to LotCalculationDetails: same FIXED AMOUNT/REVENUE+MARGIN/REVENUE/MARGIN/REVENUE SPLIT label used by the Commission tab (USP_Lot_GetAllLotViewsByLotId_Filter), computed from LotConsignment and stored on the 'Trans Out (SO)' row so it doesn't need to be recomputed on every read.
+	9   15-Sep-2026   RAJESH GAMI      [PN-17908], While POST SO Invoice stockline's RepairOrderUnitCost no need to update (It should be as it is) 
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -391,7 +392,8 @@ BEGIN
 				BEGIN
 					IF(@Qty = 1)
 					BEGIN
-						Update dbo.Stockline set RepairOrderUnitCost = 0,
+						Update dbo.Stockline set 
+						--RepairOrderUnitCost = 0,
 						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost,
 						LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
 					END

@@ -29,6 +29,10 @@
                                                  block "Create WO" until an already-created RO is fully received (Closed)
     12   11/09/2026     Amit Ghediya            Added WorkOrderStatusId (live from WorkOrder) - lets the Angular grid
                                                  lock "Edit RO"/"Edit WO" once the linked RO/WO is Closed
+    13   14/09/2026     Amit Ghediya            Added HasServiceComponent - true when the static Maintenance/Insurance/
+                                                 Taxes fields OR any active dynamic LeaseStocklineServiceComponent row
+                                                 exists, so the Angular "Add/Edit Service Component" label is correct
+                                                 even when only dynamic components were saved
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -93,6 +97,10 @@ BEGIN
 			LSL.ReservedBy,
 			LSL.UnReservedBy,
 			LSL.LeaseStatusId,
+			CASE WHEN ISNULL(LSL.Maintenance, 0) <> 0 OR ISNULL(LSL.Insurance, 0) <> 0 OR ISNULL(LSL.Taxes, 0) <> 0
+				OR EXISTS (SELECT 1 FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
+					WHERE SC.LeaseStocklineId = LSL.LeaseStocklineId AND SC.IsDeleted = 0)
+				THEN 1 ELSE 0 END AS HasServiceComponent,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,

@@ -10,6 +10,7 @@
  ** --   ----------   -------			------------------------------------------
  ** 1    15/07/2026   Nakul				   Created Aircraft Profile list procedure.[PN-17264]
  ** 2    07/23/2026   Amit Ghediya		   Get IsAircraft flag for engine or aircraft with group by set
+	3   15-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInfoList]
     @PageNumber       INT          = 1,
@@ -76,7 +77,7 @@ BEGIN
                     OR AI.ACSubModel LIKE '%' + @GlobalFilter + '%'
                     OR AI.CreatedBy LIKE '%' + @GlobalFilter + '%'
                     OR AI.UpdatedBy LIKE '%' + @GlobalFilter + '%'
-					OR IM.PartNumber LIKE '%' + @GlobalFilter + '%'
+					OR IM.PartNumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(IM.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%'
                 )
                 AND (@MakeType IS NULL OR AI.ACMakeTypeName LIKE '%' + @MakeType + '%')
                 AND (@Manufacturer IS NULL OR M.Name LIKE '%' + @Manufacturer + '%')
@@ -89,7 +90,7 @@ BEGIN
                 AND (@UpdatedBy IS NULL OR AI.UpdatedBy LIKE '%' + @UpdatedBy + '%')
                 AND (@UpdatedDate IS NULL OR CAST(AI.UpdatedDate AS DATE) = @UpdatedDate)
 				AND (@IsAircraft IS NULL OR AI.IsAircraft = @IsAircraft)
-				AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%')
+				AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(IM.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%')
 				GROUP BY 
 				AI.ACMakeTypeName,                M.[Name] ,                AI.ACModelName ,
                 AI.ACSubModel ,                IM.IsSerialized,                IM.IsTimeLife,             

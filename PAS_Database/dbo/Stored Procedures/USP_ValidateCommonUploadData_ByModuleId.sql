@@ -67,6 +67,7 @@
 	57	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 	58	 27-Aug-2026        Rajesh Gami				Added ItemMasterNonStock module 
 	59   04-Sep-2026        Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
+	60   15-Sep-2026        Divyesh Kathriya        [PN-17924] Added Item Type and Serial Number validation for Stockline imports.
 
 	declare @p4 dbo.UploadModuleDataTableType
 	insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -690,6 +691,22 @@ BEGIN
 													 )
 												THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN @ModuleId IN (@StocklineModule, @StocklineNonStockModule)
+													 AND IMF.[FieldName] = 'ItemMasterId'
+													 AND EXISTS
+													 (
+														 SELECT 1
+														 FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+														 WHERE IM.[ItemMasterId] = TRY_CAST(IMF.[DropdownListValueId] AS BIGINT)
+														   AND ISNULL(IM.[IsNonStock], 0) <> @RequiredItemIsNonStock
+														   AND IM.[MasterCompanyId] = @MasterCompanyId
+														   AND ISNULL(IM.[IsActive], 0) = 1
+														   AND ISNULL(IM.[IsDeleted], 0) = 0
+													 )
+												THEN CASE
+														 WHEN @ModuleId = @StocklineNonStockModule THEN 'Please Select Correct PN, PN Item Type is Stock'
+														 ELSE 'Please Select Correct PN, PN Item Type is Non-Stock'
+													 END
 												WHEN @ModuleId = @ItemMasterNonStockModule AND IMF.FieldName = 'MfgExpirationDate' AND ISNULL(TMP.FieldValue, '') = ''
 													 AND LOWER(LTRIM(RTRIM(ISNULL((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'IsMfgExpirationDate'), '')))) IN ('yes', 'y', 'true')
 												THEN 'Mfg Expiration Date is Required'
@@ -1433,7 +1450,28 @@ BEGIN
 														   AND ISNULL(IM.[IsDeleted], 0) = 0
 													 )
 												THEN 'Part is Not Serialized'
-												
+												WHEN @ModuleId IN (@StocklineModule, @StocklineNonStockModule)
+													 AND IMF.[FieldName] = 'SerialNumber'
+													 AND ISNULL(LTRIM(RTRIM(TMP.[FieldValue])), '') = ''
+													 AND EXISTS
+													 (
+														 SELECT 1
+														 FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+														 WHERE IM.[ItemMasterId] = TRY_CAST
+														 (
+															 (
+																 SELECT TOP 1 [FieldValue]
+																 FROM #DynamicKeyValue WITH(NOLOCK)
+																 WHERE [FieldName] = 'ItemMasterId'
+															 ) AS BIGINT
+														 )
+														   AND ISNULL(IM.[IsSerialized], 0) = 1
+														   AND IM.[MasterCompanyId] = @MasterCompanyId
+														   AND ISNULL(IM.[IsActive], 0) = 1
+														   AND ISNULL(IM.[IsDeleted], 0) = 0
+													 )
+												THEN 'Ser Num is required for serialized part'
+
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 

@@ -4761,6 +4761,9 @@
     <Build Include="dbo\Tables\LeaseRateUnit.sql" />
     <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -16,8 +16,9 @@
 --              that get overwritten on every subsequent reserve/issue/
 --              un-reserve/un-issue call and are never cleared back to NULL -
 --              they cannot answer "was this ever used against WO X".
---              Only ModuleId 1 (WorkOrder) and 5 (SubWorkOrder) have a
---              verified per-stockline usage mechanism today; other modules
+--              ModuleId 1 (WorkOrder), 5 (SubWorkOrder) and 3 (SalesOrder) have a
+--              verified per-stockline usage mechanism (SalesOrder via the
+--              SalesOrderStocklineV1 reservation junction); other modules
 --              return 0 here and keep using the blanket
 --              FN_PurchaseOrderHasAnyReceipt check at the call site.
 -- =============================================
@@ -27,6 +28,10 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------				--------------------------------
     1    27/Aug/2026   Abhishek Jirawala	Created for Unlink PO feature
+    2    14/Sep/2026   Bhargav Saliya		[PN-17042] Added SalesOrder (ModuleId 3) branch so SO uses the same
+	                                        "stock used against the target" guard as WO/SubWO instead of the
+	                                        PO-wide receipt check. Traces Stockline -> SalesOrderStocklineV1
+	                                        (QtyReserved) -> SalesOrderPartV1 scoped to @ReferenceId (SalesOrderId).
 
 SELECT dbo.FN_HasPOStockBeenUsedInTargetReference(1863, 100, 1, 500)
 **************************************************************/
@@ -90,7 +95,20 @@ BEGIN
         )
             SET @Used = 1
     END
-    -- other modules: no verified per-stockline mechanism yet, caller falls back to FN_PurchaseOrderHasAnyReceipt
+    ELSE IF @ModuleId = 3 -- SalesOrder
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+            FROM [dbo].[Stockline] SL WITH (NOLOCK)
+            INNER JOIN [dbo].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOS.StockLineId = SL.StockLineId
+            INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+            WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.PurchaseOrderPartRecordId = @PurchaseOrderPartId
+                  AND SOP.SalesOrderId = @ReferenceId
+                  AND ISNULL(SOS.IsDeleted,0) = 0 AND ISNULL(SOS.IsActive,1) = 1
+                  AND ISNULL(SOS.QtyReserved,0) > 0
+        )
+            SET @Used = 1
+    END
 
     RETURN @Used
 END

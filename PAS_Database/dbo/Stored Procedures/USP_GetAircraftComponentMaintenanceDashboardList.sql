@@ -30,6 +30,7 @@
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    22/July/2026			 Amit Ghediya						Added @ViewType - Summary Dashboard groups rows by acTailNum + mtceType + pnNum with filter issue [PN-17223]
    10    27/July/2026			 Amit Ghediya						Get Worksheet from mapping table [PN-17396]
+	11   15-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 ***********************************/
 CREATE     PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -296,7 +297,7 @@ BEGIN
                         OR mtceCategory  LIKE '%'+@GlobalFilter+'%'
                         OR mtceType      LIKE '%'+@GlobalFilter+'%'
                         OR section       LIKE '%'+@GlobalFilter+'%'
-                        OR pnNum         LIKE '%'+@GlobalFilter+'%'
+                        OR pnNum         LIKE '%'+@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(pnNum) LIKE '%'+dbo.fn_NormalizePartNumber(@GlobalFilter)+'%'
                         OR pnDescription LIKE '%'+@GlobalFilter+'%'
                         OR ataChpt       LIKE '%'+@GlobalFilter+'%'
                         OR woNum         LIKE '%'+@GlobalFilter+'%'
@@ -308,7 +309,7 @@ BEGIN
                     AND (ISNULL(@MtceCategory,  '')='' OR mtceCategory         LIKE '%' + @MtceCategory          + '%')
                     AND (ISNULL(@MtceType,      '')='' OR mtceType             LIKE '%' + @MtceType              + '%')
                     AND (ISNULL(@Section,       '')='' OR section              LIKE '%' + @Section               + '%')
-                    AND (ISNULL(@PNNum,         '')='' OR pnNum                LIKE '%' + @PNNum                 + '%')
+                    AND (ISNULL(@PNNum,         '')='' OR pnNum                LIKE '%' + @PNNum                 + '%' OR dbo.fn_NormalizePartNumber(pnNum) LIKE '%' + dbo.fn_NormalizePartNumber(@PNNum) + '%')
                     AND (ISNULL(@PNDescription, '')='' OR pnDescription        LIKE '%' + @PNDescription         + '%')
                     AND (ISNULL(@Qty,           '')='' OR CAST(qty AS VARCHAR(50)) LIKE '%' + @Qty               + '%')
                     AND (ISNULL(@CustomerName,  '')='' OR customerName         LIKE '%' + @CustomerName          + '%')
@@ -586,7 +587,7 @@ BEGIN
                         OR mtceCategory  LIKE '%'+@GlobalFilter+'%'
                         OR mtceType      LIKE '%'+@GlobalFilter+'%'
                         OR section       LIKE '%'+@GlobalFilter+'%'
-                        OR pnNum         LIKE '%'+@GlobalFilter+'%'
+                        OR pnNum         LIKE '%'+@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(pnNum) LIKE '%'+dbo.fn_NormalizePartNumber(@GlobalFilter)+'%'
                         OR pnDescription LIKE '%'+@GlobalFilter+'%'
                         OR ataChpt       LIKE '%'+@GlobalFilter+'%'
                         OR woNum         LIKE '%'+@GlobalFilter+'%'
@@ -598,7 +599,7 @@ BEGIN
                     AND (ISNULL(@MtceCategory,  '')='' OR mtceCategory         LIKE '%' + @MtceCategory          + '%')
                     AND (ISNULL(@MtceType,      '')='' OR mtceType             LIKE '%' + @MtceType              + '%')
                     AND (ISNULL(@Section,       '')='' OR section              LIKE '%' + @Section               + '%')
-                    AND (ISNULL(@PNNum,         '')='' OR pnNum                LIKE '%' + @PNNum                 + '%')
+                    AND (ISNULL(@PNNum,         '')='' OR pnNum                LIKE '%' + @PNNum                 + '%' OR dbo.fn_NormalizePartNumber(pnNum) LIKE '%' + dbo.fn_NormalizePartNumber(@PNNum) + '%')
                     AND (ISNULL(@PNDescription, '')='' OR pnDescription        LIKE '%' + @PNDescription         + '%')
                     AND (ISNULL(@Qty,           '')='' OR CAST(qty AS VARCHAR(50)) LIKE '%' + @Qty               + '%')
                     AND (ISNULL(@CustomerName,  '')='' OR customerName         LIKE '%' + @CustomerName          + '%')

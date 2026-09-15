@@ -11,7 +11,8 @@
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
  2    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-       
+ 3    15-Sep-2026			RAJESH GAMI				[PN-17782] - Allow Non-Stock ItemMaster/Stockline parts to flow through Sub WO Material lifecycle : Removed IsNonStock exclusion filter
+
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_UpdateSubWorkOrderMaterials]  
@@ -153,7 +154,7 @@ BEGIN
 						FROM [dbo].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpSubWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0;
+						WHERE TMP.RowId = @CurrentRowId;
 					END
 				END
 

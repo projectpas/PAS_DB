@@ -31,6 +31,9 @@
 										blocks and the @Idlist block, restricted instead to ItemTypeId IN (1,2) (Equipment/Asset
 										types still excluded), added ItemTypeId/IsNonStock to the result set, and suffixed Label
 										with ' (Stock)' / ' (Non-Stock)' so the dropdown list shows the type postfix.
+	7    15-Sep-2026			 RAJESH GAMI						[PN-17782] Label postfix refinement - a Stock part's Label no longer
+										gets a ' (Stock)' suffix (Stock is the default/majority case); only Non-Stock
+										parts are now flagged with ' (Non-Stock)'.
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
 CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]  
@@ -86,7 +89,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
@@ -110,7 +113,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
@@ -136,7 +139,7 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
@@ -221,7 +224,7 @@ INSERT INTO #Result
 			SELECT DISTINCT
 					im.ItemMasterId AS PartId,
 					im.partnumber AS PartNumber,
-					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE ' (Stock)' END) AS Label,
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			        im.PartDescription AS PartDescription,
 			        im.ManufacturerName as ManufacturerName,
 					(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'

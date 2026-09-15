@@ -25,8 +25,9 @@
  4    09/18/2023   Devendra Shekh        pick ticket qty issue resovled 
  7	  19/03/2026	Priyansh Patel		 Added the @IsAutoConfirmPickTicket logic [PN-15606]
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-  
- EXECUTE sp_savePickTicketItemInterface_WO 828,0  
+	9    15-Sep-2026			 RAJESH GAMI						[PN-17782] - Allow Non-Stock ItemMaster/Stockline parts to flow through WO Material lifecycle : Removed IsNonStock exclusion filter from @partnumber lookup so History audit-log text shows correct part number for Non-Stock pick tickets
+
+ EXECUTE sp_savePickTicketItemInterface_WO 828,0
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
 (      
@@ -402,7 +403,7 @@ BEGIN
 
 	   IF(@PNItemMasterId > 0)
 	   BEGIN
-	   	    SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+	   	    SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId ;
 	   END
 	   ELSE
 	   BEGIN 
@@ -432,9 +433,9 @@ BEGIN
 	   		SELECT @WorkOrderPartNoId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;  
 	   		SELECT @ItemMasterId = ItemMasterId FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
 	   	END  
-	   	SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+	   	SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId ;
 	   END
-	   
+
 	   --Entry in History Table.
 	   IF(@IsConfirmed = 0 AND @IsMPN = 0)
 	   BEGIN

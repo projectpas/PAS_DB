@@ -18,6 +18,7 @@
 	
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 6    27-July-2025    SUMIT    				Added notes field in material list [PN-16818]
+** 7    15-Sep-2026      RAJESH GAMI			[PN-17782] - Removed AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 from the @PartNumber lookup; for Non-Stock items this was leaving @PartNumber NULL/stale from a prior loop iteration and getting inserted into the NOT NULL dbo.Stockline.PartNumber column, causing a constraint error or silent bad data. Also removed the same exclusion from the PN Manufacturer Combination Stockline CTE so Non-Stock items flow through.
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -175,8 +176,8 @@ BEGIN
 						SELECT	@QtyTendered = 0, @QtyToTendered = 0, @TotalStlQtyReq = 0, @WorkOrderTypeId = 0, @TearDownWorkOrderTypeId = 0, @WorkOrderPartNoId = 0,
 								@isExchange =  (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
-						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  
-								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;  
+						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife
+								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId ;
 						SELECT @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 						IF(ISNULL(@IsKitType, 0) = 0)
@@ -214,9 +215,8 @@ BEGIN
 							 INSERT INTO #tmpPNManufacturer (ItemMasterId, ManufacturerId, StockLineNumber, CurrentStlNo, isSerialized)  
 							 SELECT CSTL.ItemMasterId, CSTL.ManufacturerId, StockLineNumber, ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo, IM.isSerialized  
 							 FROM CTE_Stockline CSTL WITH(NOLOCK)
-							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId  
+							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId
 							 /* PN Manufacturer Combination Stockline logic */
-						 WHERE ISNULL(IM.IsNonStock,0) = 0
 END
 
 						IF(ISNULL(@CurrentWOM, 0) = 1)

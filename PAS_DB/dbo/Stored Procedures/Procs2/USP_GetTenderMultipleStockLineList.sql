@@ -19,6 +19,7 @@
 	4    10/01/2024   Devendra Shekh	     Modified (changes for [QtyToTender] and for where case to select result)
 	5    14/11/2025   Bhargav Saliya	     Get TaskName
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    15-Sep-2026			 RAJESH GAMI						[PN-17782] - Removed the ISNULL(IM.IsNonStock,0) = 0 exclusion filter from both the WorkOrderMaterials and WorkOrderMaterialsKit selects so Non-Stock WO materials also appear in the Tender Multiple Stockline grid
 
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1
@@ -230,7 +231,7 @@ BEGIN
 			LEFT JOIN dbo.Task T WITH (NOLOCK) ON WOM.TaskId = T.TaskId
 			LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WOM.TaskId = WT.WorkOrderTaskId
 			WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOM.TotalQuantityTurnIn, 0) + ISNULL(tmpWOM.TotalReservedQty, 0) + ISNULL(tmpWOM.TotalIssuedQty, 0)) > 0) AND ISNULL(IM.IsNonStock,0) = 0 ;
+					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOM.TotalQuantityTurnIn, 0) + ISNULL(tmpWOM.TotalReservedQty, 0) + ISNULL(tmpWOM.TotalIssuedQty, 0)) > 0) ;
 		
 		--Adding WorkOrder Material Kit Data 
 		INSERT INTO #TenderMultipleStkListData (
@@ -253,7 +254,7 @@ BEGIN
 			LEFT JOIN dbo.Task T WITH (NOLOCK) ON WOM.TaskId = T.TaskId
 			LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WOM.TaskId = WT.WorkOrderTaskId
 			WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) + ISNULL(tmpWOMKit.TotalReservedQty, 0) + ISNULL(tmpWOMKit.TotalIssuedQty, 0)) > 0) AND ISNULL(IM.IsNonStock,0) = 0 ;
+					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) + ISNULL(tmpWOMKit.TotalReservedQty, 0) + ISNULL(tmpWOMKit.TotalIssuedQty, 0)) > 0) ;
 
 		DECLARE @WOMMaxQty INT;
 		SELECT @WOMMaxQty = MAX(ISNULL(Quantity,0)) FROM #TenderMultipleStkListData;

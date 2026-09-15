@@ -15,11 +15,12 @@
     2    03-Sep-2026	SAHDEV SALIYA		Aligned OnHand/OnOrder/OpenSales/OnRepair/OnWO/
                                                 YtdSales/PriorYrSales to confirmed business
                                                 definitions
+    3    15-Sep-2026	SAHDEV SALIYA		Fixed YtdSales/PriorYrSales to use actual invoiced quantity (BillingInvoicingItems.QtyBilled) instead of ordered quantity.
 
 --  EXEC [dbo].[USP_GetPNStockSummary] @ItemMasterId = 95632, @MasterCompanyId = 1
 
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetPNStockSummary]
+CREATE     PROCEDURE [dbo].[USP_GetPNStockSummary]
 	@ItemMasterId BIGINT,
 	@MasterCompanyId INT
 AS
@@ -37,6 +38,8 @@ BEGIN
 		DECLARE @RejectedStatusId INT;
 		DECLARE @ShippedStatusId INT;
 		DECLARE @InvoicedStatusId INT;
+		DECLARE @SOModuleId INT;
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @ClosedStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Closed';
 		SELECT @CancelledStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Cancelled';
 		SELECT @ExpiredStatusId = [Id] FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE [Name] = 'Expired';
@@ -130,9 +133,14 @@ BEGIN
 			), 0) AS OnWO,
 
 			ISNULL((
-				SELECT SUM(ISNULL(sop.QtyOrder, 0))
+				SELECT SUM(ISNULL(sobii.QtyBilled, 0))
 				FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+				INNER JOIN dbo.BillingInvoicing sobi WITH (NOLOCK) ON sobi.ReferenceId = sop.SalesOrderId
+					AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.ModuleId = @SOModuleId
+				INNER JOIN dbo.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId
+					AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.ModuleId = @SOModuleId
+					AND ISNULL(sobii.IsPerformaInvoice, 0) = 0 AND ISNULL(sobii.IsVersionIncrease, 0) = 0
 				WHERE sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = CN.ConditionId
 					AND ISNULL(sop.IsDeleted, 0) = 0 AND ISNULL(so.IsDeleted, 0) = 0 AND so.MasterCompanyId = @MasterCompanyId
 					AND so.StatusId = @ClosedStatusId
@@ -140,9 +148,14 @@ BEGIN
 			), 0) AS YtdSales,
 
 			ISNULL((
-				SELECT SUM(ISNULL(sop.QtyOrder, 0))
+				SELECT SUM(ISNULL(sobii.QtyBilled, 0))
 				FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+				INNER JOIN dbo.BillingInvoicing sobi WITH (NOLOCK) ON sobi.ReferenceId = sop.SalesOrderId
+					AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.ModuleId = @SOModuleId
+				INNER JOIN dbo.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId
+					AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.ModuleId = @SOModuleId
+					AND ISNULL(sobii.IsPerformaInvoice, 0) = 0 AND ISNULL(sobii.IsVersionIncrease, 0) = 0
 				WHERE sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = CN.ConditionId
 					AND ISNULL(sop.IsDeleted, 0) = 0 AND ISNULL(so.IsDeleted, 0) = 0 AND so.MasterCompanyId = @MasterCompanyId
 					AND so.StatusId = @ClosedStatusId

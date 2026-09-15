@@ -9,8 +9,9 @@
  **************************************************************             
  ** PR   Date         Author		 Change Description              
  ** --   --------     -------		 --------------------------------            
-    1    14/07/2022   Vishal Suthar	 Created  
+    1    14/07/2022   Vishal Suthar	 Created
     2    12/03/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
+    3    14/09/2026   Aayushi Patel  [PN-17906] Final SELECT now repeats ORDER BY [PkID] DESC - "SELECT ... INTO #Temp ... ORDER BY" does not guarantee the physical/returned row order of the temp table on a later bare SELECT, so History rows could come back in an undefined order (affects every single screen using this per-table "vw_<Table>Audit" History path)
 -- EXEC USP_Common_Audit_GetData 'vw_ItemMasterCapesAudit',65,0
 -- EXEC USP_Common_Audit_GetData 'vw_CustomerClassificationAudit',8, 0
 
@@ -83,7 +84,10 @@ BEGIN
     END
 
     -- Select final data
-    SET @Query2 = @Query2 + ' SELECT * FROM #TempAuditData; DROP TABLE #TempAuditData;';
+    -- NOTE: "SELECT ... INTO #Temp ... ORDER BY" (above) does not guarantee the physical/returned row
+    -- order of the temp table on a later bare SELECT - the ORDER BY has to be repeated here too,
+    -- otherwise history rows can come back in an undefined order (PN-17906).
+    SET @Query2 = @Query2 + ' SELECT * FROM #TempAuditData ORDER BY [PkID] DESC; DROP TABLE #TempAuditData;';
 
     EXEC (@Query1);
     EXEC (@Query2);

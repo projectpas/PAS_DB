@@ -37,6 +37,7 @@
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	25   14/07/2026   Bhargav saliya    Revert Changes For Part Cost [PN-16986]
 	26   24/08/2026   Kishor Makwana [PN-17763] - Update BillingInvoicingItems.ShippingId based on the SalesOrderPart + Stockline + PickTicket chain (added to both the new-invoice and existing-invoice INSERT paths for SO).
+	27   15/09/2026   Kishor Makwana PN-17925 - Create Sales Order Billing then Some Time @InvoiceTypeId is 0.
 -- EXEC USP_AddBillingInvoicingDetails
 ************************************************************************/  
   
@@ -247,10 +248,20 @@ BEGIN
 	IF (@IsPerformaInvoice = 0)
 	BEGIN
 		SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @InvoiceCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
+		
+		IF(ISNULL(@InvoiceTypeId,0) =0)
+		BEGIN
+			select TOP 1 @InvoiceTypeId =InvoiceTypeId from InvoiceType where MasterCompanyId =@MasterCompanyId AND  [Description] = 'STANDARD'
+		END
 	END
 	IF (@IsPerformaInvoice = 1)
 	BEGIN
 		SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @ProformaInvoiceCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
+		
+		IF(ISNULL(@InvoiceTypeId,0) =0)
+		BEGIN
+			select TOP 1 @InvoiceTypeId =InvoiceTypeId from InvoiceType where MasterCompanyId =@MasterCompanyId AND  [Description] = 'PROFORMA'
+		END
 	END
 
 	SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;

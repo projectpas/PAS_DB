@@ -28,6 +28,7 @@
     6   14-Aug-2026   RAJESH GAMI      PN-17673 : Update LOT Commission Cost Calculation for Multiple Commission Methods (% Of Revenue, % Of Margin OR Fixed Commision Amount)
 	7   25-Aug-2026  RAJESH GAMI      [PN-17745] Ported from PAS_DB - Recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') in the insert-allowlist gate and the Stockline.LOTQty/IsLotAssigned update gate, so stocklines created via "Create Stockline from Lot" are still included/displayed/calculated correctly.
 	8   27-Aug-2026  RAJESH GAMI      [PN-17799] Ported from other branch - stores HowCalculate (same label logic as the Commission tab in USP_Lot_GetAllLotViewsByLotId_Filter) on the 'Trans Out (SO)' row. Also: @Qty/@QtyLot/@LastQty were still INT - this branch's LotCalculationDetails.Qty (and #tmpLotCalculationDetailsType.Qty) is DECIMAL(18,6), so these were retyped to DECIMAL(18,6) to stop silently truncating fractional quantities.
+	9   15-Sep-2026   RAJESH GAMI      [PN-17908], While POST SO Invoice stockline's RepairOrderUnitCost no need to update (It should be as it is) 
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -389,7 +390,8 @@ BEGIN
 				BEGIN
 					IF(@Qty = 1)
 					BEGIN
-						Update dbo.Stockline set RepairOrderUnitCost = 0,
+						Update dbo.Stockline set 
+						--RepairOrderUnitCost = 0,
 						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost,
 						LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
 					END

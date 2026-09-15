@@ -13,6 +13,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    28/08/2026   Moin Bloch 	        Created
+	2    15/09/2026   Moin Bloch			[PN-17929] Added [WorkOrderStageId],[WorkOrderStatusId]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveSettlementFinalConditionForInternalKitAssembly]
 (
@@ -26,7 +27,7 @@ BEGIN
 		DECLARE @MinId BIGINT = 1;
 		DECLARE @UpdatedDate DATETIME2(7) =  GETUTCDATE()
 		DECLARE @IdCodeTypeId BIGINT,@ControlNumberCodeTypeId BIGINT,@IdNumberCodeTypeId BIGINT,@WorkOrderClosedStatusId INT=0
-		DECLARE @StkManagementStructureModuleId BIGINT=0,@StockLineModuleID INT=0,@IsUnique BIT = 0
+		DECLARE @StkManagementStructureModuleId BIGINT=0,@StockLineModuleID INT=0,@IsUnique BIT = 0,@WorkOrderStageId BIGINT
 
 		DECLARE @WOModuleId INT = (SELECT [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder')
 
@@ -37,8 +38,7 @@ BEGIN
 		SELECT @StockLineModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='StockLine';
 		SELECT @StkManagementStructureModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
 
-	    SELECT @WorkOrderClosedStatusId = [Id] FROM [dbo].[WorkOrderStatus] WHERE Description = 'Closed'
-
+	    SELECT @WorkOrderClosedStatusId = [Id] FROM [dbo].[WorkOrderStatus] WITH(NOLOCK) WHERE [Description] = 'Closed';
 
 		DECLARE @WorkOrderId         BIGINT = NULL,
 		  	    @WorkOrderPartNoId   BIGINT = NULL,
@@ -111,6 +111,8 @@ BEGIN
 			SELECT @TotalPartsCount = COUNT(*) FROM #tmprSettlementFinalConditionKit WHERE [WorkOrderId] = @WorkOrderId AND [WorkOrderPartNoId] = @WorkOrderPartNoId;
 			
 			SELECT @KitsToPrepare = ISNULL([KitsToPrepare],0),@Stocklineid = [Stocklineid],@MasterCompanyId = [MasterCompanyId],@ManagementStructureId = [ManagementStructureId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNoId;
+			
+			SELECT @WorkOrderStageId = [WorkOrderStageId] FROM [dbo].[WorkOrderStage] WITH(NOLOCK) WHERE [Code]='90' AND [MasterCompanyId] = @MasterCompanyId;
 
 			SELECT @TotalCost = (ISNULL([PartsCost],0) + ISNULL([LaborCost],0) + ISNULL([ChargesCost],0) + ISNULL([FreightCost],0)) FROM [dbo].[WorkOrderMPNCostDetails] WITH (NOLOCK)	WHERE [WorkOrderId] = @WorkOrderId AND [WOPartNoId] = @WorkOrderPartNoId;
 
@@ -138,7 +140,7 @@ BEGIN
 					INSERT INTO #ProcessedStockLine ([StockLineId]) VALUES (@StockLineId);
 
 					-- FINISH GOOD  AND CLOSE PART
-					UPDATE [dbo].[WorkOrderPartNumber] SET [IsFinishGood] = 1, [IsClosed] = 1 WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNoId;
+					UPDATE [dbo].[WorkOrderPartNumber] SET [IsFinishGood] = 1, [IsClosed] = 1, [WorkOrderStatusId] = @WorkOrderClosedStatusId, [WorkOrderStageId] = @WorkOrderStageId WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNoId;
 
 					-- CLOSED WORK ORDER
 					UPDATE [dbo].[WorkOrder] SET [WorkOrderStatusId] = @WorkOrderClosedStatusId WHERE [WorkOrderId] = @WorkOrderId
@@ -278,7 +280,7 @@ BEGIN
 				 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId				 
 
 				DECLARE @QtyOrder DECIMAL(18,6),@SiteId BIGINT,@WarehouseId BIGINT = NULL,@LocationId BIGINT = NULL, @ShelfId BIGINT = NULL,@BinId BIGINT= NULL
-				DECLARE @GLAccountId BIGINT = NULL,@IsPMA BIT,@IsDER BIT,@IsOEM BIT,@PurchaseUnitOfMeasureId BIGINT = NULL
+				DECLARE @GLAccountId BIGINT = NULL,@IsPMA BIT,@IsDER BIT,@IsOEM BIT,@PurchaseUnitOfMeasureId BIGINT = NULL,@StockUnitOfMeasureId BIGINT = NULL,@ConsumeUnitOfMeasureId BIGINT = NULL
 				DECLARE @ItemGroup VARCHAR(256) = NULL,@ItemType VARCHAR(20) = 'Stock'
 				DECLARE @CreatedDate DATETIME2(7) = GETUTCDATE(),@LegalEntityId BIGINT,@IsSerialized BIT
 				DECLARE @Memo NVARCHAR(MAX) ='Stockline Created From Internal Kit Assembly Settlement'
@@ -307,6 +309,8 @@ BEGIN
 					   @UnitCost = ISNULL(@TotalCost / NULLIF(@KitsToPrepare, 0), 0),
 					   @IsSerialized = ITM.IsSerialized,  
 					   @PurchaseUnitOfMeasureId = ITM.[PurchaseUnitOfMeasureId],
+					   @StockUnitOfMeasureId = ITM.[StockUnitOfMeasureId],		
+					   @ConsumeUnitOfMeasureId = ITM.[ConsumeUnitOfMeasureId],							   
 					   @ItemGroup = ITM.ItemGroup,
 					   @Quantity = CASE WHEN @TotalPartsCount = 1 THEN @KitsToPrepare ELSE 1 END,             
 					   @QuantityOnHand  = CASE WHEN @TotalPartsCount = 1 THEN @KitsToPrepare ELSE 1 END,             
@@ -330,7 +334,7 @@ BEGIN
 					[QuantityReserved], [QuantityTurnIn], [QuantityIssued], [QuantityOnHand], [QuantityAvailable], [QuantityOnOrder], [QtyReserved], [QtyIssued], [BlackListed], [BlackListedReason], 
 					[Incident], [IncidentReason], [Accident], [AccidentReason], [RepairOrderPartRecordId], [isActive], [isDeleted], [WorkOrderExtendedCost], [RepairOrderExtendedCost], [IsCustomerStock],
 					[EntryDate], [LotCost], [NHAItemMasterId], [TLAItemMasterId], [ItemTypeId], [AcquistionTypeId], [RequestorId], [LotNumber], [LotDescription], [TagNumber], [InspectionBy], 
-					[InspectionDate], [VendorId], [IsParent], [ParentId], [IsSameDetailsForAllParts], [WorkOrderPartNoId], [SubWorkOrderId], [SubWOPartNoId], [IsOemPNId], [PurchaseUnitOfMeasureId],
+					[InspectionDate], [VendorId], [IsParent], [ParentId], [IsSameDetailsForAllParts], [WorkOrderPartNoId], [SubWorkOrderId], [SubWOPartNoId], [IsOemPNId], [PurchaseUnitOfMeasureId],[StockUnitOfMeasureId],[ConsumeUnitOfMeasureId],
 					[ObtainFromName], [OwnerName], [TraceableToName], [Level1], [Level2], [Level3], [Level4], [Condition], [GlAccountName], [Site], [Warehouse], [Location], [Shelf], [Bin], 
 					[UnitOfMeasure], [WorkOrderNumber], [itemGroup], [TLAPartNumber], [NHAPartNumber], [TLAPartDescription], [NHAPartDescription], [itemType], [CustomerId], [CustomerName], 
 					[isCustomerstockType], [PNDescription], [RevicedPNId], [RevicedPNNumber], [OEMPNNumber], [TaggedBy], [TaggedByName], [UnitCost], [TaggedByType], [TaggedByTypeName], [CertifiedById], 
@@ -358,7 +362,7 @@ BEGIN
 					,@QuantityReserved, 0, @QuantityIssued, @QuantityOnHand, @QuantityAvailable, 0, @QtyReserved, @QtyIssued, 0, NULL
 					,0, NULL, 0, NULL, NULL, 1, 0, 0.00, 0.00, @IsCustomerStock
 					,@CreatedDate , 0.00, NULL, NULL, @ItemTypeId, NULL, NULL, NULL, NULL, NULL, NULL					
-					,NULL , NULL, 1, 0, 0, @WorkOrderPartNoId, NULL, NULL, NULL, @PurchaseUnitOfMeasureId					
+					,NULL , NULL, 1, 0, 0, @WorkOrderPartNoId, NULL, NULL, NULL, @PurchaseUnitOfMeasureId,@StockUnitOfMeasureId	,@ConsumeUnitOfMeasureId				
 					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', '', '', '', '', '', ''
 					,NULL, '', @ItemGroup, '', '', '', '', @ItemType, NULL, ''
 					,@IsCustomerStock, NULL, NULL, '', '', '', '', @UnitCost, NULL, '', NULL							  

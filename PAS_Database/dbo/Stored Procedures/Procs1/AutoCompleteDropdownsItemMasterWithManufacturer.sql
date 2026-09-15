@@ -31,6 +31,7 @@
 									and appends ' (Stock)'/' (Non-Stock)' to the Label so the Stockline PN
 									dropdown can request either type with a decorated label.
 	14   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
+	15   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] 'Gal',1,50,'',1  
 **************************************************************/
@@ -173,7 +174,7 @@ BEGIN
 		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))      
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))      
      
 	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	 UNION   
@@ -308,7 +309,7 @@ BEGIN
 		LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')  
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')  
     
 	 AND ISNULL(Im.IsNonStock,0) = @IsNonStock
 	UNION   

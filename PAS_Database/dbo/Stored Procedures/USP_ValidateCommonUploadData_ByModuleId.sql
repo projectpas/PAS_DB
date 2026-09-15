@@ -67,7 +67,8 @@
 	57	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 	58	 27-Aug-2026        Rajesh Gami				Added ItemMasterNonStock module 
 	59   04-Sep-2026        Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
-	60   15-Sep-2026        Divyesh Kathriya        [PN-17924] Added Item Type and Serial Number validation for Stockline imports.
+	61   15-Sep-2026        Divyesh Kathriya        [PN-17924] Added Item Type and Serial Number validation for Stockline imports.
+	60   14-Sep-2026        Aayushi Patel           [PN-17906] Added @UOMFamilyTypeModule + a duplicate-Name error message branch for the new UOM Family Type setup screen - without a module-specific message here, the generic ELSE branch produces DuplicateErrorMsg = '' and the duplicate is silently accepted (RecordStatus only gets set when DuplicateErrorMsg is non-empty).
 
 	declare @p4 dbo.UploadModuleDataTableType
 	insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -251,6 +252,7 @@ BEGIN
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
 		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
+		DECLARE @UOMFamilyTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'UOMFamilyType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1297,8 +1299,10 @@ BEGIN
 															THEN 'Entered Maintenance Category Already Exits!'
 														WHEN @ModuleId = @RFQTraceabilityModule
 															THEN 'Entered Traceability Already Exits!'
-														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
-															THEN 'Entered Lease Type Already Exists!'	
+														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'
+															THEN 'Entered Lease Type Already Exists!'
+														WHEN @ModuleId = @UOMFamilyTypeModule AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exists!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

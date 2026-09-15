@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1    21-Nov-2025		Devendra Shekh		Created
     2    08-JAN-2025		RAJESH GAMI			Added Parameter @MasterCompanyId
+    3    14-SEP-2026		Aayushi Patel		Added UOMFamilyTypeId (PN-17906)
 EXEC [dbo].[usp_GetUOMConversion]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usp_GetUOMConversion]
@@ -26,7 +27,8 @@ BEGIN
 			[ToUOM],
 			[Factor],
 			[IsMultiply],
-			[DecimalPlaces]
+			[DecimalPlaces],
+			[UOMFamilyTypeId]
 		FROM [dbo].[UOMConversion] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 			
 	END TRY    

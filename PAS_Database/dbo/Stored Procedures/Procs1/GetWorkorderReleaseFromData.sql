@@ -36,6 +36,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	27    07/08/2026  Abhishek Jirawala Added Fleet field in Section 12 Remarks [PN-17260]
+** 28   15/09/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName  [PN-17935])
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
 **************************************************************/ 
 
@@ -69,11 +70,15 @@ BEGIN
 		DECLARE @ParCommonTeardownTypeId BIGINT = 0;
 		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
 		DECLARE @MasterCompanyCodeATI VARCHAR(20) = 'ATI'
+		DECLARE @MasterCompanyCodeSAR VARCHAR(20) = 'SAR'
+		DECLARE @CompanyCode  VARCHAR(20) = ''
 		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
 		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
 		DECLARE @isATICompany BIT = 0;
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
+		
+		SELECT @CompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
 		IF(@MasterCompanyCode = (SELECT [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId))
 		BEGIN
@@ -601,8 +606,8 @@ BEGIN
 					  '' AS trackingNo,  
 					  le.CompanyName AS OrganizationName,  
 					  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
-					  wo.WorkOrderNum AS InvoiceNo,  
-					  '1' AS ItemName,  
+					  wo.WorkOrderNum AS InvoiceNo, 
+					  CASE WHEN @CompanyCode = @MasterCompanyCodeSAR THEN 'N/A' ELSE '1' END AS [ItemName], 
 					  wop.RevisedPartDescription AS [Description],
 					  wop.RevisedPartNumber AS PartNumber,  
 					  wop.CustomerReference AS Reference,  

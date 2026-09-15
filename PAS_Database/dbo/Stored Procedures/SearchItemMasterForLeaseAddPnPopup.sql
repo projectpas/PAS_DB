@@ -69,6 +69,8 @@ BEGIN
 			AND imps.ConditionId = c.ConditionId
 		WHERE
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
+			AND ISNULL(sl.QuantityAvailable, 0) > 0
+			AND ISNULL(sl.QuantityOnHand, 0) > 0			
 		GROUP BY
 			im.PartNumber
 			,im.PurchaseUnitOfMeasureId

@@ -4443,6 +4443,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTypeData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetNonStockDataByPartID.sql" />
     <Build Include="dbo\Tables\UOMConversion.sql" />
+    <Build Include="dbo\Tables\UOMFamilyType.sql" />
+    <Build Include="dbo\Tables\UOMFamilyTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_UOMFamilyTypeAudit.sql" />
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
@@ -4720,10 +4723,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
     <Build Include="dbo\Tables\LeaseStocklineAudit.sql" />
     <Build Include="dbo\Tables\LeaseStockline.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineServiceComponentAudit.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineServiceComponent.sql" />
+    <Build Include="dbo\User Defined Types\LeaseStocklineServiceComponentType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineServiceComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineReceivedStockLine.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineProperties.sql" />
@@ -4761,6 +4769,9 @@
     <Build Include="dbo\Tables\LeaseRateUnit.sql" />
     <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -30,6 +30,7 @@ BEGIN
 			  ,LH.CustomerRef
 			  ,LH.CustomerContactId
 			  ,LH.Email
+			  ,LH.Phone
 			  ,LH.SalespersonEmployeeId
 			  ,LH.LocalCurrencyId
 			  ,LH.ForeignCurrencyId

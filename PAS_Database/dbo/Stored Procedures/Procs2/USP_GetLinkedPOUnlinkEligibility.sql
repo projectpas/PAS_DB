@@ -51,6 +51,16 @@
 	                                        DECIMAL(18,6) - the UOM branch's quantity standard - instead of relying
 	                                        on implicit type inheritance from the source columns, so the Unlink PO
 	                                        popup consistently shows the same decimal precision as the rest of the app.
+    6    14/09/2026   Bhargav Saliya		[PN-17042] Sales Order now uses the SAME per-line "stock used against the
+	                                        target reference" mechanism Work Order/Sub Work Order already use, instead
+	                                        of the PO-wide FN_PurchaseOrderHasAnyReceipt. The blanket check blocked
+	                                        Unlink for a still-100%-pending SO line whenever ANY sibling line on the same
+	                                        PO had been received. FN_HasPOStockBeenUsedInTargetReference was extended
+	                                        with a SalesOrder (ModuleId 3) branch, and the reason-6 guard now covers
+	                                        ModuleId IN (1,5,3), so an SO line only blocks when its received stock is
+	                                        actually reserved to this Sales Order. RepairOrder/Exchange/Lot keep the
+	                                        blanket FN_PurchaseOrderHasAnyReceipt (reason 1) - no per-stockline usage
+	                                        mechanism for them yet.
 
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 1, @PurchaseOrderId = 1863, @PurchaseOrderPartRecordId = 100
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 2, @SourceModuleId = 1, @ReferenceId = 500, @ReferencePartId = 900, @IsKit = 0
@@ -205,8 +215,8 @@ BEGIN
 
     SELECT *,
         CASE
-            WHEN ModuleId IN (1,5) AND dbo.FN_HasPOStockBeenUsedInTargetReference(PurchaseOrderId, PurchaseOrderPartId, ModuleId, ReferenceId) = 1 THEN 6
-            WHEN ModuleId NOT IN (1,5) AND HasAnyReceipt = 1 THEN 1
+            WHEN ModuleId IN (1,5,3) AND dbo.FN_HasPOStockBeenUsedInTargetReference(PurchaseOrderId, PurchaseOrderPartId, ModuleId, ReferenceId) = 1 THEN 6
+            WHEN ModuleId NOT IN (1,5,3) AND HasAnyReceipt = 1 THEN 1
             WHEN ISNULL(QtyIssued,0) > 0 THEN 3
             WHEN @SourceModuleId <> 0 AND IsReserved = 1 THEN 2
             ELSE 0

@@ -35,6 +35,7 @@
 	22   17/Aug/2026  Moin Bloch		[PN-17667] - Non-Stock Part Gets Unselected When Creating a Single Invoice for Stock and Non-Stock Parts
 	23   22/Aug/2026  Vishal Suthar		Fixed duplicate rows AND incorrect QtyBilled/InvoiceDate/InvoiceStatus in SO @AllowBillingBeforeShipping=0 branch.
 	24   24/Aug/2026  Kishor Makwana	[PN-17763] - Fixed  '' AS InvoiceStatus to sobi.InvoiceStatus AS InvoiceStatus in SO @AllowBillingBeforeShipping= 1
+	25   27/Aug/2026  Kishor Makwana    [PN-17821] - Proforma Invoice SalesOrderShipping and SalesOrderShippingItem changesInner join to Left join 
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -663,8 +664,8 @@ BEGIN
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
-					INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = sos.SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-					INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId AND sosi.SalesOrderPartId=sop.SalesOrderPartId AND sosi.SalesOrderPartId=@SubReferenceId
+					LEFT JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = sos.SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+					LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId AND sosi.SalesOrderPartId=sop.SalesOrderPartId AND sosi.SalesOrderPartId=@SubReferenceId
 					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.ItemMasterId = sop.ItemMasterId and sobii.SubReferenceId = @SubReferenceId
 						AND sobii.StockLineId = stk.StockLineId
 						AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId 

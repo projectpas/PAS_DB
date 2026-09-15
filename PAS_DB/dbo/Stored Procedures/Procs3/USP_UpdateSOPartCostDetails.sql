@@ -25,6 +25,7 @@
 	9    22-01-2025   Abhishek Jirawla Commented the section for "Remove/Modify Pick Ticket on Un-Reserve" after discussion with Vishalbhai as it was creating problem after SO shipping 
 	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
   	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
+	12   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -266,14 +267,16 @@ SET NOCOUNT ON
 					BEGIN
 						UPDATE DBO.SalesOrderPartV1 
 						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId),
-						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId)
+						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId),
+						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.ToTalReservedQty, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 					ELSE
 					BEGIN
 						UPDATE DBO.SalesOrderPartV1 
 						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
-						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
+						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
+						ToTalReservedQty =  (SELECT SUM(ISNULL(SOS.ToTalReservedQty, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 				END

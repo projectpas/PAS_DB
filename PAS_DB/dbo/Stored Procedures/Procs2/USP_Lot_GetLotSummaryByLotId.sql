@@ -1,4 +1,5 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotSummaryByLotId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotSummaryByLotId.sql) =====
+﻿
+-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotSummaryByLotId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotSummaryByLotId.sql) =====
 /*************************************************************           
  ** File:   [USP_Lot_GetLotSummaryByLotId]           
  ** Author: Rajesh Gami
@@ -16,6 +17,22 @@
 	3    09/July/2026	 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026	 RAJESH GAMI	[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
 	5    21/Aug/2026	 RAJESH GAMI	[PN-17745] @TransferredInCost now also includes 'Turn In' type rows (in addition to 'Trans In (Lot)'), since "Create Stockline from Lot" now records that type instead.
+	6    26/Aug/2026	 RAJESH GAMI	[PN-17799] Added Freight and Charges to the Margin Summary output
+	7    26/Aug/2026	 RAJESH GAMI	[PN-17799] Freight/Charges now calculated from SalesOrderFreight/SalesOrderCharges.MarkupFixedPrice (via LotCalculationDetails Type='Trans Out (SO)', ReferenceId=SalesOrderId, ChildId=SalesOrderPartId). Added NetMargin = GrossMargin(floored at 0) - CommissionExpense.
+	8    26/Aug/2026	 RAJESH GAMI	[PN-17799] Revenue now includes Freight and Charges (e.g. Revenue 1000 + Freight 50 + Charges 50 = 1100). Added NetMarginPercent = NetMargin / Revenue * 100 (2 decimals). UI now shows Revenue, COGS, Gross Margin, Commission Expense, Margin, % of Revenue - Freight, Charges, Other Sales Expenses, old Margin %, and Net Margin rows are commented out on the Angular side, not removed.
+	9    27/Aug/2026	 RAJESH GAMI	[PN-17799] Freight/Charges now EXCLUDE lines billed at a 'FlateRate' BillingMethod (looked up per-company from BillingMethod.Memo='FlateRate') - a flat-rate freight/charge line contributes 0 to @Freight/@Charges (and therefore to Revenue), same as before this ticket existed.
+	10   27/Aug/2026	 RAJESH GAMI	[PN-17809] Gross Margin is now Revenue(incl. Freight+Charges) - COGS instead of summing the per-row MarginAmount (computed before Freight/Charges existed). Commission Expense is now recalculated here off the new Revenue/Margin using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails, instead of summing the per-row CommissionExpense (also computed before Freight/Charges existed).
+	11    02/09/2026     Ayushi Patel   [PN-17850] Updated the MarginAmount calculation to allow negative values by removing the condition that was converting negative MarginAmount to 0
+	12    03/09/2026     RAJESH GAMI    [PN-17853] Margin Summary rework, per the "Changes to Margin Summary" spec (uploaded xlsx): added
+	                                     @MarginSummaryFreight/@MarginSummaryOtherCost - SUM(UnReconciledFreight)+SUM(ManualAdjFreight) and
+	                                     SUM(UnReconciledCharges)+SUM(ManualAdjCharges) from the Other Cost tab's manually-entered
+	                                     LOTOtherCostDetails rows for this Lot (these only ever have values on manually-added rows - PO/RO/SO
+	                                     -sourced Other Cost rows have no Un-Reconciled/Manual-Adj breakdown). NOT the same as the pre-existing
+	                                     @Freight/@Charges above (SalesOrderFreight/Charges.MarkupFixedPrice, added to Revenue) - do not confuse
+	                                     the two. Gross Margin (@MarginAmount) is now Revenue - (COGS + @MarginSummaryFreight +
+	                                     @MarginSummaryOtherCost) instead of just Revenue - COGS; Commission Expense/Margin/%-of-Revenue below
+	                                     recalculate off this new Gross Margin automatically, no other formula changes needed.
+	13    10/09/2026     RAJESH GAMI    [PN-17853] - Fixed the Transfer In and Out amount 
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -38,35 +55,147 @@ BEGIN
 			DECLARE @OriginalCost decimal(18,2) = 0,@RepairCost decimal(18,2) = 0,@TransferredInCost decimal(18,2) = 0,@TransferredOutCost decimal(18,2) = 0,@OtherCost decimal(18,2) = 0,@OtherCostRepair decimal(18,2) = 0;
 			DECLARE @TotalLotCost decimal(18,2) = 0,@RevenueCost decimal(18,2) = 0,@CogsPartCost decimal(18,2) = 0,@CommissionExpense decimal(18,2) = 0,@TotalExpense decimal(18,2) = 0;
 			DECLARE @MarginAmount decimal(18,2) = 0,@MarginPercent decimal(18,2) = 0,@LotCostRemaining decimal(18,2) = 0,@OtherSalesExpenses decimal(18,2) = 0,@SoldCost decimal(18,2) = 0,@RemainingCostPercentage decimal(18,2) = 0;
+			DECLARE @Freight decimal(18,2) = 0,@Charges decimal(18,2) = 0,@NetMargin decimal(18,2) = 0,@NetMarginPercent decimal(18,2) = 0;
+			-- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3) rows - see change history #12 above, NOT the same as @Freight/@Charges above
+			DECLARE @MarginSummaryFreight decimal(18,2) = 0,@MarginSummaryOtherCost decimal(18,2) = 0;
+			-- [PN-17809] used to recalculate Commission Expense off the new Revenue/Margin (same fields/logic as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails)
+			DECLARE @ConsignmentRevenuePercent decimal(18,2) = 0,@ConsignmentMarginPercent decimal(18,2) = 0,@ConsignmentFixedAmt decimal(18,2) = 0,@IsRevenue bit = 0,@IsMargin bit = 0,@IsFixedAmount bit = 0,@ConPercentId bigint = 0,@QtyLot int = 0,@RevenueCommissionCost decimal(18,2) = 0,@MarginCommissionCost decimal(18,2) = 0;
 			DECLARE @OriginalCostUnit int=0,@RepairCostUnit int=0,@TransferredInCostUnit int=0,@TransferredOutCostUnit int=0,@OtherCostUnit int=0,@RevenueCostUnit int=0;
 			DECLARE @CogsPartCostUnit int=0,@CommissionExpenseUnit int=0,@TotalExpenseUnit int=0,@LotCostRemainingUnit int=0;
 			DECLARE @AppModuleId INT = 0,@AdjustmentAmount decimal(18,2) = 0,@TransferredOutROCost decimal(18,2) = 0;
+			DECLARE @FlatRateBillingMethodId BIGINT = NULL;
+			DECLARE @MSModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM dbo.ManagementStructureModule  WITH(NOLOCK)  WHERE ModuleName = 'Stockline');
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
+			-- [PN-17799] flat-rate freight/charge lines are excluded from @Freight/@Charges (and so from Revenue)
+			SELECT TOP 1 @FlatRateBillingMethodId = BillingMethodId FROM DBO.BillingMethod WITH(NOLOCK) WHERE Memo = 'FlateRate' AND ISNULL(IsDeleted,0) = 0
 			
 			/************ COST Calculation ***************/
 			--SELECT TOP 1 @OriginalCost = ISNULL(OriginalCost,0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId ORDER BY LCD.LotCalculationId DESC
 			SELECT TOP 1 @OriginalCost = ISNULL(InitialPOCost,0) FROM DBO.Lot LT WITH(NOLOCK) WHERE LT.LotId = @LotId 
-			SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(TransferredOutCost,0)),0)
-				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ',''))
+			--SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(TransferredOutCost,0)),0)
+			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ',''))
+
+			SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(LC.TransferredOutCost, 0)), 0)
+				FROM
+				(
+					SELECT DISTINCT
+						ind.LotTransInOutId
+					FROM dbo.LotTransInOutDetails ind WITH (NOLOCK)
+					INNER JOIN dbo.Lot lt WITH (NOLOCK)
+						ON ind.LotId = lt.LotId
+					INNER JOIN dbo.StockLine stl WITH (NOLOCK)
+						ON ind.StockLineId = stl.StockLineId
+					INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
+						ON stl.ItemMasterId = im.ItemMasterId
+					INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
+						ON MSD.ReferenceID = stl.StockLineId
+						AND MSD.ModuleID = @MSModuleId
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK)
+						ON stl.ManagementStructureId = RMS.EntityStructureId
+					LEFT JOIN dbo.PurchaseOrder po WITH (NOLOCK)
+						ON stl.PurchaseOrderId = po.PurchaseOrderId
+					LEFT JOIN dbo.RepairOrder ro WITH (NOLOCK)
+						ON stl.RepairOrderId = ro.RepairOrderId
+					LEFT JOIN dbo.Vendor vp WITH (NOLOCK)
+						ON stl.VendorId = vp.VendorId
+					LEFT JOIN dbo.Condition con WITH (NOLOCK)
+						ON stl.ConditionId = con.ConditionId
+					WHERE ISNULL(ind.QtyToTransOut, 0) <> 0
+					  AND ind.LotId = @LotId
+					  AND EXISTS
+					  (
+						  SELECT 1
+						  FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+						  WHERE LCD.LotTransInOutId = ind.LotTransInOutId
+							AND REPLACE(LCD.[Type], ' ', '') =
+								REPLACE('Trans Out (Lot)', ' ', '')
+							AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
+					  )
+				) X
+				INNER JOIN
+				(
+					SELECT
+						LotTransInOutId,
+						SUM(ISNULL(TransferredOutCost, 0)) AS TransferredOutCost
+					FROM dbo.LotCalculationDetails WITH (NOLOCK)
+					WHERE LotId = @LotId
+					  AND REPLACE([Type], ' ', '') =
+						  REPLACE('Trans Out (Lot)', ' ', '')
+					  AND ISNULL(IsFromPreCostStk, 0) = 0
+					GROUP BY LotTransInOutId
+				) LC
+					ON LC.LotTransInOutId = X.LotTransInOutId;
+
 
 			--SELECT @SoldCost = ISNULL(SUM(ISNULL(ExtSalesUnitPrice,0)),0)
 			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
 			
-			SELECT @SoldCost = ISNULL(SUM(ISNULL(SOPC.UnitCost,0) * ISNULL(LCD.Qty,0)),0)
-				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) 
-				   INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId
-				   INNER JOIN DBO.SalesOrderPartV1 SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
-				   INNER JOIN DBO.SalesOrderPartCost SOPC WITH(NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.IsDeleted = 0
-				   WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
+			--SELECT @SoldCost = ISNULL(SUM(ISNULL(SOPC.UnitCost,0) * ISNULL(LCD.Qty,0)),0)
+			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) 
+			--	   INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId
+			--	   INNER JOIN DBO.SalesOrderPartV1 SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
+			--	   INNER JOIN DBO.SalesOrderPartCost SOPC WITH(NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.IsDeleted = 0
+			--	   WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
 
 
-			SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
-				   FROM 
-					DBO.LotCalculationDetails LCD WITH(NOLOCK)
-					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ','')), UPPER(REPLACE('Turn In',' ','')))
-					--AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
-					--AND (SELECT ISNULL(LT.IsStockLineUnitCost,0) FROM DBO.LotTransInOutDetails LT WITH(NOLOCK) WHERE LT.LotTransInOutId = LCD.LotTransInOutId ) = 1
+			--SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
+			--	   FROM 
+			--		DBO.LotCalculationDetails LCD WITH(NOLOCK)
+			--		WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ','')))
+			--		--AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
+			--		--AND (SELECT ISNULL(LT.IsStockLineUnitCost,0) FROM DBO.LotTransInOutDetails LT WITH(NOLOCK) WHERE LT.LotTransInOutId = LCD.LotTransInOutId ) = 1
 			
+
+			SELECT @TransferredInCost =  SUM(ISNULL(LC.TransferredInCost, 0)) FROM
+			(
+				SELECT DISTINCT
+					ind.LotTransInOutId
+				FROM dbo.LotTransInOutDetails ind WITH (NOLOCK)
+				INNER JOIN dbo.Lot lt WITH (NOLOCK)
+					ON ind.LotId = lt.LotId
+				INNER JOIN dbo.StockLine stl WITH (NOLOCK)
+					ON ind.StockLineId = stl.StockLineId
+				INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
+					ON stl.ItemMasterId = im.ItemMasterId
+				INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
+					ON MSD.ReferenceID = stl.StockLineId
+					AND MSD.ModuleID = @MSModuleId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK)
+					ON stl.ManagementStructureId = RMS.EntityStructureId
+				LEFT JOIN dbo.PurchaseOrder po WITH (NOLOCK)
+					ON stl.PurchaseOrderId = po.PurchaseOrderId
+				LEFT JOIN dbo.RepairOrder ro WITH (NOLOCK)
+					ON stl.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN dbo.Vendor vp WITH (NOLOCK)
+					ON stl.VendorId = vp.VendorId
+				LEFT JOIN dbo.Condition con WITH (NOLOCK)
+					ON stl.ConditionId = con.ConditionId
+				WHERE ISNULL(ind.QtyToTransIn, 0) <> 0
+				  AND ind.LotId = @LotId
+				  AND ISNULL(po.PurchaseOrderId, 1) <> ISNULL(lt.InitialPOId, 0)
+				  AND EXISTS
+				  (
+					  SELECT 1
+					  FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+					  WHERE LCD.LotTransInOutId = ind.LotTransInOutId
+						AND REPLACE(LCD.[Type], ' ', '') = REPLACE('Trans In(Lot)', ' ', '')
+						AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
+				  )
+			) X
+			INNER JOIN
+			(
+				SELECT
+					LotTransInOutId,
+					SUM(ISNULL(TransferredInCost, 0)) AS TransferredInCost
+				FROM dbo.LotCalculationDetails WITH (NOLOCK)
+				WHERE LotId =@LotId
+				  AND REPLACE([Type], ' ', '') = REPLACE('Trans In(Lot)', ' ', '')
+				  AND ISNULL(IsFromPreCostStk, 0) = 0
+				GROUP BY LotTransInOutId
+			) LC
+				ON LC.LotTransInOutId = X.LotTransInOutId;
+
+
 			SELECT @RepairCost = SUM(ISNULL(RepairCost,0))
 				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId
 
@@ -143,13 +272,72 @@ BEGIN
 			--SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost) - (@TransferredOutCost);
 			SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost + (@AdjustmentAmount));
 
-			SET @CommissionExpense = ISNULL((SELECT SUM(ISNULL(CommissionExpense,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId),0);
 			SET @RevenueCost = ISNULL((SELECT SUM(ISNULL(ExtSalesUnitPrice,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0)
 			SET @CogsPartCost = ISNULL((SELECT SUM(ISNULL(Cogs,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
+
+			-- [PN-17799] Freight: SalesOrderFreight.MarkupFixedPrice for the parts sold out of this Lot
+			SET @Freight = ISNULL((
+				SELECT SUM(ISNULL(SOF.MarkupFixedPrice,0))
+				FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+				INNER JOIN DBO.SalesOrderFreight SOF WITH(NOLOCK) ON SOF.SalesOrderId = SO.SalesOrderId AND SOF.SalesOrderPartId = LCD.ChildId
+				WHERE LCD.LotId = @LotId AND ISNULL(SOF.IsDeleted,0) = 0 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+					AND (@FlatRateBillingMethodId IS NULL OR ISNULL(SOF.BillingMethodId,0) <> @FlatRateBillingMethodId)
+			),0);
+
+			-- [PN-17799] Charges: SalesOrderCharges.MarkupFixedPrice for the parts sold out of this Lot
+			SET @Charges = ISNULL((
+				SELECT SUM(ISNULL(SOC.MarkupFixedPrice,0))
+				FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+				INNER JOIN DBO.SalesOrderCharges SOC WITH(NOLOCK) ON SOC.SalesOrderId = SO.SalesOrderId AND SOC.SalesOrderPartId = LCD.ChildId
+				WHERE LCD.LotId = @LotId AND ISNULL(SOC.IsDeleted,0) = 0 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+					AND (@FlatRateBillingMethodId IS NULL OR ISNULL(SOC.BillingMethodId,0) <> @FlatRateBillingMethodId)
+			),0);
+
+			-- [PN-17799] Revenue now includes Freight and Charges collected on the sale (e.g. 1000 + 50 + 50 = 1100)
+			SET @RevenueCost = ISNULL(@RevenueCost,0) + ISNULL(@Freight,0) + ISNULL(@Charges,0);
+
+			-- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3): SUM(UnReconciled + Manual Adj) freight/charges from this
+			-- Lot's manually-entered Other Cost rows (LOTOtherCostDetails) - see change history #12 above.
+			SELECT @MarginSummaryFreight = ISNULL(SUM(ISNULL(UnReconciledFreight,0)) + SUM(ISNULL(ManualAdjFreight,0)), 0),
+			       @MarginSummaryOtherCost = ISNULL(SUM(ISNULL(UnReconciledCharges,0)) + SUM(ISNULL(ManualAdjCharges,0)), 0)
+			FROM DBO.LOTOtherCostDetails WITH(NOLOCK) WHERE LotId = @LotId AND ISNULL(IsDeleted,0) = 0;
+
+			-- [PN-17809] Gross Margin = Revenue (now includes Freight+Charges) - COGS, recalculated here instead of summing the per-row MarginAmount (which was computed before Freight/Charges existed)
+			-- [PN-17853] ...now also subtracts the new Margin Summary Freight(2)/Other Cost(3) rows: Gross Margin = Total Revenue - (COGS + Freight + Other Cost)
+			SET @MarginAmount = ISNULL(@RevenueCost,0) - (ISNULL(@CogsPartCost,0) + ISNULL(@MarginSummaryFreight,0) + ISNULL(@MarginSummaryOtherCost,0));
+
+			-- [PN-17809] Commission Expense recalculated here off the NEW Revenue/Margin (which now include Freight+Charges), using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails - instead of summing the per-row CommissionExpense (computed against the OLD Revenue/Margin, before Freight/Charges existed)
+			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0), @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0), @IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0) FROM DBO.LotConsignment LC WHERE LotId = @LotId
+
+			IF(@IsFixedAmount = 1)
+			BEGIN
+				SET @QtyLot = ISNULL((SELECT SUM(ISNULL(Qty,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','')),0)
+				SET @CommissionExpense = CONVERT(DECIMAL(18,2),ISNULL((@ConsignmentFixedAmt * @QtyLot),0))
+			END
+			ELSE IF(@IsRevenue = 1 OR @IsMargin = 1)
+			BEGIN
+				IF(@IsRevenue = 1)
+				BEGIN
+					SET @RevenueCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@RevenueCost * @ConsignmentRevenuePercent)/100)),0)
+				END
+				IF(@IsMargin = 1)
+				BEGIN
+					SET @MarginCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@MarginAmount * @ConsignmentMarginPercent)/100)),0)
+				END
+				SET @CommissionExpense = ISNULL(@RevenueCommissionCost,0) + ISNULL(@MarginCommissionCost,0)
+			END
+
 			SET @TotalExpense = @CogsPartCost + @CommissionExpense
-			SET @MarginAmount = ISNULL((SELECT SUM(ISNULL(MarginAmount,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0);
 			SET @MarginPercent = CASE WHEN @RevenueCost >0 THEN (CONVERT(DECIMAL(18,2),(@MarginAmount/@RevenueCost)*100)) ELSE 0 END
+			-- [PN-17799] NetMargin = GrossMargin (floored at 0, same as displayed) - CommissionExpense
+			--SET @NetMargin = (CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END) - ISNULL(@CommissionExpense,0);
+			SET @NetMargin = ISNULL(@MarginAmount, 0) - ISNULL(@CommissionExpense, 0);
+			-- [PN-17799] % of Revenue = Margin (NetMargin) / Revenue * 100, to 2 decimals
+			SET @NetMarginPercent = CASE WHEN ISNULL(@RevenueCost,0) > 0 THEN CONVERT(DECIMAL(18,2),(ISNULL(@NetMargin,0)/@RevenueCost)*100) ELSE 0 END;
 			--SET @LotCostRemaining = (@TotalLotCost - @CogsPartCost)
+			SET @SoldCost = @CogsPartCost;
 			SET @LotCostRemaining = (CASE WHEN @TotalLotCost - (@TransferredOutCost + @SoldCost) <0 THEN 0 ELSE (@TotalLotCost - (@TransferredOutCost + @SoldCost)) END)
 			SET @RemainingCostPercentage = (CASE WHEN @TotalLotCost > 0 THEN ((@LotCostRemaining / @TotalLotCost) * 100) ELSE 0 END)
 			
@@ -167,12 +355,20 @@ BEGIN
 			   
 			   ,ISNULL(@RevenueCost,0) AS RevenueCost
 			   ,ISNULL(@CogsPartCost,0) AS CogsPartCost
+			   ,ISNULL(@Freight,0) AS Freight
+			   ,ISNULL(@Charges,0) AS Charges
+			   -- [PN-17853] Margin Summary "Freight"(2)/"Other Cost"(3) rows - see change history #12 above
+			   ,ISNULL(@MarginSummaryFreight,0) AS MarginSummaryFreight
+			   ,ISNULL(@MarginSummaryOtherCost,0) AS MarginSummaryOtherCost
 			   ,ISNULL(@CommissionExpense,0) AS CommissionExpense
 			   ,ISNULL(@TotalExpense,0) AS TotalExpense
-			   ,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount
+			   --,CASE WHEN ISNULL(@MarginAmount,0) <0 THEN 0 ELSE ISNULL(@MarginAmount,0) END AS MarginAmount
+			   ,ISNULL(@MarginAmount, 0) AS MarginAmount
 			   ,ISNULL(@MarginPercent,0) AS MarginPercent
 	
 			   ,ISNULL(@OtherSalesExpenses,0) AS OtherSalesExpenses
+			   ,ISNULL(@NetMargin,0) AS NetMargin
+			      ,ISNULL(@NetMarginPercent,0) AS NetMarginPercent
 
 			   
 			   ,@OriginalCostUnit AS OriginalCostUnit

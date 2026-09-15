@@ -26,7 +26,7 @@
 	13	 26-06-2026	   Abhishek Jirawla Added Repair Order Piece part listing and calculations in the SP.
 	14	 09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
-
+	16    26/08/2026			 Amit Ghediya						[PN-17560] - leasing detail displayed after reserve stockline
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -41,7 +41,9 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder', @OModule varchar(50) = 'SalesOrder',
-		@ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA',  @BulkAdjModule varchar(50) = 'BulkAdjustments';
+		@ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA',  @BulkAdjModule varchar(50) = 'BulkAdjustments',
+		@LeaseModule varchar(50) = 'Leasing';
+
       DECLARE @RecordFrom INT;
 	  DECLARE @Total int;
 	  DECLARE @Count INT;
@@ -447,6 +449,58 @@ BEGIN
 					AND ISNULL(SSTL.NewQty,0) > 0 AND  ISNULL(SSTL.QtyAdjustment,0) > 0
 					AND ESO.StatusId != @AdjPostedStatusId
 				--* END: Stockline Bulk Adjustment For Reserve *--
+
+				--* START: Lease For Reserve *--
+				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,SubReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+				SELECT
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					LSL.QtyReserved,
+					0,
+					@LeaseModule AS Module,
+					LH.LeaseNumber,
+					UPPER(SLM.Level1Name) AS level1,
+					UPPER(SLM.Level2Name) AS level2,
+					UPPER(SLM.Level3Name) AS level3,
+					UPPER(SLM.Level4Name) AS level4,
+					UPPER(SLM.Level5Name) AS level5,
+					UPPER(SLM.Level6Name) AS level6,
+					UPPER(SLM.Level7Name) AS level7,
+					UPPER(SLM.Level8Name) AS level8,
+					UPPER(SLM.Level9Name) AS level9,
+					UPPER(SLM.Level10Name) AS level10,
+					LSL.CreatedDate  ReservationDate,
+					LSL.CreatedBy ReservedBy,
+					LSL.CreatedDate  IssuedDate,
+					LSL.CreatedBy IssuedBy,
+					ISNULL(SL.Quantity,0) as Quantity,
+					ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
+					ISNULL(SL.QuantityAvailable,0) as QuantityAvailable,
+					SL.[Location] as [Location],
+					SL.SerialNumber SerialNumber,
+					'' as Comments,
+					LH.LeaseHeaderId as ReferenceId,
+					LSL.LeaseStocklineId as SubReferenceId,
+					SL.Manufacturer,
+					LSL.CreatedDate  ReservedIssuedDate,
+					LSL.CreatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
+				FROM dbo.[LeaseStockline] LSL WITH(NOLOCK)
+					INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON LH.LeaseHeaderId = LSL.LeaseHeaderId
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = LSL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND LSL.MasterCompanyId = SLM.MasterCompanyId
+					WHERE LSL.MasterCompanyId = @MasterCompanyId AND LSL.StockLineId = @StocklineId
+					AND ISNULL(LSL.QtyReserved,0) > 0
+					AND ISNULL(LSL.IsActive,0) = 1 AND ISNULL(LSL.IsDeleted,0) = 0
+					AND ISNULL(LSL.IsActive,0) = 1 AND ISNULL(LSL.IsDeleted,0) = 0
+					AND ISNULL(LH.IsActive,0) = 1 AND ISNULL(LH.IsDeleted,0) = 0
+
+				--* END: Lease For Reserve *--
 		 END
 		 IF(@DisplayType = 1)
 		 BEGIN

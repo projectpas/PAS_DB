@@ -48,6 +48,7 @@
 	31    08/July/2026	RAJESH GAMI			[PN-17009] - Renamed computed column 'Type' to 'ItemType'; Added @ItemType filter param + GlobalFilter/specific-filter support so searching 'Stock'/'Non-Stock' matches by IsNonStock flag
 	32    07/Aug/2026	Vishal Suthar		Added filter for Warehouse
 	33    11/08/2026    Sahdev Saliya       Added EngineSerialNumber [PN-17607]
+	34   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -313,10 +314,10 @@ BEGIN
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus, 
 	   (SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId 
 	   INTO #TempResults FROM  Result r       
-		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
+		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
-		  (RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
+		  (RevisedPN LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR              
 		  (ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
 		  (UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR                  
 		  (QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR        
@@ -362,10 +363,10 @@ BEGIN
 		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		  ))
 		  OR
-		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
+		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@MainPartNumber) + '%') AND
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
-		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
+		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPN) + '%') AND        
 		  (ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
 		  (ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND            
 		  (ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND        
@@ -639,10 +640,10 @@ BEGIN
 	   WHERE (
 			(@GlobalFilter <>'' 
 		AND (
-		(MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
+		(MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
-		(RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
+		(RevisedPN LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR              
 		(ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
 		(UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR                  
 		(QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR        
@@ -688,10 +689,10 @@ BEGIN
 		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')
 		))
 		OR
-		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
+		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@MainPartNumber) + '%') AND
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
-		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
+		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPN) + '%') AND        
 		(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
 		(ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND            
 		(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND        
@@ -966,11 +967,11 @@ BEGIN
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
 		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId INTO #TempALTResults FROM  Result r       
-		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
-		  (PartNumber LIKE '%' +@GlobalFilter+'%') OR         
+		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
+		  (PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR         
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
-		  (RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
+		  (RevisedPN LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR              
 		  (ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
 		  (UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR                  
 		  (QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR        
@@ -1014,11 +1015,11 @@ BEGIN
 		  (ItemType LIKE '%' +@GlobalFilter+'%') OR
 		  (EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		  OR
-		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
-		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
+		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@MainPartNumber) + '%') AND
+		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
 		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
-		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
+		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPN) + '%') AND        
 		  (ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
 		  (ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND            
 		  (ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND        
@@ -1291,11 +1292,11 @@ BEGIN
 	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
 	   (SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId
 		INTO #TempALTResult FROM  Result r       
-	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
-		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    
+	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
+		(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR    
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
-		(RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
+		(RevisedPN LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR              
 		(ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
 		(UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR                  
 		(QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR        
@@ -1339,11 +1340,11 @@ BEGIN
 		(ItemType LIKE '%' +@GlobalFilter+'%') OR
 		(EngineSerialNumber LIKE '%' +@GlobalFilter+'%')))
 		OR
-		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND
-		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
+		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@MainPartNumber) + '%') AND
+		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND      
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
-		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
+		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%' OR dbo.fn_NormalizePartNumber(RevisedPN) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPN) + '%') AND        
 		(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
 		(ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND            
 		(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND        

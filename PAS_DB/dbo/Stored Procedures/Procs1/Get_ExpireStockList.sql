@@ -18,6 +18,7 @@
     1    05/23/2023   Hemant Saliya  Created 
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
     
 -- EXEC [Get_ExpireStockList] 947    
 **************************************************************/    
@@ -140,7 +141,7 @@ BEGIN
       AND stl.IsParent = 1 and Cast(stl.ExpirationDate as date)   >= Cast(@FromExpiratioDate as date)    and Cast(stl.ExpirationDate as date)  <= Cast(@ToExpirationDate as date)     
      AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)    
     SELECT * INTO #TempResults FROM  Result    
-     WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR    
+     WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR    
       (PartDescription LIKE '%' +@GlobalFilter+'%') OR     
       (Manufacturer LIKE '%' +@GlobalFilter+'%') OR         
       (SerialNumber LIKE '%' +@GlobalFilter+'%') OR         
@@ -149,7 +150,7 @@ BEGIN
       (expDays LIKE '%' +@GlobalFilter+'%') OR    
       (UpdatedBy LIKE '%' +@GlobalFilter+'%')))
       OR       
-      (@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND    
+      (@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND    
       (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND    
       (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND    
       (ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber + '%') AND         

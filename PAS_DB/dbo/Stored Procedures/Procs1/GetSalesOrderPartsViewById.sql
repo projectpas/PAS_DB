@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetSalesOrderPartsViewById]             
  ** Author:  AMIT GHEDIYA 
  ** Description: This stored procedure is used GetSalesOrderPartsViewById 
@@ -24,13 +24,15 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10   20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from both UNION branches' StockLine and ItemMaster joins.
-
+	11   25/08/2026		         Bhargav Saliya		                [PN-17774] - added ControlNumber and CertificateNumber (PartCertificationNumber) from StockLine.
+	12   09/09/2026		         Bhargav Saliya		                [PN-17859] - Added Case for Non-Stock stocklines are excluded from the CoC form and added Stockline Para. .
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
+CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]
 	@SalesOrderId BIGINT,
-	@SoPartId BIGINT = 0    
-AS    
+	@SoPartId BIGINT = 0,
+	@StockLineId BIGINT = 0
+AS
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
@@ -57,10 +59,12 @@ BEGIN
 			[PartNumber] VARCHAR(MAX) NULL,
 			[PartDescription] VARCHAR(MAX) NULL,
 			[ShortName] VARCHAR(100) NULL,
-			[Customer] VARCHAR(150) NULL
+			[Customer] VARCHAR(150) NULL,
+			[ControlNumber] VARCHAR(50) NULL,
+			[CertificateNumber] VARCHAR(50) NULL
 		)
 
-		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer])	
+		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer],[ControlNumber],[CertificateNumber])	
 		SELECT 
 			rpart.QtyToReserve AS Qty,
 			UPPER(qs.StockLineNumber) AS StockLineNumber,
@@ -69,7 +73,9 @@ BEGIN
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
 			UPPER(uom.ShortName) AS ShortName,
-			UPPER(CU.Name) AS Customer
+			UPPER(CU.Name) AS Customer,
+			UPPER(ISNULL(qs.ControlNumber,'')) AS ControlNumber,
+			UPPER(ISNULL(qs.PartCertificationNumber,'')) AS CertificateNumber	
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -82,6 +88,9 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
+			  -- Non-Stock stocklines are excluded from the CoC form.
+			  AND ISNULL(qs.IsNonStock, 0) = 0
+			  AND (@StockLineId = 0 OR qs.StockLineId = @StockLineId)
 
 		UNION 
 
@@ -93,7 +102,9 @@ BEGIN
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
 			UPPER(uom.ShortName) AS ShortName,
-			UPPER(CU.Name) AS Customer
+			UPPER(CU.Name) AS Customer,
+			UPPER(ISNULL(qs.ControlNumber,'')) AS ControlNumber,
+			UPPER(ISNULL(qs.PartCertificationNumber,'')) AS CertificateNumber
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -107,11 +118,14 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
+			  -- Non-Stock stocklines are excluded from the CoC form.
+			  AND ISNULL(qs.IsNonStock, 0) = 0
+			  AND (@StockLineId = 0 OR qs.StockLineId = @StockLineId)
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
-				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer
+				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer,ControlNumber,CertificateNumber
 		FROM #tmprShipDetails
-		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName,Customer
+		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName,Customer,ControlNumber,CertificateNumber
   END    
   END TRY    
  BEGIN CATCH          

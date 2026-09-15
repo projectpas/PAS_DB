@@ -23,6 +23,7 @@
 	3	 04-12-2024     Shrey Chandegara   Modified due to add some new column and add filter
 	4    17-Jun-2026    Sahdev Saliya      Added PublicationType and PublicationTypeGloble [PN-15971]
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
 exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
 @PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@DayToExpiry=NULL,@RedIndicator=0,@GreenIndicator=0,@YellowIndicator=0,@ExpirationStatus=N'0',
@@ -30,7 +31,7 @@ exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@So
 @NextRevDate=NULL,@RevDate=NULL,@ExpirationDate=NULL,@VerifiedDate=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1
 
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
+CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -282,7 +283,7 @@ BEGIN
 		 FROM #tmpPublication
 		 WHERE (
 			 (ISNULL(@PublicationId,'') ='' OR [PublicationId]  LIKE '%' +@PublicationId +'%') and
-			 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+			 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 			 (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 			 (ISNULL(@PublicationDescription, '') = '' OR [PublicationDescription] LIKE '%' + @PublicationDescription + '%') AND
 			 (ISNULL(@Verified, '') = '' OR [Verified] LIKE '%' + @Verified + '%') AND

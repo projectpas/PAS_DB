@@ -17,6 +17,7 @@
 	1                 Unknown              Created
 	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
@@ -151,7 +152,7 @@ SET NOCOUNT ON
      SELECT * INTO #TempResult2 from  Result  
      WHERE (  
         (@GlobalFilter <>'' AND (  
-        (PartNumber like '%' +@GlobalFilter+'%') OR  
+        (PartNumber like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
         (PartDescription like '%' +@GlobalFilter+'%') OR  
         (Customer like '%' +@GlobalFilter+'%') OR    
         (WorkOrderNum like '%' +@GlobalFilter+'%' ) OR   
@@ -165,7 +166,7 @@ SET NOCOUNT ON
         ))  
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
-        (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
+        (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND  
         (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND  
         (IsNull(@Customer,'') ='' OR Customer like '%' + @Customer+'%') AND  
         (IsNull(@Stage,'') ='' OR Stage like '%' + @Stage+'%') AND  

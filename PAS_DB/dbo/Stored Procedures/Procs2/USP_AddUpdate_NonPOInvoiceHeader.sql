@@ -26,6 +26,11 @@
 	9    27-DEC-2024    AMIT GHEDIYA			Modify(Added ControlNumber Field)
   	10   26-JAN-2026    RAJESH GAMI				Added DueDate based on vendor's credit netDays
   	11   27-JAN-2026    SAHDEV SALIYA		    Added DueDate 
+  	12   09-SEP-2026    Claude (Rajesh Gami)		[PN-17830] Added @ReceiptId param (nullable, defaulted).
+               On insert, stores it on NonPOInvoiceHeader.ReceiptId and, when supplied (> 0), sets
+               CustomerPayments.IsNonPOGenerated = 1 for that ReceiptId - both fired only for the
+               "Initiate Consignor Payment" -> Non PO creation flow, which is the only caller that
+               passes a ReceiptId. Not touched on update, so a later header edit/close never wipes it.
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
 @NonPOInvoiceId BIGINT,  
@@ -50,7 +55,8 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]
 @CurrencyId BIGINT,
 @ReferenceId BIGINT = NULL,
 @ReferenceModuleId INT NULL,
-@DueDate DATETIME2 NULL
+@DueDate DATETIME2 NULL,
+@ReceiptId BIGINT = NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -157,10 +163,10 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[NonPOInvoiceHeader]([VendorId] ,[VendorName] ,[VendorCode] ,[PaymentTermsId] ,[StatusId] ,[ManagementStructureId], [MasterCompanyId],  
 								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber]
-								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId],[ControlNumber],[DueDate])  
+								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId],[ControlNumber],[DueDate],[ReceiptId])  
 			VALUES	(@VendorId , @VendorName, @VendorCode, @PaymentTermsId, @StatusId, @ManagementStructureId, @MasterCompanyId,  
 					 @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber,
-					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId,@NPOCTRLNumber, @DueDate)  
+					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId,@NPOCTRLNumber, @DueDate, @ReceiptId)  
 
 			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPONumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
@@ -169,6 +175,18 @@ BEGIN
   
 		--SELECT @NonPOInvoiceId = MAX(NonPOInvoiceId) FROM [NonPOInvoiceHeader] WHERE [MasterCompanyId] = @MasterCompanyId
 		SELECT @NonPOInvoiceId = SCOPE_IDENTITY();  
+
+		-- [PN-17830] 09-Sep-2026: when this NON PO invoice was created from the LOT Commission
+		-- Report's "Initiate Consignor Payment" action, @ReceiptId identifies the CustomerPayments
+		-- row (cash receipt) that generated the owed-to-consignor amount. Flag that receipt so the
+		-- report can disable the action for it once a NON PO invoice already exists.
+		IF (@ReceiptId IS NOT NULL AND @ReceiptId > 0)
+		BEGIN
+			UPDATE [dbo].[CustomerPayments]
+			SET [IsNonPOGenerated] = 1
+			WHERE [ReceiptId] = @ReceiptId;
+		END
+
 		INSERT INTO #tmpReturnNonPOInvoiceId ([NonPOInvoiceId]) VALUES (@NonPOInvoiceId);    
 		SELECT * FROM #tmpReturnNonPOInvoiceId;    
 

@@ -59,7 +59,7 @@
     [IsUpdated]                      BIT             NULL,
     [LastSyncDate]                   DATETIME2 (7)   NULL,
     [SyncToken]                      VARCHAR (200)   NULL,
-    [IsEnforcePickTicket]            BIT             NULL,
+    [IsEnforcePickTicket]            BIT             CONSTRAINT [DF_RepairOrder_IsEnforcePickTicket] DEFAULT ((0)) NULL,
     [EnforcePickTicketConfirmation]  BIT             NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
@@ -75,6 +75,8 @@
     CONSTRAINT [FK_RepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_RepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

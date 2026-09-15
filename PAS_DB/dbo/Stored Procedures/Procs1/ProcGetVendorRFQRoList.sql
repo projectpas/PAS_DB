@@ -15,6 +15,7 @@
 	4    13/08/2024   Shrey Chandegara  Modified for global filter  and some field filters are not working.
 	5.   16/08/2024   Shrey Chandegara  Modify because Note(MemoType) is not bind in VendorRFQView.
 	6    14/05/2026   Bhargav Saliya    Remove VendorId Condition [PN-16416]
+	7   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/  
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -163,10 +164,10 @@ BEGIN
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR					
 					([Status] LIKE '%' +@GlobalFilter+'%') OR
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumberType LIKE '%' +@GlobalFilter+'%') OR
-					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%')  OR
+					(PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
+					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AltEquiPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%')  OR
 					(PartDescriptionType LIKE '%' +@GlobalFilter+'%')  OR
-					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(ManufacturerType LIKE '%' +@GlobalFilter+'%')  OR
 					(StockTypeType LIKE '%' +@GlobalFilter+'%')  OR
 					(PriorityType LIKE '%' +@GlobalFilter+'%')  OR
@@ -189,10 +190,10 @@ BEGIN
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND
 					(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND
 					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND		
-					(ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' +@PartNumber + '%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' +@PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription   ,'') ='' OR	PartDescriptionType LIKE '%' +   @PartDescription    + '%') AND
-					(ISNULL(@AltEquiPartNumber   ,'') ='' OR	AltEquiPartNumberType LIKE '%' +   @AltEquiPartNumber    + '%') AND
-					(ISNULL(@RevisedPartNumber   ,'') ='' OR	RevisedPartNumberType LIKE '%' +   @RevisedPartNumber    + '%') AND
+					(ISNULL(@AltEquiPartNumber   ,'') ='' OR	AltEquiPartNumberType LIKE '%' +   @AltEquiPartNumber    + '%' OR dbo.fn_NormalizePartNumber(AltEquiPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@AltEquiPartNumber) + '%') AND
+					(ISNULL(@RevisedPartNumber   ,'') ='' OR	RevisedPartNumberType LIKE '%' +   @RevisedPartNumber    + '%' OR dbo.fn_NormalizePartNumber(RevisedPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPartNumber) + '%') AND
 					(ISNULL(@StockType   ,'') ='' OR	StockTypeType LIKE '%' +   @StockType    + '%') AND
 					(ISNULL(@Manufacturer   ,'') ='' OR	ManufacturerType LIKE '%' +   @Manufacturer    + '%') AND
 					(ISNULL(@Priority   ,'') ='' OR	PriorityType LIKE '%' +   @Priority    + '%') AND
@@ -413,10 +414,10 @@ BEGIN
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR					
 					([Status] LIKE '%' +@GlobalFilter+'%') OR
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumberType LIKE '%' +@GlobalFilter+'%') OR
-					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%')  OR
+					(PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
+					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(AltEquiPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%')  OR
 					(PartDescriptionType LIKE '%' +@GlobalFilter+'%')  OR
-					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(RevisedPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(ManufacturerType LIKE '%' +@GlobalFilter+'%')  OR
 					(StockTypeType LIKE '%' +@GlobalFilter+'%')  OR
 					(PriorityType LIKE '%' +@GlobalFilter+'%')  OR
@@ -439,10 +440,10 @@ BEGIN
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND
 					(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND
 					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND		
-					(ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' +@PartNumber + '%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumberType LIKE '%' +@PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription   ,'') ='' OR	PartDescriptionType LIKE '%' +   @PartDescription    + '%') AND
-					(ISNULL(@AltEquiPartNumber   ,'') ='' OR	AltEquiPartNumberType LIKE '%' +   @AltEquiPartNumber    + '%') AND
-					(ISNULL(@RevisedPartNumber   ,'') ='' OR	RevisedPartNumberType LIKE '%' +   @RevisedPartNumber    + '%') AND
+					(ISNULL(@AltEquiPartNumber   ,'') ='' OR	AltEquiPartNumberType LIKE '%' +   @AltEquiPartNumber    + '%' OR dbo.fn_NormalizePartNumber(AltEquiPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@AltEquiPartNumber) + '%') AND
+					(ISNULL(@RevisedPartNumber   ,'') ='' OR	RevisedPartNumberType LIKE '%' +   @RevisedPartNumber    + '%' OR dbo.fn_NormalizePartNumber(RevisedPartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPartNumber) + '%') AND
 					(ISNULL(@StockType   ,'') ='' OR	StockTypeType LIKE '%' +   @StockType    + '%') AND
 					(ISNULL(@Manufacturer   ,'') ='' OR	ManufacturerType LIKE '%' +   @Manufacturer    + '%') AND
 					(ISNULL(@Priority   ,'') ='' OR	PriorityType LIKE '%' +   @Priority    + '%') AND

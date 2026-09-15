@@ -16,6 +16,7 @@
 	6    03-JUN-2026       Amit Ghediya             Added AC Template releted Fields MaintenanceClassId [PN-16668]
 	7    29-JUN-2026	   Moin Bloch		        Added MaintenanceType PN-17043
 	8    27-July-2026      SUMIT                    Added notes field in material list [PN-16818]
+	9    26-Aug-2026       Vishal Suthar            Fixed the issue when same direction is there so added row_number() over partition by
 
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
@@ -335,8 +336,18 @@ BEGIN
 				IF EXISTS(SELECT 1 FROM [dbo].[WorkFlowDirection] WITH(NOLOCK) WHERE [WorkflowId] = @workFlowMainId AND ISNULL([IsVersionIncrease],0) = 0)
 				BEGIN
 					MERGE INTO [DBO].[WorkFlowDirection] AS [Target]
-					USING @tbl_WorkflowDirectionType AS [Source] ON (TARGET.[WorkflowId] = SOURCE.[WorkflowId] AND TARGET.[WorkflowDirectionId] = SOURCE.[WorkflowDirectionId]) 
-
+					USING (
+						SELECT *
+						FROM (
+							SELECT *,
+								   ROW_NUMBER() OVER (
+									   PARTITION BY WorkflowId, WorkflowDirectionId
+									   ORDER BY (SELECT NULL)
+								   ) AS rn
+							FROM @tbl_WorkflowDirectionType
+						) d
+						WHERE rn = 1
+					) AS [Source] ON (TARGET.[WorkflowId] = SOURCE.[WorkflowId] AND TARGET.[WorkflowDirectionId] = SOURCE.[WorkflowDirectionId]) 
 					WHEN MATCHED THEN
 						UPDATE SET
 							[Target].[Action] = [Source].[Action],
@@ -355,7 +366,6 @@ BEGIN
 							[Target].[ParentId] = [Source].[ParentId],
 							[Target].[IsParent] = [Source].[IsParent],
 							[Target].[IsTaskDetails] = [Source].[IsTaskDetails]
-
 					WHEN NOT MATCHED THEN
 						INSERT (
 							[WorkflowId], [Action], [Description], [Sequence], [Memo], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Order], [WFParentId], [IsVersionIncrease],
@@ -365,7 +375,8 @@ BEGIN
 							@workFlowMainId, [Source].[Action], [Source].[Description], [Source].[Sequence], [Source].[Memo], [Source].[TaskId], @MasterCompanyId, @CreatedBy, @UpdatedBy,
 							GETUTCDATE(), GETUTCDATE(), [Source].[IsActive], [Source].[IsDeleted], [Source].[Order], [Source].[WFParentId], 0, [Source].[TaskName],
 							[Source].[ParentId], [Source].[IsParent], [Source].[IsTaskDetails]
-						);					
+						);	
+						
 				END
 				ELSE
 				BEGIN

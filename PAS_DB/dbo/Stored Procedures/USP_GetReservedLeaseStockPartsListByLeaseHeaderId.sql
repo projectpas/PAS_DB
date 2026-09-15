@@ -10,10 +10,12 @@
  ** --   --------       -------                 --------------------------------
     1    07/08/2026     Amit Ghediya            Created
     2    10/08/2026     Amit Ghediya            Reworked against LeaseStockline.QtyReserved directly (no ledger table)
+    3    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - removed LeasePart join,
+                                                 QuantityOnHand/QuantityAvailable now read live from Stockline instead of a stored snapshot
 
 exec USP_GetReservedLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetReservedLeaseStockPartsListByLeaseHeaderId]
+CREATE    PROCEDURE [dbo].[USP_GetReservedLeaseStockPartsListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -23,23 +25,21 @@ BEGIN
 
 		SELECT
 			LSL.LeaseStocklineId,
-			LP.LeasePartId,
-			LP.LeaseHeaderId,
+			LSL.LeaseHeaderId,
 			LSL.StockLineId,
-			LP.ItemMasterId,
-			LP.PN AS PartNumber,
-			LP.PNDescription AS PartDescription,
+			LSL.ItemMasterId,
+			LSL.PN AS PartNumber,
+			LSL.PNDescription AS PartDescription,
 			LSL.StocklineNumber,
 			LSL.SN AS SerialNumber,
 			LSL.QtyReserved AS TotalReserved,
-			LSL.QtyOH AS QuantityOnHand,
-			LSL.QtyAvailable AS QuantityAvailable,
-			LP.MasterCompanyId
+			SLIVE.QuantityOnHand AS QuantityOnHand,
+			SLIVE.QuantityAvailable AS QuantityAvailable,
+			LSL.MasterCompanyId
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
-		INNER JOIN [dbo].[LeasePart] LP WITH (NOLOCK) ON LP.LeasePartId = LSL.LeasePartId
-		WHERE LP.LeaseHeaderId = @LeaseHeaderId
+		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
+		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
-		  AND LP.IsDeleted = 0
 		  AND LSL.QtyReserved > 0
 		ORDER BY LSL.LeaseStocklineId;
 

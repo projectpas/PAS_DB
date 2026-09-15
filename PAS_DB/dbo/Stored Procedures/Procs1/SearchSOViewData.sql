@@ -21,6 +21,7 @@
 ** 13   23/JUL/2026     Rajesh Gami         [PN-17350] Removed leftover IsNonStock=0 filters
 ** 14   29/JUL/2026     Kishor Makwana      [PN-17466] PERFORMANCE REWRITE - Sales Order List filter slowness
 ** 15	05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
+** 16   02-Sep-2026   Bhargav Saliya      [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **
 **  DEPENDENCY: deploy dbo.fnGetSalesOrderSoAmount (fnGetSalesOrderSoAmount.sql) 
 **  BEFORE this procedure.
@@ -381,7 +382,7 @@ BEGIN
 			WHERE
 			    -- part-derived column filters
 			    (
-						    (@PartNumberType        IS NULL OR PartNumberType        LIKE '%' + @PartNumberType        + '%')
+						    (@PartNumberType        IS NULL OR PartNumberType        LIKE '%' + @PartNumberType        + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%')
 						AND (@PartDescriptionType   IS NULL OR PartDescriptionType   LIKE '%' + @PartDescriptionType   + '%')
 						AND (@ManufacturerType      IS NULL OR ManufacturerType      LIKE '%' + @ManufacturerType      + '%')
 						AND (@PriorityType          IS NULL OR PriorityType          LIKE '%' + @PriorityType          + '%')
@@ -408,7 +409,7 @@ BEGIN
 						OR CreatedBy             LIKE @GF
 						OR UpdatedBy             LIKE @GF
 						OR PriorityType          LIKE @GF
-						OR PartNumberType        LIKE @GF
+						OR PartNumberType        LIKE @GF OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%'
 						OR PartDescriptionType   LIKE @GF
 						OR ManufacturerType      LIKE @GF
 						OR RequestedDateType     LIKE @GF

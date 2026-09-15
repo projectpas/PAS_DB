@@ -13,6 +13,7 @@
     1    18/05/2023   Satish Gohil   Count Showing issue fixed    
 	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join
 	3    22/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table     
+	4    10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/     
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
@@ -166,7 +167,7 @@ BEGIN
 		   (@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR       
 		   (PORO like '%' + @GlobalFilter +'%') OR      
 		   (OpenDate like '%' + @GlobalFilter +'%') OR      
-		   (PartNumber like '%' + @GlobalFilter +'%') OR      
+		   (PartNumber like '%' + @GlobalFilter +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR      
 		   (PartDescription like '%'+ @GlobalFilter +'%') OR      
 		   (Requisitioner like '%' + @GlobalFilter +'%') OR      
 		   (Currency like '%' + @GlobalFilter +'%') OR      
@@ -185,7 +186,7 @@ BEGIN
 		   (IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') AND       
 		   (IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') AND      
 		   (IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) AND      
-		   (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') AND      
+		   (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND      
 		   (IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') AND      
 		   (IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') AND      
 		   (IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') AND      

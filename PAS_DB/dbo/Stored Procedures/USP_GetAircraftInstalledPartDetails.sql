@@ -33,7 +33,6 @@
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
 ** 20   07/07/2026	  Kishor Makwana	[PN-17162] Updated for Get ServiceLifeUnitMonthsOrDays, ServiceLifeLimit
 ** 21   10/07/2026	  Amit Ghediya		Update condition
-
    21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    23	17/07/2026	  Kishor Makwana	[PN-17335] Migration Change. Added Column LastInspectionDate, timeDayMonth and remainingTimeDayMonth
@@ -42,6 +41,7 @@
                                         internally for the CASE branching above) so the UI can tell, per
                                         row, whether it's an aircraft- or engine-installed component.
    26   27/07/2026   Amit Ghediya		Get Worksheet from mapping table [PN-17396]
+   27   09/08/2026   Kishor Makwana		[PN-17374]  Added case for RemainingTimeDayMonth column
 *******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -75,7 +75,6 @@ CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@IsActive BIT = NULL,
     @AircraftRegistryId BIGINT = NULL,
     @MasterCompanyId    BIGINT,
-
 	@PONumber VARCHAR(50) = NULL,
 	@RONumber VARCHAR(50) = NULL,
 	@WONumber VARCHAR(50) = NULL,
@@ -85,14 +84,10 @@ CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 AS
 BEGIN
     SET NOCOUNT ON;
-
     BEGIN TRY
         DECLARE @RecordFrom INT = (@PageNumber - 1) * @PageSize;
-
 		DECLARE @Count Int;
-
         SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
-
         ;WITH Result AS
         (
             SELECT
@@ -190,10 +185,11 @@ BEGIN
 				CASE WHEN ServiceLifeUnitMonthsOrDays = 1 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Mths'
 				WHEN ServiceLifeUnitMonthsOrDays = 2 THEN CAST(ServiceLifeLimit AS VARCHAR(20)) + ' Days'
 				ELSE '' END AS timeDayMonth,
+				CASE WHEN ISNULL(RemainingTimeDayMonth,0) =0 THEN 
 				CASE WHEN AIPD.ServiceLifeUnitMonthsOrDays = 1 THEN
 				CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(MONTH, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
 				WHEN AIPD.ServiceLifeUnitMonthsOrDays = 2 THEN CAST(DATEDIFF(DAY,CAST(GETUTCDATE() AS DATE),DATEADD(DAY, AIPD.ServiceLifeLimit, AIPD.LastInspectionDate)) AS VARCHAR(20)) + ' Days'
-				ELSE '' END AS remainingTimeDayMonth
+				ELSE '' END ELSE CAST(RemainingTimeDayMonth AS VARCHAR(20)) + ' Days' END AS remainingTimeDayMonth
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId  AND ISNULL(AIPD.IsFromAircraft,0) = 1
@@ -236,7 +232,6 @@ BEGIN
 											   ) )
 									 )
 							   )
-
 							OR ( ISNULL(@IsFromAircraft,0) = 0
 								 AND ISNULL(IsFromAircraft,0) = 0
 								 AND EngineRegistryId = @AircraftRegistryId )
@@ -282,7 +277,6 @@ BEGIN
 											   ) )
 									 )
 							   )
-
 							OR ( ISNULL(@IsFromAircraft,0) = 0
 								 AND ISNULL(AIPD.IsFromAircraft,0) = 0
 								 AND AIPD.EngineRegistryId = @AircraftRegistryId )
@@ -290,7 +284,6 @@ BEGIN
 			--AIPD.MasterCompanyId = @MasterCompanyId
 			--	  AND (
 			--			@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-
 			--			-- AIRCRAFT MODE (=1): the aircraft's own program + all its engines' programs
 			--			OR ( ISNULL(@IsFromAircraft,0) = 1
 			--				 AND (
@@ -305,7 +298,6 @@ BEGIN
 			--						  )
 			--					 )
 			--			   )
-
 			--			-- ENGINE MODE (0/NULL): only the selected engine's program
 			--			OR ( ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId = @AircraftRegistryId )
 			--		  )
@@ -366,7 +358,6 @@ BEGIN
 					(ISNULL(@WorksheetNumber,'') ='' OR WorksheetNumber LIKE '%' + @WorksheetNumber + '%'))
 			)
    SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
-
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
 			
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'AircraftRegistryNumber'      THEN AircraftRegistryNumber      END ASC,
@@ -383,73 +374,50 @@ BEGIN
             
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SerialNum'      THEN SerialNum      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SerialNum'      THEN SerialNum      END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'LLP'         THEN LLP         END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'LLP'         THEN LLP         END DESC,
-
 			 CASE WHEN @SortOrder =  1 AND @SortColumn = 'Serialized'         THEN Serialized         END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'Serialized'         THEN Serialized         END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SEQUENCENUM'      THEN SequenceNum      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SEQUENCENUM'      THEN SequenceNum      END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTDESCRIPTION' THEN PartDescription END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTDESCRIPTION' THEN PartDescription END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'POSITIONCODE'    THEN PositionCode    END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'POSITIONCODE'    THEN PositionCode    END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'CREATEDDATE'     THEN CreatedDate     END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CREATEDDATE'     THEN CreatedDate     END DESC,
-
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'UPDATEDDATE'     THEN UpdatedDate     END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'UPDATEDDATE'     THEN UpdatedDate     END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'DATEINSTALLED'     THEN DATEINSTALLED     END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'DATEINSTALLED'     THEN DATEINSTALLED     END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONDITION'      THEN Condition      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONDITION'      THEN Condition      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'AircraftStatus'      THEN AircraftStatus      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'AircraftStatus'      THEN AircraftStatus      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END DESC,
-
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITY')  THEN Quantity END ASC,        
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITY')  THEN Quantity END DESC,
-
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC,        
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,
-
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITYONHAND')  THEN QuantityOnHand END ASC,        
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITYONHAND')  THEN QuantityOnHand END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END DESC,
-
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END DESC,
-
             AircraftInstalledPartDetailsId DESC
         OFFSET @RecordFrom ROWS
         FETCH NEXT @PageSize ROWS ONLY;
@@ -461,7 +429,6 @@ BEGIN
             @AdhocComments VARCHAR(150) = 'USP_GetAircraftInstalledPartDetails',
             @ProcedureParameters VARCHAR(3000),
             @ApplicationName VARCHAR(100) = 'PAS';
-
         SET @ProcedureParameters =
               '@PageNumber=' + CAST(ISNULL(@PageNumber, 0) AS VARCHAR(20))
             + ', @PageSize=' + CAST(ISNULL(@PageSize, 0) AS VARCHAR(20))
@@ -469,14 +436,12 @@ BEGIN
             + ', @SortOrder=' + CAST(ISNULL(@SortOrder, 0) AS VARCHAR(20))
             + ', @AircraftRegistryId=' + CAST(ISNULL(@AircraftRegistryId, 0) AS VARCHAR(20))
             + ', @MasterCompanyId=' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(20));
-
         EXEC spLogException
              @DatabaseName        = @DatabaseName,
              @AdhocComments       = @AdhocComments,
              @ProcedureParameters = @ProcedureParameters,
              @ApplicationName     = @ApplicationName,
              @ErrorLogID          = @ErrorLogID OUTPUT;
-
         RAISERROR
         (
             'Unexpected error occurred in the database. Please let the support team know the error number: %d',
@@ -484,7 +449,6 @@ BEGIN
             1,
             @ErrorLogID
         );
-
         RETURN 1;
     END CATCH
 END;

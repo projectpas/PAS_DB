@@ -16,13 +16,15 @@
 	2    01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
 	4	 27-July-2026   Vishal Suthar   Modified to get matching conditions if does not found to get picked like RP, RPD, Repair, Repaired
+	5    28-Aug-2026    Vishal Suthar   Added @VendorContactName param so vendor Contact First/Last Name is sourced from the individual contact
 
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
+CREATE       PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
     @IntegrationEmailID   BIGINT,
     @MasterCompanyId      INT,
     @EmployeeId           BIGINT,
     @VendorName           NVARCHAR(500),
+    @VendorContactName    NVARCHAR(500) = NULL,
     @VendorEmail          NVARCHAR(200) = NULL,
     @VendorPhone          NVARCHAR(100) = NULL,
     @Address1             NVARCHAR(500) = NULL,
@@ -170,16 +172,21 @@ BEGIN
             BEGIN
                 DECLARE
                     @ContactFirstName NVARCHAR(100),
-                    @ContactLastName  NVARCHAR(30);
+                    @ContactLastName  NVARCHAR(30),
+                    @NameToSplit      NVARCHAR(500);
 
-                IF CHARINDEX(' ', LTRIM(RTRIM(@VendorName))) > 0
+                -- Prefer the individual contact name; fall back to VendorName
+                -- (company name) only if no contact name was extracted.
+                SET @NameToSplit = LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(@VendorContactName)), ''), @VendorName)));
+
+                IF CHARINDEX(' ', @NameToSplit) > 0
                 BEGIN
-                    SET @ContactFirstName = LEFT(LTRIM(RTRIM(@VendorName)), CHARINDEX(' ', LTRIM(RTRIM(@VendorName))) - 1);
-                    SET @ContactLastName  = LEFT(SUBSTRING(LTRIM(RTRIM(@VendorName)), CHARINDEX(' ', LTRIM(RTRIM(@VendorName))) + 1, LEN(@VendorName)), 30);
+                    SET @ContactFirstName = LEFT(@NameToSplit, CHARINDEX(' ', @NameToSplit) - 1);
+                    SET @ContactLastName  = LEFT(SUBSTRING(@NameToSplit, CHARINDEX(' ', @NameToSplit) + 1, LEN(@NameToSplit)), 30);
                 END
                 ELSE
                 BEGIN
-                    SET @ContactFirstName = LEFT(LTRIM(RTRIM(@VendorName)), 100);
+                    SET @ContactFirstName = LEFT(@NameToSplit, 100);
                     SET @ContactLastName  = 'N/A';
                 END
 

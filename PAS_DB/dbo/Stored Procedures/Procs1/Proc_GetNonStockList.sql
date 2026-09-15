@@ -18,6 +18,7 @@
     1    02/04/2020   Subhash Saliya Created
 	2   17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	3   17/02/2025    Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
+	4   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
      
 --  EXEC [Proc_GetNonStockList] 1
 **************************************************************/
@@ -174,7 +175,7 @@ BEGIN
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(NonStockInventoryId) AS totalItems FROM Result)
 				SELECT * INTO #TempResults FROM  Result
-				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 						(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 						(Manufacturer LIKE '%' +@GlobalFilter+'%') OR					
 						(PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR						
@@ -192,7 +193,7 @@ BEGIN
 						(AllMSlevels LIKE '%' +@GlobalFilter+'%') OR
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
-						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 						(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
@@ -329,7 +330,7 @@ BEGIN
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(NonStockInventoryId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
-				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
+				 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 						(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 						(Manufacturer LIKE '%' +@GlobalFilter+'%') OR					
 						(PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR						
@@ -347,7 +348,7 @@ BEGIN
 						(AllMSlevels LIKE '%' +@GlobalFilter+'%') OR					
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
-						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 						(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND

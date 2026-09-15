@@ -25,6 +25,7 @@
     12	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	15   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
@@ -245,11 +246,11 @@ BEGIN
 			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([SubWorkOrderNo] LIKE '%' +@GlobalFilter+'%') OR
-			        ([MasterPartNo] LIKE '%' + @GlobalFilter+'%') OR	
+			        ([MasterPartNo] LIKE '%' + @GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([MasterPartNo]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR	
 					([MasterPartDescription] LIKE '%' + @GlobalFilter+'%') OR
 					([Manufacturer] LIKE '%' + @GlobalFilter+'%') OR
 					([WorkScope] LIKE '%' + @GlobalFilter+'%') OR
-					([RevisedPartNo] LIKE '%' + @GlobalFilter+'%') OR
+					([RevisedPartNo] LIKE '%' + @GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([RevisedPartNo]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					([SerialNumber] LIKE '%' + @GlobalFilter+'%') OR
 					([SubWOStatus] LIKE '%' + @GlobalFilter+'%') OR
 					([OriginalCondition] LIKE '%' + @GlobalFilter+'%') OR
@@ -260,11 +261,11 @@ BEGIN
 					([CreatedBy] LIKE '%' + @GlobalFilter+'%') OR
 					([UpdatedBy] LIKE '%' + @GlobalFilter+'%'))) OR   
 					(@GlobalFilter ='' AND (ISNULL(@SubWorkOrderNo,'') ='' OR [SubWorkOrderNo] LIKE '%' + @SubWorkOrderNo+'%') AND
-					(ISNULL(@MasterPartNo,'') ='' OR [MasterPartNo] LIKE '%' + @MasterPartNo + '%') AND	
+					(ISNULL(@MasterPartNo,'') ='' OR [MasterPartNo] LIKE '%' + @MasterPartNo + '%' OR dbo.fn_NormalizePartNumber([MasterPartNo]) LIKE '%' + dbo.fn_NormalizePartNumber(@MasterPartNo) + '%') AND	
 					(ISNULL(@MasterPartDescription,'') ='' OR [MasterPartDescription] LIKE '%' + @MasterPartDescription + '%') AND	
 					(ISNULL(@Manufacturer,'') ='' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND	
 					(ISNULL(@WorkScope,'') ='' OR [WorkScope] LIKE '%' + @WorkScope + '%') AND	
-					(ISNULL(@RevisedPartNo,'') ='' OR [RevisedPartNo] LIKE '%' + @RevisedPartNo + '%') AND	
+					(ISNULL(@RevisedPartNo,'') ='' OR [RevisedPartNo] LIKE '%' + @RevisedPartNo + '%' OR dbo.fn_NormalizePartNumber([RevisedPartNo]) LIKE '%' + dbo.fn_NormalizePartNumber(@RevisedPartNo) + '%') AND	
 					(ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber + '%') AND	
 					(ISNULL(@SubWOStatus,'') ='' OR SubWOStatus LIKE '%' + @SubWOStatus + '%') AND	
 					(ISNULL(@OriginalCondition,'') ='' OR OriginalCondition LIKE '%' + @OriginalCondition + '%') AND	

@@ -12,10 +12,12 @@
  ** --   --------       -------                 --------------------------------
     1    10/08/2026     Amit Ghediya            Created
     2    19/08/2026     Amit Ghediya            LeasePart.QtyOrder now moves with QtyReserved (Reserve/UnReserve), mirroring LeaseStockline
+    3    21/08/2026     Amit Ghediya            LeaseStockline is now the primary Lease entity - reads LeaseHeaderId directly instead of
+                                                 joining LeasePart, removed dead LeasePart mirroring, added ReservedBy/UnReservedBy tracking
 
 exec USP_ReserveUnReserveLeaseStockLine @LeaseStocklineId=1,@Qty=1,@IsReserve=1,@UpdatedBy=''
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_ReserveUnReserveLeaseStockLine]
+CREATE    PROCEDURE [dbo].[USP_ReserveUnReserveLeaseStockLine]
 	@LeaseStocklineId BIGINT,
 	@Qty INT,
 	@IsReserve BIT,
@@ -28,17 +30,16 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 
-		DECLARE @StockLineId BIGINT, @LeasePartId BIGINT, @CurrentQtyOrder INT, 
+		DECLARE @StockLineId BIGINT, @CurrentQtyOrder INT,
 				@CurrentQtyReserved INT,@ModuleId BIGINT = 0,@ActionId INT = 0,
 				@LeaseHeaderId BIGINT = 0;
 
 		SELECT @ModuleId = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
 
-		SELECT @StockLineId = LS.StockLineId, @LeasePartId = LS.LeasePartId, 
+		SELECT @StockLineId = LS.StockLineId,
 			   @CurrentQtyOrder = LS.QtyOrder, @CurrentQtyReserved = LS.QtyReserved,
-			   @LeaseHeaderId = LP.LeaseHeaderId
+			   @LeaseHeaderId = LS.LeaseHeaderId
 		FROM [dbo].[LeaseStockline] LS WITH (NOLOCK)
-		JOIN [dbo].[LeasePart] LP WITH (NOLOCK) ON LP.LeasePartId = LS.LeasePartId
 		WHERE LeaseStocklineId = @LeaseStocklineId;
 
 		IF (@StockLineId IS NULL)
@@ -60,6 +61,7 @@ BEGIN
 			UPDATE [dbo].[LeaseStockline]
 			SET QtyOrder = QtyOrder - @Qty,
 				QtyReserved = QtyReserved + @Qty,
+				ReservedBy = @UpdatedBy,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
@@ -68,13 +70,6 @@ BEGIN
 			SET QuantityAvailable = QuantityAvailable - @Qty,
 				QuantityReserved = QuantityReserved + @Qty
 			WHERE StockLineId = @StockLineId;
-
-			UPDATE [dbo].[LeasePart]
-			SET QtyOrder = QtyOrder - @Qty,
-				QtyReserved = QtyReserved + @Qty,
-				UpdatedBy = @UpdatedBy,
-				UpdatedDate = GETUTCDATE()
-			WHERE LeasePartId = @LeasePartId;
 
 			--FOR STOCK LINE HISTORY
 			SET @ActionId = 2; --For Reserve
@@ -92,6 +87,7 @@ BEGIN
 			UPDATE [dbo].[LeaseStockline]
 			SET QtyReserved = QtyReserved - @Qty,
 				QtyOrder = QtyOrder + @Qty,
+				UnReservedBy = @UpdatedBy,
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE LeaseStocklineId = @LeaseStocklineId;
@@ -100,13 +96,6 @@ BEGIN
 			SET QuantityAvailable = QuantityAvailable + @Qty,
 				QuantityReserved = QuantityReserved - @Qty
 			WHERE StockLineId = @StockLineId;
-
-			UPDATE [dbo].[LeasePart]
-			SET QtyOrder = QtyOrder + @Qty,
-				QtyReserved = QtyReserved - @Qty,
-				UpdatedBy = @UpdatedBy,
-				UpdatedDate = GETUTCDATE()
-			WHERE LeasePartId = @LeasePartId;
 
 			--FOR STOCK LINE HISTORY
 			EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @LeaseHeaderId, @SubModuleId = 0, @SubRefferenceId = @ModuleId, @ActionId = 3, @Qty = @Qty, @UpdatedBy = @UpdatedBy;

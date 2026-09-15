@@ -57,6 +57,7 @@
 																a genuine duplicate post is still blocked but a post-after-Re-Open now creates fresh entries.
 	30	  23/Aug/2026	          Moin Bloch                    [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings)
 	31	  23/Aug/2026	          Moin Bloch                    [PN-17606] - Modify (Added Intercompany Accounting – Affiliate Tagging & Mirrored GL Postings In INVOICE)
+	32	  27/Aug/2026	          Moin Bloch                    [PN-17606] - Modify (Added COGS - Intercompany In INVOICE)
 
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -848,19 +849,44 @@ BEGIN
 						----COGS - Parts----
 						IF(@PartUnitSalesPrices >0)
 						BEGIN	
-						
-							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,
-					                     @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
-							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
-							
+							IF(@CustomerTypeId = @CustomerAffiliationId)
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @GlAccountId=GlAccountId,
+											 @GlAccountNumber=GlAccountNumber,
+											 @GlAccountName=GlAccountName,
+											 @CrDrType = CRDRType,
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
+								WHERE UPPER(DistributionSetupCode) =UPPER('SOICOGSPARTSINTERCO') 
+								AND DistributionMasterId=@DistributionMasterId 
+								AND MasterCompanyId = @MasterCompanyId																
+							END
+							ELSE
+							BEGIN
+								SELECT TOP 1 @DistributionSetupId=ID,
+											 @DistributionName=Name,
+											 @JournalTypeId =JournalTypeId,
+											 @GlAccountId=GlAccountId,
+											 @GlAccountNumber=GlAccountNumber,
+											 @GlAccountName=GlAccountName,
+											 @CrDrType = CRDRType,
+											 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
+								WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') 
+								AND DistributionMasterId=@DistributionMasterId 
+								AND MasterCompanyId = @MasterCompanyId								
 
-							--GET GL Accounting Data from GLAccout based on stockline
-							SELECT @GlAccountId = [GLAccountId],
-								   @GlAccountNumber = [AccountCode],
-								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @COGSSalesOrderGLAccId
-							AND [MasterCompanyId] = @MasterCompanyId;
+								--GET GL Accounting Data from GLAccout based on stockline
+								SELECT @GlAccountId = [GLAccountId],
+									   @GlAccountNumber = [AccountCode],
+									   @GlAccountName = [AccountName]
+								FROM [dbo].[GLAccount] WITH(NOLOCK)
+								WHERE [GLAccountId] = @COGSSalesOrderGLAccId
+								AND [MasterCompanyId] = @MasterCompanyId;
+							END
 
 							IF(@IsBypassAccounting = 0)
 							BEGIN

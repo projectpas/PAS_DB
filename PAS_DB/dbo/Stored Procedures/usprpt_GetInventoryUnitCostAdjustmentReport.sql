@@ -15,7 +15,7 @@
     1    29-Jan-2026		Devendra Shekh        created
     2    09/July/2026		RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     3    24/July/2026		RAJESH GAMI        [PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (2) to allow Non-Stock items in Inventory Unit Cost Adjustment Report
-
+	4    02-Sep-2026		Bhargav Saliya		[PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport]     
 @PageNumber INT = NULL,
@@ -271,7 +271,7 @@ BEGIN
 			[reasoncode], [uom], [ponum], [ronum], [location], [adjby], [adjdate], [adjustedfrom],
 			[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],[masterCompanyId]
 	   FROM rptCTE
-	   WHERE	(ISNULL(@Pn,'') = '' OR pn LIKE '%' + @Pn + '%')
+	   WHERE	(ISNULL(@Pn,'') ='' OR pn LIKE '%' + @Pn+'%' OR dbo.fn_NormalizePartNumber(pn) LIKE '%' + dbo.fn_NormalizePartNumber(@Pn) + '%')
 		AND (ISNULL(@PnDescription,'') = '' OR pndescription LIKE '%' + @PnDescription + '%')
 		AND (ISNULL(@Cond,'') = '' OR cond LIKE '%' + @Cond + '%')
 		AND (ISNULL(@SerNum,'') = '' OR sernum LIKE '%' + @SerNum + '%')

@@ -1,4 +1,4 @@
-/*********************             
+﻿/*********************             
  ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
  ** Author:    
  ** Description: Get Search Data for ExchangeCoreTrackingList   
@@ -14,6 +14,7 @@
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    02-Sep-2026             Bhargav Saliya                     [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **********************/   
 
 --exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
@@ -137,7 +138,7 @@ BEGIN
 					EmployeeName,CoreStatusId,[Status],CoreDueDate, Memo, 
 					ExpectedCoreSN, ExpecedCoreCond, CoreAccepted,WorkOrderId,WONum,IsVendor,ExchType FROM Result
 			where (
-				(@GlobalFilter <>'' AND ((PartNumber like '%' +@GlobalFilter+'%' ) OR 
+				(@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR 
 						(PartDescription like '%' +@GlobalFilter+'%') OR
 						(ReceivingNumber like '%' +@GlobalFilter+'%') OR
 						(CustomerName like '%' +@GlobalFilter+'%') OR
@@ -149,7 +150,7 @@ BEGIN
 						(WONum like '%' +@GlobalFilter+'%') 
 						))
 						OR   
-						(@GlobalFilter='' AND (IsNull(@PartNumber,'') ='' OR PartNumber like  '%'+ @PartNumber+'%') and 
+						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') and 
 						(IsNull(@PartDescription,'') ='' OR PartDescription like '%'+@PartDescription+'%') and
 						(IsNull(@CustomerName,'') ='' OR CustomerName like  '%'+@CustomerName+'%') and
 						(IsNull(@SerialNumber,'') ='' OR SerialNumber like  '%'+@SerialNumber+'%') and

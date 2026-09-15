@@ -19,6 +19,7 @@
 	2    24/06/2024   AMIT GHEDIYA		 Manufacture filter added(before not working). 
 	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 **************************************************************/   
 CREATE      PROCEDURE [dbo].[SearchExchangeQuoteData]
 	-- Add the parameters for the stored procedure here
@@ -178,7 +179,7 @@ BEGIN
 							(EstimateShipDateType like '%' +@GlobalFilter+'%') OR
 							(EstimateShipDate like '%' +@GlobalFilter+'%') OR
 							(PromiseDate like '%' +@GlobalFilter+'%') OR
-							(PartNumberType like '%' +@GlobalFilter+'%') OR
+							(PartNumberType like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 							(PartDescriptionType like '%' +@GlobalFilter+'%') OR
 							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CreatedDate like '%' +@GlobalFilter+'%') OR
@@ -202,7 +203,7 @@ BEGIN
 							--(IsNull(@CustomerRequestDate,'') ='' OR Cast(CustomerRequestDate as Date) = Cast(@CustomerRequestDate as date)) and
 							(IsNull(@PromiseDate,'') ='' OR Cast(PromiseDate as Date) = Cast(@PromiseDate as date)) and
 							--(IsNull(@EstimateShipDate,'') ='' OR Cast(EstimateShipDate as Date) = Cast(@EstimateShipDate as date)) and
-							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%') and
+							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%'+dbo.fn_NormalizePartNumber(@PartNumberType)+'%') and
 							(IsNull(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') and
 							(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%'+ @CreatedBy+'%') and
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and

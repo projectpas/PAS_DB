@@ -21,6 +21,7 @@
      4    16/07/2026		Abhishek Jirawla	WorkOrderNumber falls back to a sibling RO part's WO when the piece part itself has none
      5    16/07/2026		Abhishek Jirawla	Renamed output column WorkOrderNumber to WONumber to match Field Master grid config
      6    21/07/2026		Abhishek Jirawla	Added ORDER BY support for Condition, SerialNumber, StocklineNumber, ControlNumber, ControlId, MPN, MPNDescription so every grid column is sortable
+	 7   10-Sep-2026         Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PageNumber             INT,
@@ -163,7 +164,7 @@ BEGIN
               @GlobalFilter = ''
               OR ro.VendorName            LIKE '%' + @GlobalFilter + '%'
               OR ro.VendorCode            LIKE '%' + @GlobalFilter + '%'
-              OR rop.PartNumber           LIKE '%' + @GlobalFilter + '%'
+              OR rop.PartNumber           LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(rop.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%'
               OR rop.PartDescription      LIKE '%' + @GlobalFilter + '%'
               OR ro.RepairOrderNumber     LIKE '%' + @GlobalFilter + '%'
               OR rop.WorkOrderNo          LIKE '%' + @GlobalFilter + '%'
@@ -172,7 +173,7 @@ BEGIN
           )
           AND (@VendorName      IS NULL OR ro.VendorName        LIKE '%' + @VendorName      + '%')
           AND (@VendorCode      IS NULL OR ro.VendorCode        LIKE '%' + @VendorCode      + '%')
-          AND (@PartNumber      IS NULL OR rop.PartNumber       LIKE '%' + @PartNumber      + '%')
+          AND (@PartNumber      IS NULL OR rop.PartNumber       LIKE '%' + @PartNumber      + '%' OR dbo.fn_NormalizePartNumber(rop.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%')
           AND (@PartDescription IS NULL OR rop.PartDescription  LIKE '%' + @PartDescription + '%')
           AND (@RONumber        IS NULL OR ro.RepairOrderNumber  LIKE '%' + @RONumber        + '%')
           AND (@WONumber        IS NULL OR ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)
@@ -185,7 +186,7 @@ BEGIN
           AND (@ControlNumber   IS NULL OR ISNULL(rop.ControlNumber, sl.ControlNumber)
                                               LIKE '%' + @ControlNumber   + '%')
           AND (@ControlId       IS NULL OR rop.ControlId        LIKE '%' + @ControlId       + '%')
-          AND (@MPN             IS NULL OR rop.ManufacturerPN   LIKE '%' + @MPN             + '%')
+          AND (@MPN             IS NULL OR rop.ManufacturerPN   LIKE '%' + @MPN             + '%' OR dbo.fn_NormalizePartNumber(rop.ManufacturerPN) LIKE '%' + dbo.fn_NormalizePartNumber(@MPN) + '%')
           AND (@MPNDescription  IS NULL OR im.PartDescription   LIKE '%' + @MPNDescription  + '%')
           AND (@VendorId        IS NULL OR ro.VendorId          = @VendorId)
           AND (@RepairOrderId   IS NULL OR rop.RepairOrderId    = @RepairOrderId)

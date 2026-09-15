@@ -13,7 +13,9 @@
    2    12/10/2024   Hemant Saliya	Updated For Updated Date 
    3    12/10/2024   Ayushi Patel	Updated For Updated By 
    4    29/05/2026   Nakul Chandigra  Merge the UAT Changes 
-   5    11/06/2026   Nakul Chandigra  added Condition for [RFQTRACEABILITY] table (PN-16803)     
+   5    11/06/2026   Nakul Chandigra  added Condition for [RFQTRACEABILITY] table (PN-16803) 
+   6    28/08/2026   Sahdev Saliya    Removed  'LeaseType' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-17495]
+
 **********************/
 --EXEC  USP_SingleScreen_UpdateActiveInActiveStatus 10, 0, 'assetlocation'
 CREATE     PROCEDURE [dbo].[USP_SingleScreen_UpdateActiveInActiveStatus]   
@@ -44,7 +46,7 @@ BEGIN
       RETURN  
     END  
   
-    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME' AND UPPER(@PageName) <> 'MAINTENANCETYPE' AND UPPER(@PageName) <> 'MAINTENANCECLASS' AND UPPER(@PageName) <> 'AIRCRAFTSECTION' AND UPPER(@PageName) <> 'MAINTENANCECATEGORY'
+    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME' AND UPPER(@PageName) <> 'MAINTENANCETYPE' AND UPPER(@PageName) <> 'MAINTENANCECLASS' AND UPPER(@PageName) <> 'AIRCRAFTSECTION' AND UPPER(@PageName) <> 'MAINTENANCECATEGORY' AND UPPER(@PageName) <> 'LEASETYPE'
          AND UPPER(@PageName) <> 'RFQTRACEABILITY')
     BEGIN  
 	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 

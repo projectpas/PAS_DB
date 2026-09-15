@@ -22,6 +22,7 @@
 	5	 09/07/2024	  AMIT GHEDIYA		Update for uppercase response.
 	6    24-Mar-2025  Divyesh Kathiriya	Update CreditMemoDate based on Employee time zone
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8   10-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 
  -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
@@ -194,7 +195,7 @@ BEGIN
       OR (RMAStatus LIKE '%' + @GlobalFilter + '%')
       OR (CRH.Requestedby LIKE '%' + @GlobalFilter + '%')
       OR (CRH.[Memo] LIKE '%' + @GlobalFilter + '%')
-      OR (CRD.PartNumber LIKE '%' + @GlobalFilter + '%')
+      OR (CRD.PartNumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(CRD.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%')
       OR (CRD.PartDescription LIKE '%' + @GlobalFilter + '%')
       OR (CRD.ReceiverNum LIKE '%' + @GlobalFilter + '%')
       OR (CRD.WorkOrderNum LIKE '%' + @GlobalFilter + '%')
@@ -210,7 +211,7 @@ BEGIN
       AND (ISNULL(@RMANumber, '') = ''
       OR CRH.RMANumber LIKE '%' + @RMANumber + '%')
       AND (ISNULL(@PartNumber, '') = ''
-      OR CRD.PartNumber LIKE '%' + @PartNumber + '%')
+      OR CRD.PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(CRD.PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%')
       AND (ISNULL(@PartDescription, '') = ''
       OR CRD.PartDescription LIKE '%' + @PartDescription + '%')
       AND (ISNULL(@WorkOrderNum, '') = ''
@@ -716,7 +717,7 @@ BEGIN
       OR (RMAStatus LIKE '%' + @GlobalFilter + '%')
       OR (Requestedby LIKE '%' + @GlobalFilter + '%')
       OR (Memo LIKE '%' + @GlobalFilter + '%')
-      OR (PartNumber LIKE '%' + @GlobalFilter + '%')
+      OR (PartNumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%')
       OR (PartDescription LIKE '%' + @GlobalFilter + '%')
       OR (WorkOrderNum LIKE '%' + @GlobalFilter + '%')
       OR (ReceiverNum LIKE '%' + @GlobalFilter + '%')
@@ -730,7 +731,7 @@ BEGIN
       OR (RMAReason LIKE '%' + @GlobalFilter + '%')))
       OR (@GlobalFilter = ''
       AND (ISNULL(@RMANumber, '') = '' OR RMANumber LIKE '%' + @RMANumber + '%')
-      AND (ISNULL(@PartNumber, '') = '' OR PartNumber LIKE '%' + @PartNumber + '%')
+      AND (ISNULL(@PartNumber, '') = '' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%')
       AND (ISNULL(@PartDescription, '') = '' OR PartDescription LIKE '%' + @PartDescription + '%')
       AND (ISNULL(@WorkOrderNum, '') = '' OR WorkOrderNum LIKE '%' + @WorkOrderNum + '%')
       AND (ISNULL(@ReceiverNum, '') = '' OR ReceiverNum LIKE '%' + @ReceiverNum + '%')

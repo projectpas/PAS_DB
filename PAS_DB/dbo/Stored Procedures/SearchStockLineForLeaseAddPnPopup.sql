@@ -2,9 +2,8 @@
  ** File:   [SearchStockLineForLeaseAddPnPopup]
  ** Description: Search Stock Line details for the Lease "Add Item" popup - mirrors
  **              [SearchStockLineForAddPN] (Work Order's Add PN popup), minus the
- **              traceability (TraceableTo/Owner/ObtainFrom) fields and the
- **              already-staged @StocklineIdlist carry-forward, neither of which
- **              Lease's Add Item flow displays or needs.
+ **              already-staged @StocklineIdlist carry-forward, which Lease's Add
+ **              Item flow doesn't need.
  **
  **************************************************************
  ** Change History
@@ -12,6 +11,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    19/08/2026     Amit Ghediya            Created
+    2    25/08/2026     Amit Ghediya            Added TracableToName/OwnerName/ObtainFromName (StockLine columns) - were missing, showed blank in the Add Item popup
 
 EXECUTE [SearchStockLineForLeaseAddPnPopup] '1636', 1, 1
 ************************************************************************/
@@ -66,6 +66,9 @@ BEGIN
 			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 			,ISNULL(sl.UnitCost, 0) AS unitCost
 			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
+			,sl.TraceableToName AS TracableToName
+			,sl.OwnerName AS OwnerName
+			,sl.ObtainFromName AS ObtainFromName
 			,'Stock Line' AS Method
 			,'S' AS MethodType
 			,CONVERT(BIT,0) AS PMA

@@ -23,7 +23,7 @@
 	7    08 JAN 2025   AMIT GHEDIYA		 Added one parameter to identify if it's been called from shipping or not
 	8    05 Aug 2026   Kishor Makwana	[PN-17439]	Scoped every SalesOrderPartV1/SalesOrderReserveParts lookup to the real per-line PK (SalesOrderPartId, already passed in) instead of ItemMasterId+ConditionId alone - two duplicate Part+Condition lines (different SequenceNumber) sharing a StockLineId were resolving to whichever line matched first, so Reserve/Unreserve wrote QtyReserved onto the wrong line and left the two lines' Qty Reserved/Qty Pending inconsistent (e.g. 2 / -2).
 	9    20 Aug 2026   Kishor Makwana	[PN-17734]	Added ToTalReservedQty tracking on SalesOrderPartV1 and SalesOrderStocklineV1 (increment on Reserve, decrement on Unreserve).	
-
+	10   27 Aug 2026   Kishor Makwana   [PN-17805] Total Reserve Qty not Updated
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
 insert into @p1 values(NULL,1357,1629,161083,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,39,33,2,N'OH',0,NULL,50,3,NULL,0,NULL,33,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864063',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000003',N'CNTL-001277',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864060','2024-11-18 13:51:53.2864060',1,0)
@@ -428,12 +428,12 @@ BEGIN
 				BEGIN
 					IF(@ReserveStatusId = @PartStatusId)
 					BEGIN
-						UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+						--UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
 						UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) + ISNULL(@QtyToReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
 					END
 					ELSE IF(@UnReserveStatusId = @PartStatusId)
 					BEGIN
-						UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
+						--UPDATE [DBO].[SalesOrderPartV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId;
 						UPDATE [DBO].[SalesOrderStocklineV1] SET ToTalReservedQty = ISNULL(ToTalReservedQty,0) - ISNULL(@QtyToUnReserve,0) WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId;
 					END
 				END

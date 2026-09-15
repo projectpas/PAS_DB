@@ -29,6 +29,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
     3	 05/August/2026			 Divyesh Kathiriya					[PN-17555] - Fix filter to the search query.
+	4   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
  **************************************************************/
 CREATE   PROCEDURE [dbo].[SearchPNViewData]
  @PageNumber int,
@@ -162,7 +163,7 @@ BEGIN
        (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR
        (Status LIKE '%' +@GlobalFilter+'%') OR
        (PriorityType LIKE '%' +@GlobalFilter+'%') OR
-       (PartNumberType LIKE '%' +@GlobalFilter+'%') OR
+       (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
        (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR
        (CustomerReference LIKE '%' +@GlobalFilter+'%') OR
        (@VersionNumber LIKE '%'+@GlobalFilter+'%') OR
@@ -182,7 +183,7 @@ BEGIN
        (ISNULL(@SalesPerson,'') ='' OR SalesPerson LIKE '%'+ @SalesPerson+'%') AND
        (ISNULL(@ManufacturerType,'') ='' OR ManufacturerType LIKE '%'+ @ManufacturerType+'%') AND
        (ISNULL(@PriorityType,'') ='' OR PriorityType LIKE '%'+ @PriorityType+'%') AND
-       (ISNULL(@PartNumberType,'') ='' OR PartNumberType LIKE '%'+@PartNumberType+'%') AND
+       (ISNULL(@PartNumberType,'') ='' OR PartNumberType LIKE '%'+@PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%'+dbo.fn_NormalizePartNumber(@PartNumberType)+'%') AND
        (ISNULL(@PartDescriptionType,'') ='' OR PartDescriptionType LIKE '%'+@PartDescriptionType+'%') AND
        (ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%'+@CustomerReference+'%') AND
        (ISNULL(@CustomerType,'') ='' OR CustomerType LIKE '%'+@CustomerType+'%') AND

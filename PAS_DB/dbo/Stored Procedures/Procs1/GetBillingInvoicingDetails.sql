@@ -27,6 +27,8 @@
 	13   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14   20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoicing details (WorkOrder branch untouched).
 	15   13/Aug/2026	Vishal Suthar	Fixed the shipTo and billTo siteId to get from address tab instead of customer record for SO Proforma Invoice
+	16   02/Sept/2026	Vishal Suthar	Fixed ShipVia to get it from address tab instead of customer record for SO
+	17   10/Sept/2026	Vishal Suthar	PN-17824: When editing an already-generated WO bill (@BillingInvoicingId > 0), return the invoice's actual stored InvoiceDate instead of always GETUTCDATE()
 
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
@@ -62,6 +64,15 @@ BEGIN
 			WHERE [wos].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
 			
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [ID] = @SubReferenceId;
+
+			DECLARE @ExistingInvoiceDate DATETIME2(7) = NULL;
+			IF(@BillingInvoicingId > 0)
+			BEGIN
+				SELECT @ExistingInvoiceDate = [InvoiceDate]
+				FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
+				WHERE [BillingInvoicingId] = @BillingInvoicingId;
+			END
+
 			IF EXISTS (SELECT 1 FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
 			               INNER JOIN [dbo].[CustomerDomensticShipping] cust_ship WITH(NOLOCK) ON wo.[CustomerId] = cust_ship.[CustomerId]
                            INNER JOIN [dbo].[CustomerBillingAddress] cust_bill    WITH(NOLOCK) ON wo.[CustomerId] = cust_bill.[CustomerId]
@@ -81,7 +92,7 @@ BEGIN
 				[wosh].[WorkOrderPartNoId],
 				[cust].[ContractReference],
 				CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-				GETUTCDATE() AS [InvoiceDate],
+				ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 				GETUTCDATE() AS [PrintDate],
 				[wosh].[ShipDate],
 				[wo].[EmployeeId],
@@ -163,7 +174,7 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					NULL AS [ShipDate],
 					[wo].[EmployeeId],
@@ -242,7 +253,7 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					NULL AS [ShipDate],
 					[wo].[EmployeeId],
@@ -320,7 +331,7 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					[wosh].[ShipDate],
 					[wo].[EmployeeId],
@@ -443,7 +454,7 @@ BEGIN
 						CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
 						[so].[ManagementStructureId],
-						GETUTCDATE() AS [InvoiceDate],
+						CASE WHEN sobi.BillingInvoicingId IS NOT NULL THEN sobi.InvoiceDate ELSE GETUTCDATE() END AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
 						[cust_shipVia].[ShipViaId],

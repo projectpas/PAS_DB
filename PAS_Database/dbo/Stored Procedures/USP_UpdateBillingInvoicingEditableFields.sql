@@ -19,7 +19,13 @@ CREATE   PROCEDURE [dbo].[USP_UpdateBillingInvoicingEditableFields]
     @BillingInvoicingId BIGINT,
     @InvoiceDate DATETIME,
     @AccountingPeriodId INT = NULL,
-    @UpdatedBy NVARCHAR(100)
+    @SoldToCustomerId BIGINT = NULL,
+    @SoldToSiteId BIGINT = NULL,
+    @ShipToCustomerId BIGINT = NULL,
+    @ShipToSiteId BIGINT = NULL,
+    @ShipviaId INT = NULL,
+    @Notes NVARCHAR(MAX) = NULL,
+    @UpdatedBy VARCHAR(200)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -27,11 +33,21 @@ BEGIN
 
 	BEGIN TRY
 
-		UPDATE BillingInvoicing
-		SET InvoiceDate = @InvoiceDate,
-			UpdatedBy = @UpdatedBy,
-			UpdatedDate = GETDATE()
-		WHERE BillingInvoicingId = @BillingInvoicingId;
+		UPDATE [dbo].[BillingInvoicing]
+		SET [InvoiceDate] = @InvoiceDate,
+			[Notes] = ISNULL(@Notes, [Notes]),
+			[InvoiceFilePath] = NULL,
+			[UpdatedBy] = @UpdatedBy,
+			[UpdatedDate] = GETUTCDATE()
+		WHERE [BillingInvoicingId] = @BillingInvoicingId;
+
+		UPDATE [dbo].[BillingInvoicingDetails]
+		SET [SoldToCustomerId] = COALESCE(@SoldToCustomerId, [SoldToCustomerId]),
+			[SoldToSiteId] = COALESCE(@SoldToSiteId, [SoldToSiteId]),
+			[ShipToCustomerId] = COALESCE(@ShipToCustomerId, [ShipToCustomerId]),
+			[ShipToSiteId] = COALESCE(@ShipToSiteId, [ShipToSiteId]),
+			[ShipviaId] = COALESCE(@ShipviaId, [ShipviaId])
+		WHERE [BillingInvoicingId] = @BillingInvoicingId;
 
 	END TRY
 	BEGIN CATCH

@@ -17,6 +17,8 @@
 	5   01/July/2026			RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0  
 	6   29-July-2026        Ayushi Patel		Added New Field IsService [PN-17470]
 	7   25/Aug/2026			RAJESH GAMI		    PN-17776 - Allow Same PN and Manufacturer for Stock and Non-Stock Items 
+	8   16-Sep-2026         Sahdev Saliya       Added IsKitAssy [PN-17371]
+
  -- EXEC [USP_AddItemMasterGeneralInfo] 
  drop procedure [USP_AddItemMasterGeneralInfo]
 **************************************************************/
@@ -86,7 +88,7 @@ BEGIN
 				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
 			
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],[IsService])
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],[IsService],[IsKitAssy])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -106,7 +108,7 @@ BEGIN
 				[IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate],
 				
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],ISNULL([IsService], 0)
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate],ISNULL([IsService], 0), [IsKitAssy]
 			FROM @tbl_ItemMasterTableType;
 			SET @ItemMasterId = SCOPE_IDENTITY();
 

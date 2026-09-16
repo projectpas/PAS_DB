@@ -95,6 +95,7 @@
     [AircraftSerialNumber]           VARCHAR (100)   NULL,
     [AircraftRegistryId]             BIGINT          NULL,
     [ProgramId]                      BIGINT          NULL,
+    [KitsToPrepare]                  INT             NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
 

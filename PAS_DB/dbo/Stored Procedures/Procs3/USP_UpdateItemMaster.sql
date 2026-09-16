@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
 ** File:  [USP_UpdateItemMaster]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to Update Item Master
@@ -19,6 +18,8 @@
    6	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    7	28-Jul-2026	Abhishek Jirawala	When IsTimeLife is turned on, cascade IsStkTimeLife = 1 to all StockLines of this ItemMaster with QuantityOnHand > 0
    8    29-July-2026    Ayushi Patel	Added New Field IsService [PN-17470]
+   9    18-Aug-2026    Sahdev Saliya    Added IsKitAssy [PN-17371]
+
    drop procedure USP_UpdateItemMaster
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -206,6 +207,7 @@ BEGIN
 		,i.MfgExpirationDate                = PST.MfgExpirationDate
 		,i.IsMfgExpirationDate              = PST.IsMfgExpirationDate
 		,i.IsService						= ISNULL(PST.IsService, 0)
+		,i.IsKitAssy                        = PST.IsKitAssy
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

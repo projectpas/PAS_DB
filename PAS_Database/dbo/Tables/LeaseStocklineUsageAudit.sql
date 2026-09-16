@@ -1,0 +1,20 @@
+CREATE TABLE [dbo].[LeaseStocklineUsageAudit] (
+    [LeaseStocklineUsageAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [LeaseStocklineUsageId]      BIGINT          NULL,
+    [LeaseStocklineId]           BIGINT          NULL,
+    [CurrentTSNHours]            DECIMAL (18, 6) NULL,
+    [CurrentTSNMinutes]          DECIMAL (18, 6) NULL,
+    [CurrentTSNDate]             DATETIME2 (7)   NULL,
+    [CurrentCSNHours]            DECIMAL (18, 6) NULL,
+    [CurrentCSNMinutes]          DECIMAL (18, 6) NULL,
+    [CurrentCSNDate]             DATETIME2 (7)   NULL,
+    [LatestNotes]                NVARCHAR (MAX)  NULL,
+    [MasterCompanyId]            INT             NULL,
+    [CreatedBy]                  VARCHAR (256)   NULL,
+    [UpdatedBy]                  VARCHAR (256)   NULL,
+    [CreatedDate]                DATETIME2 (7)   NULL,
+    [UpdatedDate]                DATETIME2 (7)   NULL,
+    [IsActive]                   BIT             NULL,
+    [IsDeleted]                  BIT             NULL,
+    CONSTRAINT [PK_LeaseStocklineUsageAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineUsageAuditId] ASC)
+);

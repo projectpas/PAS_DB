@@ -10,6 +10,7 @@
     [CustomerRef]           VARCHAR (100)   NULL,
     [CustomerContactId]     BIGINT          NULL,
     [Email]                 VARCHAR (256)   NULL,
+    [Phone]                 VARCHAR (50)    NULL,
     [SalespersonEmployeeId] BIGINT          NULL,
     [LocalCurrencyId]       INT             NULL,
     [ForeignCurrencyId]     INT             NULL,

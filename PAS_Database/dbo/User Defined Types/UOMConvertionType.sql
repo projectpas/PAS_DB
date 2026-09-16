@@ -9,5 +9,6 @@
     [UpdatedDate]     DATETIME2 (7)   NULL,
     [IsActive]        BIT             NULL,
     [IsDeleted]       BIT             NULL,
-    [MasterCompanyId] INT             NULL);
+    [MasterCompanyId] INT             NULL,
+    [UOMFamilyTypeId] INT             NULL);
 

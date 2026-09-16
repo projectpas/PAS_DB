@@ -21,6 +21,9 @@
                                       or HH:MM conversion. ContractCycle now rounds to 2 decimals; ContractTime now
                                       renders as HH:MM - HH:MM to match the Add Item grid's Times (HH:MM) columns
     6    10-Sep-2026   Bhargav Saliya   [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+    7    14-Sep-2026   Amit Ghediya     Added LeaseType (joined from dbo.LeaseType, was only returning the unused
+                                        LeaseTypeId) so the new Angular "Lease Type" grid column can filter/sort -
+                                        added @LeaseType filter param and a LEASETYPE sort case
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
@@ -57,6 +60,7 @@ CREATE    PROCEDURE [dbo].[USP_LeaseHeaderList]
 	@StartDate datetime = NULL,
 	@EndDate datetime = NULL,
 	@LeaseStatus varchar(50) = NULL,
+	@LeaseType varchar(100) = NULL,
 	@IsDetailView bit = 0
 AS
 BEGIN
@@ -128,6 +132,7 @@ BEGIN
 			LeaseNumber            VARCHAR(50),
 			LeaseName              VARCHAR(200),
 			LeaseTypeId            INT,
+			LeaseType              VARCHAR(500),
 			LeaseStatusId          INT,
 			LeaseStatusName        VARCHAR(50),
 			CustomerName           VARCHAR(100),
@@ -161,6 +166,7 @@ BEGIN
 			   ,LH.LeaseNumber
 			   ,LH.LeaseName
 			   ,LH.LeaseTypeId
+			   ,ISNULL(LT.LeaseType,'')
 			   ,LH.LeaseStatusId
 			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
 			   ,C.Name
@@ -196,6 +202,7 @@ BEGIN
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
+				LEFT JOIN dbo.LeaseType LT WITH(NOLOCK) ON LT.LeaseTypeId = LH.LeaseTypeId AND LT.MasterCompanyId = LH.MasterCompanyId
 				LEFT JOIN dbo.LeaseStockline LSL WITH(NOLOCK) ON LSL.LeaseHeaderId = LH.LeaseHeaderId AND LSL.IsDeleted = 0
 				CROSS APPLY (
 					SELECT
@@ -216,6 +223,7 @@ BEGIN
 			   ,LH.LeaseNumber
 			   ,LH.LeaseName
 			   ,LH.LeaseTypeId
+			   ,ISNULL(LT.LeaseType,'')
 			   ,LH.LeaseStatusId
 			   ,CASE LH.LeaseStatusId WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END
 			   ,C.Name
@@ -245,6 +253,7 @@ BEGIN
 				FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 				LEFT JOIN dbo.Customer C WITH(NOLOCK) ON LH.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON LH.ManagementStructureId = MS.ManagementStructureId
+				LEFT JOIN dbo.LeaseType LT WITH(NOLOCK) ON LT.LeaseTypeId = LH.LeaseTypeId AND LT.MasterCompanyId = LH.MasterCompanyId
 				OUTER APPLY (
 					SELECT COUNT(1) AS PartCount, MIN(LSL2.StartDate) AS MinStartDate, MAX(LSL2.EndDate) AS MaxEndDate,
 						   MAX(LSL2.PN) AS AnyPN, MAX(LSL2.StartDate) AS AnyStartDate, MAX(LSL2.EndDate) AS AnyEndDate
@@ -269,7 +278,8 @@ BEGIN
 					(BillingFrequency LIKE '%' +@GlobalFilter+'%') OR
 					(ContractCycle LIKE '%' +@GlobalFilter+'%') OR
 					(ContractTime LIKE '%' +@GlobalFilter+'%') OR
-					(LeaseStatusName LIKE '%' +@GlobalFilter+'%'))) OR
+					(LeaseStatusName LIKE '%' +@GlobalFilter+'%') OR
+					(LeaseType LIKE '%' +@GlobalFilter+'%'))) OR
 					(ISNULL(@GlobalFilter,'')='' AND (ISNULL(@LeaseNumber,'') ='' OR LeaseNumber LIKE '%' + @LeaseNumber+'%') AND
 					(ISNULL(@LeaseName,'') ='' OR LeaseName LIKE '%' + @LeaseName + '%') AND
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
@@ -289,7 +299,8 @@ BEGIN
 					(ISNULL(@ContractTime,'') ='' OR ContractTime LIKE '%' + @ContractTime + '%') AND
 					(ISNULL(@StartDate,'') ='' OR CAST(StartDate AS date)=CAST(@StartDate AS date)) AND
 					(ISNULL(@EndDate,'') ='' OR CAST(EndDate AS date)=CAST(@EndDate AS date)) AND
-					(ISNULL(@LeaseStatus,'') ='' OR LeaseStatusName LIKE '%' + @LeaseStatus + '%'))
+					(ISNULL(@LeaseStatus,'') ='' OR LeaseStatusName LIKE '%' + @LeaseStatus + '%') AND
+					(ISNULL(@LeaseType,'') ='' OR LeaseType LIKE '%' + @LeaseType + '%'))
 				   )
 
 			SELECT @Count = COUNT(LeaseHeaderId) FROM #TempResult
@@ -322,6 +333,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ACSECTION')  THEN AcSection END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='STATUS')  THEN LeaseStatusId END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS')  THEN LeaseStatusId END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='LEASETYPE')  THEN LeaseType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LEASETYPE')  THEN LeaseType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='STOCKLINENUM')  THEN StocklineNum END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINENUM')  THEN StocklineNum END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='BILLINGMETHOD')  THEN BillingMethod END ASC,

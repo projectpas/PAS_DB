@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_GetLotList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot Listing 
@@ -16,6 +16,7 @@
 	4    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5    23/July/2026 RAJESH GAMI    [PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 	6    25/Aug/2026 RAJESH GAMI    [PN-17745] Ported from PAS_DB - TransferredInCost SUM subquery now also recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') so stocklines created via "Create Stockline from Lot" are still included/calculated correctly.
+	7    06/08/2026		 Nakul Chnadigra		Added status Filter [PN-17566]
 **************************************************************
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
@@ -221,7 +222,11 @@ BEGIN
 			INNER JOIN dbo.LotDetail LD WITH(NOLOCK) on LT.LotId = LD.LotId
 			INNER JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LT.[LotStatusId] = S.[LotStatusId]
 			LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LT.ConsignmentId = LC.ConsignmentId
-		 	WHERE ISNULL(LT.IsDeleted,0) = 0 AND ISNULL(LT.IsActive,1) = 1 And Lt.MasterCompanyId = @MasterCompanyId
+		 	WHERE ISNULL(LT.IsDeleted,0) = 0
+			  AND ISNULL(LT.IsActive,1) = 1
+			  AND LT.MasterCompanyId = @MasterCompanyId
+			  AND (UPPER(ISNULL(@StatusName, 'Open')) = 'ALL'
+			       OR UPPER(S.StatusName) = UPPER(ISNULL(@StatusName, 'Open')))
 		)
 		/*
 		 * Result2: compute RemainingCost from the intermediate columns, then drop them.

@@ -4780,6 +4780,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

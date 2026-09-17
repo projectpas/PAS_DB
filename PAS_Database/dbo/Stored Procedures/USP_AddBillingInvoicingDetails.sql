@@ -38,6 +38,8 @@
 	25   14/07/2026   Bhargav saliya    Revert Changes For Part Cost [PN-16986]
 	26   24/08/2026   Kishor Makwana [PN-17763] - Update BillingInvoicingItems.ShippingId based on the SalesOrderPart + Stockline + PickTicket chain (added to both the new-invoice and existing-invoice INSERT paths for SO).
 	27   15/09/2026   Kishor Makwana PN-17925 - Create Sales Order Billing then Some Time @InvoiceTypeId is 0.
+	28   17/09/2026   Vishal Suthar  Fixed BillingInvoicing.InvoiceDate always saved as current date (@CreatedDate) instead of the user-selected @InvoiceDate
+
 -- EXEC USP_AddBillingInvoicingDetails
 ************************************************************************/  
   
@@ -415,7 +417,7 @@ BEGIN
 				   ,[Notes],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
 				   ,[IsActive],[IsDeleted],[IsReversedJE],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate],[SyncToken]
 				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId],OriginCountryId,ShipToCountryId,SignEmpId,SignEmpDate)		 
-			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
+			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @InvoiceDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, 
 					 --@IsVersionIncrease, 

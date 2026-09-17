@@ -186,7 +186,7 @@ BEGIN
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
 					AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)					  
-					AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+					AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 					AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 					AND wop.[IsDeleted] = 0 
 					ORDER BY [ID]						   				
@@ -194,7 +194,8 @@ BEGIN
 				ELSE
 				BEGIN
 					IF(@AllowInvoiceBeforeShipping = 1)
-					BEGIN					
+					BEGIN
+						
 						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
 																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
 																	    CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
@@ -214,7 +215,7 @@ BEGIN
 						LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)				  
-						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
@@ -241,7 +242,7 @@ BEGIN
 						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)				
-						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
@@ -310,7 +311,7 @@ BEGIN
 				SELECT @WorkFlowWorkOrderId = (SELECT TOP 1 [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @ID)
 
 				IF(ISNULL(@IsCreatedFromQuote,0) = 0)
-				BEGIN				
+				BEGIN	
 					SELECT TOP 1
 				  		   @PartNumber = CASE WHEN wop.[RevisedPartNumber] IS NOT NULL AND wop.[RevisedPartNumber] <> '' THEN wop.[RevisedPartNumber] ELSE im.[PartNumber] END,
 						   @ManufacturerName = im.[ManufacturerName],

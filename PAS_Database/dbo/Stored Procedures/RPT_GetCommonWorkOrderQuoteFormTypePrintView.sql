@@ -21,12 +21,14 @@
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
 	6    05-MAR-2025   RAJESH GAMI			Sequence Number Change
 	7	 20-JAN-2026   Rajesh Gami			Fixed the sequence number issue 
+	8	 11-SEP-2026   SUMIT KUMAR 			Return one row per task instruction image for print (PN-17814)
 RPT_GetCommonWorkOrderQuoteFormTypePrintView 12211, 10124, 12684
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonWorkOrderQuoteFormTypePrintView]
 	@WorkorderId BIGINT = 0,
 	@WorkOrderQuoteId BIGINT = 0,
-	@workOrderPartNoId bigint = 0
+	@workOrderPartNoId bigint = 0,
+	@ApiBaseUrl VARCHAR(500) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -35,6 +37,10 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+				-- [PN-17814] Base URL for task instruction images; trailing slash removed
+				DECLARE @ImageBaseUrl VARCHAR(500) = LTRIM(RTRIM(ISNULL(@ApiBaseUrl, '')));
+				IF RIGHT(@ImageBaseUrl, 1) = '/'
+					SET @ImageBaseUrl = LEFT(@ImageBaseUrl, LEN(@ImageBaseUrl) - 1);
 				
 				;WITH CTE AS (
 					SELECT 
@@ -141,9 +147,70 @@ BEGIN
 					ChildInspectorUpdatedDate,
 					PrintInWO,
 					PrintInWOQ,
-					SrNo
-				FROM RecursiveCTE
-				ORDER BY SequenceNumberSort;
+				SrNo,
+				SequenceNumberSort
+			INTO #TMPTaskInstructionData
+			FROM RecursiveCTE;
+
+			-- [PN-17814] One row per task instruction image so the report can repeat an image
+			-- block under each instruction. Instructions with no images still return one row.
+			SELECT
+				F.WorkOrderTaskId,
+				F.WorkOrderId,
+				F.WorkOrderPartNumberId,
+				F.WorkFlowWorkOrderId,
+				F.TaskId,
+				F.SequenceNumber,
+				F.OpenDate,
+				F.OpenBy,
+				F.IsIncludeInPrint,
+				F.HasInstruction,
+				F.TaskName,
+				F.TechId,
+				F.TechName,
+				F.TechUpdatedDate,
+				F.InspectorId,
+				F.InspectorName,
+				F.InspectorUpdatedDate,
+				F.Descrepancy,
+				F.Resolution,
+				F.MasterCompanyId,
+				F.CreatedBy,
+				F.CreatedDate,
+				F.UpdatedBy,
+				F.UpdatedDate,
+				F.WorkOrderTaskInstructionId,
+				F.ParentId,
+				F.IsParent,
+				F.InstructionTitle,
+				F.ChildSequenceNumber,
+				F.InstructionDetails,
+				F.ChildTechId,
+				F.ChildTechName,
+				F.ChildTechUpdatedDate,
+				F.ChildInspectorId,
+				F.ChildInspectorName,
+				F.ChildInspectorUpdatedDate,
+				F.PrintInWO,
+				F.PrintInWOQ,
+				F.SrNo,
+				ISNULL(IMG.WorkOrderTaskInstructionImageId, 0) AS WorkOrderTaskInstructionImageId,
+				ISNULL(IMG.[FileName], '') AS InstructionImageFileName,
+				-- NULL (not '') when there is no image: SSRS rejects an empty string as ImageData
+				CASE
+					WHEN IMG.WorkOrderTaskInstructionImageId IS NULL THEN NULL
+					WHEN @ImageBaseUrl = '' THEN NULL
+					WHEN ISNULL(IMG.[Link], '') = '' THEN NULL
+					ELSE @ImageBaseUrl + '/api/FileUpload/viewattachedfile?filePath='
+						+ REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IMG.[Link], '%', '%25'), ' ', '%20'), '#', '%23'), '&', '%26'), '+', '%2B')
+				END AS InstructionImageUrl
+			FROM #TMPTaskInstructionData F
+			LEFT JOIN [dbo].[WorkOrderTaskInstructionImage] IMG WITH (NOLOCK)
+				ON IMG.WorkOrderTaskInstructionId = F.WorkOrderTaskInstructionId
+				AND IMG.MasterCompanyId = F.MasterCompanyId
+				AND IMG.IsActive = 1
+				AND IMG.IsDeleted = 0
+			ORDER BY F.SequenceNumberSort, F.WorkOrderTaskInstructionId, IMG.WorkOrderTaskInstructionImageId;
 			END
 		COMMIT  TRANSACTION
 

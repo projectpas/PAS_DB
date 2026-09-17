@@ -24,12 +24,14 @@
 	7    03-MAR-2025   Vishal Suthar	Fixed an issue with sequence number
 	8	 27-Aug-2025   Moin Bloch		Added IsPrintAdmin flag
 	9	 20-JAN-2026   Rajesh Gami		Fixed the sequence number issue (PN-15220)
--- EXEC [USP_GetLaborMainTaskList] 9805,9807
+	10	 11-SEP-2026   SUMIT KUMAR		Return one row per task instruction image for traveler print (PN-17814)
+-- EXEC [USP_GetLaborMainTaskList] 9805,9807,'https://uatapp.poweraerosuites.com'
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_GetLaborMainTaskList]
  @WorkFlowWorkOrderId BIGINT,
- @WorkOrderId BIGINT
+ @WorkOrderId BIGINT,
+ @ApiBaseUrl VARCHAR(500) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -46,6 +48,11 @@ BEGIN
 				DECLARE @ItemMasterId AS BIGINT = 0;
 				DECLARE @IstravelerTask BIT =0
 			    DECLARE @highestSequence BIGINT =0, @IsWorkOrderFormType BIT =0;
+				-- [PN-17814] Base URL for task instruction images; trailing slash removed so the
+				-- download route can be appended directly. Blank when the caller supplies nothing.
+				DECLARE @ImageBaseUrl VARCHAR(500) = LTRIM(RTRIM(ISNULL(@ApiBaseUrl, '')));
+				IF RIGHT(@ImageBaseUrl, 1) = '/'
+					SET @ImageBaseUrl = LEFT(@ImageBaseUrl, LEN(@ImageBaseUrl) - 1);
                 
 				SELECT TOP 1 @WorkOrderPartId=WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId=@WorkFlowWorkOrderId
                 SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartId
@@ -236,7 +243,65 @@ BEGIN
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
 				ORDER BY SequenceNumberSort, WorkOrderTaskInstructionId;
-					SELECT * FROM #TMPFinalData ORDER BY SequenceNumberSort, WorkOrderTaskInstructionId ASC
+					-- [PN-17814] One row per instruction image so the traveler can repeat an image block
+					-- under each instruction. Instructions with no images still return a single row.
+					SELECT
+						F.TaskId,
+						F.TaskInstruction,
+						F.Task,
+						F.WorkOrderLaborId,
+						F.[Sequence],
+						F.HighestSequence,
+						F.WorkOrderTaskId,
+						F.WorkOrderId,
+						F.SequenceNumber,
+						F.TaskName,
+						F.TechId,
+						F.TechName,
+						F.TechUpdatedDate,
+						F.InspectorId,
+						F.InspectorName,
+						F.InspectorUpdatedDate,
+						F.Descrepancy,
+						F.Resolution,
+						F.MasterCompanyId,
+						F.WorkOrderTaskInstructionId,
+						F.ParentId,
+						F.IsParent,
+						F.InstructionTitle,
+						F.ChildSequenceNumber,
+						F.InstructionDetails,
+						F.ChildTechId,
+						F.ChildTechName,
+						F.ChildTechUpdatedDate,
+						F.ChildInspectorId,
+						F.ChildInspectorName,
+						F.ChildInspectorUpdatedDate,
+						F.SrNo,
+						F.IsWorkOrderFormType,
+						F.IsIncludeInPrint,
+						F.IsPrintInspector,
+						F.IsPrintTechnician,
+						F.IsPrintAdmin,
+						F.SequenceNumberSort,
+						ISNULL(IMG.WorkOrderTaskInstructionImageId, 0) AS WorkOrderTaskInstructionImageId,
+						ISNULL(IMG.[FileName], '') AS InstructionImageFileName,
+						-- NULL (not '') when there is no image: SSRS rejects an empty string as ImageData
+						CASE
+							WHEN IMG.WorkOrderTaskInstructionImageId IS NULL THEN NULL
+							WHEN @ImageBaseUrl = '' THEN NULL
+							WHEN ISNULL(IMG.[Link], '') = '' THEN NULL
+							-- Inline view route: renders in place, unlike the download route
+							ELSE @ImageBaseUrl + '/api/FileUpload/viewattachedfile?filePath='
+								+ REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IMG.[Link], '%', '%25'), ' ', '%20'), '#', '%23'), '&', '%26'), '+', '%2B')
+						END AS InstructionImageUrl
+					FROM #TMPFinalData F
+					LEFT JOIN [dbo].[WorkOrderTaskInstructionImage] IMG WITH (NOLOCK)
+						ON IMG.WorkOrderTaskInstructionId = F.WorkOrderTaskInstructionId
+						AND IMG.MasterCompanyId = F.MasterCompanyId
+						AND IMG.IsActive = 1
+						AND IMG.IsDeleted = 0
+					ORDER BY F.SequenceNumberSort, F.WorkOrderTaskInstructionId, IMG.WorkOrderTaskInstructionImageId ASC
 				 END
 				 ELSE
 				 BEGIN
@@ -279,6 +344,10 @@ BEGIN
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintTechnician,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintTechnician,
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintAdmin,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintAdmin
 					,0 as SequenceNumberSort
+					-- [PN-17814] Placeholders so both branches expose an identical field list to SSRS
+					,0 AS WorkOrderTaskInstructionImageId
+					,'' AS InstructionImageFileName
+					,CAST(NULL AS VARCHAR(1000)) AS InstructionImageUrl
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
 					INNER JOIN [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK)  ON wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					LEFT JOIN [dbo].[Task] T WITH(NOLOCK) ON T.TaskId= wl.TaskId

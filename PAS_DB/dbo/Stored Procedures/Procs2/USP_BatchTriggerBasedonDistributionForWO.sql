@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForWO]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used for BatchTrigger Based on Distribution For WO
@@ -25,16 +25,6 @@
 	14	 19/06/2026		Moin Bloch   		Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
-	15    17-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed CATCH block: 'IF @@trancount > 0' was missing a
-									BEGIN/END wrapper so ROLLBACK TRAN ran unconditionally even with no open
-									transaction. This SP is called nested inside
-									usp_IssueWorkOrderMaterialsStockline (during api/workOrder/saveissueparts);
-									its own broken ROLLBACK could zero out the shared @@TRANCOUNT before the
-									outer SP's CATCH ran, causing SQL error 3903 there. Wrapped the PRINT +
-									ROLLBACK TRAN in BEGIN/END. NOTE: a separate, pre-existing mid-body
-									'ROLLBACK TRAN;' (no RETURN after it) when no #tmpCodePrefixes row is found
-									for @CodeTypeId was identified but NOT changed - left for a follow-up
-									decision since it is a business-logic path, not a syntax bug.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
 (
@@ -3316,13 +3306,11 @@ BEGIN
 	END
 	COMMIT  TRANSACTION
 	END TRY    
-	BEGIN CATCH
+	BEGIN CATCH      
 		IF @@trancount > 0
-		BEGIN
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
-		END
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerBasedonDistributionForWO' 
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''

@@ -4379,7 +4379,6 @@
     <Build Include="dbo\Stored Procedures\Procs3\VendorShippingStatus.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\VerifiedItemMasterCapsByItemMasterAndWorkScope.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\WOAddPNPartSearchAutoCompleteDropdowns.sql" />
-    <Build Include="dbo\Stored Procedures\Procs3\WOQAddPNPartSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\WOPartSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\WorkOrderQuoteSummarizedHistoryByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\WorkOrderQuoteSummarizedHistoryByMPN.sql" />

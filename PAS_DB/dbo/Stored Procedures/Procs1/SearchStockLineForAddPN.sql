@@ -23,15 +23,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
-	9    17-Sep-2026			 RAJESH GAMI						[PN-17782] Added ISNULL(im.IsService,0) = 0 to the ItemMasterIdlist-driven
-										search block so Service-flagged parts' stocklines never appear in this "Add PN"
-										stockline search - Stock or Non-Stock physical parts only. The second block
-										(resolve-by-StocklineIdlist) is left unfiltered, matching the convention that
-										re-fetching already-selected rows by id is not re-scoped by type.
-	10   17-Sep-2026			 RAJESH GAMI						[PN-17782] Added ISNULL(sl.IsService,0) = 0 to the same block so the
-										Stockline-side IsService flag is also honored (ItemMaster-side alone was not
-										sufficient) - both Stock and Non-Stock stocklines are still allowed through.
-**************************************************************/
+**************************************************************/   
   
 CREATE   PROCEDURE [dbo].[SearchStockLineForAddPN]  
 @ItemMasterIdlist VARCHAR(max) = '0',   
@@ -237,12 +229,10 @@ ELSE sl.ConditionId
 		WHERE   
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
-			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-			AND sl.IsParent = 1
-			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
-			AND ISNULL(sl.IsService,0) = 0 -- [PN-17782] Non-service stocklines only
-
-	   --UNION
+			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
+			AND sl.IsParent = 1  
+	   
+	   --UNION  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],

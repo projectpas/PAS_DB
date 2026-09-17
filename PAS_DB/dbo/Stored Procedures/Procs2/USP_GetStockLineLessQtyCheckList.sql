@@ -17,9 +17,6 @@
 	2		09/July/2026		RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 	EXEC [USP_GetStockLineLessQtyCheckList] 3993, 3510, 1
-	3		17-Sep-2026		RAJESH GAMI			[PN-17782] Removed ISNULL(STK.IsNonStock,0)=0 exclusion filters (both blocks)
-								so Non-Stock stocklines are included, and added the matching
-								ISNULL(STK.IsService,0)=0 checks so only non-service stocklines appear.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetStockLineLessQtyCheckList]
 @WorkOrderId BIGINT,
@@ -76,7 +73,7 @@ BEGIN
 				WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOM.WorkOrderId = @WorkOrderId 
 						AND WOM.MasterCompanyId = @MasterCompanyId
-						AND (ISNULL(WOMS.Quantity,0 ) - (ISNULL(WOMS.QtyIssued, 0) + ISNULL(WOMS.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsService,0) = 0
+						AND (ISNULL(WOMS.Quantity,0 ) - (ISNULL(WOMS.QtyIssued, 0) + ISNULL(WOMS.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
 
 				--Inserting Materials StockLineKit Data 
 				INSERT INTO #TempStkLineList(PartNumber, PartDescription, StockLineId, StockLineNumber, ControlNumber, SerialNumber,
@@ -99,7 +96,7 @@ BEGIN
 				WHERE	WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOMK.WorkOrderId = @WorkOrderId 
 						AND WOMK.MasterCompanyId = @MasterCompanyId
-						AND (ISNULL(WOMSK.Quantity,0) - (ISNULL(WOMSK.QtyIssued, 0) + ISNULL(WOMSK.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsService,0) = 0
+						AND (ISNULL(WOMSK.Quantity,0) - (ISNULL(WOMSK.QtyIssued, 0) + ISNULL(WOMSK.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
 
 				SELECT * FROM #TempStkLineList;
 				

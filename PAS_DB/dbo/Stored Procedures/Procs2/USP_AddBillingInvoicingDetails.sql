@@ -32,6 +32,7 @@
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
 	20   18/08/2026   Kishor Makwana [PN-17439] -Not Proper Update IsVersionIncrease in BillingInvoicingItems.
 	21   24/08/2026   Kishor Makwana Update Shipping ID based on the Stockline ID and PickticktetID
+	22   17/09/2026   Vishal Suthar  Fixed BillingInvoicing.InvoiceDate always saved as current date (@CreatedDate) instead of the user-selected @InvoiceDate
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -400,7 +401,7 @@ BEGIN
 				   ,[Notes],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
 				   ,[IsActive],[IsDeleted],[IsReversedJE],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate],[SyncToken]
 				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId],OriginCountryId,ShipToCountryId,SignEmpId,SignEmpDate)		 
-			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
+			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @InvoiceDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, 
 					 @IsVersionIncrease, 

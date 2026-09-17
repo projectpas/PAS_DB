@@ -116,6 +116,7 @@
     [IsForCalibration]               BIT             NULL,
     [IsFromLease]                    BIT             NULL,
     [LeasePartId]                    BIGINT          NULL,
+    [IsGRNIAdjustment]               BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
 

@@ -11,7 +11,7 @@
 	6    19/06/2026		 Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 	7    09/July/2026		 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    20/July/2026		 RAJESH GAMI	[PN-17350] - PO Non-Stock branches now read DBO.Stockline (IsNonStock=1) instead of the legacy DBO.NonStockInventory table, which stopped receiving new rows after the PN-17009 merge - Non-Stock POs were invisible in this 'Select PO/RO' popup search. Also added matching Non-Stock branches for Repair Order (previously RO had no Non-Stock UNION arm at all, so Non-Stock RO parts could never be selected here either).
-	
+	9    15/Sept/2026		 Moin Bloch  	[PN-17914] - Added IsGRNIAdjustment flag PN-17914
 	EXEC GetReceivingReconciliationPopupData 1,10,NULL,-1,'',NULL,NULL,NULL,NULL,1,59
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPopupData]	
@@ -93,7 +93,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1  AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId  AND stk.IsParent=1 AND stk.RRQty > 0 --AND (pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId)
 								OUTER APPLY (
 									SELECT 
@@ -126,7 +126,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 							FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId  AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND (pop.ParentId = stk.PurchaseOrderPartRecordId) and stk.IsParent=1 AND stk.RRQty > 0
 								OUTER APPLY (
 									SELECT 
@@ -158,7 +158,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 							FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1  AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0
 								OUTER APPLY (
 									SELECT 
@@ -190,7 +190,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1  AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.RRQty > 0
 								OUTER APPLY (
 									SELECT 
@@ -222,7 +222,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1  AND ISNULL(POP.[IsPiecePart], 0) = 0--AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1  AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 								OUTER APPLY (
 									SELECT 
@@ -254,7 +254,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0--AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 AND ISNULL(stk.IsNonStock,0) = 1 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 								OUTER APPLY (
 									SELECT 
@@ -286,7 +286,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 								INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
 								OUTER APPLY (
 									SELECT 
@@ -356,7 +356,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId  AND stk.IsParent=1 AND stk.RRQty > 0 --AND (pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId)
 				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 				AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) 
@@ -373,7 +373,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND (pop.ParentId = stk.PurchaseOrderPartRecordId) and stk.IsParent=1 AND stk.RRQty > 0
 				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 		
@@ -388,7 +388,7 @@ BEGIN
 								1 AS 'Type',		
 								0 AS IsSelected 
 							FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0
 				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @NonStockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 1
 		
@@ -403,7 +403,7 @@ BEGIN
 								1 as 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.RRQty > 0
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 		
@@ -418,7 +418,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 		
@@ -433,7 +433,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 AND ISNULL(stk.IsNonStock,0) = 1 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @NonStockTypeId AND po.MasterCompanyId = @MasterCompanyId
 		
@@ -448,7 +448,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 				INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 			), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)

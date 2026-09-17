@@ -20,6 +20,7 @@
     9    03/06/2026   Ayushi Patel      [PN-16697]Added generic BIT column filter support to handle boolean field filtering (true/false/yes/no/1/0).False/0/no also returns NULL values for BIT columns.
     10	 02/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Sequence ASC) (PN-17106)
     10	 06/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Description ASC) (PN-17106)
+    11	 17/09/2026   Aayushi Patel		[PN-17906] For UnitOfMeasure, resolve UOMFamilyTypeId to the family type's Name in the list output (was showing the raw FK id)
 
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
@@ -143,9 +144,15 @@ BEGIN
     END
 
     DECLARE @SelectColumns AS VARCHAR(MAX)
-    SELECT @SelectColumns = SUBSTRING(ResultData, 1, LEN(ResultData) - 1) FROM 
-	(SELECT (SELECT 't.' + COLUMN_NAME + ',' FROM INFORMATION_SCHEMA.COLUMNS 
+    SELECT @SelectColumns = SUBSTRING(ResultData, 1, LEN(ResultData) - 1) FROM
+	(SELECT (SELECT 't.' + COLUMN_NAME + ',' FROM INFORMATION_SCHEMA.COLUMNS
 		WHERE TABLE_NAME = @PageName AND COLUMN_NAME NOT IN ('CreatedBy', 'UpdatedBy','CreatedDate','UpdatedDate') FOR XML PATH ('')) AS ResultData) AS TempData
+
+   
+    IF (@PageName = 'UnitOfMeasure' OR @PageName = 'vw_unitofmeasure')
+    BEGIN
+        SET @SelectColumns = REPLACE(@SelectColumns, 't.UOMFamilyTypeId', '(SELECT FT.Name FROM dbo.UOMFamilyType FT WITH(NOLOCK) WHERE FT.UOMFamilyTypeId = t.UOMFamilyTypeId AND FT.MasterCompanyId = t.MasterCompanyId) AS UOMFamilyTypeId')
+    END
 
     SET @Query = ';WITH Result AS(SELECT COUNT(1) OVER () AS NumberOfItems, ' + @SelectColumns + ', t.CreatedBy, t.UpdatedBy,(Cast(DBO.ConvertUTCtoLocal(t.CreatedDate,'''+@CurrntEmpTimeZoneDesc+''') as datetime)) CreatedDate,
 					(Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, '''+@CurrntEmpTimeZoneDesc+''') as datetime)) UpdatedDate

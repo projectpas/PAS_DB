@@ -13,6 +13,7 @@
 	2	05-May-2026          Rajesh Gami		 Set @Factor = NULL When it is 0 or blank
 	3	14-09-2026           Aayushi Patel       Added UOMFamilyTypeId (PN-17906)
 	4	14-09-2026           Aayushi Patel       Added joined [Type] (UOMFamilyType.Name) for grid display (PN-17906)
+	5	17-09-2026           Aayushi Patel       Added @Type parameter, wired into global/column filter and ORDER BY so search/sort works for the Type column (PN-17906)
 exec dbo.USP_GetUomSetup @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@FromUOM=NULL,@ToUOM=NULL,@Factor=0,@CreatedBy=NULL,@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2
 **********************/
 CREATE   PROCEDURE [dbo].[USP_GetUomSetup]
@@ -24,6 +25,7 @@ CREATE   PROCEDURE [dbo].[USP_GetUomSetup]
 @FromUOM VARCHAR(100) = NULL,
 @ToUOM VARCHAR(100) = NULL,
 @Factor VARCHAR(100) = NULL,
+@Type VARCHAR(100) = NULL,
 @CreatedBy VARCHAR(100) = NULL,
 @UpdatedBy VARCHAR(100) = NULL,
 @CreatedDate DATETIME = NULL,
@@ -102,6 +104,7 @@ BEGIN
                     OR ToUOM LIKE '%' + @GlobalFilter + '%'
                     OR CreatedBy LIKE '%' + @GlobalFilter + '%'
                     OR UpdatedBy LIKE '%' + @GlobalFilter + '%'
+                    OR [Type] LIKE '%' + @GlobalFilter + '%'
                 ))
             OR
             (
@@ -113,6 +116,7 @@ BEGIN
                 AND (ISNULL(@UpdatedBy,'') = '' OR UpdatedBy LIKE '%' + @UpdatedBy + '%')
                 AND (@CreatedDate IS NULL OR CAST(CreatedDate AS DATE) = @CreatedDate)
                 AND (@UpdatedDate IS NULL OR CAST(UpdatedDate AS DATE) = @UpdatedDate)
+                AND (ISNULL(@Type,'') = '' OR [Type] LIKE '%' + @Type + '%')
             )
         ),
         ResultCount AS
@@ -156,7 +160,10 @@ BEGIN
             CASE WHEN @SortColumn = 'UPDATEDBY' AND @SortOrder = -1 THEN UpdatedBy END DESC,
 
             CASE WHEN @SortColumn = 'UPDATEDDATE' AND @SortOrder = 1  THEN UpdatedDate END ASC,
-            CASE WHEN @SortColumn = 'UPDATEDDATE' AND @SortOrder = -1 THEN UpdatedDate END DESC
+            CASE WHEN @SortColumn = 'UPDATEDDATE' AND @SortOrder = -1 THEN UpdatedDate END DESC,
+
+            CASE WHEN @SortColumn = 'TYPE' AND @SortOrder = 1  THEN [Type] END ASC,
+            CASE WHEN @SortColumn = 'TYPE' AND @SortOrder = -1 THEN [Type] END DESC
 
         OFFSET @Offset ROWS
         FETCH NEXT @PageSize ROWS ONLY;

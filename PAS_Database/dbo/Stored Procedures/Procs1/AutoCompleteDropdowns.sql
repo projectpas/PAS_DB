@@ -49,6 +49,7 @@
     28   31/July/2026  Ayushi Patel         [PN-17489][Item Accounting Type filter] Added dedicated @TableName='InventoryGLSetting'(IsStock=1) and @TableName='InventoryGLSettingNonStock' (IsStock=0)
 	32   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 	33   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	34   17-Sep-2026   Ayushi Patel      [PN-17906] Added dedicated @TableName='UnitOfMeasure' branch returning UOMFamilyTypeId + resolved family Name, used by UOM Conversion (Parameter4=1) and Item Master (Parameter4=0) autocomplete dropdowns.
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -332,7 +333,29 @@ AS BEGIN
             BEGIN 
                 SELECT DISTINCT [Id] AS Value, [Number] AS Label
                 FROM [DBO].[NumberOfEngines] WITH(NOLOCK)
-                ORDER BY [Id] ASC 
+                ORDER BY [Id] ASC
+            END
+            ELSE IF(@TableName='UnitOfMeasure')
+            BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT UOM.[UnitOfMeasureId] AS Value, UOM.[ShortName] AS Label, UOM.[UOMFamilyTypeId], FT.[Name] AS [UOMFamilyTypeName]
+                    FROM [DBO].[UnitOfMeasure] UOM WITH(NOLOCK)
+                    LEFT JOIN [DBO].[UOMFamilyType] FT WITH(NOLOCK) ON FT.[UOMFamilyTypeId] = UOM.[UOMFamilyTypeId] AND FT.[MasterCompanyId] = UOM.[MasterCompanyId]
+                    WHERE UOM.[MasterCompanyId] = @MasterCompanyId AND ISNULL(UOM.IsActive, 1)=1 AND ISNULL(UOM.IsDeleted, 0)=0 AND UOM.[ShortName] LIKE '%'+@Parameter3+'%'
+                    UNION
+                    SELECT DISTINCT UOM.[UnitOfMeasureId] AS Value, UOM.[ShortName] AS Label, UOM.[UOMFamilyTypeId], FT.[Name] AS [UOMFamilyTypeName]
+                    FROM [DBO].[UnitOfMeasure] UOM WITH(NOLOCK)
+                    LEFT JOIN [DBO].[UOMFamilyType] FT WITH(NOLOCK) ON FT.[UOMFamilyTypeId] = UOM.[UOMFamilyTypeId] AND FT.[MasterCompanyId] = UOM.[MasterCompanyId]
+                    WHERE UOM.[MasterCompanyId] = @MasterCompanyId AND UOM.[UnitOfMeasureId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                    ORDER BY Label
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT UOM.[UnitOfMeasureId] AS Value, UOM.[ShortName] AS Label, UOM.[UOMFamilyTypeId], FT.[Name] AS [UOMFamilyTypeName]
+                    FROM [DBO].[UnitOfMeasure] UOM WITH(NOLOCK)
+                    LEFT JOIN [DBO].[UOMFamilyType] FT WITH(NOLOCK) ON FT.[UOMFamilyTypeId] = UOM.[UOMFamilyTypeId] AND FT.[MasterCompanyId] = UOM.[MasterCompanyId]
+                    WHERE UOM.[MasterCompanyId] = @MasterCompanyId AND ISNULL(UOM.IsActive, 1)=1 AND ISNULL(UOM.IsDeleted, 0)=0
+                    ORDER BY Label
+                END
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN

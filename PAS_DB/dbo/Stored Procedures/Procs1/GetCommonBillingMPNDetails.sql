@@ -804,20 +804,20 @@ BEGIN
 
 		/********** Final Get Query From the Temp Table *************/
 		SELECT  ROW_NUMBER() OVER (PARTITION BY SubReferenceId ORDER BY PKID) AS RowNum,* INTO #TempWithRowNum FROM #TempCommonPartNumberDetailsForBilling;
-		IF(@ModuleId = @SOModuleId)
-		BEGIN
-			UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
-									   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE RowNum > 1
+		--IF(@ModuleId = @SOModuleId)
+		--BEGIN
+		--	UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
+		--							   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE RowNum > 1
 
-			Update #TempWithRowNum SET SalesTaxAmount = CASE WHEN SalesTax > 0 THEN (SalesTax / 100.00) * TotalCost ELSE 0 END, OtherTaxAmount = CASE WHEN OtherTax > 0 THEN (OtherTax / 100.00) * TotalCost ELSE 0 END WHERE RowNum > 1
+		--	Update #TempWithRowNum SET SalesTaxAmount = CASE WHEN SalesTax > 0 THEN (SalesTax / 100.00) * TotalCost ELSE 0 END, OtherTaxAmount = CASE WHEN OtherTax > 0 THEN (OtherTax / 100.00) * TotalCost ELSE 0 END WHERE RowNum > 1
 
-			UPDATE #TempWithRowNum SET GrandTotal = TotalCost + SalesTaxAmount + OtherTaxAmount  WHERE RowNum > 1
+		--	UPDATE #TempWithRowNum SET GrandTotal = TotalCost + SalesTaxAmount + OtherTaxAmount  WHERE RowNum > 1
 
-			IF (@MasterCompanyId <> 12) -- For Safety Aero
-			BEGIN
-				DELETE FROM #TempWithRowNum WHERE InvoiceStatusName = 'INVOICED'
-			END
-		END
+		--	IF (@MasterCompanyId <> 12) -- For Safety Aero
+		--	BEGIN
+		--		DELETE FROM #TempWithRowNum WHERE InvoiceStatusName = 'INVOICED'
+		--	END
+		--END
 		SELECT * FROM #TempWithRowNum
 	  --SELECT *  FROM #TempCommonPartNumberDetailsForBilling
 	

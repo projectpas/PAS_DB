@@ -186,7 +186,7 @@ BEGIN
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
 					AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)					  
-					AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+					AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 					AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 					AND wop.[IsDeleted] = 0 
 					ORDER BY [ID]						   				
@@ -214,7 +214,7 @@ BEGIN
 						LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)					  
-						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
@@ -241,7 +241,7 @@ BEGIN
 						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)					
-						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
@@ -267,7 +267,7 @@ BEGIN
 			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 				WHERE wop.[WorkOrderId] = @ReferenceId 
-				  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
+				  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR (ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId OR ISNULL(bi.InvoiceStatusId, -1) = @InvoiceStatusId))
 				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 				  AND wop.[IsDeleted] = 0 
 				ORDER BY [ID]	

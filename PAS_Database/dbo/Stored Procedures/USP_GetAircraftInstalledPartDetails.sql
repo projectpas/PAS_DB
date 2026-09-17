@@ -42,6 +42,7 @@
                                         row, whether it's an aircraft- or engine-installed component.
    26   27/07/2026   Amit Ghediya		Get Worksheet from mapping table [PN-17396]
    27   09/08/2026   Kishor Makwana		[PN-17374]  Added case for RemainingTimeDayMonth column
+	28   15-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 *******/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -308,9 +309,9 @@ BEGIN
 					(Model LIKE '%' +@GlobalFilter+'%') OR
 					(TailNum LIKE '%' +@GlobalFilter+'%') OR
 					(SerialNum LIKE '%' +@GlobalFilter+'%') OR
-					([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([PartNumber] LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(SequenceNum LIKE '%' +@GlobalFilter+'%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(AtaChapter LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%') OR
@@ -335,9 +336,9 @@ BEGIN
 					(ISNULL(@Model,'') ='' OR [Model] LIKE '%' + @Model+'%') AND
 					(ISNULL(@TailNum,'') ='' OR [TailNum] LIKE '%' + @TailNum+'%') AND
 					(ISNULL(@SerialNum,'') ='' OR [SerialNum] LIKE '%' + @SerialNum+'%') AND
-					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber([PartNumber]) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@SequenceNum,'') ='' OR SequenceNum LIKE '%' + @SequenceNum + '%') AND
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND	
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@AtaChapter,'') ='' OR AtaChapter LIKE '%' + @AtaChapter + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND

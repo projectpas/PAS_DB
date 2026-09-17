@@ -17,6 +17,7 @@
     2    07/11/2024  Ekta Chandegra     Remove Static parameter value and add Isnull for IsDeleted field
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
+	5   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 --exec [dbo].[AutoCompleteDropdownsItemPriceMaster] @SearchText=N'13',@MasterCompanyId=1
 ************************************************************************/
 
@@ -33,7 +34,7 @@ AS BEGIN
 		LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON IM.ItemMasterId  = IMPS.ItemMasterId
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = IM.ManufacturerId
 		WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0 AND
-		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(IM.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@SearchText, '-', ''), '/', ''), '_', ''), '\', '') + '%')
+		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%' OR dbo.fn_NormalizePartNumber(IM.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@SearchText) + '%')
 	 AND ISNULL(IM.IsNonStock,0) = 0
 	END TRY
 	BEGIN CATCH

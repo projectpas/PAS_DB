@@ -27,6 +27,7 @@
 										 -- ItemMasterStockTypeEnum.Stock" left in. Removed the remaining 6 filters so Non-Stock
 										 parts can surface through all search paths, not just the dedicated Non-Stock branch.
 	10  08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
+	11   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -93,7 +94,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
@@ -117,7 +118,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsPma  =  1	AND IsDER = 0
         END
 			
@@ -142,7 +143,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsDER  = 1	
         END
 
@@ -166,7 +167,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsPma  =  1	AND IsDER = 0
 		END 
 
@@ -190,7 +191,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsDER  = 1	
 		END 
 
@@ -220,7 +221,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@partSarchText) +'%')
 
 		--Adding DER Except Parts
 		 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType, ItemType)
@@ -248,7 +249,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@partSarchText) +'%')
 
 		--Adding Non-Stock Parts (independent of OEM/PMA/DER classification - that pedigree
 		--classification does not apply to Non-Stock items). Only run for the plain/default
@@ -275,7 +276,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND ISNULL(im.IsNonStock,0) = 1
 			AND NOT EXISTS (SELECT 1 FROM #TempTable ExistingTT WHERE ExistingTT.PartId = im.ItemMasterId)
 		--END

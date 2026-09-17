@@ -10,7 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
-	
+	2	14-09-2026           Aayushi Patel       Added UOMFamilyTypeId (PN-17906)
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateUOMConvertion]
 @tblType_UOMConvertion UOMConvertionType READONLY,
@@ -36,7 +37,8 @@ SELECT [UOMConversionId],
        [UpdatedDate],
        [IsActive],
        [IsDeleted],
-       [MasterCompanyId]
+       [MasterCompanyId],
+       [UOMFamilyTypeId]
 INTO #ColumnData
 FROM @tblType_UOMConvertion
 
@@ -61,11 +63,12 @@ BEGIN
 
         UPDATE T
         SET
-            T.FromUOM       = C.FromUOM,
-            T.ToUOM         = C.ToUOM,
-            T.Factor        = C.Factor,
-            T.UpdatedBy     = C.UpdatedBy,
-            T.UpdatedDate   = GETUTCDATE()
+            T.FromUOM         = C.FromUOM,
+            T.ToUOM           = C.ToUOM,
+            T.Factor          = C.Factor,
+            T.UpdatedBy       = C.UpdatedBy,
+            T.UpdatedDate     = GETUTCDATE(),
+            T.UOMFamilyTypeId = C.UOMFamilyTypeId
         FROM dbo.UOMConversion T
         INNER JOIN #ColumnData C
         ON T.UOMConversionId = @UOMConversionId
@@ -102,7 +105,8 @@ BEGIN
             [UpdatedDate],
             [IsActive],
             [IsDeleted],
-            [MasterCompanyId]
+            [MasterCompanyId],
+            [UOMFamilyTypeId]
         )
         SELECT
             [FromUOM],
@@ -116,7 +120,8 @@ BEGIN
             GETUTCDATE(),
             [IsActive],
             [IsDeleted],
-            [MasterCompanyId]
+            [MasterCompanyId],
+            [UOMFamilyTypeId]
         FROM #ColumnData
 
     END

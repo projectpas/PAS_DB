@@ -4443,6 +4443,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTypeData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetNonStockDataByPartID.sql" />
     <Build Include="dbo\Tables\UOMConversion.sql" />
+    <Build Include="dbo\Tables\UOMFamilyType.sql" />
+    <Build Include="dbo\Tables\UOMFamilyTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_UOMFamilyTypeAudit.sql" />
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
@@ -4773,6 +4776,12 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
     <Build Include="dbo\Tables\LeaseRateUnit.sql" />
     <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

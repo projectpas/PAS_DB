@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:     [sp_UpdatePurchaseOrderDetail_BulkPO]           
  ** Author:	   
  ** Description:
@@ -16,6 +16,7 @@
 	2		11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected Non-Stock branch's PartNumber/PartDescription lookup from legacy dbo.ItemMasterNonStock (aliased IMN) to unified dbo.ItemMaster (aliased IMNS, ON POP.ItemMasterId = IMNS.ItemMasterId), mirroring the equivalent fix already applied in sp_UpdatePurchaseOrderDetail.
+	5    16/Sep/2026			 SAHDEV SALIYA						[PN-17885] - Fixed SalesOrder PONumber/PONextDlvrDate update target: was UPDATE dbo.SalesOrderPart (legacy table, not joined), left the join on SalesOrderPartV1 writing nothing back to Edit Sales Order's Parts List. Changed target to dbo.SalesOrderPartV1 to match sp_UpdatePurchaseOrderDetail.
 --- exec sp_UpdatePurchaseOrderDetail  214
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
@@ -98,9 +99,9 @@ BEGIN
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.SubWorkOrderId > 0 
 
-		UPDATE dbo.SalesOrderPart
-		SET 
-		--Qty = POP.QuantityOrdered, 
+		UPDATE dbo.SalesOrderPartV1
+		SET
+		--Qty = POP.QuantityOrdered,
 		PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderId = POP.SalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId

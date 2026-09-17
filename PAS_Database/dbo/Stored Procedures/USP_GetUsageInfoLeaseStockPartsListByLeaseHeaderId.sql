@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId]
  ** Description: Returns the reserved-only LeaseStockline list for the "Usage Info"
  **              tab (only stocklines with QtyReserved > 0 are eligible for usage
@@ -12,16 +12,14 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    15/09/2026     Amit Ghediya            Created
-    2    15/09/2026     Amit Ghediya            Added LatestNotes (from
-                                                 LeaseStocklineUsage, via the same
-                                                 join already used for HasUsageInfo)
-                                                 so the most recent note is
-                                                 available to show on this list if
-                                                 a FieldMaster column is added later
+    2    15/09/2026     Amit Ghediya            Added LatestNotes (from LeaseStocklineUsage, via the same join already used for HasUsageInfo) so the most recent note is available to show on this list if a FieldMaster column is added later
+    3    16/09/2026     Kishor Makwana         [PN-17933] LeaseStocklineUsage.LatestNotes was split into LatestTimeNotes/ LatestCycleNotes (Time and Cycle are now independent) - aliased LatestTimeNotes back to LatestNotes so this proc's result shape (and the C# DTO it feeds) is unchanged
+    4    16/09/2026     Kishor Makwana         [PN-17933] Added LSL.IsActive so the Usage Info list can tell the UI which rows are an active lease component (usage can only be recorded against one) instead of relying on the LeaseHeader's overall status, which is the wrong granularity for this check
+    5    16/09/2026     Kishor Makwana         [PN-17933] Added LSL.LeaseStatusId - the "Add Usage Information" enable/disable check was still using the Lease Header's LeaseStatusId (wrong granularity); it needs each line's OWN LeaseStatusId (Draft/Active/ Closed - the same value shown in the "Status" column on the Add Item tab)
 
 exec USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId]
+CREATE       PROCEDURE [dbo].[USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -40,8 +38,10 @@ BEGIN
 			SLIVE.SerialNumber,
 			LSL.BillingMethod,
 			LSL.BillingInterval,
-			U.LatestNotes,
-			CASE WHEN U.LeaseStocklineUsageId IS NOT NULL THEN 1 ELSE 0 END AS HasUsageInfo
+			U.LatestTimeNotes AS LatestNotes,
+			CASE WHEN U.LeaseStocklineUsageId IS NOT NULL THEN 1 ELSE 0 END AS HasUsageInfo,
+			LSL.IsActive,
+			LSL.LeaseStatusId
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = LSL.ItemMasterId
 		LEFT JOIN [dbo].[Condition] C WITH (NOLOCK) ON C.ConditionId = LSL.ConditionId

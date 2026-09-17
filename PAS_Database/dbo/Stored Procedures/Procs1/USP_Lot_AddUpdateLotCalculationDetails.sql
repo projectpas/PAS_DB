@@ -28,6 +28,12 @@
     6   14-Aug-2026   RAJESH GAMI      PN-17673 : Update LOT Commission Cost Calculation for Multiple Commission Methods (% Of Revenue, % Of Margin OR Fixed Commision Amount)
 	7   25-Aug-2026  RAJESH GAMI      [PN-17745] Ported from PAS_DB - Recognizes the new 'Turn In' type (in addition to 'Trans In (Lot)') in the insert-allowlist gate and the Stockline.LOTQty/IsLotAssigned update gate, so stocklines created via "Create Stockline from Lot" are still included/displayed/calculated correctly.
 	8   27-Aug-2026  RAJESH GAMI      [PN-17799] Ported from other branch - stores HowCalculate (same label logic as the Commission tab in USP_Lot_GetAllLotViewsByLotId_Filter) on the 'Trans Out (SO)' row. Also: @Qty/@QtyLot/@LastQty were still INT - this branch's LotCalculationDetails.Qty (and #tmpLotCalculationDetailsType.Qty) is DECIMAL(18,6), so these were retyped to DECIMAL(18,6) to stop silently truncating fractional quantities.
+	9   15-Sep-2026   RAJESH GAMI      [PN-17908], While POST SO Invoice stockline's RepairOrderUnitCost no need to update (It should be as it is)
+	10  16-Sep-2026   RAJESH GAMI      [PN-17881] Added RevenuePercentId, FixedAmount, RevenueConsignorPercentId, MarginPercentId,
+									   MarginConsignorPercentId, ConsigneeTypeId, ConsigneeId to LotCalculationDetails - mirrored from
+									   LotConsignment (IsRevenue/IsMargin/IsFixedAmount already existed) and populated at
+									   UPPER(@Type) = UPPER('Trans Out (SO)'). FixedAmount is DECIMAL(18,6), matching this table's
+									   existing convention (and LotConsignment.PerAmount, which is already DECIMAL(18,6) here).
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -59,6 +65,9 @@ BEGIN
 		DECLARE @ConsignmentRevenuePercent DECIMAL(18,2),@ConsignmentMarginPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot DECIMAL(18,6) = 0; -- [PN-17799] @QtyLot was INT; Qty is DECIMAL(18,6) on this branch
 		-- [PN-17799] HowCalculate label (same logic as the Commission tab in USP_Lot_GetAllLotViewsByLotId_Filter), computed once and stored on the 'Trans Out (SO)' row
 		DECLARE @HowCalculate VARCHAR(50) = '';
+		-- [PN-17881] raw LotConsignment ids/values for the new LotCalculationDetails columns, populated only
+		-- in the 'Trans Out (SO)' section below (RevenuePercentId/FixedAmount reuse @ConPercentId/@ConsignmentFixedAmt above)
+		DECLARE @ConRevenueConsignorPercentId BIGINT = 0, @ConMarginPercentId BIGINT = 0, @ConMarginConsignorPercentId BIGINT = 0, @ConConsigneeTypeId INT = NULL, @ConConsigneeId BIGINT = NULL;
 		SET @count = 1;
 		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0),@IsUseMargin =ISNULL(IsUseMargin,0)  ,@MarginPercentageId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
 		IF OBJECT_ID(N'tempdb..#tmpLotCalculationDetailsType') IS NOT NULL
@@ -269,7 +278,10 @@ BEGIN
 						FROM @tbl_LotCalculationDetailsType
 		
 			SELECT @TotalCounts = COUNT(ID) FROM #tmpLotCalculationDetailsType;
-			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent  = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0) , @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)   FROM DBO.LotConsignment LC WHERE LotId = @LotId
+			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent  = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0) , @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)
+				-- [PN-17881]
+				,@ConRevenueConsignorPercentId = ISNULL(LC.ConsignorPercentId,0), @ConMarginPercentId = ISNULL(LC.MarginPercentId,0), @ConMarginConsignorPercentId = ISNULL(LC.MarginConsignorPercentId,0), @ConConsigneeTypeId = LC.ConsigneeTypeId, @ConConsigneeId = LC.ConsigneeId
+				FROM DBO.LotConsignment LC WHERE LotId = @LotId
 			SET @HowCalculate = (CASE WHEN @IsFixedAmount = 1 THEN 'FIXED AMOUNT' WHEN @IsRevenue = 1 AND @IsMargin = 1 THEN 'REVENUE+MARGIN' WHEN @IsRevenue = 1 THEN 'REVENUE' WHEN @IsMargin = 1 THEN 'MARGIN' WHEN @IsRevenueSplit = 1 THEN 'REVENUE SPLIT' ELSE '' END)
 
 			WHILE @count<= @TotalCounts
@@ -350,8 +362,11 @@ BEGIN
 				END				
 
 				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost,
-						--TransferredOutCost = COGS , 
-						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END), HowCalculate = @HowCalculate  WHERE LotCalculationId = @LatestId; 
+						--TransferredOutCost = COGS ,
+						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END), HowCalculate = @HowCalculate,
+						-- [PN-17881] LotConsignment mirror fields (raw ids/values, not the derived percent/HowCalculate above)
+						RevenuePercentId = @ConPercentId, FixedAmount = @ConsignmentFixedAmt, RevenueConsignorPercentId = @ConRevenueConsignorPercentId, MarginPercentId = @ConMarginPercentId, MarginConsignorPercentId = @ConMarginConsignorPercentId, ConsigneeTypeId = @ConConsigneeTypeId, ConsigneeId = @ConConsigneeId
+					WHERE LotCalculationId = @LatestId;
 
 				IF(@IsFixedAmount = 1)
 				BEGIN
@@ -389,7 +404,8 @@ BEGIN
 				BEGIN
 					IF(@Qty = 1)
 					BEGIN
-						Update dbo.Stockline set RepairOrderUnitCost = 0,
+						Update dbo.Stockline set 
+						--RepairOrderUnitCost = 0,
 						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost,
 						LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
 					END

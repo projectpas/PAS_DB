@@ -34,7 +34,7 @@
 	22   06/08/2026   Priyansh Patel   Replace the StockLineDraft quantity with Stockline quantity [PN-16941]
 	23   19/Aug/2026    RAJESH GAMI			[PN-17683] - Added RepairOrderId OR PurchaseOrderId condition in the respective JOIN with StocklineDraft (po.PurchaseOrderId = stkdf.PurchaseOrderId OR po.RepairOrderId = stkdf.RepairOrderId)
 	24   26/Aug/2026    Divyesh Kathiriya	[PN-17784] - Removed the remaining IsNonStock = 0 condition from the single-part Purchase Order branch so both Stock and Non-Stock rows are returned.
-
+	25   17/Sept/2026	Moin Bloch      	[PN-17914] - Added IsGRNIAdjustment flag
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPoData]
@@ -77,7 +77,7 @@ BEGIN
 				po.vendorProformaInvoiceNo AS vendorProformaInvoiceNo,
 				ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-				INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+				INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
@@ -130,7 +130,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
@@ -166,7 +166,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND  
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId 
@@ -202,7 +202,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
@@ -237,7 +237,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.RepairOrderId = stkdf.RepairOrderId -- AND stk.ControlNumber = stkdf.ControlNumber
@@ -277,7 +277,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.RepairOrderId = stkdf.RepairOrderId -- AND stk.ControlNumber = stkdf.ControlNumber
@@ -314,7 +314,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				where po.RepairOrderId = @PurchaseOrderId 
@@ -351,7 +351,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				WHERE po.RepairOrderId = @PurchaseOrderId
@@ -389,7 +389,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				--	INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
@@ -440,7 +440,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					--INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
@@ -488,7 +488,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND  
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId 
@@ -557,7 +557,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.RepairOrderId = stkdf.RepairOrderId -- AND stk.ControlNumber = stkdf.ControlNumber
@@ -597,7 +597,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId  AND po.RepairOrderId = stkdf.RepairOrderId -- AND stk.ControlNumber = stkdf.ControlNumber
@@ -634,7 +634,7 @@ BEGIN
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0
+					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND ISNULL(POP.[IsPiecePart], 0) = 0 AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
 				where po.RepairOrderId = @PurchaseOrderId 

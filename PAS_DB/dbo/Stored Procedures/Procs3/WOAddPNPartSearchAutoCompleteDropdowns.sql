@@ -1,33 +1,45 @@
-﻿
+
 -- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.WOAddPNPartSearchAutoCompleteDropdowns   (source: PAS_DB/dbo/Stored Procedures/Procs3/WOAddPNPartSearchAutoCompleteDropdowns.sql)
 -- ---------------------------------------------------------------------------------------------------
-/*************************************************************           
- ** File:   [WOPartSearchAutoCompleteDropdowns]           
+/*************************************************************
+ ** File:   [WOPartSearchAutoCompleteDropdowns]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Search WO Part for add to Materials List
- ** Purpose:         
- ** Date:   17/11/2021       
-          
- ** PARAMETERS:           
- @UserType varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** Purpose:
+ ** Date:   17/11/2021
+
+ ** PARAMETERS:
+ @UserType varchar(60)
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
     1    17/11/2021   Hemant Saliya  Created
 	2    20/03/2023   Amit Ghediya   Update Length of #tempTable label 50 to 256
 	3	 18/11/2024   Amit Ghediya	 Updated serach with same text.
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-    5    05-Aug-2026			 Bhargav Saliya					   [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes 
+    5    05-Aug-2026			 Bhargav Saliya					   [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 	6   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	7   17-Sep-2026			 RAJESH GAMI						[PN-17782] Allow Non-Stock parts (ItemTypeId=2) in this "Add Item, Task
+										and Provision" WO/SubWO Material search dropdown, matching the PN-17271
+										AutoCompleteDropdownsItemMasterWithManufacturerAllTypes convention: removed the
+										"im.ItemTypeId = 1" and "ISNULL(im.IsNonStock,0) = 0" restrictions from the OEM/PMA/DER
+										blocks, the duplicate-manufacturer-count subquery, and the @Idlist block, restricted
+										instead to ItemTypeId IN (1,2) (Equipment/Asset types still excluded), added
+										ItemTypeId/IsNonStock to the result set, and suffixed Label with ' (Non-Stock)' for
+										Non-Stock parts only (Stock is the default/majority case, no postfix).
+	8   17-Sep-2026			 RAJESH GAMI						[PN-17782] Added ISNULL(im.IsService,0) = 0 to every block (OEM/PMA/DER
+										and the @Idlist block) so Service-flagged parts never appear in this part-search
+										dropdown - this dropdown should only ever offer physical (non-service) parts,
+										Stock or Non-Stock alike.
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
-CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]  
+CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
   @CustomerId INT,
   @RestrictDER BIT = 0 ,
   @RestrictPMA BIT = 0,
@@ -46,119 +58,129 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 	BEGIN
 		IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL
 		BEGIN
-			DROP TABLE #TempTable 
+			DROP TABLE #TempTable
 		END
-		CREATE TABLE #TempTable(      
-						PartId BIGINT,      
+		CREATE TABLE #TempTable(
+						PartId BIGINT,
 						PartNumber VARCHAR(MAX),
 						Label VARCHAR(256),
 						PartDescription VARCHAR(MAX),
 						ManufacturerName VARCHAR(50),
-						StockType VARCHAR(50))
+						StockType VARCHAR(50),
+						ItemTypeId INT,
+						IsNonStock BIT)
 
 		IF OBJECT_ID(N'tempdb..#Result') IS NOT NULL
 		BEGIN
-			DROP TABLE #Result 
+			DROP TABLE #Result
 		END
 
-		CREATE TABLE #Result(      
-						PartId BIGINT,      
+		CREATE TABLE #Result(
+						PartId BIGINT,
 						PartNumber VARCHAR(MAX),
 						Label VARCHAR(256),
 						PartDescription VARCHAR(MAX),
 						ManufacturerName VARCHAR(50),
-						StockType VARCHAR(50)
-						
-					
-						) 
+						StockType VARCHAR(50),
+						ItemTypeId INT,
+						IsNonStock BIT
+
+
+						)
 		--- FOR OEM
-		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
-		SELECT DISTINCT 
+		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType, ItemTypeId, IsNonStock)
+		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
-			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
-			FROM DBO.ItemMaster im WITH(NOLOCK)			
+			END) AS StockType,
+			im.ItemTypeId,
+			ISNULL(im.IsNonStock,0) AS IsNonStock
+			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
+			AND im.ItemTypeId IN (1,2) -- ItemMasterStockTypeEnum.Stock/NonStock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsOEM = 1 AND IsDER = 0
+			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
 		--FOR PMA
-		 AND ISNULL(im.IsNonStock,0) = 0
 		 IF( @RestrictPMA <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
-		SELECT DISTINCT 
+		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType, ItemTypeId, IsNonStock)
+		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
-			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
-			FROM DBO.ItemMaster im WITH(NOLOCK)			
+			END) AS StockType,
+			im.ItemTypeId,
+			ISNULL(im.IsNonStock,0) AS IsNonStock
+			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
+			AND im.ItemTypeId IN (1,2) -- ItemMasterStockTypeEnum.Stock/NonStock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
 			AND im.IsPma  =  1	AND IsDER = 0
-         AND ISNULL(im.IsNonStock,0) = 0
+			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
 			 END
-		
+
 		--FOR DER
 		IF( @RestrictDER <> 1	)
 		BEGIN
-		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
-		SELECT DISTINCT 
+		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType, ItemTypeId, IsNonStock)
+		SELECT DISTINCT
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
-			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 			ELSE 'OEM'
-			END) AS StockType
-			FROM DBO.ItemMaster im WITH(NOLOCK)			
+			END) AS StockType,
+			im.ItemTypeId,
+			ISNULL(im.IsNonStock,0) AS IsNonStock
+			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.IsActive = 1
 			AND im.IsDeleted = 0
-			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
+			AND im.ItemTypeId IN (1,2) -- ItemMasterStockTypeEnum.Stock/NonStock
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
-			AND im.IsDER  = 1	
-         AND ISNULL(im.IsNonStock,0) = 0
+			AND im.IsDER  = 1
+			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
 			 END
 
 		--IF( @IncludePMA = 1)
-		--BEGIN 
+		--BEGIN
 		--INSERT INTO #TempTable (PartId, PartNumber, PartDescription, StockType)
-		--SELECT DISTINCT 
+		--SELECT DISTINCT
 		--	im.ItemMasterId AS PartId,
 		--	im.partnumber AS PartNumber,
 		--	im.PartDescription AS PartDescription,
-		--	(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+		--	(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 		--	WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 		--	WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 		--	ELSE 'OEM'
 		--	END) AS StockType
-		--	FROM DBO.ItemMaster im WITH(NOLOCK)	
-		--		 INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON 
+		--	FROM DBO.ItemMaster im WITH(NOLOCK)
+		--		 INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON
 		--					im.ItemMasterId = rpDER.ItemMasterId
-		--					AND rpDER.PartType = 'PMA' 
-		--					AND rpDER.ReferenceId  = @CustomerId 
+		--					AND rpDER.PartType = 'PMA'
+		--					AND rpDER.ReferenceId  = @CustomerId
 		--					AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
 		--					AND rpDER.IsActive = 1
 		--					AND rpDER.IsDeleted = 0
@@ -167,25 +189,25 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
 		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
-		--END 
+		--END
 
 		--IF( @IncludeDER = 1)
-		--BEGIN 
+		--BEGIN
 		--INSERT INTO #TempTable (PartId, PartNumber, PartDescription, StockType)
-		--SELECT DISTINCT 
+		--SELECT DISTINCT
 		--	im.ItemMasterId AS PartId,
 		--	im.partnumber AS PartNumber,
 		--	im.PartDescription AS PartDescription,
-		--	(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+		--	(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 		--	WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 		--	WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 		--	ELSE 'OEM'
 		--	END) AS StockType
-		--	FROM DBO.ItemMaster im WITH(NOLOCK)	
-		--		 INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON 
+		--	FROM DBO.ItemMaster im WITH(NOLOCK)
+		--		 INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON
 		--					im.ItemMasterId = rpDER.ItemMasterId
-		--					AND rpDER.PartType = 'DER' 
-		--					AND rpDER.ReferenceId  = @CustomerId 
+		--					AND rpDER.PartType = 'DER'
+		--					AND rpDER.ReferenceId  = @CustomerId
 		--					AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
 		--					AND rpDER.IsActive = 1
 		--					AND rpDER.IsDeleted = 0
@@ -197,52 +219,55 @@ CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--END
 
 INSERT INTO #Result
-				SELECT 
-				DISTINCT TOP 20 * 
+				SELECT
+				DISTINCT TOP 20 *
 				FROM #TempTable t
 				ORDER BY t.PartNumber
 
 		IF(@Idlist IS NOT NULL)
 		BEGIN
-			INSERT INTO #Result(PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
-			SELECT DISTINCT 
+			INSERT INTO #Result(PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType, ItemTypeId, IsNonStock)
+			SELECT DISTINCT
 					im.ItemMasterId AS PartId,
 					im.partnumber AS PartNumber,
-					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) + (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN ' (Non-Stock)' ELSE '' END) AS Label,
 			        im.PartDescription AS PartDescription,
 			        im.ManufacturerName as ManufacturerName,
-					(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+					(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER'
 					WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
 					WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 					ELSE 'OEM'
-					END) AS StockType
+					END) AS StockType,
+					im.ItemTypeId,
+					ISNULL(im.IsNonStock,0) AS IsNonStock
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0
 			 END
 
-		SELECT DISTINCT TOP 20 
+		SELECT DISTINCT TOP 20
 			r.PartId,
 			r.PartNumber,
 			r.Label,
 			r.PartDescription,
 			r.ManufacturerName,
-			r.StockType
+			r.StockType,
+			r.ItemTypeId,
+			r.IsNonStock
 		FROM #Result r
 
-		DROP Table #TempTable 
+		DROP Table #TempTable
 		DROP Table #Result
 	END
 	COMMIT  TRANSACTION
 
-	END TRY    
-	BEGIN CATCH      
+	END TRY
+	BEGIN CATCH
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'WOPartSearchAutoCompleteDropdowns' 
+            , @AdhocComments     VARCHAR(150)    = 'WOPartSearchAutoCompleteDropdowns'
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@CustomerId, '') + ''',
 													 @Parameter2 = ' + ISNULL(@RestrictDER,'') + ',
 													 @Parameter3 = ' + ISNULL(@RestrictPMA,'') + ',
@@ -253,7 +278,7 @@ INSERT INTO #Result
 													 @Parameter8 = ' + ISNULL(@MasterCompanyId,'') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-            exec spLogException 
+            exec spLogException
                     @DatabaseName           = @DatabaseName
                     , @AdhocComments          = @AdhocComments
                     , @ProcedureParameters = @ProcedureParameters

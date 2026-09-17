@@ -17,13 +17,14 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    02/05/20221   Subhash Saliya  Created  
-    2    06/14/2023   Devendra Shekh   changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]  
+    1    02/05/20221   Subhash Saliya  Created
+    2    06/14/2023   Devendra Shekh   changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
--- EXEC [CreateStocklineForCustomerRMADeatils] 44  
+	4    17/Sep/2026			 SAHDEV SALIYA						[PN-17875] - Carry forward LOT linkage, set RMA-creation Memo, and log Inventory History (Stkline_History) for the new stockline
+-- EXEC [CreateStocklineForCustomerRMADeatils] 44
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
+CREATE    PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
 @RMADeatilsId BIGINT,  
 @ModuleId INT  
 AS  
@@ -44,19 +45,30 @@ BEGIN
     DECLARE @ControlNumber VARCHAR(50);  
     DECLARE @IDCurrentNumber BIGINT;   
     DECLARE @IDNumber VARCHAR(50);  
-    DECLARE @EntityMSID BIGINT;  
-    DECLARE @Qty int;  
-    DECLARE @IsCustomerStock bit =1;  
-  
-  
-    SELECT TOP 1 @StocklineId = StockLineId,@Qty=Qty,  
-      @MasterCompanyId  = CRMH.MasterCompanyId,  
-      @EntityMSID = ManagementStructureId  
-    FROM dbo.CustomerRMADeatils CRM WITH(NOLOCK)  
-    INNER JOIN dbo.CustomerRMAHeader CRMH WITH(NOLOCK) ON CRMH.RMAHeaderId=CRM.RMAHeaderId  
-    WHERE RMADeatilsId = @RMADeatilsId  
-  
-  
+    DECLARE @EntityMSID BIGINT;
+    DECLARE @Qty int;
+    DECLARE @IsCustomerStock bit =1;
+    DECLARE @RMAHeaderId BIGINT;
+    DECLARE @RMANumber VARCHAR(100);
+    DECLARE @RMAUpdatedBy VARCHAR(256);
+    DECLARE @CustomerRMAModuleId BIGINT;
+    DECLARE @CreateFromCustomerRMAActionId INT;
+
+
+    SELECT TOP 1 @StocklineId = StockLineId,@Qty=Qty,
+      @MasterCompanyId  = CRMH.MasterCompanyId,
+      @EntityMSID = ManagementStructureId,
+      @RMAHeaderId = CRM.RMAHeaderId,
+      @RMANumber = CRMH.RMANumber,
+      @RMAUpdatedBy = CRM.UpdatedBy
+    FROM dbo.CustomerRMADeatils CRM WITH(NOLOCK)
+    INNER JOIN dbo.CustomerRMAHeader CRMH WITH(NOLOCK) ON CRMH.RMAHeaderId=CRM.RMAHeaderId
+    WHERE RMADeatilsId = @RMADeatilsId
+
+    SELECT @CustomerRMAModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CustomerRMA'
+    SELECT @CreateFromCustomerRMAActionId = ActionId FROM dbo.StklineHistory_Action WITH(NOLOCK) WHERE [Type] = 'Create-Customer-RMA'
+
+
   DECLARE @LoopID as int  
   SELECT  @LoopID = MAX(@Qty)   
   
@@ -187,8 +199,10 @@ BEGIN
        ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,IsCustomerRMA,RMADeatilsId)  
-    SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],[ControlNumber],[ItemMasterId],@DefultQty,[ConditionId]  
+       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId]
+       ,[LotId],[IsLotAssigned],[LotMainStocklineId],[LotSourceId],[TransferredFromLotId],[TransferredFromLotNumber]
+       ,IsFinishGood,IsCustomerRMA,RMADeatilsId)
+    SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],[ControlNumber],[ItemMasterId],@DefultQty,[ConditionId]
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
        ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
        ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]  
@@ -208,9 +222,11 @@ BEGIN
        ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],0,[TaggedByType]  
-       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,1,@RMADeatilsId  
-   FROM dbo.Stockline WITH(NOLOCK)  
-   WHERE StockLineId = @StocklineId  
+       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId]
+       ,[LotId],[IsLotAssigned],[LotMainStocklineId],[LotSourceId],[TransferredFromLotId],[TransferredFromLotNumber]
+       ,0,1,@RMADeatilsId
+   FROM dbo.Stockline WITH(NOLOCK)
+   WHERE StockLineId = @StocklineId
   
     SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
@@ -269,11 +285,25 @@ BEGIN
   
     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId  
   
-    EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
-  
-    EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'Create RMA Stockline'  
-  
-    IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
+    EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId
+
+    EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'Create RMA Stockline'
+
+    UPDATE dbo.Stockline
+    SET Memo = N'Stockline Created from Customer RMA – ' + ISNULL(@RMANumber, '')
+    WHERE StockLineId = @NewStocklineId
+
+    EXEC dbo.USP_AddUpdateStocklineHistory
+        @StocklineId = @NewStocklineId,
+        @ModuleId = @CustomerRMAModuleId,
+        @ReferenceId = @RMAHeaderId,
+        @SubModuleId = NULL,
+        @SubRefferenceId = NULL,
+        @ActionId = @CreateFromCustomerRMAActionId,
+        @Qty = @DefultQty,
+        @UpdatedBy = @RMAUpdatedBy
+
+    IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
     BEGIN  
      DROP TABLE #tmpCodePrefixes   
     END  

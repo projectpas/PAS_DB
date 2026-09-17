@@ -1,4 +1,4 @@
-﻿/*********************  
+/*********************  
  ** File:   [USP_SingleScreen_GetListData]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to get single screen list data
@@ -21,6 +21,7 @@
     10	 02/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Sequence ASC) (PN-17106)
     10	 06/07/2026   Nakul Chnadigra	Modified (For Task SS - Order By Description ASC) (PN-17106)
     11	 17/09/2026   Aayushi Patel		[PN-17906] For UnitOfMeasure, resolve UOMFamilyTypeId to the family type's Name in the list output (was showing the raw FK id)
+    12	 17/09/2026   Aayushi Patel		[PN-17906] Added search/filter support for Family Type (UOMFamilyTypeId) in UnitOfMeasure screen
 
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
@@ -111,7 +112,11 @@ BEGIN
             END
           WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
           WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
-          
+          WHEN (LOWER(@PageName) = 'unitofmeasure' OR LOWER(@PageName) = 'vw_unitofmeasure') AND FieldName = 'UOMFamilyTypeId' THEN
+            CASE 
+                WHEN ISNULL(FieldValue, '') = '' THEN ''
+                ELSE ' And EXISTS (SELECT 1 FROM dbo.UOMFamilyType FT WITH(NOLOCK) WHERE FT.UOMFamilyTypeId = t.UOMFamilyTypeId AND FT.MasterCompanyId = t.MasterCompanyId AND FT.Name LIKE ''%' + REPLACE(FieldValue, '''', '''''') + '%'')'
+            END
           WHEN EXISTS (
             SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_NAME = @PageName 
@@ -137,6 +142,11 @@ BEGIN
     SELECT @GlobalFilterData = SUBSTRING(ResultData, 4, LEN(ResultData))
     FROM (SELECT (SELECT ' OR t.' + COLUMN_NAME + ' LIKE ''%' + @GlobalFilter + '%''' FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_NAME = @PageName FOR XML PATH ('')) AS ResultData) AS TempData
+
+    IF (LOWER(@PageName) = 'unitofmeasure' OR LOWER(@PageName) = 'vw_unitofmeasure') AND ISNULL(@GlobalFilter, '') != ''
+    BEGIN
+      SET @GlobalFilterData = @GlobalFilterData + ' OR EXISTS (SELECT 1 FROM dbo.UOMFamilyType FT WITH(NOLOCK) WHERE FT.UOMFamilyTypeId = t.UOMFamilyTypeId AND FT.MasterCompanyId = t.MasterCompanyId AND FT.Name LIKE ''%' + REPLACE(@GlobalFilter, '''', '''''') + '%'')'
+    END
 
     IF (ISNULL(@GlobalFilterData, '') != '' AND ISNULL(@GlobalFilter, '') != '')
     BEGIN

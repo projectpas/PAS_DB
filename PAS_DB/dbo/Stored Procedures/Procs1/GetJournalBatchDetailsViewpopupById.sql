@@ -63,6 +63,7 @@
 	46    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	47    20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed both NONSTOCK-branch MS lookups (RPO/RRO/AST branch @NONStockModuleID; MSTK branch @NONStockModuleIDs) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; both variables now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
  48	 13/08/2026   Moin Bloch		     Fixed For Wrong Management Structure Details
+ 49  13/08/2026   Moin Bloch		     Added GRNI PN-17411
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1970,6 +1971,95 @@ BEGIN
 					LEFT JOIN dbo.VendorProformaInvoiceHeader VPI WITH(NOLOCK) ON NPD.VendorProformaInvoiceId = VPI.VendorProformaInvoiceId
 				WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
 				ORDER BY DS.DisplayNumber ASC;  
+			END
+			IF(UPPER(@Module) = UPPER('GRNI'))
+			BEGIN
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName] 
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.AllowManualJE  
+					  ,JBD.LastMSLevel  
+					  ,JBD.AllMSlevels  
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,le.CompanyName AS LegalEntityName  
+					  ,stbd.VendorName  
+					  ,stbd.PONum  
+					  ,stbd.RONum  
+					  ,stbd.StocklineNumber  
+					  ,stbd.[Description]  
+					  ,stbd.Consignment  
+					  ,JBH.[Module]  
+					  ,MPNPartId = stbd.PartId  
+					  ,MPNName = stbd.PartNumber  
+					  ,ISNULL(stbd.RONum, '') AS [DocumentNumber]  
+					  ,stbd.[SIte]  
+					  ,stbd.[Warehouse]  
+					  ,stbd.[Location]  
+					  ,stbd.[Bin]  
+					  ,stbd.[Shelf]  
+					  ,BD.JournalTypeNumber
+					  ,BD.CurrentNumber  
+					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
+					  ,BS.Name AS 'Status'
+					  ,msl1.[Description] AS 'ManagementStructureName'
+					   ,UPPER(msl1.[Description]) AS level1    
+					  ,UPPER(msl2.[Description]) AS level2   
+					  ,UPPER(msl3.[Description]) AS level3   
+					  ,UPPER(msl4.[Description]) AS level4   
+					  ,UPPER(msl5.[Description]) AS level5   
+					  ,UPPER(msl6.[Description]) AS level6   
+					  ,UPPER(msl7.[Description]) AS level7   
+					  ,UPPER(msl8.[Description]) AS level8   
+					  ,UPPER(msl9.[Description]) AS level9   
+					  ,UPPER(msl10.[Description]) AS level10 
+					  ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
+					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
+					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
+					 LEFT JOIN  [dbo].[StocklineBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId  
+					 LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
+					 LEFT JOIN  [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
+					 LEFT JOIN  [dbo].[AccountingBatchManagementStructureDetails] AMS WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = AMS.[ReferenceId] AND JBD.[ManagementStructureId] = JBD.ManagementStructureId
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl1 WITH(NOLOCK) ON AMS.Level1Id = msl1.ID
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl2 WITH(NOLOCK) ON AMS.Level2Id = msl2.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl3 WITH(NOLOCK) ON AMS.Level3Id = msl3.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl4 WITH(NOLOCK) ON AMS.Level4Id = msl4.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl5 WITH(NOLOCK) ON AMS.Level5Id = msl5.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl6 WITH(NOLOCK) ON AMS.Level6Id = msl6.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl7 WITH(NOLOCK) ON AMS.Level7Id = msl7.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl8 WITH(NOLOCK) ON AMS.Level8Id = msl8.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl9 WITH(NOLOCK) ON AMS.Level9Id = msl9.ID 
+					 LEFT JOIN  [dbo].[ManagementStructureLevel] msl10 WITH(NOLOCK) ON AMS.Level10Id = msl10.ID 
+					 LEFT JOIN  [dbo].[LegalEntity] le WITH(NOLOCK) ON msl1.LegalEntityId = le.LegalEntityId 
+					 LEFT JOIN  [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id					
+				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = 0  
+				 ORDER BY DS.DisplayNumber ASC;  
 			END
     END TRY  
  BEGIN CATCH        

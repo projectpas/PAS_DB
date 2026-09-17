@@ -1,14 +1,18 @@
-CREATE TABLE [dbo].[LeaseStocklineUsageAudit] (
+﻿CREATE TABLE [dbo].[LeaseStocklineUsageAudit] (
     [LeaseStocklineUsageAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [LeaseStocklineUsageId]      BIGINT          NULL,
     [LeaseStocklineId]           BIGINT          NULL,
     [CurrentTSNHours]            DECIMAL (18, 6) NULL,
     [CurrentTSNMinutes]          DECIMAL (18, 6) NULL,
+    [CurrentTSNFromDate]         DATETIME2 (7)   NULL,
+    [CurrentTSNToDate]           DATETIME2 (7)   NULL,
     [CurrentTSNDate]             DATETIME2 (7)   NULL,
-    [CurrentCSNHours]            DECIMAL (18, 6) NULL,
-    [CurrentCSNMinutes]          DECIMAL (18, 6) NULL,
+    [LatestTimeNotes]            NVARCHAR (MAX)  NULL,
+    [CurrentCSN]                 DECIMAL (18, 6) NULL,
+    [CurrentCSNFromDate]         DATETIME2 (7)   NULL,
+    [CurrentCSNToDate]           DATETIME2 (7)   NULL,
     [CurrentCSNDate]             DATETIME2 (7)   NULL,
-    [LatestNotes]                NVARCHAR (MAX)  NULL,
+    [LatestCycleNotes]           NVARCHAR (MAX)  NULL,
     [MasterCompanyId]            INT             NULL,
     [CreatedBy]                  VARCHAR (256)   NULL,
     [UpdatedBy]                  VARCHAR (256)   NULL,
@@ -18,3 +22,4 @@ CREATE TABLE [dbo].[LeaseStocklineUsageAudit] (
     [IsDeleted]                  BIT             NULL,
     CONSTRAINT [PK_LeaseStocklineUsageAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineUsageAuditId] ASC)
 );
+

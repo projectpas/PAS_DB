@@ -33,6 +33,9 @@
                                                  Taxes fields OR any active dynamic LeaseStocklineServiceComponent row
                                                  exists, so the Angular "Add/Edit Service Component" label is correct
                                                  even when only dynamic components were saved
+    14   16/09/2026     Amit Ghediya            Added OtherComponentAmount - sum of Amount across all active dynamic
+                                                 LeaseStocklineServiceComponent rows for the stockline (the "Other"
+                                                 column shown alongside the static Maintenance/Insurance/Taxes columns)
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -87,6 +90,7 @@ BEGIN
 			LSL.InsurancePer,
 			LSL.Taxes,
 			LSL.TaxesPer,
+			SC_SUM.OtherComponentAmount,
 			LSL.RepairOrderId,
 			LSL.RONumber,
 			RO.StatusId AS RepairOrderStatusId,
@@ -114,6 +118,12 @@ BEGIN
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = LSL.RepairOrderId
 		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
+		LEFT JOIN (
+			SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+			FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
+			WHERE IsDeleted = 0
+			GROUP BY LeaseStocklineId
+		) SC_SUM ON SC_SUM.LeaseStocklineId = LSL.LeaseStocklineId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
 		  AND (ISNULL(@LeaseStocklineId, 0) = 0 OR LSL.LeaseStocklineId = @LeaseStocklineId)

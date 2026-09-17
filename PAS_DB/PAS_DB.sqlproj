@@ -4835,9 +4835,11 @@
     <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetPartsForOtherCostAdd.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
-    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
-    <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
-    <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionForInternalKitAssembly.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetInternalKitAssemblyWorkorderCostDeatils.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForInternalKitAssemblyInWO.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
+    <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

@@ -668,3 +668,15 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_GL_Probe]
     ON [dbo].[Stockline]([GLAccountId] ASC, [MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
     INCLUDE([IsNonStock], [CreatedDate]);
 
+
+GO
+-- Added 17-Sep-2026 (Rajesh Gami) - covering index for dbo.ProcStockList (Stockline listing SP).
+-- IX_Stockline_StockReport/IX_Stockline_Report share this same leading key but only INCLUDE
+-- ~13-16 columns each; ProcStockList selects ~65 columns from stl, so most rows needed a Key
+-- Lookup back to the clustered index, and because ProcStockList filters before pagination,
+-- that Key Lookup ran once per row of the full filtered set, not just the current page.
+-- Validated on production alongside the ProcStockList.sql performance fix (PR 35-38).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ProcStockList_Covering]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [PartNumber], [PNDescription], [Manufacturer], [RevicedPNNumber], [ItemGroup], [UnitOfMeasure], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [isSerialized], [SerialNumber], [IsCustomerStock], [CustomerId], [StockLineNumber], [ControlNumber], [IdNumber], [Condition], [ReceivedDate], [ShippingReference], [ExpirationDate], [TagDate], [TaggedByName], [TagType], [TraceableToName], [itemType], [ItemTypeId], [IsNonStock], [IsActive], [CreatedDate], [CreatedBy], [PartCertificationNumber], [CertifiedBy], [CertifiedDate], [UpdatedDate], [UpdatedBy], [level1], [level2], [level3], [level4], [IsTurnIn], [IsStkTimeLife], [ObtainFromName], [OwnerName], [WorkOrderId], [SubWorkOrderId], [WorkOrderNumber], [Location], [LocationId], [Site], [SiteId], [WareHouse], [WareHouseId], [LotNumber], [CustomerName], [PurchaseOrderNumber], [RepairOrderNumber], [ReceiverNumber], [QuantityAdjustment], [IsDocument], [IsRepairManagement], [IsBatchStock], [BatchNumber], [UnitCost], [InventoryGLAccName], [IsPMA], [IsDER], [OEM], [EngineSerialNumber], [ManagementStructureId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+

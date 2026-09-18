@@ -16,10 +16,11 @@
     3    16/09/2026     Kishor Makwana         [PN-17933] LeaseStocklineUsage.LatestNotes was split into LatestTimeNotes/ LatestCycleNotes (Time and Cycle are now independent) - aliased LatestTimeNotes back to LatestNotes so this proc's result shape (and the C# DTO it feeds) is unchanged
     4    16/09/2026     Kishor Makwana         [PN-17933] Added LSL.IsActive so the Usage Info list can tell the UI which rows are an active lease component (usage can only be recorded against one) instead of relying on the LeaseHeader's overall status, which is the wrong granularity for this check
     5    16/09/2026     Kishor Makwana         [PN-17933] Added LSL.LeaseStatusId - the "Add Usage Information" enable/disable check was still using the Lease Header's LeaseStatusId (wrong granularity); it needs each line's OWN LeaseStatusId (Draft/Active/ Closed - the same value shown in the "Status" column on the Add Item tab)
+    6    17/09/2026     Kishor Makwana		   [PN-17967] LeaseStocklineUsage.LatestTimeNotes was dropped and LatestCycleNotes was renamed to Notes (the entry form now has a single shared Notes field instead of separate Time/Cycle notes) - re-pointed the LatestNotes alias at U.Notes so this proc's result shape (and the C# DTO it feeds) stays unchanged
 
 exec USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId]
+CREATE        PROCEDURE [dbo].[USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -38,7 +39,7 @@ BEGIN
 			SLIVE.SerialNumber,
 			LSL.BillingMethod,
 			LSL.BillingInterval,
-			U.LatestTimeNotes AS LatestNotes,
+			U.Notes AS LatestNotes,
 			CASE WHEN U.LeaseStocklineUsageId IS NOT NULL THEN 1 ELSE 0 END AS HasUsageInfo,
 			LSL.IsActive,
 			LSL.LeaseStatusId

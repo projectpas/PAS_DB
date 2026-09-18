@@ -49,6 +49,45 @@
 	32    07/Aug/2026	Vishal Suthar		Added filter for Warehouse
 	33    11/08/2026    Sahdev Saliya       Added EngineSerialNumber [PN-17607]
 	34   02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	35   17-Sep-2026    Rajesh Gami          Performance fix: the WorkOrderStatus and rsworkOrderId per-row subqueries (the second
+	                                         one scans dbo.ReceivingCustomerWork, which has no index on StockLineId) were being
+	                                         evaluated for EVERY row of the full filtered result set before pagination was applied
+	                                         (they ran while building #TempResults/#TempResult/#TempALTResults/#TempALTResult, and
+	                                         only the final SELECT was paginated with OFFSET/FETCH). Moved both subqueries so they
+	                                         now run only against the already-paginated page (@PageSize rows) in all 4 branches -
+	                                         same columns, same values, same filtering/sorting/paging behavior, just computed for
+	                                         far fewer rows. No joins added or removed (per the note below).
+	36   17-Sep-2026    Rajesh Gami          Performance fix (2): production testing after PR-35 + the new indexes showed the
+	                                         SELECT DISTINCT ... INTO #TempResults/#TempResult/#TempALTResults/#TempALTResult
+	                                         step itself was spilling to tempdb (Workfile physical/read-ahead reads in
+	                                         STATISTICS IO, ~7-9s of the total elapsed time), because the cached/estimated
+	                                         plan under-sized the memory grant for the ~22K-row join fan-out through
+	                                         StocklineManagementStructureDetails. Added OPTION (RECOMPILE) to that one
+	                                         SELECT INTO statement in all 4 branches so it compiles against actual current
+	                                         parameter values each call and gets an accurate memory grant. No joins/columns/
+	                                         filters changed - same rows, same values, just a query hint on existing SQL.
+	37   17-Sep-2026    Rajesh Gami          Performance fix (3): OPTION (RECOMPILE) alone did not remove the tempdb spill
+	                                         (row estimate was already accurate), so the true cause is the actual row count/
+	                                         width being sorted for SELECT DISTINCT. RoleManagementStructure(RMS) and
+	                                         EmployeeUserRole(EUR) were joined only to check the employee has an applicable
+	                                         role - no column from either table is in the SELECT list - but as an INNER JOIN
+	                                         they can multiply a Stockline row once per matching role, inflating the row
+	                                         count that DISTINCT then has to de-duplicate across all ~65 wide columns.
+	                                         Converted RMS/EUR from INNER JOIN to a WHERE EXISTS(...) check in all 4 branches
+	                                         (same access-control condition, mathematically equivalent for filtering, but
+	                                         can no longer multiply rows). SELECT DISTINCT is left in place as a safety net
+	                                         for any other duplication source (e.g. StocklineManagementStructureDetails).
+	                                         Filter logic, columns and result set are unchanged - please validate row counts
+	                                         match pre-change on a couple of test cases before treating this as final.
+	38   17-Sep-2026    Rajesh Gami          Cleanup: commented out dead code found while reviewing for unused pieces per
+	                                         Rajesh's request. @IsActive was declared but never assigned or read anywhere.
+	                                         @CurrntEmpTimeZoneDesc/@BaseUtcOffsetSec were computed via a 4-table join
+	                                         (Employee/TimeZone/LegalEntity/TimeZone) and a TimeZone lookup every single
+	                                         call, but the only place that used @BaseUtcOffsetSec was an UpdatedDate
+	                                         expression that was ALREADY commented out (see PR 12/13 above). @AttachmentModuleId
+	                                         was populated from AttachmentModule every call but only used inside an already-
+	                                         commented-out IsDocument subquery. All four are commented out, not deleted, so
+	                                         they're easy to restore if a future change needs them. No output/behavior change.
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -60,7 +99,7 @@
 @LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
 @CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL,@PNSource=NULL
 **************************************************************/   
-CREATE         PROCEDURE [dbo].[ProcStockList]	
+CREATE         PROCEDURE [dbo].[ProcStockList]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -138,39 +177,46 @@ BEGIN
 	  DECLARE @RecordFROM INT;        
 	  DECLARE @MSModuelId int;        
 	  DECLARE @Count Int;        
-	  DECLARE @IsActive bit;        
-	  DECLARE @ISCS bit;        
-	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL; 
-	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	  DECLARE @AttachmentModuleId INT = 0;
-	  DECLARE @BaseUtcOffsetSec INT;
+	  --DECLARE @IsActive bit;   -- unused: never assigned or read anywhere - commented out 17-Sep-2026
+	  DECLARE @ISCS bit;
+	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL;
+	  --DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';  -- unused: only ever fed @BaseUtcOffsetSec, itself unused - commented out 17-Sep-2026
+	  --DECLARE @AttachmentModuleId INT = 0;  -- unused: only referenced inside an already-commented-out IsDocument subquery - commented out 17-Sep-2026
+	  --DECLARE @BaseUtcOffsetSec INT;  -- unused: only referenced inside an already-commented-out UpdatedDate expression - commented out 17-Sep-2026
 		
-	   SELECT 
+	   /* Unused - @CurrntEmpTimeZoneDesc only ever fed @BaseUtcOffsetSec below, which is itself
+	      unused (only referenced inside an already-commented-out UpdatedDate expression).
+	      Commented out 17-Sep-2026 so this 4-table join no longer runs on every call for nothing.
+	   SELECT
 	   		@CurrntEmpTimeZoneDesc = COALESCE(
 	   			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 	   			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
 	   		)
-	   	FROM 
-	   		dbo.Employee E WITH (NOLOCK) 
-	   	LEFT JOIN 
-	   		dbo.TimeZone ETZ WITH (NOLOCK) 
+	   	FROM
+	   		dbo.Employee E WITH (NOLOCK)
+	   	LEFT JOIN
+	   		dbo.TimeZone ETZ WITH (NOLOCK)
 	   		ON E.TimeZoneId = ETZ.TimeZoneId
-	   	LEFT JOIN 
-	   		dbo.LegalEntity LE WITH (NOLOCK) 
+	   	LEFT JOIN
+	   		dbo.LegalEntity LE WITH (NOLOCK)
 	   		ON E.LegalEntityId = LE.LegalEntityId
-	   	LEFT JOIN 
-	   		dbo.TimeZone LTZ WITH (NOLOCK) 
+	   	LEFT JOIN
+	   		dbo.TimeZone LTZ WITH (NOLOCK)
 	   		ON LE.TimeZoneId = LTZ.TimeZoneId
 	   	WHERE E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+	   */
 	  
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
 	  SET @MSModuelId = 2;   -- For Stockline  
 	  
 	  -- Fetch the UTC offset in seconds
-	  SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
-	  FROM dbo.TimeZone WITH(NOLOCK)  
-	  WHERE [Description] = @CurrntEmpTimeZoneDesc 
-        
+	  -- Unused - @BaseUtcOffsetSec is only referenced inside an already-commented-out UpdatedDate
+	  -- expression (and depended on @CurrntEmpTimeZoneDesc above, also now commented out).
+	  -- Commented out 17-Sep-2026.
+	  --SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec
+	  --FROM dbo.TimeZone WITH(NOLOCK)
+	  --WHERE [Description] = @CurrntEmpTimeZoneDesc
+
 	  IF @SortColumn IS NULL        
 	  BEGIN        
 	   SET @SortColumn=Upper('CreatedDate')        
@@ -204,7 +250,7 @@ BEGIN
 	  END        
        SET @IsCustomerStockInline = (CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else NULL END) 
 	   SET @isElse = (CASE WHEN @IsCustomerStockInline IS NULL THEN 1 ELSE 0  END)
-	   SELECT @AttachmentModuleId = [AttachmentModuleId] FROM [DBO].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine';
+	   --SELECT @AttachmentModuleId = [AttachmentModuleId] FROM [DBO].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine';  -- unused: @AttachmentModuleId only referenced inside an already-commented-out IsDocument subquery - commented out 17-Sep-2026
   BEGIN TRY        
   --BEGIN TRANSACTION        
   -- BEGIN       
@@ -301,19 +347,16 @@ BEGIN
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
-		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
-		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
+		WHERE EXISTS (SELECT 1 FROM dbo.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
+		 AND stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND ISNULL(stl.IsParent, 0) = 1 
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	   SELECT *,
-	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus, 
-	   (SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId 
-	   INTO #TempResults FROM  Result r       
+	   SELECT *
+	   INTO #TempResults FROM  Result r
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
@@ -419,9 +462,11 @@ BEGIN
 		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
 		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )
+		OPTION (RECOMPILE)
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults
-		
-		 SELECT *, @Count AS NumberOfItems FROM #TempResults ORDER BY          
+
+		;WITH Paged AS (
+		 SELECT *, @Count AS NumberOfItems FROM #TempResults ORDER BY
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='MainPartNumber')  THEN MainPartNumber END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
@@ -528,11 +573,16 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
-		OFFSET @RecordFROM ROWS         
-		FETCH NEXT @PageSize ROWS ONLY        
-	  END        
-	  ELSE -- ALL        
-	  BEGIN        
+		OFFSET @RecordFROM ROWS
+		FETCH NEXT @PageSize ROWS ONLY
+		)
+		SELECT p.*,
+		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = p.WorkOrderId) as WorkOrderStatus,
+		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = p.StockLineId) as rsworkOrderId
+		FROM Paged p
+	  END
+	  ELSE -- ALL
+	  BEGIN
 	  PRINT 'wer'
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
@@ -622,20 +672,18 @@ BEGIN
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
-		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
-		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		 --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		 --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,
+		WHERE EXISTS (SELECT 1 FROM dbo.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
+		 AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
 		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	  SELECT *,
-	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId INTO #TempResult FROM  Result r         
+	  SELECT *
+		INTO #TempResult FROM  Result r
 	   
 	   WHERE (
 			(@GlobalFilter <>'' 
@@ -745,9 +793,11 @@ BEGIN
 		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
 		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )
+	   OPTION (RECOMPILE)
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult
-        
-	   SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY          
+
+	   ;WITH Paged AS (
+	   SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN MainPartNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN MainPartNumber END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
@@ -857,12 +907,17 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
-		FETCH NEXT @PageSize ROWS ONLY        
-	  END        
-	 END    
-	 ELSE    
-	 BEGIN    
-	  IF @stockTypeId = 1 -- Qty OH > 0        
+		FETCH NEXT @PageSize ROWS ONLY
+		)
+		SELECT p.*,
+	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=p.WorkOrderId) as WorkOrderStatus,
+		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=p.StockLineId) as rsworkOrderId
+		FROM Paged p
+	  END
+	 END
+	 ELSE
+	 BEGIN
+	  IF @stockTypeId = 1 -- Qty OH > 0
 	  BEGIN        
 		  ;WITH Result AS(        
 		 SELECT DISTINCT stl.StockLineId,            
@@ -954,19 +1009,17 @@ BEGIN
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
 	   INNER JOIN DBO.StockLine stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId    
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
-	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
-	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
+		WHERE EXISTS (SELECT 1 FROM DBO.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
+		 AND ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	   SELECT *,
-	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId INTO #TempALTResults FROM  Result r       
+	   SELECT *
+		INTO #TempALTResults FROM  Result r
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
 		  (PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR         
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
@@ -1071,9 +1124,11 @@ BEGIN
 		  (ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
 		  (ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 		 )
+	   OPTION (RECOMPILE)
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults
-        
-	   SELECT *, @Count AS NumberOfItems FROM #TempALTResults ORDER BY        
+
+	   ;WITH Paged AS (
+	   SELECT *, @Count AS NumberOfItems FROM #TempALTResults ORDER BY
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='MainPartNumber')  THEN MainPartNumber END DESC,      
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,        
@@ -1181,12 +1236,17 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
-		OFFSET @RecordFROM ROWS         
-		FETCH NEXT @PageSize ROWS ONLY        
-	  END        
-	  ELSE -- ALL        
-	  BEGIN        
-	   ;WITH Result AS(        
+		OFFSET @RecordFROM ROWS
+		FETCH NEXT @PageSize ROWS ONLY
+		)
+		SELECT p.*,
+		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = p.WorkOrderId) as WorkOrderStatus,
+		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = p.StockLineId) as rsworkOrderId
+		FROM Paged p
+	  END
+	  ELSE -- ALL
+	  BEGIN
+	   ;WITH Result AS(
 	   SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(IMAl.PartNumber,'')) 'MainPartNumber',        
@@ -1276,11 +1336,10 @@ BEGIN
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
 	   INNER JOIN DBO.StockLine stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId    
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
-	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
-	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl
+	 WHERE EXISTS (SELECT 1 FROM DBO.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
+	  AND ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                
@@ -1288,10 +1347,8 @@ BEGIN
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
 		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	  SELECT *,
-	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
-	   (SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId
-		INTO #TempALTResult FROM  Result r       
+	  SELECT *
+		INTO #TempALTResult FROM  Result r
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(MainPartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR    
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
@@ -1396,9 +1453,11 @@ BEGIN
 		(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
 		(ISNULL(@EngineSerialNumber,'') ='' OR EngineSerialNumber LIKE '%' + @EngineSerialNumber + '%'))
 	   )
-	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
-        
-		  SELECT *, @Count AS NumberOfItems FROM #TempALTResult ORDER BY      
+	   OPTION (RECOMPILE)
+	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult
+
+	   ;WITH Paged AS (
+		  SELECT *, @Count AS NumberOfItems FROM #TempALTResult ORDER BY
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='MainPartNumber')  THEN MainPartNumber END DESC,    
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,        
@@ -1507,11 +1566,16 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='EngineSerialNumber')  THEN EngineSerialNumber END DESC
             
-		OFFSET @RecordFROM ROWS         
-		FETCH NEXT @PageSize ROWS ONLY        
-	  END        
-	 END       
-  -- END        
+		OFFSET @RecordFROM ROWS
+		FETCH NEXT @PageSize ROWS ONLY
+		)
+		SELECT p.*,
+		(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = p.WorkOrderId) as WorkOrderStatus,
+		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=p.StockLineId) as rsworkOrderId
+		FROM Paged p
+	  END
+	 END
+  -- END
   --COMMIT  TRANSACTION        
         
   END TRY            

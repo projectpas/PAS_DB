@@ -1,24 +1,24 @@
-﻿/*************************************************************           
- ** File:   [GetBillingInvoicingDetails]           
+﻿/*************************************************************
+ ** File:   [GetBillingInvoicingDetails]
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
- ** Purpose:         
+ ** Purpose:
  ** Date:   28/04/2025
-          
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date			Author		Change Description            
- ** --   --------		-------			--------------------------------          
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date			Author		Change Description
+ ** --   --------		-------			--------------------------------
     1    28/04/2025		Moin Bloch		Created
 	2    30 Apr 2025	RAJESH GAMI		Implemented Sales Order Module and Fix invoice Date issue
 	3    23 JUN 2025	RAJESH GAMI		FIXED CustomerDomensticShippingShipViaId related issue in SO
-	4    03 JUL 2025	RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
+	4    03 JUL 2025	RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId
 	5    07 JUL 2025	RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default selected
-	6    08 JUL 2025	RAJESH GAMI		Fixed: When we revise the proforma that time getting error 
-	7    17 JUL 2025	RAJESH GAMI		Implement SO notes  
+	6    08 JUL 2025	RAJESH GAMI		Fixed: When we revise the proforma that time getting error
+	7    17 JUL 2025	RAJESH GAMI		Implement SO notes
 	8    31 JUL 2025	BHARGAV Saliya  Handle [IsCustomerShipping] flage and Get AccountNo In SO
 	9    05 Aug 2025	BHARGAV Saliya	Fixed ShippingTerms Issue PN_13778
 	10   26/03/2026		Moin Bloch		Rename TearDown To Internal Teardown PN-15850
@@ -27,10 +27,13 @@
 	13   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14   20/July/2026	RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter(s) so Non-Stock parts appear/populate correctly on SO billing invoicing details (WorkOrder branch untouched).
 	15   13/Aug/2026	Vishal Suthar	Fixed the shipTo and billTo siteId to get from address tab instead of customer record for SO Proforma Invoice
+	16   02/Sept/2026	Vishal Suthar	Fixed ShipVia to get it from address tab instead of customer record for SO
+	17   10/Sept/2026	Vishal Suthar	PN-17824: When editing an already-generated WO bill (@BillingInvoicingId > 0), return the invoice's actual stored InvoiceDate instead of always GETUTCDATE()
+	18   16/Sept/2026	Vishal Suthar	PN-17824: When editing an already-generated bill, return the invoice's actual stored SoldTo/ShipTo/ShipVia/Notes (from BillingInvoicingDetails/BillingInvoicing) instead of always deriving them fresh from the live SO/WO/Customer records
 
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
-**************************************************************/ 
+**************************************************************/
 CREATE      PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
@@ -40,28 +43,51 @@ CREATE      PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @BillingInvoicingId BIGINT =NULL,
 @IsProformaInvoice BIT = NULL
 AS
-BEGIN	
+BEGIN
 	SET NOCOUNT ON;
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
-	 BEGIN TRY  	
-		
-		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@Result INT,@ItemCount INT, @CostPlusType VARCHAR(20) ='Cost Plus', @DefaultInvoiceTypeId INT =0;;		
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	 BEGIN TRY
+
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@Result INT,@ItemCount INT, @CostPlusType VARCHAR(20) ='Cost Plus', @DefaultInvoiceTypeId INT =0;;
 		DECLARE @AllowInvoiceBeforeShipping BIT
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
-		
+
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
-		BEGIN	
-			
-			
-		  
+		BEGIN
+
+
+
 			SELECT @ItemCount = COUNT(DISTINCT [wosi].[WorkOrderPartNumId])
 				FROM [dbo].[WorkOrderShipping] [wos] WITH(NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderShippingItem] [wosi] WITH(NOLOCK) ON [wos].[WorkOrderShippingId] = [wosi].[WorkOrderShippingId]
 			WHERE [wos].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
-			
+
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [ID] = @SubReferenceId;
+
+			DECLARE @ExistingInvoiceDate DATETIME2(7) = NULL;
+			DECLARE @ExistingNotes NVARCHAR(MAX) = NULL;
+			DECLARE @ExistingShipViaId INT = NULL;
+			DECLARE @ExistingSoldToCustomerId BIGINT = NULL;
+			DECLARE @ExistingSoldToSiteId BIGINT = NULL;
+			DECLARE @ExistingShipToCustomerId BIGINT = NULL;
+			DECLARE @ExistingShipToSiteId BIGINT = NULL;
+			IF(@BillingInvoicingId > 0)
+			BEGIN
+				SELECT @ExistingInvoiceDate = [InvoiceDate], @ExistingNotes = [Notes]
+				FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
+				WHERE [BillingInvoicingId] = @BillingInvoicingId;
+
+				SELECT @ExistingShipViaId = [ShipviaId],
+				       @ExistingSoldToCustomerId = [SoldToCustomerId],
+				       @ExistingSoldToSiteId = [SoldToSiteId],
+				       @ExistingShipToCustomerId = [ShipToCustomerId],
+				       @ExistingShipToSiteId = [ShipToSiteId]
+				FROM [dbo].[BillingInvoicingDetails] WITH(NOLOCK)
+				WHERE [BillingInvoicingId] = @BillingInvoicingId;
+			END
+
 			IF EXISTS (SELECT 1 FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
 			               INNER JOIN [dbo].[CustomerDomensticShipping] cust_ship WITH(NOLOCK) ON wo.[CustomerId] = cust_ship.[CustomerId]
                            INNER JOIN [dbo].[CustomerBillingAddress] cust_bill    WITH(NOLOCK) ON wo.[CustomerId] = cust_bill.[CustomerId]
@@ -73,7 +99,7 @@ BEGIN
 			BEGIN
 				SELECT @Result = 0;
 			END
-			
+
 			IF(@ItemCount > 0)
 			BEGIN
 				SELECT TOP 1
@@ -81,14 +107,14 @@ BEGIN
 				[wosh].[WorkOrderPartNoId],
 				[cust].[ContractReference],
 				CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-				GETUTCDATE() AS [InvoiceDate],
+				ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 				GETUTCDATE() AS [PrintDate],
 				[wosh].[ShipDate],
 				[wo].[EmployeeId],
 				ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
 				ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],
 				[wo].[WorkOrderTypeId],
-				CASE 
+				CASE
 					WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
 					WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
 					WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
@@ -102,26 +128,26 @@ BEGIN
 				[wo].[SalesPersonId],
 				ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 				[wosh].[ShippingAccountInfo] AS [ShipAccountInfo],
-				--CASE 
+				--CASE
 				--	WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
 				--	ELSE [wosh].[ShipviaId]
 				--END AS [CustomerDomensticShippingShipViaId],
-				[wosh].[ShipviaId] ShipViaId,
+				ISNULL(@ExistingShipViaId, [wosh].[ShipviaId]) ShipViaId,
 				ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 				ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
 				[wo].[CreditTerms] AS [CreditTerm],
 				ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 				ISNULL([fcu].[Code], '') AS [Currency],
-				[wo].[CustomerId] AS [SoldToCustomerId],
+				ISNULL(@ExistingSoldToCustomerId, [wo].[CustomerId]) AS [SoldToCustomerId],
 				[wosh].[SoldToName] AS [SoldToCustomer],
-				[wosh].[SoldToSiteId],
-				[wosh].[ShipToCustomerId],
+				ISNULL(@ExistingSoldToSiteId, [wosh].[SoldToSiteId]) AS [SoldToSiteId],
+				ISNULL(@ExistingShipToCustomerId, [wosh].[ShipToCustomerId]) AS [ShipToCustomerId],
 				[wosh].[ShipToName] AS [ShipToCustomer],
-				[wosh].[ShipToSiteId],
+				ISNULL(@ExistingShipToSiteId, [wosh].[ShipToSiteId]) AS [ShipToSiteId],
 				[wop].[ManagementStructureId],
 				@CostPlusType AS [CostPlusType],
 				1 AS [TotalWorkOrder],
-				[wosh].[ShipViaId],
+				ISNULL(@ExistingShipViaId, [wosh].[ShipViaId]) AS [ShipViaId],
 				[wosh].[TrackingNum] AS [Tracking],
 				ISNULL([csr].[FirstName] + ' ' + [csr].[LastName], '') AS [CSR],
 				[wop].[CustomerReference],
@@ -134,7 +160,7 @@ BEGIN
 				[wosh].[IsCustomerShipping],
 				@Result [BillShipInfoExist],
 				0 as InvoiceTypeId,
-				'' Notes,
+				ISNULL(@ExistingNotes, '') AS Notes,
 				null AS ShippingTermsName
 			FROM [dbo].[WorkOrderShipping] [wosh] WITH(NOLOCK)
 			INNER JOIN [dbo].[WorkOrder] [wo] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wo].[WorkOrderId]
@@ -163,14 +189,14 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					NULL AS [ShipDate],
 					[wo].[EmployeeId],
 					ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
 					ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],
 					[wo].[WorkOrderTypeId],
-					CASE 
+					CASE
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
 						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
 						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
@@ -184,22 +210,22 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
-					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
+					ISNULL(@ExistingShipViaId, ISNULL([cust_shipVia].[ShipViaId], 0)) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
 					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 					ISNULL([fcu].[Code], '') AS [Currency],
-					[wo].[CustomerId] AS [SoldToCustomerId],
+					ISNULL(@ExistingSoldToCustomerId, [wo].[CustomerId]) AS [SoldToCustomerId],
 					[cust].[Name] AS [SoldToCustomer],
-					[cust_bill].[CustomerBillingAddressId] AS [SoldToSiteId],
-					[wo].[CustomerId] AS [ShipToCustomerId],
+					ISNULL(@ExistingSoldToSiteId, [cust_bill].[CustomerBillingAddressId]) AS [SoldToSiteId],
+					ISNULL(@ExistingShipToCustomerId, [wo].[CustomerId]) AS [ShipToCustomerId],
 					[cust].[Name] AS [ShipToCustomer],
-					[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
+					ISNULL(@ExistingShipToSiteId, [cust_ship].[CustomerDomensticShippingId]) AS [ShipToSiteId],
 					[wop].[ManagementStructureId],
 					@CostPlusType AS [CostPlusType],
 					1 AS [TotalWorkOrder],
-					[cust_shipVia].[ShipViaId],
+					ISNULL(@ExistingShipViaId, [cust_shipVia].[ShipViaId]) AS [ShipViaId],
 					'' AS [Tracking],
 					ISNULL([csr].[FirstName] + ' ' + [csr].[LastName], '') AS [CSR],
 					[wop].[CustomerReference],
@@ -211,7 +237,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					1 AS [IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId,'' Notes,
+						0 as InvoiceTypeId,ISNULL(@ExistingNotes, '') AS Notes,
 					ISNULL([st].[Name], '') AS ShippingTermsName
 				FROM [dbo].[WorkOrder] [wo] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wo].[WorkOrderId] = [wop].[WorkOrderId]
@@ -232,7 +258,7 @@ BEGIN
 				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 				 LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
-				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
+				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;
 			END
 			ELSE IF(@AllowInvoiceBeforeShipping = 0 AND @IsProformaInvoice = 1)
 			BEGIN
@@ -242,14 +268,14 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					NULL AS [ShipDate],
 					[wo].[EmployeeId],
 					ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
 					ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],
 					[wo].[WorkOrderTypeId],
-					CASE 
+					CASE
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
 						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
 						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
@@ -263,22 +289,22 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
-					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
+					ISNULL(@ExistingShipViaId, ISNULL([cust_shipVia].[ShipViaId], 0)) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
 					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 					ISNULL([fcu].[Code], '') AS [Currency],
-					[wo].[CustomerId] AS [SoldToCustomerId],
+					ISNULL(@ExistingSoldToCustomerId, [wo].[CustomerId]) AS [SoldToCustomerId],
 					[cust].[Name] AS [SoldToCustomer],
-					[cust_bill].[CustomerBillingAddressId] AS [SoldToSiteId],
-					[wo].[CustomerId] AS [ShipToCustomerId],
+					ISNULL(@ExistingSoldToSiteId, [cust_bill].[CustomerBillingAddressId]) AS [SoldToSiteId],
+					ISNULL(@ExistingShipToCustomerId, [wo].[CustomerId]) AS [ShipToCustomerId],
 					[cust].[Name] AS [ShipToCustomer],
-					[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
+					ISNULL(@ExistingShipToSiteId, [cust_ship].[CustomerDomensticShippingId]) AS [ShipToSiteId],
 					[wop].[ManagementStructureId],
 					@CostPlusType AS [CostPlusType],
 					1 AS [TotalWorkOrder],
-					[cust_shipVia].[ShipViaId],
+					ISNULL(@ExistingShipViaId, [cust_shipVia].[ShipViaId]) AS [ShipViaId],
 					'' AS [Tracking],
 					ISNULL([csr].[FirstName] + ' ' + [csr].[LastName], '') AS [CSR],
 					[wop].[CustomerReference],
@@ -290,7 +316,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					0 AS [IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId,'' Notes,
+						0 as InvoiceTypeId,ISNULL(@ExistingNotes, '') AS Notes,
 					null AS ShippingTermsName
 				FROM [dbo].[WorkOrder] [wo] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wo].[WorkOrderId] = [wop].[WorkOrderId]
@@ -310,7 +336,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
 				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
-				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
+				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;
 			END
 			ELSE
 			BEGIN
@@ -320,14 +346,14 @@ BEGIN
 					[cust].[ContractReference],
 					[cust].[CustomerCode],
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
-					GETUTCDATE() AS [InvoiceDate],
+					ISNULL(@ExistingInvoiceDate, GETUTCDATE()) AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
 					[wosh].[ShipDate],
 					[wo].[EmployeeId],
 					ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
 					ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],
 					[wo].[WorkOrderTypeId],
-					CASE 
+					CASE
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
 						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
 						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
@@ -341,26 +367,26 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					[wosh].[ShippingAccountInfo] AS [ShipAccountInfo],
-					--CASE 
+					--CASE
 					--	WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
 					--	ELSE [wosh].[ShipviaId]
 					--END AS [CustomerDomensticShippingShipViaId],
-					wosh.ShipviaId ShipViaId,
+					ISNULL(@ExistingShipViaId, wosh.ShipviaId) ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
 					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([cf].[CurrencyId], 0) AS [CurrencyId],
 					ISNULL([cr].[Code], '') AS [Currency],
-					[wo].[CustomerId] AS [SoldToCustomerId],
+					ISNULL(@ExistingSoldToCustomerId, [wo].[CustomerId]) AS [SoldToCustomerId],
 					[wosh].[SoldToName] AS [SoldToCustomer],
-					[wosh].[SoldToSiteId],
-					[wosh].[ShipToCustomerId],
+					ISNULL(@ExistingSoldToSiteId, [wosh].[SoldToSiteId]) AS [SoldToSiteId],
+					ISNULL(@ExistingShipToCustomerId, [wosh].[ShipToCustomerId]) AS [ShipToCustomerId],
 					[wosh].[ShipToName] AS [ShipToCustomer],
-					[wosh].[ShipToSiteId],
+					ISNULL(@ExistingShipToSiteId, [wosh].[ShipToSiteId]) AS [ShipToSiteId],
 					[wop].[ManagementStructureId],
 					@CostPlusType AS [CostPlusType],
 					1 AS [TotalWorkOrder],
-					[wosh].[ShipViaId],
+					ISNULL(@ExistingShipViaId, [wosh].[ShipViaId]) AS [ShipViaId],
 					[wosh].[TrackingNum] AS [Tracking],
 					ISNULL([csr].[FirstName] + ' ' + [csr].[LastName], '') AS [CSR],
 					[wop].[CustomerReference],
@@ -372,7 +398,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					[wosh].[IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId,'' Notes,
+						0 as InvoiceTypeId,ISNULL(@ExistingNotes, '') AS Notes,
 						null AS ShippingTermsName
 				FROM [dbo].[WorkOrderShipping] [wosh] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] [wo] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wo].[WorkOrderId]
@@ -389,7 +415,7 @@ BEGIN
 				LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
 				LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE [wosh].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
-			
+
 			END
 			END
 		END /*********END: WORK ORDER ********/
@@ -415,11 +441,11 @@ BEGIN
 				  		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				  		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId CurrencyId,
 				  		so.TypeId, sotype.[Name] as RevType,ISNULL(sobii.QtyBilled, 0) NoofPieces,--(ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
-				  		sobi.OriginCountryId AS OriginCountryId, 
-				  		sobi.ShipToCountryId AS ShipToCountryId, 
+				  		sobi.OriginCountryId AS OriginCountryId,
+				  		sobi.ShipToCountryId AS ShipToCountryId,
 				  		ime.ExportECCN AS ECCN,
 				  		ime.HSCODE AS HSCODE,
-				  		ime.ExportWeight AS [Weight], 
+				  		ime.ExportWeight AS [Weight],
 				  		ime.ExportSizeLength AS BillSizeLength,
 				  		ime.ExportSizeWidth AS BillSizeWidth,
 				  		ime.ExportSizeWidth AS BillSizeHeight,
@@ -435,20 +461,20 @@ BEGIN
 				  		ISNULL(sobi.GrandTotal,0) AS GrandTotal,
 				  		@Result [BillShipInfoExist],
 						@CostPlusType AS [CostPlusType],
-						[so].[CustomerId] AS [SoldToCustomerId],
+						ISNULL(BID.SoldToCustomerId, [so].[CustomerId]) AS [SoldToCustomerId],
 						[co].[Name] AS [SoldToCustomer],
-						CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END AS [SoldToSiteId],
-						[co].[CustomerId] AS [ShipToCustomerId],
+						ISNULL(BID.SoldToSiteId, CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END) AS [SoldToSiteId],
+						ISNULL(BID.ShipToCustomerId, [co].[CustomerId]) AS [ShipToCustomerId],
 						[co].[Name] AS [ShipToCustomer],
-						CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END AS [ShipToSiteId],
+						ISNULL(BID.ShipToSiteId, CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END) AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
 						[so].[ManagementStructureId],
-						GETUTCDATE() AS [InvoiceDate],
+						CASE WHEN sobi.BillingInvoicingId IS NOT NULL THEN sobi.InvoiceDate ELSE GETUTCDATE() END AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						[cust_shipVia].[ShipViaId],
-							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
-						so.Notes Notes,
+						ISNULL(BID.ShipviaId, CASE WHEN [SOShipVia].AllShipViaId IS NOT NULL THEN [SOShipVia].ShipViaId ELSE [cust_shipVia].[ShipViaId] END) AS ShipViaId,
+						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
+						ISNULL(sobi.Notes, so.Notes) AS Notes,
 						ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 						ISNULL([st].[Name], '') AS ShippingTermsName
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
@@ -471,6 +497,7 @@ BEGIN
 					 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
+					LEFT JOIN [DBO].[AllShipVia] [SOShipVia] WITH(NOLOCK) ON [SOShipVia].ReferenceId = sop.SalesOrderId AND [SOShipVia].ModuleId = @SOModuleId
 				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId
 			END
 			ELSE
@@ -481,11 +508,11 @@ BEGIN
 				 		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				 		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId as CurrencyId,
 				 		so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces,
-				 		sos.OriginCountryId, 
-				 		sos.ShipToCountryId, 
+				 		sos.OriginCountryId,
+				 		sos.ShipToCountryId,
 				 		sop.ECCN AS ECCN,
 				 		sop.HSCODE AS HSCODE,
-				 		sop.[Weight], 
+				 		sop.[Weight],
 				 		sop.SizeLength AS BillSizeLength,
 				 		sop.SizeWidth AS BillSizeWidth,
 				 		sop.SizeHeight AS BillSizeHeight,
@@ -513,7 +540,7 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						--CASE 
+						--CASE
 						--	WHEN sos.[IsCustomerShipping] = 1 THEN sos.[CustomerDomensticShippingShipViaId]
 						--	ELSE sos.[ShipviaId]
 						--END AS [CustomerDomensticShippingShipViaId],
@@ -521,7 +548,7 @@ BEGIN
 							0 as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,so.Notes Notes,
 							ISNULL(sos.[ShippingAccountNo], '') AS [ShipAccountInfo],
 							null AS ShippingTermsName
-				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
+				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
 				 	INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 				 	INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
 				 	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -540,12 +567,12 @@ BEGIN
 				 	SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				 		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				 		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId CurrencyId,
-				 		so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces, 
-						sobi.OriginCountryId AS OriginCountryId, 
-				  		sobi.ShipToCountryId AS ShipToCountryId, 
+				 		so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
+						sobi.OriginCountryId AS OriginCountryId,
+				  		sobi.ShipToCountryId AS ShipToCountryId,
 				 		sop.ECCN AS ECCN,
 				 		sop.HSCODE AS HSCODE,
-				 		sop.[Weight] AS [Weight], 
+				 		sop.[Weight] AS [Weight],
 				 		sop.SizeLength AS BillSizeLength,
 				 		sop.SizeWidth AS BillSizeWidth,
 				 		sop.SizeHeight AS BillSizeHeight,
@@ -561,18 +588,18 @@ BEGIN
 				 		0 AS GrandTotal,
 				 		@Result [BillShipInfoExist],
 						@CostPlusType AS [CostPlusType],
-						[so].[CustomerId] AS [SoldToCustomerId],
+						ISNULL(BID.SoldToCustomerId, [so].[CustomerId]) AS [SoldToCustomerId],
 						[co].[Name] AS [SoldToCustomer],
-						CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END AS [SoldToSiteId],
-						[co].[CustomerId] AS [ShipToCustomerId],
+						ISNULL(BID.SoldToSiteId, CASE WHEN [add_bill].SiteId IS NOT NULL THEN [add_bill].SiteId ELSE [cust_bill].[CustomerBillingAddressId] END) AS [SoldToSiteId],
+						ISNULL(BID.ShipToCustomerId, [co].[CustomerId]) AS [ShipToCustomerId],
 						[co].[Name] AS [ShipToCustomer],
-						CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END AS [ShipToSiteId],
+						ISNULL(BID.ShipToSiteId, CASE WHEN [add_Ship].SiteId IS NOT NULL THEN [add_Ship].SiteId ELSE [cust_ship].[CustomerDomensticShippingId] END) AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
 						[so].[ManagementStructureId],
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
-					    ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipviaId,
-						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,so.Notes Notes,
+					    ISNULL(BID.ShipviaId, CASE WHEN [SOShipVia].AllShipViaId IS NOT NULL THEN [SOShipVia].ShipViaId ELSE ISNULL([cust_shipVia].[ShipViaId], 0) END) AS ShipviaId,
+						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,ISNULL(sobi.Notes, so.Notes) AS Notes,
 						ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 						ISNULL([st].[Name], '') AS ShippingTermsName
 				 	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
@@ -581,7 +608,7 @@ BEGIN
 				 	INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 				 	INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShipping] [cust_ship] WITH(NOLOCK) ON [so].[CustomerId] = [cust_ship].[CustomerId]
-					LEFT JOIN [dbo].[CustomerBillingAddress] [cust_bill] WITH(NOLOCK) ON [so].[CustomerId] = [cust_bill].[CustomerId]				 	
+					LEFT JOIN [dbo].[CustomerBillingAddress] [cust_bill] WITH(NOLOCK) ON [so].[CustomerId] = [cust_bill].[CustomerId]
 					LEFT JOIN [dbo].[AllAddress] [add_bill] WITH(NOLOCK) ON [add_bill].ReffranceId = @ReferenceId AND [add_bill].ModuleId = @SOModuleId AND [add_bill].IsShippingAdd = 0
 					LEFT JOIN [dbo].[AllAddress] [add_Ship] WITH(NOLOCK) ON [add_Ship].ReffranceId = @ReferenceId AND [add_Ship].ModuleId = @SOModuleId AND [add_Ship].IsShippingAdd = 1
 					LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
@@ -589,34 +616,35 @@ BEGIN
 				 	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				 	LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on SO.SalesOrderId = sobi.ReferenceId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
-				 	LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId  AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.ModuleId = @SOModuleId				 	
+				 	LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId  AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.ModuleId = @SOModuleId
 				 	LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON SO.FunctionalCurrencyId = [cr].[CurrencyId]
-					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]					
+					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
+					LEFT JOIN [DBO].[AllShipVia] [SOShipVia] WITH(NOLOCK) ON [SOShipVia].ReferenceId = sop.SalesOrderId AND [SOShipVia].ModuleId = @SOModuleId
 				 	WHERE so.SalesOrderId = @ReferenceId ;
 				 END
-			END			
-					
-		END /*********END: SALES ORDER ********/
-		
+			END
 
-	END TRY    
-	BEGIN CATCH      
+		END /*********END: SALES ORDER ********/
+
+
+	END TRY
+	BEGIN CATCH
 		IF @@trancount > 0
-			PRINT 'ROLLBACK'            
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			PRINT 'ROLLBACK'
+			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'GetBillingInvoicingDetails'             
+              , @AdhocComments     VARCHAR(150)    = 'GetBillingInvoicingDetails'
 			   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ReferenceId, '') AS VARCHAR(100))
-			                                       + '@Parameter2 = ''' + CAST(ISNULL(@SubReferenceId, '') AS VARCHAR(100)) 
-												   + '@Parameter3 = ''' + CAST(ISNULL(@EmployeeId, '') AS VARCHAR(100)) 
-												   + '@Parameter4 = ''' + CAST(ISNULL(@ModuleId, '') AS VARCHAR(100)) 
+			                                       + '@Parameter2 = ''' + CAST(ISNULL(@SubReferenceId, '') AS VARCHAR(100))
+												   + '@Parameter3 = ''' + CAST(ISNULL(@EmployeeId, '') AS VARCHAR(100))
+												   + '@Parameter4 = ''' + CAST(ISNULL(@ModuleId, '') AS VARCHAR(100))
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters    = @ProcedureParameters
@@ -624,5 +652,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
-    END CATCH    
+    END CATCH
 END

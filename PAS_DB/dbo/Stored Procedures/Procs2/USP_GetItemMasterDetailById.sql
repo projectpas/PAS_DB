@@ -21,6 +21,8 @@
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
 	11   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
 	12   29-July-2026   Ayushi Patel		Added New Field IsService [PN-17470]
+	13   18-Aug-2026    Sahdev Saliya       Added IsKitAssy [PN-17371]
+
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -204,7 +206,8 @@ BEGIN
 						Im.PriceDate,
 						ISNULL(iM.UnitCost,0) UnitCost,
 						ISNULL(iM.InWarranty,0) InWarranty,
-						ISNULL(iM.IsService, 0) AS IsService
+						ISNULL(iM.IsService, 0) AS IsService,
+						iM.IsKitAssy
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

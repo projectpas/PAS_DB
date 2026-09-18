@@ -55,6 +55,7 @@
    29   03-Sep-2026   RAJESH GAMI      [PN-17853] Round 2 of Rajesh's Other Cost feedback: OtherCost branch now also returns StkLineNum (FieldMaster 'stkLineNum' column) and Memo (was missing entirely - Edit popup showed it blank); manual-entry StocklineNumber now falls back to a live Stockline join if not captured at save time; manual-entry PoNum is now '<SalesOrderNumber> (Manual Entry)' when the row is tied to a Sales Order (via LOTOtherCostDetails.ReferenceNumber, now populated by USP_LOTOtherCostDetails_AddUpdate), else plain 'Manual Entry'.
    30   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] Display Total Amount Based on All Records in LOT Tabs: added page-independent SUM() grand totals (computed against the fully-filtered #temp table, before OFFSET/FETCH paging - same pattern as the existing @Count/NumberOfItems) for the PNInStockView, PNQuoteView, PNSoldView, RepairedView, OtherCost and Commission branches. Each branch now also returns its new '<Column>Sum' totals alongside NumberOfItems so the UI no longer has to (incorrectly) sum only the current page of rows.
    31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
+   32   16-Sep-2026   RAJESH GAMI      [PN-17881] Commission tab (ELSE IF(UPPER(@Type) = UPPER('Commission')) section): CommissionExpenseNew CROSS APPLY now reads ltCal.IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails 'Trans Out (SO)' snapshot) instead of the LotConsignment LC join, since ltCal is already uniquely joined per LotTransInOutId (no duplication) and already scoped to this LotId and Type='Trans Out (SO)'. The LC join itself is kept only for the pre-existing HowCalculate fallback CASE (IsRevenueSplit has no LotCalculationDetails equivalent).
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
@@ -2302,6 +2303,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
+					 -- [PN-17881] RAJESH GAMI: LC (LotConsignment) is kept ONLY for the HowCalculate fallback CASE
+					 -- above (IsRevenueSplit has no LotCalculationDetails equivalent, so it's still needed for
+					 -- rows predating PN-17799's ltCal.HowCalculate column). The CommissionExpenseNew CROSS APPLY
+					 -- below no longer reads LC - it now reads ltCal's own IsFixedAmount/FixedAmount/IsRevenue/
+					 -- RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails snapshot,
+					 -- already uniquely joined above via LotTransInOutId and already scoped to this LotId (via
+					 -- lot->ltin->ltCal) and to Type='Trans Out (SO)' (via the SalesOrder join condition above) -
+					 -- no new join/APPLY needed and no duplication risk, since it's the same already-joined row.
 					 INNER JOIN DBO.LotConsignment LC WITH(NOLOCK) on lot.LotId = LC.LotId
 					 -- [PN-17853] row-level Freight/Charges/Revenue/Margin/Commission - same FlatRate-vs-T&M/Actual rule as PNSoldView above, and the same LotConsignment-based Commission formula as USP_Lot_GetLotSummaryByLotId, but scoped to this SO Part so the Commission tab lines up with the Lot Summary tab
 					 CROSS APPLY ( SELECT Freight = ISNULL((
@@ -2318,12 +2327,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 ),0) ) chg
 					 CROSS APPLY ( SELECT Revenue = ISNULL(ltCal.ExtSalesUnitPrice,0) + frt.Freight + chg.Charges ) rev
 					 CROSS APPLY ( SELECT MarginAmtNew = rev.Revenue - ISNULL(ltCal.Cogs,0) ) mrg
+					 -- [PN-17881] RAJESH GAMI: switched from lc.* (LotConsignment, live/current setup) to ltCal.* -
+					 -- this row's own LotCalculationDetails 'Trans Out (SO)' snapshot (LotId + Type already
+					 -- enforced above; no new join needed, so no duplication risk).
 					 CROSS APPLY ( SELECT CommissionExpenseNew = (
 					 	CASE
-					 		WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN CONVERT(DECIMAL(18,2), ISNULL(lc.PerAmount,0) * ISNULL(ltCal.Qty,0))
-					 		WHEN ISNULL(lc.IsRevenue,0) = 1 OR ISNULL(lc.IsMargin,0) = 1 THEN
-					 			ISNULL(CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN CONVERT(DECIMAL(18,2), (rev.Revenue * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = lc.PercentId),0)) / 100) ELSE 0 END,0)
-					 			+ ISNULL(CASE WHEN ISNULL(lc.IsMargin,0) = 1 THEN CONVERT(DECIMAL(18,2), (mrg.MarginAmtNew * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = lc.MarginPercentId),0)) / 100) ELSE 0 END,0)
+					 		WHEN ISNULL(ltCal.IsFixedAmount,0) = 1 THEN CONVERT(DECIMAL(18,2), ISNULL(ltCal.FixedAmount,0) * ISNULL(ltCal.Qty,0))
+					 		WHEN ISNULL(ltCal.IsRevenue,0) = 1 OR ISNULL(ltCal.IsMargin,0) = 1 THEN
+					 			ISNULL(CASE WHEN ISNULL(ltCal.IsRevenue,0) = 1 THEN CONVERT(DECIMAL(18,2), (rev.Revenue * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ltCal.RevenuePercentId),0)) / 100) ELSE 0 END,0)
+					 			+ ISNULL(CASE WHEN ISNULL(ltCal.IsMargin,0) = 1 THEN CONVERT(DECIMAL(18,2), (mrg.MarginAmtNew * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ltCal.MarginPercentId),0)) / 100) ELSE 0 END,0)
 					 		ELSE 0
 					 	END
 					 ) ) comm

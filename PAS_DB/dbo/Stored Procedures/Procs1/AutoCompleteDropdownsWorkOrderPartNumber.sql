@@ -21,19 +21,24 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     9    05-Aug-2026			 Bhargav Saliya						[PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
+	10   20/Aug/2026  Moin Bloch		added IsInternalKitAssembly Logic (params: @IsInternalKitAssembly, @ConditionId, @Quantity, @ManagementStructureId; WorkOrderType ids resolved from dbo.WorkOrderType instead of hardcoded 1/2/3/4)
+	11   14-Sep-2026  Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'0',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
 **************************************************************/
-
-CREATE    PROCEDURE [dbo].[AutoCompleteDropdownsWorkOrderPartNumber]
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsWorkOrderPartNumber]
 @StartWith VARCHAR(50) = NULL,
 @Idlist VARCHAR(max) = '0',
 @CustomerId BIGINT = NULL,
 @WorkOrderId BIGINT = NULL,
 @WorkOrderTypeId INT = NULL,
-@MasterCompanyId INT
-
+@MasterCompanyId INT,
+@IsInternalKitAssembly BIT = 0,
+@ConditionId BIGINT = NULL,
+@Quantity INT = NULL,
+@ManagementStructureId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -42,6 +47,13 @@ BEGIN
 		DECLARE @Sql NVARCHAR(MAX);	
 		DECLARE @Count INT = 0;
 		DECLARE @IsActive BIT = 1;
+		DECLARE @Customer INT,@Internal INT,@TearDown INT,@ShopServices INT
+
+		-- Work Order Type
+		SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
+		SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';
+		SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown';
+		SELECT @ShopServices = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Shop Services';
 
 		IF(@Count = '0') 
 		   BEGIN
@@ -58,7 +70,12 @@ BEGIN
 		   SET @Count = '0';	
 		END	
 
-		IF(@WorkOrderTypeId = 1) -- Customer Work Order
+		IF(@IsInternalKitAssembly IS NULL)
+		BEGIN
+			SET @IsInternalKitAssembly = 0
+		END
+
+		IF(@WorkOrderTypeId = @Customer) -- Customer Work Order
 		BEGIN		
 					DECLARE @CustomerModuleID INT; -- Module Enum
 					DECLARE @RCWModuleID INT; -- Management Structure Module Enum
@@ -125,7 +142,7 @@ BEGIN
 						LEFT JOIN dbo.ItemMaster OIM WITH(NOLOCK) ON RCW.OutGoingItemMasterId = OIM.ItemMasterId
 					 AND ISNULL(OIM.IsNonStock,0) = 0
 						 WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND ISNULL(RCW.WorkOrderId, 0) = 0 AND SL.CustomerId = @CustomerId AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
-					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%') 
+					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%') 
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					   UNION 
@@ -181,7 +198,7 @@ BEGIN
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					  ORDER BY [Label]				
 			END
-			ELSE IF(@WorkOrderTypeId = 2 OR  @WorkOrderTypeId = 4) -- FOR INTERNAL AND SHOP SERVER WO TYPE
+			ELSE IF((@WorkOrderTypeId = @Internal OR  @WorkOrderTypeId = @ShopServices) AND @IsInternalKitAssembly = 0) -- FOR INTERNAL AND SHOP SERVER WO TYPE
 			BEGIN
 					DECLARE @StocklineModuleID INT; 
 					DECLARE @SLMSModuleID INT; 
@@ -200,7 +217,8 @@ BEGIN
                           AND SL.CustomerId = @CustomerId AND SL.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
-                           SELECT DISTINCT TOP 20  0 AS ReceivingCustomerWorkId,
+                           
+					SELECT DISTINCT TOP 20  0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
 						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber AND ISNULL(IMF.IsNonStock,0) = 0 ) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
@@ -244,7 +262,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(SL.QuantityAvailable, 0) > 0
-						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
+						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION
@@ -296,7 +314,7 @@ BEGIN
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 ORDER BY [Label]	
 			END
-			ELSE IF(@WorkOrderTypeId = 3)
+			ELSE IF(@WorkOrderTypeId = @TearDown AND @IsInternalKitAssembly = 0)
 			BEGIN
 					DECLARE @TRStocklineModuleID INT; 
 					DECLARE @TRSLMSModuleID INT; 
@@ -360,7 +378,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.QuantityAvailable, 0) > 0
-					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%' + REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
+					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')
 
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					  UNION
@@ -411,6 +429,45 @@ BEGIN
 					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
 					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 ORDER BY [Label]	
+			END
+			ELSE IF((@WorkOrderTypeId = @Internal OR  @WorkOrderTypeId = @ShopServices OR @WorkOrderTypeId = @TearDown) AND @IsInternalKitAssembly = 1) -- FOR INTERNAL AND SHOP SERVER WO TYPE
+			BEGIN 
+				SELECT  0 AS ReceivingCustomerWorkId,
+						IM.ItemMasterId,
+						IM.partnumber AS PartNumber,
+						CASE WHEN (SELECT COUNT(1) FROM [dbo].[ItemMaster] IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber AND ISNULL(IMF.IsNonStock,0) = 0 ) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						im.IsPma AS PMA,
+						im.IsDER AS DER,
+						IM.PartDescription,
+                        IM.ManufacturerName,
+						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
+						ISNULL(IM.RevisedPart, '') As RevisedPartNo,						
+						CO.[Description] AS Condition,
+                        '' AS StockLineNumber,
+                        '' AS SerialNumber,
+                        0  AS StockLineId,
+                        @ConditionId AS ConditionId,
+                        '' AS Reference,
+						CONVERT(VARCHAR, GETUTCDATE(), 101)  AS  ReceivedDate,
+                        '' AS ReceivingNumber,
+                         @ManagementStructureId ManagementStructureId,
+                         GETUTCDATE() AS CustReqDate,
+                         @Quantity Quantity,
+                         0  AS WorkOderScopeId,
+						 '' AS WorkOrderScope,
+						 @ManagementStructureId  AS EntityStructureId,
+						 '' AS AllMSlevels,
+						 '' AS LastMSLevel,
+						 IG.[Description] AS ItemGroup,
+						 NULL AS WorkflowExpirationDate,
+						'' AS AircraftTailNumber,
+						 IM.WorkOrderFormTypeId,
+						 0 AS IsRepairManagement,
+						IM.partnumber AS MPNPartNumber						
+					FROM [dbo].[ItemMaster] IM WITH(NOLOCK) 					
+					LEFT JOIN [dbo].[Condition] CO WITH(NOLOCK) ON CO.ConditionId = @ConditionId				
+					LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId					
+					WHERE IM.[ItemMasterId] IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ','))									
 			END
 
 	END TRY 

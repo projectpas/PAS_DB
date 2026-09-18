@@ -189,7 +189,7 @@ CREATE   PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
 		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE REPLACE(REPLACE(@partSarchText, '-', ''), '/', '') +'%')
-		--END
+		--END 
 
 		--IF( @IncludeDER = 1)
 		--BEGIN

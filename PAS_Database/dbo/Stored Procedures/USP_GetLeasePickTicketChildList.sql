@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetLeasePickTicketChildList]
  ** Description: Child grid of the Leasing "Pick Ticket" tab - the pick history of a single
  **              Lease Stock Line (one row per pick transaction). Mirrors
@@ -17,7 +17,7 @@
 
 exec USP_GetLeasePickTicketChildList @LeaseHeaderId=1, @LeaseStocklineId=1, @EmployeeId=1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetLeasePickTicketChildList]
+CREATE   PROCEDURE [dbo].[USP_GetLeasePickTicketChildList]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT,
 	@EmployeeId BIGINT = 0
@@ -37,6 +37,16 @@ BEGIN
 		LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK)    ON LE.[TimeZoneId] = LTZ.[TimeZoneId]
 		WHERE E.[EmployeeId] = @EmployeeId;
 
+		DECLARE @QtyRemaining DECIMAL(18, 6) = 0;
+
+		SELECT @QtyRemaining = ISNULL(LSL.[QtyReserved], 0) - ISNULL(
+			(SELECT SUM(ISNULL([QtyPicked], 0)) FROM [dbo].[LeasePickTicket] WITH (NOLOCK)
+			 WHERE [LeaseStocklineId] = @LeaseStocklineId AND [IsDeleted] = 0), 0)
+		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
+		WHERE LSL.[LeaseStocklineId] = @LeaseStocklineId;
+
+		IF (@QtyRemaining < 0) SET @QtyRemaining = 0;
+
 		SELECT
 			LPT.[LeasePickTicketId],
 			LPT.[LeasePickTicketNumber],
@@ -46,7 +56,7 @@ BEGIN
 			LPT.[ItemMasterId],
 			CAST(ISNULL(LPT.[QtyPicked], 0) AS DECIMAL(18, 6))    AS QtyPicked,
 			CAST(ISNULL(LPT.[QtyReserved], 0) AS DECIMAL(18, 6))  AS QtyReserved,
-			CAST(ISNULL(LPT.[QtyRemaining], 0) AS DECIMAL(18, 6)) AS QtyRemaining,
+			CAST(@QtyRemaining AS DECIMAL(18, 6))                 AS QtyRemaining,
 			ISNULL(SL.[SerialNumber], '')   AS SerialNumber,
 			ISNULL(SL.[StockLineNumber], '') AS StockLineNumber,
 			ISNULL(SL.[ControlNumber], '')  AS ControlNumber,

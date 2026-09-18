@@ -32,7 +32,20 @@
 	                                     the two. Gross Margin (@MarginAmount) is now Revenue - (COGS + @MarginSummaryFreight +
 	                                     @MarginSummaryOtherCost) instead of just Revenue - COGS; Commission Expense/Margin/%-of-Revenue below
 	                                     recalculate off this new Gross Margin automatically, no other formula changes needed.
-	13    10/09/2026     RAJESH GAMI    [PN-17853] - Fixed the Transfer In and Out amount 
+	13    10/09/2026     RAJESH GAMI    [PN-17853] - Fixed the Transfer In and Out amount
+	14    16/09/2026     RAJESH GAMI    [PN-17881] Commission Expense recalculation now reads
+	                                     LotCalculationDetails' own RevenuePercentId/FixedAmount/MarginPercentId/
+	                                     IsRevenue/IsMargin/IsFixedAmount (this Lot's 'Trans Out (SO)' rows,
+	                                     TOP 1 by latest LotCalculationId) instead of the live LotConsignment
+	                                     setup row.
+	15    16/09/2026     RAJESH GAMI    [PN-17881 round 2] Fixed round 1 above: a Lot can have several 'Trans
+	                                     Out (SO)' rows with different commission-split snapshots (if the
+	                                     Consignment Setup changed between SO postings), so a single TOP 1 row
+	                                     can't be applied to the whole Lot. Commission Expense is now computed
+	                                     PER ROW (own Freight/Charges/Revenue/Margin/split, same formula as the
+	                                     Commission tab's per-row calc in USP_Lot_GetAllLotViewsByLotId_Filter)
+	                                     and SUMmed, instead of one row's split applied to the blended Lot
+	                                     totals.
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
@@ -309,25 +322,53 @@ BEGIN
 			SET @MarginAmount = ISNULL(@RevenueCost,0) - (ISNULL(@CogsPartCost,0) + ISNULL(@MarginSummaryFreight,0) + ISNULL(@MarginSummaryOtherCost,0));
 
 			-- [PN-17809] Commission Expense recalculated here off the NEW Revenue/Margin (which now include Freight+Charges), using the same consignment-based formula as the 'Trans Out (SO)' branch of USP_Lot_AddUpdateLotCalculationDetails - instead of summing the per-row CommissionExpense (computed against the OLD Revenue/Margin, before Freight/Charges existed)
-			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0),@ConsignmentMarginPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.MarginPercentId,0)),0), @ConsignmentRevenuePercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0), @IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0) FROM DBO.LotConsignment LC WHERE LotId = @LotId
-
-			IF(@IsFixedAmount = 1)
-			BEGIN
-				SET @QtyLot = ISNULL((SELECT SUM(ISNULL(Qty,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','')),0)
-				SET @CommissionExpense = CONVERT(DECIMAL(18,2),ISNULL((@ConsignmentFixedAmt * @QtyLot),0))
-			END
-			ELSE IF(@IsRevenue = 1 OR @IsMargin = 1)
-			BEGIN
-				IF(@IsRevenue = 1)
-				BEGIN
-					SET @RevenueCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@RevenueCost * @ConsignmentRevenuePercent)/100)),0)
-				END
-				IF(@IsMargin = 1)
-				BEGIN
-					SET @MarginCommissionCost = ISNULL(CONVERT(DECIMAL(18,2),((@MarginAmount * @ConsignmentMarginPercent)/100)),0)
-				END
-				SET @CommissionExpense = ISNULL(@RevenueCommissionCost,0) + ISNULL(@MarginCommissionCost,0)
-			END
+			-- [PN-17881] RAJESH GAMI (round 2): a Lot can have MANY 'Trans Out (SO)' rows in
+			-- LotCalculationDetails (one per SO Part sold out of this Lot), and each row carries its OWN
+			-- commission-split snapshot (IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/
+			-- MarginPercentId) - these can legitimately differ row-to-row if the Consignment Setup changed
+			-- between two SO postings for the same Lot. A single TOP 1 row's split can no longer be applied
+			-- to the whole Lot's blended @RevenueCost/@MarginAmount (round 1 of this fix did exactly that,
+			-- which is wrong whenever more than one split is in play for the same Lot). Instead, Commission
+			-- Expense is now computed PER ROW - each row's own Freight/Charges/Revenue/Margin/Commission,
+			-- using the same FlatRate-vs-T&M/Actual rule and CommissionExpenseNew formula as the Commission
+			-- tab's per-row CROSS APPLY in USP_Lot_GetAllLotViewsByLotId_Filter - and then SUMmed below into
+			-- one @CommissionExpense. This deliberately does NOT subtract @MarginSummaryFreight/
+			-- @MarginSummaryOtherCost per row (those are Lot-level manually-entered Other Cost Tab amounts,
+			-- not tied to any specific SO row) - same as the Commission tab's own per-row calc - only the
+			-- Gross Margin (@MarginAmount) shown elsewhere on this summary subtracts them, at the Lot level.
+			SET @CommissionExpense = ISNULL((
+				SELECT SUM(comm.CommissionExpenseNew)
+				FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+				CROSS APPLY ( SELECT Freight = ISNULL((
+					CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderFreight SOFChk WITH(NOLOCK) WHERE SOFChk.SalesOrderId = SO.SalesOrderId AND ISNULL(SOFChk.IsDeleted,0) = 0 AND SOFChk.BillingMethodId = @FlatRateBillingMethodId)
+						THEN (SELECT TOP 1 ISNULL(SOF2.MarkupFixedPrice,0) FROM DBO.SalesOrderFreight SOF2 WITH(NOLOCK) WHERE SOF2.SalesOrderId = SO.SalesOrderId AND ISNULL(SOF2.IsDeleted,0) = 0 ORDER BY SOF2.SalesOrderFreightId DESC)
+						ELSE (SELECT SUM(ISNULL(SOF3.BillingAmount,0)) FROM DBO.SalesOrderFreight SOF3 WITH(NOLOCK) WHERE SOF3.SalesOrderId = SO.SalesOrderId AND SOF3.SalesOrderPartId = LCD.ChildId AND ISNULL(SOF3.IsDeleted,0) = 0)
+					END
+				),0) ) frt
+				CROSS APPLY ( SELECT Charges = ISNULL((
+					CASE WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderCharges SOCChk WITH(NOLOCK) WHERE SOCChk.SalesOrderId = SO.SalesOrderId AND ISNULL(SOCChk.IsDeleted,0) = 0 AND SOCChk.BillingMethodId = @FlatRateBillingMethodId)
+						THEN (SELECT TOP 1 ISNULL(SOC2.MarkupFixedPrice,0) FROM DBO.SalesOrderCharges SOC2 WITH(NOLOCK) WHERE SOC2.SalesOrderId = SO.SalesOrderId AND ISNULL(SOC2.IsDeleted,0) = 0 ORDER BY SOC2.SalesOrderChargesId DESC)
+						ELSE (SELECT SUM(ISNULL(SOC3.BillingAmount,0)) FROM DBO.SalesOrderCharges SOC3 WITH(NOLOCK) WHERE SOC3.SalesOrderId = SO.SalesOrderId AND SOC3.SalesOrderPartId = LCD.ChildId AND ISNULL(SOC3.IsDeleted,0) = 0)
+					END
+				),0) ) chg
+				CROSS APPLY ( SELECT Revenue = ISNULL(LCD.ExtSalesUnitPrice,0) + frt.Freight + chg.Charges ) rev
+				CROSS APPLY ( SELECT MarginAmtNew = rev.Revenue - ISNULL(LCD.Cogs,0) ) mrg
+				CROSS APPLY ( SELECT CommissionExpenseNew = (
+					CASE
+						WHEN ISNULL(LCD.IsFixedAmount,0) = 1 THEN CONVERT(DECIMAL(18,2), ISNULL(LCD.FixedAmount,0) * ISNULL(LCD.Qty,0))
+						WHEN ISNULL(LCD.IsRevenue,0) = 1 OR ISNULL(LCD.IsMargin,0) = 1 THEN
+							ISNULL(CASE WHEN ISNULL(LCD.IsRevenue,0) = 1 THEN CONVERT(DECIMAL(18,2), (rev.Revenue * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = LCD.RevenuePercentId),0)) / 100) ELSE 0 END,0)
+							+ ISNULL(CASE WHEN ISNULL(LCD.IsMargin,0) = 1 THEN CONVERT(DECIMAL(18,2), (mrg.MarginAmtNew * ISNULL((SELECT TOP 1 P.PercentValue FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = LCD.MarginPercentId),0)) / 100) ELSE 0 END,0)
+						ELSE 0
+					END
+				) ) comm
+				WHERE LCD.LotId = @LotId AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
+			),0);
+			-- @ConPercentId/@ConsignmentRevenuePercent/@ConsignmentMarginPercent/@ConsignmentFixedAmt/
+			-- @IsRevenue/@IsMargin/@IsFixedAmount/@QtyLot/@RevenueCommissionCost/@MarginCommissionCost
+			-- (declared above) are no longer used as of this change - left declared, unused, to keep this
+			-- diff minimal; safe to remove in a future cleanup pass.
 
 			SET @TotalExpense = @CogsPartCost + @CommissionExpense
 			SET @MarginPercent = CASE WHEN @RevenueCost >0 THEN (CONVERT(DECIMAL(18,2),(@MarginAmount/@RevenueCost)*100)) ELSE 0 END

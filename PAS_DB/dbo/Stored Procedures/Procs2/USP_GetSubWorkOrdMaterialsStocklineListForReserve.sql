@@ -1,5 +1,5 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrdMaterialsStocklineListForReserve.sql) =====
-/*************************************************************           
+﻿
+/*************************************************************
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForReserve]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to reserve Stockline    

@@ -1,4 +1,12 @@
-﻿/*************************************************************           
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_UpdateWOCostDetails.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateWOCostDetails   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateWOCostDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateWOCostDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Recalculate WO Total Cost    
@@ -26,6 +34,11 @@
  exec sp_executesql N'exec USP_UpdateWOCostDetails @WorkOrderId, @WorkOrderWorkflowId, @UpdatedBy, @MasterCompanyId ',N'@WorkOrderId bigint,
  @WorkOrderWorkflowId bigint,@UpdatedBy nvarchar(5),@MasterCompanyId int',@WorkOrderId=624,
  @WorkOrderWorkflowId=638,@UpdatedBy=N'admin',@MasterCompanyId=1
+	5    17-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed CATCH block: 'IF @@trancount > 0' was missing a
+									BEGIN/END wrapper so ROLLBACK TRAN ran unconditionally even with no open
+									transaction, contributing to the error 3903 seen on
+									api/workOrder/saveissueparts (this SP is called from SaveIssueParts via
+									UpdateWOCostDetailsSP). Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateWOCostDetails]    
 (
@@ -430,11 +443,13 @@ SET NOCOUNT ON
 		COMMIT  TRANSACTION
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			END
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOCostDetails' 

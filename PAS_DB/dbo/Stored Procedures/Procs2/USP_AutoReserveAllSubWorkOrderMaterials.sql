@@ -1,4 +1,12 @@
 ﻿
+-- =====================================================================================
+-- [MODIFIED] USP_AutoReserveAllSubWorkOrderMaterials.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AutoReserveAllSubWorkOrderMaterials   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AutoReserveAllSubWorkOrderMaterials.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 -- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.USP_AutoReserveAllSubWorkOrderMaterials   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AutoReserveAllSubWorkOrderMaterials.sql)
 -- ---------------------------------------------------------------------------------------------------
@@ -22,13 +30,12 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 7    03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
 ** 8    03/21/2025		 Devendra Shekh			Updated For Checking PMA/DER Restrict Parts
 ** 9    03/16/2026		 AMIT GHEDIYA			Allow AR condition to reserve (PN-15562)
-** 10   25-Aug-2026		 RAJESH GAMI			[PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	11   16-Sep-2026			 RAJESH GAMI						[PN-17782] - Removed "IM.ItemTypeId = @StkItemTypeId" from the #AllowItemMasterIds OEM/PMA/DER allow-list inserts (Restrict PMA/DER Parts feature), which was still silently blocking Non-Stock OEM/PMA/DER-flagged materials from being reserved/issued despite the earlier IsNonStock=0 removal.
-**************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
+	10    16/Sep/2026			 RAJESH GAMI						[PN-17782] - Removed the ItemTypeId=Stock / IsNonStock=0 exclusions from the #AllowItemMasterIds OEM/PMA/DER allow-list inserts (Restrict PMA/DER Parts feature), which were silently blocking Non-Stock OEM/PMA/DER-flagged materials.
+**************************************************************/ 
+CREATE   PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
 @SubWOPartNoId BIGINT,
 @IncludeAlternate BIT,
 @IncludeEquiv BIT,
@@ -154,21 +161,21 @@ BEGIN
 					SELECT @StkItemTypeId = [ItemTypeId] FROM [dbo].[ItemType] WITH(NOLOCK) WHERE UPPER([Name]) = 'STOCK';
 					SELECT @RestrictPMA = ISNULL([IsPMA], 0), @RestrictDER = ISNULL([IsDER], 0) FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWOPartNoId] = @subWOPartNoId;
 				
-					--- FOR OEM  -- [PN-17782] Removed "AND IM.ItemTypeId = @StkItemTypeId" so Non-Stock OEM items aren't dropped from the allow-list
-					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+					--- FOR OEM
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 -- [PN-17782] Removed 'AND IM.ItemTypeId = @StkItemTypeId'
 					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0 ;
 
-					--FOR PMA  -- [PN-17782] Removed "AND IM.ItemTypeId = @StkItemTypeId" so Non-Stock PMA items aren't dropped from the allow-list
+					--FOR PMA
 					IF(ISNULL(@RestrictPMA, 0) <> 1)
 					BEGIN
-						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 -- [PN-17782] Removed 'AND IM.ItemTypeId = @StkItemTypeId'
 						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0 ;
 					END
 
-					--FOR DER  -- [PN-17782] Removed "AND IM.ItemTypeId = @StkItemTypeId" so Non-Stock DER items aren't dropped from the allow-list
+					--FOR DER
 					IF(ISNULL(@RestrictDER, 0) <> 1)
 					BEGIN
-						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 -- [PN-17782] Removed 'AND IM.ItemTypeId = @StkItemTypeId'
 						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 ;
 					END
 
@@ -272,6 +279,7 @@ BEGIN
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 					
 					--#STEP : 1.1 RESERVE EXISTING STOCKLINE
+
 					 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 					BEGIN
 						--CASE 1 UPDATE WORK ORDER MATERILS
@@ -520,6 +528,7 @@ BEGIN
 						FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+
 							 WHERE WOM.SubWOPartNoId = @SubWOPartNoId --AND WOM.ConditionCodeId != @ARConditionId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
@@ -569,6 +578,7 @@ BEGIN
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKIT WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+
 
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITAlt') IS NOT NULL
 						BEGIN
@@ -811,6 +821,7 @@ BEGIN
 						FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+
 							 WHERE WOM.SubWOPartNoId = @SubWOPartNoId --AND WOM.ConditionCodeId != @ARConditionId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
@@ -857,6 +868,7 @@ BEGIN
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+
 
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsAlt') IS NOT NULL
 						BEGIN
@@ -1093,6 +1105,7 @@ BEGIN
 						FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+
 							 WHERE WOM.SubWOPartNoId = @SubWOPartNoId --AND WOM.ConditionCodeId != @ARConditionId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
@@ -1141,6 +1154,7 @@ BEGIN
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKIT WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+
 
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITEqu') IS NOT NULL
 						BEGIN
@@ -1383,6 +1397,7 @@ BEGIN
 						FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+
 							 WHERE WOM.SubWOPartNoId = @SubWOPartNoId --AND WOM.ConditionCodeId != @ARConditionId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
@@ -1430,6 +1445,7 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							
+
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsEqu') IS NOT NULL
 						BEGIN
 							DROP TABLE #tmpAutoReserveWOMaterialsStocklineMaterialsEqu
@@ -1686,6 +1702,7 @@ BEGIN
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId) --AND WOM.ConditionCodeId != @ARConditionId
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 					
+
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStockline') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStockline
@@ -1972,6 +1989,7 @@ BEGIN
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId) --AND WOM.ConditionCodeId != @ARConditionId
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 					
+
 							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKIT') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKIT

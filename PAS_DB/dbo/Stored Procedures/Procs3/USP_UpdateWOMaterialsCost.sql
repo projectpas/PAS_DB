@@ -1,4 +1,12 @@
-﻿/*************************************************************           
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_UpdateWOMaterialsCost.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateWOMaterialsCost   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateWOMaterialsCost.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateWOMaterialsCost]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -25,6 +33,11 @@
 	8    11/28/2024	  HEMANT SALIYA		Added Work Order Work Flow Id
      
  EXECUTE USP_UpdateWOMaterialsCost 7351
+	9    17-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed CATCH block: 'IF @@trancount > 0' was missing a
+									BEGIN/END wrapper so ROLLBACK TRAN ran unconditionally even with no open
+									transaction, contributing to the error 3903 seen on
+									api/workOrder/saveissueparts (this SP is called from SaveIssueParts via
+									UpadteMaterialsCost). Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
 (
@@ -269,11 +282,12 @@ SET NOCOUNT ON
 		COMMIT  TRANSACTION
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-					
+			END
 				SELECT
 					ERROR_NUMBER() AS ErrorNumber,
 					ERROR_STATE() AS ErrorState,

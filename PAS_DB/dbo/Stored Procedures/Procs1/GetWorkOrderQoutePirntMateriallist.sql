@@ -1,8 +1,5 @@
 ﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.GetWorkOrderQoutePirntMateriallist   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQoutePirntMateriallist.sql)
--- ---------------------------------------------------------------------------------------------------
-/*************************************************************             
+/*************************************************************
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -27,7 +24,7 @@
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
-CREATE       PROCEDURE [dbo].[GetWorkOrderQoutePirntMateriallist]  
+CREATE   PROCEDURE [dbo].[GetWorkOrderQoutePirntMateriallist]  
 @WorkflowWorkOrderId bigint,  
 @workOrderPartNoId bigint,  
 @workOrderQuoteDetailsId bigint  

@@ -1,8 +1,5 @@
 ﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.usp_SaveSubWorkOrderMaterialKit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveSubWorkOrderMaterialKit.sql)
--- ---------------------------------------------------------------------------------------------------
-/*************************************************************           
+/*************************************************************
  ** File:     [usp_SaveSubWorkOrderMaterialKit]           
  ** Author:	  Hemant Saliya
  ** Description: This SP is Used to save Sub WO material KITs    
@@ -30,7 +27,7 @@ insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'A
 exec dbo.usp_SaveSubWorkOrderMaterialKit @tbl_WorkOrderMaterialKitType=@p1
 
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[usp_SaveSubWorkOrderMaterialKit]
+CREATE   PROCEDURE [dbo].[usp_SaveSubWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
 AS
 BEGIN

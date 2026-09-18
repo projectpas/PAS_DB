@@ -1,22 +1,26 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrderMaterialsAuditList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrderMaterialsAuditList.sql) =====
-/*************************************************************           
- ** File:   [USP_GetSubWorkOrderMaterialsAuditList]           
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_GetSubWorkOrderMaterialsAuditList.sql
+-- =====================================================================================
+-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrderMaterialsAuditList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrderMaterialsAuditList.sql) =====
+/*************************************************************
+ ** File:   [USP_GetSubWorkOrderMaterialsAuditList]
  ** Author:   Subhash Saliya
- ** Description: This stored procedure is used retrieve Work Order Sub Materials List    
- ** Purpose:         
- ** Date:   03/23/2021        
-          
- ** PARAMETERS:           
- @WorkOrderId BIGINT   
- @WFWOId BIGINT  
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** Description: This stored procedure is used retrieve Work Order Sub Materials List
+ ** Purpose:
+ ** Date:   03/23/2021
+
+ ** PARAMETERS:
+ @WorkOrderId BIGINT
+ @WFWOId BIGINT
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
     1    03/23/2021   Subhash Saliya Created
 	2    12/07/2021   Hemant Saliya  Added new field for Audit log
     3    02/06/2023   Rajesh Gami    Added Figure and Item field for the audit
@@ -26,30 +30,30 @@
 	7    15-Sep-2026			 RAJESH GAMI						[PN-17782] - Allow Non-Stock ItemMaster/Stockline parts to flow through Sub WO Material lifecycle : Removed IsNonStock exclusion filters
  EXECUTE USP_GetSubWorkOrderMaterialsAuditList 68
 
-**************************************************************/     
-CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsAuditList]    
-(    
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsAuditList]
+(
 @SubWorkOrderMaterialsId BIGINT = NULL,
 @EmployeeId BIGINT = 0
-)    
-AS    
-BEGIN    
+)
+AS
+BEGIN
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-SET NOCOUNT ON    
+SET NOCOUNT ON
 	BEGIN TRY
 
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK)
 				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-			WHERE E.EmployeeId = @EmployeeId; 
+			WHERE E.EmployeeId = @EmployeeId;
 
 			BEGIN TRANSACTION
 				BEGIN
 					SELECT  IM.PartNumber,
-							IM.PartDescription, 
+							IM.PartDescription,
 							WorkOrderNumber = (select top 1(WO.WorkOrderNum) from  WorkOrder wo WITH (NOLOCK) where wo.WorkOrderId=WOM.WorkOrderId ),
 							WOM.WorkOrderId,
 							'' as SubWorkOrderNo,
@@ -61,13 +65,13 @@ SET NOCOUNT ON
 							B.Name AS Bin,
 							WOM.PartStatusId,
 							P.Description AS Provision,
-							CASE 
+							CASE
 							WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 							WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'
 							WHEN IM.IsPma = 0 and IM.IsDER = 1 THEN 'DER'
 							ELSE 'OEM'
 							END AS StockType,
-							CASE 
+							CASE
 							WHEN IM.ItemTypeId = 1 THEN 'Stock'
 							WHEN IM.ItemTypeId = 2 THEN 'Non Stock'
 							WHEN IM.ItemTypeId = 3 THEN 'Equipment'
@@ -82,7 +86,7 @@ SET NOCOUNT ON
 							SL.SerialNumber,
 							SL.IdNumber AS ControlId,
 							SL.ControlNumber AS ControlNo,
-							SL.ReceiverNumber AS Receiver,	
+							SL.ReceiverNumber AS Receiver,
 							PartQuantityOnHand = (SELECT SUM(sl.QuantityOnHand)
 											FROM SubWorkOrderMaterialStockLine womsl WITH (NOLOCK) JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 											Where womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
@@ -105,12 +109,12 @@ SET NOCOUNT ON
 											),
 							CostDate = (SELECT TOP 1 CONVERT(varchar, IMPS.PP_LastListPriceDate, 101) FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND
 										IMPS.ConditionId = WOM.ConditionCodeId AND IMPS.PP_LastListPriceDate IS NOT NULL),
-							Currency = (SELECT TOP 1 CUR.Code  FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) LEFT JOIN Currency CUR WITH (NOLOCK) ON IMPS.PP_CurrencyId = CUR.CurrencyId 
+							Currency = (SELECT TOP 1 CUR.Code  FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) LEFT JOIN Currency CUR WITH (NOLOCK) ON IMPS.PP_CurrencyId = CUR.CurrencyId
 										WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId ),
 							MSTL.Quantity AS StocklineQuantity,
 							QuantityIssued = WOM.QuantityIssued,
-							WOM.QuantityReserved,	
-							QunatityRemaining = ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)),							
+							WOM.QuantityReserved,
+							QunatityRemaining = ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)),
 							WOM.Quantity,
 							WOM.ConditionCodeId,
 							WOM.UnitOfMeasureId,
@@ -143,7 +147,7 @@ SET NOCOUNT ON
 							RO.RepairOrderNumber
 							,WOM.Figure
 							,WOM.Item
-					FROM dbo.SubWorkOrderMaterialsAudit WOM WITH (NOLOCK)  
+					FROM dbo.SubWorkOrderMaterialsAudit WOM WITH (NOLOCK)
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
@@ -165,18 +169,18 @@ SET NOCOUNT ON
 					 END
 			COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetSubWorkOrderMaterialsAuditList' 
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetSubWorkOrderMaterialsAuditList'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SubWorkOrderMaterialsId, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters

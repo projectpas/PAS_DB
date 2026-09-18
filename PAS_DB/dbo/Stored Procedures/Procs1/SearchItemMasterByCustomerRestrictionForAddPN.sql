@@ -1,3 +1,11 @@
+﻿
+-- =====================================================================================
+-- [MODIFIED] SearchItemMasterByCustomerRestrictionForAddPN.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchItemMasterByCustomerRestrictionForAddPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchItemMasterByCustomerRestrictionForAddPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Hemant Saliya
@@ -22,6 +30,10 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
+	7    17-Sep-2026			 RAJESH GAMI						[PN-17782] Removed ISNULL(I.IsNonStock,0)=0 / ISNULL(sl.IsNonStock,0)=0 /
+									ISNULL(im.IsNonStock,0)=0 exclusion filters (Stock and Non-Stock items are
+									both allowed) and added the matching ISNULL(<alias>.IsService,0)=0 checks so
+									only non-service parts/stocklines appear in this restricted-customer search.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
 @ItemMasterIdlist VARCHAR(max) = '0', 
@@ -58,7 +70,7 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1 AND M.IsActive = 1 AND M.IsDeleted = 0
-					AND ISNULL(I.IsNonStock,0) = 0
+					AND ISNULL(I.IsService,0) = 0
 					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
@@ -74,7 +86,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsNonStock,0) = 0
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsService,0) = 0
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -83,7 +95,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0
+				 AND ISNULL(im.IsService,0) = 0
 					 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId

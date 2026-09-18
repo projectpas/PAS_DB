@@ -1,4 +1,5 @@
-/*************************************************************           
+﻿
+/*************************************************************
  ** File:   [SearchPickTicketForSubWO]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Search Pick Ticket Details  
@@ -22,7 +23,7 @@
      
 -- EXEC [SearchPickTicketForSubWO] 15,4,92,122
 **************************************************************/
-CREATE PROCEDURE [dbo].[SearchPickTicketForSubWO]
+CREATE   PROCEDURE [dbo].[SearchPickTicketForSubWO]
 	@ItemMasterId BIGINT, 
 	@ConditionId BIGINT,
 	@WorkOrderId BIGINT,

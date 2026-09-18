@@ -1,4 +1,8 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWOMultiplePickTicket_ById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWOMultiplePickTicket_ById.sql) =====
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_GetSubWOMultiplePickTicket_ById.sql
+-- =====================================================================================
+-- ===== PROCEDURE: [dbo].[USP_GetSubWOMultiplePickTicket_ById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWOMultiplePickTicket_ById.sql) =====
 /*************************************************************
  ** Change History
  **************************************************************
@@ -16,8 +20,8 @@ BEGIN
 
 		BEGIN TRY
 		BEGIN TRANSACTION
-			BEGIN 
-				
+			BEGIN
+
 				SELECT DISTINCT
 					max(swo.WorkOrderId) as WorkOrderId,
 					max(swo.SubWorkOrderId) as SubWorkOrderId,
@@ -55,12 +59,12 @@ BEGIN
 					max(swop.CreatedDate) as 'PTCreatedDate',
 					max(stk.ManagementStructureId) as ManagementStructureId,
 					max(swop.PDFPath) as PDFPath
-				FROM [DBO].[WorkOrder] wo WITH (NOLOCK) 
+				FROM [DBO].[WorkOrder] wo WITH (NOLOCK)
 				LEFT JOIN [DBO].[SubWorkOrder] swo ON wo.WorkOrderId = swo.WorkOrderId
 				LEFT JOIN [DBO].[SubWorkOrderPartNumber] swopn ON swo.SubWorkOrderId  = swopn.SubWorkOrderId
 				LEFT JOIN [DBO].[StockLine] stk on swopn.StockLineId  = stk.StockLineId
 				LEFT JOIN [DBO].[SubWorkorderPickTicket] swop ON swopn.SubWOPartNoId = swop.SubWorkorderPartNoId
-				LEFT JOIN [DBO].[CustomerDomensticShipping] cds ON wo.CustomerId = cds.CustomerId and cds.IsPrimary = 1 
+				LEFT JOIN [DBO].[CustomerDomensticShipping] cds ON wo.CustomerId = cds.CustomerId and cds.IsPrimary = 1
 				LEFT JOIN [DBO].[Address] a ON cds.AddressId = a.AddressId
 				LEFT JOIN [DBO].[Countries] c ON a.CountryId = c.countries_id
 				LEFT JOIN [DBO].[Customer] cu ON wo.CustomerId = cu.CustomerId
@@ -72,25 +76,25 @@ BEGIN
 				LEFT JOIN [DBO].[AllShipVia] als ON cdssv.ShipViaId = als.ShipViaId
 				LEFT JOIN [DBO].[Employee] e ON swop.PickedById = e.EmployeeId
 				LEFT JOIN [DBO].[Employee] em ON swop.ConfirmedById = em.EmployeeId
-				
+
 				WHERE swop.[WorkOrderId] = @WorkOrderId and swop.[SubWorkorderId] = @SubWorkOrderId GROUP BY swop.PickTicketNumber
 			END
 		COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				--PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetSubWOMultiplePickTicket_ById' 
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetSubWOMultiplePickTicket_ById'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '@Parameter2 = '''+ ISNULL(@SubWorkOrderId, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
-              exec spLogException 
+              exec spLogException
                        @DatabaseName			= @DatabaseName
                      , @AdhocComments			= @AdhocComments
                      , @ProcedureParameters		= @ProcedureParameters

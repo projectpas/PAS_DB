@@ -1,4 +1,11 @@
+﻿
+-- =====================================================================================
+-- [NEW] WOQAddPNPartSearchAutoCompleteDropdowns.sql
+-- =====================================================================================
 
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WOQAddPNPartSearchAutoCompleteDropdowns   (source: PAS_DB/dbo/Stored Procedures/Procs3/WOQAddPNPartSearchAutoCompleteDropdowns.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************
  ** File:   [WOQAddPNPartSearchAutoCompleteDropdowns]
  ** Author:   Rajesh Gami
@@ -26,10 +33,16 @@
 										(Stock is the default/majority case, so PO Setup's original
 										' (Stock)'/' (Non-Stock)' convention is not reused here). Restricted
 										to ItemTypeId IN (1,2) - Equipment/Asset item types excluded.
+	2    17-Sep-2026  RAJESH GAMI		[PN-17782] Added the ItemTypeId IN (1,2) restriction to the two text-search
+										SELECTs (it was documented above in PR 1 but missing from the actual query),
+										and added ISNULL(Im.IsService,0) = 0 to those same two SELECTs so
+										Service-flagged parts never appear in this search - Stock or Non-Stock
+										physical parts only. The @Idlist resolve-by-id SELECTs are left unfiltered
+										by type, matching WOAddPNPartSearchAutoCompleteDropdowns' convention.
 
 --EXEC [WOQAddPNPartSearchAutoCompleteDropdowns] '100',1,50,'',18
 **************************************************************/
-CREATE PROCEDURE [dbo].[WOQAddPNPartSearchAutoCompleteDropdowns]
+CREATE   PROCEDURE [dbo].[WOQAddPNPartSearchAutoCompleteDropdowns]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -84,6 +97,8 @@ BEGIN
 				  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))
+      AND Im.ItemTypeId IN (1,2) -- [PN-17782] ItemMasterStockTypeEnum.Stock/NonStock - Equipment/Asset excluded
+      AND ISNULL(Im.IsService,0) = 0 -- [PN-17782] Non-service parts only
       UNION
 
      SELECT DISTINCT Im.ItemMasterId,
@@ -168,6 +183,8 @@ BEGIN
 				LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'
+     AND Im.ItemTypeId IN (1,2) -- [PN-17782] ItemMasterStockTypeEnum.Stock/NonStock - Equipment/Asset excluded
+     AND ISNULL(Im.IsService,0) = 0 -- [PN-17782] Non-service parts only
      UNION
 
     SELECT DISTINCT TOP 50
@@ -232,4 +249,3 @@ BEGIN
               RETURN(1);
  END CATCH
 END
-GO

@@ -1,14 +1,8 @@
 ﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.USP_DeleteSubWorkOrderMaterialKitStocklineById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteSubWorkOrderMaterialKitStocklineById.sql)
--- ---------------------------------------------------------------------------------------------------
--- =============================================
--- Author:		RAJESH GAMI	
+/*************************************************************
 -- Create date: 28 Mar 2025
 -- Description:	This stored procedure is used to Detete kit Stockline (Sub Work Order)
 -- =============================================
-
-/*************************************************************   
  **************************************************************           
   ** Change History           
  **************************************************************           
@@ -19,7 +13,7 @@
 	3    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 **************************************************************/
 
-CREATE       PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
+CREATE   PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
 (
 	@SubWorkOrderMaterialsKitId BIGINT = NULL,
 	@StocklineId BIGINT = NULL,

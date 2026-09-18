@@ -1,4 +1,12 @@
 ﻿
+-- =====================================================================================
+-- [MODIFIED] usp_IssueWorkOrderMaterialsStockline.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_IssueWorkOrderMaterialsStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_IssueWorkOrderMaterialsStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 -- ---------------------------------------------------------------------------------------------------
 -- Stored Procedure: dbo.usp_IssueWorkOrderMaterialsStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_IssueWorkOrderMaterialsStockline.sql)
 -- ---------------------------------------------------------------------------------------------------
@@ -30,7 +38,6 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 15   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
 ** 16   23/06/2026      Moin Bloch	      Added Teardown WO Issue Accounting Entry
 
-** 17   25-Aug-2026			 RAJESH GAMI		  [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -41,8 +48,15 @@ declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(4226,3748,16233,179044,318,7,1,10,2,N'NE',N'100865',N'BATTERY POWER SUPPLY',1,0,0,1,0,0,N'CNTL-000614',N'ID_NUM-000001',N'STL000073',N'',N'ADMIN User',1,0,0,0,0,0)
 exec dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    17-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed CATCH block: 'IF @@trancount > 0' was missing a
+									BEGIN/END wrapper so ROLLBACK TRAN ran unconditionally even when no
+									transaction was open (nested SPs USP_BatchTriggerBasedonDistributionForWO /
+									USP_BatchTriggerForInternalWOBasedonDistribution can already roll back the
+									outer transaction before this CATCH runs), causing SQL error 3903
+									("ROLLBACK TRANSACTION request has no corresponding BEGIN TRANSACTION") on
+									api/workOrder/saveissueparts. Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
+CREATE   PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -466,7 +480,7 @@ BEGIN
 						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @HistoryWorkOrderMaterialsId;
 						SELECT @WorkOrderPartNoId = WorkOrderPartNoId,@historyWorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 						SELECT @ItemMasterId = ItemMasterId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
-						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId ;
+						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 						SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @historyWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;
@@ -600,10 +614,12 @@ BEGIN
 			COMMIT  TRANSACTION
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
-                    ROLLBACK TRAN;
+				ROLLBACK TRAN;
+			END
 					SELECT
 					ERROR_NUMBER() AS ErrorNumber,
 					ERROR_STATE() AS ErrorState,

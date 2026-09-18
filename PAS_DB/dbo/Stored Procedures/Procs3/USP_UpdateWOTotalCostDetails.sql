@@ -1,4 +1,12 @@
-﻿/*************************************************************           
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_UpdateWOTotalCostDetails.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateWOTotalCostDetails   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateWOTotalCostDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateWOTotalCostDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Recalculate WO Total Cost    
@@ -21,6 +29,11 @@
 	3    06/12/2025   Moin Bloch		Changed Old Billing Table To New one
      
  EXECUTE USP_UpdateWOTotalCostDetails 331, 358, 'admin', 1
+	4    17-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed CATCH block: 'IF @@trancount > 0' was missing a
+									BEGIN/END wrapper so ROLLBACK TRAN ran unconditionally even with no open
+									transaction, contributing to the error 3903 seen on
+									api/workOrder/saveissueparts (this SP is called from SaveIssueParts via
+									UpdateWOTotalCostDetails). Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateWOTotalCostDetails]    
 (    
@@ -445,11 +458,13 @@ SET NOCOUNT ON
 		COMMIT  TRANSACTION
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+			END
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOTotalCostDetails' 

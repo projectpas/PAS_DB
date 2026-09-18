@@ -1,22 +1,30 @@
-/*************************************************************           
- ** File:   [GetPickTicketPrint_WO]           
- ** Author:    
- ** Description: This stored procedure is used Get Pick Ticket Details for pdf   
- ** Purpose:         
- ** Date:   
-          
- ** PARAMETERS:           
- @WorkOrderId BIGINT   
- @WFWOId BIGINT  
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date				 Author				Change Description            
- ** --   --------			 -------			--------------------------------          
-    1     
+﻿
+-- =====================================================================================
+-- [NEW] GetPickTicketPrint_WO.sql
+-- =====================================================================================
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPickTicketPrint_WO   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPickTicketPrint_WO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [GetPickTicketPrint_WO]
+ ** Author:
+ ** Description: This stored procedure is used Get Pick Ticket Details for pdf
+ ** Purpose:
+ ** Date:
+
+ ** PARAMETERS:
+ @WorkOrderId BIGINT
+ @WFWOId BIGINT
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date				 Author				Change Description
+ ** --   --------			 -------			--------------------------------
+    1
 	2    08/11/2023			Devendra Shekh		added readytopick to result
 	3    08/11/2023			Devendra Shekh		added qtyremaining to result
 	3    09/19/2023			Devendra Shekh		qty issue for pickticket resolved
@@ -25,7 +33,7 @@
 	6    16/Sep/2026			 RAJESH GAMI						[PN-17782] - Removed IsNonStock = 0 exclusion filters on sl/imts joins (both non-kit and kit branches) so Non-Stock materials appear on the WO Pick Ticket print
 
 EXEC [GetPickTicketPrint_WO] 3792,3233,721
-**************************************************************/ 
+**************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO]
 	@WorkOrderId bigint,
@@ -45,8 +53,8 @@ BEGIN
 
 					;WITH totakWMSTK as( SELECT Count(wmsl.WorkOrderMaterialsId) AS TotalWMSTK,  WOP.WorkOrderId, wopt.WorkOrderMaterialsId
 							FROM WorkOrderPartNumber wop WITH(NOLOCK)
-							INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-							INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+							INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId
+							INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId
 							LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 							WHERE wom.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkOrderPartId
 							AND WOP.MasterCompanyId = @masterCompanyId AND WOM.WorkFlowWorkOrderId =@WorkOrderPartId AND wopt.PickTicketNumber = @pickTicketNo
@@ -54,8 +62,8 @@ BEGIN
 					),
 					totakWMSTKit as( SELECT Count(wmsl.WorkOrderMaterialsKitId) AS TotalWMSTK,  WOP.WorkOrderId, wopt.WorkOrderMaterialsId
 							FROM WorkOrderPartNumber wop WITH(NOLOCK)
-							INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-							INNER JOIN [dbo].WorkOrderMaterialStockLineKit wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+							INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId
+							INNER JOIN [dbo].WorkOrderMaterialStockLineKit wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId
 							LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 							WHERE wom.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkOrderPartId
 							AND WOP.MasterCompanyId = @masterCompanyId AND WOM.WorkFlowWorkOrderId =@WorkOrderPartId AND wopt.PickTicketNumber = @pickTicketNo
@@ -65,7 +73,7 @@ BEGIN
 							SELECT SUM(QtyToShip)as TotalQtyToShip, WOP.WorkOrderId, WOP.WorkOrderMaterialsId , MIN(QtyRemaining)as MinQty
 							FROM DBO.WorkorderPickTicket WOP WITH (NOLOCK)
 								JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-							WHERE WOP.WorkOrderId=@WorkOrderId 
+							WHERE WOP.WorkOrderId=@WorkOrderId
 								AND WOP.MasterCompanyId = @masterCompanyId
 								AND PickTicketNumber = @pickTicketNo
 								AND WOM.WorkFlowWorkOrderId =@WorkOrderPartId
@@ -74,31 +82,31 @@ BEGIN
 							SELECT SUM(QtyToShip)as TotalQtyToShip, WOP.WorkOrderId, WOP.WorkOrderMaterialsId , MIN(QtyRemaining)as MinQty
 							FROM DBO.WorkorderPickTicket WOP WITH (NOLOCK)
 								JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
-							WHERE WOP.WorkOrderId=@WorkOrderId 
+							WHERE WOP.WorkOrderId=@WorkOrderId
 								AND WOP.MasterCompanyId = @masterCompanyId
 								AND PickTicketNumber = @pickTicketNo
 								AND WOM.WorkFlowWorkOrderId =@WorkOrderPartId
 							GROUP BY WOP.WorkOrderId, WOP.WorkOrderMaterialsId
 					)
-					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
+					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty,
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
 						co.[Description] as ConditionDescription,sl.[Bin] as BinName,
 						--cte.TotalQtyToShip as QtyShipped,
 						QtyToShip as QtyShipped,
 						sl.[Shelf] as ShelfName, p.Description as PriorityName,
 						wo.WorkOrderNum,uom.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
-						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes, 
+						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes,
 						--CASE WHEN (cte.TotalQtyToShip + (wom.Quantity - cte.TotalQtyToShip)) = wom.Quantity THEN cte.TotalQtyToShip ELSE QtyToShip END as QtyToPick
 						cte.TotalQtyToShip as QtyToPick
 						,rc.Reference,
-						--(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM WorkOrderMaterialStockLine wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
-						-- + ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM WorkOrderMaterialStockLine wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)) 
-						--- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) 
-						----+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) 
-						----FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
-						--FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0),0))  
+						--(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM WorkOrderMaterialStockLine wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)
+						-- + ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM WorkOrderMaterialStockLine wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0))
+						--- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0))
+						----+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0))
+						----FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)
+						--FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0),0))
 						--AS ReadyToPick
-						CASE WHEN MinQty = 0 AND totakWMSTK.TotalWMSTK > 1 THEN 0 
+						CASE WHEN MinQty = 0 AND totakWMSTK.TotalWMSTK > 1 THEN 0
 						WHEN MinQty > 0 THEN MinQty ELSE wopt.QtyRemaining END AS QtyRemaining,
 						MinQty,
 						totakWMSTK.TotalWMSTK AS 'TOTALQTY'
@@ -118,27 +126,27 @@ BEGIN
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
 						LEFT JOIN totakWMSTK on totakWMSTK.WorkOrderId = wopt.WorkOrderId AND totakWMSTK.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
-					WHERE  wopt.WorkOrderId=@WorkOrderId 
+					WHERE  wopt.WorkOrderId=@WorkOrderId
 							AND wopt.MasterCompanyId = @masterCompanyId
 							AND wopt.PickTicketNumber = @pickTicketNo
 							AND wowf.WorkFlowWorkOrderId = @WorkOrderPartId
 							 UNION ALL
-					
-					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
+
+					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty,
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
 						co.[Description] as ConditionDescription,sl.[Bin] as BinName,
 						--cteKit.TotalQtyToShip as QtyShipped,
 						QtyToShip as QtyShipped,
 						sl.[Shelf] as ShelfName, p.Description as PriorityName,
 						wo.WorkOrderNum,uom.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
-						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes, 
+						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes,
 						cteKit.TotalQtyToShip as QtyToPick,
 						rc.Reference,
-						--(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM WorkOrderMaterialStockLineKit wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0) 
-						--+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM WorkOrderMaterialStockLineKit wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0)) 
-						--- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1),0))  
+						--(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM WorkOrderMaterialStockLineKit wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0)
+						--+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM WorkOrderMaterialStockLineKit wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0))
+						--- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1),0))
 						--AS QtyRemaining
-						CASE WHEN MinQty = 0 AND totakWMSTKit.TotalWMSTK > 1 THEN 0 
+						CASE WHEN MinQty = 0 AND totakWMSTKit.TotalWMSTK > 1 THEN 0
 						WHEN MinQty > 0 THEN MinQty ELSE wopt.QtyRemaining END AS QtyRemaining,
 						MinQty,
 						totakWMSTKit.TotalWMSTK AS 'TOTALQTY'
@@ -158,29 +166,29 @@ BEGIN
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
 						LEFT JOIN totakWMSTKit on totakWMSTKit.WorkOrderId = wopt.WorkOrderId AND totakWMSTKit.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
-					WHERE  wopt.WorkOrderId=@WorkOrderId 
+					WHERE  wopt.WorkOrderId=@WorkOrderId
 							AND wopt.MasterCompanyId = @masterCompanyId
 							AND wopt.PickTicketNumber = @pickTicketNo
 							AND wowf.WorkFlowWorkOrderId = @WorkOrderPartId
 							 END
 			COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'GetPickTicketPrint_WO' 
+              , @AdhocComments     VARCHAR(150)    = 'GetPickTicketPrint_WO'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + ''',
 													   @Parameter2 = ' + ISNULL(@WorkOrderPartId ,'') +'''
 													   @Parameter3 = ' + ISNULL(CAST(@WOPickTicketId AS varchar(10)) ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters

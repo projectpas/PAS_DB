@@ -1,9 +1,5 @@
 ﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.usp_SaveWorkOrderMaterialKit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveWorkOrderMaterialKit.sql)
--- ---------------------------------------------------------------------------------------------------
-
-/*************************************************************           
+/*************************************************************
  ** File:     [usp_SaveWorkOrderMaterialKit]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to save material KITs    
@@ -28,7 +24,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 8    25-Aug-2026  RAJESH GAMI      [PN-17782] Removed the IsNonStock=0 restriction - Non-Stock materials now get a real Stockline row via USP_CreateStocklineForNonStockWorkOrderMaterial / USP_CreateStocklineForNonStockSubWorkOrderMaterial, so they must flow through this SP too.
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
+CREATE   PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
 AS
 BEGIN

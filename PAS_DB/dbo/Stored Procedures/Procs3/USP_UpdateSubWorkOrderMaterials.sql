@@ -1,29 +1,33 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_UpdateSubWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateSubWorkOrderMaterials.sql) =====
-/*************************************************************             
- ** File:   [USP_UpdateSubWorkOrderMaterials]             
+﻿
+-- =====================================================================================
+-- [MODIFIED] USP_UpdateSubWorkOrderMaterials.sql
+-- =====================================================================================
+-- ===== PROCEDURE: [dbo].[USP_UpdateSubWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateSubWorkOrderMaterials.sql) =====
+/*************************************************************
+ ** File:   [USP_UpdateSubWorkOrderMaterials]
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create Sub work order materials
- ** Date:   28-April-2025         
- **************************************************************             
- ** Change History             
- **************************************************************             
- ** PR   Date					Author						Change Description              
- ** --   --------				-------					--------------------------------            
+ ** Date:   28-April-2025
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date					Author						Change Description
+ ** --   --------				-------					--------------------------------
  ** 1    28-April-2025			Devendra Shekh				Created
  2    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  3    15-Sep-2026			RAJESH GAMI				[PN-17782] - Allow Non-Stock ItemMaster/Stockline parts to flow through Sub WO Material lifecycle : Removed IsNonStock exclusion filter
 
-**************************************************************/  
-  
-CREATE   PROCEDURE [dbo].[USP_UpdateSubWorkOrderMaterials]  
+**************************************************************/
+
+CREATE   PROCEDURE [dbo].[USP_UpdateSubWorkOrderMaterials]
 	@tbl_SubWorkOrderMaterialsType [SubWorkOrderMaterialsType] READONLY
-AS  
-BEGIN  
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
-	SET NOCOUNT ON;  
-  
-	BEGIN TRY  
-	BEGIN TRANSACTION  
+AS
+BEGIN
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET NOCOUNT ON;
+
+	BEGIN TRY
+	BEGIN TRANSACTION
 
 		IF OBJECT_ID('tempdb..#tmpSubWorkOrderMaterial') IS NOT NULL
 			DROP TABLE #tmpSubWorkOrderMaterial;
@@ -34,7 +38,7 @@ BEGIN
 		DECLARE @ProvisionId INT, @SUB_WORK_ORDER_ProvisionId INT = 3;
 		DECLARE @isExistingMaterilas BIT = 0;
 		DECLARE @workOrderId BIGINT = 0, @IsAutoIssue BIT = 0;
-		DECLARE @TotalMaterialCount INT, @CurrentRowId INT, @InitialRowId INT = 1;		
+		DECLARE @TotalMaterialCount INT, @CurrentRowId INT, @InitialRowId INT = 1;
 		DECLARE @PartStatusEnumReserve INT = 1, @PartStatusEnumIssue INT = 2, @PartStatusEnumUnIssue INT = 4, @PartStatusEnumUnReserve INT = 5;
 		DECLARE @Quantity INT, @WorkOrderPartNoId BIGINT, @SubWorkOrderMaterialsId BIGINT, @SubWorkOrderId BIGINT, @SubWOPartNoId BIGINT, @ItemMasterId BIGINT, @CreatedBy VARCHAR(200), @MasterCompanyId INT, @WorkOrderTypeId BIGINT, @EmployeeId BIGINT, @WOMStockLineId BIGINT;
 		DECLARE @tmpSubWOMaterial [SubWorkOrderMaterialsType];
@@ -42,7 +46,7 @@ BEGIN
 		SELECT @ProvisionId = [ProvisionId] FROM [dbo].[Provision] WITH(NOLOCK) WHERE [ProvisionId] = @SUB_WORK_ORDER_ProvisionId AND ISNULL([IsActive], 0) = 1 AND ISNULL([IsDeleted], 0) = 0;
 
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, * INTO #tmpSubWorkOrderMaterial FROM @tbl_SubWorkOrderMaterialsType WHERE ISNULL(IsKitType, 0) = 0;
-		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, * INTO #tmpSubWorkOrderMaterialKit FROM @tbl_SubWorkOrderMaterialsType WHERE ISNULL(IsKitType, 0) = 1;	
+		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, * INTO #tmpSubWorkOrderMaterialKit FROM @tbl_SubWorkOrderMaterialsType WHERE ISNULL(IsKitType, 0) = 1;
 
 		IF EXISTS (SELECT 1 FROM #tmpSubWorkOrderMaterial)
 		BEGIN
@@ -54,7 +58,7 @@ BEGIN
 			SELECT @workOrderId = [WorkOrderId], @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @SubWorkOrderId = [SubWorkOrderId], @SubWOPartNoId = [SubWOPartNoId], @ItemMasterId = [ItemMasterId], @CreatedBy = [CreatedBy], @MasterCompanyId = [MasterCompanyId]
 			FROM #tmpSubWorkOrderMaterialKit WHERE [RowId] = @InitialRowId;
 		END
-		
+
 		-- Working On Sub Work Order Material : Start
 		SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpSubWorkOrderMaterial;
 
@@ -66,10 +70,10 @@ BEGIN
 
 		IF(ISNULL(@TotalMaterialCount, 0) > 0)
 		BEGIN
-			
+
 			WHILE(@TotalMaterialCount >= @CurrentRowId)
 			BEGIN
-				
+
 				SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @Quantity = [Quantity], @isExistingMaterilas = [isExistingMaterilas], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId
 
 				IF EXISTS (SELECT 1 FROM [dbo].[SubWorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN #tmpSubWorkOrderMaterial TMP ON WOM.SubWorkOrderMaterialsId = TMP.SubWorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
@@ -98,13 +102,13 @@ BEGIN
 					-- Savinvg New Sub Work Order Material
 					INSERT INTO [dbo].[SubWorkOrderMaterials] ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost],
 						[Price], [ExtendedPrice], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById],
-						[ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [UpdatedBy], 
-						[CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], 
+						[ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [UpdatedBy],
+						[CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin],
 						[TotalStocklineQtyReq], [POId], [PONum], [PONextDlvrDate], [QtyOnOrder], [QtyOnBkOrder], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [UnReservedQty], [UnIssuedQty], [TotalUnIssued], [TotalUnReserved])
 					SELECT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost],
 						[Price], [ExtendedPrice], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById],
-						[ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [UpdatedBy], 
-						[CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], 
+						[ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [UpdatedBy],
+						[CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin],
 						[TotalStocklineQtyReq], [POId], [PONum], [PONextDlvrDate], [QtyOnOrder], [QtyOnBkOrder], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [UnReservedQty], [UnIssuedQty], [TotalUnIssued], [TotalUnReserved]
 					FROM #tmpSubWorkOrderMaterial WHERE [RowId] = @CurrentRowId;
 
@@ -112,34 +116,34 @@ BEGIN
 
 					UPDATE TMP
 					SET	TMP.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
-					FROM #tmpSubWorkOrderMaterial TMP 
+					FROM #tmpSubWorkOrderMaterial TMP
 					WHERE [RowId] = @CurrentRowId;
 				END
 
 				DELETE FROM @tmpSubWOMaterial;
 
-				INSERT INTO @tmpSubWOMaterial ([SubWorkOrderMaterialsId], [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], 
+				INSERT INTO @tmpSubWOMaterial ([SubWorkOrderMaterialsId], [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity],
 					[UnitOfMeasureId], [UnitCost], [ExtendedCost], [Price], [ExtendedPrice], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate],
-					[IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById], [ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], 
+					[IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById], [ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId],
 					[TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted],
-					[QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], [TotalStocklineQtyReq], 
+					[QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], [TotalStocklineQtyReq],
 					[POId], [PONum], [PONextDlvrDate], [QtyOnOrder], [QtyOnBkOrder], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [UnReservedQty], [UnIssuedQty],
 					[TotalUnIssued], [TotalUnReserved], [StockLineId], [StocklineQuantity], [IsStocklineEdit], [isExistingMaterilas], [IsAlternatePart], [IsKitType], [KitId] )
-				SELECT [SubWorkOrderMaterialsId], [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], 
+				SELECT [SubWorkOrderMaterialsId], [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity],
 					[UnitOfMeasureId], [UnitCost], [ExtendedCost], [Price], [ExtendedPrice], [Memo], [IsDeferred], [QuantityReserved], [QuantityIssued], [IssuedDate], [ReservedDate],
-					[IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById], [ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId], 
+					[IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [IssuedById], [ReservedById], [IsEquPart], [ParentSubWorkOrderMaterialsId], [ItemMappingId],
 					[TotalReserved], [TotalIssued], [ProvisionId], [MaterialMandatoriesId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted],
-					[QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], [TotalStocklineQtyReq], 
+					[QuantityTurnIn], [Condition], [UOM], [ItemClassification], [Provision], [TaskName], [Site], [WareHouse], [Locations], [Shelf], [Bin], [TotalStocklineQtyReq],
 					[POId], [PONum], [PONextDlvrDate], [QtyOnOrder], [QtyOnBkOrder], [QtyToTurnIn], [Figure], [Item], [EquPartMasterPartId], [UnReservedQty], [UnIssuedQty],
-					[TotalUnIssued], [TotalUnReserved], [StockLineId], [StocklineQuantity], [IsStocklineEdit], [isExistingMaterilas], [IsAlternatePart], [IsKitType], [KitId] 
-				FROM #tmpSubWorkOrderMaterial WHERE [RowId] = @CurrentRowId; 
+					[TotalUnIssued], [TotalUnReserved], [StockLineId], [StocklineQuantity], [IsStocklineEdit], [isExistingMaterilas], [IsAlternatePart], [IsKitType], [KitId]
+				FROM #tmpSubWorkOrderMaterial WHERE [RowId] = @CurrentRowId;
 
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) WHERE WOMS.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMS.StockLineId = @WOMStockLineId) AND @WOMStockLineId > 0
 				BEGIN
 					-- Create Sub Work Order Material StockLine
 					EXEC [USP_CreateSubWorkOrderMaterialsStoclkine] @tmpSubWOMaterial;
 				END
-				ELSE 
+				ELSE
 				BEGIN
 					-- Update Sub Work Order Material StockLine
 					IF(ISNULL(@WOMStockLineId, 0) > 0)
@@ -159,7 +163,7 @@ BEGIN
 				END
 
 				SET @CurrentRowId += 1;
-			END			
+			END
 		END
 		-- Working On Sub Work Order Material : End
 
@@ -171,7 +175,7 @@ BEGIN
 			WHILE(@TotalMaterialCount >= @CurrentRowId)
 			BEGIN
 				SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @Quantity = [Quantity], @isExistingMaterilas = [isExistingMaterilas], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterialKit TMP WHERE TMP.RowId = @CurrentRowId
-				
+
 				IF EXISTS (SELECT 1 FROM [dbo].[SubWorkOrderMaterialsKit] WOM WITH(NOLOCK) INNER JOIN #tmpSubWorkOrderMaterialKit TMP ON WOM.SubWorkOrderMaterialsKitId = TMP.SubWorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
 				BEGIN
 					UPDATE WOM
@@ -187,7 +191,7 @@ BEGIN
 				BEGIN
 					-- Update Sub Work Order Material StockLine
 					UPDATE WOMS
-					SET	WOMS.ProvisionId = TMP.ProvisionId 
+					SET	WOMS.ProvisionId = TMP.ProvisionId
 						--WOMS.Quantity = CASE WHEN ISNULL(TMP.Quantity, 0) >= (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) THEN TMP.Quantity ELSE WOMS.Quantity END
 					FROM [dbo].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK)
 					INNER JOIN #tmpSubWorkOrderMaterialKit TMP ON WOMS.StockLineId = TMP.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = TMP.SubWorkOrderMaterialsId
@@ -220,25 +224,25 @@ BEGIN
 		UNION
 
 		SELECT * FROM #tmpSubWorkOrderMaterialKit;
-		
-	COMMIT TRANSACTION  
-	END TRY      
-	BEGIN CATCH        
-		IF @@trancount > 0  
-		ROLLBACK TRAN;  
-		DECLARE	@ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-				, @AdhocComments     VARCHAR(150)    = 'USP_UpdateSubWorkOrderMaterials'   
-				, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' 
-				, @ApplicationName VARCHAR(100) = 'PAS'  
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-				EXEC	spLogException   
-						@DatabaseName   = @DatabaseName  
-						, @AdhocComments   = @AdhocComments  
-						, @ProcedureParameters  = @ProcedureParameters  
-						, @ApplicationName         = @ApplicationName  
-						, @ErrorLogID              = @ErrorLogID OUTPUT ;  
-              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
-              RETURN(1);  
-	END CATCH  
+
+	COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		IF @@trancount > 0
+		ROLLBACK TRAN;
+		DECLARE	@ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+				, @AdhocComments     VARCHAR(150)    = 'USP_UpdateSubWorkOrderMaterials'
+				, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
+				, @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+				EXEC	spLogException
+						@DatabaseName   = @DatabaseName
+						, @AdhocComments   = @AdhocComments
+						, @ProcedureParameters  = @ProcedureParameters
+						, @ApplicationName         = @ApplicationName
+						, @ErrorLogID              = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+	END CATCH
 END

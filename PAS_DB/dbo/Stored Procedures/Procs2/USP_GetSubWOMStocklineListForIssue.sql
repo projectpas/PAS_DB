@@ -1,5 +1,5 @@
-﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWOMStocklineListForIssue]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWOMStocklineListForIssue.sql) =====
-/*************************************************************           
+﻿
+/*************************************************************
  ** File:   [USP_GetSubWOMStocklineListForIssue]           
  ** Author:   Devendra Shekh
  ** Description: This SP is Used to get Stockline list to Issue Stockline for Sub Work Order    

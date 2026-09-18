@@ -69,6 +69,7 @@
 	59   04-Sep-2026        Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
 	61   15-Sep-2026        Divyesh Kathriya        [PN-17924] Added Item Type and Serial Number validation for Stockline imports.
 	60   14-Sep-2026        Aayushi Patel           [PN-17906] Added @UOMFamilyTypeModule + a duplicate-Name error message branch for the new UOM Family Type setup screen - without a module-specific message here, the generic ELSE branch produces DuplicateErrorMsg = '' and the duplicate is silently accepted (RecordStatus only gets set when DuplicateErrorMsg is non-empty).
+	62   17-Sep-2026        Aayushi Patel           [PN-17906] Fixed false "Entered Data Already Exits!" on Import for modules whose ImportModuleFieldMasterId values have a gap (e.g. a field added later gets a much higher id): the per-field duplicate-check WHILE loop iterates every integer between MIN/MAX id, and iterations landing in the gap left @ChekDuplticateRef1/@ChekDuplticateRef2/@DropdownListTable stuck at their last-matched value, re-running that stale check (e.g. SequenceNo) against unrelated uploaded values. Reset those variables at the top of each loop iteration.
 
 	declare @p4 dbo.UploadModuleDataTableType
 	insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -960,7 +961,11 @@ BEGIN
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
-				SELECT	@ChekDuplticateRef1 = ChekDuplticateRef1, @ChekDuplticateRef2 = ChekDuplticateRef2, @DropdownListTable = DropdownListTable				
+				
+				SET @ChekDuplticateRef1 = NULL;
+				SET @ChekDuplticateRef2 = NULL;
+				SET @DropdownListTable = NULL;
+				SELECT	@ChekDuplticateRef1 = ChekDuplticateRef1, @ChekDuplticateRef2 = ChekDuplticateRef2, @DropdownListTable = DropdownListTable
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 				IF((ISNULL(@ChekDuplticateRef1, '') != '' OR ISNULL(@ChekDuplticateRef2, '') != ''))
 				BEGIN

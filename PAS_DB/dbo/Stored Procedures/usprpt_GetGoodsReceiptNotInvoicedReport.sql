@@ -20,6 +20,7 @@
 	9	 20/July/2026		 RAJESH GAMI			[PN-17350] - Eliminated legacy NonStockInventory reference; PO non-stock branch now reads Stockline filtered to IsNonStock = 1
 	10	 22/July/2026	Moin Bloch 			        [PN-17397] - Cost is displayed as 0.00 for Asset Repair Order (RO) receipts
 	11	 30/July/2026	Kishor Makwana				[PN-17492]  PERFORMANCE ONLY. No change to any returned row, column, value or column order.
+	12   11/Sept/2026   Moin Bloch				    [PN-17411]  Added PartID,[IsGRNIAdjustment] for GRNI Adjusment
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
@@ -165,7 +166,7 @@ BEGIN
 			POP.PurchaseOrderPartRecordId PartID
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
-		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND ISNULL(POP.[IsGRNIAdjustment],0) = 0
 		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId 
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND (STK.IsNonStock = 0 OR STK.IsNonStock IS NULL)
 		LEFT JOIN DBO.Stockline NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId AND NSTK.IsNonStock = 1
@@ -237,7 +238,7 @@ BEGIN
 			ROP.RepairOrderPartRecordId PartID
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
-		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  AND ISNULL(ROP.[IsPiecePart], 0) = 0
+		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  AND ISNULL(ROP.[IsPiecePart], 0) = 0 AND ISNULL(ROP.[IsGRNIAdjustment],0) = 0
 		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId
 		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId AND (STK.IsNonStock = 0 OR STK.IsNonStock IS NULL)
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = AI.RepairOrderPartRecordId
@@ -373,6 +374,7 @@ BEGIN
 						MAX(CreatedDate) CreatedDate,
 						MAX(Id) Id,
 						MAX(IsPO) IsPO,
+						MAX(PartID) PartID,
 						--MAX(UPPER(receivingReconNum)) receivingReconNum
 						CASE 
 							WHEN COUNT(DISTINCT receivingReconNum) > 1 

@@ -105,6 +105,7 @@
     [ACTailNum]                      VARCHAR (250)   NULL,
     [IsFromLease]                    BIT             NULL,
     [LeasePartId]                    BIGINT          NULL,
+    [IsGRNIAdjustment]               BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
 

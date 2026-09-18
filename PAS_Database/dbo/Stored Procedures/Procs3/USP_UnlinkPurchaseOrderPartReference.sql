@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_UnlinkPurchaseOrderPartReference]
  ** Author:   Abhishek Jirawala
  ** Description: This SP revalidates every selected PurchaseOrderPartReference
@@ -60,8 +60,13 @@
 	                                        whenever ANY sibling line on the same PO had been received. An SO line now
 	                                        only blocks when its received stock is actually reserved to this Sales Order.
 	                                        RepairOrder/Exchange/Lot keep the blanket #POReceipt / HasAnyReceipt check.
+    7    18/09/2026   Nakul Chandigra		Fixed surviving PO count calculation: scoped surviving PurchaseOrderPartReference
+	                                        check to the specific affected part/line rather than the entire module reference
+	                                        (which caused SalesOrderPartV1.PONumber to show 'Multiple' when other parts in
+	                                        the same Sales Order still had linked POs). Also explicitly repointed scalar PO
+	                                        fields on SalesOrderPartV1 / ExchangeSalesOrderPart when SurvivingCount = 1.
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UnlinkPurchaseOrderPartReference]
+CREATE   PROCEDURE [dbo].[USP_UnlinkPurchaseOrderPartReference]
     @tbl_POPartReferenceUnlink [dbo].[POPartReferenceUnlinkType] READONLY,
     @SourceModuleId INT = 0,
     @SourceReferenceId BIGINT = 0,
@@ -147,9 +152,9 @@ BEGIN
 
     -- distinct affected module lines, before delete
     IF OBJECT_ID('tempdb..#Affected') IS NOT NULL DROP TABLE #Affected
-    SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS Id, ModuleId, ReferenceId, ReferencePartId, IsKit, PurchaseOrderPartId
+    SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS Id, ModuleId, ReferenceId, ReferencePartId, IsKit
     INTO #Affected
-    FROM (SELECT DISTINCT ModuleId, ReferenceId, ReferencePartId, IsKit, PurchaseOrderPartId FROM #Validated) D
+    FROM (SELECT DISTINCT ModuleId, ReferenceId, ReferencePartId, IsKit FROM #Validated) D
 
     -- null reverse pointers on the PO line itself
     UPDATE POP
@@ -177,6 +182,7 @@ BEGIN
     DECLARE @LoopId INT = 1, @TotalAffected INT = (SELECT COUNT(1) FROM #Affected)
     DECLARE @ModuleId INT, @ReferenceId BIGINT, @ReferencePartId BIGINT, @IsKitRow BIT
     DECLARE @SurvivingCount INT, @SurvivingPOPartId BIGINT
+    DECLARE @ItemMasterId BIGINT, @ConditionId BIGINT
 
     -- sp_UpdatePOPartReferenceDetail returns a "value" rowset of its own (PurchaseOrderNumber);
     -- capture it via INSERT...EXEC so it doesn't leak out as an extra, wrongly-shaped result set
@@ -189,10 +195,55 @@ BEGIN
         SELECT @ModuleId = ModuleId, @ReferenceId = ReferenceId, @ReferencePartId = ReferencePartId, @IsKitRow = IsKit
         FROM #Affected WHERE Id = @LoopId
 
-        SELECT @SurvivingCount = COUNT(1), @SurvivingPOPartId = MIN(POR.PurchaseOrderPartId)
+        SET @ItemMasterId = NULL
+        SET @ConditionId = NULL
+
+        IF @ModuleId = 1 AND ISNULL(@IsKitRow,0) = 0
+            SELECT @ItemMasterId = ItemMasterId, @ConditionId = ConditionCodeId FROM dbo.WorkOrderMaterials WITH (NOLOCK) WHERE WorkOrderMaterialsId = @ReferencePartId
+        ELSE IF @ModuleId = 1 AND ISNULL(@IsKitRow,0) = 1
+            SELECT @ItemMasterId = ItemMasterId, @ConditionId = ConditionCodeId FROM dbo.WorkOrderMaterialsKit WITH (NOLOCK) WHERE WorkOrderMaterialsKitId = @ReferencePartId
+        ELSE IF @ModuleId = 3
+            SELECT @ItemMasterId = ItemMasterId, @ConditionId = ConditionId FROM dbo.SalesOrderPartV1 WITH (NOLOCK) WHERE SalesOrderPartId = @ReferencePartId
+        ELSE IF @ModuleId = 4
+            SELECT @ItemMasterId = ItemMasterId, @ConditionId = ConditionId FROM dbo.ExchangeSalesOrderPart WITH (NOLOCK) WHERE ExchangeSalesOrderPartId = @ReferencePartId
+        ELSE IF @ModuleId = 5
+            SELECT @ItemMasterId = ItemMasterId, @ConditionId = ConditionCodeId FROM dbo.SubWorkOrderMaterials WITH (NOLOCK) WHERE SubWorkOrderMaterialsId = @ReferencePartId
+
+        SET @SurvivingCount = 0
+        SET @SurvivingPOPartId = NULL
+
+        -- Pick the latest surviving PO part (by PurchaseOrderId DESC, PurchaseOrderPartRecordId DESC)
+        SELECT TOP 1 @SurvivingPOPartId = POP.PurchaseOrderPartRecordId
         FROM dbo.PurchaseOrderPartReference POR WITH (NOLOCK)
+        INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = POR.PurchaseOrderPartId
         WHERE POR.ModuleId = @ModuleId AND POR.ReferenceId = @ReferenceId
               AND ISNULL(POR.IsDeleted,0) = 0 AND ISNULL(POR.IsActive,1) = 1
+              AND ISNULL(POP.IsDeleted,0) = 0
+              AND (
+                   (POP.WorkOrderMaterialsId = @ReferencePartId AND ISNULL(POP.IsKit,0) = ISNULL(@IsKitRow,0))
+                   OR (POP.WorkOrderMaterialsId IS NULL AND (POP.ConditionId = @ConditionId OR POP.ConditionId IS NULL OR @ConditionId IS NULL)
+                       AND (POP.ItemMasterId = @ItemMasterId
+                            OR EXISTS (SELECT 1 FROM dbo.Nha_Tla_Alt_Equ_ItemMapping MainNha WITH (NOLOCK)
+                                       WHERE (MainNha.MappingItemMasterId = @ItemMasterId AND MainNha.ItemMasterId = POP.ItemMasterId)
+                                          OR (MainNha.MappingItemMasterId = POP.ItemMasterId AND MainNha.ItemMasterId = @ItemMasterId))))
+                  )
+        ORDER BY POP.PurchaseOrderId DESC, POP.PurchaseOrderPartRecordId DESC
+
+        -- Count distinct surviving POs (not junction rows or split lines)
+        SELECT @SurvivingCount = COUNT(DISTINCT POP.PurchaseOrderId)
+        FROM dbo.PurchaseOrderPartReference POR WITH (NOLOCK)
+        INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = POR.PurchaseOrderPartId
+        WHERE POR.ModuleId = @ModuleId AND POR.ReferenceId = @ReferenceId
+              AND ISNULL(POR.IsDeleted,0) = 0 AND ISNULL(POR.IsActive,1) = 1
+              AND ISNULL(POP.IsDeleted,0) = 0
+              AND (
+                   (POP.WorkOrderMaterialsId = @ReferencePartId AND ISNULL(POP.IsKit,0) = ISNULL(@IsKitRow,0))
+                   OR (POP.WorkOrderMaterialsId IS NULL AND (POP.ConditionId = @ConditionId OR POP.ConditionId IS NULL OR @ConditionId IS NULL)
+                       AND (POP.ItemMasterId = @ItemMasterId
+                            OR EXISTS (SELECT 1 FROM dbo.Nha_Tla_Alt_Equ_ItemMapping MainNha WITH (NOLOCK)
+                                       WHERE (MainNha.MappingItemMasterId = @ItemMasterId AND MainNha.ItemMasterId = POP.ItemMasterId)
+                                          OR (MainNha.MappingItemMasterId = POP.ItemMasterId AND MainNha.ItemMasterId = @ItemMasterId))))
+                  )
 
         IF @SurvivingCount = 0
         BEGIN
@@ -210,8 +261,29 @@ BEGIN
         ELSE IF @SurvivingCount = 1
         BEGIN
             INSERT INTO #DummyPOUpdate EXEC dbo.sp_UpdatePOPartReferenceDetail @PurchaseOrderPartId = @SurvivingPOPartId
+
+            IF @ModuleId = 3
+            BEGIN
+                UPDATE SOP
+                SET PONumber = P.PurchaseOrderNumber, POId = POP.PurchaseOrderId, PONextDlvrDate = POP.NeedByDate,
+                    UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+                FROM dbo.SalesOrderPartV1 SOP
+                JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = @SurvivingPOPartId
+                JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+                WHERE SOP.SalesOrderPartId = @ReferencePartId
+            END
+            ELSE IF @ModuleId = 4
+            BEGIN
+                UPDATE ESOP
+                SET PONumber = P.PurchaseOrderNumber, POId = POP.PurchaseOrderId, PONextDlvrDate = POP.NeedByDate,
+                    UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+                FROM dbo.ExchangeSalesOrderPart ESOP
+                JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = @SurvivingPOPartId
+                JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+                WHERE ESOP.ExchangeSalesOrderPartId = @ReferencePartId
+            END
         END
-        ELSE -- 2 or more surviving links: the scalar PO field can't represent all of them
+        ELSE -- 2 or more surviving POs
         BEGIN
             IF @ModuleId = 1 AND ISNULL(@IsKitRow,0) = 0
                 UPDATE dbo.WorkOrderMaterials SET POId = NULL, PONum = 'Multiple', UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy WHERE WorkOrderMaterialsId = @ReferencePartId
@@ -220,9 +292,27 @@ BEGIN
             ELSE IF @ModuleId = 5
                 UPDATE dbo.SubWorkOrderMaterials SET POId = NULL, PONum = 'Multiple', UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy WHERE SubWorkOrderMaterialsId = @ReferencePartId
             ELSE IF @ModuleId = 3
-                UPDATE dbo.SalesOrderPartV1 SET POId = NULL, PONumber = 'Multiple', UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy WHERE SalesOrderPartId = @ReferencePartId
+            BEGIN
+                -- For Sales Order parts, scalar PO field displays the latest surviving PO (never 'Multiple')
+                UPDATE SOP
+                SET PONumber = P.PurchaseOrderNumber, POId = POP.PurchaseOrderId, PONextDlvrDate = POP.NeedByDate,
+                    UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+                FROM dbo.SalesOrderPartV1 SOP
+                JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = @SurvivingPOPartId
+                JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+                WHERE SOP.SalesOrderPartId = @ReferencePartId
+            END
             ELSE IF @ModuleId = 4
-                UPDATE dbo.ExchangeSalesOrderPart SET POId = NULL, PONumber = 'Multiple', UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy WHERE ExchangeSalesOrderPartId = @ReferencePartId
+            BEGIN
+                -- For Exchange Sales Order parts, scalar PO field displays the latest surviving PO (never 'Multiple')
+                UPDATE ESOP
+                SET PONumber = P.PurchaseOrderNumber, POId = POP.PurchaseOrderId, PONextDlvrDate = POP.NeedByDate,
+                    UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+                FROM dbo.ExchangeSalesOrderPart ESOP
+                JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = @SurvivingPOPartId
+                JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+                WHERE ESOP.ExchangeSalesOrderPartId = @ReferencePartId
+            END
         END
 
         SET @LoopId += 1

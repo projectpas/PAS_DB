@@ -4830,6 +4830,7 @@
     <Build Include="dbo\Stored Procedures\USP_Lot_UpdateCOGSByStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportInvoiceDate.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_Delete.sql" />
     <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_AddUpdate.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />

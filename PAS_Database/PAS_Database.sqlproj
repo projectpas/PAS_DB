@@ -4779,6 +4779,7 @@
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseBillingListByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

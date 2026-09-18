@@ -6,12 +6,11 @@
     [CurrentTSNFromDate]    DATETIME2 (7)   NULL,
     [CurrentTSNToDate]      DATETIME2 (7)   NULL,
     [CurrentTSNDate]        DATETIME2 (7)   NULL,
-    [LatestTimeNotes]       NVARCHAR (MAX)  NULL,
     [CurrentCSN]            DECIMAL (18, 6) NULL,
     [CurrentCSNFromDate]    DATETIME2 (7)   NULL,
     [CurrentCSNToDate]      DATETIME2 (7)   NULL,
     [CurrentCSNDate]        DATETIME2 (7)   NULL,
-    [LatestCycleNotes]      NVARCHAR (MAX)  NULL,
+    [Notes]                 NVARCHAR (MAX)  NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [CreatedBy]             VARCHAR (256)   NOT NULL,
     [UpdatedBy]             VARCHAR (256)   NOT NULL,
@@ -24,6 +23,8 @@
     CONSTRAINT [FK_LeaseStocklineUsage_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [UQ_LeaseStocklineUsage_LeaseStocklineId] UNIQUE NONCLUSTERED ([LeaseStocklineId] ASC)
 );
+
+
 
 
 GO

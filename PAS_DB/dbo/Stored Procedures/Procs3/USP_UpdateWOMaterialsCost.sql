@@ -38,6 +38,11 @@
 									transaction, contributing to the error 3903 seen on
 									api/workOrder/saveissueparts (this SP is called from SaveIssueParts via
 									UpadteMaterialsCost). Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
+	10   18-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed same CATCH block: 'ISNULL(@WorkOrderMaterialsId, '')'
+									tried to convert '' to BIGINT (since @WorkOrderMaterialsId is BIGINT) before the
+									comparison could ever be null-dependent, throwing error 8114 whenever this CATCH
+									ran and masking the real error. Changed to
+									ISNULL(CONVERT(VARCHAR(20), @WorkOrderMaterialsId), '').
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
 (
@@ -298,7 +303,7 @@ SET NOCOUNT ON
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOMaterialsCost' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderMaterialsId, '') + '' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkOrderMaterialsId), '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

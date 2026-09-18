@@ -17,7 +17,14 @@
     1    07/10/2023   Vishal Suthar		Created
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
 	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
-  
+	4    18-Sep-2026  RAJESH GAMI        [PN-17782] Fixed CATCH block: 'CAST(ISNULL(@StocklineId, '') AS VARCHAR(100))'
+										 evaluated ISNULL first, and since @StocklineId is BIGINT, SQL Server tried to
+										 implicitly convert the '' literal to BIGINT before the outer CAST ever ran,
+										 throwing "Error converting data type varchar to bigint" (error 8114) whenever
+										 this CATCH block ran - masking the real error and breaking callers such as
+										 usp_IssueWorkOrderMaterialsStockline (api/workOrder/saveissueparts). Changed
+										 to ISNULL(CAST(@StocklineId AS VARCHAR(100)), '') so the cast happens first.
+
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
@@ -98,7 +105,7 @@ BEGIN
   ,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
   ,@AdhocComments varchar(150) = 'USP_AddUpdateStocklineHistory'  
-  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StocklineId, '') AS VARCHAR(100))  
+  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + ISNULL(CAST(@StocklineId AS VARCHAR(100)), '')
   ,@ApplicationName varchar(100) = 'PAS'
   -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
   EXEC spLogException @DatabaseName = @DatabaseName,

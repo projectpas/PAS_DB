@@ -43,6 +43,14 @@
 									'ROLLBACK TRAN;' (no RETURN after it) when no #tmpCodePrefixes row is found
 									for @CodeTypeId was identified but NOT changed - left for a follow-up
 									decision since it is a business-logic path, not a syntax bug.
+	16   18-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed the SAME CATCH block's error-logging line:
+									'ISNULL(@DistributionMasterId, '')' tried to convert '' to BIGINT (since
+									@DistributionMasterId is BIGINT) before the logging could run at all, throwing
+									error 8114 ("Error converting data type varchar to bigint") every time this
+									CATCH block ran - this was the exact error reported on
+									api/workOrder/saveissueparts (SQL error 8114 at this line, procedure name
+									USP_BatchTriggerBasedonDistributionForWO). Changed to
+									ISNULL(CONVERT(VARCHAR(20), @DistributionMasterId), '').
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
 (
@@ -3333,7 +3341,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerBasedonDistributionForWO' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @DistributionMasterId), '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

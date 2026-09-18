@@ -39,6 +39,10 @@
 									transaction, contributing to the error 3903 seen on
 									api/workOrder/saveissueparts (this SP is called from SaveIssueParts via
 									UpdateWOCostDetailsSP). Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END.
+	6    18-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed same CATCH block: 'ISNULL(@WorkOrderId, '')'
+									tried to convert '' to BIGINT before the CATCH block's logging could run,
+									throwing error 8114 and masking the real error. Changed to
+									ISNULL(CONVERT(VARCHAR(20), @WorkOrderId), '').
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateWOCostDetails]    
 (
@@ -453,7 +457,7 @@ SET NOCOUNT ON
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOCostDetails' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkOrderId), '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

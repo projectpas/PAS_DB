@@ -41,6 +41,11 @@
 									Wrapped the PRINT + ROLLBACK TRAN in BEGIN/END. NOTE: the same pre-existing
 									mid-body 'ROLLBACK TRAN;' (no RETURN after it) pattern exists here too and
 									was NOT changed, for the same reason.
+	17   18-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed the SAME CATCH block's error-logging line:
+									'ISNULL(@DistributionMasterId, '')' tried to convert '' to BIGINT before the
+									logging could run, throwing error 8114 and masking the real error - same fix
+									as USP_BatchTriggerBasedonDistributionForWO. Changed to
+									ISNULL(CONVERT(VARCHAR(20), @DistributionMasterId), '').
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
 (
@@ -3213,7 +3218,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerForInternalWOBasedonDistribution' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @DistributionMasterId), '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

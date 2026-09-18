@@ -1,0 +1,22 @@
+CREATE TABLE [dbo].[LeaseChargesAudit] (
+    [LeaseChargesAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [LeaseChargesId]      BIGINT          NULL,
+    [LeaseHeaderId]       BIGINT          NULL,
+    [LeaseStocklineId]    BIGINT          NULL,
+    [ReportedDate]        DATETIME        NULL,
+    [ChargesTypeId]       BIGINT          NULL,
+    [VendorId]            BIGINT          NULL,
+    [Description]         VARCHAR (256)   NULL,
+    [UOMId]               BIGINT          NULL,
+    [Quantity]            DECIMAL (18, 6) NULL,
+    [UnitCost]            DECIMAL (18, 6) NULL,
+    [ExtendedCost]        DECIMAL (18, 6) NULL,
+    [MasterCompanyId]     INT             NULL,
+    [CreatedBy]           VARCHAR (256)   NULL,
+    [UpdatedBy]           VARCHAR (256)   NULL,
+    [CreatedDate]         DATETIME        NULL,
+    [UpdatedDate]         DATETIME        NULL,
+    [IsActive]            BIT             NULL,
+    [IsDeleted]           BIT             NULL,
+    CONSTRAINT [PK_LeaseChargesAudit] PRIMARY KEY CLUSTERED ([LeaseChargesAuditId] ASC)
+);

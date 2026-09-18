@@ -4790,6 +4790,8 @@
     <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
+    <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

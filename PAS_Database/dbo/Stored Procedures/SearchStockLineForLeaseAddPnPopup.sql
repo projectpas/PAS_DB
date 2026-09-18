@@ -94,8 +94,8 @@ BEGIN
 				AND imps.ConditionId = c.ConditionId
 		WHERE
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-			AND ISNULL(sl.QuantityAvailable, 0) > 0
-			AND ISNULL(sl.QuantityOnHand, 0) > 0	
+			AND ROUND(ISNULL(sl.QuantityAvailable, 0), 2) > 0
+			AND ROUND(ISNULL(sl.QuantityOnHand, 0), 2) > 0
 			AND sl.IsParent = 1
 	END TRY
 	BEGIN CATCH

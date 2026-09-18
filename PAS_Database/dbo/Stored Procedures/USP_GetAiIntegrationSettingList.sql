@@ -15,8 +15,9 @@ EXEC [USP_GetPNLabelSettingData]
 ** 4	Aug-11-2025	    Moin Bloch        Modified add Fields OpenAIAPIKeys
 ** 5	Dec-03-2025	    Ayushi Patel      Modified add Fields DocumentTypeId
 ** 6	July-09-2026	Divyesh Kathiriya Add Fields VRFQEmailSubject [PN-16868]
+** 7	Sep-18-2026	    Divyesh Kathiriya Add Fields VRFQROEmailSubject [PN-17996]
 
-exec dbo.USP_GetAiIntegrationSettingList 1  
+exec dbo.USP_GetAiIntegrationSettingList 1
 **********************/
 CREATE PROCEDURE [dbo].[USP_GetAiIntegrationSettingList]
 @MasterCompanyId bigint
@@ -49,6 +50,7 @@ BEGIN
 					,AI.[OpenAIAPIKeys]					
 					,AI.[DocumentTypeId]
 					,AI.[VRFQEmailSubject]
+					,AI.[VRFQROEmailSubject]
 				FROM dbo.AiIntegrationSetting AI WITH(NOLOCK)
 				WHERE AI.MasterCompanyId = @MasterCompanyId
                 

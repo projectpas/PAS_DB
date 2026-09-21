@@ -18,6 +18,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     4    05-Aug-2026			 Bhargav Saliya					    [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
+	5   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
  CREATE    PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
@@ -121,7 +122,7 @@
 							AND rpPMA.IsActive = 1 AND rpPMA.IsDeleted = 0
 					LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				WHERE im.IsActive = 1 AND im.IsDeleted = 0 AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
-					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE '%'+ REPLACE(REPLACE(REPLACE(REPLACE(@partSarchText, '-', ''), '/', ''), '_', ''), '\', '') +'%')
+					 AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@partSarchText) +'%')
 					 AND (
 						(@CustRestrictedDer = CONVERT(BIT, 0) AND @CustRestrictedPMA = CONVERT(BIT, 0))
 						OR 

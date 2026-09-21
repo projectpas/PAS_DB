@@ -37,6 +37,7 @@
 										every Non-Stock row, since rp IS Im.
 	2   05-Aug-2026   Bhargav Saliya    [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
 	3   08-09/2026    Ayushi Patel      [PN-17009] removed the (Stock) appended to the Label output for the ItemMaster and ItemMasterNonStock branches
+	4   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '100',1,50,'',18
 **************************************************************/
@@ -94,7 +95,7 @@ BEGIN
 			  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 			  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%'))
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))
       UNION
 
      SELECT DISTINCT Im.ItemMasterId,
@@ -178,7 +179,7 @@ BEGIN
 			 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') LIKE REPLACE(REPLACE(REPLACE(REPLACE(@StartWith, '-', ''), '/', ''), '_', ''), '\', '') + '%')
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')
      UNION
 
     SELECT DISTINCT TOP 50

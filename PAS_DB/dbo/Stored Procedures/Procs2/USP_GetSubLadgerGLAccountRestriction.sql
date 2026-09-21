@@ -11,6 +11,7 @@
 ** --   --------     -------			--------------------------------              
  1   15/02/2024		Hemant Saliya		Created 
  2	 02/06/2025		Abhishek Jirawla	Fixed Name concat read script 
+ 3	 19/Sep/2026	Vishal Suthar		[Back-dated Date] - Added optional @AsOfDate parameter.
 
 DECLARE @IsRestrict BIT 
 DECLARE @IsAccountByPass BIT 
@@ -23,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](
  @AccountingCalendarId BIGINT = NULL,
  @UpdateBy VARCHAR(200) = NULL,
  @IsRestrict BIT OUTPUT,
- @IsAccountByPass BIT OUTPUT
+ @IsAccountByPass BIT OUTPUT,
+ @AsOfDate DATETIME2(7) = NULL
 )  
 AS    
 BEGIN  
@@ -41,38 +43,42 @@ BEGIN
 				DECLARE @IsRestrictASSET BIT = 0;
 				DECLARE @IsRestrictINV BIT = 0;
 				DECLARE @IsRestrictGEN BIT = 0;
-
+ 
 				SET @IsRestrict = 0;
-
+ 
 				SELECT @ManagementStructureId = ISNULL(ManagementStructureId,0) 
 				FROM [dbo].[Employee] WITH(NOLOCK)  
 				WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
-
+ 
 				IF(ISNULL(@AccountingCalendarId, 0) = 0)
 				BEGIN
+					-- CHANGED: was CAST(GETUTCDATE() as date) on both sides - now uses the caller-supplied
+					-- @AsOfDate when given, falling back to GETUTCDATE() when it isn't (NULL default),
+					-- so existing callers are unaffected.
 					SELECT TOP 1  @AccountingCalendarId = ACC.AccountingCalendarId,
 								  @AccountingCalendar = PeriodName 
 					FROM [dbo].[EntityStructureSetup] ES WITH(NOLOCK) 
 						INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) on ES.Level1Id = MSL.ID 
 						INNER JOIN [dbo].[AccountingCalendar] ACC WITH(NOLOCK) on msl.LegalEntityId = ACC.LegalEntityId AND ACC.IsDeleted =0
 					WHERE ES.EntityStructureId = @ManagementStructureId AND ACC.MasterCompanyId = @MasterCompanyId 
-						AND CAST(GETUTCDATE() as date) >= CAST(FromDate as date) AND CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+						AND CAST(ISNULL(@AsOfDate, GETUTCDATE()) as date) >= CAST(FromDate as date)
+						AND CAST(ISNULL(@AsOfDate, GETUTCDATE()) as date) <= CAST(ToDate as date)
 				END
-
+ 
 				IF OBJECT_ID(N'tempdb..#SubLedger') IS NOT NULL
 				BEGIN
 				  DROP TABLE #SubLedger
 				END
-
+ 
 				CREATE TABLE #SubLedger (
 				  ID bigint NOT NULL IDENTITY (1, 1),
 				  SubLedgerId BIGINT NULL,
 				  SubLedgerName VARCHAR(100) NULL,
 				  Code VARCHAR(100) NULL
 				 )
-
+ 
 				SELECT @IsAccountByPass = ISNULL(IsAccountByPass, 0) FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-
+ 
 				IF(@IsAccountByPass = 0)
 				BEGIN
 				
@@ -81,18 +87,18 @@ BEGIN
 						JOIN dbo.DistributionMaster DM WITH(NOLOCK) ON DS.DistributionMasterId = DM.ID
 						JOIN dbo.GLAccount GL WITH(NOLOCK) ON GL.GLAccountId = DS.GlAccountId
 					WHERE DS.MasterCompanyId = @MasterCompanyId AND  UPPER(DM.DistributionCode) = UPPER(@DistributionCode)
-
+ 
 					INSERT INTO #SubLedger(SubLedgerId, SubLedgerName, Code)
 					SELECT SubLedgerId, [Name], Code 
 					FROM dbo.SubLedger WITH(NOLOCK) 
 					WHERE SubLedgerId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@SubLedgerIds, ','))
-
+ 
 					DECLARE @TotalCount AS INT = 0;
 					DECLARE @IsFristRow AS bit = 1;
 					DECLARE @COUNT AS INT = 0;
-
+ 
 					SELECT @COUNT = MAX(ID) FROM #SubLedger
-
+ 
 					WHILE(@COUNT > 0)
 					BEGIN
 						DECLARE @SubLedgerId AS INT = 0;
@@ -106,14 +112,14 @@ BEGIN
 							 @IsRestrictGEN = CASE WHEN @SubLedgerId = 5 AND ISNULL(isaccStatusName, 0) = 0 THEN 1 ELSE 0 END
 						FROM dbo.AccountingCalendar AC WITH(NOLOCK)  
 						WHERE AccountingCalendarId = @AccountingCalendarId
-
+ 
 						IF(ISNULL(@IsRestrictAR, 0) > 0 OR ISNULL(@IsRestrictAP, 0) > 0 OR ISNULL(@IsRestrictASSET, 0) > 0 OR ISNULL(@IsRestrictINV, 0) > 0 OR ISNULL(@IsRestrictGEN, 0) > 0)
 						BEGIN
 							SET @IsRestrict = 1
 							GOTO SkipProcessing;
 							PRINT 'SkipProcessing'
 						END
-
+ 
 						SET @COUNT = @COUNT - 1
 					END
 				END
@@ -121,9 +127,9 @@ BEGIN
 				--BEGIN
 				--	SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
 				--END
-
+ 
 				SkipProcessing: 
-
+ 
 				IF OBJECT_ID(N'tempdb..#SubLedger') IS NOT NULL
 				BEGIN
 				  DROP TABLE #SubLedger

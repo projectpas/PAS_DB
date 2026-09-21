@@ -130,6 +130,18 @@
 
 
 GO
+-- Added 17-Sep-2026 (Rajesh Gami) - dbo.ProcStockList (Stockline listing SP) runs
+-- SELECT TOP 1 ... FROM dbo.ReceivingCustomerWork WHERE StockLineId = <value> per row;
+-- there was no index on StockLineId (only the PK on ReceivingCustomerWorkId and FK
+-- constraints, which do not auto-create indexes on the referencing column), so every
+-- lookup was a full table scan. Validated on production alongside the ProcStockList.sql
+-- performance fix (PR 35-38).
+CREATE NONCLUSTERED INDEX [IX_ReceivingCustomerWork_StockLineId]
+    ON [dbo].[ReceivingCustomerWork]([StockLineId] ASC)
+    INCLUDE([WorkOrderId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
 
 
 ----------------------------------------------

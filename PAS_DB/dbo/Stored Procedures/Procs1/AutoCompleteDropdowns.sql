@@ -103,6 +103,7 @@
     29   05-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes
     30   05-Aug-2026   Bhargav Saliya       [PN-17609] Added Oreder By For Site DATA
     31   08-09/2026    Ayushi Patel         [PN-17009] removed the (Stock) appended to the Label output for the ItemMaster and ItemMasterNonStock branches
+	32   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0
@@ -398,7 +399,7 @@ AS BEGIN
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                            WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
-                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                               AND ISNULL(IM.IsNonStock,0) = 0
                               UNION
                              SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
@@ -412,7 +413,7 @@ AS BEGIN
 							BEGIN
 								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
-								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
 								  AND ISNULL(IM.IsNonStock,0) = 0
 								  UNION
 								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
@@ -425,7 +426,7 @@ AS BEGIN
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                          WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
                                   FROM dbo.ItemMaster IM
-                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 0
                                    UNION
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber,IM.PartDescription AS PartDescription, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
@@ -460,7 +461,7 @@ AS BEGIN
                                                                                                                             FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                             WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
                                   FROM dbo.ItemMaster IM
-                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='InventoryGLSetting')BEGIN
@@ -730,7 +731,7 @@ AS BEGIN
                                                                                                                FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
                      FROM dbo.ItemMaster IM
-                     WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                     WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                       AND ISNULL(IM.IsNonStock,0) = 1
             END
             ELSE IF(@TableName='InventoryGLSetting')BEGIN
@@ -788,7 +789,7 @@ AS BEGIN
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                            WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
-                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                               AND ISNULL(IM.IsNonStock,0) = 0
                               UNION
                              SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
@@ -802,7 +803,7 @@ AS BEGIN
 							BEGIN
 								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
 								 FROM dbo.ItemMaster IM
-								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
 								  AND ISNULL(IM.IsNonStock,0) = 0
 								  UNION
 								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
@@ -815,7 +816,7 @@ AS BEGIN
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                          WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
                                   FROM dbo.ItemMaster IM
-                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', '')+'%')
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND (Im.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+dbo.fn_NormalizePartNumber(@Parameter3)+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 0
                                    UNION
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber,IM.PartDescription AS PartDescription, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
@@ -830,7 +831,7 @@ AS BEGIN
                                                                                                                                    FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                                    WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
                                   FROM dbo.ItemMaster IM
-                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(Im.partnumber, '-', ''), '/', ''), '_', ''), '\', '') like '%'+REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(@Parameter3, '-', ''), '/', ''), '_', ''), '\', ''), '\', '')+'%')
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND (IM.PartNumber like '%'+@Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.partnumber) like '%'+REPLACE(dbo.fn_NormalizePartNumber(@Parameter3), '\', '')+'%')
                                    AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='InventoryGLSetting')BEGIN

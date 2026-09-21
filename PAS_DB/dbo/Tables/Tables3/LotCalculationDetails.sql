@@ -45,6 +45,19 @@
     [PercentId]                BIGINT          NULL,
     [PerAmount]                DECIMAL (18, 2) NULL,
     [HowCalculate]             VARCHAR (50)    NULL,
+    -- PN-17881: mirror of LotConsignment's revenue/margin split + consignee fields, populated in
+    -- USP_Lot_AddUpdateLotCalculationDetails at UPPER(@Type) = UPPER('Trans Out (SO)'). Kept as separate
+    -- columns (not reusing the existing PercentId/PerAmount above, which already hold different combined
+    -- values) - name mapping from LotConsignment: PercentId -> RevenuePercentId, PerAmount -> FixedAmount,
+    -- ConsignorPercentId -> RevenueConsignorPercentId; MarginPercentId/MarginConsignorPercentId/
+    -- ConsigneeTypeId/ConsigneeId keep the same names as LotConsignment.
+    [RevenuePercentId]         BIGINT          NULL,
+    [FixedAmount]              DECIMAL (18, 2) NULL,
+    [RevenueConsignorPercentId] BIGINT         NULL,
+    [MarginPercentId]          BIGINT          NULL,
+    [MarginConsignorPercentId] BIGINT          NULL,
+    [ConsigneeTypeId]          INT             NULL,
+    [ConsigneeId]              BIGINT          NULL,
     CONSTRAINT [PK_LotCalculationDetails] PRIMARY KEY CLUSTERED ([LotCalculationId] ASC),
     CONSTRAINT [FK_LotCalculationDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

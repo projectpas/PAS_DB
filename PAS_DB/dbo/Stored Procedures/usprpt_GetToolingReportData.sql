@@ -224,7 +224,7 @@ BEGIN
       COUNT(1) OVER () AS TotalRecordsCount,
       toolId,
       toolNum,
-      toolDesc
+      toolDesc,
       serialNum,
       checkedInCalStatus,
       checkedOutCalStatus,

@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetLeasePickTicketPrint]
  ** Description: Line rows of the Lease Pick Ticket PDF. Mirrors dbo.GetPickTicketPrint
  **              (Sales Order): every line saved under the SAME pick ticket number prints on
@@ -14,7 +14,7 @@
 
 exec USP_GetLeasePickTicketPrint @LeaseHeaderId=1, @LeasePickTicketId=1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetLeasePickTicketPrint]
+CREATE   PROCEDURE [dbo].[USP_GetLeasePickTicketPrint]
 	@LeaseHeaderId BIGINT,
 	@LeasePickTicketId BIGINT
 AS
@@ -30,6 +30,14 @@ BEGIN
 		FROM [dbo].[LeasePickTicket] WITH (NOLOCK)
 		WHERE [LeasePickTicketId] = @LeasePickTicketId;
 
+		;WITH Picked AS
+		(
+			SELECT LPT.[LeaseStocklineId],
+			       SUM(ISNULL(LPT.[QtyPicked], 0)) AS QtyPicked
+			FROM [dbo].[LeasePickTicket] LPT WITH (NOLOCK)
+			WHERE LPT.[IsDeleted] = 0
+			GROUP BY LPT.[LeaseStocklineId]
+		)
 		SELECT
 			LPT.[LeasePickTicketId],
 			LPT.[LeasePickTicketNumber],
@@ -55,7 +63,10 @@ BEGIN
 			CAST(ISNULL(LPT.[QtyReserved], 0) AS DECIMAL(18, 6))      AS QtyReserved,
 			CAST(ISNULL(LPT.[QtyPicked], 0) AS DECIMAL(18, 6))        AS QtyToPick,
 			CAST(ISNULL(LPT.[QtyPicked], 0) AS DECIMAL(18, 6))        AS QtyPicked,
-			CAST(ISNULL(LPT.[QtyRemaining], 0) AS DECIMAL(18, 6))     AS QtyRemaining,
+			CAST(CASE WHEN (ISNULL(LSL.[QtyReserved], 0) - ISNULL(P.QtyPicked, 0)) < 0
+					  THEN 0
+					  ELSE (ISNULL(LSL.[QtyReserved], 0) - ISNULL(P.QtyPicked, 0))
+				 END AS DECIMAL(18, 6))                               AS QtyRemaining,
 			CAST(ISNULL(SL.[QuantityOnHand], 0) AS DECIMAL(18, 6))    AS QuantityOnHand,
 			CAST(ISNULL(SL.[QuantityAvailable], 0) AS DECIMAL(18, 6)) AS QtyAvailable,
 			ISNULL(LSL.[Notes], '')        AS Notes,
@@ -63,6 +74,7 @@ BEGIN
 		FROM [dbo].[LeasePickTicket] LPT WITH (NOLOCK)
 		INNER JOIN [dbo].[LeaseHeader] LH WITH (NOLOCK)      ON LH.[LeaseHeaderId] = LPT.[LeaseHeaderId]
 		INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK)  ON LSL.[LeaseStocklineId] = LPT.[LeaseStocklineId]
+		 LEFT JOIN Picked P                                  ON P.[LeaseStocklineId] = LPT.[LeaseStocklineId]
 		 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK)        ON SL.[StockLineId] = LPT.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)       ON IM.[ItemMasterId] = LSL.[ItemMasterId]
 		 LEFT JOIN [dbo].[Condition] CON WITH (NOLOCK)       ON CON.[ConditionId] = LSL.[ConditionId]

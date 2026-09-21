@@ -4732,6 +4732,9 @@
     <Build Include="dbo\Tables\LeaseStocklineUsage.sql" />
     <Build Include="dbo\Tables\LeaseStocklineUsageHistoryAudit.sql" />
     <Build Include="dbo\Tables\LeaseStocklineUsageHistory.sql" />
+    <Build Include="dbo\Tables\LeaseChargesAudit.sql" />
+    <Build Include="dbo\Tables\LeaseCharges.sql" />
+    <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
@@ -4742,6 +4745,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineUsageByLeaseStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineUsage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklinesForChargesByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseChargesByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLeaseCharge.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreLeaseCharge.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineReceivedStockLine.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineProperties.sql" />
@@ -4789,6 +4797,8 @@
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
+    <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseBillingListByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
   </ItemGroup>

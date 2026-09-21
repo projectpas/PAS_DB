@@ -4803,6 +4803,7 @@
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
     <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

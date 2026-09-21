@@ -10,6 +10,7 @@
 ** PR   Date         Author  		    Change Description
 ** --   --------     -------		    --------------------------------
    1    06/08/2026   Ayushi Patel       [PN-17561]Created
+   2    17/09/2026   Bhargav Saliya     [PN-17931]Return EnforcePickTicketConfirmation for the Lease Pick Ticket
 
 **********************/
 --EXEC USP_GetLeaseSetting 10
@@ -27,6 +28,7 @@ BEGIN
         ls.OverageCycleGLAccountId,
         ls.OverageTimeGLAccountId,
         ls.UsageBasedGLAccountId,
+        ISNULL(ls.EnforcePickTicketConfirmation, 0) AS EnforcePickTicketConfirmation,
         ls.CreatedBy,
         ls.CreatedDate,
         ls.UpdatedBy,

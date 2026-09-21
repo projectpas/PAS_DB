@@ -24,13 +24,17 @@
     7    14-Sep-2026   Amit Ghediya     Added LeaseType (joined from dbo.LeaseType, was only returning the unused
                                         LeaseTypeId) so the new Angular "Lease Type" grid column can filter/sort -
                                         added @LeaseType filter param and a LEASETYPE sort case
+    8    18-Sep-2026   Kishor Makwana	[PN-17967] BillingMethod was returning the raw enum name (FlatRateOnly/FlatRatePlusOverrun/UsageBased) straight from LeaseStockline, unlike
+                                        LeaseType/LeaseStatusName which already map to a friendly display string - the grid's transformText pipe was then just uppercasing the raw enum name
+                                        (e.g. "FLATRATEONLY") instead of getting "FLAT RATE ONLY" like the other columns. Added a CASE mapping to the same friendly text Angular's own
+                                        billingMethodOptions use (lease-part-number.component.ts / lease-billing-info.component.ts / commonAlertMessages.json's lpn_billingMethod* keys) so this list matches them.
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
 @CustomerName=NULL,@LeaseStatusId=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,
 @MasterCompanyId=1,@StatusId=NULL,@IsDeleted=NULL,@EmployeeId=226,@IsDetailView=0
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_LeaseHeaderList]
+CREATE     PROCEDURE [dbo].[USP_LeaseHeaderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50) = NULL,
@@ -187,7 +191,11 @@ BEGIN
 			   ,ISNULL(LSL.SN,'')
 			   ,''
 			   ,ISNULL(LSL.StocklineNumber,'')
-			   ,ISNULL(LSL.BillingMethod,'')
+			   ,CASE LSL.BillingMethod
+					WHEN 'FlatRateOnly' THEN 'Flat Rate Only'
+					WHEN 'FlatRatePlusOverrun' THEN 'Flat Rate + Overrun'
+					WHEN 'UsageBased' THEN 'Usage Based'
+					ELSE ISNULL(LSL.BillingMethod,'') END
 			   ,ISNULL(LSL.BillingInterval,'')
 			   ,CASE WHEN LSL.MinimumCycles IS NULL AND LSL.MaximumCycles IS NULL THEN ''
 					 ELSE CONVERT(VARCHAR(20), CAST(ISNULL(LSL.MinimumCycles,0) AS DECIMAL(18,2))) + ' - ' + CONVERT(VARCHAR(20), CAST(ISNULL(LSL.MaximumCycles,0) AS DECIMAL(18,2))) END

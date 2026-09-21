@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorStockList]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor Stock Listing 
@@ -22,6 +22,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	13   17-09-2026         Ayushi Patel        Removed Round from QuantityAvailable [PN-17938]
 *******************************************************************************
 *******************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -102,7 +103,7 @@ BEGIN
 			   ,SL.[SerialNumber]
 			   --,SL.[QuantityAvailable]
 			   
-				,ROUND((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0), IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure], 0, IM.[MasterCompanyId]) END), 2) AS QuantityAvailable
+				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0), IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure], 0, IM.[MasterCompanyId]) END) AS QuantityAvailable
 				--,SL.[UnitCost]
 				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]

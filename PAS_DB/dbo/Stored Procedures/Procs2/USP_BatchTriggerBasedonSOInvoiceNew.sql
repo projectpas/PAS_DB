@@ -361,6 +361,32 @@ BEGIN
 					 WHERE SOBI.BillingInvoicingId=@InvoiceId 
 					 AND ISNULL(IsPerformaInvoice,0) = 0 AND ISNULL([IsVersionIncrease],0) = 0 AND SOBI.ModuleId = @soModuleId
 
+					 IF(@IsPASAccounting = 1 AND @InvoiceDate IS NOT NULL)
+					 BEGIN
+						SELECT TOP 1
+							   @AccountingPeriodId = AccountingCalendarId,
+							   @AccountingPeriod   = PeriodName,
+							   @IsPeriodClosed     = CASE WHEN UPPER(ISNULL([Status], '')) = 'CLOSED' THEN 1 ELSE 0 END
+						FROM [dbo].[AccountingCalendar] WITH(NOLOCK)
+						WHERE [IsDeleted] = 0
+						  AND [LegalEntityId] = @LegalEntityId
+						  AND [MasterCompanyId] = @MasterCompanyId
+						  AND CAST(@InvoiceDate AS DATE) >= CAST([FromDate] AS DATE)
+						  AND CAST(@InvoiceDate AS DATE) <= CAST([ToDate] AS DATE);
+
+						IF(@AccountingPeriodId IS NULL OR @AccountingPeriodId = 0)
+						BEGIN
+							RAISERROR('No accounting period is defined for the selected Invoice Date. Please contact your administrator.', 16, 1);
+							RETURN(1);
+						END
+
+						IF(@IsPeriodClosed = 1)
+						BEGIN
+							RAISERROR('The accounting period covering the selected Invoice Date is closed. The invoice accounting entry cannot be posted to a closed period.', 16, 1);
+							RETURN(1);
+						END
+					END
+
 					SET @TotalTax = (@SalesTax + @OtherTax);
 
 					SELECT @PartUnitSalesPrice = SUM(ISNULL(sosc.UnitCostExtended, 0))

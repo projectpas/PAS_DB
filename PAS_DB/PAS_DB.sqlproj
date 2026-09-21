@@ -4833,6 +4833,7 @@
     <Build Include="dbo\Stored Procedures\USP_Lot_UpdateCOGSByStocklineId.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportInvoiceDate.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_Delete.sql" />
     <Build Include="dbo\Stored Procedures\USP_LOTOtherCostDetails_AddUpdate.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklinesForOtherCostAdd.sql" />
@@ -4844,6 +4845,7 @@
     <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReallocateSOShipmentAccountingPeriod.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

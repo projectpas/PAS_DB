@@ -40,6 +40,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    17/09/2026     Kishor Makwana          [PN-17949] Created
+	2    21/09/2026     Kishor Makwana          [PN-17949] UsageBased now bills the same way as FlatRatePlusOverrun (usage over the Limit x the Overage Rate) instead of always showing NA
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -70,17 +71,22 @@ BEGIN
 				LSL.OverrunPerUnitCycles AS CycleOverageRateRaw,
 				CASE WHEN U.LeaseStocklineUsageId IS NOT NULL THEN 1 ELSE 0 END AS HasUsageInfo,
 				LSL.IsActive,
-				LSL.LeaseStatusId
+				LSL.LeaseStatusId,
+				BI.InvoiceNo,
+				BI.InvoiceDate,
+				BI.InvoiceStatus
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN [dbo].[LeaseStocklineUsage] U WITH (NOLOCK) ON U.LeaseStocklineId = LSL.LeaseStocklineId AND U.IsDeleted = 0
+			LEFT JOIN [dbo].BillingInvoicingItems BII WITH (NOLOCK) ON BII.SubReferenceId =LSL.LeaseStocklineId AND BII.ModuleId= 72
+			LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ModuleId= 72
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
 		),
 		WithOver AS (
 			SELECT *,
-				IsOverageBillingMethod = CASE WHEN BillingMethod = 'FlatRatePlusOverrun' THEN 1 ELSE 0 END,
+				IsOverageBillingMethod = CASE WHEN BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END,
 				TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN TimeRecorded - ISNULL(TimeLimit, 0) ELSE NULL END,
 				CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN CycleRecorded - ISNULL(CycleLimit, 0) ELSE NULL END
 			FROM Base
@@ -111,9 +117,9 @@ BEGIN
 					ISNULL(CASE WHEN TimeOverRaw > 0 THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
 				  + ISNULL(CASE WHEN CycleOverRaw > 0 THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
 				ELSE NULL END,
-			CAST(NULL AS CHAR(1)) AS BillingStatus,
-			CAST(NULL AS VARCHAR(100)) AS InvoiceNumber,
-			CAST(NULL AS DATETIME) AS InvoiceDate,
+			CASE WHEN LEN(ISNULL(InvoiceNo,'')) > 0  THEN 'Y' ELSE 'N' END AS BillingStatus,
+			InvoiceNo AS InvoiceNumber,
+			InvoiceDate AS InvoiceDate,
 			HasUsageInfo,
 			IsActive,
 			LeaseStatusId

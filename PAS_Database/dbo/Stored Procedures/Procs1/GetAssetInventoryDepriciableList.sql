@@ -26,10 +26,14 @@
 	                                    then to the intangible type name, instead of the AssetAttributeType table join.
 	11  31-Aug-2026	 Ayushi Patel		[PN-16393] UOM Changes
 	12   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	13   17-Sep-2026   Nakul Chandigra   Fixed "Arithmetic overflow error converting numeric to data type varchar":
+	                                     InstalledCost/DepreciationAmount/AccumlatedDepr/NetBookValue/NBVAfterDepreciation/
+	                                     DepreciableLife are DECIMAL(18,6) and their string form can exceed 10 chars;
+	                                     widened the CAST(... AS VARCHAR(10)) filter comparisons to VARCHAR(30).
 
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
+CREATE     PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 -- Add the parameters for the stored procedure here	
 @PageSize int,
 @PageNumber int,
@@ -316,14 +320,14 @@ BEGIN
 								(DivName LIKE '%' +@GlobalFilter+'%') OR
 								(DeptName LIKE '%' +@GlobalFilter+'%') OR
 
-								 (cast(InstalledCost as varchar(10)) LIKE '%' +@GlobalFilter+'%')  OR 
+								 (cast(InstalledCost as varchar(30)) LIKE '%' +@GlobalFilter+'%')  OR
 								-- (cast(InServiceDate as nvarchar(10)) LIKE '%' +@GlobalFilter+'%') OR
-								(CAST(DepreciationAmount as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
-								(CAST(AccumlatedDepr as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
-								(cast(NetBookValue as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
-								(cast(NBVAfterDepreciation as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR
-								(DepreciableStatus LIKE '%' +@GlobalFilter+'%') OR 
-								(cast(DepreciableLife as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
+								(CAST(DepreciationAmount as varchar(30)) LIKE '%' +@GlobalFilter+'%') OR
+								(CAST(AccumlatedDepr as varchar(30)) LIKE '%' +@GlobalFilter+'%') OR
+								(cast(NetBookValue as varchar(30)) LIKE '%' +@GlobalFilter+'%') OR
+								(cast(NBVAfterDepreciation as varchar(30)) LIKE '%' +@GlobalFilter+'%') OR
+								(DepreciableStatus LIKE '%' +@GlobalFilter+'%') OR
+								(cast(DepreciableLife as varchar(30)) LIKE '%' +@GlobalFilter+'%') OR
 								(Currency LIKE '%' +@GlobalFilter+'%') OR 
 								(DepreciationFrequencyName LIKE '%' +@GlobalFilter+'%') OR 
 								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') OR
@@ -356,17 +360,17 @@ BEGIN
 								(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%')  AND
 								
-								 (ISNULL(@DepreciationAmount,'') ='' OR cast(DepreciationAmount as varchar(10)) LIKE '%' + @DepreciationAmount+'%') AND
-								 (ISNULL(@AccumlatedDepr,'') ='' OR cast(AccumlatedDepr as varchar(10)) LIKE '%' + @AccumlatedDepr+'%') AND
-								(ISNULL(@NetBookValue,'') ='' OR cast(NetBookValue as varchar(10)) LIKE '%' + @NetBookValue+'%') AND
-								(ISNULL(@NBVAfterDepreciation,'') ='' OR cast(NBVAfterDepreciation as varchar(10)) LIKE '%' + @NBVAfterDepreciation+'%') AND
+								 (ISNULL(@DepreciationAmount,'') ='' OR cast(DepreciationAmount as varchar(30)) LIKE '%' + @DepreciationAmount+'%') AND
+								 (ISNULL(@AccumlatedDepr,'') ='' OR cast(AccumlatedDepr as varchar(30)) LIKE '%' + @AccumlatedDepr+'%') AND
+								(ISNULL(@NetBookValue,'') ='' OR cast(NetBookValue as varchar(30)) LIKE '%' + @NetBookValue+'%') AND
+								(ISNULL(@NBVAfterDepreciation,'') ='' OR cast(NBVAfterDepreciation as varchar(30)) LIKE '%' + @NBVAfterDepreciation+'%') AND
 								(ISNULL(@InServiceDate,'') ='' OR CAST(InServiceDate AS DATE) = CAST(@InServiceDate AS DATE)) AND --  
 								(ISNULL(@DepreciableStatus,'') ='' OR DepreciableStatus LIKE '%' + @DepreciableStatus+'%') AND
-								(ISNULL(@DepreciableLife,'') ='' OR cast(DepreciableLife as varchar(10)) LIKE '%' + @DepreciableLife+'%') AND
+								(ISNULL(@DepreciableLife,'') ='' OR cast(DepreciableLife as varchar(30)) LIKE '%' + @DepreciableLife+'%') AND
 								(ISNULL(@Currency,'') ='' OR Currency LIKE '%' + @Currency+'%') AND
 								(ISNULL(@DepreciationFrequencyName,'') ='' OR DepreciationFrequencyName LIKE '%' + @DepreciationFrequencyName+'%') AND
 								(ISNULL(@DepreciationMethod,'') ='' OR DepreciationMethod LIKE '%' + @DepreciationMethod+'%') AND
-								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') AND
+								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(30)) LIKE '%' + @InstalledCost+'%') AND
 								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND
 								(ISNULL(@LastDeprRunPeriod,'') ='' OR LastDeprRunPeriod LIKE '%' + @LastDeprRunPeriod+'%') AND
 								(ISNULL(@LastDeprDate,'') ='' OR CAST(LastDeprDate AS DATE) = CAST(@LastDeprDate AS DATE))

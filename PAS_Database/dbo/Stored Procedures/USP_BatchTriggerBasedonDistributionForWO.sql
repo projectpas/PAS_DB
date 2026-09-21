@@ -2425,7 +2425,36 @@ BEGIN
 						-- @MiscChargesCost = ISNULL([MiscChargesCost],0), 
 						   @InvoiceDate = [InvoiceDate]
 					  FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
-					 WHERE [BillingInvoicingId] = @InvoiceId  
+					 WHERE [BillingInvoicingId] = @InvoiceId
+					 
+					 DECLARE @IsPASAccounting BIT = CASE WHEN ISNULL(@IsAccountByPass, 0) = 0 THEN 1 ELSE 0 END;
+					 DECLARE @IsPeriodClosed BIT = 0;
+
+					 IF(@IsPASAccounting = 1 AND @InvoiceDate IS NOT NULL)
+					 BEGIN
+						SELECT TOP 1  @AccountingPeriodId = acc.AccountingCalendarId,
+									  @AccountingPeriod   = acc.PeriodName,
+									  @IsPeriodClosed     = CASE WHEN UPPER(ISNULL(acc.[Status], '')) = 'CLOSED' THEN 1 ELSE 0 END
+						FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
+						INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+						INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted = 0
+						WHERE est.EntityStructureId = @ManagementStructureId
+						  AND acc.MasterCompanyId = @MasterCompanyId
+						  AND CAST(@InvoiceDate as date) >= CAST(acc.FromDate as date)
+						  AND CAST(@InvoiceDate as date) <= CAST(acc.ToDate as date)
+
+						IF(@AccountingPeriodId IS NULL OR @AccountingPeriodId = 0)
+						BEGIN
+							RAISERROR('No accounting period is defined for the selected Invoice Date. Please contact your administrator.', 16, 1);
+							RETURN(1);
+						END
+
+						IF(@IsPeriodClosed = 1)
+						BEGIN
+							RAISERROR('The accounting period covering the selected Invoice Date is closed. The invoice accounting entry cannot be posted to a closed period.', 16, 1);
+							RETURN(1);
+						END
+					 END
 
 					 SELECT TOP 1 @FreightCost = ISNULL(SUM([FreightCostPlus]),0),
 								  @MiscChargesCost = ISNULL(SUM([MiscChargesCostPlus]),0) 

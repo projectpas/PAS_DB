@@ -19,36 +19,15 @@
  ** PR   Date         Author                          Change Description
  ** --   --------     -------                         ---------------------------
     1    18/September/2026   Claude (Rajesh Gami)   [PN-17979] Created. Built from Rajesh's
-         base SELECT (WorkOrderAssets/CheckInCheckOutWorkOrderAsset/WorkOrder/WorkOrderPartNumber/
-         AssetInventory/Task/WorkOrderTask, with the Dup OUTER APPLY for the sequenced-task-name
-         branch), wrapped in the paging/global-filter/sort pattern from
-         usprpt_GetLotCommissionReportCashPosted. The base query Rajesh sent ended right at
-         "WHERE" with no conditions, so the WHERE clause below (date range + 4 GlobalFilter
-         fields + tenant scoping) was written from the GlobalFilter rows in his PN-17979 DATA
-         SCRIPT, not dictated - please review the two ASSUMPTION comments below (Tool Id /
-         MPN filter columns) and the sortable-column list, and correct if off.
-    2    18/September/2026   Claude (Rajesh Gami)   [PN-17979] Added Level1-Level10 management-
-         structure hierarchy filtering, per Rajesh's instruction: parses @Level1..@Level10 out
-         of @xmlFilter (same pattern as usprpt_GetLotCommissionReportCashPosted's Level1-10),
-         resolves @ModuleID from dbo.ManagementStructureModule where ModuleName='WorkOrderMPN'
-         (no MasterCompanyId scoping - added defensively at first, then explicitly removed per
-         Rajesh 18-Sep-2026: this lookup is not tenant-specific), INNER JOINs
-         dbo.WorkOrderManagementStructureDetails MSD on
-         MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID (exactly as given - note this is
-         an INNER JOIN, so a WorkOrderPartNumber row with no MSD entry for this module drops out
-         of the report entirely; flag if that's not intended), and filters on
-         MSD.Level1Id..Level10Id via the same comma-split SPLITSTRING pattern as Tool Id/WO Num/
-         MPN below.
-    3    18/September/2026   Claude (Rajesh Gami)   [PN-17979] Added level1..level10 output
-         columns (UPPER(MSD.Level1Name)..UPPER(MSD.Level10Name)) to both the CTE and the final
-         SELECT, alongside the existing Level1Id..Level10Id WHERE filtering from PR 2. NOTE: no
-         FieldsMaster rows added for these in the registration script - usprpt_GetLotCommission-
-         ReportCashPosted's own level1/level2/level3/level4/pn output columns aren't registered
-         in FieldsMaster either (grepped PN-17830_Step1_ModuleAndReportRegistration.sql, no
-         'level' hits), so leaving these unregistered matches that precedent rather than
-         guessing they should be visible grid columns. If Tooling Report actually needs
-         level1-10 as visible/exportable columns (not just filter-context), say so and I'll add
-         the FieldsMaster rows.
+                                                     base SELECT (WorkOrderAssets/CheckInCheckOutWorkOrderAsset/WorkOrder/WorkOrderPartNumber/
+                                                     AssetInventory/Task/WorkOrderTask, with the Dup OUTER APPLY for the sequenced-task-name
+                                                     branch), wrapped in the paging/global-filter/sort pattern from
+                                                     usprpt_GetLotCommissionReportCashPosted. The base query Rajesh sent ended right at
+                                                     "WHERE" with no conditions, so the WHERE clause below (date range + 4 GlobalFilter
+                                                     fields + tenant scoping) was written from the GlobalFilter rows in his PN-17979 DATA
+                                                     SCRIPT, not dictated - please review the two ASSUMPTION comments below (Tool Id /
+                                                     MPN filter columns) and the sortable-column list, and correct if off.
+    2    21/September/2026   Rajesh Gami  [PN-17979] Added Tool Description & currCalStatus computed from AssetInventory.CalibrationRequired + CalibrationManagment.NextCalibrationDate (CalibrationTypeId hardcode replaced with declared @CalibrationTypeId), via OUTER APPLY TOP 1 latest NextCalibrationDate to avoid duplicate rows, per Rajesh's clarification.
  **************************************************************
  EXEC usprpt_GetToolingReportData @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Check In Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Check In Date</FieldName><FieldValue>9/18/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -80,6 +59,11 @@ BEGIN
     @Level8 VARCHAR(MAX) = NULL,
     @Level9 VARCHAR(MAX) = NULL,
     @Level10 VARCHAR(MAX) = NULL
+
+  -- [PN-17979] 21-Sep-2026: fixed calibration-type constant for the currCalStatus lookup below,
+  -- declared per Rajesh's instruction rather than hardcoding 1 in the JOIN/APPLY condition.
+  DECLARE @CalibrationTypeId INT = 1;
+  DECLARE @TodayDate DATE = CAST(GETDATE() AS DATE);
 
   BEGIN TRY
     SELECT
@@ -121,10 +105,20 @@ BEGIN
       SELECT
         AI.AssetId AS toolId,
         AI.Name AS toolNum,
+        AI.[Description] AS toolDesc,
         AI.SerialNo AS serialNum,
         '' AS checkedInCalStatus,
         '' AS checkedOutCalStatus,
-        '' AS currCalStatus,
+        -- [PN-17979] 21-Sep-2026: currCalStatus per Rajesh's clarification -
+        -- CalibrationRequired=0 -> blank; CalibrationRequired=1 & NextCalibrationDate not yet due -> 'Calibrated';
+        -- CalibrationRequired=1 & NextCalibrationDate is due/past -> 'Unavailable - CAL Due'.
+        -- ASSUMPTION: CalibrationRequired=1 with no matching CalibrationManagment row falls back to blank - confirm.
+        CASE
+          WHEN ISNULL(AI.CalibrationRequired,0) = 0 THEN ''
+          WHEN AI.CalibrationRequired = 1 AND CAL.NextCalibrationDate >= @TodayDate THEN 'Calibrated'
+          WHEN AI.CalibrationRequired = 1 AND CAL.NextCalibrationDate < @TodayDate THEN 'Unavailable - CAL Due'
+          ELSE ''
+        END AS currCalStatus,
         WO.WorkOrderNum AS woNum,
         WOP.RevisedPartNumber AS mpn,
         WOP.RevisedSerialNumber AS mpnSerialNum,
@@ -171,6 +165,21 @@ BEGIN
       INNER JOIN dbo.AssetInventory AI WITH(NOLOCK)
         ON CIN.AssetInventoryId = AI.AssetInventoryId
 
+      -- [PN-17979] 21-Sep-2026: currCalStatus lookup, per Rajesh's clarification. OUTER APPLY
+      -- (not a plain LEFT JOIN) with TOP 1 ORDER BY NextCalibrationDate DESC so a tool with more
+      -- than one CalibrationTypeId=@CalibrationTypeId row in CalibrationManagment still returns
+      -- exactly one row here ("do not want it duplicate value"). ASSUMPTION: "latest
+      -- NextCalibrationDate" is the right row to pick - confirm if it should instead be the most
+      -- recently created/active record.
+      OUTER APPLY
+      (
+        SELECT TOP 1 CalMgmt.NextCalibrationDate
+        FROM dbo.CalibrationManagment CalMgmt WITH (NOLOCK)
+        WHERE CalMgmt.AssetInventoryId = AI.AssetInventoryId
+          AND CalMgmt.CalibrationTypeId = @CalibrationTypeId
+        ORDER BY CalMgmt.NextCalibrationDate DESC
+      ) CAL
+
       INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
         ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID
 
@@ -215,6 +224,7 @@ BEGIN
       COUNT(1) OVER () AS TotalRecordsCount,
       toolId,
       toolNum,
+      toolDesc
       serialNum,
       checkedInCalStatus,
       checkedOutCalStatus,

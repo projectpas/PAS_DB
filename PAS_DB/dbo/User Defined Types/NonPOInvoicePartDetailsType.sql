@@ -11,7 +11,7 @@
     [ManagementStructureId]     INT             NULL,
     [LastMSLevel]               VARCHAR (200)   NULL,
     [AllMSlevels]               VARCHAR (MAX)   NULL,
-    [Memo]                      VARCHAR (500)   NULL,
+    [Memo]                      VARCHAR (MAX)   NULL,
     [JournalType]               VARCHAR (200)   NULL,
     [MasterCompanyId]           INT             NULL,
     [CreatedBy]                 VARCHAR (50)    NULL,

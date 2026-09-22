@@ -1,9 +1,9 @@
 ﻿/*************************************************************
  ** File:   [usp_CreateVendorRFQROFromEmail]
- ** Author:   Vishal Suthar
+ ** Author:   Amit Ghediya
  ** Description: Create Vendor RFQ RO from Email for A2Z
  ** Purpose:
- ** Date:   18-Sep-2026
+ ** Date:   22-Sep-2026
 
  ** RETURN VALUE:
 
@@ -12,7 +12,7 @@
  **************************************************************
  ** PR   Date			Author			Change Description
  ** --   --------		-------			--------------------------------
-    1    18-Sep-2026   Amit Ghediya   Created (adapted from usp_CreateVendorRFQPOFromEmail)
+    1    22-Sep-2026   Amit Ghediya   Created (adapted from usp_CreateVendorRFQPOFromEmail)
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQROFromEmail]

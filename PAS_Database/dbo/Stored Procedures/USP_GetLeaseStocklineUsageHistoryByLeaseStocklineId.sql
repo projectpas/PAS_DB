@@ -30,7 +30,7 @@
                                                  TSNMinutes/CSNHours/CSNMinutes are
                                                  now the Periodic value directly
     3    16/09/2026     Kishor Makwana        [PN-17933] Re-added the running SUM() window function per updated requirement - the History display's Cumulative column needs a true running total across all past entries in chronological order (25, 60, 105), for both Time and Cycle. This is independent of the "Current"/"Last Reported" snapshot on LeaseStocklineUsage, which is unaffected and stays the latest absolute reading
-
+    3    21/09/2026     Kishor Makwana        [PN-17967] - History List Display in Descending Order
 exec USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId @LeaseStocklineId=1
 exec USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId @LeaseStocklineId=1, @UsageType='T'
 ************************************************************************/
@@ -54,7 +54,7 @@ BEGIN
 		FROM [dbo].[LeaseStocklineUsageHistory] WITH (NOLOCK)
 		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0
 		  AND (@UsageType IS NULL OR UsageType = @UsageType)
-		ORDER BY UsageType, LeaseStocklineUsageHistoryId;
+		ORDER BY UsageType, LeaseStocklineUsageHistoryId desc;
 
 	END TRY
 	BEGIN CATCH

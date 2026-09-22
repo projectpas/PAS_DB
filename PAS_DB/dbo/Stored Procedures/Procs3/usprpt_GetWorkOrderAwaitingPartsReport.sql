@@ -19,8 +19,9 @@
  **************************************************************
  ** S NO   DateAuthor   Change Description 
  ** --   ---------------  --------------------------------
-	1	22-10-2024		Abhishek Jirawla	CREATED  
+	1	22-10-2024		Abhishek Jirawla	CREATED
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(IMWOM.IsNonStock,0)=0 restriction on the WorkOrderMaterials line item's ItemMaster join so Non-Stock parts appear in the WorkOrder Awaiting Parts report
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
@@ -254,7 +255,6 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
-		 AND ISNULL(IMWOM.IsNonStock,0) = 0
 		 LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (

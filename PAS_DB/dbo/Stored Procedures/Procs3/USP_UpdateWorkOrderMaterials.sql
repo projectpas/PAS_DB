@@ -15,7 +15,9 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5	 17/AUG/2026			 Sumit Kumar			[PN-17684] Provide Ability to Add/Edit Notes for WO Materials at Part/Stockline Level
-**************************************************************/  
+	6	 22-Sep-2026			 RAJESH GAMI			[PN-17782] Removed the ISNULL(STK.IsNonStock,0)=0 restriction on the Stockline join in the WorkOrderMaterialStockLine UPDATE so Non-Stock stocklines' cost/quantity/notes are updated in Work Order Materials
+	7	 22-Sep-2026			 RAJESH GAMI			[PN-17782] Removed the ISNULL(dbo.ItemMaster.IsNonStock,0)=0 restriction on the @partnumber lookup used for the WO History log text, so the history entry shows the real part number for Non-Stock materials instead of blank
+**************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderMaterials]  
 	@tbl_WorkOrderMaterialsType [WorkOrderMaterialsType] READONLY
@@ -84,7 +86,7 @@ BEGIN
 			
 						SELECT @WOMQuantity = [Quantity] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
 						SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
-						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId ;
 
 						SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 						SELECT @historyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
@@ -190,7 +192,7 @@ BEGIN
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0;
+						WHERE TMP.RowId = @CurrentRowId;
 					END
 				END
 

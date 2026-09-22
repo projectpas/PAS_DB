@@ -24,6 +24,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     4    05-Aug-2026			 Bhargav Saliya					    [PN-17562] Part Number search (Item Master dropdown): normalize dashes/slashes 
 	5   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	6   22-Sep-2026   RAJESH GAMI       [PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the two SubWorkOrderMaterials/ItemMaster part-number lookups so Non-Stock parts appear in the Sub-WO material part-number autocomplete dropdown
 --EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'108,109,11',1
 EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'',335
 **************************************************************/
@@ -51,27 +52,25 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UNION
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 20
 					IM.ItemMasterId AS Value,
 					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = WOM.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 					IM.partnumber AS Label
-				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
+				FROM dbo.ItemMaster IM WITH(NOLOCK)
 					JOIN dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 					JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
-				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')) 
+				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))
 				 AND ISNULL(IM.IsNonStock,0) = 0
-				 UNION     
+				 UNION
 				SELECT DISTINCT TOP 20 
 					IM.ItemMasterId AS Value, 
 					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = WOM.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
-				WHERE IM.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
-				 AND ISNULL(IM.IsNonStock,0) = 0
-				 ORDER BY Label			
+				WHERE IM.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
+				 ORDER BY Label
 		END TRY    
 		BEGIN CATCH      
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -20,6 +20,8 @@
     2    06/17/2025   Hemant  Saliya Check For Is deleted Condition  
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    25-Aug-2026			 RAJESH GAMI						[PN-17782] Removed the "ISNULL(imt/im.IsNonStock,0) = 0" restriction so Non-Stock WOQ material parts also appear on the WOQ print/PDF form
+	5    22-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed "IF @@trancount > 0" missing BEGIN/END wrapper in CATCH block - was causing an unconditional ROLLBACK TRAN (error 3903: "no corresponding BEGIN TRANSACTION") whenever the CATCH block was entered with no open transaction
+	6    22-Sep-2026			 RAJESH GAMI						[PN-17782] Fixed ISNULL(@bigint,'') type-precedence bug in @ProcedureParameters (error 8114 "Error converting data type varchar to bigint") by converting @WorkflowWorkOrderId/@workOrderPartNoId to VARCHAR before ISNULL
 
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/  
@@ -66,16 +68,18 @@ BEGIN
   COMMIT  TRANSACTION  
   
   END TRY      
-  BEGIN CATCH        
-   IF @@trancount > 0  
-    PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
-    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
+  BEGIN CATCH
+   IF @@trancount > 0
+   BEGIN
+    PRINT 'ROLLBACK'
+    ROLLBACK TRAN;
+   END
+    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderQoutePirntMateriallist'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkflowWorkOrderId, '') + '''  
-                @Parameter4 = ' + ISNULL(@workOrderPartNoId ,'') +''  
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkflowWorkOrderId), '') + '''
+                @Parameter4 = ' + ISNULL(CONVERT(VARCHAR(20), @workOrderPartNoId), '') +''
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

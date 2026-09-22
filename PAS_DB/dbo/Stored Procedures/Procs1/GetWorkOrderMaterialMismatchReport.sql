@@ -16,6 +16,7 @@
 	2    21-03-2025   HEMANT SALIYA			Added KIT Options
 	3    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the WorkOrderMaterials/ItemMaster join so Non-Stock material rows are included in the WO Material Mismatch report
 
 	EXEC [GetWorkOrderMaterialMismatchReport]
 **************************************************************/
@@ -47,7 +48,6 @@ BEGIN
 		FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0
 		 LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)
 		OR WOM.QuantityIssued != (select ISNULL(SUM(WMS.QtyIssued),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId))

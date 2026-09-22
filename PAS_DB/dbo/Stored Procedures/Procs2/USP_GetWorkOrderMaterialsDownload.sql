@@ -17,6 +17,7 @@
 	5   22/06/2026		Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the WorkOrderMaterials/WorkOrderMaterialsKit primary WHERE filters, the #tmpStockline/#tmpStocklineKit population, the QunatityRemaining/PartQuantityTurnIn subqueries, the Stockline joins, and the Stockline ItemMaster (IMS) joins so Non-Stock parts appear in the Work Order Materials download/export (top-level WorkOrderPartNumber teardown filters left unchanged, out of scope)
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
@@ -123,11 +124,11 @@ SET NOCOUNT ON
 					SL.QuantityTurnIn,
 					SL.QuantityOnOrder,
 					SL.IsParent
-				FROM dbo.Stockline SL WITH(NOLOCK) 
+				FROM dbo.Stockline SL WITH(NOLOCK)
 				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
-				WHERE SL.MasterCompanyId = @MasterCompanyId 
+				WHERE SL.MasterCompanyId = @MasterCompanyId
 				AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-				AND  SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				AND  SL.IsActive = 1 AND SL.IsDeleted = 0
 
 			INSERT INTO #tmpWOMStockline SELECT DISTINCT						
 						WOMS.StockLineId, 						
@@ -163,11 +164,11 @@ SET NOCOUNT ON
 					SL.QuantityTurnIn,
 					SL.QuantityOnOrder,
 					SL.IsParent
-				FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+				FROM [dbo].[Stockline] SL WITH(NOLOCK)
 				JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.[ItemMasterId] = sl.[ItemMasterId] AND WOM.[ConditionCodeId] = SL.[ConditionId] AND SL.[IsParent] = 1
-				WHERE SL.[MasterCompanyId] = @MasterCompanyId 
+				WHERE SL.[MasterCompanyId] = @MasterCompanyId
 				AND (sl.[IsCustomerStock] = 0 OR (sl.[IsCustomerStock] = 1 AND sl.[CustomerId] = @CustomerId))
-				AND  SL.[IsActive] = 1 AND SL.[IsDeleted] = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				AND  SL.[IsActive] = 1 AND SL.[IsDeleted] = 0
 
 			IF(@IsPartDownload = 1)
 			BEGIN
@@ -209,8 +210,8 @@ SET NOCOUNT ON
 												FROM [dbo].[WorkOrderMaterialStockLine] womsl WITH (NOLOCK)
 												JOIN [dbo].[Stockline] sl WITH (NOLOCK) on womsl.[StockLIneId] = sl.[StockLIneId]
 												Where womsl.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-												AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0 ), 0)),0),
-							[PartQtyToTurnIn] = ISNULL((CASE WHEN @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.[Quantity],0) = 0 THEN 0 ELSE ISNULL(WOM.[Quantity],0) - ISNULL((SELECT SUM(ISNULL(SL.[QuantityTurnIn],0)) 
+												AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 ), 0)),0),
+							[PartQtyToTurnIn] = ISNULL((CASE WHEN @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.[Quantity],0) = 0 THEN 0 ELSE ISNULL(WOM.[Quantity],0) - ISNULL((SELECT SUM(ISNULL(SL.[QuantityTurnIn],0))
 												FROM  [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) 
 												JOIN [dbo].[Stockline] SL ON WOP.[WorkOrderId] = SL.[WorkOrderId] AND WOP.ID = SL.[WorkOrderPartNoId] AND Sl.[WorkOrderId] = @WorkOrderId AND ISNULL(SL.[IsActive],0) = 1 AND ISNULL(SL.[IsDeleted],0) = 0
 												WHERE SL.[WorkOrderId] = WOM.[WorkOrderId] AND Sl.[ConditionId] = WOM.[ConditionCodeId] AND SL.[ItemMasterId] = IM.[ItemMasterId] AND ISNULL(SL.IsNonStock,0) = 0),0) END) ELSE WOM.[QtyToTurnIn] END),0),
@@ -221,7 +222,7 @@ SET NOCOUNT ON
 													   ELSE (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM [dbo].[WorkOrderMaterialStockLine] womsl WITH (NOLOCK)
 															 JOIN [dbo].[Stockline] sl WITH (NOLOCK) on womsl.[StockLIneId] = sl.[StockLIneId]
 															 WHERE womsl.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-															 AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0) END),0),
+															 AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0) END),0),
 							[PartQuantityOnHand] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityOnHand],0)) FROM #tmpStockline sl WITH (NOLOCK)
 												   WHERE sl.[ItemMasterId] = WOM.[ItemMasterId] AND sl.[ConditionId] = WOM.[ConditionCodeId] AND sl.[IsParent] = 1),0),
 							[PartQuantityAvailable] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityAvailable],0)) FROM #tmpStockline sl WITH (NOLOCK)
@@ -234,12 +235,12 @@ SET NOCOUNT ON
 							ELSE 'OEM'
 							END [StockType],
 							NULL [needDate],
-							[Currency] = (SELECT TOP 1 CUR.[Code] FROM [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) 
-										LEFT JOIN [dbo].[Currency] CUR WITH (NOLOCK)  ON IMPS.[PP_CurrencyId] = CUR.[CurrencyId] 
+							[Currency] = (SELECT TOP 1 CUR.[Code] FROM [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK)
+										LEFT JOIN [dbo].[Currency] CUR WITH (NOLOCK)  ON IMPS.[PP_CurrencyId] = CUR.[CurrencyId]
 										WHERE IMPS.[ItemMasterId] = WOM.[ItemMasterId] AND IMPS.[ConditionId] = WOM.[ConditionCodeId]),
 							WOM.[UnitCost],
 							WOM.[ExtendedCost],
-							WOM.[QtyOnOrder], 
+							WOM.[QtyOnOrder],
 							WOM.[QtyOnBkOrder],
 							WOM.[PONum],
 							WOM.[PONextDlvrDate],
@@ -251,22 +252,20 @@ SET NOCOUNT ON
 							WOM.[Memo],
 							WOM.[ExpectedSerialNumber],
 							'No' [IsKitItem]
-						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
+						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 							INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.[UnitOfMeasureId] = IM.[PurchaseUnitOfMeasureId]
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
-							 --LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0							
+							 --LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0
 							  LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IM.[ItemMasterId] = IMPS.[ItemMasterId] AND WOM.[ConditionCodeId] = IMPS.[ConditionId]
 							  LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.[ItemClassificationId] = IM.[ItemClassificationId]
 							  LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.[ProvisionId] = WOM.[ProvisionId]
 							  LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.[TaskId] = WOM.[TaskId]
-							  LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = WOM.[TaskId]							
+							  LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = WOM.[TaskId]
 						WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
-						
-						 AND ISNULL(IM.IsNonStock,0) = 0
 						 UNION ALL
 						
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
@@ -308,14 +307,14 @@ SET NOCOUNT ON
 											(SELECT SUM(ISNULL(sl.[QuantityTurnIn],0)) FROM [dbo].[WorkOrderMaterialStockLineKit] womsl WITH (NOLOCK)
 											JOIN dbo.[Stockline] sl WITH (NOLOCK) ON womsl.[StockLIneId] = sl.[StockLIneId]
 											WHERE womsl.[WorkOrderMaterialsKitId] = WOM.[WorkOrderMaterialsKitId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-											AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0 ), 0)),0),
-						
+											AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 ), 0)),0),
+
 						[PartQtyToTurnIn] = ISNULL(WOM.[QtyToTurnIn],0),
 
 						[PartQuantityTurnIn] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityTurnIn],0)) FROM [dbo].[WorkOrderMaterialStockLineKit] womsl WITH (NOLOCK)
 										JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON womsl.[StockLIneId] = sl.[StockLIneId]
 										WHERE [womsl].[WorkOrderMaterialsKitId] = WOM.[WorkOrderMaterialsKitId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-										AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0),0),
+										AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0),0),
 
 						[PartQuantityOnHand] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityOnHand],0)) FROM #tmpStocklineKit sl WITH (NOLOCK)
 										WHERE sl.[ItemMasterId] = WOM.[ItemMasterId] AND sl.[ConditionId] = WOM.[ConditionCodeId] AND sl.[IsParent] = 1	),0),
@@ -363,9 +362,9 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId						 
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId-- AND MSTL.[StockLineId] IS NULL
-						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)		
-				 AND ISNULL(IM.IsNonStock,0) = 0 )
-				SELECT * FROM MaterialResult 
+						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
+				 )
+				SELECT * FROM MaterialResult
 				END
 				ELSE
 				BEGIN
@@ -405,8 +404,8 @@ SET NOCOUNT ON
 												FROM [dbo].[WorkOrderMaterialStockLine] womsl WITH (NOLOCK)
 												JOIN [dbo].[Stockline] sl WITH (NOLOCK) on womsl.[StockLIneId] = sl.[StockLIneId]
 												Where womsl.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-												AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0 ), 0)),0),
-							[PartQtyToTurnIn] = ISNULL((CASE WHEN @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.[Quantity],0) = 0 THEN 0 ELSE ISNULL(WOM.[Quantity],0) - ISNULL((SELECT SUM(ISNULL(SL.[QuantityTurnIn],0)) 
+												AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 ), 0)),0),
+							[PartQtyToTurnIn] = ISNULL((CASE WHEN @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.[Quantity],0) = 0 THEN 0 ELSE ISNULL(WOM.[Quantity],0) - ISNULL((SELECT SUM(ISNULL(SL.[QuantityTurnIn],0))
 												FROM  [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) 
 												JOIN [dbo].[Stockline] SL ON WOP.[WorkOrderId] = SL.[WorkOrderId] AND WOP.ID = SL.[WorkOrderPartNoId] AND Sl.[WorkOrderId] = @WorkOrderId AND ISNULL(SL.[IsActive],0) = 1 AND ISNULL(SL.[IsDeleted],0) = 0
 												WHERE SL.[WorkOrderId] = WOM.[WorkOrderId] AND Sl.[ConditionId] = WOM.[ConditionCodeId] AND SL.[ItemMasterId] = IM.[ItemMasterId] AND ISNULL(SL.IsNonStock,0) = 0),0) END) ELSE WOM.[QtyToTurnIn] END),0),
@@ -417,7 +416,7 @@ SET NOCOUNT ON
 													   ELSE (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM [dbo].[WorkOrderMaterialStockLine] womsl WITH (NOLOCK)
 															 JOIN [dbo].[Stockline] sl WITH (NOLOCK) on womsl.[StockLIneId] = sl.[StockLIneId]
 															 WHERE womsl.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-															 AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0) END),0),
+															 AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0) END),0),
 							[PartQuantityOnHand] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityOnHand],0)) FROM #tmpStockline sl WITH (NOLOCK)
 												   WHERE sl.[ItemMasterId] = WOM.[ItemMasterId] AND sl.[ConditionId] = WOM.[ConditionCodeId] AND sl.[IsParent] = 1),0),
 							[PartQuantityAvailable] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityAvailable],0)) FROM #tmpStockline sl WITH (NOLOCK)
@@ -459,9 +458,7 @@ SET NOCOUNT ON
 							  LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.[ProvisionId] = WOM.[ProvisionId]
 							  LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.[TaskId] = WOM.[TaskId]
 							  LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = WOM.[TaskId]							
-						WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId 
-						
-						 AND ISNULL(IM.IsNonStock,0) = 0
+						WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						 UNION ALL
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
@@ -503,14 +500,14 @@ SET NOCOUNT ON
 											(SELECT SUM(ISNULL(sl.[QuantityTurnIn],0)) FROM [dbo].[WorkOrderMaterialStockLineKit] womsl WITH (NOLOCK)
 											JOIN dbo.[Stockline] sl WITH (NOLOCK) ON womsl.[StockLIneId] = sl.[StockLIneId]
 											WHERE womsl.[WorkOrderMaterialsKitId] = WOM.[WorkOrderMaterialsKitId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-											AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0 ), 0)),0),
-						
+											AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 ), 0)),0),
+
 						[PartQtyToTurnIn] = ISNULL(WOM.[QtyToTurnIn],0),
 
 						[PartQuantityTurnIn] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityTurnIn],0)) FROM [dbo].[WorkOrderMaterialStockLineKit] womsl WITH (NOLOCK)
 										JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON womsl.[StockLIneId] = sl.[StockLIneId]
 										WHERE [womsl].[WorkOrderMaterialsKitId] = WOM.[WorkOrderMaterialsKitId] AND womsl.[ConditionId] = WOM.[ConditionCodeId]
-										AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0),0),
+										AND womsl.[IsActive] = 1 AND womsl.[IsDeleted] = 0 AND ISNULL(sl.[QuantityTurnIn], 0) > 0),0),
 
 						[PartQuantityOnHand] = ISNULL((SELECT SUM(ISNULL(sl.[QuantityOnHand],0)) FROM #tmpStocklineKit sl WITH (NOLOCK)
 										WHERE sl.[ItemMasterId] = WOM.[ItemMasterId] AND sl.[ConditionId] = WOM.[ConditionCodeId] AND sl.[IsParent] = 1	),0),
@@ -557,12 +554,12 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.ProvisionId = WOM.ProvisionId
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId						
-					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId		
-				 AND ISNULL(IM.IsNonStock,0) = 0 )
-				SELECT* FROM MaterialResult 
+					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+				 )
+				SELECT* FROM MaterialResult
 				END
 			END
-			ELSE 
+			ELSE
 			BEGIN
 				IF(@ShowPendingToIssue = 1)
 				BEGIN
@@ -619,7 +616,7 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
-						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
@@ -633,12 +630,9 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0
 						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 					AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
-
-					 AND ISNULL(IM.IsNonStock,0) = 0
-					 UNION ALL 
+					 UNION ALL
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -693,7 +687,7 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
-						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						 LEFT JOIN [dbo].[Provision] SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId
@@ -704,10 +698,9 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0
 						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
-				 AND ISNULL(IM.IsNonStock,0) = 0 )
+				 )
 				SELECT * FROM MaterialResult
 				END
 				ELSE
@@ -765,7 +758,7 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
-						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
@@ -779,11 +772,9 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0
 						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
-					
-					 AND ISNULL(IM.IsNonStock,0) = 0
-					  UNION ALL 
+
+					  UNION ALL
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -837,21 +828,20 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId						
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
-						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId						
+						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						 LEFT JOIN [dbo].[Provision] SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
 						 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND SWO.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId						
+						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0
-						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId			
-				 AND ISNULL(IM.IsNonStock,0) = 0 )
-			    SELECT* FROM MaterialResult 
+						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+				 )
+			    SELECT* FROM MaterialResult
 				END			
 			END
 		END

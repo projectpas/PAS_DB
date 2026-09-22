@@ -10,6 +10,7 @@
 ** 1    07/06/2026   SUMIT KUMAR      Created
 ** 2    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
 ** 3    07/08/2026   SUMIT KUMAR      Changes to allow duplicate tasks to be added to the same Work Order Part Number [PN-17716 & PN-17643]
+** 4    22-Sep-2026   RAJESH GAMI      [PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the WorkflowMaterial/ItemMaster join so Non-Stock parts are included when copying task-template materials onto a new Work Order
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddTasksFromTemplatesToWorkOrder]
@@ -184,10 +185,9 @@ BEGIN
                         wfm.Memo, wfm.IsDeferred, ISNULL(wfm.ProvisionId, @ReplaceProvisionId), wfm.Figure, wfm.Item, 1, @WorkOrderPartNumberId, wfm.Notes
                     FROM dbo.WorkflowMaterial wfm WITH(NOLOCK)
                     INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wfm.ItemMasterId = im.ItemMasterId
-                    WHERE wfm.WorkflowId = @WfId 
-                      AND wfm.TaskId = @TskId 
+                    WHERE wfm.WorkflowId = @WfId
+                      AND wfm.TaskId = @TskId
                       AND ISNULL(wfm.IsDeleted, 0) = 0
-                      AND ISNULL(im.IsNonStock, 0) = 0
                       AND NOT (
                           (@IsDER = 1 AND @IsPMA = 1 AND (ISNULL(im.IsDER, 0) = 1 OR ISNULL(im.IsPMA, 0) = 1)) OR
                           (@IsDER = 0 AND @IsPMA = 1 AND ISNULL(im.IsPMA, 0) = 1) OR

@@ -21,6 +21,7 @@
    5	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock branch of the PartNumber CASE (both parent-row and child-row INSERTs) now reads DBO.ItemMaster (IsNonStock=1) instead of the legacy DBO.ItemMasterNonStock table, which stopped receiving new rows after the PN-17008 merge. Fixes: after saving a Non-Stock PN on a PO part line, the PN dropdown showed blank/empty on reload (Stock PN lines were unaffected).
+	8    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the ItemMaster lookups for WorkOrderMaterials and SubWorkOrderMaterials auto-populate rows so Non-Stock parts have their manufacturer/GL account/UOM/PartNumber fields populated when auto-adding a WO/Sub-WO material line to a PO part.
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
@@ -771,8 +772,7 @@ BEGIN
 						1 IsActive,
 						0 DiscountPerUnit,
 						IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
-						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId					
-				 AND ISNULL(IM.IsNonStock,0) = 0
+						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 						 END
 	--------------- END : Work Order Materials ----------------
 
@@ -841,9 +841,7 @@ BEGIN
 							1 IsActive,
 							0 DiscountPerUnit,
 							IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
-							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId		
-					
-				 AND ISNULL(IM.IsNonStock,0) = 0
+							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 							 END
 	--------------- END : Sub Work Order Materials ----------------
 				

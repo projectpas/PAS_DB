@@ -23,7 +23,8 @@
     2    04/14/2025   HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-     
+	5    22/Sep/2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the SubWorkOrderMaterials/SubWorkOrderMaterialStockLine inserts sourced from ItemMaster so Non-Stock parts are included when creating Sub Work Order material stocklines from a Repair Order
+
  EXECUTE USP_CreateSubWOStocklineFromRO 134
 
 **************************************************************/ 
@@ -166,7 +167,7 @@ SET NOCOUNT ON
 									FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 										JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 										JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-									WHERE SL.StockLineId = @StocklineId AND ISNULL(IM.IsNonStock,0) = 0 ;
+									WHERE SL.StockLineId = @StocklineId ;
 
 									SELECT @WorkOrderMaterialsId = SCOPE_IDENTITY()
 								END
@@ -179,7 +180,7 @@ SET NOCOUNT ON
 								FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 									JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 									JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-								WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) ;
 
 								SELECT @WorkOrderMaterialStockLineId = SCOPE_IDENTITY()
 
@@ -242,7 +243,7 @@ SET NOCOUNT ON
 								FROM #ROStockLineSamePart ROS WITH(NOLOCK) 
 									JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 									JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SL.ItemMasterId = IM.ItemMasterId
-								WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId) ;
 
 								SELECT @WorkOrderMaterialStockLineId = SCOPE_IDENTITY()
 

@@ -20,6 +20,7 @@
     3    06-March-2025		Devendra Shekh		Modified (UOM issue resolved)
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the WorkOrderMaterials/WorkOrderMaterialsKit ItemMaster filters and the Stockline joins so Non-Stock parts appear in the WO Task material/billing list
 
 EXEC [dbo].[USP_GetWOTaskMaterialsByWOTaskId] 831
 **************************************************************/
@@ -49,11 +50,9 @@ BEGIN
 			LEFT JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId AND WOT.WorkOrderId = WOM.WorkOrderId
 			LEFT JOIN DBO.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 			LEFT JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
-			LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+			LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			WHERE WOM.IsDeleted = 0 AND WOT.WorkOrderTaskId = @WorkOrderTaskId
-    
-			 AND ISNULL(IM.IsNonStock,0) = 0
 			 UNION ALL
     
 			SELECT 
@@ -70,11 +69,11 @@ BEGIN
 			LEFT JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOMK.TaskId AND WOT.WorkOrderId = WOMK.WorkOrderId
 			LEFT JOIN DBO.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 			LEFT JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOMK.ConditionCodeId
-			LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
+			LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 			WHERE WOMKIT.IsDeleted = 0 AND WOT.WorkOrderTaskId = @WorkOrderTaskId
-		 AND ISNULL(IM.IsNonStock,0) = 0 ) AS Parts;
+		 ) AS Parts;
 	END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()

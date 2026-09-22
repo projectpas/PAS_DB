@@ -24,7 +24,8 @@
     1    03/16/2021    Subhash Saliya Created
 	2	 01/20/2024	   Moin Bloch	  Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	     
+	4    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the "ISNULL(Im.IsNonStock,0) = 0" restriction on the WorkOrderQuoteMaterial backfill UPDATE - it was preventing PartNumber/PartDescription/Conditiontype/Stocktype/TaskName/UomName/Provision/BillingName from ever being populated for Non-Stock WOQ materials (Angular sends only numeric IDs on save; this SP backfills the display text afterward), which in turn caused Non-Stock rows to be missing/blank on the WOQ Part Form print
+
 --EXEC [UpdateWorkOrderQuoteTable] 'WorkOrderQuoteMaterial', 284
 **************************************************************/
 
@@ -75,7 +76,6 @@ BEGIN
 							 INNER JOIN dbo.Provision PO WITH(NOLOCK) ON PO.ProvisionId = WOQM.ProvisionId
 							 LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = WOQM.MarkupPercentageId 
 						 WHERE WOQM.WorkOrderQuoteMaterialId = @TableprimaryId
-				  AND ISNULL(Im.IsNonStock,0) = 0
 						  END
 				 ELSE IF(LOWER(@TableName) ='workorderquotelabor')
 				 BEGIN

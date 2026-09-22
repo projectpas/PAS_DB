@@ -24,6 +24,7 @@
 	6	 13/01/2025  Devendra Shekh Modify (GL selection Changes)
 	7	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    22/Sep/2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the SubWorkOrderMaterialStockLine/ItemMaster lookup so Non-Stock parts are included in the Internal Sub Work Order material accounting batch trigger
 ************************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder]
@@ -239,7 +240,7 @@ BEGIN
 					   @PiecePN = ITM.[partnumber]
 				 FROM [dbo].[SubWorkOrderMaterialStockLine] SMS WITH(NOLOCK)
 				 INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SMS.[ItemMasterId] = ITM.[ItemMasterId]				 
-				 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId AND ISNULL(ITM.IsNonStock,0) = 0 ;
+				 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId ;
 								
 				SELECT TOP 1 @DistributionSetupId = [ID],
 				             @DistributionName = [Name],

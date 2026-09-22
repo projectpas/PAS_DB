@@ -23,6 +23,7 @@
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    22-Sep-2026			 RAJESH GAMI						[PN-17782] Removed the ISNULL(...IsNonStock,0)=0 restriction on the WorkOrderMaterials Stockline join and material ItemMaster filter so Non-Stock material rows appear in the WO Material History (PN Tile) grid
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -108,19 +109,19 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0
+			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
 			   LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON WPN.WorkOrderStageId = wos.WorkOrderStageId
-			WHERE WO.MasterCompanyId = @MasterCompanyId	
+			WHERE WO.MasterCompanyId = @MasterCompanyId
 			      AND WO.IsDeleted = 0
-				  AND WO.IsActive = 1				  
-				  AND WOM.ItemMasterId = @ItemMasterId	
+				  AND WO.IsActive = 1
+				  AND WOM.ItemMasterId = @ItemMasterId
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0
+			 AND ISNULL(IMP.IsNonStock,0) = 0
 				   UNION ALL
 
 			SELECT DISTINCT

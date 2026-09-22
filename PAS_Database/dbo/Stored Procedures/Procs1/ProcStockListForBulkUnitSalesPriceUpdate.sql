@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockListForBulkUnitSalesPriceUpdate]               
  ** Author:  Rajesh Gami  
  ** Description: This stored procedure is used to get stockline list fro bulk unit sales price update      
@@ -29,6 +29,7 @@
 									 excluded from this Stock-only bulk unit-sales-price tool via
 									 ISNULL(IsNonStock,0) = 0 on ItemMaster/RevisedPart/Stockline references
 									 (no toggle - this feature does not apply to Non-Stock/Service items).
+	12    22-Sep-2026  Ayushi Patel		[PN-17993] Return StockUnitOfMeasure
 -- EXEC [ProcStockList] 947
 **************************************************************/   
 CREATE PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
@@ -155,7 +156,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -406,7 +407,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -663,7 +664,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,   
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -922,7 +923,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        

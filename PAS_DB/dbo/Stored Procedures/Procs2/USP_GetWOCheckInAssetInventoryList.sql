@@ -1,4 +1,5 @@
-﻿/************************************************************************************           
+﻿
+/************************************************************************************           
  ** File:   [USP_GetWOCheckInAssetInventoryList]           
  ** Author: 
  ** Description: This stored procedure is used to get GetWOCheckInAssetInventoryList.
@@ -15,10 +16,10 @@
  ** PR    Date					Author				Change Description            
  ** --    --------			-----------				--------------------------------          
 	 1    4-16-2025			Amit Ghediya			Created
-
+	 2    22-Sep-2026		Rajesh Gami			    As Abhishek suggested remove the AssetAttributeType JOIN and add new one DeprNonDeprTangibleAssets
 	 EXEC [dbo].[USP_GetWOCheckInAssetInventoryList] 167,225
 ****************************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetWOCheckInAssetInventoryList]
+CREATE PROCEDURE [dbo].[USP_GetWOCheckInAssetInventoryList]
 	@WorkOrderAssetId BIGINT,
 	@EmployeeId BIGINT = NULL
 AS
@@ -83,7 +84,7 @@ BEGIN
 					ISNULL(ASST.Name, '') AS assetStatus
 				FROM [dbo].[AssetInventory] AI WITH(NOLOCK)
 				INNER JOIN [dbo].[Asset] A WITH(NOLOCK) ON AI.AssetRecordId = A.AssetRecordId
-				INNER JOIN [dbo].[AssetAttributeType] AT WITH(NOLOCK) ON A.AssetAttributeTypeId = AT.AssetAttributeTypeId
+				INNER JOIN [dbo].[DeprNonDeprTangibleAssets] AT WITH(NOLOCK) ON A.DeprNonDeprTangibleAssetsId = AT.DeprNonDeprTangibleAssetsId
 				INNER JOIN [dbo].[TangibleClass] TC WITH(NOLOCK) ON AT.TangibleClassId = TC.TangibleClassId
 				INNER JOIN [dbo].[CheckInCheckOutWorkOrderAsset] CW WITH(NOLOCK) ON AI.AssetInventoryId = CW.AssetInventoryId
 				LEFT JOIN [dbo].[Manufacturer] MAN WITH(NOLOCK) ON A.ManufacturerId = MAN.ManufacturerId

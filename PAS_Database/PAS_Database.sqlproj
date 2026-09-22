@@ -4822,6 +4822,10 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWIPDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStockInventories.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStocklineData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>

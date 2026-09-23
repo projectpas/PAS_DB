@@ -17,10 +17,11 @@
     1    15/09/2026     Amit Ghediya            Created
     2    16/09/2026     Kishor Makwana          [PN-17933] Time and Cycle are now fully independent: added CurrentTSNFromDate/ToDate and CurrentCSNFromDate/ToDate; replaced CurrentCSNHours/CurrentCSNMinutes with a single CurrentCSN; split LatestNotes into LatestTimeNotes/ LatestCycleNotes
     3    17/09/2026     Kishor Makwana          [PN-17967] LatestTimeNotes was dropped and LatestCycleNotes was renamed to Notes on LeaseStocklineUsage (the entry form now has a single shared Notes field) - updated the SELECT to match.
+    4    23/09/2026     Kishor Makwana          [PN-18062] Added TotalTimeHours/TotalTimeMinutes/TotalCycles to the SELECT - manually-entered, informational-only running totals (not derived from CurrentTSN/CurrentCSN) shown next to Record Time/Record Cycle on the Usage Information popup, so the entry form can pre-fill them on reopen.
 
 exec USP_GetLeaseStocklineUsageByLeaseStocklineId @LeaseStocklineId=1
 ************************************************************************/
-CREATE        PROCEDURE [dbo].[USP_GetLeaseStocklineUsageByLeaseStocklineId]
+CREATE         PROCEDURE [dbo].[USP_GetLeaseStocklineUsageByLeaseStocklineId]
 	@LeaseStocklineId BIGINT
 AS
 BEGIN
@@ -30,7 +31,9 @@ BEGIN
 
 		SELECT LeaseStocklineId,
 			CurrentTSNHours, CurrentTSNMinutes, CurrentTSNFromDate, CurrentTSNToDate, CurrentTSNDate,
-			CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate, Notes,
+			TotalTimeHours, TotalTimeMinutes,
+			CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate,
+			TotalCycles, Notes,
 			UpdatedBy, UpdatedDate
 		FROM [dbo].[LeaseStocklineUsage] WITH (NOLOCK)
 		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0;

@@ -24,6 +24,7 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     9    07/07/2026         Ayushi              [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    11   22/09/2026         Ayushi Patel        [PN-18020] removed uom conversion from QtyShipped
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
 @RMANumber=NULL,@Partnumber=NULL,@StockLineNumber=NULL,@PartDescription=NULL,
@@ -95,7 +96,8 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-            ROUND((CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(RMS.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(RMS.QtyShipped,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END),2) AS QtyShipped,
+            ISNULL(RMS.QtyShipped,0) AS QtyShipped,
+            --ROUND((CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(RMS.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(RMS.QtyShipped,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END),2) AS QtyShipped,
             RMAD.VendorRMADetailId,
             SL.[ControlNumber],
             PurchaseUom.[ShortName] AS UnitOfMeasure,

@@ -17,12 +17,14 @@
  **              the Add Item tab's "Properties" popup (MaximumTimes/MaximumCycles/
  **              OverrunPerUnitTimes/OverrunPerUnitCycles) - NOT a separate Item
  **              Master (the ticket's wording notwithstanding; confirmed with the
- **              requester). These columns are only populated when BillingMethod =
- **              'FlatRatePlusOverrun' AND the corresponding Over value is > 0 -
- **              otherwise NULL, which the UI renders as "NA" - mirroring the ticket's
- **              "Time Over ... only populate if this number is >0" rule for BOTH
- **              Time and Cycle (the ticket's Cycle-column text looks misaligned/
- **              copy-pasted; confirmed with the requester to mirror Time exactly).
+ **              requester). These columns are populated for BillingMethod IN
+ **              ('FlatRatePlusOverrun','UsageBased') whenever usage HAS been
+ **              recorded (TimeRecorded/CycleRecorded present), regardless of sign -
+ **              per the requirements Excel, usage below the Limit is a NEGATIVE
+ **              Over/Billing Amount (a credit) that nets against the other
+ **              dimension's amount in TotalBillingAmount, not a value to hide as
+ **              "NA". Over/Amount are NULL (UI renders "NA") only when there is no
+ **              usage recorded yet, or the billing method isn't overage-eligible.
  **
  **              Billing/Invoiced/InvoiceNumber/InvoiceDate are returned as NULL for
  **              now - there is no invoice table yet. Invoice generation/printing/
@@ -40,10 +42,12 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    17/09/2026     Kishor Makwana          [PN-17949] Created
+	2    21/09/2026     Kishor Makwana          [PN-17949] UsageBased now bills the same way as FlatRatePlusOverrun (usage over the Limit x the Overage Rate) instead of always showing NA
+	3    22/09/2026     Kishor Makwana          [PN-17949] Fixed Time/Cycle Over, Billing Amount and Total Billing Amount to match the requirements Excel - usage below the Limit now nets a negative (credit) amount instead of being suppressed to NA/0
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
+CREATE    PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -70,17 +74,22 @@ BEGIN
 				LSL.OverrunPerUnitCycles AS CycleOverageRateRaw,
 				CASE WHEN U.LeaseStocklineUsageId IS NOT NULL THEN 1 ELSE 0 END AS HasUsageInfo,
 				LSL.IsActive,
-				LSL.LeaseStatusId
+				LSL.LeaseStatusId,
+				BI.InvoiceNo,
+				BI.InvoiceDate,
+				BI.InvoiceStatus
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN [dbo].[LeaseStocklineUsage] U WITH (NOLOCK) ON U.LeaseStocklineId = LSL.LeaseStocklineId AND U.IsDeleted = 0
+			LEFT JOIN [dbo].BillingInvoicingItems BII WITH (NOLOCK) ON BII.SubReferenceId =LSL.LeaseStocklineId AND BII.ModuleId= 72
+			LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ModuleId= 72
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
 		),
 		WithOver AS (
 			SELECT *,
-				IsOverageBillingMethod = CASE WHEN BillingMethod = 'FlatRatePlusOverrun' THEN 1 ELSE 0 END,
+				IsOverageBillingMethod = CASE WHEN BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END,
 				TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN TimeRecorded - ISNULL(TimeLimit, 0) ELSE NULL END,
 				CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN CycleRecorded - ISNULL(CycleLimit, 0) ELSE NULL END
 			FROM Base
@@ -95,25 +104,25 @@ BEGIN
 			BillingFrequency,
 			TimeRecorded,
 			TimeLimit,
-			TimeOver = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw > 0 THEN TimeOverRaw ELSE NULL END,
+			TimeOver = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN TimeOverRaw ELSE NULL END,
 			TimeOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN TimeOverageRateRaw ELSE NULL END,
-			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw > 0
+			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL
 									  THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty
 									  ELSE NULL END,
 			CycleRecorded,
 			CycleLimit,
-			CycleOver = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw > 0 THEN CycleOverRaw ELSE NULL END,
+			CycleOver = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw ELSE NULL END,
 			CycleOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN CycleOverageRateRaw ELSE NULL END,
-			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw > 0
+			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL
 										THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty
 										ELSE NULL END,
 			TotalBillingAmount = CASE WHEN IsOverageBillingMethod = 1 THEN
-					ISNULL(CASE WHEN TimeOverRaw > 0 THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
-				  + ISNULL(CASE WHEN CycleOverRaw > 0 THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+					ISNULL(CASE WHEN TimeOverRaw IS NOT NULL THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(CASE WHEN CycleOverRaw IS NOT NULL THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
 				ELSE NULL END,
-			CAST(NULL AS CHAR(1)) AS BillingStatus,
-			CAST(NULL AS VARCHAR(100)) AS InvoiceNumber,
-			CAST(NULL AS DATETIME) AS InvoiceDate,
+			CASE WHEN LEN(ISNULL(InvoiceNo,'')) > 0  THEN 'Y' ELSE 'N' END AS BillingStatus,
+			InvoiceNo AS InvoiceNumber,
+			InvoiceDate AS InvoiceDate,
 			HasUsageInfo,
 			IsActive,
 			LeaseStatusId

@@ -4803,7 +4803,10 @@
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
+    <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4824,6 +4827,10 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWIPDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStockInventories.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStocklineData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>

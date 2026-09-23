@@ -14,7 +14,7 @@
     [OtherCost]              DECIMAL (20, 2) NULL,
     [DirectCost]             DECIMAL (20, 2) NULL,
     [DirectCostPercentage]   DECIMAL (20, 2) NULL,
-    [Margin]                 DECIMAL (20, 2) NULL,
+    [Margin]                 DECIMAL (28, 2) NULL,
     [MarginPercentage]       DECIMAL (20, 2) NULL,
     [ChargesCost]            DECIMAL (20, 2) NULL,
     [ExclusionCost]          DECIMAL (20, 2) NULL,
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_WorkOrderCostDetails_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderCostDetails_WorkOrderPartNumber] FOREIGN KEY ([WOPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

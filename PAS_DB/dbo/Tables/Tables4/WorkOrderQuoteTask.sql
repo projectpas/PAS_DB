@@ -9,7 +9,7 @@
     [LaborRevnuePercentage]         DECIMAL (20, 2) NULL,
     [LaborMargin]                   DECIMAL (20, 2) NULL,
     [MaterialCost]                  DECIMAL (20, 2) NULL,
-    [MaterialBilling]               DECIMAL (20, 2) NULL,
+    [MaterialBilling]               DECIMAL (28, 2) NULL,
     [MaterialRevenue]               DECIMAL (20, 2) NULL,
     [MaterialRevnuePercentage]      DECIMAL (20, 2) NULL,
     [MaterialMargin]                DECIMAL (20, 2) NULL,
@@ -54,6 +54,8 @@
     CONSTRAINT [FK_WorkOrderQuoteTask_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteTask_WorkOrderPartNumber] FOREIGN KEY ([WOPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

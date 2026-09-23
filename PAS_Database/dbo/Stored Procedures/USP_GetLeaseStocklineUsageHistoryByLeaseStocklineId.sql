@@ -29,12 +29,15 @@
                                                  total; the row's own TSNHours/
                                                  TSNMinutes/CSNHours/CSNMinutes are
                                                  now the Periodic value directly
-    3    16/09/2026     Kishor Makwana        [PN-17933] Re-added the running SUM() window function per updated requirement - the History display's Cumulative column needs a true running total across all past entries in chronological order (25, 60, 105), for both Time and Cycle. This is independent of the "Current"/"Last Reported" snapshot on LeaseStocklineUsage, which is unaffected and stays the latest absolute reading
+    3    16/09/2026     Kishor Makwana        [PN-17933] Re-added the running SUM() window function per updated requirement - the History displays Cumulative column needs a true running total across all past entries in chronological order (25, 60, 105), for both Time and Cycle. This is independent of the "Current"/"Last Reported" snapshot on LeaseStocklineUsage, which is unaffected and stays the latest absolute reading
     3    21/09/2026     Kishor Makwana        [PN-17967] - History List Display in Descending Order
+    4    22/09/2026     Kishor Makwana        [PN-17967] Cumulative was still running SUM() from the old "increment" model (PR2/PR3), but USP_SaveLeaseStocklineUsage now stores each history rows TSNHours/TSNMinutes/CSN as an ABSOLUTE reading (PR5 there,
+                                               same ticket), so summing them double-counted (e.g. 15:25 then 25:30 summed to a meaningless 40:55). Cumulative is now the rows own raw reading directly - no aggregation. The UI now computes the per-entry
+                                               TSN/CSN value as this rows Cumulative minus the previous rows  Cumulative, instead of reading TSNHours/TSNMinutes/CSN as the period value like it used to.
 exec USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId @LeaseStocklineId=1
 exec USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId @LeaseStocklineId=1, @UsageType='T'
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId]
+CREATE        PROCEDURE [dbo].[USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId]
 	@LeaseStocklineId BIGINT,
 	@UsageType CHAR(1) = NULL
 AS
@@ -45,12 +48,8 @@ BEGIN
 
 		SELECT LeaseStocklineUsageHistoryId, UsageType, EntryDate, FromDate, ToDate, TSNHours, TSNMinutes, CSN,
 			Notes, CreatedBy, CreatedDate,
-			SUM(ISNULL(TSNHours,0) * 60 + ISNULL(TSNMinutes,0)) OVER (
-				PARTITION BY UsageType ORDER BY LeaseStocklineUsageHistoryId
-				ROWS UNBOUNDED PRECEDING) AS TSNCumulativeMinutes,
-			SUM(ISNULL(CSN,0)) OVER (
-				PARTITION BY UsageType ORDER BY LeaseStocklineUsageHistoryId
-				ROWS UNBOUNDED PRECEDING) AS CSNCumulative
+			ISNULL(TSNHours,0) * 60 + ISNULL(TSNMinutes,0) AS TSNCumulativeMinutes,
+			ISNULL(CSN,0) AS CSNCumulative
 		FROM [dbo].[LeaseStocklineUsageHistory] WITH (NOLOCK)
 		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0
 		  AND (@UsageType IS NULL OR UsageType = @UsageType)

@@ -20,6 +20,8 @@
     [ConditionId]          BIGINT          NULL,
     [Condition]            VARCHAR (200)   NULL,
     [IsNA]                 BIT             CONSTRAINT [DF_LOTOtherCostDetails_IsNA] DEFAULT ((0)) NOT NULL,
+    -- [PN-18032] Non-Stock Serviceable part selected on the Add Other Cost popup (Stockline Number is N/A for these rows, same as NA rows)
+    [IsNonStock]           BIT             CONSTRAINT [DF_LOTOtherCostDetails_IsNonStock] DEFAULT ((0)) NOT NULL,
     [ModuleId]             INT             NULL,
     [ModuleName]           VARCHAR (100)   NULL,
     [ReferenceId]          BIGINT          NULL,

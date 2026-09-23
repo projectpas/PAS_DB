@@ -21,6 +21,7 @@
     [ConditionId]                BIGINT          NULL,
     [Condition]                 VARCHAR (200)   NULL,
     [IsNA]                      BIT             NOT NULL,
+    [IsNonStock]                BIT             NOT NULL,
     [ModuleId]                  INT             NULL,
     [ModuleName]                VARCHAR (100)   NULL,
     [ReferenceId]               BIGINT          NULL,

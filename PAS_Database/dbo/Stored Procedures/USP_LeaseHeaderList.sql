@@ -28,13 +28,14 @@
                                         LeaseType/LeaseStatusName which already map to a friendly display string - the grid's transformText pipe was then just uppercasing the raw enum name
                                         (e.g. "FLATRATEONLY") instead of getting "FLAT RATE ONLY" like the other columns. Added a CASE mapping to the same friendly text Angular's own
                                         billingMethodOptions use (lease-part-number.component.ts / lease-billing-info.component.ts / commonAlertMessages.json's lpn_billingMethod* keys) so this list matches them.
+    9    23-Sep-2026   Kishor Makwana   CreatedDate/UpdatedDate were being shifted from UTC to the viewing employee's server-side TimeZone here (DBO.ConvertUTCtoLocal) AND then shifted again by the  Angular grid's transformToLongDateTime pipe, which also assumes it is given raw  UTC - the double conversion showed as "Invalid date" for some rows in the Lease  List grid.
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
 @CustomerName=NULL,@LeaseStatusId=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,
 @MasterCompanyId=1,@StatusId=NULL,@IsDeleted=NULL,@EmployeeId=226,@IsDetailView=0
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_LeaseHeaderList]
+CREATE      PROCEDURE [dbo].[USP_LeaseHeaderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50) = NULL,
@@ -178,12 +179,8 @@ BEGIN
 			   ,LH.[MasterCompanyId]
 			   ,LH.[CreatedBy]
 			   ,LH.[UpdatedBy]
-			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
-					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
-			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
-					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
+			   ,CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE LH.CreatedDate END
+			   ,CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE LH.UpdatedDate END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
 			   ,ISNULL(LSL.PN,'')
@@ -239,12 +236,8 @@ BEGIN
 			   ,LH.[MasterCompanyId]
 			   ,LH.[CreatedBy]
 			   ,LH.[UpdatedBy]
-			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
-					CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.CreatedDate AS DATETIME)) END
-			   ,CASE WHEN @EmployeeId IS NOT NULL AND @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN
-					CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LH.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END
-				ELSE (CAST(LH.UpdatedDate AS DATETIME)) END
+			   ,CASE WHEN CAST(LH.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE LH.CreatedDate END
+			   ,CASE WHEN CAST(LH.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE LH.UpdatedDate END
 			   ,LH.[IsActive]
 			   ,LH.[IsDeleted]
 			   ,CASE WHEN PartAgg.PartCount > 1 THEN 'Multiple' ELSE ISNULL(PartAgg.AnyPN,'') END

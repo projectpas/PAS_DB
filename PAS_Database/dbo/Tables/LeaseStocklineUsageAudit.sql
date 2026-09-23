@@ -19,6 +19,9 @@
     [UpdatedDate]                DATETIME2 (7)   NULL,
     [IsActive]                   BIT             NULL,
     [IsDeleted]                  BIT             NULL,
+    [TotalTimeHours]             DECIMAL (18, 6) NULL,
+    [TotalTimeMinutes]           DECIMAL (18, 6) NULL,
+    [TotalCycles]                DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseStocklineUsageAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineUsageAuditId] ASC)
 );
 

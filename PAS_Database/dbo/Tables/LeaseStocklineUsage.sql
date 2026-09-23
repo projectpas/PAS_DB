@@ -18,11 +18,16 @@
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_LeaseStocklineUsage_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]              BIT             CONSTRAINT [DF_LeaseStocklineUsage_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_LeaseStocklineUsage_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [TotalTimeHours]        DECIMAL (18, 6) NULL,
+    [TotalTimeMinutes]      DECIMAL (18, 6) NULL,
+    [TotalCycles]           DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseStocklineUsage] PRIMARY KEY CLUSTERED ([LeaseStocklineUsageId] ASC),
     CONSTRAINT [FK_LeaseStocklineUsage_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId]),
     CONSTRAINT [FK_LeaseStocklineUsage_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [UQ_LeaseStocklineUsage_LeaseStocklineId] UNIQUE NONCLUSTERED ([LeaseStocklineId] ASC)
 );
+
+
 
 
 

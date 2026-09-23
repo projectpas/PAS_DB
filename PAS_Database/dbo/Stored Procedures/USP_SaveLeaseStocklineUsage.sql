@@ -45,12 +45,14 @@
     5    16/09/2026     Kishor Makwana         [PN-17933] Reverted to the absolute-reading model per updated requirement: @TSNHours/@TSNMinutes/@CSN are once again stored directly on LeaseStocklineUsage (no summing); From Date/To Date are now mandatory for both Time and Cycle; re-added the "new reading must be strictly greater than the last reported reading" guard for both types
     6    16/09/2026     Kishor Makwana         [PN-17933] Combined Time and Cycle into a SINGLE call: replaced @UsageType with independent @SaveTime/@SaveCycle flags (plus @Time @Cycle params for each type) so one Save click issues one call/one transaction instead of firing two parallel calls that could race each other on the same LeaseStocklineUsage row (unique constraint on LeaseStocklineId). Added WITH (UPDLOCK, HOLDLOCK) on the snapshot read so a second concurrent save for the same stockline is serialized rather than racing.
     7    17/09/2026     Kishor Makwana		   [PN-17967] Captured a single @Now = SYSUTCDATETIME() once per call and reused it for every CreatedDate/UpdatedDate this proc writes (previously each INSERT called GETUTCDATE() separately). This makes the Time-row and Cycle-row that a single combined Save writes to LeaseStocklineUsageHistory share an EXACT, identical CreatedDate - the Usage History popup now uses that exact match to merge them back onto one display line instead of showing them as two unrelated rows.
+    8    23/09/2026     Kishor Makwana          [PN-18062] Added @TotalTimeHours/@TotalTimeMinutes/@TotalCycles - manually-entered, informational-only running totals (never derived from/validated against @TSNHours/@TSNMinutes/@CSN or history, do not drive billing). They persist independently of @SaveTime/@SaveCycle (a value is written whenever passed, kept unchanged when NULL - same pattern already used for @Notes), so Total Time/Total Cycles can be saved on their own without also submitting a new Record Time/Record Cycle reading in the same call. Loosened the top guard clause accordingly, and re-verified that CurrentTSNHours/CurrentTSNMinutes/CurrentCSN below are already a plain overwrite (never summed) so "Last Time/Cycle Reported" already shows only the latest reading, not a cumulative total, as PN-18062 requires - no change needed there.
+    9    23/09/2026     Kishor Makwana          [PN-18062 follow-up] Removed the "new reading must be greater than the last reported reading" guard for both Time and Cycle - a Record Time/Record Cycle entry can now be saved at any non-negative value, including lower than the last reported reading (matching client-side validation removal in lease-usage-info-entry.component.ts).
     
 
-exec USP_SaveLeaseStocklineUsage @LeaseStocklineId=1,@SaveTime=1, @TimeEntryDate='2026-09-15', @TimeFromDate='2026-09-01', @TimeToDate='2026-09-15',@TSNHours=2, @TSNMinutes=45, @TimeNotes=N'test',@SaveCycle=1, @CycleEntryDate='2026-09-15', @CycleFromDate='2026-09-01', @CycleToDate='2026-09-15',	@CSN=50, @CycleNotes=N'test',@MasterCompanyId=1, @UpdatedBy='test'
+exec USP_SaveLeaseStocklineUsage @LeaseStocklineId=1,@SaveTime=1, @TimeEntryDate='2026-09-15', @TimeFromDate='2026-09-01', @TimeToDate='2026-09-15',@TSNHours=2, @TSNMinutes=45, @TotalTimeHours=125, @TotalTimeMinutes=15, @SaveCycle=1, @CycleEntryDate='2026-09-15', @CycleFromDate='2026-09-01', @CycleToDate='2026-09-15',	@CSN=50, @TotalCycles=500, @Notes=N'test',@MasterCompanyId=1, @UpdatedBy='test'
 
 ************************************************************************/
-CREATE        PROCEDURE [dbo].[USP_SaveLeaseStocklineUsage]
+CREATE     PROCEDURE [dbo].[USP_SaveLeaseStocklineUsage]
 	@LeaseStocklineId BIGINT,
 	@SaveTime BIT = 0,
 	@TimeEntryDate DATETIME2(7) = NULL,
@@ -58,11 +60,14 @@ CREATE        PROCEDURE [dbo].[USP_SaveLeaseStocklineUsage]
 	@TimeToDate DATETIME2(7) = NULL,
 	@TSNHours DECIMAL(18,6) = NULL,
 	@TSNMinutes DECIMAL(18,6) = NULL,
+	@TotalTimeHours DECIMAL(18,6) = NULL,
+	@TotalTimeMinutes DECIMAL(18,6) = NULL,
 	@SaveCycle BIT = 0,
 	@CycleEntryDate DATETIME2(7) = NULL,
 	@CycleFromDate DATETIME2(7) = NULL,
 	@CycleToDate DATETIME2(7) = NULL,
 	@CSN DECIMAL(18,6) = NULL,
+	@TotalCycles DECIMAL(18,6) = NULL,
 	@Notes NVARCHAR(MAX) = NULL,
 	@MasterCompanyId INT,
 	@UpdatedBy VARCHAR(256)
@@ -72,9 +77,10 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	-- Basic validation - guard clauses, raised before the transaction starts
-	IF (ISNULL(@SaveTime,0) = 0 AND ISNULL(@SaveCycle,0) = 0)
+	IF (ISNULL(@SaveTime,0) = 0 AND ISNULL(@SaveCycle,0) = 0
+		AND @TotalTimeHours IS NULL AND @TotalTimeMinutes IS NULL AND @TotalCycles IS NULL)
 	BEGIN
-		RAISERROR ('Enter a Time or Cycle reading to save.', 16, 1);
+		RAISERROR ('Enter a Time or Cycle reading, or a Total Time/Total Cycles value, to save.', 16, 1);
 		RETURN (1);
 	END
 
@@ -111,6 +117,18 @@ BEGIN
 	IF (ISNULL(@TSNMinutes,0) > 59)
 	BEGIN
 		RAISERROR ('Minutes must be between 0 and 59.', 16, 1);
+		RETURN (1);
+	END
+
+	IF (ISNULL(@TotalTimeHours,0) < 0 OR ISNULL(@TotalTimeMinutes,0) < 0 OR ISNULL(@TotalCycles,0) < 0)
+	BEGIN
+		RAISERROR ('Total Time and Total Cycles cannot be negative.', 16, 1);
+		RETURN (1);
+	END
+
+	IF (ISNULL(@TotalTimeMinutes,0) > 59)
+	BEGIN
+		RAISERROR ('Total Time minutes must be between 0 and 59.', 16, 1);
 		RETURN (1);
 	END
 
@@ -153,28 +171,11 @@ BEGIN
 		FROM [dbo].[LeaseStocklineUsage] WITH (UPDLOCK, HOLDLOCK)
 		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0;
 
-		IF (@SaveTime = 1 AND (@CurrentTSNHours IS NOT NULL OR @CurrentTSNMinutes IS NOT NULL))
-		BEGIN
-			DECLARE @NewTSNTotalMinutes DECIMAL(18,6) = ISNULL(@TSNHours,0) * 60 + ISNULL(@TSNMinutes,0);
-			DECLARE @CurrentTSNTotalMinutes DECIMAL(18,6) = ISNULL(@CurrentTSNHours,0) * 60 + ISNULL(@CurrentTSNMinutes,0);
-
-			IF (@NewTSNTotalMinutes <= @CurrentTSNTotalMinutes)
-			BEGIN
-				RAISERROR ('New Time must be greater than the last reported Time.', 16, 1);
-				ROLLBACK TRANSACTION;
-				RETURN (1);
-			END
-		END
-
-		IF (@SaveCycle = 1 AND @CurrentCSN IS NOT NULL)
-		BEGIN
-			IF (ISNULL(@CSN,0) <= @CurrentCSN)
-			BEGIN
-				RAISERROR ('New Cycle (CSN) must be greater than the last reported Cycle.', 16, 1);
-				ROLLBACK TRANSACTION;
-				RETURN (1);
-			END
-		END
+		-- [PN-18062 follow-up] The "new reading must be greater than the last reported reading"
+		-- guard (for both Time and Cycle) was removed here - a Record Time/Record Cycle entry
+		-- can now be any non-negative value, including lower than the last reported reading.
+		-- Matching guard also removed client-side in lease-usage-info-entry.component.ts
+		-- (isNewTimeGreaterThanCurrent()/isNewCycleGreaterThanCurrent(), called from save()).
 
 		IF (@HasSnapshotRow = 1)
 		BEGIN
@@ -184,10 +185,13 @@ BEGIN
 				CurrentTSNFromDate = CASE WHEN @SaveTime = 1 THEN @TimeFromDate ELSE CurrentTSNFromDate END,
 				CurrentTSNToDate   = CASE WHEN @SaveTime = 1 THEN @TimeToDate ELSE CurrentTSNToDate END,
 				CurrentTSNDate     = CASE WHEN @SaveTime = 1 THEN @TimeEntryDate ELSE CurrentTSNDate END,
+				TotalTimeHours     = COALESCE(@TotalTimeHours, TotalTimeHours),
+				TotalTimeMinutes   = COALESCE(@TotalTimeMinutes, TotalTimeMinutes),
 				CurrentCSN         = CASE WHEN @SaveCycle = 1 THEN ISNULL(@CSN,0) ELSE CurrentCSN END,
 				CurrentCSNFromDate = CASE WHEN @SaveCycle = 1 THEN @CycleFromDate ELSE CurrentCSNFromDate END,
 				CurrentCSNToDate   = CASE WHEN @SaveCycle = 1 THEN @CycleToDate ELSE CurrentCSNToDate END,
 				CurrentCSNDate     = CASE WHEN @SaveCycle = 1 THEN @CycleEntryDate ELSE CurrentCSNDate END,
+				TotalCycles        = COALESCE(@TotalCycles, TotalCycles),
 				--Notes              = @Notes,
 				Notes = CASE WHEN @Notes IS NOT NULL AND LTRIM(RTRIM(@Notes)) <> '' THEN @Notes ELSE Notes END,
 				UpdatedBy          = @UpdatedBy,
@@ -200,7 +204,9 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[LeaseStocklineUsage]
 				(LeaseStocklineId, CurrentTSNHours, CurrentTSNMinutes, CurrentTSNFromDate, CurrentTSNToDate, CurrentTSNDate,
-				 CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate, Notes,
+				 TotalTimeHours, TotalTimeMinutes,
+				 CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate,
+				 TotalCycles, Notes,
 				 MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
 			VALUES
 				(@LeaseStocklineId,
@@ -209,10 +215,13 @@ BEGIN
 				 CASE WHEN @SaveTime = 1 THEN @TimeFromDate ELSE NULL END,
 				 CASE WHEN @SaveTime = 1 THEN @TimeToDate ELSE NULL END,
 				 CASE WHEN @SaveTime = 1 THEN @TimeEntryDate ELSE NULL END,
+				 @TotalTimeHours,
+				 @TotalTimeMinutes,
 				 CASE WHEN @SaveCycle = 1 THEN ISNULL(@CSN,0) ELSE NULL END,
 				 CASE WHEN @SaveCycle = 1 THEN @CycleFromDate ELSE NULL END,
 				 CASE WHEN @SaveCycle = 1 THEN @CycleToDate ELSE NULL END,
 				 CASE WHEN @SaveCycle = 1 THEN @CycleEntryDate ELSE NULL END,
+				 @TotalCycles,
 				 @Notes,
 				 @MasterCompanyId, @UpdatedBy, @UpdatedBy, @Now, @Now, 1, 0);
 		END
@@ -239,7 +248,9 @@ BEGIN
 
 		SELECT LeaseStocklineId,
 			CurrentTSNHours, CurrentTSNMinutes, CurrentTSNFromDate, CurrentTSNToDate, CurrentTSNDate,
-			CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate, Notes,
+			TotalTimeHours, TotalTimeMinutes,
+			CurrentCSN, CurrentCSNFromDate, CurrentCSNToDate, CurrentCSNDate,
+			TotalCycles, Notes,
 			UpdatedBy, UpdatedDate
 		FROM [dbo].[LeaseStocklineUsage] WITH (NOLOCK)
 		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0;

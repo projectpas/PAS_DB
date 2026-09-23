@@ -21,6 +21,7 @@
     2    06/14/2023   Devendra Shekh   changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    17/Sep/2026			 SAHDEV SALIYA						[PN-17875] - Carry forward LOT linkage, set RMA-creation Memo, and log Inventory History (Stkline_History) for the new stockline
+	5    23/Sep/2026			 SAHDEV SALIYA						[PN-17875] - Append RMA Memo as a new line instead of replacing, carry forward Stockline documents, and Trans-In the new stockline back into its original LOT
 -- EXEC [CreateStocklineForCustomerRMADeatils] 44
 **************************************************************/  
   
@@ -53,6 +54,9 @@ BEGIN
     DECLARE @RMAUpdatedBy VARCHAR(256);
     DECLARE @CustomerRMAModuleId BIGINT;
     DECLARE @CreateFromCustomerRMAActionId INT;
+    DECLARE @StocklineAttachmentModuleId INT;
+    DECLARE @SourceLotId BIGINT;
+    DECLARE @LotCreatedDate DATETIME;
 
 
     SELECT TOP 1 @StocklineId = StockLineId,@Qty=Qty,
@@ -67,6 +71,8 @@ BEGIN
 
     SELECT @CustomerRMAModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CustomerRMA'
     SELECT @CreateFromCustomerRMAActionId = ActionId FROM dbo.StklineHistory_Action WITH(NOLOCK) WHERE [Type] = 'Create-Customer-RMA'
+    SELECT @StocklineAttachmentModuleId = [AttachmentModuleId] FROM dbo.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'StockLine'
+    SELECT @SourceLotId = ISNULL(LotId, 0) FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 
 
   DECLARE @LoopID as int  
@@ -285,12 +291,41 @@ BEGIN
   
     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId  
   
+    /* Carry forward Stockline documents (before UpdateStocklineColumnsWithId so IsDocument is set) */
+    DECLARE @AttachmentMap TABLE (OldAttachmentId BIGINT, NewAttachmentId BIGINT);
+
+    MERGE INTO dbo.Attachment AS TGT
+    USING (SELECT A.AttachmentId, A.MasterCompanyId, A.CreatedBy, A.UpdatedBy, A.SubModuleId, A.SubReferenceId
+           FROM dbo.Attachment A WITH(NOLOCK)
+           WHERE A.AttachmentId IN (SELECT DISTINCT CDD.AttachmentId FROM dbo.CommonDocumentDetails CDD WITH(NOLOCK)
+                                    WHERE CDD.ModuleId = @StocklineAttachmentModuleId AND CDD.ReferenceId = @StocklineId AND ISNULL(CDD.IsDeleted, 0) = 0)) AS SRC
+    ON 1 = 0
+    WHEN NOT MATCHED THEN
+        INSERT ([ModuleId],[ReferenceId],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SubModuleId],[SubReferenceId])
+        VALUES (@StocklineAttachmentModuleId, @NewStocklineId, SRC.MasterCompanyId, SRC.CreatedBy, GETUTCDATE(), SRC.UpdatedBy, GETUTCDATE(), 1, 0, SRC.SubModuleId, SRC.SubReferenceId)
+    OUTPUT SRC.AttachmentId, inserted.AttachmentId INTO @AttachmentMap (OldAttachmentId, NewAttachmentId);
+
+    INSERT INTO dbo.AttachmentDetails ([AttachmentId],[FileName],[Description],[Link],[FileFormat],[FileSize],[FileType],[CreatedDate],[UpdatedDate],[CreatedBy],[UpdatedBy],[IsActive],[IsDeleted],[Name],[Memo],[TypeId])
+    SELECT MAP.NewAttachmentId, AD.[FileName], AD.[Description], AD.[Link], AD.[FileFormat], AD.[FileSize], AD.[FileType], GETUTCDATE(), GETUTCDATE(), AD.[CreatedBy], AD.[UpdatedBy], 1, 0, AD.[Name], AD.[Memo], AD.[TypeId]
+    FROM dbo.AttachmentDetails AD WITH(NOLOCK)
+    INNER JOIN @AttachmentMap MAP ON AD.AttachmentId = MAP.OldAttachmentId
+    WHERE ISNULL(AD.IsActive, 1) = 1 AND ISNULL(AD.IsDeleted, 0) = 0;
+
+    INSERT INTO dbo.CommonDocumentDetails ([ModuleId],[ReferenceId],[AttachmentId],[DocName],[DocMemo],[DocDescription],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DocumentTypeId],[ExpirationDate],[ReferenceIndex],[ModuleType],[SubModuleId],[SubReferenceId])
+    SELECT CDD.[ModuleId], @NewStocklineId, MAP.NewAttachmentId, CDD.[DocName], CDD.[DocMemo], CDD.[DocDescription], CDD.[MasterCompanyId], CDD.[CreatedBy], CDD.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), CDD.[IsActive], 0, CDD.[DocumentTypeId], CDD.[ExpirationDate], CDD.[ReferenceIndex], CDD.[ModuleType], CDD.[SubModuleId], CDD.[SubReferenceId]
+    FROM dbo.CommonDocumentDetails CDD WITH(NOLOCK)
+    INNER JOIN @AttachmentMap MAP ON CDD.AttachmentId = MAP.OldAttachmentId
+    WHERE CDD.ModuleId = @StocklineAttachmentModuleId AND CDD.ReferenceId = @StocklineId AND ISNULL(CDD.IsDeleted, 0) = 0;
+
+    DELETE FROM @AttachmentMap;
+
     EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId
 
     EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'Create RMA Stockline'
 
+    /* Append RMA memo as a new line; keep the memo carried over from the original stockline */
     UPDATE dbo.Stockline
-    SET Memo = N'Stockline Created from Customer RMA – ' + ISNULL(@RMANumber, '')
+    SET Memo = ISNULL(Memo, '') + N'<p>Stockline Created from Customer RMA – ' + ISNULL(@RMANumber, '') + N'</p>'
     WHERE StockLineId = @NewStocklineId
 
     EXEC dbo.USP_AddUpdateStocklineHistory
@@ -302,6 +337,41 @@ BEGIN
         @ActionId = @CreateFromCustomerRMAActionId,
         @Qty = @DefultQty,
         @UpdatedBy = @RMAUpdatedBy
+
+    /* Original stockline was sold from a LOT: Trans-In the returned stockline back into the same LOT */
+    IF ISNULL(@SourceLotId, 0) > 0
+    BEGIN
+        DECLARE @LotDetails dbo.LotTransInOutDetailsType;
+        DELETE FROM @LotDetails;
+
+        INSERT INTO @LotDetails (LotTransInOutId, StockLineId, LotId, QtyToTransIn, QtyToTransOut, LotTransInOutDetails,
+                                 UnitCost, ExtCost, IsTransOut, TransInMemo, TransOutMemo)
+        SELECT 0, SL.StockLineId, @SourceLotId, @DefultQty, 0, 0,
+               ISNULL(SL.UnitCost, 0), ISNULL(SL.UnitCost, 0) * @DefultQty, 0,
+               'Trans In From Customer RMA - ' + ISNULL(@RMANumber, ''), ''
+        FROM dbo.Stockline SL WITH(NOLOCK)
+        WHERE SL.StockLineId = @NewStocklineId;
+
+        SET @LotCreatedDate = GETUTCDATE();
+
+        IF OBJECT_ID('tempdb..#LotResult') IS NOT NULL DROP TABLE #LotResult;
+        CREATE TABLE #LotResult (LotTransInOutId BIGINT);
+
+        INSERT INTO #LotResult
+        EXEC dbo.USP_Lot_AddUpdateLotTransInOutDetails
+            @tbl_LotTransInOutDetailsType = @LotDetails,
+            @LotTransInOutId              = 0,
+            @MasterCompanyId              = @MasterCompanyId,
+            @IsTransInOut                 = 0,
+            @IsInOut                      = 1,
+            @CreatedBy                    = @RMAUpdatedBy,
+            @UpdatedBy                    = @RMAUpdatedBy,
+            @CreatedDate                  = @LotCreatedDate,
+            @UpdatedDate                  = @LotCreatedDate,
+            @IsFromPreCostStk             = 1;
+
+        DROP TABLE #LotResult;
+    END
 
     IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
     BEGIN  

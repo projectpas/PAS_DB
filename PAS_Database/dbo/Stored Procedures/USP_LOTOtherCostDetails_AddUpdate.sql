@@ -7,7 +7,11 @@
  **              Reconciled Freight/Charges are re-derived from Stockline.FreightAdjustment/MiscAdjustment
  **              server-side too (not trusted from the client) so they always match the current Stockline
  **              values. TotalFreight/TotalOtherCost are computed here, not by the caller.
- ** Date:   02-Sep-2026 (updated 03-Sep-2026)
+ **              [PN-18032] 23-Sep-2026: also accepts @IsNonStock bit for Non-Stock Serviceable parts -
+ **              persisted as-is (like @IsNA), so Edit can tell a Non-Stock row apart from a sold-stockline
+ **              row (Stockline stays disabled, Memo stays optional for these rows - only @IsNA requires
+ **              Memo, unchanged below).
+ ** Date:   02-Sep-2026 (updated 03-Sep-2026, 23-Sep-2026)
  ** PARAMETERS:
  ** RETURN VALUE:
  **************************************************************
@@ -30,6 +34,15 @@
                                       timezone conversion) - now persisted on INSERT/UPDATE. Was previously
                                       missing from this file (only added to an orphaned duplicate copy under
                                       Procs2\, which is not part of the SSDT build) 
+    5    23-Sep-2026  RAJESH GAMI     [PN-18032] Added @IsNonStock - persisted as-is (like @IsNA), so the
+                                      Other Cost grid/Edit popup can tell a Non-Stock Serviceable row apart
+                                      from a normal sold-stockline row on Edit (Stockline stays disabled,
+                                      Memo stays optional for these rows - only @IsNA requires Memo, that
+                                      check below is unchanged). No other logic changes needed here: the
+                                      existing @StocklineId > 0 guards around the Stockline/Reconciled-
+                                      Freight/Charges lookup and the Reference(SO) lookup already skip
+                                      correctly whenever the Angular popup sends @StocklineId = NULL for a
+                                      Non-Stock row (same as they already do for @IsNA = 1 rows).
 **************************************************************
  EXEC USP_LOTOtherCostDetails_AddUpdate
 **************************************************************/
@@ -39,6 +52,7 @@ CREATE   PROCEDURE [dbo].[USP_LOTOtherCostDetails_AddUpdate]
 @StocklineId bigint = NULL,
 @ItemMasterId bigint = NULL,
 @IsNA bit = 0,
+@IsNonStock bit = 0,
 @UnReconciledFreight decimal(18,2) = NULL,
 @ManualAdjFreight decimal(18,2) = NULL,
 @UnReconciledCharges decimal(18,2) = NULL,
@@ -137,14 +151,14 @@ BEGIN
 				([LotId],[LotNumber],[ReconciledFreight],[UnReconciledFreight],[ManualAdjFreight],[TotalFreight]
 				,[ReconciledCharges],[UnReconciledCharges],[ManualAdjCharges],[TotalOtherCost]
 				,[StocklineId],[StocklineNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName]
-				,[ConditionId],[Condition],[IsNA],[ModuleId],[ModuleName]
+				,[ConditionId],[Condition],[IsNA],[IsNonStock],[ModuleId],[ModuleName]
 				,[ReferenceId],[ReferenceNumber],[ReferenceDate],[PostedDate],[Memo]
 				,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 			VALUES
 				(@LotId,@LotNumber,@ReconciledFreight,@UnReconciledFreight,@ManualAdjFreight,@TotalFreight
 				,@ReconciledCharges,@UnReconciledCharges,@ManualAdjCharges,@TotalOtherCost
 				,@StocklineId,@StocklineNumber,@ItemMasterId,@PartNumber,@PartDescription,@ManufacturerId,@ManufacturerName
-				,@ConditionId,@Condition,@IsNA,@OtherCostModuleId,@OtherCostModuleName
+				,@ConditionId,@Condition,@IsNA,@IsNonStock,@OtherCostModuleId,@OtherCostModuleName
 				,@ReferenceId,@ReferenceNumber,@ReferenceDate,@PostedDate,@Memo
 				,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 			SET @LotOtherCostDetailId = SCOPE_IDENTITY();
@@ -170,6 +184,7 @@ BEGIN
 			      ,[ConditionId] = @ConditionId
 			      ,[Condition] = @Condition
 			      ,[IsNA] = @IsNA
+			      ,[IsNonStock] = @IsNonStock
 			      ,[ModuleId] = @OtherCostModuleId
 			      ,[ModuleName] = @OtherCostModuleName
 			      ,[ReferenceId] = @ReferenceId

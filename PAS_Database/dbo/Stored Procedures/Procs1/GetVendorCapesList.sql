@@ -1,6 +1,19 @@
-﻿
--- 10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
-CREATE   PROCEDURE [dbo].[GetVendorCapesList]
+﻿/*************************************************************
+** File:    [GetVendorCapesList]
+** Author:   
+** Description: Get Vendor CapabilityList
+** Purpose:  
+** Date:     02-07-2025
+**************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author         Change Description
+** --   ----------   ------------   --------------------------------
+** 1								   Created
+** 2    10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+   3    24-09-2026  Nakul          added AircraftEngine & VerifiedDate
+**************************************************************/
+CREATE    PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -120,6 +133,8 @@ BEGIN
 					case when CAST(vc.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(vc.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					vc.UpdatedBy
 					,ct.ConditionId
+					,vc.AircraftEngine
+					,CAST(vc.VerifiedDate as date) VerifiedDate
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

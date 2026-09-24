@@ -61,6 +61,7 @@
 	                                        actually reserved to this Sales Order. RepairOrder/Exchange/Lot keep the
 	                                        blanket FN_PurchaseOrderHasAnyReceipt (reason 1) - no per-stockline usage
 	                                        mechanism for them yet.
+    7    24/09/2026   Aayushi Patel			Qty and ReservedQty are stored in Purchase UOM,so they are converted Purchase -> Stock UOM 
 
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 1, @PurchaseOrderId = 1863, @PurchaseOrderPartRecordId = 100
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 2, @SourceModuleId = 1, @ReferenceId = 500, @ReferencePartId = 900, @IsKit = 0
@@ -136,7 +137,10 @@ BEGIN
     IF OBJECT_ID('tempdb..#Resolved') IS NOT NULL DROP TABLE #Resolved
     SELECT
         R.PurchaseOrderPartReferenceId, R.PurchaseOrderId, R.PurchaseOrderPartId, R.ModuleId, R.ReferenceId,
-        R.Qty, R.RequestedQty, R.ReservedQty AS QtyReserved, R.IssuedQty AS QtyIssued,
+        (CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN R.Qty ELSE [dbo].[fn_ConvertUOM](R.Qty, IM.[PurchaseUnitOfMeasure], IM.[StockUnitOfMeasure], 0, IM.[MasterCompanyId]) END) AS Qty,
+        R.RequestedQty,
+        (CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN R.ReservedQty ELSE [dbo].[fn_ConvertUOM](R.ReservedQty, IM.[PurchaseUnitOfMeasure], IM.[StockUnitOfMeasure], 0, IM.[MasterCompanyId]) END) AS QtyReserved,
+        R.IssuedQty AS QtyIssued,
         POP.ItemMasterId, POP.PartNumber, POP.PartDescription, POP.ConditionId, POP.Condition,
         ISNULL(POP.IsKit,0) AS IsKit, ISNULL(POP.IsSubWO,0) AS IsSubWO, POP.EstDeliveryDate,
         PO.PurchaseOrderNumber, PO.VendorId, PO.VendorName, PO.StatusId, PO.Status,
@@ -170,6 +174,7 @@ BEGIN
     FROM #Rel R
     INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = R.PurchaseOrderPartId
     INNER JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = R.PurchaseOrderId
+    LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
     INNER JOIN #POReceipt PORc ON PORc.PurchaseOrderId = R.PurchaseOrderId
     OUTER APPLY (
         SELECT TOP 1 * FROM dbo.Nha_Tla_Alt_Equ_ItemMapping WITH (NOLOCK)

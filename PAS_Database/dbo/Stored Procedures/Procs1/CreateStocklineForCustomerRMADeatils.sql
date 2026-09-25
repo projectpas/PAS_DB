@@ -22,6 +22,8 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    17/Sep/2026			 SAHDEV SALIYA						[PN-17875] - Carry forward LOT linkage, set RMA-creation Memo, and log Inventory History (Stkline_History) for the new stockline
 	5    23/Sep/2026			 SAHDEV SALIYA						[PN-17875] - Append RMA Memo as a new line instead of replacing, carry forward Stockline documents, and Trans-In the new stockline back into its original LOT
+	6    25/Sep/2026			 Divyesh Kathriya					[PN-18095] - Carry forward StockUnitOfMeasureId and ConsumeUnitOfMeasureId so Stock UOM displays in Stockline List.
+
 -- EXEC [CreateStocklineForCustomerRMADeatils] 44
 **************************************************************/  
   
@@ -207,7 +209,7 @@ BEGIN
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId]
        ,[LotId],[IsLotAssigned],[LotMainStocklineId],[LotSourceId],[TransferredFromLotId],[TransferredFromLotNumber]
-       ,IsFinishGood,IsCustomerRMA,RMADeatilsId)
+       ,IsFinishGood,IsCustomerRMA,RMADeatilsId,[StockUnitOfMeasureId],[ConsumeUnitOfMeasureId])
     SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],[ControlNumber],[ItemMasterId],@DefultQty,[ConditionId]
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
        ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
@@ -230,7 +232,7 @@ BEGIN
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],0,[TaggedByType]  
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId]
        ,[LotId],[IsLotAssigned],[LotMainStocklineId],[LotSourceId],[TransferredFromLotId],[TransferredFromLotNumber]
-       ,0,1,@RMADeatilsId
+       ,0,1,@RMADeatilsId,[StockUnitOfMeasureId],[ConsumeUnitOfMeasureId]
    FROM dbo.Stockline WITH(NOLOCK)
    WHERE StockLineId = @StocklineId
   

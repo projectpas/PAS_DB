@@ -44,18 +44,18 @@
 
 
 
-GO
 
-     
-     CREATE   TRIGGER [dbo].[trg_Audit_dbo_VendorCapability]
+
+GO
+ CREATE     TRIGGER [dbo].[trg_Audit_dbo_VendorCapability]
         ON [dbo].[VendorCapability]
         AFTER INSERT, UPDATE, DELETE
         AS
         BEGIN
             SET NOCOUNT ON;
             ;WITH
-            d AS (SELECT d.[VendorCapabilityId],d.[VendorId],d.[CapabilityTypeId],d.[CapabilityTypeName],d.[ItemMasterId],d.[CapabilityTypeDescription],d.[VendorRanking],d.[IsPMA],d.[IsDER],d.[Cost],d.[TAT],d.[Memo],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[PartNumber],d.[PartDescription],d.[ManufacturerId],d.[ManufacturerName],d.[CostDate],d.[CurrencyId],d.[Currency],d.[EmployeeId] FROM deleted d),
-            i AS (SELECT i.[VendorCapabilityId],i.[VendorId],i.[CapabilityTypeId],i.[CapabilityTypeName],i.[ItemMasterId],i.[CapabilityTypeDescription],i.[VendorRanking],i.[IsPMA],i.[IsDER],i.[Cost],i.[TAT],i.[Memo],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[PartNumber],i.[PartDescription],i.[ManufacturerId],i.[ManufacturerName],i.[CostDate],i.[CurrencyId],i.[Currency],i.[EmployeeId] FROM inserted i),
+            d AS (SELECT d.[VendorCapabilityId],d.[VendorId],d.[CapabilityTypeId],d.[CapabilityTypeName],d.[ItemMasterId],d.[CapabilityTypeDescription],d.[VendorRanking],d.[IsPMA],d.[IsDER],d.[Cost],d.[TAT],d.[Memo],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[PartNumber],d.[PartDescription],d.[ManufacturerId],d.[ManufacturerName],d.[CostDate],d.[CurrencyId],d.[Currency],d.[EmployeeId],d.[AircraftEngine],d.[VerifiedDate] FROM deleted d),
+            i AS (SELECT i.[VendorCapabilityId],i.[VendorId],i.[CapabilityTypeId],i.[CapabilityTypeName],i.[ItemMasterId],i.[CapabilityTypeDescription],i.[VendorRanking],i.[IsPMA],i.[IsDER],i.[Cost],i.[TAT],i.[Memo],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[PartNumber],i.[PartDescription],i.[ManufacturerId],i.[ManufacturerName],i.[CostDate],i.[CurrencyId],i.[Currency],i.[EmployeeId],i.[AircraftEngine],i.[VerifiedDate] FROM inserted i),
             paired AS (
                 SELECT
                     COALESCE(i.VendorCapabilityId, d.VendorCapabilityId ) AS VendorCapabilityId,

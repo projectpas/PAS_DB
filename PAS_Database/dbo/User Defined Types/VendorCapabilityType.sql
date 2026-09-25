@@ -25,5 +25,7 @@
     [CostDate]                  DATETIME        NULL,
     [CurrencyId]                INT             NULL,
     [Currency]                  VARCHAR (50)    NULL,
-    [EmployeeId]                INT             NULL);
+    [EmployeeId]                INT             NULL,
+    [AircraftEngine]            VARCHAR (256)   NULL,
+    [VerifiedDate]              DATETIME        NULL);
 

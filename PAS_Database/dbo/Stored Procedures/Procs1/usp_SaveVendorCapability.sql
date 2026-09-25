@@ -35,11 +35,13 @@ BEGIN
      [capabilityDescription] [varchar](max) NULL,  
      [IsPMA] [bit] NULL,  
      [IsDER] [bit] NULL,  
-     [CostDate] [datetime] NULL,  
-     [CurrencyId] [int] NULL,  
-     [Currency] [varchar](50) NULL,  
-     [EmployeeId] [int] NULL,  
-     [MasterCompanyId] [int] NULL,  
+     [CostDate] [datetime] NULL,
+     [CurrencyId] [int] NULL,
+     [Currency] [varchar](50) NULL,
+     [EmployeeId] [int] NULL,
+     [AircraftEngine] [varchar](256) NULL,
+     [VerifiedDate] [datetime] NULL,
+     [MasterCompanyId] [int] NULL,
      [CreatedBy] [varchar](50) NULL,  
      [UpdatedBy] [varchar](50) NULL,  
      [CreatedDate] [datetime] null,  
@@ -50,15 +52,15 @@ BEGIN
      [message] [varchar](100) NULL  
     )  
     print  123  
-    INSERT INTO #VendorCapabilityType ([VendorCapabilityId],[VendorId],[CapabilityTypeId],[CapabilityTypeName],[CapabilityTypeDescription],  
-             [ManufacturerId],[ManufacturerName],[VendorRanking],[ItemMasterId],[PartNumber],[PartDescription],  
-             [TAT],[Cost],[Memo],[IsPMA],[IsDER],[CostDate],[CurrencyId],[Currency],[EmployeeId]  
-             ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])  
-                                      SELECT [VendorCapabilityId],[VendorId],[CapabilityTypeId],[CapabilityTypeName],[CapabilityTypeDescription],  
-             [ManufacturerId],[ManufacturerName],[VendorRanking],[ItemMasterId],[PartNumber],[PartDescription],  
-             [TAT],[Cost],[Memo],[IsPMA],[IsDER],[CostDate],[CurrencyId],[Currency],[EmployeeId]  
-             ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]  
-              FROM @tbl_VendorCapabilityType  
+    INSERT INTO #VendorCapabilityType ([VendorCapabilityId],[VendorId],[CapabilityTypeId],[CapabilityTypeName],[CapabilityTypeDescription],
+             [ManufacturerId],[ManufacturerName],[VendorRanking],[ItemMasterId],[PartNumber],[PartDescription],
+             [TAT],[Cost],[Memo],[IsPMA],[IsDER],[CostDate],[CurrencyId],[Currency],[EmployeeId],[AircraftEngine],[VerifiedDate]
+             ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+                                      SELECT [VendorCapabilityId],[VendorId],[CapabilityTypeId],[CapabilityTypeName],[CapabilityTypeDescription],
+             [ManufacturerId],[ManufacturerName],[VendorRanking],[ItemMasterId],[PartNumber],[PartDescription],
+             [TAT],[Cost],[Memo],[IsPMA],[IsDER],[CostDate],[CurrencyId],[Currency],[EmployeeId],[AircraftEngine],[VerifiedDate]
+             ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+              FROM @tbl_VendorCapabilityType
   
     UPDATE #VendorCapabilityType SET IsValid = 0, [Message] = 'Vendor, part ,Cap Type Combination Record Already Exist'  
                FROM #VendorCapabilityType t  
@@ -79,16 +81,16 @@ BEGIN
   
      
   
-   INSERT INTO [dbo].[VendorCapability]  
-           ([VendorId],[CapabilityTypeId],[CapabilityTypeName],[ItemMasterId],[CapabilityTypeDescription]  
-           ,[VendorRanking],[IsPMA],[IsDER],[Cost],[TAT],[Memo],[MasterCompanyId],[CreatedBy]  
-           ,[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartNumber],[PartDescription]  
-           ,[ManufacturerId],[ManufacturerName],[CostDate],[CurrencyId],[Currency],[EmployeeId])  
-   SELECT VendorId,CapabilityTypeId,CapabilityTypeName,ItemMasterId,CapabilityTypeDescription,  
-   VendorRanking,[IsPMA],[IsDER],[Cost],[TAT],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy]  
-   ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartNumber],[PartDescription]  
-           ,[ManufacturerId],[ManufacturerName],[CostDate],[CurrencyId],[Currency],[EmployeeId]  
-   FROM #VendorCapabilityType tmp  
+   INSERT INTO [dbo].[VendorCapability]
+           ([VendorId],[CapabilityTypeId],[CapabilityTypeName],[ItemMasterId],[CapabilityTypeDescription]
+           ,[VendorRanking],[IsPMA],[IsDER],[Cost],[TAT],[Memo],[MasterCompanyId],[CreatedBy]
+           ,[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartNumber],[PartDescription]
+           ,[ManufacturerId],[ManufacturerName],[CostDate],[CurrencyId],[Currency],[EmployeeId],[AircraftEngine],[VerifiedDate])
+   SELECT VendorId,CapabilityTypeId,CapabilityTypeName,ItemMasterId,CapabilityTypeDescription,
+   VendorRanking,[IsPMA],[IsDER],[Cost],[TAT],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy]
+   ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartNumber],[PartDescription]
+           ,[ManufacturerId],[ManufacturerName],[CostDate],[CurrencyId],[Currency],[EmployeeId],[AircraftEngine],[VerifiedDate]
+   FROM #VendorCapabilityType tmp
    where tmp.isvalid=1 AND tmp.VendorCapabilityId = 0  
    ---------------------------------Update Caps---------------------  
      
@@ -115,10 +117,12 @@ BEGIN
       ,[ManufacturerId] = t.ManufacturerId  
       ,[ManufacturerName] = t.ManufacturerName  
       ,[CostDate] = cast( t.CostDate as datetime)  
-      ,[CurrencyId] = t.CurrencyId  
-      ,[Currency] = t.Currency  
-      ,[EmployeeId] = t.EmployeeId  
-      FROM #VendorCapabilityType t  
+      ,[CurrencyId] = t.CurrencyId
+      ,[Currency] = t.Currency
+      ,[EmployeeId] = t.EmployeeId
+      ,[AircraftEngine] = t.AircraftEngine
+      ,[VerifiedDate] = cast( t.VerifiedDate as datetime)
+      FROM #VendorCapabilityType t
       INNER JOIN dbo.VendorCapability vc WITH (NOLOCK) on vc.VendorCapabilityId=t.VendorCapabilityId  
     WHERE t.isvalid=1 AND t.VendorCapabilityId > 0    
   

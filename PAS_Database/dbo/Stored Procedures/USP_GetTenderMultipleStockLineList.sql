@@ -19,6 +19,7 @@
 	8    24/06/2026   Priyansh Patel	     FIx the issue with Teardown WO: Parts manually tendered are still visible [PN-16961]
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10   10/Sep/2026  Sumit Kumar			  Added missing changes related to Stock ProvisionId [PN-16357]
+	11   25/09/2026   Ayushi Patel			  [PN-18085] UOM from ItemMaster Stock UOM and return quantities in Consume UOM (same as Tender Stockline)
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1
 **************************************************************/ 
@@ -228,7 +229,7 @@ BEGIN
 		CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 0 THEN T.[Description] ELSE WT.TaskName END AS TaskName
 		FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-			JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
 			JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 			JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 			JOIN dbo.Customer CU WITH (NOLOCK) ON CU.CustomerId = WO.CustomerId
@@ -251,7 +252,7 @@ BEGIN
 		CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 0 THEN T.[Description] ELSE WT.TaskName END AS TaskName
 		FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-			JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
 			JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 			JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 			JOIN dbo.Customer CU WITH (NOLOCK) ON CU.CustomerId = WO.CustomerId
@@ -295,12 +296,20 @@ BEGIN
 
 		SELECT @Count = COUNT(RecordID) FROM #FinalResult;
 
-		SELECT @Count AS NumberOfItems, 
-			[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
-			[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender], [PartRowIndex],[TaskName]
-		FROM #FinalResult
-		ORDER BY [PartNumber]
+		-- Quantities are stored in Stock UOM; return them in Consume UOM so they match the WO Material List / Tender Stockline
+		SELECT @Count AS NumberOfItems,
+			FR.[WorkOrderMaterialsId], FR.[PartNumber], FR.[PartDescription], FR.[UOM], FR.[Condition],
+			CASE WHEN FR.[UOM] IS NULL OR uomConsume.ShortName IS NULL OR FR.[UOM] = uomConsume.ShortName THEN FR.[Quantity] ELSE dbo.fn_ConvertUOM(FR.[Quantity], FR.[UOM], uomConsume.ShortName, 0, @MasterCompanyId) END AS [Quantity],
+			FR.[CustomerName], FR.[CustomerCode], FR.[IsSerialized], FR.[SerialNumberNotProvided], FR.[SerialNumber], FR.[WorkOrderNum], FR.[Manufacturer],
+			FR.[Receiver], FR.[ReceivedDate], FR.[Provision], FR.[Site], FR.[WareHouse], FR.[Location], FR.[Shelf], FR.[Bin], FR.[IsKitType], FR.[ItemMasterId], FR.[UnitOfMeasureId], FR.[ConditionId], FR.[CustomerId], FR.[WorkOrderId], FR.[Manufacturerid],
+			FR.[ProvisionId], FR.[SiteId], FR.[WareHouseId], FR.[LocationId], FR.[ShelfId], FR.[BinId], FR.[MasterCompanyId],
+			CASE WHEN FR.[UOM] IS NULL OR uomConsume.ShortName IS NULL OR FR.[UOM] = uomConsume.ShortName THEN FR.[TenderedQuantity] ELSE dbo.fn_ConvertUOM(FR.[TenderedQuantity], FR.[UOM], uomConsume.ShortName, 0, @MasterCompanyId) END AS [TenderedQuantity],
+			CASE WHEN FR.[UOM] IS NULL OR uomConsume.ShortName IS NULL OR FR.[UOM] = uomConsume.ShortName THEN FR.[QtyToTender] ELSE dbo.fn_ConvertUOM(FR.[QtyToTender], FR.[UOM], uomConsume.ShortName, 0, @MasterCompanyId) END AS [QtyToTender],
+			FR.[PartRowIndex], FR.[TaskName]
+		FROM #FinalResult FR
+			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = FR.[ItemMasterId]
+			LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+		ORDER BY FR.[PartNumber]
 		--OFFSET @RecordFrom ROWS 
 		--FETCH NEXT @PageSize ROWS ONLY
 

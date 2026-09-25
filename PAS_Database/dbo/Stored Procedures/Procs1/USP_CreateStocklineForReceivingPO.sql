@@ -52,6 +52,9 @@
 	36    16/July/2026			 RAJESH GAMI						[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
     37   06/08/2026   Priyansh Patel    Added the removed code  [PN-17271]
 	38    13/Aug/2026   RAJESH GAMI       [PN-17008] - Re-added missing ISNULL(im.IsNonStock,0) = 0 filter on the #tmpPNManufacturer (STOCK) rebuild query's ItemMaster JOIN; the query was independently rewritten (LastStockline CTE) after the BETA port and the rewrite dropped the filter that the twin NS-suffixed block still has.
+    39   25-SEP-2026  HEMANT SALIYA     Commented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) By Hemant due to stockline is not avaiable in Reconcilation
+
+
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -796,11 +799,12 @@ BEGIN
                                 SET @LoopID_QtyToReceive = @LoopID_QtyToReceive - 1;
                             END
 
-                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            BEGIN
-                                SET @StockLineNumber = NULL;
-                                SET @NewStocklineId = NULL;
-                            END
+                            --Commented By Hemant due to stockline is not avaiable in Reconcilation
+                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            --BEGIN
+                            --    SET @StockLineNumber = NULL;
+                            --    SET @NewStocklineId = NULL;
+                            --END
 
                             UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId,
@@ -2756,12 +2760,12 @@ DELETE FROM #tmpCodePrefixes_NS;
 
 									SET @LoopID_QtyToReceive_NS = @LoopID_QtyToReceive_NS - 1;
 								END
-
-								IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-								BEGIN
-                                SET @StockLineNumber_NS = NULL;
-                                SET @NewStocklineId_NS = NULL;
-								END
+                                --Commented By Hemant due to stockline is not avaiable in Reconcilation
+								--IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+								--BEGIN
+                                --  SET @StockLineNumber_NS = NULL;
+                                --  SET @NewStocklineId_NS = NULL;
+								--END
 
 								UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId_NS,

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -45,6 +46,7 @@
 	32    05/Aug/2026  Kishor Makwana   [PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
 	33    01/Sep/2026  KISHOR MAKWANA	[PN-17439] - use it PP_UnitPurchasePrice instead of SP_CalSPByPP_UnitSalePrice.
 	34    09/Sep/2026  BHARGAV SALIYA   [PN-17859] - Get IsNonStock Flag.
+	35    25/Sep/2026  Ayushi Patel     Convert ItemMasterUnitCost from Purchase UOM to Consume UOM.
 -- NOTE: Added IsPiecePart condition in RepairOrderPart table for the UOM backport.
 -- EXEC [DBO].[GetSalesOrderPartView] 1306,0
 **************************************************************/
@@ -286,7 +288,7 @@ BEGIN
 		(CASE WHEN ISNULL(suItm.ShortCode,'') = ISNULL(iu.ShortCode,'') THEN ISNULL(part.[UnitSalesPrice],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.[UnitSalesPrice],0), suItm.ShortCode, iu.ShortCode, 1, part.MasterCompanyId) END) MainUnitSalesPrice, 	
 		-- ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
 		ISNULL(CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN SC.NetSaleAmount ELSE PS.NetSaleAmount END, 0) AS [NetSalePriceExtendedPart]
-		,ISNULL(imps.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost
+		,(CASE WHEN ISNULL(puItm.ShortCode,'') = ISNULL(iu.ShortCode,'') THEN ISNULL(imps.PP_UnitPurchasePrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice,0), puItm.ShortCode, iu.ShortCode, 1, part.MasterCompanyId) END) AS ItemMasterUnitCost
 		INTO #tmpSOPartTblV1    
         FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
         LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
@@ -302,6 +304,7 @@ BEGIN
         LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
         -- LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+        LEFT JOIN DBO.UnitOfMeasure puItm WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = puItm.UnitOfMeasureId
         LEFT JOIN DBO.UnitOfMeasure suItm WITH (NOLOCK) ON itemMaster.StockUnitOfMeasureId = suItm.UnitOfMeasureId
         LEFT JOIN DBO.UnitOfMeasure suStk WITH (NOLOCK) ON qs.StockUnitOfMeasureId = suStk.UnitOfMeasureId
         LEFT JOIN DBO.UnitOfMeasure cuStk WITH (NOLOCK) ON qs.ConsumeUnitOfMeasureId = cuStk.UnitOfMeasureId

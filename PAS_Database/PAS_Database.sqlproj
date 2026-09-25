@@ -1824,7 +1824,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\MigrateItemMasterRecords.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\MigrateKitItemMasterRecords.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\MigrateStocklineRecords.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\ModuleWiseDataForMigrationByType.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\PrintCheckSetupList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\Proc_GetNonStockList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\PROC_linkWOtoPOROData.sql" />

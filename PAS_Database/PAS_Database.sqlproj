@@ -4806,6 +4806,29 @@
     <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
+    <Build Include="dbo\Tables\LeaseShippingItemAudit.sql" />
+    <Build Include="dbo\Tables\LeaseShippingItem.sql" />
+    <Build Include="dbo\Tables\LeaseShippingAudit.sql" />
+    <Build Include="dbo\Tables\LeaseShipping.sql" />
+    <Build Include="dbo\Tables\LeaseCustomsInfoAudit.sql" />
+    <Build Include="dbo\Tables\LeaseCustomsInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchLeasePickTicketForShippingPop.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseShipping.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingParentList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingLabel.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingForEdit.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingChildList.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\User Defined Types\LeaseShippingType.sql" />
+    <Build Include="dbo\User Defined Types\LeaseShippingItemsType.sql" />
+    <Build Include="dbo\User Defined Types\LeaseCustomsInfoType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

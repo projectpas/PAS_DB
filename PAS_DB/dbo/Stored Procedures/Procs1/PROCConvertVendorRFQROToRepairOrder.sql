@@ -17,6 +17,7 @@
 	4    09/12/2024  AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate from VendorRFQRO
 	5    05/20/2025  Vishal Suthar		Apply settings (IsEnforcePickTicket, EnforcePickTicketConfirmation) into newly converted RO
 	6    05/27/2025  Devendra Shekh		Apply settings (IsEnforcePickTicket, EnforcePickTicketConfirmation) into newly converted RO for @Opr = 2
+	7    25/09/2026  Bhargav			[PN-17506] RFQ-RO View (@Opr = 1): convert remaining unconverted parts instead of returning -1. Both @Opr = 1 and @Opr = 2: use the RFQ's latest RO unless it is Fulfilling/Closed/Canceled, then create a NEW RO.
 
 -- EXEC [PROCConvertVendorRFQROToRepairOrder] 13,0,0,2,25,1,1  
 ************************************************************************/  
@@ -45,11 +46,34 @@ BEGIN
   DECLARE @MSID BIGINT=0;  
   DECLARE @CreateBy VARCHAR(100)='';  
   DECLARE @UpdateBy VARCHAR(100)='';  
-  DECLARE @RID BIGINT=0;  
-	IF(@Opr = 1)  
-	BEGIN  
-		IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
-		BEGIN     
+  DECLARE @RID BIGINT=0;
+  DECLARE @LatestROId BIGINT = NULL;
+  DECLARE @LatestROStatusId INT = NULL;
+  DECLARE @CreateNewRO BIT = 0;
+
+  -- Latest RO already created from this RFQ. Parts go onto it unless it is Fulfilling, Closed or Canceled;
+  -- then a NEW RO is created instead.
+  SELECT TOP 1 @LatestROId = [RepairOrderId], @LatestROStatusId = [StatusId]
+    FROM dbo.RepairOrder WITH(NOLOCK)
+   WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND ISNULL([IsDeleted], 0) = 0
+   ORDER BY [RepairOrderId] DESC;
+
+  IF (@LatestROId IS NULL
+      OR @LatestROStatusId IN (SELECT [ROStatusId] FROM [dbo].[ROStatus] WITH(NOLOCK)
+							   WHERE ([Description] LIKE '%Fulfilling%' OR [Description] LIKE '%Closed%' OR [Description] LIKE '%Cancel%') AND ISNULL([IsDeleted], 0) = 0))
+  BEGIN
+	SET @CreateNewRO = 1;
+  END
+
+	IF(@Opr = 1)
+	BEGIN
+		-- No usable RO (none yet, or latest is Fulfilling/Closed/Canceled) and parts are still unconverted:
+		-- create a NEW RO; RO setup then offers only the unconverted parts (GetVendorRFQRORepairOrderPart).
+		IF @CreateNewRO = 1
+		   AND (@LatestROId IS NULL
+				OR EXISTS (SELECT 1 FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId
+						   AND [RepairOrderId] IS NULL AND ISNULL([IsNoQuote], 0) = 0 AND ISNULL([IsDeleted], 0) = 0))
+		BEGIN
 			SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
 			WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
   
@@ -147,16 +171,23 @@ BEGIN
 				SELECT @Result = 0;  
 			END 
 			
-		END  
-		ELSE  
-		BEGIN     
-		SELECT @Result = -1;  
-		END  
-	END   
-	IF(@Opr = 2)  
-	BEGIN  
-		IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
-		BEGIN     
+		END
+		ELSE IF EXISTS (SELECT 1 FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId
+						AND [RepairOrderId] IS NULL AND ISNULL([IsNoQuote], 0) = 0 AND ISNULL([IsDeleted], 0) = 0)
+		BEGIN
+			-- Latest RO is still usable: return it the same way @Opr = 2 does, so the remaining parts are added to it.
+			EXEC [dbo].[PROCConvertVendorRFQROToRepairOrder] @VendorRFQRepairOrderId, @VendorRFQROPartRecordId, @RepairOrderId, @MasterCompanyId, @CodeTypeId, 2, @Result OUTPUT;
+		END
+		ELSE
+		BEGIN
+			SELECT @Result = -1;
+		END
+	END
+	IF(@Opr = 2)
+	BEGIN
+		-- No RO yet, or the latest one is Fulfilling/Closed/Canceled: create a NEW RO; otherwise use the latest RO.
+		IF @CreateNewRO = 1
+		BEGIN
 			SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
 			WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
   
@@ -259,7 +290,7 @@ BEGIN
 		ELSE  
 		BEGIN   
   
-			SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);    
+			SELECT @Result = @LatestROId;
        
 			IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
 			BEGIN  

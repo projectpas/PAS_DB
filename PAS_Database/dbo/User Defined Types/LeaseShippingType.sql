@@ -61,5 +61,6 @@
     [IsSameForShipTo]         BIT             NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
-    [UpdatedBy]               VARCHAR (256)   NOT NULL);
+    [UpdatedBy]               VARCHAR (256)   NOT NULL,
+    [IsBypassShipping]        BIT             NULL);
 

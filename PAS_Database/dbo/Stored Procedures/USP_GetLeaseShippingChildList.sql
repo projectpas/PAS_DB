@@ -1,15 +1,19 @@
 ﻿
-/***************************************************************  
- ** File:  [USP_GetLeaseShippingChildList]            
+/***************************************************************
+ ** File:  [USP_GetLeaseShippingChildList]
  ** Author:   Moin Bloch
- ** Description: Get Lease Shipping child list - pending and shipped pick ticket lines for a stock line
+ ** Description: Get Lease Shipping parent grid list - one row per Lease Stock Line with picked/shipped/remaining qty
  ** Date:  25-Sep-2026
- ** Change History             
- *******************************************************************************************             
- ** PR   Date				Author  				Change Description              
- ** --   --------			-------				--------------------------------            
+ ** Change History
+ *******************************************************************************************
+ ** PR   Date				Author  				Change Description
+ ** --   --------			-------				--------------------------------
     1    21-Sep-2026		Moin Bloch			Created
-	
+    2    25-Sep-2026		Moin Bloch			Added FedexPdfPath/UPSPdfPath so the grid can offer
+                                            "Print Fedex/UPS Shipping Label", mirroring app-work-order-shipping
+    3    25-Sep-2026		Moin Bloch			Added PackagingSlipId/PackagingSlipNo, mirroring
+                                            app-work-order-shipping's sp_GetWOShippingChildList
+
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseShippingChildList]
 	@LeaseHeaderId BIGINT,
@@ -53,7 +57,11 @@ BEGIN
 			CAST(0 AS DECIMAL(18, 6)) AS QtyToShip,
 			LS.[MasterCompanyId],
 			LCI.[CustomsValue],
-			LCI.[CommodityCode]
+			LCI.[CommodityCode],
+			ISNULL(LSI.[FedexPdfPath], '') AS FedexPdfPath,
+			ISNULL(LSI.[UPSPdfPath], '') AS UpsPdfPath,
+			ISNULL(PSH.[PackagingSlipId], 0) AS PackagingSlipId,
+			ISNULL(PSH.[PackagingSlipNo], '') AS PackagingSlipNo
 		FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
 		INNER JOIN [dbo].[LeaseShipping] LS WITH (NOLOCK)    ON LS.[LeaseShippingId] = LSI.[LeaseShippingId]
 		INNER JOIN [dbo].[LeasePickTicket] LPT WITH (NOLOCK) ON LPT.[LeasePickTicketId] = LSI.[LeasePickTicketId]
@@ -61,6 +69,8 @@ BEGIN
 		 LEFT JOIN [dbo].[ShippingVia] SV WITH (NOLOCK)     ON SV.[ShippingViaId] = LS.[ShipViaId]
 		 LEFT JOIN [dbo].[ShippingStatus] SS WITH (NOLOCK)  ON SS.[ShippingStatusId] = LS.[LeaseShippingStatusId]
 		 LEFT JOIN [dbo].[LeaseCustomsInfo] LCI WITH (NOLOCK) ON LCI.[LeaseShippingId] = LS.[LeaseShippingId]
+		 LEFT JOIN [dbo].[LeasePackagingSlipItem] PSI WITH (NOLOCK) ON PSI.[LeasePickTicketId] = LPT.[LeasePickTicketId] AND PSI.[IsDeleted] = 0
+		 LEFT JOIN [dbo].[LeasePackagingSlipHeader] PSH WITH (NOLOCK) ON PSH.[PackagingSlipId] = PSI.[PackagingSlipId] AND PSH.[IsDeleted] = 0
 		WHERE LS.[LeaseHeaderId]      = @LeaseHeaderId
 		  AND LPT.[LeaseStocklineId]  = @LeaseStocklineId
 		  AND LSI.[IsDeleted] = 0 AND LS.[IsDeleted] = 0
@@ -92,11 +102,17 @@ BEGIN
 			CAST(0 AS DECIMAL(18, 6)) AS QtyShipped,
 			CAST((ISNULL(LPT.[QtyPicked], 0) - ISNULL(ST.QtyShipped, 0)) AS DECIMAL(18, 6)) AS QtyToShip,
 			LPT.[MasterCompanyId],
-			CAST(NULL AS DECIMAL(20, 2)) AS CustomsValue,
-			CAST(NULL AS VARCHAR(100)) AS CommodityCode
+			CAST(NULL AS DECIMAL(20, 6)) AS CustomsValue,
+			CAST(NULL AS VARCHAR(100)) AS CommodityCode,
+			'' AS FedexPdfPath,
+			'' AS UpsPdfPath,
+			ISNULL(PSH.[PackagingSlipId], 0) AS PackagingSlipId,
+			ISNULL(PSH.[PackagingSlipNo], '') AS PackagingSlipNo
 		FROM [dbo].[LeasePickTicket] LPT WITH (NOLOCK)
 		 LEFT JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.[LeaseStocklineId] = LPT.[LeaseStocklineId]
 		 LEFT JOIN ShippedTotal ST ON ST.[LeasePickTicketId] = LPT.[LeasePickTicketId]
+		 LEFT JOIN [dbo].[LeasePackagingSlipItem] PSI WITH (NOLOCK) ON PSI.[LeasePickTicketId] = LPT.[LeasePickTicketId] AND PSI.[IsDeleted] = 0
+		 LEFT JOIN [dbo].[LeasePackagingSlipHeader] PSH WITH (NOLOCK) ON PSH.[PackagingSlipId] = PSI.[PackagingSlipId] AND PSH.[IsDeleted] = 0
 		WHERE LPT.[LeaseHeaderId]     = @LeaseHeaderId
 		  AND LPT.[LeaseStocklineId]  = @LeaseStocklineId
 		  AND LPT.[IsDeleted] = 0

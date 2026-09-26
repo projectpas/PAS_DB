@@ -18,15 +18,20 @@
                                                  on the next load
     3    10/09/2026     Amit Ghediya            @OutrightPrice/@FlatRate widened from DECIMAL(18,2) to DECIMAL(18,6)
                                                  for the same reason - the LeaseStockline columns are (18,6)
+    4    25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] @PricingMethod (NVARCHAR 'Outright'/
+                                                 'FlatRate') replaced with @IsOutrightSale/@IsFlatRate (BIT),
+                                                 matching the Lease Properties popup's two independent
+                                                 checkboxes (see USP_CreateUpdateLeaseStockLine).
 
-exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@PricingMethod=N'FlatRate',@OutrightPrice=NULL,
+exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@IsOutrightSale=0,@IsFlatRate=1,@OutrightPrice=NULL,
 @FlatRate=500,@RateUnit=N'Cycle',@BillingMethod=N'FlatRatePlusOverrun',@BillingInterval=N'Monthly',
 @MinimumCycles=100,@MinimumTimes=50,@MaximumCycles=400,@MaximumTimes=200,
 @UsagePerUnitCycles=12,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=18,@OverrunPerUnitTimes=NULL,@UpdatedBy=''
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
+CREATE     PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@LeaseStocklineId BIGINT,
-	@PricingMethod NVARCHAR(100) = NULL,
+	@IsOutrightSale BIT = NULL,
+	@IsFlatRate BIT = NULL,
 	@OutrightPrice DECIMAL(18,6) = NULL,
 	@FlatRate DECIMAL(18,6) = NULL,
 	@RateUnit NVARCHAR(50) = NULL,
@@ -50,7 +55,8 @@ BEGIN
 
 		UPDATE [dbo].[LeaseStockline]
 		SET
-			PricingMethod         = @PricingMethod,
+			IsOutrightSale        = @IsOutrightSale,
+			IsFlatRate            = @IsFlatRate,
 			OutrightPrice         = @OutrightPrice,
 			FlatRate              = @FlatRate,
 			RateUnit              = @RateUnit,

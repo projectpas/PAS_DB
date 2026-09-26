@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[LeaseCharges] (
+﻿CREATE TABLE [dbo].[LeaseCharges] (
     [LeaseChargesId]   BIGINT          IDENTITY (1, 1) NOT NULL,
     [LeaseHeaderId]    BIGINT          NOT NULL,
     [LeaseStocklineId] BIGINT          NOT NULL,
@@ -12,18 +12,20 @@ CREATE TABLE [dbo].[LeaseCharges] (
     [ExtendedCost]     DECIMAL (18, 6) NULL,
     [MasterCompanyId]  INT             NOT NULL,
     [CreatedBy]        VARCHAR (256)   NOT NULL,
-    [UpdatedBy]         VARCHAR (256)  NOT NULL,
+    [UpdatedBy]        VARCHAR (256)   NOT NULL,
     [CreatedDate]      DATETIME        CONSTRAINT [DF_LeaseCharges_CreatedDate] DEFAULT (getutcdate()) NULL,
     [UpdatedDate]      DATETIME        CONSTRAINT [DF_LeaseCharges_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [IsActive]         BIT             CONSTRAINT [DF_LeaseCharges_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT             CONSTRAINT [DF_LeaseCharges_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_LeaseCharges] PRIMARY KEY CLUSTERED ([LeaseChargesId] ASC),
+    CONSTRAINT [FK_LeaseCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_LeaseCharges_LeaseHeader] FOREIGN KEY ([LeaseHeaderId]) REFERENCES [dbo].[LeaseHeader] ([LeaseHeaderId]),
     CONSTRAINT [FK_LeaseCharges_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId]),
-    CONSTRAINT [FK_LeaseCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
-    CONSTRAINT [FK_LeaseCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
-    CONSTRAINT [FK_LeaseCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_LeaseCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_LeaseCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 GO
@@ -48,3 +50,9 @@ BEGIN
 		SELECT * FROM DELETED
 	END
 END
+
+GO
+CREATE NONCLUSTERED INDEX [IX_LeaseCharges_LeaseStocklineId]
+    ON [dbo].[LeaseCharges]([LeaseStocklineId] ASC)
+    INCLUDE([ExtendedCost], [IsDeleted]);
+

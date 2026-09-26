@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[LeaseBillingInvoicingItemDetailsAudit] (
+    [LeaseBillingInvoicingItemDetailsAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [LeaseBillingInvoicingItemDetailId]       BIGINT          NULL,
+    [BillingInvoicingItemId]                  BIGINT          NULL,
+    [LeaseStocklineId]                        BIGINT          NULL,
+    [BillingMethod]                           VARCHAR (50)    NULL,
+    [BillingFrequency]                        VARCHAR (100)   NULL,
+    [TimeRecorded]                            DECIMAL (18, 6) NULL,
+    [TimeLimit]                               DECIMAL (18, 6) NULL,
+    [TimeOver]                                DECIMAL (18, 6) NULL,
+    [TimeOverageRate]                         DECIMAL (18, 6) NULL,
+    [TimeBillingAmount]                       DECIMAL (18, 6) NULL,
+    [CycleRecorded]                           DECIMAL (18, 6) NULL,
+    [CycleLimit]                              DECIMAL (18, 6) NULL,
+    [CycleOver]                               DECIMAL (18, 6) NULL,
+    [CycleOverageRate]                        DECIMAL (18, 6) NULL,
+    [CycleBillingAmount]                      DECIMAL (18, 6) NULL,
+    [TotalBillingAmount]                      DECIMAL (18, 6) NULL,
+    [MasterCompanyId]                         INT             NULL,
+    [CreatedBy]                               VARCHAR (256)   NULL,
+    [UpdatedBy]                               VARCHAR (256)   NULL,
+    [CreatedDate]                             DATETIME2 (7)   NULL,
+    [UpdatedDate]                             DATETIME2 (7)   NULL,
+    [IsActive]                                BIT             NULL,
+    [IsDeleted]                               BIT             NULL,
+    CONSTRAINT [PK_LeaseBillingInvoicingItemDetailsAudit] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailsAuditId] ASC)
+);
+

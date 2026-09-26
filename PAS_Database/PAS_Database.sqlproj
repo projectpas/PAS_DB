@@ -4829,6 +4829,11 @@
     <Build Include="dbo\User Defined Types\LeaseShippingType.sql" />
     <Build Include="dbo\User Defined Types\LeaseShippingItemsType.sql" />
     <Build Include="dbo\User Defined Types\LeaseCustomsInfoType.sql" />
+    <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetailsAudit.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_LeasePreview.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_Lease.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_LeasePreview.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_Lease.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

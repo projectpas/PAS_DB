@@ -14,9 +14,10 @@
  ** --   --------     -------		--------------------------------          
     1    26/05/2025   Moin Bloch    Created
     2    27/05/2025   Rajesh Gami   Added SO and Exchange
+    3    24/09/2026   Kishor Makwana Added Lease (PN-18072)
   EXEC [dbo].[GetCommonModuleDetails] 8781,15
 **************************************************************/ 
-Create   PROCEDURE [dbo].[GetCommonModuleDetails]
+Create    PROCEDURE [dbo].[GetCommonModuleDetails]
 @ReferenceId BIGINT=NULL,
 @ModuleId INT=NULL
 AS
@@ -30,6 +31,8 @@ BEGIN
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+		DECLARE @LeaseModuleId INT
+		SELECT @LeaseModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
 		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 		BEGIN			
@@ -55,6 +58,14 @@ BEGIN
 			 WHERE [ExchangeSalesOrderId] = @ReferenceId
 					
 		END /*********END: EXCHANGE ********/
+		ELSE IF(@ModuleId = @LeaseModuleId) /*********START: LEASE ********/
+		BEGIN
+			SELECT [LeaseHeaderId] ReferenceId,
+				   [LeaseNumber] ReferenceNum	
+			  FROM [dbo].[LeaseHeader] WITH(NOLOCK)
+			 WHERE [LeaseHeaderId] = @ReferenceId
+					
+		END /*********END: LEASE ********/
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

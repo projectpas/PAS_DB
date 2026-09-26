@@ -19,15 +19,20 @@
     7    11/09/2026     Amit Ghediya            Added @LeaseStatusId - on insert, defaults to the parent Lease Header's
                                                  current LeaseStatusId when not supplied; on update, preserves the existing
                                                  value unless the Edit Item screen explicitly passes a new one
+    8    25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] @PricingMethod (NVARCHAR 'Outright'/
+                                                 'FlatRate') replaced with @IsOutrightSale/@IsFlatRate (BIT) -
+                                                 the Lease Properties popup now has two independent checkboxes
+                                                 (Outright Sale, Flat Rate) instead of a single radio-style
+                                                 pricing method, so the schema now matches 1:1.
 
 exec USP_CreateUpdateLeaseStockLine
 @LeaseStocklineId=0,@LeaseHeaderId=1,@ItemMasterId=1,@PN='ABC-123',@StockLineId=1,@QtyOrder=1,@OutrightPrice=NULL,@FlatRate=NULL,
-@PricingMethod=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
+@IsOutrightSale=NULL,@IsFlatRate=NULL,@BillingInterval=NULL,@MinimumCycles=NULL,@MinimumTimes=NULL,@MaximumCycles=NULL,@MaximumTimes=NULL,
 @UsagePerUnitCycles=NULL,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=NULL,@OverrunPerUnitTimes=NULL,
 @Maintenance=NULL,@Insurance=NULL,@Taxes=NULL,@RepairOrderId=NULL,@WorkOrderId=NULL,
 @MasterCompanyId=1,@CreatedBy='',@UpdatedBy='',@Notes=NULL,@StartDate=NULL,@EndDate=NULL,@LeaseStatusId=NULL
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
+CREATE       PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@LeaseStocklineId BIGINT = 0,
 	@LeaseHeaderId BIGINT,
 	@ItemMasterId BIGINT,
@@ -36,7 +41,8 @@ CREATE      PROCEDURE [dbo].[USP_CreateUpdateLeaseStockLine]
 	@QtyOrder INT,
 	@OutrightPrice DECIMAL(18,2) = NULL,
 	@FlatRate DECIMAL(18,2) = NULL,
-	@PricingMethod NVARCHAR(100) = NULL,
+	@IsOutrightSale BIT = NULL,
+	@IsFlatRate BIT = NULL,
 	@RateUnit NVARCHAR(50) = NULL,
 	@BillingInterval NVARCHAR(100) = NULL,
 	@BillingMethod NVARCHAR(50) = NULL,
@@ -103,7 +109,8 @@ BEGIN
 				ConditionId           = @ConditionId,
 				OutrightPrice         = @OutrightPrice,
 				FlatRate              = @FlatRate,
-				PricingMethod         = @PricingMethod,
+				IsOutrightSale        = @IsOutrightSale,
+				IsFlatRate            = @IsFlatRate,
 				RateUnit              = @RateUnit,
 				BillingInterval       = @BillingInterval,
 				BillingMethod         = @BillingMethod,
@@ -141,7 +148,7 @@ BEGIN
 			INSERT INTO [dbo].[LeaseStockline]
 			(
 				LeaseHeaderId, ItemMasterId, PN, PNDescription, QtyOrder, QtyReserved, SN, StockLineId, StocklineNumber, ConditionId,
-				OutrightPrice, FlatRate, PricingMethod, RateUnit, BillingInterval, BillingMethod, MinimumCycles, MinimumTimes, MaximumCycles, MaximumTimes,
+				OutrightPrice, FlatRate, IsOutrightSale, IsFlatRate, RateUnit, BillingInterval, BillingMethod, MinimumCycles, MinimumTimes, MaximumCycles, MaximumTimes,
 				UsagePerUnitCycles, UsagePerUnitTimes, OverrunPerUnitCycles, OverrunPerUnitTimes, Maintenance, MaintenancePer, Insurance, InsurancePer, Taxes, TaxesPer,
 				RepairOrderId, RONumber, WorkOrderId, WorkOrderNo, Notes, StartDate, EndDate, LeaseStatusId,
 				MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
@@ -149,7 +156,7 @@ BEGIN
 			VALUES
 			(
 				@LeaseHeaderId, @ItemMasterId, @PN, @PNDescription, @QtyOrder, 0, @SN, @StockLineId, @StocklineNumber, @ConditionId,
-				@OutrightPrice, @FlatRate, @PricingMethod, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
+				@OutrightPrice, @FlatRate, @IsOutrightSale, @IsFlatRate, @RateUnit, @BillingInterval, @BillingMethod, @MinimumCycles, @MinimumTimes, @MaximumCycles, @MaximumTimes,
 				@UsagePerUnitCycles, @UsagePerUnitTimes, @OverrunPerUnitCycles, @OverrunPerUnitTimes, @Maintenance, @MaintenancePer, @Insurance, @InsurancePer, @Taxes, @TaxesPer,
 				@RepairOrderId, @RONumber, @WorkOrderId, @WorkOrderNo, @Notes, @StartDate, @EndDate, @LeaseStatusId,
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0

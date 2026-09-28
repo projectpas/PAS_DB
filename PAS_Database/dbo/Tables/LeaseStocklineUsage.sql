@@ -32,6 +32,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_LeaseStocklineUsageAudit]
    ON  [dbo].[LeaseStocklineUsage]
@@ -54,3 +56,9 @@ BEGIN
 		SELECT * FROM DELETED
 	END
 END
+
+GO
+CREATE NONCLUSTERED INDEX [IX_LeaseStocklineUsage_LeaseStocklineId]
+    ON [dbo].[LeaseStocklineUsage]([LeaseStocklineId] ASC)
+    INCLUDE([IsDeleted]);
+

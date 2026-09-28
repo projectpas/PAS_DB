@@ -37,10 +37,15 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    18/09/2026     Kishor Makwana          [PN-17949] Created
-    2    18/09/2026     Kishor Makwana          [PN-17949] Added the remaining Billing Invoice
-                                                 popup fields (Time/Print Date/Ship Date/Currency,
-                                                 Bill To/Ship To, Ship Via/Shipping Acct Info/Terms)
-                                                 to match the SO/WO popup's full field set.
+    2    18/09/2026     Kishor Makwana          [PN-17949] Added the remaining Billing Invoice popup fields (Time/Print Date/Ship Date/Currency, Bill To/Ship To, Ship Via/Shipping Acct Info/Terms) to match the SO/WO popup's full field set.
+	3    25/09/2026     Kishor Makwana          [PN-18072 follow-up 5] Added Maintenance/Insurance/Taxes/Other
+	                                            (Add Item tab Service Component amounts, Other = SUM of active dynamic
+	                                            LeaseStocklineServiceComponent rows) into TotalBillingAmount, unconditionally
+	                                            like Charges - matches the same addition just made to
+	                                            USP_GetLeaseBillingListByLeaseHeaderId so the persisted invoice total
+	                                            reconciles with the Billing/Invoicing grid's Total Billing column. Not
+	                                            snapshotted into LeaseBillingInvoicingItemDetails (same treatment as
+	                                            Charges above - live-joined only, folded into TotalBillingAmount/GrandTotal).
 
 DECLARE @Ids dbo.TVP_BigInt;
 INSERT INTO @Ids (Value) VALUES (1), (2);
@@ -48,7 +53,7 @@ EXEC USP_CreateLeaseBillingInvoice @LeaseHeaderId = 1, @LeaseStocklineIds = @Ids
     @SoldToCustomerId = 1, @SoldToSiteId = 1, @ShipToCustomerId = 1, @ShipToSiteId = 1,
     @MasterCompanyId = 1, @CreatedBy = 'test'
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
+CREATE     PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineIds [dbo].[TVP_BigInt] READONLY,
 	@InvoiceTypeId INT = NULL,
@@ -75,7 +80,9 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @CustomerId BIGINT, @ManagementStructureId BIGINT, @SalespersonEmployeeId BIGINT, @HeaderEmployeeId BIGINT, @LocalCurrencyId INT;
+		DECLARE @CustomerId BIGINT, @ManagementStructureId BIGINT, @SalespersonEmployeeId BIGINT, @HeaderEmployeeId BIGINT, @LocalCurrencyId INT,@LeaseModuleId BIGINT;
+		
+		SELECT TOP 1 @LeaseModuleId = ModuleId from Module WITH (NOLOCK) WHERE ModuleName ='Leasing';
 		SELECT
 			@CustomerId = CustomerId,
 			@ManagementStructureId = ManagementStructureId,
@@ -139,6 +146,7 @@ BEGIN
 				LSL.QtyReserved AS Qty,
 				LSL.BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
+				LSL.FlatRate,
 				CASE WHEN U.LeaseStocklineUsageId IS NOT NULL
 					 THEN ISNULL(U.CurrentTSNHours, 0) * 60 + ISNULL(U.CurrentTSNMinutes, 0)
 					 ELSE NULL END AS TimeRecorded,
@@ -146,41 +154,71 @@ BEGIN
 				LSL.OverrunPerUnitTimes AS TimeOverageRateRaw,
 				U.CurrentCSN AS CycleRecorded,
 				LSL.MaximumCycles AS CycleLimit,
-				LSL.OverrunPerUnitCycles AS CycleOverageRateRaw
+				LSL.OverrunPerUnitCycles AS CycleOverageRateRaw,
+				ISNULL(ChargesAgg.Charges, 0) AS Charges,
+				LSL.[Maintenance],
+				LSL.[Insurance],
+				LSL.[Taxes],
+				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @LeaseStocklineIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN [dbo].[LeaseStocklineUsage] U WITH (NOLOCK) ON U.LeaseStocklineId = LSL.LeaseStocklineId AND U.IsDeleted = 0
+			OUTER APPLY (
+				SELECT SUM(ISNULL(LC.ExtendedCost, 0)) AS Charges
+				FROM [dbo].[LeaseCharges] LC WITH (NOLOCK)
+				WHERE LC.LeaseStocklineId = LSL.LeaseStocklineId AND LC.IsDeleted = 0
+			) ChargesAgg
+			LEFT JOIN (
+				SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+				FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
+				WHERE IsDeleted = 0
+				GROUP BY LeaseStocklineId
+			) SC_SUM ON SC_SUM.LeaseStocklineId = LSL.LeaseStocklineId
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
 		),
 		WithOver AS (
 			SELECT *,
-				IsOverageBillingMethod = CASE WHEN BillingMethod = 'FlatRatePlusOverrun' THEN 1 ELSE 0 END,
-				TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN TimeRecorded - ISNULL(TimeLimit, 0) ELSE NULL END,
-				CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN CycleRecorded - ISNULL(CycleLimit, 0) ELSE NULL END
+				IsOverageBillingMethod = CASE WHEN BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END,
+				IsFlatRateBillingMethod = CASE WHEN BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END,
+				TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN
+						CASE WHEN (TimeRecorded - ISNULL(TimeLimit, 0)) < 0 THEN 0 ELSE (TimeRecorded - ISNULL(TimeLimit, 0)) END
+					ELSE NULL END,
+				CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN
+						CASE WHEN (CycleRecorded - ISNULL(CycleLimit, 0)) < 0 THEN 0 ELSE (CycleRecorded - ISNULL(CycleLimit, 0)) END
+					ELSE NULL END
 			FROM Base
 		)
 		SELECT
 			LeaseStocklineId, ItemMasterId, StockLineId, ConditionId, SerialNumber, Qty,
 			BillingMethod, BillingFrequency,
+			FlatRate = CASE WHEN IsFlatRateBillingMethod = 1 THEN FlatRate ELSE NULL END,
+			FlatRateAmount = CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE NULL END,
 			TimeRecorded, TimeLimit,
-			TimeOver = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw > 0 THEN TimeOverRaw ELSE NULL END,
+			TimeOver = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN TimeOverRaw ELSE NULL END,
 			TimeOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN TimeOverageRateRaw ELSE NULL END,
-			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw > 0
+			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL
 									  THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty
 									  ELSE NULL END,
 			CycleRecorded, CycleLimit,
-			CycleOver = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw > 0 THEN CycleOverRaw ELSE NULL END,
+			CycleOver = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw ELSE NULL END,
 			CycleOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN CycleOverageRateRaw ELSE NULL END,
-			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw > 0
+			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL
 										THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty
 										ELSE NULL END,
-			TotalBillingAmount = CASE WHEN IsOverageBillingMethod = 1 THEN
-					ISNULL(CASE WHEN TimeOverRaw > 0 THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
-				  + ISNULL(CASE WHEN CycleOverRaw > 0 THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
-				ELSE NULL END
+			Charges AS ChargesAmount,
+			Maintenance, Insurance, Taxes, OtherComponentAmount,
+			TotalBillingAmount =
+					ISNULL(CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(Charges, 0)
+				  + ISNULL(Maintenance, 0)
+				  + ISNULL(Insurance, 0)
+				  + ISNULL(Taxes, 0)
+				  + ISNULL(OtherComponentAmount, 0)
 		INTO #LeaseBillingCalc
 		FROM WithOver;
 
@@ -201,7 +239,7 @@ BEGIN
 			(ModuleId, ReferenceId, CustomerId, InvoiceTypeId, InvoiceNo, InvoiceDate, InvoiceTime, PrintDate,
 			 EmployeeId, CurrencyId, ManagementStructureId, Notes, SubTotal, GrandTotal, MasterCompanyId, CreatedBy, UpdatedBy)
 		VALUES
-			(72, @LeaseHeaderId, @CustomerId, @InvoiceTypeId, 'PENDING', @InvoiceDate, @InvoiceTime, @PrintDate,
+			(@LeaseModuleId, @LeaseHeaderId, @CustomerId, @InvoiceTypeId, 'PENDING', @InvoiceDate, @InvoiceTime, @PrintDate,
 			 @EmployeeId, @CurrencyId, @ManagementStructureId, @Notes, @GrandTotal, @GrandTotal, @MasterCompanyId, @CreatedBy, @CreatedBy);
 
 		DECLARE @BillingInvoicingId BIGINT = SCOPE_IDENTITY();
@@ -233,8 +271,21 @@ BEGIN
 			SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, ISNULL(@CodePrefix, ''), ISNULL(@CodeSuffix, '')));
 		END
 		ELSE
-		BEGIN
-			SET @InvoiceNo = 'LSE' + RIGHT('000000' + CAST(@BillingInvoicingId AS VARCHAR(20)), 6);
+		BEGIN			
+			DECLARE @LastInvoiceNo VARCHAR(256);
+			DECLARE @LastInvoiceNumber INT;
+
+			-- Get the last Leasing invoice number
+			SELECT TOP 1 @LastInvoiceNo = InvoiceNo	FROM [dbo].[BillingInvoicing] WITH (UPDLOCK, HOLDLOCK) 	
+			WHERE ModuleId = @LeaseModuleId   AND InvoiceNo LIKE 'LSI-%' AND ISNUMERIC(REPLACE(InvoiceNo, 'LSI-', '')) = 1
+			ORDER BY BillingInvoicingId DESC;
+
+			-- Get numeric portion
+			SET @LastInvoiceNumber =ISNULL(TRY_CAST(REPLACE(@LastInvoiceNo, 'LSI-', '') AS INT),0);
+
+			-- Increment
+			SET @LastInvoiceNumber = @LastInvoiceNumber + 1;
+			SET @InvoiceNo = 'LSI-' + RIGHT('000000' + CAST(@LastInvoiceNumber AS VARCHAR(20)), 6);
 		END
 
 		UPDATE [dbo].[BillingInvoicing] SET InvoiceNo = @InvoiceNo WHERE BillingInvoicingId = @BillingInvoicingId;
@@ -253,17 +304,19 @@ BEGIN
 			 SerialNumber, GrandTotal, ShipDate, MasterCompanyId, CreatedBy, UpdatedBy)
 		OUTPUT inserted.BillingInvoicingItemId, inserted.SubReferenceId INTO @InsertedItems (BillingInvoicingItemId, LeaseStocklineId)
 		SELECT
-			@BillingInvoicingId, 72, @LeaseHeaderId, 72, LeaseStocklineId, ItemMasterId, StockLineId, ConditionId,
+			@BillingInvoicingId, @LeaseModuleId, @LeaseHeaderId, @LeaseModuleId, LeaseStocklineId, ItemMasterId, StockLineId, ConditionId,
 			SerialNumber, TotalBillingAmount, @ShipDate, @MasterCompanyId, @CreatedBy, @CreatedBy
 		FROM #LeaseBillingCalc;
 
 		INSERT INTO [dbo].[LeaseBillingInvoicingItemDetails]
 			(BillingInvoicingItemId, LeaseStocklineId, BillingMethod, BillingFrequency,
+			 FlatRate, FlatRateAmount,
 			 TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount,
 			 CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, TotalBillingAmount,
 			 MasterCompanyId, CreatedBy, UpdatedBy)
 		SELECT
 			II.BillingInvoicingItemId, C.LeaseStocklineId, C.BillingMethod, C.BillingFrequency,
+			C.FlatRate, C.FlatRateAmount,
 			C.TimeRecorded/60, C.TimeLimit/60, C.TimeOver/60, C.TimeOverageRate, C.TimeBillingAmount,
 			C.CycleRecorded, C.CycleLimit, C.CycleOver, C.CycleOverageRate, C.CycleBillingAmount, C.TotalBillingAmount,
 			@MasterCompanyId, @CreatedBy, @CreatedBy

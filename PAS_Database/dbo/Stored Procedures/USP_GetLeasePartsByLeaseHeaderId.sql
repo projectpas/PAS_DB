@@ -36,10 +36,12 @@
     14   16/09/2026     Amit Ghediya            Added OtherComponentAmount - sum of Amount across all active dynamic
                                                  LeaseStocklineServiceComponent rows for the stockline (the "Other"
                                                  column shown alongside the static Maintenance/Insurance/Taxes columns)
+    15   25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] PricingMethod replaced with
+                                                 IsOutrightSale/IsFlatRate (see USP_CreateUpdateLeaseStockLine).
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
+CREATE     PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT = 0
 AS
@@ -72,7 +74,8 @@ BEGIN
 			LSL.StocklineNumber,
 			LSL.OutrightPrice,
 			LSL.FlatRate,
-			LSL.PricingMethod,
+			LSL.IsOutrightSale,
+			LSL.IsFlatRate,
 			LSL.RateUnit,
 			LSL.BillingInterval,
 			LSL.BillingMethod,

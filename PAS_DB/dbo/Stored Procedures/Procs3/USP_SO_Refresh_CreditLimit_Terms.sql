@@ -11,7 +11,8 @@
  **********************************************************               
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
-    1    02/07/2024		AMIT GHEDIYA		SO Refresh CreditLimit and Terms     
+    1    02/07/2024		AMIT GHEDIYA		SO Refresh CreditLimit and Terms    
+	2    28/09/2026     Moin Bloch          Added [PercentId],[Days][NetDays] PN-18123
  
  EXEC [USP_SO_Refresh_CreditLimit_Terms] 77,281,1
 ********************************************************************/ 
@@ -33,17 +34,23 @@ BEGIN
 				@CreaditTerms VARCHAR(50),
 			    @AccountType VARCHAR(50),
 				@AccountTypeId BIGINT,
-				@CustomerName VARCHAR(100);
+				@CustomerName VARCHAR(100),
+				@PercentId DECIMAL(18,2) = 0,
+				@Days TINYINT = 0,
+				@NetDays TINYINT = 0
 
 		IF(@IsGetCustomerCredirTems = 1)
 		BEGIN
-			;WITH Result(CreditLimit, CreditTermId, AccountTypeName, AccountTypeId, CreditTermName, CustomerName) AS(
+			;WITH Result(CreditLimit, CreditTermId, AccountTypeName, AccountTypeId, CreditTermName, CustomerName, [PercentId],[Days],[NetDays]) AS(
 				SELECT  CF.CreditLimit AS CreditLimit,
 						CF.CreditTermsId AS CreditTermId,
 						CT.CustomerTypeName AS AccountTypeName,
-						CT.CustomerTypeId AS AccountTypeId ,
+						CT.CustomerTypeId AS AccountTypeId,
 						CR.[Name] AS CreditTermName,
-						C.[Name] AS CustomerName
+						C.[Name] AS CustomerName,
+						CR.[PercentId] [PercentId],
+						CR.[Days] [Days],
+						CR.[NetDays] [NetDays]
 				FROM [dbo].[CustomerFinancial]  CF WITH (NOLOCK) 
 					 LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = CF.CustomerId
 					 LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
@@ -58,7 +65,10 @@ BEGIN
 				   @AccountType =  CT.CustomerTypeName,
 				   @AccountTypeId = CT.CustomerTypeId ,
 				   @CreaditTerms = CR.[Name],
-				   @CustomerName = C.[Name] 
+				   @CustomerName = C.[Name], 
+				   @PercentId = CR.[PercentId],
+				   @Days = CR.[Days],
+				   @NetDays = CR.[NetDays]
 			FROM [dbo].[CustomerFinancial]  CF WITH (NOLOCK) 
 		    LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = CF.CustomerId
 			LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
@@ -72,7 +82,10 @@ BEGIN
 				[CreditLimit] =  @CeraditLimit,
 				[CustomerName] = @CustomerName,
 				[CreditTermName] = @CreaditTerms,
-				[AccountTypeName] = @AccountType
+				[AccountTypeName] = @AccountType,
+				[PercentId] = @PercentId,
+				[Days] = @Days,
+				[NetDays] = @NetDays
 			FROM [dbo].[SalesOrder]  
 			WHERE SalesOrderId = @salesOrderId AND CustomerId = @CustomerId
 			

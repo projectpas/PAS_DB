@@ -20,6 +20,7 @@
 	6	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
     7    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 2 leftover IsNonStock=0 exclusion filters.
+	9    25/Sep/2026   RAJESH GAMI		[PN-18106] - @ModuleId = 3 (Sales Order): Convert ReqQty from Stock UOM to Purchase UOM (same as @ModuleId = 1,5)
  EXECUTE USP_GetReqQtyFromPart 6691, 12684, 751, 3
 **************************************************************/         
 CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
@@ -61,18 +62,28 @@ BEGIN
 				GROUP BY SOP_A.ItemMasterId, SOP_A.ConditionId, SOP_A.SalesOrderId
 			)
 
-			SELECT 
-				ISNULL(
-					(ISNULL(SUM(CASE 
-									WHEN SOP.TotalQtyRequested IS NOT NULL THEN SOP.TotalQtyRequested 
-									ELSE SOP_A.TotalQtyRequested 
-							   END), 0) 
-					- ISNULL(SUM(SOP.TotalQtyReserved), 0)), 0
-				) AS 'ReqQty'
-			FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
-			LEFT JOIN AggregatedSOP SOP ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId
-			LEFT JOIN AggregatedSOP_A SOP_A ON SOP_A.ItemMasterId = POP.ItemMasterId AND SOP_A.ConditionId = POP.ConditionId
-			WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
+			,BaseDataMain AS (
+				SELECT 
+					ISNULL(
+						(ISNULL(SUM(CASE 
+										WHEN SOP.TotalQtyRequested IS NOT NULL THEN SOP.TotalQtyRequested 
+										ELSE SOP_A.TotalQtyRequested 
+								   END), 0) 
+						- ISNULL(SUM(SOP.TotalQtyReserved), 0)), 0
+					) AS ReqQty,
+					MAX(uomStock.ShortName) AS UOMStock,
+					MAX(uom.ShortName) AS UOMPurchase,
+					MAX(POP.MasterCompanyId) AS MasterCompanyId
+				FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+				LEFT JOIN AggregatedSOP SOP ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId
+				LEFT JOIN AggregatedSOP_A SOP_A ON SOP_A.ItemMasterId = POP.ItemMasterId AND SOP_A.ConditionId = POP.ConditionId
+				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON POP.ItemMasterId = im.ItemMasterId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+				WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId
+			)
+			SELECT ReqQty = CASE WHEN ISNULL(UOMStock,'') = ISNULL(UOMPurchase,'') THEN ISNULL(ReqQty,0) ELSE dbo.fn_ConvertUOM(ISNULL(ReqQty,0), UOMStock, UOMPurchase, 0, [MasterCompanyId]) END
+			FROM BaseDataMain;
 		END
 		ELSE IF @ModuleId = 1
 		BEGIN

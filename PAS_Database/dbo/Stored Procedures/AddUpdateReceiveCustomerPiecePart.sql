@@ -18,6 +18,7 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
 	8    13/Aug/2026   RAJESH GAMI    [PN-17008] - Re-added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter on the ItemMaster lookup that was dropped when this proc was ported from BETA.
+	9    25/09/2026   Ayushi Patel    [PN-18075] Set ConsumeUnitOfMeasureId from ItemMaster (was always 0) and refresh Stockline columns on update
  ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -259,7 +260,8 @@ BEGIN
 					   @IsPMA  = [IsPMA],
 					   @IsDER = [IsDER],
 					   @OEM = [IsOEM], 
-					   @RevicedPNId = [RevisedPartId]					  
+					   @RevicedPNId = [RevisedPartId],
+					   @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId]
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
@@ -640,10 +642,11 @@ BEGIN
 						  ,ST.[IsUpdated] = 1
 						  ,ST.[LastSyncDate] = GETUTCDATE()
 						  ,ST.[StockUnitOfMeasureId] = TR.[StockUnitOfMeasureId]
+						  ,ST.[ConsumeUnitOfMeasureId] = @ConsumeUnitOfMeasureId
 					     FROM [dbo].[Stockline] ST WITH(NOLOCK) INNER JOIN #tmprReceiveCustomerPiecePart TR ON ST.[StockLineId] = TR.[StockLineId]
 				     WHERE ST.[StockLineId] = @StocklineId;
 
-					EXEC [dbo].[UpdateStocklineColumnsWithId] @NewStocklineId;
+					EXEC [dbo].[UpdateStocklineColumnsWithId] @StocklineId;
 
 					IF (@IsTimeLIfe = 1 AND @TimeLifeDetailsNotProvided = 0)
                     BEGIN

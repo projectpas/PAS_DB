@@ -12,10 +12,13 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    25/SEP/2026   Kishor Makwana	CREATED [PN-18072] pre-commit invoice preview
+    2    28/SEP/2026   Kishor Makwana	[PN-18072 follow-up] Maintenance/Insurance/Taxes/Other now
+                                     fold into @SubTotal instead of @Tax/@OtherTaxAmt - see the
+                                     comment just above the SELECT that sets them.
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
-CREATE        PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
+CREATE   OR ALTER     PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
 @LeaseHeaderId BIGINT = NULL,
 @LeaseStocklineIds VARCHAR(MAX) = NULL,
 @MasterCompanyId INT = NULL,
@@ -162,15 +165,20 @@ BEGIN
 			ELSE NULL END
 		FROM Base
 	)
+	-- [PN-18072 follow-up] Maintenance/Insurance/Taxes/Other are ordinary item-detail lines (see
+	-- RPT_GetCommonBillingInvoicingItems_LeasePreview), not a real sales tax - folded into @SubTotal
+	-- directly instead of being pulled into @Tax/@OtherTaxAmt (the "SALES TAX"/"OTHER TAX" boxes),
+	-- which are now always 0. Only Charges still comes out separately, into @MiscCharges, as before.
 	SELECT
 		@SubTotal = SUM(
 			ISNULL(CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE 0 END, 0)
 		  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
 		  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+		  + ISNULL(Maintenance, 0) + ISNULL(Insurance, 0) + ISNULL(Taxes, 0) + ISNULL(OtherComponentAmount, 0)
 		),
 		@MiscCharges = SUM(ISNULL(Charges, 0)),
-		@Tax = SUM(ISNULL(Maintenance, 0) + ISNULL(Insurance, 0) + ISNULL(Taxes, 0)),
-		@OtherTaxAmt = SUM(ISNULL(OtherComponentAmount, 0))
+		@Tax = 0,
+		@OtherTaxAmt = 0
 	FROM WithOver;
 	-- ============================================================================================
 

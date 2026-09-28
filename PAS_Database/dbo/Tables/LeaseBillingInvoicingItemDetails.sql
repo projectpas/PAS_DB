@@ -54,13 +54,39 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM INSERTED)
 	BEGIN
 		INSERT INTO [dbo].[LeaseBillingInvoicingItemDetailsAudit]
-		SELECT * FROM INSERTED
+		(
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount]
+		)
+		SELECT
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount]
+		FROM INSERTED
 	END
 
 	-- Handles DELETE (rows exist only in DELETED)
 	IF EXISTS (SELECT 1 FROM DELETED) AND NOT EXISTS (SELECT 1 FROM INSERTED)
 	BEGIN
 		INSERT INTO [dbo].[LeaseBillingInvoicingItemDetailsAudit]
-		SELECT * FROM DELETED
+		(
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount]
+		)
+		SELECT
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount]
+		FROM DELETED
 	END
 END

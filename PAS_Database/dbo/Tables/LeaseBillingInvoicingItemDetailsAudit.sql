@@ -23,6 +23,8 @@
     [UpdatedDate]                             DATETIME2 (7)   NULL,
     [IsActive]                                BIT             NULL,
     [IsDeleted]                               BIT             NULL,
+    [FlatRate]                                DECIMAL (18, 6) NULL,
+    [FlatRateAmount]                          DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseBillingInvoicingItemDetailsAudit] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailsAuditId] ASC)
 );
 

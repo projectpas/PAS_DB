@@ -1,15 +1,17 @@
 ﻿
-/***************************************************************  
- ** File:  [USP_GetLeaseShippingForEdit]            
+/***************************************************************
+ ** File:  [USP_GetLeaseShippingForEdit]
  ** Author:   Moin Bloch
  ** Description: Get Lease Shipping details for edit, including customs info and item lines
  ** Date:  25-Sep-2026
- ** Change History             
- *******************************************************************************************             
- ** PR   Date				Author  				Change Description              
- ** --   --------			-------				--------------------------------            
+ ** Change History
+ *******************************************************************************************
+ ** PR   Date				Author  				Change Description
+ ** --   --------			-------				--------------------------------
     1    21-Sep-2026		Moin Bloch			Created
-	
+    2    25-Sep-2026		Moin Bloch			Added carrier-enrichment columns (country ISO codes, phone/contact,
+                                            UOM short names, currency codes) for FedEx/UPS integration - mirrors dbo.GetWorkOrderShipping
+
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseShippingForEdit]
 	@LeaseShippingId BIGINT
@@ -38,11 +40,48 @@ BEGIN
 			LS.[OriginSiteId],
 			ISNULL(LS.[IsSameForShipTo], 0) AS IsSameForShipTo,
 			LS.[CreatedBy], LS.[MasterCompanyId],
+			ISNULL(LS.[isBypassShipping], 0) AS IsBypassShipping,
 			LCI.[EntryType], LCI.[EntryNumber], LCI.[CommodityCode], LCI.[EPU], LCI.[UCR], LCI.[MasterUCR], LCI.[MovementRefNo],
-			LCI.[CustomsValue], LCI.[CustomCurrencyId], LCI.[NetMass], LCI.[VATValue]
+			LCI.[CustomsValue], LCI.[CustomCurrencyId], LCI.[NetMass], LCI.[VATValue],
+			-- Carrier-enrichment (mirrors dbo.GetWorkOrderShipping) --
+			uois.ShortName AS ShipSizeUnitOfMeasure,
+			uoi.ShortName AS ShipWeightUnitOfMeasure,
+			quoi.ShortName AS QtyUOMVal,
+			CASE WHEN ISNULL(LS.[SoldToState], '') = '' THEN '' ELSE LS.[SoldToState] END AS SoldStateCode,
+			CASE WHEN ISNULL(LS.[OriginState], '') = '' THEN '' ELSE LS.[OriginState] END AS OriginStateCode,
+			CASE WHEN ISNULL(LS.[ShipToState], '') = '' THEN '' ELSE LS.[ShipToState] END AS ShipStateCode,
+			ISNULL(soldcon.countries_iso_code, '') AS SoldCountryCode,
+			ISNULL(ocon.countries_iso_code, '') AS OriginCountryCode,
+			ISNULL(shipcon.countries_iso_code, '') AS ShipCountryCode,
+			ISNULL(mocon.countries_iso_code, '') AS ManufactureCountry,
+			shipcont.CustomerPhone AS ShipPhoneNumber,
+			shipcont.CustomerPhoneExt AS ShipphoneExtension,
+			cus.CustomerPhone AS SoldPhoneNumber,
+			cus.CustomerPhoneExt AS SoldphoneExtension,
+			cont.WorkPhone AS OriginPhoneNumber,
+			ISNULL(cont.WorkPhoneExtn, '') AS OrignphoneExtension,
+			LS.[ShipToName] AS ShipContactpersonName,
+			LS.[SoldToName] AS SoldContactpersonName,
+			LS.[OriginName] AS OrignContactpersonName,
+			cur.Code AS UnitCurrency,
+			ccur.Code AS CustomCurrency
 		FROM [dbo].[LeaseShipping] LS WITH (NOLOCK)
 		 LEFT JOIN [dbo].[ShippingVia] SV WITH (NOLOCK) ON SV.[ShippingViaId] = LS.[ShipViaId]
 		 LEFT JOIN [dbo].[LeaseCustomsInfo] LCI WITH (NOLOCK) ON LCI.[LeaseShippingId] = LS.[LeaseShippingId]
+		 LEFT JOIN [dbo].[LeaseHeader] LH WITH (NOLOCK) ON LH.[LeaseHeaderId] = LS.[LeaseHeaderId]
+		 LEFT JOIN [dbo].[UnitOfMeasure] uoi WITH (NOLOCK) ON LS.[ShipWeightUnit] = uoi.[UnitOfMeasureId]
+		 LEFT JOIN [dbo].[UnitOfMeasure] uois WITH (NOLOCK) ON LS.[ShipSizeUnitOfMeasureId] = uois.[UnitOfMeasureId]
+		 LEFT JOIN [dbo].[UnitOfMeasure] quoi WITH (NOLOCK) ON LS.[QtyUOM] = quoi.[UnitOfMeasureId]
+		 LEFT JOIN [dbo].[Countries] ocon WITH (NOLOCK) ON LS.[OriginCountryId] = ocon.[countries_id]
+		 LEFT JOIN [dbo].[Countries] shipcon WITH (NOLOCK) ON LS.[ShipToCountryId] = shipcon.[countries_id]
+		 LEFT JOIN [dbo].[Countries] soldcon WITH (NOLOCK) ON LS.[SoldToCountryId] = soldcon.[countries_id]
+		 LEFT JOIN [dbo].[Countries] mocon WITH (NOLOCK) ON LS.[ManufactureCountryId] = mocon.[countries_id]
+		 LEFT JOIN [dbo].[Customer] cus WITH (NOLOCK) ON LH.[CustomerId] = cus.[CustomerId]
+		 LEFT JOIN [dbo].[Customer] shipcont WITH (NOLOCK) ON LS.[ShipToCustomerId] = shipcont.[CustomerId]
+		 LEFT JOIN [dbo].[CustomerContact] custcon WITH (NOLOCK) ON LH.[CustomerContactId] = custcon.[CustomerContactId]
+		 LEFT JOIN [dbo].[Contact] cont WITH (NOLOCK) ON custcon.[ContactId] = cont.[ContactId]
+		 LEFT JOIN [dbo].[Currency] cur WITH (NOLOCK) ON LS.[UnitPriceCurrencyId] = cur.[CurrencyId]
+		 LEFT JOIN [dbo].[Currency] ccur WITH (NOLOCK) ON LCI.[CustomCurrencyId] = ccur.[CurrencyId]
 		WHERE LS.[LeaseShippingId] = @LeaseShippingId;
 
 		SELECT

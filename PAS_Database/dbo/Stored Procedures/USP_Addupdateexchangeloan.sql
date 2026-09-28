@@ -13,6 +13,7 @@
  ** --   ----------  -----------------  -----------------------------         
  **  1   17-09-2025   Nakul Chandigra    Created 
  **  2   01-May-2025   Nakul Chandigra   Added ExchangeOutrightPrice While Update [PN-16021 ]
+ **  3   28-09-2026	  Amit Ghediya		 Added for Lease [PN-18048]
  ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Addupdateexchangeloan] 
 	@tbl_AddexchangeloanType dbo.AddexchangeloanType READONLY 
@@ -62,6 +63,23 @@ BEGIN
 			,T.OPcogs					=	S.OPcogs
 			,T.EFcogsamount				=	S.EFcogsamount
 			,T.OPcogsamount				=	S.OPcogsamount
+			,T.IsFinanceLease					=	S.IsFinanceLease
+			,T.FinanceLeaseCurrencyId			=	S.FinanceLeaseCurrencyId
+			,T.IsOutrightSale					=	S.IsOutrightSale
+			,T.FinanceLeaseOutrightPrice		=	S.FinanceLeaseOutrightPrice
+			,T.IsFlatRate						=	S.IsFlatRate
+			,T.FinanceLeaseFlatRate				=	S.FinanceLeaseFlatRate
+			,T.FinanceLeaseRateUnit				=	S.FinanceLeaseRateUnit
+			,T.FinanceLeaseBillingMethod		=	S.FinanceLeaseBillingMethod
+			,T.FinanceLeaseBillingInterval		=	S.FinanceLeaseBillingInterval
+			,T.FinanceLeaseMinimumCycles		=	S.FinanceLeaseMinimumCycles
+			,T.FinanceLeaseMinimumTimes		=	S.FinanceLeaseMinimumTimes
+			,T.FinanceLeaseMaximumCycles		=	S.FinanceLeaseMaximumCycles
+			,T.FinanceLeaseMaximumTimes		=	S.FinanceLeaseMaximumTimes
+			,T.FinanceLeaseUsagePerUnitCycles	=	S.FinanceLeaseUsagePerUnitCycles
+			,T.FinanceLeaseUsagePerUnitTimes	=	S.FinanceLeaseUsagePerUnitTimes
+			,T.FinanceLeaseOverrunPerUnitCycles	=	S.FinanceLeaseOverrunPerUnitCycles
+			,T.FinanceLeaseOverrunPerUnitTimes	=	S.FinanceLeaseOverrunPerUnitTimes
 			FROM [DBO].ItemMasterExchangeLoan  T
 			INNER JOIN  @tbl_AddexchangeloanType S
 			ON T.ItemMasterLoanExchId = @ID;
@@ -73,18 +91,21 @@ BEGIN
 		INSERT INTO [DBO].[ItemMasterExchangeLoan]
 		(
 				[ItemMasterId],[IsLoan]  ,[IsExchange]  ,[ExchangeCurrencyId]  ,[LoanCurrencyId] ,[ExchangeListPrice],[ExchangeCorePrice] ,[ExchangeOverhaulPrice],[ExchangeOutrightPrice] ,[ExchangeCoreCost],[LoanCorePrice] ,
-				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  ,[CreatedDate]  ,[UpdatedBy]  ,[UpdatedDate]  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] 
+				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  ,[CreatedDate]  ,[UpdatedBy]  ,[UpdatedDate]  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] ,
+				[IsFinanceLease],[FinanceLeaseCurrencyId],[IsOutrightSale],[FinanceLeaseOutrightPrice],[IsFlatRate],[FinanceLeaseFlatRate],[FinanceLeaseRateUnit],[FinanceLeaseBillingMethod],[FinanceLeaseBillingInterval],[FinanceLeaseMinimumCycles],[FinanceLeaseMinimumTimes],[FinanceLeaseMaximumCycles],[FinanceLeaseMaximumTimes],[FinanceLeaseUsagePerUnitCycles],[FinanceLeaseUsagePerUnitTimes],[FinanceLeaseOverrunPerUnitCycles],[FinanceLeaseOverrunPerUnitTimes]
 		)
-		SELECT 
+		SELECT
 				[ItemMasterId],[IsLoan]  ,[IsExchange]  ,[ExchangeCurrencyId]  ,[LoanCurrencyId] ,[ExchangeListPrice],[ExchangeCorePrice] ,[ExchangeOverhaulPrice],[ExchangeOutrightPrice] ,[ExchangeCoreCost],[LoanCorePrice] ,
-				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  , GETUTCDATE() ,[UpdatedBy]  ,GETUTCDATE()  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] 
+				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  , GETUTCDATE() ,[UpdatedBy]  ,GETUTCDATE()  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] ,
+				[IsFinanceLease],[FinanceLeaseCurrencyId],[IsOutrightSale],[FinanceLeaseOutrightPrice],[IsFlatRate],[FinanceLeaseFlatRate],[FinanceLeaseRateUnit],[FinanceLeaseBillingMethod],[FinanceLeaseBillingInterval],[FinanceLeaseMinimumCycles],[FinanceLeaseMinimumTimes],[FinanceLeaseMaximumCycles],[FinanceLeaseMaximumTimes],[FinanceLeaseUsagePerUnitCycles],[FinanceLeaseUsagePerUnitTimes],[FinanceLeaseOverrunPerUnitCycles],[FinanceLeaseOverrunPerUnitTimes]
 		FROM @tbl_AddexchangeloanType ael
 
 
 		SET @ItemMasterLoanExchId = SCOPE_IDENTITY()  
 
 		SELECT 	[ItemMasterLoanExchId],[ItemMasterId],[IsLoan]  ,[IsExchange]  ,[ExchangeCurrencyId]  ,[LoanCurrencyId] ,[ExchangeListPrice],[ExchangeCorePrice] ,[ExchangeOverhaulPrice],[ExchangeOutrightPrice] ,[ExchangeCoreCost],[LoanCorePrice] ,
-				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  ,[CreatedDate]  ,[UpdatedBy]  ,[UpdatedDate]  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] 
+				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  ,[CreatedDate]  ,[UpdatedBy]  ,[UpdatedDate]  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] ,
+				[IsFinanceLease],[FinanceLeaseCurrencyId],[IsOutrightSale],[FinanceLeaseOutrightPrice],[IsFlatRate],[FinanceLeaseFlatRate],[FinanceLeaseRateUnit],[FinanceLeaseBillingMethod],[FinanceLeaseBillingInterval],[FinanceLeaseMinimumCycles],[FinanceLeaseMinimumTimes],[FinanceLeaseMaximumCycles],[FinanceLeaseMaximumTimes],[FinanceLeaseUsagePerUnitCycles],[FinanceLeaseUsagePerUnitTimes],[FinanceLeaseOverrunPerUnitCycles],[FinanceLeaseOverrunPerUnitTimes]
 		FROM [DBO].[ItemMasterExchangeLoan] WITH(NOLOCK)
 		WHERE [ItemMasterLoanExchId] = @ItemMasterLoanExchId
 

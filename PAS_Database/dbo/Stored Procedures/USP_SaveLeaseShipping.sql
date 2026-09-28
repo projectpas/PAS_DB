@@ -1,6 +1,6 @@
 ﻿
-/***************************************************************  
- ** File:  [USP_SaveLeaseShipping]            
+/***************************************************************
+ ** File:  [USP_SaveLeaseShipping]
  ** Author:   Moin Bloch
  ** Description: Save (insert/update) Lease Shipping header, customs info and item lines
  ** Date:  25-Sep-2026
@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------
     1    24-Sep-2026		Moin Bloch			Created
     2    25-Sep-2026		Moin Bloch			Widened CustomsValue/NetMass/VATValue to DECIMAL(20,6) to match LeaseCustomsInfo
+    3    25-Sep-2026		Moin Bloch			Added IsBypassShipping passthrough for FedEx/UPS carrier integration
 
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveLeaseShipping]
@@ -87,6 +88,7 @@ BEGIN
 				 [Shipment], [IsCustomerShipping], [ShippingAccountInfo], [IsManualShipping], [isIgnoreAWB],
 				 [ShipWeightUnit], [ShipSizeLength], [ShipSizeWidth], [ShipSizeHeight], [ShipSizeUnitOfMeasureId],
 				 [NoOfItems], [ManufactureCountryId], [QtyUOM], [UnitPrice], [UnitPriceCurrencyId],
+				 [isBypassShipping],
 				 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 			OUTPUT INSERTED.[LeaseShippingId] INTO @InsertedLeaseShipping([LeaseShippingId])
 			SELECT LST.[LeaseHeaderId], @LeaseShippingNumber, @IncomingStatusId, ISNULL(LST.[OpenDate], LST.[ShipDate]), ISNULL(@CustomerId, 0), LST.[ShipViaId], LST.[ShipDate],
@@ -100,6 +102,7 @@ BEGIN
 			       LST.[Shipment], LST.[IsCustomerShipping], LST.[ShippingAccountInfo], LST.[IsManualShipping], LST.[isIgnoreAWB],
 			       LST.[ShipWeightUnit], LST.[ShipSizeLength], LST.[ShipSizeWidth], LST.[ShipSizeHeight], LST.[ShipSizeUnitOfMeasureId],
 			       LST.[NoOfItems], LST.[ManufactureCountryId], LST.[QtyUOM], LST.[UnitPrice], LST.[UnitPriceCurrencyId],
+			       ISNULL(LST.[IsBypassShipping], 0),
 			       LST.[MasterCompanyId], LST.[CreatedBy], LST.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0
 			FROM @LeaseShippingTable LST;
 
@@ -132,6 +135,7 @@ BEGIN
 				LS.[ShipSizeHeight] = src.[ShipSizeHeight], LS.[ShipSizeUnitOfMeasureId] = src.[ShipSizeUnitOfMeasureId],
 				LS.[NoOfItems] = src.[NoOfItems], LS.[ManufactureCountryId] = src.[ManufactureCountryId], LS.[QtyUOM] = src.[QtyUOM],
 				LS.[UnitPrice] = src.[UnitPrice], LS.[UnitPriceCurrencyId] = src.[UnitPriceCurrencyId],
+				LS.[isBypassShipping] = ISNULL(src.[IsBypassShipping], 0),
 				LS.[UpdatedBy] = src.[UpdatedBy], LS.[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[LeaseShipping] LS
 			INNER JOIN @LeaseShippingTable src ON src.[LeaseShippingId] = @LeaseShippingId

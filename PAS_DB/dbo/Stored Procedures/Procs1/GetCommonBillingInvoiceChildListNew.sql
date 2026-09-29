@@ -36,6 +36,8 @@
 	23   22/Aug/2026  Vishal Suthar		Fixed duplicate rows AND incorrect QtyBilled/InvoiceDate/InvoiceStatus in SO @AllowBillingBeforeShipping=0 branch.
 	24   24/Aug/2026  Kishor Makwana	[PN-17763] - Fixed  '' AS InvoiceStatus to sobi.InvoiceStatus AS InvoiceStatus in SO @AllowBillingBeforeShipping= 1
 	25   27/Aug/2026  Kishor Makwana    [PN-17821] - Proforma Invoice SalesOrderShipping and SalesOrderShippingItem changesInner join to Left join 
+	26   29/Sep/2026   Rajesh Gami       Fixed QtyToBill being split across multiple rows (e.g. 9 and 1) instead of summed (10) for a billed
+	                                     SO line whose SalesOrderPartId/StockLine has more than one SOPickTicket.
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -1437,6 +1439,50 @@ BEGIN
 					
 			END /*********END: SALES ORDER ********/
 			UPDATE #InvoiceMainDetails SET IsFinishGood = (CASE WHEN @IsTearDownWO =  1 THEN 1 ELSE IsFinishGood END)
+
+			-- [Rajesh Gami] 29/Sep/2026 - GetCommonBillingInvoiceChildListNew was returning one #InvoiceMainDetails row
+			-- per SOPickTicket instead of one row per billed invoice line whenever a Sales Order part's stockline has
+			-- more than one SOPickTicket (e.g. picked/shipped across two partial picks). The QtyToBill subquery for a
+			-- billed row (SO 'Main --Exist' branch) is correlated to the specific SOPickTicket joined via SOPPick, so
+			-- each fanned-out row only carried that one pick ticket's own quantity (e.g. 9 and 1) instead of the
+			-- invoice line's true total (e.g. 10). This block runs after all population logic above (both SO
+			-- sub-branches and the WorkOrder branch) and collapses rows that represent the same billed line (same
+			-- BillingInvoicingId + SalesOrderPartId + StockLineId + SerialNumber) into a single row, summing QtyToBill
+			-- across them. Scoped to BillingInvoicingId IS NOT NULL AND SalesOrderPartId IS NOT NULL so it only ever
+			-- touches billed SO rows and cannot affect WorkOrder rows or the not-yet-invoiced 'available to bill' row
+			-- (which already sums correctly on its own and has BillingInvoicingId = NULL). Uses a real temp table
+			-- (not a CTE) since the group needs to be visible across both the UPDATE and the DELETE below.
+			IF OBJECT_ID('tempdb..#BilledLineGroups') IS NOT NULL
+				DROP TABLE #BilledLineGroups;
+
+			SELECT
+				BillingInvoicingId,
+				SalesOrderPartId,
+				ISNULL(StockLineId, -1) AS StockLineIdKey,
+				ISNULL(SerialNumber, '') AS SerialNumberKey,
+				MIN(Id) AS KeepId,
+				SUM(ISNULL(QtyToBill, 0)) AS SummedQtyToBill
+			INTO #BilledLineGroups
+			FROM #InvoiceMainDetails
+			WHERE BillingInvoicingId IS NOT NULL AND SalesOrderPartId IS NOT NULL
+			GROUP BY BillingInvoicingId, SalesOrderPartId, ISNULL(StockLineId, -1), ISNULL(SerialNumber, '')
+			HAVING COUNT(1) > 1;
+
+			UPDATE t SET t.QtyToBill = g.SummedQtyToBill
+			FROM #InvoiceMainDetails t
+			INNER JOIN #BilledLineGroups g ON g.KeepId = t.Id;
+
+			DELETE t
+			FROM #InvoiceMainDetails t
+			INNER JOIN #BilledLineGroups g
+				ON g.BillingInvoicingId = t.BillingInvoicingId
+				AND g.SalesOrderPartId = t.SalesOrderPartId
+				AND g.StockLineIdKey = ISNULL(t.StockLineId, -1)
+				AND g.SerialNumberKey = ISNULL(t.SerialNumber, '')
+			WHERE t.Id <> g.KeepId;
+
+			DROP TABLE #BilledLineGroups;
+
 			SELECT  * FROM #InvoiceMainDetails ORDER BY IsProformaInvoice ASC, BillingInvoicingId DESC,InvoiceNo DESC, VersionNo DESC;	
 		END TRY    
 		BEGIN CATCH      

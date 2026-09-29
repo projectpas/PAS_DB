@@ -24,5 +24,22 @@
     [EFcogs]                INT             NULL,
     [OPcogs]                INT             NULL,
     [EFcogsamount]          DECIMAL (18, 6) NULL,
-    [OPcogsamount]          DECIMAL (18, 6) NULL);
+    [OPcogsamount]          DECIMAL (18, 6) NULL,
+    [IsFinanceLease]                    BIT             NULL,
+    [FinanceLeaseCurrencyId]            BIGINT          NULL,
+    [IsOutrightSale]                    BIT             NULL,
+    [FinanceLeaseOutrightPrice]         DECIMAL (18, 6) NULL,
+    [IsFlatRate]                        BIT             NULL,
+    [FinanceLeaseFlatRate]              DECIMAL (18, 6) NULL,
+    [FinanceLeaseRateUnit]              NVARCHAR (50)   NULL,
+    [FinanceLeaseBillingMethod]         NVARCHAR (50)   NULL,
+    [FinanceLeaseBillingInterval]       NVARCHAR (100)  NULL,
+    [FinanceLeaseMinimumCycles]         DECIMAL (18, 6) NULL,
+    [FinanceLeaseMinimumTimes]          DECIMAL (18, 6) NULL,
+    [FinanceLeaseMaximumCycles]         DECIMAL (18, 6) NULL,
+    [FinanceLeaseMaximumTimes]          DECIMAL (18, 6) NULL,
+    [FinanceLeaseUsagePerUnitCycles]    DECIMAL (18, 6) NULL,
+    [FinanceLeaseUsagePerUnitTimes]     DECIMAL (18, 6) NULL,
+    [FinanceLeaseOverrunPerUnitCycles]  DECIMAL (18, 6) NULL,
+    [FinanceLeaseOverrunPerUnitTimes]   DECIMAL (18, 6) NULL);
 

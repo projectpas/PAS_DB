@@ -25,6 +25,7 @@
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	10    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	11    29-Sep-2026			 RAJESH GAMI						[PN-17339] Work Order: Deleted Sub Work Order still appears in the Cost Analysis Summary tab - #tmpSubWorkOrder, @woNumber (STRING_AGG) and @subItemMasterIds now all exclude deleted Sub Work Orders (ISNULL(SWO.IsDeleted,0) = 0 / scoped to #tmpSubWorkOrder), so a deleted Sub-WO's number, parts and costs no longer show up on the parent WO's Cost Analysis Summary tab.
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 4324, 641, false, 627     
 exec USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails @WorkOrderWorkflowId=4324,@WorkOrderId=4776,@IsSubWOFromWo=1,@SubWOPartNoId=0
@@ -71,13 +72,15 @@ BEGIN
 
 		IF(@IsSubWOFromWo = 1) -- Check is subWO for WO
 		BEGIN 
+			-- [Bug fix] 29-Sep-2026: exclude deleted Sub Work Orders everywhere below, otherwise a deleted
+			-- Sub-WO's number/parts/costs keep showing up in the parent WO's Cost Analysis Summary tab.
 			INSERT INTO #tmpSubWorkOrder (SubWorkOrderId)
 				SELECT SubWorkOrderId FROM [DBO].[SubWorkOrder] SWO WITH(NOLOCK) INNER JOIN [DBO].[WorkOrderWorkFlow] WF ON SWO.WorkOrderId = WF.WorkOrderId 
 																				AND WF.WorkOrderPartNoId = SWO.WorkOrderPartNumberId
-				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId;
+				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND ISNULL(SWO.IsDeleted,0) = 0;
 
-			SET @woNumber = (SELECT STRING_AGG([SubWorkOrderNo], ', ') FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
-			SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
+			SET @woNumber = (SELECT STRING_AGG([SubWorkOrderNo], ', ') FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND ISNULL(IsDeleted,0) = 0);
+			SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [SubWorkOrderId] IN (SELECT SubWorkOrderId FROM #tmpSubWorkOrder));
 			SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ',')) ;
 		END
 		ELSE

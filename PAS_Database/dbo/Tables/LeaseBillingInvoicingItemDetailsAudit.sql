@@ -23,6 +23,14 @@
     [UpdatedDate]                             DATETIME2 (7)   NULL,
     [IsActive]                                BIT             NULL,
     [IsDeleted]                               BIT             NULL,
+    [TimeUsageQty]                            DECIMAL (18, 6) NULL,
+    [TimeUsageRate]                           DECIMAL (18, 6) NULL,
+    [TimeUsageAmount]                         DECIMAL (18, 6) NULL,
+    [CycleUsageQty]                           DECIMAL (18, 6) NULL,
+    [CycleUsageRate]                          DECIMAL (18, 6) NULL,
+    [CycleUsageAmount]                        DECIMAL (18, 6) NULL,
+    [FlatRate]                                DECIMAL (18, 6) NULL,
+    [FlatRateAmount]                          DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseBillingInvoicingItemDetailsAudit] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailsAuditId] ASC)
 );
 

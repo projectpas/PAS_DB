@@ -38,14 +38,16 @@
  ** --   --------       -------                 --------------------------------
     1    18/09/2026     Kishor Makwana          [PN-17949] Created
     2    18/09/2026     Kishor Makwana          [PN-17949] Added the remaining Billing Invoice popup fields (Time/Print Date/Ship Date/Currency, Bill To/Ship To, Ship Via/Shipping Acct Info/Terms) to match the SO/WO popup's full field set.
-	3    25/09/2026     Kishor Makwana          [PN-18072 follow-up 5] Added Maintenance/Insurance/Taxes/Other
-	                                            (Add Item tab Service Component amounts, Other = SUM of active dynamic
-	                                            LeaseStocklineServiceComponent rows) into TotalBillingAmount, unconditionally
-	                                            like Charges - matches the same addition just made to
-	                                            USP_GetLeaseBillingListByLeaseHeaderId so the persisted invoice total
-	                                            reconciles with the Billing/Invoicing grid's Total Billing column. Not
-	                                            snapshotted into LeaseBillingInvoicingItemDetails (same treatment as
-	                                            Charges above - live-joined only, folded into TotalBillingAmount/GrandTotal).
+	3    25/09/2026     Kishor Makwana          [PN-18072 follow-up 5] Added Maintenance/Insurance/Taxes/Other (Add Item tab Service Component amounts, Other = SUM of active dynamic
+	                                            LeaseStocklineServiceComponent rows) into TotalBillingAmount, unconditionally like Charges - matches the same addition just made to
+	                                            USP_GetLeaseBillingListByLeaseHeaderId so the persisted invoice total reconciles with the Billing/Invoicing grid's Total Billing column. Not
+	                                            snapshotted into LeaseBillingInvoicingItemDetails (same treatment as Charges above - live-joined only, folded into TotalBillingAmount/GrandTotal).
+    4    28/09/2026     Kishor Makwana          [PN-17949 follow-up] Persist the base-usage breakdown so the finalized invoice PDF's per-line Qty x Rate = Total stays consistent. Added
+	                                            TimeUsageQty/TimeUsageRate/TimeUsageAmount and CycleUsageQty/ CycleUsageRate/CycleUsageAmount to LeaseBillingInvoicingItemDetails
+	                                            (see table/audit/trigger changes) and now populate them here from TimeBilledBaseRaw/TimeUsageRateRaw and CycleBilledBaseRaw/
+	                                            CycleUsageRateRaw, alongside the existing overage-only TimeOver/ TimeOverageRate/CycleOver/CycleOverageRate columns. Without this,
+	                                            RPT_GetCommonBillingInvoicingItems_Lease had no way to show separate 'Time Usage'/'Cycle Usage' line items on the finalized invoice - only
+	                                            the combined TimeBillingAmount/CycleBillingAmount was available.
 
 DECLARE @Ids dbo.TVP_BigInt;
 INSERT INTO @Ids (Value) VALUES (1), (2);
@@ -53,7 +55,7 @@ EXEC USP_CreateLeaseBillingInvoice @LeaseHeaderId = 1, @LeaseStocklineIds = @Ids
     @SoldToCustomerId = 1, @SoldToSiteId = 1, @ShipToCustomerId = 1, @ShipToSiteId = 1,
     @MasterCompanyId = 1, @CreatedBy = 'test'
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
+CREATE      PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineIds [dbo].[TVP_BigInt] READONLY,
 	@InvoiceTypeId INT = NULL,
@@ -151,9 +153,13 @@ BEGIN
 					 THEN ISNULL(U.CurrentTSNHours, 0) * 60 + ISNULL(U.CurrentTSNMinutes, 0)
 					 ELSE NULL END AS TimeRecorded,
 				CASE WHEN LSL.MaximumTimes IS NOT NULL THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
+				LSL.UsagePerUnitTimes AS TimeUsageRateRaw,
 				LSL.OverrunPerUnitTimes AS TimeOverageRateRaw,
 				U.CurrentCSN AS CycleRecorded,
 				LSL.MaximumCycles AS CycleLimit,
+				LSL.MinimumCycles AS CycleMinimum,
+				LSL.UsagePerUnitCycles AS CycleUsageRateRaw,
 				LSL.OverrunPerUnitCycles AS CycleOverageRateRaw,
 				ISNULL(ChargesAgg.Charges, 0) AS Charges,
 				LSL.[Maintenance],
@@ -184,10 +190,20 @@ BEGIN
 				IsOverageBillingMethod = CASE WHEN BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END,
 				IsFlatRateBillingMethod = CASE WHEN BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END,
 				TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN
-						CASE WHEN (TimeRecorded - ISNULL(TimeLimit, 0)) < 0 THEN 0 ELSE (TimeRecorded - ISNULL(TimeLimit, 0)) END
+						CASE WHEN TimeLimit IS NOT NULL AND TimeRecorded > TimeLimit THEN TimeRecorded - TimeLimit ELSE 0 END
+					ELSE NULL END,
+				TimeBilledBaseRaw = CASE WHEN TimeRecorded IS NOT NULL THEN
+						CASE WHEN TimeLimit IS NOT NULL AND TimeRecorded > TimeLimit THEN TimeLimit
+							 WHEN TimeRecorded < ISNULL(TimeMinimum, 0) THEN ISNULL(TimeMinimum, 0)
+							 ELSE TimeRecorded END
 					ELSE NULL END,
 				CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN
-						CASE WHEN (CycleRecorded - ISNULL(CycleLimit, 0)) < 0 THEN 0 ELSE (CycleRecorded - ISNULL(CycleLimit, 0)) END
+						CASE WHEN CycleLimit IS NOT NULL AND CycleRecorded > CycleLimit THEN CycleRecorded - CycleLimit ELSE 0 END
+					ELSE NULL END,
+				CycleBilledBaseRaw = CASE WHEN CycleRecorded IS NOT NULL THEN
+						CASE WHEN CycleLimit IS NOT NULL AND CycleRecorded > CycleLimit THEN CycleLimit
+							 WHEN CycleRecorded < ISNULL(CycleMinimum, 0) THEN ISNULL(CycleMinimum, 0)
+							 ELSE CycleRecorded END
 					ELSE NULL END
 			FROM Base
 		)
@@ -199,20 +215,34 @@ BEGIN
 			TimeRecorded, TimeLimit,
 			TimeOver = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN TimeOverRaw ELSE NULL END,
 			TimeOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN TimeOverageRateRaw ELSE NULL END,
-			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL
-									  THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty
+			TimeBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeBilledBaseRaw IS NOT NULL
+									  THEN (TimeBilledBaseRaw / 60.0) * ISNULL(TimeUsageRateRaw, 0) * Qty
+										 + (ISNULL(TimeOverRaw, 0) / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty
 									  ELSE NULL END,
 			CycleRecorded, CycleLimit,
 			CycleOver = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw ELSE NULL END,
 			CycleOverageRate = CASE WHEN IsOverageBillingMethod = 1 THEN CycleOverageRateRaw ELSE NULL END,
-			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL
-										THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty
+			CycleBillingAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleBilledBaseRaw IS NOT NULL
+										THEN CycleBilledBaseRaw * ISNULL(CycleUsageRateRaw, 0) * Qty
+										   + ISNULL(CycleOverRaw, 0) * ISNULL(CycleOverageRateRaw, 0) * Qty
 										ELSE NULL END,
+			TimeUsageQty = CASE WHEN IsOverageBillingMethod = 1 AND TimeBilledBaseRaw IS NOT NULL THEN TimeBilledBaseRaw / 60.0 ELSE NULL END,
+			TimeUsageRate = CASE WHEN IsOverageBillingMethod = 1 THEN TimeUsageRateRaw ELSE NULL END,
+			TimeUsageAmount = CASE WHEN IsOverageBillingMethod = 1 AND TimeBilledBaseRaw IS NOT NULL
+								   THEN (TimeBilledBaseRaw / 60.0) * ISNULL(TimeUsageRateRaw, 0) * Qty
+								   ELSE NULL END,
+			CycleUsageQty = CASE WHEN IsOverageBillingMethod = 1 AND CycleBilledBaseRaw IS NOT NULL THEN CycleBilledBaseRaw ELSE NULL END,
+			CycleUsageRate = CASE WHEN IsOverageBillingMethod = 1 THEN CycleUsageRateRaw ELSE NULL END,
+			CycleUsageAmount = CASE WHEN IsOverageBillingMethod = 1 AND CycleBilledBaseRaw IS NOT NULL
+									THEN CycleBilledBaseRaw * ISNULL(CycleUsageRateRaw, 0) * Qty
+									ELSE NULL END,
 			Charges AS ChargesAmount,
 			Maintenance, Insurance, Taxes, OtherComponentAmount,
 			TotalBillingAmount =
 					ISNULL(CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND TimeBilledBaseRaw IS NOT NULL THEN (TimeBilledBaseRaw / 60.0) * ISNULL(TimeUsageRateRaw, 0) * Qty ELSE 0 END, 0)
 				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
+				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND CycleBilledBaseRaw IS NOT NULL THEN CycleBilledBaseRaw * ISNULL(CycleUsageRateRaw, 0) * Qty ELSE 0 END, 0)
 				  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
 				  + ISNULL(Charges, 0)
 				  + ISNULL(Maintenance, 0)
@@ -313,12 +343,14 @@ BEGIN
 			 FlatRate, FlatRateAmount,
 			 TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount,
 			 CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, TotalBillingAmount,
+			 TimeUsageQty, TimeUsageRate, TimeUsageAmount, CycleUsageQty, CycleUsageRate, CycleUsageAmount,
 			 MasterCompanyId, CreatedBy, UpdatedBy)
 		SELECT
 			II.BillingInvoicingItemId, C.LeaseStocklineId, C.BillingMethod, C.BillingFrequency,
 			C.FlatRate, C.FlatRateAmount,
 			C.TimeRecorded/60, C.TimeLimit/60, C.TimeOver/60, C.TimeOverageRate, C.TimeBillingAmount,
 			C.CycleRecorded, C.CycleLimit, C.CycleOver, C.CycleOverageRate, C.CycleBillingAmount, C.TotalBillingAmount,
+			C.TimeUsageQty, C.TimeUsageRate, C.TimeUsageAmount, C.CycleUsageQty, C.CycleUsageRate, C.CycleUsageAmount,
 			@MasterCompanyId, @CreatedBy, @CreatedBy
 		FROM @InsertedItems II
 		INNER JOIN #LeaseBillingCalc C ON C.LeaseStocklineId = II.LeaseStocklineId;

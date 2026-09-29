@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_ProcStockListFromItemMasterId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to get available qty >0 stocklines from the Item Master.
@@ -15,6 +15,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
+	5    29/09/2026              Ayushi Patel						[PN-18147] - Return Stock unit of measure
 -- EXEC USP_Lot_ProcStockListFromItemMasterId
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
@@ -92,7 +93,7 @@ BEGIN
 						   UPPER(MSD.Level4Name) AS dept
 						  ,UPPER(MSD.LastMSLevel) LastMSLevel
 					      ,UPPER(MSD.AllMSlevels) AllMSlevels
-						  ,UPPER(stl.UnitOfMeasure) AS Uom
+						  ,UPPER(stl.StockUnitOfMeasure) AS Uom
 						  ,UPPER(stl.ControlNumber) AS CntrlNumber
 						  	,stl.TraceableToName
 							,stl.TaggedByName

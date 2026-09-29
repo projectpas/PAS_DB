@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    05/15/2025		Vishal Suthar	    CREATED
+	2    09/28/2026		Nakul    		    [PN-18135] - Label showed only the selected part's QtyShipped when a shipment had multiple stocklines; NoOfPiece is now the SUM of QtyShipped across all non-deleted items of the shipment.
 
 exec GetROShippingLabelByRepairOrderId 1570,1973,621
 **************************************************************/ 
@@ -55,7 +56,9 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					sosi.QtyShipped AS NoOfPiece,
+					--sosi.QtyShipped AS NoOfPiece,
+					(SELECT SUM(ISNULL(rosi.QtyShipped, 0)) FROM dbo.[RepairOrderShippingItem] rosi WITH(NOLOCK)
+					 WHERE rosi.RepairOrderShippingId = sos.RepairOrderShippingId AND rosi.IsDeleted = 0) AS NoOfPiece,
 					so.UpdatedDate
 				FROM 
 					dbo.[RepairOrder] so WITH(NOLOCK)

@@ -15,10 +15,11 @@
  ** PR  Date			Author				Change Description            
  ** --  --------		-------				--------------------------------          
 	1	04/15/2025		Vishal Suthar		Created
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    01/July/2026	RAJESH GAMI			[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026	RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4   15-JUL-2026     Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
-	5    24/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	5    24/July/2026	RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	6   29-Sep-2026     Amit Ghediya        Allow IsPiecePart in RepairOrderPart PickTicket [PN-18146]
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_RO]
@@ -83,7 +84,7 @@ BEGIN
 			CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE ropt.[QtyRemaining] END AS QtyRemaining
 		FROM [dbo].[ROPickTicket] ropt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.RepairOrderId = ropt.RepairOrderId AND cte.RepairOrderPartId = ropt.RepairOrderPartId
-		INNER JOIN [dbo].[RepairOrderPart] rop WITH(NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId AND rop.StockLineId = ropt.StocklineId AND ISNULL(rop.IsPiecePart,0) = 0
+		INNER JOIN [dbo].[RepairOrderPart] rop WITH(NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId AND rop.StockLineId = ropt.StocklineId
 		INNER JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
 		INNER JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = rop.StockLineId
 		INNER JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = rop.ItemMasterId

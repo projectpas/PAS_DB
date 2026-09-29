@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    05/15/2025		Vishal Suthar	    CREATED
+	2    09/29/2026		Amit Ghediya	    Get NoOfPiece from RepairOrderShipping [PN-18151]
 
 exec GetROShippingLabelByRepairOrderId 1570,1973,621
 **************************************************************/ 
@@ -55,7 +56,8 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					sosi.QtyShipped AS NoOfPiece,
+					--sosi.QtyShipped AS NoOfPiece,
+					sos.NoOfItems AS NoOfPiece,
 					so.UpdatedDate
 				FROM 
 					dbo.[RepairOrder] so WITH(NOLOCK)

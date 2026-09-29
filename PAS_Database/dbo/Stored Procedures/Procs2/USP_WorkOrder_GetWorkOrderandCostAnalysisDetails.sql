@@ -27,6 +27,7 @@
 	11   30/Mar/2026  Rajesh Gami		UOM Changes [PN-15741]
 	12   09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13   23/July/2026   RAJESH GAMI		[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
+	14   29-Sep-2026   RAJESH GAMI		[PN-17339] Work Order: Deleted Sub Work Order still appears in the Cost Analysis Summary tab - the @IsSubWO EXISTS check now excludes deleted Sub Work Orders (ISNULL(SWO.IsDeleted,0) = 0), same filter added to the #tmpSubWorkOrder population, so a WO whose only Sub-WO is deleted no longer reports IsSubWO = 1.
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
 **************************************************************/
@@ -512,7 +513,7 @@ BEGIN
 
 		INSERT INTO #tmpSubWorkOrder (SubWorkOrderId) 
 			SELECT SWOLH.SubWorkOrderId
-		FROM SubWorkOrder SWOLH WITH(NOLOCK) where WorkOrderId = @WorkOrderId;
+		FROM SubWorkOrder SWOLH WITH(NOLOCK) where WorkOrderId = @WorkOrderId AND ISNULL(SWOLH.IsDeleted,0) = 0; -- [PN-17339] exclude deleted Sub Work Orders
 
 		--Reset counts.
 		SET @TotalCounts  = 0;
@@ -546,7 +547,10 @@ BEGIN
 
 	   IF EXISTS(SELECT 1 FROM [DBO].[SubWorkOrder] SWO WITH(NOLOCK) INNER JOIN [DBO].[WorkOrderWorkFlow] WF ON SWO.WorkOrderId = WF.WorkOrderId 
 																				AND WF.WorkOrderPartNoId = SWO.WorkOrderPartNumberId
-				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId)
+				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId
+				AND ISNULL(SWO.IsDeleted,0) = 0) -- [PN-17339] exclude deleted Sub Work Orders, otherwise the
+				-- Cost Analysis Summary tab keeps showing a Sub Work Order section for a WO whose only Sub-WO
+				-- has been deleted.
 	   BEGIN
 			SET @IsSubWO = 1;
 	   END

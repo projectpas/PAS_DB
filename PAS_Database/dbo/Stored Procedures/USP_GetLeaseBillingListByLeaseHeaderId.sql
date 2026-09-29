@@ -56,7 +56,7 @@
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE  OR ALTER   PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
+CREATE PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN

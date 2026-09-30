@@ -3348,7 +3348,6 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetbulkstocklineadjustmentById.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetCageCode_ByLegalEntityId.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\usp_GetCapabilitiesReport.sql" />
-    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIPartsAvailabilityAndStockout.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetCapesListByAssetId.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetCertificationTypeList.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetCheckAddressListByVendorId.sql" />

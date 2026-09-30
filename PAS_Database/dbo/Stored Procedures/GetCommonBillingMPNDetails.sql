@@ -39,6 +39,15 @@
 	27	 19/Aug/2026 Kishor Makwana		[PN-17688] - Added SubReferenceId join condition (tolerant of NULL) to the SO branch's BillingInvoicingItems match, so a Revised Invoice for one Part doesn't incorrectly flip another Part's billing row to Old Version.
 	28	 19/Aug/2026 Kishor Makwana		[PN-17723] - Added AllowInvoiceBeforeShipping for SO: wrapped the existing part-list INSERT in IF(@AllowInvoiceBeforeShipping = 1), added a new ELSE branch (ported from Sprint_67) scoped to shipped/pick-ticketed parts for the invoice-before-shipping-disabled case.
 	29	 24/Aug/2026 Kishor Makwana		[PN-17763] - SO Billing Issue Fix for Invoice Before Shipping case: scoped the SO stockline join to ToTalReservedQty > 0 in both branches, and rebuilt the ELSE branch as 3 UNION arms (reserved/pick-ticketed stock, Non-Stock Service, Proforma Invoice) instead of one query.
+	30	 30/Sep/2026 Kishor Makwana		[PN-18154] - Fixed SO Billing could not bill the full picked/shipped qty when the
+						same Stockline was picked/shipped across multiple SalesOrderShippingItem rows under one shipment: the
+						OUTER APPLY resolving SHIPPINGINFO used TOP 1, so only one arbitrary shipment's SalesOrderShippingId came
+						back per part (matching the Sprint_67 fix, ported here as the same change). Now returns one row per
+						distinct SalesOrderShippingId with its own summed QtyShipped in the 3 OUTER APPLY-driven arms (the
+						@AllowInvoiceBeforeShipping=1 arm, the Non-Stock Service arm, and the Proforma Invoice arm). The 4th
+						(reserved/pick-ticketed stock) arm has the same shape of issue via its direct SOPT/sosi join, but its
+						QtyBilled/UOM-conversion logic differs enough from the other 3 arms that it was left untouched pending
+						confirmation - see PR notes.
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 1162,1830,'1830',10,1,0
 	exec dbo.GetCommonBillingMPNDetails @ReferenceId=1211,@SubReferenceId=1884,@SubReferenceIds=N'1884',@ModuleId=10,@IsCreatedFromQuote=1,@IsProformaInvoice=0
@@ -565,10 +574,15 @@ BEGIN
 				 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 				 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 				  OUTER APPLY (
-					SELECT TOP 1 s.SalesOrderShippingId
+					-- [PN-18154] one row per distinct shipment (not TOP 1) so a part shipped across
+					-- multiple SalesOrderShippingItem rows for the same stockline produces a separate
+					-- billable row per shipment with its own summed shipped qty, instead of
+					-- collapsing every shipment into a single arbitrary (TOP 1) row.
+					SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 					FROM [dbo].[SalesOrderShippingItem] s
 					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-					ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+					  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+					GROUP BY s.SalesOrderShippingId
 				) SHIPPINGINFO
 			WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))
@@ -611,10 +625,15 @@ BEGIN
 						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 						 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 						  OUTER APPLY (
-							SELECT TOP 1 s.SalesOrderShippingId
+							-- [PN-18154] one row per distinct shipment (not TOP 1) so a part shipped across
+							-- multiple SalesOrderShippingItem rows for the same stockline produces a separate
+							-- billable row per shipment with its own summed shipped qty, instead of
+							-- collapsing every shipment into a single arbitrary (TOP 1) row.
+							SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 							FROM [dbo].[SalesOrderShippingItem] s
 							WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-							ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+							  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+							GROUP BY s.SalesOrderShippingId
 						) SHIPPINGINFO
 					WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.IsNonStock,0) = 1 AND ISNULL(sl.IsService,0) = 1
 				  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))
@@ -633,10 +652,15 @@ BEGIN
 					 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 					  OUTER APPLY (
-						SELECT TOP 1 s.SalesOrderShippingId
+						-- [PN-18154] one row per distinct shipment (not TOP 1) so a part shipped across
+						-- multiple SalesOrderShippingItem rows for the same stockline produces a separate
+						-- billable row per shipment with its own summed shipped qty, instead of
+						-- collapsing every shipment into a single arbitrary (TOP 1) row.
+						SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 						FROM [dbo].[SalesOrderShippingItem] s
 						WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-						ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+						  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+						GROUP BY s.SalesOrderShippingId
 					) SHIPPINGINFO
 				WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 				  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))

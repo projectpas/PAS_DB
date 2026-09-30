@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetCommonForStocklineByItemMasterId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get CommonForStocklineByItemMasterId List
@@ -15,6 +15,7 @@
 	3    03-06-2026    Sahdev Saliya       Added Model [PN-16667]
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    04-Aug-2026   Rajesh Gami         [PN-17009] Merge Non-Stock Inventory into Stockline: added IsService
+	6    29-Sep-2026   Sahdev Saliya       [PN-18088] Return WorkInProgressGLAccId/Name so Stockline defaults WIP GL Account from Item Master
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 									 to the SELECT list. Deliberately NOT adding an IsNonStock filter - this
@@ -23,7 +24,7 @@
 									 Warehouse/Location/Shelf/Bin defaults) for Non-Stock item masters.
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
+CREATE    PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
     @ItemMasterId BIGINT = NULL
 
 AS
@@ -93,7 +94,9 @@ BEGIN
 			uom.DecimalPlaces AS DecimalPlaces,
 			iM.StockUnitOfMeasureId,
 			iM.ConsumeUnitOfMeasureId,
-			iM.Model
+			iM.Model,
+			iM.WorkInProgressGLAccId,
+			iM.WorkInProgressGLAccName
 
 	    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId

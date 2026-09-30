@@ -24,6 +24,7 @@
 	                                        asm.TangibleClassId -> TangibleClass.TangibleClassName, falling back to
 	                                        asm.DeprNonDeprTangibleAssetsId -> DeprNonDeprTangibleAssets -> TangibleClass.TangibleClassName,
 	                                        and blank when neither resolves, instead of the Tangible/Intangible flag.
+	9    29-09-2026  Sahdev Saliya			Fixed the Asset Class/Asset Type display issue by adding fallback logic for non-Intangible assets.
 
 ************************************************************************/
 
@@ -133,7 +134,8 @@ BEGIN
      UPPER(maf.Name) AS ManufacturerName,  
      UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
      UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
-     UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ''))) AS AssetClass,
+     UPPER(CASE WHEN ISNULL(asm.IsIntangible, 0) = 1 THEN ISNULL(ait.AssetIntangibleName, '')
+                ELSE COALESCE(tcDirect.TangibleClassName, tcViaDnd.TangibleClassName, tcViaAat.TangibleClassName, '') END) AS AssetClass,
 	 UPPER((SELECT TOP 1 AssetDepreciationMethodName FROM dbo.AssetDepreciationMethod AS adm WITH(NOLOCK) WHERE adm.AssetDepreciationMethodId = asty.DepreciationMethod)) AS DepreciationMethod,
      UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
      UPPER(asty.AssetAttributeTypeName) AS AssetType,   
@@ -158,6 +160,8 @@ BEGIN
 	  LEFT JOIN dbo.TangibleClass tcDirect WITH(NOLOCK) on asm.TangibleClassId = tcDirect.TangibleClassId
 	  LEFT JOIN dbo.DeprNonDeprTangibleAssets dndFallback WITH(NOLOCK) on asm.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
 	  LEFT JOIN dbo.TangibleClass tcViaDnd WITH(NOLOCK) on dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
+	  LEFT JOIN dbo.TangibleClass tcViaAat WITH(NOLOCK) on asty.TangibleClassId = tcViaAat.TangibleClassId
+	  LEFT JOIN dbo.AssetIntangibleType ait WITH(NOLOCK) on asm.AssetIntangibleTypeId = ait.AssetIntangibleTypeId
       LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
       Left Join AssetCapes AC WITH (NOLOCK) on asm.AssetRecordId = AC.AssetRecordId and AC.IsDeleted = 0  
       Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = AC.ItemMasterId

@@ -32,11 +32,13 @@
    16       19-AUG-2026     DIVYESH KATHIRIYA       Add New 'WorksheetHeader' Module.[PN-16806]
    17 	    18-JUN-2026	    DIVYESH KATHIRIYA       Handle 'Engine' wise data in "AircraftCycleTimeMappings". [PN-16870]
    18       12-AUG-2026     DIVYESH KATHIRIYA       Merge related Stockline audit statements into one NonStockLine history event. [PN-17557]
+   19       30-SEP-2026     Moin Bloch              AircraftCycleTimeMappings: Engine Registry headers (ModuleId = 2) have a single engine row
+                                                    saved with the real engine name, so map it to Engine 1 instead of parsing EngineName.
 
 exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
 
-CREATE PROC [dbo].[usp_Get_CommonAuditLogHistory]
+CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
     @ModuleId       BIGINT        = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
     @PK_Key         nvarchar(128) = NULL,       -- e.g. 'CustomerContactId'
     @PK_Value       nvarchar(128) = NULL,       -- e.g. '6678' (compared as NVARCHAR)
@@ -70,6 +72,7 @@ BEGIN
         DECLARE @CustomerDomensticShippingModule AS INT;
         DECLARE @AircraftWorksheetHeaderModule AS INT;
         DECLARE @NonStockLineModule AS INT;
+		DECLARE @AircraftCycle INT = 1,@EngineCycle INT = 2
 
         -- Validate sort dir
         IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
@@ -218,7 +221,12 @@ BEGIN
 					ON AESM.AircraftEngineStartsMappingsId = TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, '$.aircraftenginestartsmappingsid'))
 				CROSS APPLY
 				(
-					SELECT TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), 'ENGINE', ''), ' ', '')) AS EngineNo
+					SELECT CASE
+						WHEN EXISTS (SELECT 1 FROM dbo.AircraftCycleTimeMappings ACTM WITH (NOLOCK)
+									 WHERE ACTM.AircraftCycleTimeMappingsId = AESM.AircraftCycleTimeMappingsId AND ACTM.ModuleId = @EngineCycle)
+						THEN @AircraftCycle
+						ELSE TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), 'ENGINE', ''), ' ', ''))
+					END AS EngineNo
 				) EngineInfo
                  WHERE (@SubModule IS NULL OR AL.TableName = @SubModule)
                   AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
@@ -472,7 +480,12 @@ BEGIN
 								ON AESM.AircraftEngineStartsMappingsId = TRY_CONVERT(BIGINT, JSON_VALUE(AL.PKJson, ''$.aircraftenginestartsmappingsid''))
 							CROSS APPLY
 							(
-								SELECT TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), ''ENGINE'', ''''), '' '', '''')) AS EngineNo
+								SELECT CASE
+										WHEN EXISTS (SELECT 1 FROM dbo.AircraftCycleTimeMappings ACTM WITH (NOLOCK)
+													 WHERE ACTM.AircraftCycleTimeMappingsId = AESM.AircraftCycleTimeMappingsId AND ACTM.ModuleId = 2)
+										THEN 1
+										ELSE TRY_CONVERT(INT, REPLACE(REPLACE(UPPER(AESM.EngineName), ''ENGINE'', ''''), '' '', ''''))
+									END AS EngineNo
 							) EngineInfo
 							WHERE (@SubModule IS NULL OR AL.TableName = @SubModule)
 							  AND (@StartAt IS NULL OR AL.ChangedAt >= @StartAt)

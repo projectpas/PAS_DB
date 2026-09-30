@@ -24,10 +24,18 @@
     [IsDeleted]                         BIT             CONSTRAINT [DF_LeaseBillingInvoicingItemDetails_IsDeleted] DEFAULT ((0)) NOT NULL,
     [FlatRate]                          DECIMAL (18, 6) NULL,
     [FlatRateAmount]                    DECIMAL (18, 6) NULL,
+    [TimeUsageQty]                      DECIMAL (18, 6) NULL,
+    [TimeUsageRate]                     DECIMAL (18, 6) NULL,
+    [TimeUsageAmount]                   DECIMAL (18, 6) NULL,
+    [CycleUsageQty]                     DECIMAL (18, 6) NULL,
+    [CycleUsageRate]                    DECIMAL (18, 6) NULL,
+    [CycleUsageAmount]                  DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseBillingInvoicingItemDetails] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailId] ASC),
     CONSTRAINT [FK_LeaseBillingInvoicingItemDetails_BillingInvoicingItems] FOREIGN KEY ([BillingInvoicingItemId]) REFERENCES [dbo].[BillingInvoicingItems] ([BillingInvoicingItemId]),
     CONSTRAINT [FK_LeaseBillingInvoicingItemDetails_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId])
 );
+
+
 
 
 
@@ -54,13 +62,39 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM INSERTED)
 	BEGIN
 		INSERT INTO [dbo].[LeaseBillingInvoicingItemDetailsAudit]
-		SELECT * FROM INSERTED
+		(
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+		)
+		SELECT
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+		FROM INSERTED
 	END
 
 	-- Handles DELETE (rows exist only in DELETED)
 	IF EXISTS (SELECT 1 FROM DELETED) AND NOT EXISTS (SELECT 1 FROM INSERTED)
 	BEGIN
 		INSERT INTO [dbo].[LeaseBillingInvoicingItemDetailsAudit]
-		SELECT * FROM DELETED
+		(
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+		)
+		SELECT
+			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
+			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
+			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
+			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+		FROM DELETED
 	END
 END

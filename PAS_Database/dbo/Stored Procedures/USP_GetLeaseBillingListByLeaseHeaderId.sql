@@ -46,27 +46,25 @@
     1    17/09/2026     Kishor Makwana          [PN-17949] Created
 	2    21/09/2026     Kishor Makwana          [PN-17949] UsageBased now bills the same way as FlatRatePlusOverrun (usage over the Limit x the Overage Rate) instead of always showing NA
 	3    22/09/2026     Kishor Makwana          [PN-17949] Fixed Time/Cycle Over, Billing Amount and Total Billing Amount to match the requirements Excel - usage below the Limit now nets a negative (credit) amount instead of being suppressed to NA/0
-	4    24/09/2026     Kishor Makwana          [PN-17949 follow-up] Optimized: (a) BillingInvoicingItems join had no IsDeleted filter and no
-	                                            guarantee of a single row per stockline - a stockline with more than one non-deleted
-	                                            BillingInvoicingItems row (re-invoiced/revised) would silently duplicate that whole result
-	                                            row, double-counting its Charges/TotalBillingAmount in the grid's footer totals. Replaced
-	                                            with an OUTER APPLY that deterministically picks just the most recent one (TOP 1 ORDER BY
-	                                            BillingInvoicingItemId DESC) and filters IsDeleted = 0. (b) Charges moved from a bare scalar
-	                                            subquery in the SELECT list to an OUTER APPLY alongside it, same execution shape but clearer
-	                                            and pairs with the new supporting index (see PN-17949_Billing_List_Indexes.sql) that turns
-	                                            both per-stockline lookups into index seeks instead of table scans. (c) Removed the redundant
-	                                            "AND BII.ModuleId = 72" repeated on the BillingInvoicing join (already filtered on the
-	                                            BillingInvoicingItems join it depends on).
+	4    24/09/2026     Kishor Makwana          [PN-17949 follow-up] Optimized: (a) BillingInvoicingItems join had no IsDeleted filter and no guarantee of a single row per stockline - a stockline with more than one non-deleted
+	                                            BillingInvoicingItems row (re-invoiced/revised) would silently duplicate that whole result row, double-counting its Charges/TotalBillingAmount in the grid's footer totals. Replaced
+	                                            with an OUTER APPLY that deterministically picks just the most recent one (TOP 1 ORDER BY BillingInvoicingItemId DESC) and filters IsDeleted = 0. (b) Charges moved from a bare scalar
+	                                            subquery in the SELECT list to an OUTER APPLY alongside it, same execution shape but clearer and pairs with the new supporting index (see PN-17949_Billing_List_Indexes.sql) that turns
+	                                            both per-stockline lookups into index seeks instead of table scans. (c) Removed the redundant "AND BII.ModuleId = 72" repeated on the BillingInvoicing join (already filtered on the BillingInvoicingItems join it depends on).
+	5    28/09/2026     Kishor Makwana          [PN-17949 follow-up] Added a FlatRate output column (the raw per-unit rate, gated the same way as FlatRateAmount) alongside the existing FlatRateAmount column - matches the pattern already used in USP_CreateLeaseBillingInvoice -
+	                                            so it lines up with the LeaseBillingListItem.FlatRate API model property without touching FlatRateAmount. Previously there was no FlatRate output here at all, so the grid's new "Flat Rate" column always rendered blank.
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
+CREATE PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
+			DECLARE @LeaseModuleId INT
+			SELECT @LeaseModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
 
 		;WITH Base AS (
 			SELECT
@@ -104,7 +102,7 @@ BEGIN
 			OUTER APPLY (
 				SELECT TOP (1) BII.BillingInvoicingId
 				FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
-				WHERE BII.SubReferenceId = LSL.LeaseStocklineId AND BII.ModuleId = 72 AND BII.IsDeleted = 0
+				WHERE BII.SubReferenceId = LSL.LeaseStocklineId AND BII.ModuleId = @LeaseModuleId AND BII.IsDeleted = 0
 				ORDER BY BII.BillingInvoicingItemId DESC
 			) LatestBII
 			LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = LatestBII.BillingInvoicingId
@@ -143,6 +141,7 @@ BEGIN
 			Qty,
 			BillingMethod,
 			BillingFrequency,
+			FlatRate = CASE WHEN IsFlatRateBillingMethod = 1 THEN FlatRate ELSE NULL END,
 			FlatRateAmount = CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE NULL END,
 			TimeRecorded,
 			TimeLimit,

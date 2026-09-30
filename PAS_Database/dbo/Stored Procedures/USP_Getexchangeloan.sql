@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 26-09-2025			Nakul Chandigra		CREATED
+    2    28-09-2026			Amit Ghediya		Added for Lease [PN-18048]
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_Getexchangeloan]
 @Id BIGINT,
@@ -57,11 +58,30 @@ BEGIN
         iME.EFcogsamount AS efcogsamount,
         iME.OPcogsamount AS opcogsamount,
         ISNULL(pctef.PercentValue, 0) AS efcogsValue,
-        ISNULL(pctoh.PercentValue, 0) AS opcogsValue
+        ISNULL(pctoh.PercentValue, 0) AS opcogsValue,
+        iME.IsFinanceLease,
+        iME.FinanceLeaseCurrencyId,
+        iME.IsOutrightSale,
+        iME.FinanceLeaseOutrightPrice,
+        iME.IsFlatRate,
+        iME.FinanceLeaseFlatRate,
+        iME.FinanceLeaseRateUnit,
+        iME.FinanceLeaseBillingMethod,
+        iME.FinanceLeaseBillingInterval,
+        iME.FinanceLeaseMinimumCycles,
+        iME.FinanceLeaseMinimumTimes,
+        iME.FinanceLeaseMaximumCycles,
+        iME.FinanceLeaseMaximumTimes,
+        iME.FinanceLeaseUsagePerUnitCycles,
+        iME.FinanceLeaseUsagePerUnitTimes,
+        iME.FinanceLeaseOverrunPerUnitCycles,
+        iME.FinanceLeaseOverrunPerUnitTimes,
+        ISNULL(flcu.Code, '') AS FinanceLeaseCurrencyName
     FROM [DBO].[ItemMasterExchangeLoan] iME WITH (NOLOCK)
     LEFT JOIN [DBO].[Currency] ecu WITH (NOLOCK) ON iME.ExchangeCurrencyId = ecu.CurrencyId
     LEFT JOIN [DBO].[Currency] lcu WITH (NOLOCK) ON iME.LoanCurrencyId = lcu.CurrencyId
-    LEFT JOIN [DBO].[Percent] pctef WITH (NOLOCK) ON iME.EFcogs = pctef.PercentId 
+    LEFT JOIN [DBO].[Currency] flcu WITH (NOLOCK) ON iME.FinanceLeaseCurrencyId = flcu.CurrencyId
+    LEFT JOIN [DBO].[Percent] pctef WITH (NOLOCK) ON iME.EFcogs = pctef.PercentId
     LEFT JOIN [DBO].[Percent] pctoh WITH (NOLOCK) ON iME.OPcogs = pctoh.PercentId 
     WHERE iME.ItemMasterId = @Id
 		AND iME.IsActive = 1

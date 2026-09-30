@@ -1,4 +1,13 @@
-﻿CREATE PROCEDURE GetvendorCapabilityById
+﻿/*************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author         Change Description
+** --   ----------   ------------   --------------------------------
+**  1
+**	2    28-09-2026   Nakul          [PN-17977] added AircraftEngine & VerifiedDate for Vendor Capes edit
+-- EXEC [GetvendorCapabilityById] 852
+**************************************************************/
+CREATE   PROCEDURE GetvendorCapabilityById
 @VendorCapsID bigint=0
 
 AS
@@ -35,7 +44,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					vc.Currency,
 					vc.EmployeeId,
 					ct.Description as CapabilityType,
-					ct.CapabilityTypeDesc as CapDescription
+					ct.CapabilityTypeDesc as CapDescription,
+					vc.AircraftEngine,
+					vc.VerifiedDate
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

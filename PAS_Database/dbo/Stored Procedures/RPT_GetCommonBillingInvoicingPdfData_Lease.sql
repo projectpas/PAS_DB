@@ -19,10 +19,17 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    24/SEP/2026   Kishor Makwana	CREATED [PN-18072]
+    2    28/SEP/2026   Kishor Makwana	[PN-18072 follow-up] Maintenance/Insurance/Taxes/Other are
+                                     ordinary item-detail lines (see RPT_GetCommonBillingInvoicingItems_Lease),
+                                     not a real sales tax - stopped pulling their sum out of BI.SubTotal into
+                                     the "SALES TAX"/"OTHER TAX" boxes (@Tax/@OtherTaxAmt now always 0, and
+                                     [SubTotal] only still subtracts MiscCharges). SubTotal now reflects the
+                                     sum of every item-detail row except Charges, which stays broken out into
+                                     MiscCharges as before.
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease] 1,72,55
 **************************************************************/
-CREATE        PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease]
+CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @EmployeeId BIGINT = NULL
@@ -43,17 +50,14 @@ BEGIN
 	INNER JOIN [dbo].[LeaseCharges] LC WITH (NOLOCK) ON LC.[LeaseStocklineId] = BII.[SubReferenceId] AND LC.[IsDeleted] = 0
 	WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsDeleted], 0) = 0;
 
+	-- [PN-18072 follow-up] Maintenance/Insurance/Taxes are ordinary item-detail lines now (see
+	-- RPT_GetCommonBillingInvoicingItems_Lease), not a "Sales Tax" - they stay inside BI.SubTotal
+	-- below instead of being pulled out here, so @Tax/[Tax] ("SALES TAX" on the RDL) is always 0.
 	DECLARE @Tax DECIMAL(18, 6) = 0;
-	SELECT @Tax = ISNULL(SUM(ISNULL(LSL.[Maintenance], 0) + ISNULL(LSL.[Insurance], 0) + ISNULL(LSL.[Taxes], 0)), 0)
-	FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
-	INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.[LeaseStocklineId] = BII.[SubReferenceId]
-	WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsDeleted], 0) = 0;
 
+	-- [PN-18072 follow-up] Same for the "Other" service component - it's an ordinary item-detail
+	-- line now, stays inside BI.SubTotal below, so @OtherTaxAmt/[OtherTax] ("OTHER TAX") is always 0.
 	DECLARE @OtherTaxAmt DECIMAL(18, 6) = 0;
-	SELECT @OtherTaxAmt = ISNULL(SUM(ISNULL(SC.[Amount], 0)), 0)
-	FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
-	INNER JOIN [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK) ON SC.[LeaseStocklineId] = BII.[SubReferenceId] AND SC.[IsDeleted] = 0
-	WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsDeleted], 0) = 0;
 
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
 	  FROM [dbo].[Employee] E WITH (NOLOCK) 
@@ -141,7 +145,7 @@ BEGIN
 					SignEmpTitle = ISNULL(jt.Description,''),
 					SignEmpDate = bi.CreatedDate,
 					ShippingTerms = '',
-					ISNULL(BI.[SubTotal], 0) - ISNULL(@MiscCharges, 0) - ISNULL(@Tax, 0) - ISNULL(@OtherTaxAmt, 0) AS [SubTotal],
+					ISNULL(BI.[SubTotal], 0) - ISNULL(@MiscCharges, 0) AS [SubTotal], -- [PN-18072 follow-up] now includes Maintenance/Insurance/Taxes/Other - only Charges is still pulled out (into MiscCharges)
 					ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal], 0) AS [GrandTotal],
 					ISNULL(@MiscCharges, 0) AS [MiscCharges],

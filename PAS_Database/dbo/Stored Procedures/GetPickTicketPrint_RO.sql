@@ -19,7 +19,8 @@
 	3    09/July/2026	RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4   15-JUL-2026     Abhishek Jirawla    Adding IsPiecePart condition in RepairOrderPart table
 	5    24/July/2026	RAJESH GAMI			[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
-	6   29-Sep-2026     Amit Ghediya        Allow IsPiecePart in RepairOrderPart PickTicket [PN-18146]
+	6   29-Sep-2026     Amit Ghediya        Allow IsPiecePart in RepairOrderPart PickTicket [PN-18146] 
+
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_RO]

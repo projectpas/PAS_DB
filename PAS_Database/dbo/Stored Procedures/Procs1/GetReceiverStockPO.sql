@@ -22,7 +22,8 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    20/July/2026			 RAJESH GAMI						[PN-17350] - Redirected the remaining NonStockInventory/ItemMasterNonStock UNION branches (isParentData=1 grouping query and isParentData=0 detail query) to Stockline/ItemMaster with IsNonStock=1
-	9   22/07/2026   Ayushi Patel      [PN-17378]return forStock Qty according to stockUom / return stockUom shortName as UnitOfMeasure 
+	9   22/07/2026   Ayushi Patel      [PN-17378]return forStock Qty according to stockUom / return stockUom shortName as UnitOfMeasure
+	10  30/09/2026   Ayushi Patel      [PN-18163] PN Label : return Stockline Qty for stock labels (StocklineDraft.ForStockQty is part level total, so last split stockline showed total qty) / return ForStock label only when WO/SO qty exists
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 exec dbo.GetReceiverStockPO @PurchaseOrderId=9818,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
  EXEC GetReceiverStockPO 9818, '1', 1, 1, ' ', 0,98
@@ -154,12 +155,6 @@ BEGIN
 				  CASE
 						WHEN sd.WOQty > 0 THEN sd.WOQty
 						WHEN sd.SOQty > 0 THEN sd.SOQty
-						WHEN sd.ForStockQty > 0 THEN
-							CASE
-								WHEN ISNULL(puom.ShortName,'') = ISNULL(suom.ShortName,'')
-								THEN sd.ForStockQty
-								ELSE dbo.fn_ConvertUOM(sd.ForStockQty,puom.ShortName,suom.ShortName,0,i.MasterCompanyId)
-							END
 						ELSE sl.Quantity
 				  END AS Qty,
 				  sl.ControlNumber,
@@ -248,6 +243,7 @@ BEGIN
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
+			AND (ISNULL(sd.WOQty,0) > 0 OR ISNULL(sd.SOQty,0) > 0)
 					   
 			 AND ISNULL(i.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			UNION

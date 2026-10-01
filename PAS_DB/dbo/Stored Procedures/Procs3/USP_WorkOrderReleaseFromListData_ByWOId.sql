@@ -19,6 +19,7 @@
 	5    24/06/2026         Amit Ghediya         Updated For get LogBook Label data [PN-16471]
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    30/09/2026         Moin Bloch          Updated Added @CAAC
 
  EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
@@ -38,6 +39,13 @@ BEGIN
 	DECLARE @MSModuleId INT;
 	DECLARE @WorkOrderSettlementId BIGINT;
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+	DECLARE @FAA8130Only BIGINT,@FAA8130EASA BIGINT,@FAA8130UK BIGINT,@CAAC BIGINT
+
+	SELECT @FAA8130Only = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 Only';
+	SELECT @FAA8130EASA = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 + EASA';
+	SELECT @FAA8130UK = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 + UK Wording';
+	SELECT @CAAC = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'CAAC';
 		
 	SET @MSModuleId = 0; -- For WO PART NUMBER
 
@@ -64,7 +72,7 @@ BEGIN
 		[Quantity] [int] NULL,
 		[Batchnumber] [varchar](256) NULL,
 		[status] [varchar](20) NULL,
-		[Remarks] [varchar](max) NULL,
+		[Remarks] [nvarchar](max) NULL,
 		[Certifies] [varchar](256) NULL,
 		[approved] [bit] NULL,
 		[Nonapproved] [bit] NULL,
@@ -195,9 +203,10 @@ BEGIN
 				TMP.ManagementStructureId = wop.ManagementStructureId,
 				TMP.EmployeeId            = wro.EmployeeId,
 				TMP.WOFormType            = CASE 
-												WHEN wro.FormTypeId = 1 THEN '8130 ONLY'
-												WHEN wro.FormTypeId = 2 THEN 'EASA'
-												WHEN wro.FormTypeId = 3 THEN 'UK-CAA'
+												WHEN wro.FormTypeId = @FAA8130Only THEN '8130 ONLY'
+												WHEN wro.FormTypeId = @FAA8130EASA THEN 'EASA'
+												WHEN wro.FormTypeId = @FAA8130UK THEN 'UK-CAA'
+												WHEN wro.FormTypeId = @CAAC THEN 'CAAC'
 												ELSE '' 
 											END,
 				TMP.Is813013aeOr14ae      = wro.Is813013aeOr14ae,

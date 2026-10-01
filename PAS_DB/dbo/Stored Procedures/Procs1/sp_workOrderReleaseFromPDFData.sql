@@ -1,5 +1,5 @@
 ﻿-- ===== PROCEDURE: [dbo].[sp_workOrderReleaseFromPDFData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_workOrderReleaseFromPDFData.sql) =====
-/*************************************************************           
+/*************************************************************
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -25,10 +25,11 @@
 	7    10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
 	9    12/11/2025   Moin Bloch     Updated trackingNo For PAR Company
-	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]     
-	12   24/06/2026   Amit Ghediya   Get LogBook Label data [PN-16471]  
+	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
+	12   24/06/2026   Amit Ghediya   Get LogBook Label data [PN-16471]
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	15   17/09/2026   Moin Bloch      Added [FormTypeId] [PN-17942]
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
@@ -126,6 +127,7 @@ BEGIN
 					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 					  ,wro.[EmployeeId]
 					  ,0 as IsAircraftLogBook
+					  ,wro.[FormTypeId]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  

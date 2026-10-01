@@ -18,6 +18,7 @@
 	1    09/10/2025   Moin Bloch       Created
 	2    14/10/2025   Moin Bloch       Update For New Version
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    30/09/2026   Moin Bloch       Update For @Remarks changed from VARCHAR(MAX) to NVARCHAR(MAX)
 
 --   EXEC [dbo].[USP_CreateUpdateReleaseForm]
 **************************************************************/
@@ -37,7 +38,7 @@ CREATE     PROCEDURE [dbo].[USP_CreateUpdateReleaseForm]
 @Quantity INT = NULL,
 @Batchnumber VARCHAR(256) = NULL,
 @status VARCHAR(20) = NULL,
-@Remarks VARCHAR(MAX) = NULL,
+@Remarks NVARCHAR(MAX) = NULL,
 @Certifies VARCHAR(256) = NULL,
 @approved BIT = NULL,
 @Nonapproved BIT = NULL,

@@ -51,12 +51,8 @@ BEGIN
 		AND sl.IsDeleted = 0
 		--AND ((sl.ConditionId = CASE WHEN @ConditionIds = '' THEN @ConditionIds ELSE sl.ConditionId END)
 		--	OR sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))
-	LEFT JOIN DBO.PurchaseOrder po ON po.PurchaseOrderId = sl.PurchaseOrderId 
-		AND sl.IsDeleted = 0
-	LEFT JOIN DBO.PurchaseOrderPart pop ON po.PurchaseOrderId = pop.PurchaseOrderId 
-		AND pop.ItemMasterId = im.ItemMasterId 
-		AND pop.IsDeleted = 0
-		AND pop.ItemTypeId = @StockType
+		AND sl.IsParent = 1
+		AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
 	LEFT JOIN DBO.ItemGroup ig ON im.ItemGroupId = ig.ItemGroupId
 	LEFT JOIN DBO.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 	LEFT JOIN DBO.ItemClassification ic ON im.ItemClassificationId = ic.ItemClassificationId

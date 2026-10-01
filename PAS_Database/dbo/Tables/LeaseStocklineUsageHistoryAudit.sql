@@ -17,6 +17,8 @@
     [UpdatedDate]                       DATETIME2 (7)   NULL,
     [IsActive]                          BIT             NULL,
     [IsDeleted]                         BIT             NULL,
+    [IsInvoiced]                        BIT             NULL,
+    [BillingInvoicingItemId]            BIGINT          NULL,
     CONSTRAINT [PK_LeaseStocklineUsageHistoryAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineUsageHistoryAuditId] ASC)
 );
 

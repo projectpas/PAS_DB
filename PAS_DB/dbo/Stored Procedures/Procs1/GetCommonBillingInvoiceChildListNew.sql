@@ -38,10 +38,27 @@
 	25   27/Aug/2026  Kishor Makwana    [PN-17821] - Proforma Invoice SalesOrderShipping and SalesOrderShippingItem changesInner join to Left join 
 	26   29/Sep/2026   Rajesh Gami       Fixed QtyToBill being split across multiple rows (e.g. 9 and 1) instead of summed (10) for a billed
 	                                     SO line whose SalesOrderPartId/StockLine has more than one SOPickTicket.
+	26   30/Sep/2026   Kishor Makwana   PN-18154 - "Main --Exist" branch (@AllowInvoiceBeforeShipping = 1) was
+	                                      joining SOPPick/SOSI per SOPickTicket with no aggregation, so a Stockline picked across two
+	                                      Pick Tickets under the same shipment produced two output rows (e.g. QtyToBill 1 and 9,
+	                                      TotalSales 595.00 and 5355.00) instead of one row (QtyToBill 10, TotalSales 5950.00).
+	                                      SOPPick/SOSI now resolve through a derived table grouped by SalesOrderShippingId (one row per
+	                                      shipment, MAX(SOPickTicketId)/MAX(SalesOrderShippingItemId) as representative ids), and the
+	                                      QtyToBill and un-invoiced TotalSales subqueries now correlate on SalesOrderShippingId (summed
+	                                      across every pick ticket in that shipment) instead of a single SOPickTicketId.
+	27   30/Sep/2026   Kishor Makwana   PN-18154 - The @AllowBillingBeforeShipping = 0 branch (the SO CTE, previously confirmed
+	                                      working) had the same multi-pick-ticket fan-out one level down: it grouped by
+	                                      SalesOrderShippingId AND SalesOrderShippingItemId together, which is still one row per pick
+	                                      ticket, not one row per shipment, and QtyToBill/TotalSales/TotalUnitCost read sosi.QtyShipped
+	                                      directly instead of summing it - so a Stockline picked across two Pick Tickets under one
+	                                      shipment still showed as two rows (e.g. Qty 9 and 1) here. Removed SalesOrderShippingItemId
+	                                      from the GROUP BY (kept SalesOrderShippingId only), changed QtyToBill/TotalSales/
+	                                      TotalUnitCost to SUM() the shipped qty across the group, and take
+	                                      MAX(SalesOrderShippingItemId) as the representative id for that column.
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
-CREATE       PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
+CREATE PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
 @ReferenceId BIGINT = NULL,
 @SubReferenceId BIGINT = NULL, 
 @IncludeProformaInvoice BIT = NULL,
@@ -572,7 +589,7 @@ BEGIN
 					SELECT DISTINCT 
 					0 AS IndexColumn,
 					sosi.SalesOrderShippingId,   
-					sosi.SalesOrderShippingItemId,   
+					MAX(sosi.SalesOrderShippingItemId),   
 					CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems sobii_1 WITH(NOLOCK) 
 					WHERE sobii_1.BillingInvoicingId = sobi.BillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId and sobii_1.SubReferenceId= sop.SalesOrderPartId
 					AND ISNULL(sobii_1.IsPerformaInvoice, 0) = 0 AND sobii_1.SubReferenceId = @SubReferenceId) > 0 THEN sobii.BillingInvoicingId  
@@ -589,7 +606,7 @@ BEGIN
 					--sobi.InvoiceTypeId,
 					(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 					sos.SOShippingNum, 
-					sosi.QtyShipped as QtyToBill,   
+					SUM(ISNULL(sosi.QtyShipped,0)) as QtyToBill,   
 					so.SalesOrderNumber, 
 					CAST(sop.SequenceNumber as VARCHAR(10))+' - '+imt.partnumber, 
 					imt.ItemMasterId,
@@ -612,11 +629,11 @@ BEGIN
 					cond.Description as 'Condition',
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 					CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN ISNULL(sobi.GrandTotal, 0) ELSE
-					((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * sosi.QtyShipped)
+					((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * SUM(ISNULL(sosi.QtyShipped,0)))
 					END 
 					as 'TotalSales',  
 			
-					((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * ISNULL(sosi.QtyShipped, 0)) AS TotalUnitCost,
+					((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * SUM(ISNULL(sosi.QtyShipped, 0))) AS TotalUnitCost,
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 					 WHERE sof.SalesOrderId = @ReferenceId 			  
 						AND sof.ItemMasterId = sop.ItemMasterId 
@@ -681,9 +698,9 @@ BEGIN
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId 
 					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					WHERE sos.SalesOrderId = @ReferenceId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SubReferenceId
-					GROUP BY sosi.SalesOrderShippingId, sosi.SalesOrderShippingItemId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,
+					GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,
 					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
-					sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
+					sobi.InvoiceStatus, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
 					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId,sobi.[IsReOpened], sop.SequenceNumber
 
@@ -828,7 +845,7 @@ BEGIN
 							INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 							INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 							WHERE SOS.SalesOrderId = @ReferenceId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId
-							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) end  as QtyToBill,
+							AND SOSI.SalesOrderShippingId = SOPPick.SalesOrderShippingId) end  as QtyToBill,
 				
 							so.SalesOrderNumber, CAST(sop.SequenceNumber as VARCHAR(10))+' - '+imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 							--sl.SerialNumber, 
@@ -849,7 +866,7 @@ BEGIN
 							INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 							INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 							WHERE SOS.SalesOrderId = @ReferenceId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId 
-							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
+							AND SOSI.SalesOrderShippingId = SOPPick.SalesOrderShippingId)))
 							ELSE sobii.GrandTotal END as 'TotalSales',  
 
 							((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * 
@@ -911,8 +928,15 @@ BEGIN
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND sop.SalesOrderId = @ReferenceId
 							LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-							LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-							LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SOPickTicketId = SOPPick.SOPickTicketId AND SOSI.SalesOrderPartId =@SubReferenceId
+							LEFT JOIN (
+								SELECT SOSI_G.SalesOrderShippingId, SOPT_G.SalesOrderId, SOPT_G.SalesOrderPartId, SOPT_G.SalesOrderPartStocklineId,
+									MAX(SOPT_G.SOPickTicketId) AS SOPickTicketId,
+									MAX(SOSI_G.SalesOrderShippingItemId) AS SalesOrderShippingItemId
+								FROM DBO.SOPickTicket SOPT_G WITH (NOLOCK)
+								INNER JOIN DBO.SalesOrderShippingItem SOSI_G WITH (NOLOCK) ON SOSI_G.SOPickTicketId = SOPT_G.SOPickTicketId AND SOSI_G.SalesOrderPartId = @SubReferenceId
+								GROUP BY SOSI_G.SalesOrderShippingId, SOPT_G.SalesOrderId, SOPT_G.SalesOrderPartId, SOPT_G.SalesOrderPartStocklineId
+							) SOPPick ON SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+							LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SalesOrderShippingItemId = SOPPick.SalesOrderShippingItemId AND SOSI.SalesOrderPartId =@SubReferenceId
 							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.ShippingId = SOSI.SalesOrderShippingId AND sobii.StockLineId = stk.StockLineId AND sobii.SubReferenceId = sop.SalesOrderPartId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId AND SOBI.ModuleId = @SOModuleId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  

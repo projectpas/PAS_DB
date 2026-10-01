@@ -4840,6 +4840,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveLeasePackagingSlip.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePackagingLabel.sql" />
     <Build Include="dbo\User Defined Types\LeasePackagingSlipItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveEngineCycleTimeMappings.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

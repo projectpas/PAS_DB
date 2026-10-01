@@ -29,6 +29,7 @@
 	                                     Income Statement (Revenue/Expense)
 	                                        = current fiscal year (End period FiscalYear) to End period
 	                                     Other/unclassified = full history (report fallback)
+	13   10/01/2026   Bhargav Saliya  Show Latest Posted JE First PN-15173
 
  **************************************************************
 
@@ -279,7 +280,8 @@ BEGIN
             BD.AccountingPeriod                         AS PeriodName,
             BD.JournalTypeNumber                        AS JournalNumber,
             ISNULL(CBD.ReferenceNumber, '')             AS ReferenceNumber,
-            CBD.JournalTypeName
+            CBD.JournalTypeName,
+            MAX(BD.PostedDate)                          AS PostedDate
 		INTO #TempResults
         FROM       dbo.CommonBatchDetails                              CBD WITH (NOLOCK)
         INNER JOIN dbo.BatchDetails                                    BD  WITH (NOLOCK) ON CBD.JournalBatchDetailId       = BD.JournalBatchDetailId
@@ -337,9 +339,9 @@ BEGIN
 
 		SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);
 
-		SELECT *, @TotalRecordsCount as NumberOfItems
+		SELECT GlAccountId, ReferenceId, ReferenceModule, IsStandAloneCM, GlAccount, Balance, PeriodName, JournalNumber, ReferenceNumber, JournalTypeName, @TotalRecordsCount as NumberOfItems
 		FROM #TempResults
-		ORDER BY JournalNumber DESC
+		ORDER BY PostedDate DESC, JournalNumber DESC
 		OFFSET @RecordFrom ROWS
 		FETCH NEXT @PageSize ROWS ONLY
 

@@ -15,6 +15,7 @@
 	4   30-Oct-2025			Devendra Shekh			Added @BaseUtcOffsetSec for EntryDate
 	5   02-Feb-2026			Bhargav Saliya			Added JournalTypeName Field
     6   15-Jun-2026			Moin Bloch			    Fixed For Duplicate Record PN-16616
+    7   01-Oct-2026			Bhargav Saliya			Show Latest Posted JE First PN-15173
 **************************************************************/  
 /*************************************************************             
 exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter 
@@ -506,8 +507,9 @@ BEGIN
 		IsStandAloneCM BIT null,
 		ReferenceNumber VARCHAR(150) null,
 		JournalTypeName VARCHAR(150) null,
+		PostedDate DATETIME NULL,
 	)
-	
+
 	DECLARE @COUNT AS INT;
 	DECLARE @COUNTMAX AS INT
 	SELECT @COUNT = MIN(ID), @COUNTMAX = MAX(ID) fROM #AccPeriodTable
@@ -562,22 +564,24 @@ BEGIN
 				ReferenceName = CASE WHEN tmp.IsManualJournal = 1 THEN MJH.JournalNumber ELSE ReferenceName END,
 				Referenceid = CASE WHEN tmp.IsManualJournal = 1 THEN MJD.ManualJournalHeaderId ELSE tmp.Referenceid END,
 				LastMSLevel = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN  MJD.LastMSLevel ELSE MJD.LastMSLevel END,
-				AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END						
-	FROM #AccTrendTable tmp 
+				AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END,
+				PostedDate = MJH.PostedDate
+	FROM #AccTrendTable tmp
 		JOIN dbo.ManualJournalHeader MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = tmp.JournalBatchDetailId
 		JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
 	WHERE ISNULL(tmp.IsManualJournal, 0) = 1
 
 	UPDATE #AccTrendTable 
 			SET	AccountingPeriod = CASE WHEN ISNULL(BD.JournalTypeNumber, '') != '' THEN REPLACE(BD.AccountingPeriod,' - ','')  ELSE tmp.AccountingPeriod END,
-				PeriodName = CASE WHEN ISNULL(BD.JournalTypeNumber, '') != '' THEN REPLACE(BD.AccountingPeriod,' - ','')  ELSE tmp.PeriodName END											
-	FROM #AccTrendTable tmp 
-		JOIN dbo.BatchDetails BD WITH (NOLOCK) ON BD.JournalTypeNumber = tmp.JournalNumber	
+				PeriodName = CASE WHEN ISNULL(BD.JournalTypeNumber, '') != '' THEN REPLACE(BD.AccountingPeriod,' - ','')  ELSE tmp.PeriodName END,
+				PostedDate = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 0 THEN BD.PostedDate ELSE tmp.PostedDate END
+	FROM #AccTrendTable tmp
+		JOIN dbo.BatchDetails BD WITH (NOLOCK) ON BD.JournalTypeNumber = tmp.JournalNumber
 	WHERE BD.JournalBatchDetailId = tmp.JournalBatchDetailId
 
 	SELECT LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel, AllMSlevels,
 	CAST(CreditAmount as varchar) CreditAmount, CAST(DebitAmount as varchar) DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-	SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName
+	SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName, MAX(PostedDate) PostedDate
 	INTO #TempResults
 	FROM #AccTrendTable
 	WHERE	((@GlobalFilter='' AND (ISNULL(@NodeName,'') ='' OR NodeName LIKE '%' + @NodeName+'%') AND
@@ -598,8 +602,8 @@ BEGIN
 
 	SELECT * INTO #GLRecordsResult 
 	FROM #TempResults
-	ORDER BY AccountingPeriodId, JournalNumber
-	OFFSET @RecordFrom ROWS 
+	ORDER BY PostedDate DESC, JournalNumber DESC
+	OFFSET @RecordFrom ROWS
 	FETCH NEXT @PageSize ROWS ONLY
 
 	SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);
@@ -609,7 +613,7 @@ BEGIN
 		SELECT Amount, LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
 		CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 		ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-		CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName
+		CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName, PostedDate
 		FROM #GLRecordsResult
 	) 
 	SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount,
@@ -618,7 +622,7 @@ BEGIN
 			Cast(EntryDate as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName, @TotalRecordsCount as NumberOfItems
 	FROM cteRanked c1 
 	WHERE GLAccountId IS NOT NULL
-	ORDER BY AccountingPeriodId, JournalNumber;
+	ORDER BY c1.PostedDate DESC, JournalNumber DESC;
 
 	END TRY  
 	BEGIN CATCH  

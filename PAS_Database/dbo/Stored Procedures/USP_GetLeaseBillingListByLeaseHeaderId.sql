@@ -619,7 +619,9 @@ BEGIN
 			UNION ALL
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM InvoicedLines
 		) AllLines
-		ORDER BY LeaseStocklineId, BillingStatus, PeriodSeq, LineSortOrder;
+		ORDER BY LeaseStocklineId, BillingStatus,
+			CASE WHEN LineSortOrder >= 6 THEN 1 ELSE 0 END,
+			PeriodSeq, LineSortOrder;
 
 	END TRY
 	BEGIN CATCH

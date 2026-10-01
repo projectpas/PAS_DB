@@ -29,7 +29,7 @@
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease] 1,72,55
 **************************************************************/
-CREATE  OR ALTER      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease]
+CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @EmployeeId BIGINT = NULL

@@ -18,7 +18,7 @@
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
-CREATE   OR ALTER     PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
+CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
 @LeaseHeaderId BIGINT = NULL,
 @LeaseStocklineIds VARCHAR(MAX) = NULL,
 @MasterCompanyId INT = NULL,

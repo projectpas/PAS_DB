@@ -18,8 +18,9 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    24/Aug/2026             Bhargav Saliya						[PN-15154]-Get Inspector and Inspected Date For Receiving Stock
+	7    30/sep/2026			 Ayushi Patel	                    [PN-18149]Return StockUom for @isParentData = 0
 --  EXEC GetReceiverStockRO 1123,'0',1,1,'RecNo-000001'
---  EXEC GetReceiverStockRO 1122,'0',1,1,'RecNo-000001'
+--  EXEC GetReceiverStockRO 3429,'0',1,1,'RecNo-000004',2
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetReceiverStockRO]
 @RepairOrderId BIGINT,
@@ -78,7 +79,7 @@ BEGIN
 				   i.partnumber,
 				   i.PartDescription,
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure as UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
@@ -124,7 +125,7 @@ BEGIN
 				   i.partnumber,
 				   i.PartDescription,
 				  sl.Condition,
-				  sl.UnitOfMeasure,
+				  sl.StockUnitOfMeasure as UnitOfMeasure,
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,

@@ -26,6 +26,7 @@
 	8    07-08-2026  Abhishek Jirawala		AssetType now uses the same TangibleClassId/DeprNonDeprTangibleAssetsId
 	9   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	                                        resolution as AssetClass, instead of the AssetAttributeType table join.
+	10   29-09-2026  Sahdev Saliya			Fixed the Asset Class/Asset Type display for non-Intangible assets by adding fallback logic for blank values.
 
 ************************************************************************/
 
@@ -136,10 +137,12 @@ BEGIN
     UPPER(maf.Name) AS ManufacturerName,  
     UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
     UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
-    UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ''))) AS AssetClass,
+    UPPER(CASE WHEN ISNULL(asm.IsIntangible, 0) = 1 THEN ISNULL(ait.AssetIntangibleName, '')
+               ELSE COALESCE(tcDirect.TangibleClassName, tcViaDnd.TangibleClassName, tcViaAat.TangibleClassName, '') END) AS AssetClass,
 	UPPER((SELECT TOP 1 AssetDepreciationMethodName FROM dbo.AssetDepreciationMethod AS adm WITH(NOLOCK) WHERE adm.AssetDepreciationMethodId = asty.DepreciationMethod)) AS DepreciationMethod,
     UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
-    UPPER(ISNULL(tcDirect.TangibleClassName, ISNULL(tcViaDnd.TangibleClassName, ''))) AS AssetType,
+    UPPER(CASE WHEN ISNULL(asm.IsIntangible, 0) = 1 THEN ISNULL(ait.AssetIntangibleName, '')
+               ELSE COALESCE(tcDirect.TangibleClassName, tcViaDnd.TangibleClassName, tcViaAat.TangibleClassName, '') END) AS AssetType,
     UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
 	(Cast(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) CreatedDate,
 	(Cast(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) UpdatedDate,
@@ -159,6 +162,8 @@ BEGIN
 	  LEFT JOIN dbo.TangibleClass tcDirect WITH(NOLOCK) on asm.TangibleClassId = tcDirect.TangibleClassId
 	  LEFT JOIN dbo.DeprNonDeprTangibleAssets dndFallback WITH(NOLOCK) on asm.DeprNonDeprTangibleAssetsId = dndFallback.DeprNonDeprTangibleAssetsId
 	  LEFT JOIN dbo.TangibleClass tcViaDnd WITH(NOLOCK) on dndFallback.TangibleClassId = tcViaDnd.TangibleClassId
+	  LEFT JOIN dbo.TangibleClass tcViaAat WITH(NOLOCK) on asty.TangibleClassId = tcViaAat.TangibleClassId
+	  LEFT JOIN dbo.AssetIntangibleType ait WITH(NOLOCK) on asm.AssetIntangibleTypeId = ait.AssetIntangibleTypeId
       LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID  IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId

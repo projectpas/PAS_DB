@@ -13,7 +13,7 @@
     [Quantity]            DECIMAL (18, 6) NULL,
     [Batchnumber]         VARCHAR (256)   NULL,
     [status]              VARCHAR (20)    NULL,
-    [Remarks]             VARCHAR (MAX)   NULL,
+    [Remarks]             NVARCHAR (MAX)  NULL,
     [Certifies]           VARCHAR (256)   NULL,
     [approved]            BIT             NULL,
     [Nonapproved]         BIT             NULL,

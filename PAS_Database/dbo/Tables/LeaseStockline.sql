@@ -48,6 +48,7 @@
     [UpdatedBy]            VARCHAR (256)   NOT NULL,
     [UpdatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [LeaseStatusId]        INT             NULL,
+    [IsInvoicePost]        BIT             CONSTRAINT [DF_LeaseStockline_IsInvoicePost] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_LeaseStockline] PRIMARY KEY CLUSTERED ([LeaseStocklineId] ASC),
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

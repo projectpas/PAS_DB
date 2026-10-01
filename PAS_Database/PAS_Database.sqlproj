@@ -4841,6 +4841,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveLeasePackagingSlip.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePackagingLabel.sql" />
     <Build Include="dbo\User Defined Types\LeasePackagingSlipItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveEngineCycleTimeMappings.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4870,6 +4871,7 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStocklineData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIPartsAvailabilityAndStockout.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIVendorPerformance.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>

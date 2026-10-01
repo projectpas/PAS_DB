@@ -53,7 +53,7 @@
     37   06/08/2026   Priyansh Patel    Added the removed code  [PN-17271]
 	38    13/Aug/2026   RAJESH GAMI       [PN-17008] - Re-added missing ISNULL(im.IsNonStock,0) = 0 filter on the #tmpPNManufacturer (STOCK) rebuild query's ItemMaster JOIN; the query was independently rewritten (LastStockline CTE) after the BETA port and the rewrite dropped the filter that the twin NS-suffixed block still has.
     39   25-SEP-2026  HEMANT SALIYA     Commented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) By Hemant due to stockline is not avaiable in Reconcilation
-
+    40   29-SEP-2026  Ayushi Patel      [PN-18138]Re-enabled IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) (Stock / Non-Stock) to allow receiving the remaining qty after partial receiving(as discussed with hemant sir)
 
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
@@ -123,7 +123,7 @@ BEGIN
                 DECLARE @IsSerializedPart BIT;
                 DECLARE @SelectedPurchaseOrderPartRecordId BIGINT;
                 DECLARE @QtyToReceive  DECIMAL(18,6);
-                DECLARE @MainPOPartBackOrderQty INT;
+                DECLARE @MainPOPartBackOrderQty DECIMAL(18,6);
                 DECLARE @ItemTypeId INT;
 				DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0, @QtyToReceiveAfterConversion DECIMAL(18,6) =0, @QtyAfterConversion DECIMAL(18,6)  =0;
 				DECLARE @POUnitOfMeasure VARCHAR(100),  @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100), @DraftQty DECIMAL(18,6) =0, @DraftUnitCost DECIMAL(18,6) =0, @UnitCostAfterConversion DECIMAL(18,6) =0;
@@ -800,11 +800,11 @@ BEGIN
                             END
 
                             --Commented By Hemant due to stockline is not avaiable in Reconcilation
-                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            --BEGIN
-                            --    SET @StockLineNumber = NULL;
-                            --    SET @NewStocklineId = NULL;
-                            --END
+                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            BEGIN
+                                SET @StockLineNumber = NULL;
+                                SET @NewStocklineId = NULL;
+                            END
 
                             UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId,
@@ -2761,11 +2761,11 @@ DELETE FROM #tmpCodePrefixes_NS;
 									SET @LoopID_QtyToReceive_NS = @LoopID_QtyToReceive_NS - 1;
 								END
                                 --Commented By Hemant due to stockline is not avaiable in Reconcilation
-								--IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-								--BEGIN
-                                --  SET @StockLineNumber_NS = NULL;
-                                --  SET @NewStocklineId_NS = NULL;
-								--END
+								IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+								BEGIN
+                                  SET @StockLineNumber_NS = NULL;
+                                  SET @NewStocklineId_NS = NULL;
+								END
 
 								UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId_NS,

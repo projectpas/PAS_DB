@@ -133,18 +133,18 @@ BEGIN
                 WHEN ISNULL(burn.DailyBurnRate, 0) <= 0 THEN 999.0
                 ELSE ISNULL(inv.AvailableQty, 0) / burn.DailyBurnRate
             END AS FLOAT)                                              AS [daysOfCover],
-            CAST(ISNULL(inv.OnHandQty, 0) AS INT)                      AS [onHandQuantity],
-            CAST(ISNULL(inv.AllocatedQty, 0) AS INT)                   AS [allocatedQuantity],
-            CAST(ISNULL(inv.QtyOnAR, 0) AS INT)                        AS [quantityOnAR],
-            CAST(ISNULL(inv.AvailableQty, 0) AS INT)                   AS [availableQuantity],
-            CAST(ISNULL(dem.OpenDemandQty, 0) AS INT)                  AS [openDemandQuantity],
-            CAST(ISNULL(im.ReorderPoint, 0) AS INT)                    AS [reorderPointQuantity],
+            CAST(ISNULL(inv.OnHandQty, 0) AS BIGINT)                   AS [onHandQuantity],
+            CAST(ISNULL(inv.AllocatedQty, 0) AS BIGINT)                AS [allocatedQuantity],
+            CAST(ISNULL(inv.QtyOnAR, 0) AS BIGINT)                     AS [quantityOnAR],
+            CAST(ISNULL(inv.AvailableQty, 0) AS BIGINT)                AS [availableQuantity],
+            CAST(ISNULL(dem.OpenDemandQty, 0) AS BIGINT)               AS [openDemandQuantity],
+            CAST(ISNULL(im.ReorderPoint, 0) AS BIGINT)                 AS [reorderPointQuantity],
             CAST(ISNULL(im.UnitCost, 0.0) AS FLOAT)                    AS [unitCost],
-            CAST(ISNULL(dem.OpenDemandQty * im.UnitCost, 0.0) AS FLOAT) AS [shortageExposureValue],
-            CAST(ISNULL(po.BackorderLineCount, 0) AS INT)              AS [backorderLineCount],
+            CAST(ISNULL(dem.OpenDemandQty, 0) AS FLOAT) * CAST(ISNULL(im.UnitCost, 0.0) AS FLOAT) AS [shortageExposureValue],
+            CAST(ISNULL(po.BackorderLineCount, 0) AS BIGINT)           AS [backorderLineCount],
             CAST(ISNULL(po.BackorderValue, 0.0) AS FLOAT)              AS [backorderValue],
             CAST(CASE WHEN ISNULL(po.MaxOverdueDays, 0) > 0 THEN 1 ELSE 0 END AS BIT) AS [isPastPromisedDate],
-            CAST(CASE WHEN ISNULL(po.MaxOverdueDays, 0) > 0 THEN po.MaxOverdueDays ELSE 0 END AS INT) AS [overdueDays],
+            CAST(CASE WHEN ISNULL(po.MaxOverdueDays, 0) > 0 THEN po.MaxOverdueDays ELSE 0 END AS BIGINT) AS [overdueDays],
             CASE 
                 WHEN ISNULL(po.MaxOverdueDays, 0) <= 0 THEN 'On Schedule'
                 WHEN po.MaxOverdueDays BETWEEN 1 AND 7 THEN '1-7 d'

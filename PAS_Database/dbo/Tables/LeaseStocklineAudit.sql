@@ -49,6 +49,7 @@
     [UpdatedBy]             VARCHAR (256)   NULL,
     [UpdatedDate]           DATETIME        NULL,
     [LeaseStatusId]         INT             NULL,
+    [IsInvoicePost]         BIT             NULL,
     CONSTRAINT [PK_LeaseStocklineAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineAuditId] ASC)
 );
 

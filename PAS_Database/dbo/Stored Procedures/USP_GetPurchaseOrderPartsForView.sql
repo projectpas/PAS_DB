@@ -24,6 +24,8 @@
 	9    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock MS lookup (Opr=3, MD join) repointed from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; reused the already-dynamic @StocklineMSID ('Stockline' module) instead of the separate hardcoded-lookup @NonStocklineMSID ('NonStockStockline' module), which was removed as dead code
     10	 04/08/2026	  Bhargav Saliya	No need to get the WO settlement stock line. So i added ISNULL(SL.IsFinishGood, 0) = 0 case  [PN-17319]
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
+	11   01/Oct/2026   RAJESH GAMI		[PN-18183] (Opr=2) Qty Received now from Stockline.Quantity (Stock UOM) instead of SUM(StocklineDraft.Quantity) (Purchase UOM). Fixes 0 / full qty shown on partial receipts and Ext. Cost mixing Purchase UOM qty with Stock UOM cost
+	12   01/Oct/2026   RAJESH GAMI		[PN-18183] (Opr=1) PO part list also taken from Stockline / AssetInventory (not only linked drafts), so a partially received part shows in the Receiving tab before the remaining qty is received
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12855,0,3
@@ -69,6 +71,12 @@ BEGIN
 			SELECT [PurchaseOrderPartRecordId] FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId AND [isDeleted] = 0 AND (([IsParent] = 1 AND [isSerialized] = 1) OR ([IsParent] = 0 AND [isSerialized] = 0)) AND [StockLineId] IS NOT NULL --> 0
 			UNION
 			SELECT [PurchaseOrderPartRecordId] FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId AND [isDeleted] = 0 AND (([IsParent] = 1 AND [isSerialized] = 1) OR ([IsParent] = 0 AND [isSerialized] = 0))  AND [AssetInventoryId] > 0
+			UNION
+			-- [PN-18183] Include PO parts that already have Stock / Non-Stock Stocklines (same filters as Opr = 2 / 3), so partially received parts are listed
+			-- even when the draft is not linked to the stockline yet (partial receipt keeps the parent draft open for the pending qty)
+			SELECT SL.[PurchaseOrderPartRecordId] FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] IS NOT NULL AND SL.[isDeleted] = 0 AND (ISNULL(SL.[IsNonStock],0) = 1 OR ISNULL(SL.[IsFinishGood],0) = 0)
+			UNION
+			SELECT AI.[PurchaseOrderPartRecordId] FROM [dbo].[AssetInventory] AI WITH(NOLOCK) WHERE AI.[PurchaseOrderId] = @PurchaseOrderId AND AI.[PurchaseOrderPartRecordId] IS NOT NULL AND AI.[isDeleted] = 0
 
 			SELECT DISTINCT
 			CASE 
@@ -183,15 +191,9 @@ BEGIN
 			SL.[ControlNumber],
 			SL.[IdNumber],
             SL.[SerialNumber],		
-			CASE WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
-			ELSE (
-			  SELECT ISNULL(SUM([x].[Quantity]),0)
-			  FROM [dbo].[StocklineDraft] AS [x] WITH(NOLOCK)
-			  WHERE [x].[PurchaseOrderId] = [SL].[PurchaseOrderId]
-				AND [x].[PurchaseOrderPartRecordId] = [SL].[PurchaseOrderPartRecordId]
-				AND [x].[StockLineId] = SL.[StockLineId]
-			)
-			END [Quantity],
+			-- Qty Received per Stockline is taken from the Stockline itself (Stock UOM, same UOM as [UnitCost] and [UnitOfMeasure] below).
+			-- Earlier it was SUM(StocklineDraft.Quantity) by StockLineId, which is in Purchase UOM and depends on the draft-to-stockline link (wrong for partial receipts).
+			ISNULL([SL].[Quantity],0) [Quantity],
 			ISNULL(SL.[PurchaseOrderUnitCost],0) [PurchaseOrderUnitCost],
 			SL.[PurchaseOrderExtendedCost],
 			SL.[ReceiverNumber],

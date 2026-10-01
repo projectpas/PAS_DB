@@ -3848,6 +3848,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetContactsByVendorId.sql" />
     <Build Include="dbo\Tables\UserSessions.sql" />
+    <Build Include="dbo\Tables\ExternalUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerATAMappingByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
@@ -4861,6 +4862,10 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWIPDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetExternalUserByUserName.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_UpdateExternalUserLoginStatus.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetExternalLeaseList.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_CreateExternalUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStockInventories.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStocklineData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />

@@ -62,6 +62,7 @@
 	49   19-Aug-2026        Ayushi Patel            [PN-17695] checked manjufacture name is not null before updating id 
 	50	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 	51   28-Aug-2026        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
+	52   01-Oct-2026        Sahdev Saliya           [PN-18143] Added @CoreLetterModule + duplicate Header Name error message for the new Core Letter setup screen Upload.
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -240,6 +241,7 @@ BEGIN
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
 		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
+		DECLARE @CoreLetterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CoreLetter');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1244,6 +1246,8 @@ BEGIN
 															THEN 'Entered Traceability Already Exits!'
 														WHEN @ModuleId = @LeaseTypeModule AND @ChekDuplticateRef1 = 'LeaseType'  
 															THEN 'Entered Lease Type Already Exists!'
+														WHEN @ModuleId = @CoreLetterModule AND @ChekDuplticateRef1 = 'HeaderName'
+															THEN 'Entered Header Name Already Exists!'
 															
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;

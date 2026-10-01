@@ -32,6 +32,7 @@ EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ ** 21    29-09-2026   Moin Bloch			Added for 'SAR' MasterCompany
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
@@ -47,7 +48,9 @@ BEGIN
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
 		DECLARE @TravelerName AS varchar(250) = '';   
-		DECLARE @MasterCompanyId AS INT = 0;    
+		DECLARE @MasterCompanyId AS INT = 0;
+		DECLARE @SARMasterCompanyCode VARCHAR(50);
+		DECLARE @MasterCompanyCodeAll VARCHAR(50);
 		DECLARE @WOFPrintDate AS DATETIME, @MergedBillToAddress AS varchar(max),@MergedShipToAddress AS varchar(max), @MergedShipAddress AS varchar(max);           
 		DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 		DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
@@ -56,11 +59,20 @@ BEGIN
 		DECLARE @BCountry NVARCHAR(100),@BPhoneNumber NVARCHAR(50),@BPhoneExt NVARCHAR(10),@BEmail NVARCHAR(255);
 
 		DECLARE @SAddress1 NVARCHAR(255),@SAddress2 NVARCHAR(255),@SCity NVARCHAR(100),@SStateOrProvince NVARCHAR(100),@SPostalCode NVARCHAR(20);
-		DECLARE @SCountry NVARCHAR(100),@SPhoneNumber NVARCHAR(50),@SPhoneExt NVARCHAR(10),@SEmail NVARCHAR(255);
+		DECLARE @SCountry NVARCHAR(100),@SPhoneNumber NVARCHAR(50),@SPhoneExt NVARCHAR(10),@SEmail NVARCHAR(255),@CMMIds VARCHAR(256), @CMMId BIGINT = 0,@RevisionNum VARCHAR(50),@revisionDate DATETIME2(7)
 
 		DECLARE @woqShipToSiteId BIGINT = 0;
    
-		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate,@MasterCompanyId=[MasterCompanyId] FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
+		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate,@MasterCompanyId=[MasterCompanyId],@CMMIds = [CMMIds] FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId 
+
+		IF(ISNULL(@CMMIds, '') <> '')
+		BEGIN
+			SET @CMMId = LEFT(@CMMIds, CHARINDEX(',', @CMMIds + ',') - 1);   
+			IF(@CMMId > 0)
+			BEGIN
+				SELECT @RevisionNum=[RevisionNum],@revisionDate=[revisionDate] FROM [dbo].[Publication] WITH(NOLOCK) WHERE [PublicationRecordId] = @CMMId 
+			END
+        END
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
@@ -74,7 +86,11 @@ BEGIN
 		SELECT  @woqShipToSiteId = ISNULL(woqT.ShipToSiteId,0)
 		FROM Dbo.WorkOrder work WITH(NOLOCK)              
 		INNER JOIN Dbo.WorkOrderQuote woqT WITH(NOLOCK) on work.WorkOrderId = woqT.WorkOrderId and woqT.IsVersionIncrease=0 AND woqT.IsActive = 1 AND woqT.IsDeleted = 0 
-		WHERE work.WorkOrderId = @WorkorderId 
+		WHERE work.WorkOrderId = @WorkorderId
+		
+		SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+
+		SELECT @SARMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('SAR');
 
 		IF OBJECT_ID(N'tempdb..#TempTableData') IS NOT NULL
 			BEGIN
@@ -128,8 +144,8 @@ BEGIN
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              
 			woq.ApprovedDate as Qte_Appvd_Date,              
-			wop.CustomerRequestDate as Req_d_Date,              
-			wop.EstimatedShipDate as Est_Ship_Date,              
+			wop.CustomerRequestDate as Req_d_Date,              			
+			CASE WHEN @SARMasterCompanyCode = @MasterCompanyCodeAll THEN DATEADD(DAY, 14, woq.ApprovedDate) ELSE wop.EstimatedShipDate END AS Est_Ship_Date,			
 			UPPER(el.EmployeeCode)  as TechNum,              
 			UPPER(ws.Stage) as WOStage,              
 			UPPER(wo.WorkOrderNum) as WorkOrderNum,              
@@ -216,7 +232,10 @@ BEGIN
 			   FOR XML PATH('')), 1, 1, '')     
 			   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
 			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter ,
-			   ISNULL(rc.CustReqCertType,'') AS CustReqCertType
+			   ISNULL(rc.CustReqCertType,'') AS CustReqCertType,
+			   UPPER(@RevisionNum) AS [RevisionNum],
+			   @revisionDate AS [RevisionDate],			   
+			   CASE WHEN LEN(wop.Notes) > 1370 THEN LEFT(wop.Notes,1370) + '...' ELSE wop.Notes END AS MPNNotes    
 			FROM [dbo].[WorkOrder] wo WITH(NOLOCK)              
 			INNER JOIN [dbo].[WorkOrderWorkFlow] wf WITH(NOLOCK) ON wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 			INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.ID = wf.WorkOrderPartNoId

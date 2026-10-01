@@ -28,6 +28,8 @@
 	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
 	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company [PN-16030]
 	15   29/04/2026   Ayushi Patel		    Keep CompanyName as it is for A2Z company [PN-16030]
+	16   29-09-2026   Moin Bloch			Removed Email for 'SAR' MasterCompany
+
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -46,6 +48,7 @@ SET NOCOUNT ON
 				DECLARE @ModuleId BIGINT;
 				DECLARE @MasterCompanyCode VARCHAR(50);
 				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+				DECLARE @SARMasterCompanyCode VARCHAR(50);
 				DECLARE @MasterCompanyCodeAll VARCHAR(50);
 				DECLARE @ParEmail VARCHAR(100) = 'phogan@phxair.net <br/> repairs@phxair.net';
 				DECLARE @FinalEmail NVARCHAR(500);
@@ -58,7 +61,8 @@ SET NOCOUNT ON
 				DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
 				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR');
 				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
-			
+				SELECT @SARMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('SAR');				
+			   
 					 SELECT 
 						@Address1 = ad.Line1,
 						@Address2 = ad.Line2,
@@ -77,8 +81,8 @@ SET NOCOUNT ON
 							JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 							LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
 							LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
-						WHERE est.EntityStructureId = @ManagementStructId
-				
+						WHERE est.EntityStructureId = @ManagementStructId								
+								
 				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 				
 				--Bind static email for PAR Company.
@@ -89,6 +93,8 @@ SET NOCOUNT ON
 									ELSE @ParEmail
 								END;
 
+				SET @FinalEmail = CASE WHEN @SARMasterCompanyCode = @MasterCompanyCodeAll THEN NULL ELSE @FinalEmail END;
+				
 				EXEC [dbo].[SP_ValidatePDFAddress] 
                 @Address1 = @Address1,
                 @Address2 = @Address2,

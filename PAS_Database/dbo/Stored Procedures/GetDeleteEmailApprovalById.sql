@@ -15,6 +15,10 @@
  ** --   --------     -------		--------------------------------          
     1    16/07/2025   AMIT GHEDIYA      Created
     2    10/03/2026   Bhargav Saliya    [PN-15717]Added MasterCompanyId in where clause
+    3    30/09/2026   Bhargav Saliya    [PN-18094]SO / SOQ: select only parts still waiting for customer approval
+                                        (Submitted for Cust Approval + Waiting for Approval). Parts approved / rejected
+                                        from the PAS Approval tab keep their EmailApproval row, so they were still shown
+                                        on the customer approve / reject page.
 
 -- EXEC GetDeleteEmailApprovalById 769,1
 ************************************************************************/
@@ -31,25 +35,44 @@ BEGIN
 
 	IF(@Mode = 0) --For Select
 	BEGIN
-		  SELECT [PartNumber],
-				 [PartDescription],
-				 [Qty],
-				 [TotalSales],
-				 [RefrenceId],
-				 [SubRefrenceId],
-				 [CustomerApprovedById],
-				 [CustomerId],
-				 [InternalStatusId],
-				 [IsActive],
-				 [IsDeleted],
-				 [MasterCompanyId],
-				 [UpdatedBy],
-				 [ApprovalActionId],
-				 [Email],
-				 [ContactId]		  
-		  FROM  [DBO].[EmailApproval] WITH (NOLOCK) 
-		  WHERE RefrenceId = @RefrenceId
-		  AND ModuleId = @ModuleId AND MasterCompanyId = @MasterCompanyId;
+		  DECLARE @SOModuleId BIGINT = 0,
+				  @SOQModuleId BIGINT = 0,
+				  @SubmitCustomerApproval INT = (SELECT ApprovalProcessId FROM dbo.[ApprovalProcess] WITH(NOLOCK) WHERE UPPER([Name]) = 'SUBMITCUSTOMERAPPROVAL'), -- ApprovalProcessEnum.SubmitCustomerApproval
+				  @WaitingForApproval INT = (SELECT ApprovalStatusId FROM dbo.[ApprovalStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'WAITING FOR APPROVAL');     -- ApprovalStatusEnum.WaitingForApproval
+
+		  SELECT @SOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+		  SELECT @SOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
+
+		  SELECT EA.[PartNumber],
+				 EA.[PartDescription],
+				 EA.[Qty],
+				 EA.[TotalSales],
+				 EA.[RefrenceId],
+				 EA.[SubRefrenceId],
+				 EA.[CustomerApprovedById],
+				 EA.[CustomerId],
+				 EA.[InternalStatusId],
+				 EA.[IsActive],
+				 EA.[IsDeleted],
+				 EA.[MasterCompanyId],
+				 EA.[UpdatedBy],
+				 EA.[ApprovalActionId],
+				 EA.[Email],
+				 EA.[ContactId]
+		  FROM  [DBO].[EmailApproval] EA WITH (NOLOCK)
+		  WHERE EA.RefrenceId = @RefrenceId
+		  AND EA.ModuleId = @ModuleId AND EA.MasterCompanyId = @MasterCompanyId
+		  AND (
+				(@ModuleId = @SOModuleId AND EXISTS (SELECT 1 FROM [DBO].[SalesOrderApproval] SOA WITH (NOLOCK)
+													 WHERE SOA.[SalesOrderId] = EA.RefrenceId AND SOA.[SalesOrderPartId] = EA.SubRefrenceId
+													 AND ISNULL(SOA.[IsDeleted], 0) = 0
+													 AND SOA.[ApprovalActionId] = @SubmitCustomerApproval AND SOA.[CustomerStatusId] = @WaitingForApproval))
+			 OR (@ModuleId = @SOQModuleId AND EXISTS (SELECT 1 FROM [DBO].[SalesOrderQuoteApproval] SOQA WITH (NOLOCK)
+													  WHERE SOQA.[SalesOrderQuoteId] = EA.RefrenceId AND SOQA.[SalesOrderQuotePartId] = EA.SubRefrenceId
+													  AND ISNULL(SOQA.[IsDeleted], 0) = 0
+													  AND SOQA.[ApprovalActionId] = @SubmitCustomerApproval AND SOQA.[CustomerStatusId] = @WaitingForApproval))
+			 OR (@ModuleId NOT IN (@SOModuleId, @SOQModuleId))
+		  );
 	END
 	IF(@Mode = 1) --For Delete
 	BEGIN

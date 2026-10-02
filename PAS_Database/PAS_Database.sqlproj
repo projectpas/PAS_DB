@@ -1370,6 +1370,7 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMapping.sql" />
+    <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMappingAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettings.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettingsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteStatus.sql" />
@@ -4803,6 +4804,7 @@
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteChargesCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteMaterialCommonHistory.sql" />
     <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />

@@ -53,6 +53,10 @@
 	                                      SalesOrderShippingItemId/QtyShipped from the GROUP BY (kept SalesOrderShippingId only), changed
 	                                      QtyToBill/TotalSales/TotalUnitCost to SUM() the shipped qty across the group, and take
 	                                      MAX(SalesOrderShippingItemId) as the representative id for that column.
+	27   02/Oct/2026   Kishor Makwana     [PN-18220] the TotalSales CASE for an already-invoiced row used ISNULL(sobi.GrandTotal, 0) - sobi is the BillingInvoicing HEADER (one row per whole invoice), not sobii the BillingInvoicingItems ITEM row. So every Stockline group that
+	                                      belonged to the same invoice displayed the SAME invoice-wide total instead of its own item amount (e.g. an invoice billing 5 Stocklines at $3,543.75 each showed $17,718.75 -
+	                                      the full invoice total - on every single Stockline row). Confirmed against live data: BillingInvoicingItems had the correct distinct per-Stockline GrandTotal rows all along.
+	                                      Changed to ISNULL(sobii.GrandTotal, 0) (matching the pattern already used correctly in the Non-Stock Service arm just below), and updated the GROUP BY to reference sobii.GrandTotal instead of sobi.GrandTotal to match.
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
 CREATE   PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
@@ -624,7 +628,7 @@ BEGIN
 					stk.SalesOrderStocklineId,
 					cond.Description as 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-					CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN ISNULL(sobi.GrandTotal, 0)
+					CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN ISNULL(sobii.GrandTotal, 0)
 					ELSE (ISNULL(SOSC.NetSaleAmount, 0) / NULLIF(ISNULL(STK.QtyOrder, 1), 0)) * SUM(ISNULL(sosi.QtyShipped, 0))
 					END
 					as 'TotalSales',
@@ -699,7 +703,7 @@ BEGIN
 					GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
-					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
+					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobii.GrandTotal,sobi.[IsInvoicePosted],
 					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId,sobi.[IsReOpened],imt.[StockUnitOfMeasure],imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId],sop.SequenceNumber
 
 					UNION ALL
@@ -734,7 +738,7 @@ BEGIN
 					NULL AS SalesOrderStocklineId,
 					cond2.Description as 'Condition',
 					CASE WHEN currb2.Code IS NOT NULL THEN currb2.Code ELSE curr2.Code END AS 'CurrencyCode',
-					CASE WHEN ISNULL(sobii2.BillingInvoicingId, 0) > 0 THEN ISNULL(sobi2.GrandTotal, 0) ELSE (ISNULL(sop2.UnitSalesPrice,0) * ISNULL(sop2.QtyOrder,0)) END as 'TotalSales',
+					CASE WHEN ISNULL(sobii2.BillingInvoicingId, 0) > 0 THEN ISNULL(sobii2.GrandTotal, 0) ELSE (ISNULL(sop2.UnitSalesPrice,0) * ISNULL(sop2.QtyOrder,0)) END as 'TotalSales',
 					0 AS TotalUnitCost,
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK)
 						WHERE sof.SalesOrderId = @ReferenceId AND sof.ItemMasterId = sop2.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) AS TotalFreight,

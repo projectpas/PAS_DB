@@ -111,6 +111,8 @@
     [PowerBiTenantId]                 VARCHAR (250)   NULL,
     [PowerBiClientId]                 VARCHAR (250)   NULL,
     [PowerBiClientSecret]             VARCHAR (250)   NULL,
+    [ExternalUserTokenKey]            NVARCHAR (250)  NULL,
+    [ExternalUserTokenValidMinutes]   NVARCHAR (100)  NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
 

@@ -38,6 +38,7 @@
 	22   13/Aug/2026   Ayushi Patel		[PN-17604] @ReservedQty/@ReservedQty2 declared decimal 
 	23   24/Aug/2026   Kishor Makwana   [PN-17439] - Added Sequence Number with Part Number
 	24   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
+	25   02/OCT/2026   Kishor Makwana   [PN-18215] - In Transfer Freight Part addded ShipViaName column
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -591,10 +592,10 @@ BEGIN
 		BEGIN
 			INSERT INTO DBO.SalesOrderFreight ([SalesOrderQuoteId],[SalesOrderId],[SalesOrderPartId],[ShipViaId],[Weight],[Memo],[Amount],[MarkupPercentageId],
 			[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],[BillingRate],[BillingAmount],[Length],[Width],[Height],[UOMId],[DimensionUOMId],[CurrencyId],
-			[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId])
+			[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId],[ShipViaName])
 			SELECT sof.SalesOrderQuoteId, @SalesOrderId, @CurrentSOPartId, sof.ShipViaId, sof.[Weight], sof.Memo, sof.Amount, sof.MarkupPercentageId,
 			sof.MarkupFixedPrice, sof.HeaderMarkupId, sof.BillingMethodId, sof.BillingRate, sof.BillingAmount, sof.[Length], sof.Width, sof.Height, sof.UOMId, sof.DimensionUOMId, sof.CurrencyId,
-			sof.MasterCompanyId, sof.CreatedBy, sof.UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, sof.IsActive, sof.IsDeleted, sof.HeaderMarkupPercentageId, sof.ItemMasterId, sof.ConditionId
+			sof.MasterCompanyId, sof.CreatedBy, sof.UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, sof.IsActive, sof.IsDeleted, sof.HeaderMarkupPercentageId, sof.ItemMasterId, sof.ConditionId,sof.ShipViaName
 			FROM DBO.SalesOrderQuoteFreight sof WITH (NOLOCK)
 			--LEFT JOIN #sopList sop ON sop.ItemMasterId = sof.ItemMasterId AND sop.ConditionId = sof.ConditionId
 			WHERE sof.SalesOrderQuotePartId = @CurrentSOQPartId;

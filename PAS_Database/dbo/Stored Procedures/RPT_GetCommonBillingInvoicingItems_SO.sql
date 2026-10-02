@@ -28,6 +28,7 @@
 	16    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	17    11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
 	18   18/Aug/2026   Kishor Makwana  [PN-17687] - Display Freight and Charges Display as per Part
+	19   02/OCT/2026   Kishor Makwana   [PN-18215] - From Freight  ShipViaName name Not Display in Print
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -101,9 +102,10 @@ BEGIN
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), '0.00'))), ', '
+													UPPER(CONCAT(SV.[Name], ': ', FORMAT(ISNULL(f.BillingAmount, 0), '0.00'))), ', '
 												) 
 												FROM DBO.SalesOrderFreight f WITH(NOLOCK)
+												LEFT JOIN shippingvia SV WITH(NOLOCK) ON SV.ShippingViaId =f.ShipViaId
 												WHERE f.SalesOrderId = so.SalesOrderId 
 												  AND f.ItemMasterId = sop.ItemMasterId 
 												  AND f.ConditionId = sop.ConditionId

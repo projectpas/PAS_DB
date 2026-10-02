@@ -19,7 +19,8 @@
 	7    09/July/2026  RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	8    23/July/2026  RAJESH GAMI			[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	9    08-Sep-2026   Vishal Suthar		Added CustomerReference column/filter/sort for Customer Reference # column on Shipping Dashboard
-	10   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	10   10-Sep-2026   Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	11   02-Oct-2026   Sahdev Saliya		[PN-18210] - Carrier: use Ship Via selected on the shipping transaction, fallback to Customer/Vendor primary Ship Via
 
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
@@ -97,7 +98,7 @@ BEGIN
 						imt.PartDescription,
 						Max(wop.PromisedDate) as PromisedDate,
 						Max(P.Description) as Priority,
-						Max(SV.ShipVia) as Carrier,
+						ISNULL(Max(SHVIA.Name), Max(SV.ShipVia)) as Carrier,
 						'' as ShippingMethod,
 						--'Ready to ship' as'Status',
 						CASE WHEN ISNULL(WOSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as'Status',
@@ -126,6 +127,7 @@ BEGIN
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = wo.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK)  ON WOSI.WorkOrderPartNumId = wopt.OrderPartId AND WOSI.WOPickTicketId = wopt.PickTicketId						
 						LEFT JOIN DBO.WorkOrderShipping WOS WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId
+						LEFT JOIN DBO.ShippingVia SHVIA WITH (NOLOCK) ON SHVIA.ShippingViaId = WOS.ShipViaId
 				        WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 
 						--and wop.ID not in(SELECT WorkOrderPartNumId FROM DBO.WorkOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
@@ -143,7 +145,7 @@ BEGIN
 						imt.PartDescription,
 						Max(sop.PromisedDate) as PromisedDate ,
 						Max(P.Description) as Priority,
-						Max(SV.ShipVia) as Carrier,
+						ISNULL(Max(SHVIA.Name), Max(SV.ShipVia)) as Carrier,
 						'' as ShippingMethod,
 						--'Ready to ship' as'Status',
 						CASE WHEN ISNULL(SOSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as'Status',
@@ -172,6 +174,7 @@ BEGIN
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK)  ON SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND SOSI.SOPickTicketId = sopt.SOPickTicketId						
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK)  ON SOSI.SalesOrderShippingId = SOS.SalesOrderShippingId
+						LEFT JOIN DBO.ShippingVia SHVIA WITH (NOLOCK) ON SHVIA.ShippingViaId = SOS.ShipViaId
 						WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 						--and sop.SalesOrderPartId not in(SELECT SalesOrderPartId FROM DBO.SalesOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
@@ -191,7 +194,7 @@ BEGIN
 						imt.PartDescription,
 						Max(sop.PromisedDate) as PromisedDate,
 						Max(P.Description) as Priority,
-						Max(SV.ShipVia) as Carrier,
+						ISNULL(Max(SHVIA.Name), Max(SV.ShipVia)) as Carrier,
 						'' as ShippingMethod,
 						--'Ready to ship' as'Status',
 						CASE WHEN ISNULL(EOSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as'Status',
@@ -210,6 +213,7 @@ BEGIN
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and sv.IsPrimary=1
 						LEFT JOIN DBO.ExchangeSalesOrderShippingItem EOSI WITH (NOLOCK)  ON EOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND EOSI.SOPickTicketId = sopt.SOPickTicketId						
 						LEFT JOIN DBO.ExchangeSalesOrderShipping EOS WITH (NOLOCK)  ON EOSI.ExchangeSalesOrderShippingId = EOS.ExchangeSalesOrderShippingId
+						LEFT JOIN DBO.ShippingVia SHVIA WITH (NOLOCK) ON SHVIA.ShippingViaId = EOS.ShipViaId
 						WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId  and so.IsDeleted = 0  and sopt.IsConfirmed = 1
 						--and sop.ExchangeSalesOrderPartId not in(SELECT ExchangeSalesOrderPartId FROM DBO.ExchangeSalesOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
@@ -229,7 +233,7 @@ BEGIN
 						imt.PartDescription,
 						Max(rop.EstRecordDate) as PromisedDate,
 						Max(ISNULL(P.Description, rop.Priority)) as Priority,
-						Max(VS.ShipVia) as Carrier,
+						ISNULL(Max(SHVIA.Name), Max(VS.ShipVia)) as Carrier,
 						'' as ShippingMethod,
 						CASE WHEN ISNULL(ROSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as 'Status',
 						Max(ropt.ConfirmedDate) as timeHrs,
@@ -246,6 +250,7 @@ BEGIN
 						LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = ro.VendorId and VS.IsPrimary=1
 						LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = ropt.RepairOrderPartId AND ROSI.ROPickTicketId = ropt.ROPickTicketId
 						LEFT JOIN DBO.RepairOrderShipping ROS WITH (NOLOCK) ON ROSI.RepairOrderShippingId = ROS.RepairOrderShippingId
+						LEFT JOIN DBO.ShippingVia SHVIA WITH (NOLOCK) ON SHVIA.ShippingViaId = ROS.ShipViaId
 				        WHERE ropt.IsDeleted = 0 and ropt.MasterCompanyId= @MasterCompanyId and ro.IsDeleted = 0 and ropt.IsConfirmed=1
 						GROUP BY ropt.ROPickTicketId,ro.VendorId,ro.RepairOrderNumber,rop.RepairOrderPartRecordId,imt.partnumber,
 						imt.PartDescription,rop.RepairOrderId,ROSI.QtyShipped,ropt.QtyToShip,ro.CreatedDate,ROS.AirwayBill
@@ -263,7 +268,7 @@ BEGIN
 						imt.PartDescription,
 						Max(rma.OpenDate) as PromisedDate,
 						'' as Priority,
-						Max(VS.ShipVia) as Carrier,
+						ISNULL(Max(SHVIA.Name), Max(VS.ShipVia)) as Carrier,
 						'' as ShippingMethod,
 						CASE WHEN ISNULL(RMSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as 'Status',
 						Max(rmpt.ConfirmedDate) as timeHrs,
@@ -280,6 +285,7 @@ BEGIN
 						LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = rma.VendorId and VS.IsPrimary=1
 						LEFT JOIN DBO.RMAShippingItem RMSI WITH (NOLOCK) ON RMSI.VendorRMADetailId = rmpt.VendorRMADetailId AND RMSI.RMAPickTicketId = rmpt.RMAPickTicketId
 						LEFT JOIN DBO.RMAShipping RMS WITH (NOLOCK) ON RMSI.RMAShippingId = RMS.RMAShippingId
+						LEFT JOIN DBO.ShippingVia SHVIA WITH (NOLOCK) ON SHVIA.ShippingViaId = RMS.ShipViaId
 						LEFT JOIN DBO.Stockline SLR WITH (NOLOCK) ON SLR.StockLineId = rmad.StockLineId
 						LEFT JOIN DBO.PurchaseOrder POR WITH (NOLOCK) ON SLR.PurchaseOrderId = POR.PurchaseOrderId
 						LEFT JOIN DBO.RepairOrder ROR WITH (NOLOCK) ON SLR.RepairOrderId = ROR.RepairOrderId

@@ -21,6 +21,7 @@
 	9    12-05-2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
 	10   07/01/2026    Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on PartCost, per item, when computing Proforma SubTotal & GrandTotal so totals match the line-item report
 	11   06/07/2026    Kishor Makwana   Added ResaleNumber in select statement
+	12   02/OCT/2026   Kishor Makwana   [PN-18220] While we Generate multiple invoicefrom SO the 1st invoice Print Header Detail is Blank. we commented ISNULL(BI.[IsVersionIncrease],0) = 0  in where condition.
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -248,7 +249,7 @@ BEGIN
 				LEFT JOIN [dbo].[Countries] oriCountry WITH(NOLOCK) ON Bi.OriginCountryId = oriCountry.[countries_id]
 				LEFT JOIN [dbo].[Countries] destCountry WITH(NOLOCK) ON Bi.ShipToCountryId = destCountry.[countries_id]
 				LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON SO.MasterCompanyId = MC.MasterCompanyId
-				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
+				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 --AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: SALES ORDER ********/		
 	END TRY    

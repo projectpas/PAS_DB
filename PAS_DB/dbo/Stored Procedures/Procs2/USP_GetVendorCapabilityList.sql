@@ -18,6 +18,7 @@
 
 -- EXEC USP_GetVendorCapabilityList 4797
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    24-09-2026			 Nakul							[PN-17977] added AircraftEngine & VerifiedDate
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetVendorCapabilityList]
     @VendorId BIGINT = 0,
@@ -64,7 +65,9 @@ BEGIN
             vc.CurrencyId,
             vc.Currency,
             vc.EmployeeId,
-			E.FirstName + ' ' + E.LastName [EmployeeName]
+			E.FirstName + ' ' + E.LastName [EmployeeName],
+            vc.AircraftEngine,
+            vc.VerifiedDate
         FROM [dbo].[VendorCapability] vc WITH (NOLOCK)
         INNER JOIN [dbo].[Vendor] v WITH (NOLOCK) ON vc.VendorId = v.VendorId
          LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

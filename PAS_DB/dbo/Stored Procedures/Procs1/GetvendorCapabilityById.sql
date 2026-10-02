@@ -8,6 +8,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    28-09-2026			 Nakul							[PN-17977] added AircraftEngine & VerifiedDate for Vendor Capes edit
 ****************************************************************************************************************************************/
 CREATE   PROCEDURE GetvendorCapabilityById
 @VendorCapsID bigint=0
@@ -46,7 +47,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					vc.Currency,
 					vc.EmployeeId,
 					ct.Description as CapabilityType,
-					ct.CapabilityTypeDesc as CapDescription
+					ct.CapabilityTypeDesc as CapDescription,
+					vc.AircraftEngine,
+					vc.VerifiedDate
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

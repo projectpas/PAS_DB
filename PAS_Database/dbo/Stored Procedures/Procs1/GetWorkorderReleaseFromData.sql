@@ -37,6 +37,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	27    07/08/2026  Abhishek Jirawala Added Fleet field in Section 12 Remarks [PN-17260]
 ** 28   15/09/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName  [PN-17935])
+** 29   02/10/2026  Hemant Saliya    Updated for Make fleet Conditional in Print 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
 **************************************************************/ 
 
@@ -537,7 +538,16 @@ BEGIN
 								REPLACE(
 									REPLACE(
 										REPLACE(
-											REPLACE(ISNULL(PT.EmailBody,''), '#Fleet', ISNULL(UPPER(pub.Fleet),'-')),
+											--REPLACE(ISNULL(PT.EmailBody,''), '#Fleet', ISNULL(UPPER(pub.Fleet),'-')),
+											REPLACE(
+														ISNULL(PT.EmailBody,''),
+														'#Fleet',
+														CASE 
+															WHEN NULLIF(LTRIM(RTRIM(pub.Fleet)),'') IS NOT NULL 
+																THEN 'Fleet: ' + UPPER(pub.Fleet) + ','
+															ELSE ''
+														END
+													),
 											'#PublicationByName', 
 											CASE 
 												WHEN pub.PublishedById = 2 THEN ISNULL(ven.VendorName,'-')

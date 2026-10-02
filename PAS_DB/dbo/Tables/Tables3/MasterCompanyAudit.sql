@@ -31,6 +31,11 @@
     [TokenPassword]            VARCHAR (100)  NULL,
     [IsXeroAccountingEnabled]  BIT            NULL,
     [DBName]                   VARCHAR (255)  NULL,
+    -- [PN-18181] Must mirror MasterCompany.sql's new columns, in the same order, since
+    -- Trg_MasterCompanyAudit does an unqualified INSERT INTO MasterCompanyAudit SELECT * FROM INSERTED.
+    [IsRedirect]               BIT            NULL,
+    [ReDirectURL]              VARCHAR (MAX)  NULL,
+    [ReDirectURLMessage]       VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_MasterCompanyAudit] PRIMARY KEY CLUSTERED ([MasterCompanyAuditId] ASC)
 );
 

@@ -46,13 +46,13 @@
 	26   01/July/2026 RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	27   16/July/2026 RAJESH GAMI		[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
 	28   25-SEP-2026  HEMANT SALIYA     Commented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) By Hemant due to stockline is not avaiable in Reconcilation
-
+	29   01-OCT-2026  Rajesh Gami       UnCommented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) Getting issue while partial Qty receive
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,
@@ -772,11 +772,11 @@ DELETE FROM #tmpCodePrefixes;
                                 SET @LoopID_QtyToReceive = @LoopID_QtyToReceive - 1;
                             END
 							--Commented By Hemant due to stockline is not avaiable in Reconcilation 
-                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            --BEGIN
-                            --    SET @StockLineNumber = NULL;
-                            --    SET @NewStocklineId = NULL;
-                            --END
+                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            BEGIN
+                                SET @StockLineNumber = NULL;
+                                SET @NewStocklineId = NULL;
+                            END
 
                             UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId,
@@ -2032,11 +2032,11 @@ DELETE FROM #tmpCodePrefixes;
                                 SET @LoopID_QtyToReceive_Asset = @LoopID_QtyToReceive_Asset - 1;
                             END
 
-                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            --BEGIN
-                            --    SET @StockLineNumber_Asset = NULL;
-                            --    SET @NewStocklineId_Asset = NULL;
-                            --END
+                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            BEGIN
+                                SET @StockLineNumber_Asset = NULL;
+                                SET @NewStocklineId_Asset = NULL;
+                            END
 
                             UPDATE dstl
                             SET dstl.AssetInventoryId = @NewStocklineId_Asset,
@@ -2734,11 +2734,11 @@ DELETE FROM #tmpCodePrefixes_NS;
                                 SET @LoopID_QtyToReceive_NS = @LoopID_QtyToReceive_NS - 1;
                             END
 							--Commented By Hemant due to stockline is not avaiable in Reconcilation
-                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            --BEGIN
-                            --    SET @StockLineNumber_NS = NULL;
-                            --    SET @NewStocklineId_NS = NULL;
-                            --END
+                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            BEGIN
+                                SET @StockLineNumber_NS = NULL;
+                                SET @NewStocklineId_NS = NULL;
+                            END
 
                             UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId_NS,

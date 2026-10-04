@@ -47,6 +47,7 @@
 	27   16/July/2026 RAJESH GAMI		[PN-17271] - Non-Stock parts now received into DBO.Stockline (IsNonStock=1) from DBO.StocklineDraft instead of legacy NonStockInventory/NonStockInventoryDraft tables.
 	28   25-SEP-2026  HEMANT SALIYA     Commented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) By Hemant due to stockline is not avaiable in Reconcilation
 	29   01-OCT-2026  Rajesh Gami       UnCommented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) Getting issue while partial Qty receive
+	30   02-OCT-2026  Rajesh Gami       Modified the IS NULL condition to use the proper ISNULL condition. (stocklinedraft.Stockline IS NULL to ISNULL(stocklinedraft.Stockline,0) = 0)
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -109,9 +110,10 @@ BEGIN
             SELECT [PurchaseOrderId], [PurchaseOrderPartRecordId], [QtyToReceive] FROM @tbl_POPartsToReceive;
 
             SELECT @MainPartLoopID = MAX(ID) FROM #POPartsToReceive;
-
+			PRINT 'Start'
             WHILE (@MainPartLoopID > 0)
             BEGIN
+					PRINT '1.0'
                 DECLARE @ItemMasterId_Part BIGINT;
                 DECLARE @ItemMasterNonStockId_Part BIGINT;
                 DECLARE @IsSerializedPart BIT;
@@ -134,6 +136,7 @@ BEGIN
 
                 IF (@ItemTypeId = 1)
                 BEGIN
+					PRINT '1.1'
                     SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part AND ISNULL(IM.IsNonStock,0) = 0 ;
 
                     IF OBJECT_ID(N'tempdb..#tmpStocklineDraft') IS NOT NULL
@@ -363,6 +366,8 @@ BEGIN
                             SELECT @LoopID = MAX(ID) FROM #tmpStocklineDraft;
                         END
                     END
+					PRINT '@LoopID'
+					PRINT  @LoopID
 
                     WHILE (@LoopID > 0)
                     BEGIN
@@ -738,10 +743,10 @@ DELETE FROM #tmpCodePrefixes;
                             SELECT [StocklineDraftId] FROM DBO.StocklineDraft WITH (NOLOCK)
                             WHERE PurchaseOrderId = @PurchaseOrderId
                                   AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
-                                  AND IsParent = 0
-                                  AND isSerialized = 0
+                                  AND ISNULL(IsParent,0) = 0
+                                  AND ISNULL(isSerialized,0) = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND StockLineId IS NULL 
+                                  AND ISNULL(StockLineId,0) = 0 
                             ORDER BY StocklineDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive = MAX(ID) FROM #StocklineDraftForQtyToReceive;
@@ -749,13 +754,16 @@ DELETE FROM #tmpCodePrefixes;
                             DECLARE @TotalQtyToTraverse INT = 0;
 
                             SET @TotalQtyToTraverse = @QtyToReceive;
-
+							PRINT '@TotalQtyToTraverse'
+							PRINT @TotalQtyToTraverse
+							PRINT '@LoopID_QtyToReceive'
+							PRINT  @LoopID_QtyToReceive
                             WHILE (@LoopID_QtyToReceive > 0)
                             BEGIN
                                 IF (@TotalQtyToTraverse > 0)
                                 BEGIN
                                     DECLARE @CurrentStocklineDraftId BIGINT = 0;
-
+									PRINT 'Step 1'
                                     SELECT @CurrentStocklineDraftId = StocklineDraftId
                                     FROM #StocklineDraftForQtyToReceive
                                     WHERE ID = @LoopID_QtyToReceive;
@@ -774,10 +782,12 @@ DELETE FROM #tmpCodePrefixes;
 							--Commented By Hemant due to stockline is not avaiable in Reconcilation 
                             IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
                             BEGIN
+							PRINT 'Step 2'
                                 SET @StockLineNumber = NULL;
                                 SET @NewStocklineId = NULL;
                             END
-
+							PRINT '@SelectedStockLineDraftId'
+							PRINT @SelectedStockLineDraftId
                             UPDATE dstl
                             SET dstl.StockLineId = @NewStocklineId,
                                 dstl.StockLineNumber = @StockLineNumber,
@@ -1999,10 +2009,10 @@ DELETE FROM #tmpCodePrefixes;
                             FROM DBO.AssetInventoryDraft WITH (NOLOCK)
                             WHERE PurchaseOrderId = @PurchaseOrderId
                                   AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
-                                  AND IsParent = 0
-                                  AND isSerialized = 0
+                                  AND ISNULL(IsParent,0) = 0
+                                  AND ISNULL(isSerialized,0) = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND AssetInventoryId IS NULL
+                                  AND ISNULL(AssetInventoryId,0) =0
                             ORDER BY AssetInventoryDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive_Asset = MAX(ID)
@@ -2700,10 +2710,10 @@ DELETE FROM #tmpCodePrefixes_NS;
                             SELECT [StocklineDraftId] FROM DBO.StocklineDraft WITH (NOLOCK)
                             WHERE PurchaseOrderId = @PurchaseOrderId
                                   AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
-                                  AND IsParent = 0
-                                  AND isSerialized = 0
+                                  AND ISNULL(IsParent,0) = 0
+                                  AND ISNULL(isSerialized,0) = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND StockLineId IS NULL 
+                                  AND ISNULL(StockLineId,0) =0 
                             ORDER BY StocklineDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive_NS = MAX(ID) FROM #StocklineDraftForQtyToReceive_NS;

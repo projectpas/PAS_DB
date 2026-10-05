@@ -11,7 +11,11 @@ CREATE TABLE [dbo].[LeaseStocklineServiceComponent] (
     [UpdatedDate]                      DATETIME        CONSTRAINT [DF_LeaseStocklineServiceComponent_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [IsActive]                         BIT             CONSTRAINT [DF_LeaseStocklineServiceComponent_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                        BIT             CONSTRAINT [DF_LeaseStocklineServiceComponent_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [GLAccountId]                      BIGINT          NULL,
+    [StartDate]                        DATETIME        NULL,
+    [EndDate]                          DATETIME        NULL,
     CONSTRAINT [PK_LeaseStocklineServiceComponent] PRIMARY KEY CLUSTERED ([LeaseStocklineServiceComponentId] ASC),
+    CONSTRAINT [FK_LeaseStocklineServiceComponent_GLAccount] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_LeaseStocklineServiceComponent_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId]),
     CONSTRAINT [FK_LeaseStocklineServiceComponent_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

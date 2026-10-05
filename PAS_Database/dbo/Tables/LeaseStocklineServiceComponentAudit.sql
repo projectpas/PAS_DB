@@ -12,6 +12,9 @@ CREATE TABLE [dbo].[LeaseStocklineServiceComponentAudit] (
     [UpdatedDate]                           DATETIME        NULL,
     [IsActive]                              BIT             NULL,
     [IsDeleted]                             BIT             NULL,
+    [GLAccountId]                           BIGINT          NULL,
+    [StartDate]                             DATETIME        NULL,
+    [EndDate]                               DATETIME        NULL,
     CONSTRAINT [PK_LeaseStocklineServiceComponentAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineServiceComponentAuditId] ASC)
 );
 

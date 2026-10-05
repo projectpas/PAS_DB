@@ -9,6 +9,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    14/09/2026     Amit Ghediya            Created
+    2    05-Oct-2026    Divyesh Kathriya        [PN-18188] - Added GL Account, Start Date, and End Date.
 
 exec USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId @LeaseStocklineId=1
 ************************************************************************/
@@ -20,10 +21,11 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-		SELECT LeaseStocklineServiceComponentId, LeaseStocklineId, ComponentName, Amount, Per
+		SELECT [LeaseStocklineServiceComponentId], [LeaseStocklineId], [ComponentName],
+			[GLAccountId], [StartDate], [EndDate], [Amount], [Per]
 		FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
-		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0
-		ORDER BY LeaseStocklineServiceComponentId;
+		WHERE [LeaseStocklineId] = @LeaseStocklineId AND [IsDeleted] = 0
+		ORDER BY [LeaseStocklineServiceComponentId];
 
 	END TRY
 	BEGIN CATCH

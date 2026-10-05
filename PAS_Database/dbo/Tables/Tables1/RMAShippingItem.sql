@@ -18,3 +18,9 @@
     CONSTRAINT [FK_RMAShippingItem_RMAPickTicket] FOREIGN KEY ([RMAPickTicketId]) REFERENCES [dbo].[RMAPickTicket] ([RMAPickTicketId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RMAShippingItem_VendorRMADetailId]
+    ON [dbo].[RMAShippingItem]([VendorRMADetailId] ASC)
+    INCLUDE([RMAShippingId], [QtyShipped]);
+

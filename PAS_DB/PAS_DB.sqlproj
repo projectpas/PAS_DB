@@ -4101,6 +4101,7 @@
     <Build Include="dbo\Stored Procedures\Procs3\USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_SubWorkOrderHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_SyncQuickBooksPaymentMethods.sql" />
+    <Build Include="dbo\Stored Procedures\Procs3\USP_SyncStocklineInfoToStocklineDraft.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_TaskInstruction_DeleteRestoreById.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_TenderMultipleStockLine.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_TenderStockLineForSubAssembly.sql" />

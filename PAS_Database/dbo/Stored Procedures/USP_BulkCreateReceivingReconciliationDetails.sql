@@ -12,6 +12,7 @@
  ** PR   Date          Author			Change Description            
  ** --   --------      -------			--------------------------------          
     1    30/06/2026    Priyansh Patel	Created - converted from EF AddRange/SaveChanges
+    2    02/10/2026    Ayushi Patel		[PN-18219] POExtCost / AdjExtCost are UOM independent - store as it is, do not convert to Stock UOM
 
 --   EXEC [USP_BulkCreateReceivingReconciliationDetails] 
 **************************************************************/
@@ -115,13 +116,7 @@ BEGIN
                     ELSE RRD.[POUnitCost]
                 END,
 
-                CASE WHEN RRD.[Type] = 1
-                        AND NULLIF(IM.StockUnitOfMeasure,'') IS NOT NULL
-                        AND NULLIF(IM.PurchaseUnitOfMeasure,'') IS NOT NULL
-                        AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure
-                    THEN dbo.fn_ConvertUOM(RRD.[POExtCost],IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)
-                    ELSE RRD.[POExtCost]
-                END,
+                RRD.[POExtCost],
 
                 CASE WHEN RRD.[Type] = 1
                         AND NULLIF(IM.StockUnitOfMeasure,'') IS NOT NULL
@@ -163,13 +158,7 @@ BEGIN
                     ELSE RRD.[AdjUnitCost]
                 END,
 
-                CASE WHEN RRD.[Type] = 1
-                        AND NULLIF(IM.StockUnitOfMeasure,'') IS NOT NULL
-                        AND NULLIF(IM.PurchaseUnitOfMeasure,'') IS NOT NULL
-                        AND IM.StockUnitOfMeasure <> IM.PurchaseUnitOfMeasure
-                    THEN dbo.fn_ConvertUOM(RRD.[AdjExtCost],IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)
-                    ELSE RRD.[AdjExtCost]
-                END,
+                RRD.[AdjExtCost],
 
                 RRD.[APNumber],
                 RRD.[PurchaseOrderId],

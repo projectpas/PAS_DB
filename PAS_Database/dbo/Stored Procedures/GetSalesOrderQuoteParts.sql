@@ -27,6 +27,7 @@
 	11    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 	12    20/Aug/2026  Ayushi Patel      [PN-17573]return two field for soq print (IsNonStock,IsService)
 	13    21/Aug/2026  Ayushi Patel		 [PN-17573] Handle isNull (IsNonStock,IsService)
+	14    02/Oct/2026  Bhargav Saliya	 [PN-15173] UOM: convert QtyAvailable (stk) & QuantityOnHand (qs) stock -> consume; SOQ grid + margin popup were showing/validating stock UOM qty.
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -187,8 +188,8 @@ BEGIN
 				WHEN itemMaster.IsDER = 1 THEN 'DER'
 				ELSE 'OEM'
 			END AS StockType,
-			stk.QtyAvailable,
-			qs.QuantityOnHand,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyAvailable, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyAvailable, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QtyAvailable,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(qs.QuantityOnHand, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(qs.QuantityOnHand, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QuantityOnHand,
 			part.IsConvertedToSalesOrder,
 			0 AS ItemNo,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL

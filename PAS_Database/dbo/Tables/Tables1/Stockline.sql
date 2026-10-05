@@ -281,6 +281,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Stockline]
     ON [dbo].[Stockline]
@@ -335,6 +337,7 @@ BEGIN
             CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
             d.[InventoryGLAccName],
             d.[GoodsReceivedNotInvoicesGLAccName],
+            d.[WorkInProgressGLAccName],
             d.[RevenueSoGLAccName],
             d.[Memo],
             d.[RevicedPNNumber],
@@ -431,6 +434,7 @@ BEGIN
             CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],            
             i.[InventoryGLAccName],
             i.[GoodsReceivedNotInvoicesGLAccName],
+            i.[WorkInProgressGLAccName],
             i.[RevenueSoGLAccName],
             i.[Memo],
             i.[RevicedPNNumber],

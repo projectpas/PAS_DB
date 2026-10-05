@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************
  ** File:   [USP_GetLeaseBillingListByLeaseHeaderId]
  ** Description: Returns the Billing/Invoicing grid rows for a LeaseHeader (PN-17949 /
@@ -52,6 +51,8 @@
 	                                            not re-applied every period - flagged as an assumption since the customer's requirement did not spell this case out explicitly). Old single-snapshot TimeRecorded/CycleRecorded/
 	                                            TimeUsageQty/CycleUsageQty logic (this file's own prior revision, PN-17949 follow-ups 2/3/6) is superseded by this period-aware version. Invoiced-tab rows are unchanged in shape from
 	                                            change #6 (still one Flat Rate + Overrun pair per historical invoice item, from LeaseBillingInvoicingItemDetails) - only Pending rows were in scope for this pass.
+    7   05/10/2026     Kishor Makwana          [PN-18072 IsVersionIncrease] Invoice items / detail rows are versioned with IsVersionIncrease (1 = superseded by a re-generated draft, 0 = current) instead of being
+                                            soft-deleted - every read of BillingInvoicingItems / LeaseBillingInvoicingItemDetails here now keeps only ISNULL(IsVersionIncrease, 0) = 0.
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -75,16 +76,17 @@ BEGIN
 				LSL.BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
 				LSL.FlatRate,
+				LSL.RateUnit,
 				LSL.Maintenance,
 				LSL.Insurance,
 				LSL.Taxes,
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
 				ISNULL(ChargesAgg.Charges, 0) AS Charges,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
 				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
 				LSL.UsagePerUnitTimes,
 				LSL.OverrunPerUnitTimes,
-				LSL.MaximumCycles AS CycleLimit,
+				CASE WHEN LSL.MaximumCycles > 0 THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
 				LSL.MinimumCycles AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
@@ -105,7 +107,7 @@ BEGIN
 			OUTER APPLY (
 				SELECT TOP (1) BII.BillingInvoicingId
 				FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
-				WHERE BII.SubReferenceId = LSL.LeaseStocklineId AND BII.ModuleId = @LeaseModuleId AND BII.IsDeleted = 0
+				WHERE BII.SubReferenceId = LSL.LeaseStocklineId AND BII.ModuleId = @LeaseModuleId AND BII.IsDeleted = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
 				ORDER BY BII.BillingInvoicingItemId DESC
 			) LatestBII
 			LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = LatestBII.BillingInvoicingId
@@ -127,48 +129,56 @@ BEGIN
 		TimeSeries AS (
 			SELECT
 				H.LeaseStocklineId,
-				H.LeaseStocklineUsageHistoryId,
-				H.CreatedDate AS PeriodKey,
-				H.FromDate,
-				H.ToDate,
-				H.IsInvoiced,
-				(ISNULL(H.TSNHours, 0) * 60 + ISNULL(H.TSNMinutes, 0)) AS TimeReadingAbs,
-				LAG(ISNULL(H.TSNHours, 0) * 60 + ISNULL(H.TSNMinutes, 0)) OVER (
-					PARTITION BY H.LeaseStocklineId ORDER BY H.CreatedDate, H.LeaseStocklineUsageHistoryId
-				) AS PriorTimeReadingAbs
+				DATEFROMPARTS(YEAR(H.FromDate), MONTH(H.FromDate), 1) AS PeriodKey,
+				MIN(H.FromDate) AS FromDate,
+				MAX(H.ToDate) AS ToDate,
+				SUM(ISNULL(H.TSNHours, 0) * 60 + ISNULL(H.TSNMinutes, 0)) AS TimeReadingAbs
 			FROM [dbo].[LeaseStocklineUsageHistory] H WITH (NOLOCK)
-			WHERE H.UsageType = 'T' AND H.IsActive = 1 AND H.IsDeleted = 0
+			WHERE H.UsageType = 'T' AND H.IsActive = 1 AND H.IsDeleted = 0 AND ISNULL(H.IsInvoiced, 0) = 0 AND H.BillingInvoicingItemId IS NULL
+			GROUP BY H.LeaseStocklineId, DATEFROMPARTS(YEAR(H.FromDate), MONTH(H.FromDate), 1)
 		),
 		CycleSeries AS (
 			SELECT
 				H.LeaseStocklineId,
-				H.LeaseStocklineUsageHistoryId,
-				H.CreatedDate AS PeriodKey,
-				H.FromDate,
-				H.ToDate,
-				H.IsInvoiced,
-				ISNULL(H.CSN, 0) AS CycleReadingAbs,
-				LAG(ISNULL(H.CSN, 0)) OVER (
-					PARTITION BY H.LeaseStocklineId ORDER BY H.CreatedDate, H.LeaseStocklineUsageHistoryId
-				) AS PriorCycleReadingAbs
+				DATEFROMPARTS(YEAR(H.FromDate), MONTH(H.FromDate), 1) AS PeriodKey,
+				MIN(H.FromDate) AS FromDate,
+				MAX(H.ToDate) AS ToDate,
+				SUM(ISNULL(H.CSN, 0)) AS CycleReadingAbs
 			FROM [dbo].[LeaseStocklineUsageHistory] H WITH (NOLOCK)
-			WHERE H.UsageType = 'C' AND H.IsActive = 1 AND H.IsDeleted = 0
+			WHERE H.UsageType = 'C' AND H.IsActive = 1 AND H.IsDeleted = 0 AND ISNULL(H.IsInvoiced, 0) = 0 AND H.BillingInvoicingItemId IS NULL
+			GROUP BY H.LeaseStocklineId, DATEFROMPARTS(YEAR(H.FromDate), MONTH(H.FromDate), 1)
+		),
+		TimeFirstMonthEver AS (
+			SELECT LeaseStocklineId, MIN(DATEFROMPARTS(YEAR(FromDate), MONTH(FromDate), 1)) AS FirstMonth
+			FROM [dbo].[LeaseStocklineUsageHistory] WITH (NOLOCK)
+			WHERE UsageType = 'T' AND IsActive = 1 AND IsDeleted = 0
+			GROUP BY LeaseStocklineId
+		),
+		CycleFirstMonthEver AS (
+			SELECT LeaseStocklineId, MIN(DATEFROMPARTS(YEAR(FromDate), MONTH(FromDate), 1)) AS FirstMonth
+			FROM [dbo].[LeaseStocklineUsageHistory] WITH (NOLOCK)
+			WHERE UsageType = 'C' AND IsActive = 1 AND IsDeleted = 0
+			GROUP BY LeaseStocklineId
 		),
 		Periods AS (
 			SELECT
 				COALESCE(T.LeaseStocklineId, C.LeaseStocklineId) AS LeaseStocklineId,
 				COALESCE(T.PeriodKey, C.PeriodKey) AS PeriodKey,
-				COALESCE(T.FromDate, C.FromDate) AS PeriodFromDate,
-				COALESCE(T.ToDate, C.ToDate) AS PeriodToDate,
-				CASE WHEN T.PeriodKey IS NOT NULL AND ISNULL(T.IsInvoiced, 0) = 0 THEN 1 ELSE 0 END AS TimePending,
+				(SELECT MIN(D) FROM (VALUES (T.FromDate), (C.FromDate)) AS Dates(D)) AS PeriodFromDate,
+				(SELECT MAX(D) FROM (VALUES (T.ToDate), (C.ToDate)) AS Dates(D)) AS PeriodToDate,
+				CASE WHEN T.PeriodKey IS NOT NULL THEN 1 ELSE 0 END AS TimePending,
 				T.TimeReadingAbs,
-				T.PriorTimeReadingAbs,
-				CASE WHEN C.PeriodKey IS NOT NULL AND ISNULL(C.IsInvoiced, 0) = 0 THEN 1 ELSE 0 END AS CyclePending,
+				CAST(0 AS DECIMAL(18,6)) AS PriorTimeReadingAbs,
+				CASE WHEN C.PeriodKey IS NOT NULL THEN 1 ELSE 0 END AS CyclePending,
 				C.CycleReadingAbs,
-				C.PriorCycleReadingAbs
+				CAST(0 AS DECIMAL(18,6)) AS PriorCycleReadingAbs,
+				CASE WHEN T.PeriodKey IS NOT NULL AND T.PeriodKey = TF.FirstMonth THEN 1 ELSE 0 END AS TimeIsFirstEverMonth,
+				CASE WHEN C.PeriodKey IS NOT NULL AND C.PeriodKey = CF.FirstMonth THEN 1 ELSE 0 END AS CycleIsFirstEverMonth
 			FROM TimeSeries T
 			FULL OUTER JOIN CycleSeries C
 				ON C.LeaseStocklineId = T.LeaseStocklineId AND C.PeriodKey = T.PeriodKey
+			LEFT JOIN TimeFirstMonthEver TF ON TF.LeaseStocklineId = COALESCE(T.LeaseStocklineId, C.LeaseStocklineId)
+			LEFT JOIN CycleFirstMonthEver CF ON CF.LeaseStocklineId = COALESCE(T.LeaseStocklineId, C.LeaseStocklineId)
 		),
 		PendingPeriodsJoined AS (
 			SELECT
@@ -182,6 +192,8 @@ BEGIN
 				P.CyclePending,
 				P.CycleReadingAbs,
 				P.PriorCycleReadingAbs,
+				P.TimeIsFirstEverMonth,
+				P.CycleIsFirstEverMonth,
 				S.PartNumber,
 				S.PartDescription,
 				S.SerialNumber,
@@ -199,6 +211,7 @@ BEGIN
 				S.IsOverageBillingMethod,
 				S.IsFlatRateBillingMethod,
 				S.FlatRate,
+				S.RateUnit,
 				S.HasUsageInfo,
 				S.IsActive,
 				S.LeaseStatusId,
@@ -239,6 +252,7 @@ BEGIN
 				IsOverageBillingMethod,
 				IsFlatRateBillingMethod,
 				FlatRate,
+				RateUnit,
 				HasUsageInfo,
 				IsActive,
 				LeaseStatusId,
@@ -247,9 +261,9 @@ BEGIN
 				InvoiceDate,
 				PeriodSeq,
 				ISNULL(PriorTimeReadingAbs, 0) AS TimePriorAbs,
-				CASE WHEN TimePending = 1 AND PriorTimeReadingAbs IS NULL THEN 1 ELSE 0 END AS TimeIsFirstEver,
+				CASE WHEN TimePending = 1 AND TimeIsFirstEverMonth = 1 THEN 1 ELSE 0 END AS TimeIsFirstEver,
 				ISNULL(PriorCycleReadingAbs, 0) AS CyclePriorAbs,
-				CASE WHEN CyclePending = 1 AND PriorCycleReadingAbs IS NULL THEN 1 ELSE 0 END AS CycleIsFirstEver
+				CASE WHEN CyclePending = 1 AND CycleIsFirstEverMonth = 1 THEN 1 ELSE 0 END AS CycleIsFirstEver
 			FROM PendingPeriodsJoined
 		),
 
@@ -282,6 +296,7 @@ BEGIN
 				IsOverageBillingMethod,
 				IsFlatRateBillingMethod,
 				FlatRate,
+				RateUnit,
 				HasUsageInfo,
 				IsActive,
 				LeaseStatusId,
@@ -343,6 +358,7 @@ BEGIN
 				IsOverageBillingMethod,
 				IsFlatRateBillingMethod,
 				FlatRate,
+				RateUnit,
 				HasUsageInfo,
 				IsActive,
 				LeaseStatusId,
@@ -359,16 +375,30 @@ BEGIN
 				TimeOverMinutes,
 				CycleOverCount,
 				CASE
-					WHEN TimePending = 0 OR IsOverageBillingMethod = 0 THEN NULL
+					WHEN TimePending = 0 THEN NULL
+					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN TimeEffectiveCurrAbs - TimePriorAbs
+					WHEN IsOverageBillingMethod = 0 THEN NULL
 					WHEN TimeLimit IS NOT NULL AND TimePriorAbs >= TimeLimit THEN 0
 					WHEN TimeLimit IS NOT NULL AND TimeEffectiveCurrAbs > TimeLimit THEN TimeLimit - TimePriorAbs
 					ELSE TimeEffectiveCurrAbs - TimePriorAbs END AS TimeUsageQty,
 				CASE
-					WHEN CyclePending = 0 OR IsOverageBillingMethod = 0 THEN NULL
+					WHEN CyclePending = 0 THEN NULL
+					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN CycleEffectiveCurrAbs - CyclePriorAbs
+					WHEN IsOverageBillingMethod = 0 THEN NULL
 					WHEN CycleLimit IS NOT NULL AND CyclePriorAbs >= CycleLimit THEN 0
 					WHEN CycleLimit IS NOT NULL AND CycleEffectiveCurrAbs > CycleLimit THEN CycleLimit - CyclePriorAbs
 					ELSE CycleEffectiveCurrAbs - CyclePriorAbs END AS CycleUsageQty
 			FROM PeriodAmounts2
+		),
+		PostedFlatMonths AS (
+			SELECT DISTINCT PL.LeaseStocklineId, DATEFROMPARTS(YEAR(PL.FromDate), MONTH(PL.FromDate), 1) AS MonthKey
+			FROM [dbo].[LeaseBillingInvoicingItemDetails] PL WITH (NOLOCK)
+			INNER JOIN [dbo].[BillingInvoicingItems] PB WITH (NOLOCK)
+				ON PB.BillingInvoicingItemId = PL.BillingInvoicingItemId AND PB.IsDeleted = 0 AND ISNULL(PB.IsVersionIncrease, 0) = 0
+			INNER JOIN [dbo].[BillingInvoicing] PI WITH (NOLOCK)
+				ON PI.BillingInvoicingId = PB.BillingInvoicingId AND ISNULL(PI.IsInvoicePosted, 0) = 1 AND ISNULL(PI.InvoiceStatus, '') <> 'Voided'
+			WHERE PL.LineType = 'Flat Rate' AND PL.FromDate IS NOT NULL AND ISNULL(PL.IsDeleted, 0) = 0
+			  AND ISNULL(PL.IsVersionIncrease, 0) = 0 AND ISNULL(PL.FlatRateAmount, 0) > 0
 		),
 		PeriodLines AS (
 			SELECT
@@ -376,19 +406,34 @@ BEGIN
 				CASE WHEN IsFlatRateBillingMethod = 1 THEN FlatRate ELSE NULL END AS FlatRate,
 				'Flat Rate' AS LineType,
 				PeriodFromDate AS FromDate, PeriodToDate AS ToDate,
-				CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE NULL END AS LineAmount,
-				TimeUsageQty AS TimeRecorded,
-				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN TimeLimit ELSE NULL END AS TimeLimit,
+				CASE WHEN IsFlatRateBillingMethod = 1 AND UPPER(LTRIM(RTRIM(ISNULL(RateUnit, '')))) = 'MONTH'
+					AND NOT EXISTS (SELECT 1 FROM PostedFlatMonths PM WHERE PM.LeaseStocklineId = PeriodAmounts3.LeaseStocklineId
+						AND PM.MonthKey = DATEFROMPARTS(YEAR(PeriodAmounts3.PeriodFromDate), MONTH(PeriodAmounts3.PeriodFromDate), 1))
+					THEN ISNULL(FlatRate, 0) * Qty ELSE NULL END AS LineAmount,
+				CASE WHEN TimePending = 1 THEN (CASE WHEN TimeReadingAbs < 0 THEN 0 ELSE TimeReadingAbs END) ELSE NULL END AS TimeRecorded,
+				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN TimeLimit < 0 THEN 0 ELSE TimeLimit END) ELSE NULL END AS TimeLimit,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeOver,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate,
-				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 AND TimeUsageQty IS NOT NULL
-					THEN (TimeUsageQty / 60.0) * ISNULL(UsagePerUnitTimes, 0) * Qty ELSE NULL END AS TimeBillingAmount,
-				CycleUsageQty AS CycleRecorded,
-				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN CycleLimit ELSE NULL END AS CycleLimit,
+				CASE
+					WHEN TimePending = 1 AND TimeUsageQty IS NOT NULL AND IsFlatRateBillingMethod = 1
+						AND UPPER(LTRIM(RTRIM(ISNULL(RateUnit, '')))) NOT IN ('CYCLE', 'MONTH')
+						THEN (TimeUsageQty / 60.0) * ISNULL(FlatRate, 0) * Qty
+					WHEN TimePending = 1 AND TimeUsageQty IS NOT NULL AND BillingMethod = 'UsageBased'
+						THEN (TimeUsageQty / 60.0) * ISNULL(UsagePerUnitTimes, 0) * Qty
+					ELSE NULL
+				END AS TimeBillingAmount,
+				CASE WHEN CyclePending = 1 THEN (CASE WHEN CycleReadingAbs < 0 THEN 0 ELSE CycleReadingAbs END) ELSE NULL END AS CycleRecorded,
+				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN CycleLimit < 0 THEN 0 ELSE CycleLimit END) ELSE NULL END AS CycleLimit,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleOver,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate,
-				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 AND CycleUsageQty IS NOT NULL
-					THEN CycleUsageQty * ISNULL(UsagePerUnitCycles, 0) * Qty ELSE NULL END AS CycleBillingAmount,
+				CASE
+					WHEN CyclePending = 1 AND CycleUsageQty IS NOT NULL AND IsFlatRateBillingMethod = 1
+						AND UPPER(LTRIM(RTRIM(ISNULL(RateUnit, '')))) = 'CYCLE'
+						THEN CycleUsageQty * ISNULL(FlatRate, 0) * Qty
+					WHEN CyclePending = 1 AND CycleUsageQty IS NOT NULL AND BillingMethod = 'UsageBased'
+						THEN CycleUsageQty * ISNULL(UsagePerUnitCycles, 0) * Qty
+					ELSE NULL
+				END AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				PeriodSeq, 1 AS LineSortOrder
 			FROM PeriodAmounts3
@@ -403,16 +448,22 @@ BEGIN
 				CAST(NULL AS DECIMAL(18,6)) AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeLimit,
-				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN TimeOverMinutes ELSE NULL END AS TimeOver,
-				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN OverrunPerUnitTimes ELSE NULL END AS TimeOverageRate,
-				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 AND TimeOverMinutes IS NOT NULL
-					THEN (TimeOverMinutes / 60.0) * ISNULL(OverrunPerUnitTimes, 0) * Qty ELSE NULL END AS TimeBillingAmount,
+				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN TimeOverMinutes < 0 THEN 0 ELSE TimeOverMinutes END) ELSE NULL END AS TimeOver,
+				CASE WHEN TimePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN OverrunPerUnitTimes < 0 THEN 0 ELSE OverrunPerUnitTimes END) ELSE NULL END AS TimeOverageRate,
+				CASE
+					WHEN TimePending = 1 AND IsOverageBillingMethod = 1 AND TimeOverMinutes IS NOT NULL
+						THEN (TimeOverMinutes / 60.0) * ISNULL(OverrunPerUnitTimes, 0) * Qty
+					ELSE NULL
+				END AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleLimit,
-				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN CycleOverCount ELSE NULL END AS CycleOver,
-				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN OverrunPerUnitCycles ELSE NULL END AS CycleOverageRate,
-				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 AND CycleOverCount IS NOT NULL
-					THEN CycleOverCount * ISNULL(OverrunPerUnitCycles, 0) * Qty ELSE NULL END AS CycleBillingAmount,
+				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN CycleOverCount < 0 THEN 0 ELSE CycleOverCount END) ELSE NULL END AS CycleOver,
+				CASE WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 THEN (CASE WHEN OverrunPerUnitCycles < 0 THEN 0 ELSE OverrunPerUnitCycles END) ELSE NULL END AS CycleOverageRate,
+				CASE
+					WHEN CyclePending = 1 AND IsOverageBillingMethod = 1 AND CycleOverCount IS NOT NULL
+						THEN CycleOverCount * ISNULL(OverrunPerUnitCycles, 0) * Qty
+					ELSE NULL
+				END AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				PeriodSeq, 2 AS LineSortOrder
 			FROM PeriodAmounts3
@@ -424,6 +475,15 @@ BEGIN
 			FROM StocklineBase
 			WHERE IsInvoicePost = 0
 		),
+		OpenDraftLines AS (
+			SELECT DISTINCT LBX.LeaseStocklineId, LBX.LineType, LBX.FromDate
+			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBX WITH (NOLOCK)
+			INNER JOIN [dbo].[LeaseStockline] LSX WITH (NOLOCK) ON LSX.LeaseStocklineId = LBX.LeaseStocklineId AND LSX.LeaseHeaderId = @LeaseHeaderId
+			INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK) ON BX.BillingInvoicingItemId = LBX.BillingInvoicingItemId AND BX.IsDeleted = 0 AND ISNULL(BX.IsVersionIncrease, 0) = 0
+			INNER JOIN [dbo].[BillingInvoicing] BIX WITH (NOLOCK) ON BIX.BillingInvoicingId = BX.BillingInvoicingId
+				AND ISNULL(BIX.IsInvoicePosted, 0) = 0 AND ISNULL(BIX.InvoiceStatus, '') <> 'Voided'
+			WHERE ISNULL(LBX.IsDeleted, 0) = 0 AND ISNULL(LBX.IsVersionIncrease, 0) = 0 AND LBX.LineType IS NOT NULL
+		),
 		OneTimeLines AS (
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
@@ -434,7 +494,7 @@ BEGIN
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				CAST(0 AS BIGINT) AS PeriodSeq, 6 AS LineSortOrder
-			FROM OneTimeAnchor WHERE ISNULL(Maintenance, 0) > 0
+			FROM OneTimeAnchor WHERE ISNULL(Maintenance, 0) > 0 AND NOT EXISTS (SELECT 1 FROM OpenDraftLines OD WHERE OD.LeaseStocklineId = OneTimeAnchor.LeaseStocklineId AND OD.LineType = 'Maintenance')
 
 			UNION ALL
 
@@ -447,7 +507,7 @@ BEGIN
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				CAST(0 AS BIGINT) AS PeriodSeq, 7 AS LineSortOrder
-			FROM OneTimeAnchor WHERE ISNULL(Insurance, 0) > 0
+			FROM OneTimeAnchor WHERE ISNULL(Insurance, 0) > 0 AND NOT EXISTS (SELECT 1 FROM OpenDraftLines OD WHERE OD.LeaseStocklineId = OneTimeAnchor.LeaseStocklineId AND OD.LineType = 'Insurance')
 
 			UNION ALL
 
@@ -460,7 +520,7 @@ BEGIN
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				CAST(0 AS BIGINT) AS PeriodSeq, 8 AS LineSortOrder
-			FROM OneTimeAnchor WHERE ISNULL(Taxes, 0) > 0
+			FROM OneTimeAnchor WHERE ISNULL(Taxes, 0) > 0 AND NOT EXISTS (SELECT 1 FROM OpenDraftLines OD WHERE OD.LeaseStocklineId = OneTimeAnchor.LeaseStocklineId AND OD.LineType = 'Taxes')
 
 			UNION ALL
 
@@ -473,20 +533,50 @@ BEGIN
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
 				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
 				CAST(0 AS BIGINT) AS PeriodSeq, 9 AS LineSortOrder
-			FROM OneTimeAnchor WHERE ISNULL(OtherComponentAmount, 0) > 0
-
-			UNION ALL
-
-			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
+			FROM OneTimeAnchor WHERE ISNULL(OtherComponentAmount, 0) > 0 AND NOT EXISTS (SELECT 1 FROM OpenDraftLines OD WHERE OD.LeaseStocklineId = OneTimeAnchor.LeaseStocklineId AND OD.LineType = 'Others')
+		),
+		ChargesByPeriod AS (
+			SELECT
+				PA.LeaseStocklineId, PA.PartNumber, PA.PartDescription, PA.SerialNumber, PA.Qty, PA.BillingMethod, PA.BillingFrequency,
+				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
+				'Charges' AS LineType,
+				PA.PeriodFromDate AS FromDate, PA.PeriodToDate AS ToDate,
+				SUM(ISNULL(LC.ExtendedCost, 0)) AS LineAmount,
+				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
+				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
+				PA.BillingInvoicingId, 'N' AS BillingStatus, PA.InvoiceNo AS InvoiceNumber, PA.InvoiceDate, PA.HasUsageInfo, PA.IsActive, PA.LeaseStatusId,
+				PA.PeriodSeq, 10 AS LineSortOrder
+			FROM PeriodAmounts3 PA
+			INNER JOIN StocklineBase SB ON SB.LeaseStocklineId = PA.LeaseStocklineId
+			INNER JOIN [dbo].[LeaseCharges] LC WITH (NOLOCK)
+				ON LC.LeaseStocklineId = PA.LeaseStocklineId AND LC.IsDeleted = 0 AND ISNULL(LC.IsInvoiced, 0) = 0 AND LC.BillingInvoicingItemId IS NULL
+				AND CAST(LC.ReportedDate AS DATE) BETWEEN CAST(PA.PeriodFromDate AS DATE) AND CAST(PA.PeriodToDate AS DATE)
+			GROUP BY PA.LeaseStocklineId, PA.PartNumber, PA.PartDescription, PA.SerialNumber, PA.Qty, PA.BillingMethod, PA.BillingFrequency,
+				PA.PeriodFromDate, PA.PeriodToDate, PA.BillingInvoicingId, PA.InvoiceNo, PA.InvoiceDate, PA.HasUsageInfo, PA.IsActive, PA.LeaseStatusId, PA.PeriodSeq
+			HAVING SUM(ISNULL(LC.ExtendedCost, 0)) > 0
+		),
+		ChargesNoPeriod AS (
+			SELECT
+				SB.LeaseStocklineId, SB.PartNumber, SB.PartDescription, SB.SerialNumber, SB.Qty, SB.BillingMethod, SB.BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
 				'Charges' AS LineType,
 				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
-				Charges AS LineAmount,
+				SUM(ISNULL(LC.ExtendedCost, 0)) AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
-				BillingInvoicingId, 'N' AS BillingStatus, InvoiceNo AS InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId,
+				SB.BillingInvoicingId, 'N' AS BillingStatus, SB.InvoiceNo AS InvoiceNumber, SB.InvoiceDate, SB.HasUsageInfo, SB.IsActive, SB.LeaseStatusId,
 				CAST(0 AS BIGINT) AS PeriodSeq, 10 AS LineSortOrder
-			FROM OneTimeAnchor WHERE ISNULL(Charges, 0) > 0
+			FROM StocklineBase SB
+			INNER JOIN [dbo].[LeaseCharges] LC WITH (NOLOCK) ON LC.LeaseStocklineId = SB.LeaseStocklineId AND LC.IsDeleted = 0
+			WHERE ISNULL(LC.IsInvoiced, 0) = 0 AND LC.BillingInvoicingItemId IS NULL
+			  AND NOT EXISTS (
+				SELECT 1 FROM PeriodAmounts3 PA2
+				WHERE PA2.LeaseStocklineId = SB.LeaseStocklineId
+				  AND CAST(LC.ReportedDate AS DATE) BETWEEN CAST(PA2.PeriodFromDate AS DATE) AND CAST(PA2.PeriodToDate AS DATE)
+			  )
+			GROUP BY SB.LeaseStocklineId, SB.PartNumber, SB.PartDescription, SB.SerialNumber, SB.Qty, SB.BillingMethod, SB.BillingFrequency,
+				SB.BillingInvoicingId, SB.InvoiceNo, SB.InvoiceDate, SB.HasUsageInfo, SB.IsActive, SB.LeaseStatusId
+			HAVING SUM(ISNULL(LC.ExtendedCost, 0)) > 0
 		),
 		FlatRateNoPeriod AS (
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
@@ -501,7 +591,9 @@ BEGIN
 			FROM StocklineBase SB
 			WHERE SB.IsInvoicePost = 0
 			  AND SB.IsFlatRateBillingMethod = 1
+			  AND UPPER(LTRIM(RTRIM(ISNULL(SB.RateUnit, '')))) IN ('MONTH', '')
 			  AND NOT EXISTS (SELECT 1 FROM PeriodAmounts3 PA WHERE PA.LeaseStocklineId = SB.LeaseStocklineId)
+			  AND NOT EXISTS (SELECT 1 FROM OpenDraftLines OD WHERE OD.LeaseStocklineId = SB.LeaseStocklineId AND OD.LineType = 'Flat Rate')
 		),
 		GenericFallback AS (
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
@@ -529,56 +621,34 @@ BEGIN
 				LBID.LeaseStocklineId, LSL.PN AS PartNumber, LSL.PNDescription AS PartDescription, SLIVE.SerialNumber,
 				LSL.QtyReserved AS Qty, LBID.BillingMethod, LBID.BillingFrequency,
 				LBID.FlatRate AS FlatRate,
-				'Flat Rate' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
-				LBID.FlatRateAmount AS LineAmount,
-				CASE WHEN LBID.TimeUsageQty IS NOT NULL THEN LBID.TimeUsageQty * 60 ELSE NULL END AS TimeRecorded,
-				CASE WHEN LBID.TimeLimit IS NOT NULL THEN LBID.TimeLimit * 60 ELSE NULL END AS TimeLimit,
-				CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate,
-				LBID.TimeUsageAmount AS TimeBillingAmount,
-				LBID.CycleUsageQty AS CycleRecorded, LBID.CycleLimit AS CycleLimit,
-				CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate,
-				LBID.CycleUsageAmount AS CycleBillingAmount,
-				BI.BillingInvoicingId, 'Y' AS BillingStatus, BI.InvoiceNo AS InvoiceNumber, BI.InvoiceDate,
+				LBID.LineType AS LineType,
+				LBID.FromDate AS FromDate, LBID.ToDate AS ToDate,
+				-- Stored LineAmount is the line's FULL total (flat fee + Time/Cycle billing). The grid's Total column adds
+				-- LineAmount + TimeBillingAmount + CycleBillingAmount, so hand it only the part not already in those two columns.
+				CASE WHEN LBID.LineAmount IS NULL THEN NULL ELSE LBID.LineAmount - ISNULL(LBID.TimeBillingAmount, 0) - ISNULL(LBID.CycleBillingAmount, 0) END AS LineAmount,
+				CASE WHEN LBID.TimeRecorded IS NOT NULL THEN (CASE WHEN LBID.TimeRecorded * 60 < 0 THEN 0 ELSE LBID.TimeRecorded * 60 END) ELSE NULL END AS TimeRecorded,
+				CASE WHEN LBID.TimeLimit IS NOT NULL THEN (CASE WHEN LBID.TimeLimit * 60 < 0 THEN 0 ELSE LBID.TimeLimit * 60 END) ELSE NULL END AS TimeLimit,
+				CASE WHEN LBID.TimeOver IS NOT NULL THEN (CASE WHEN LBID.TimeOver * 60 < 0 THEN 0 ELSE LBID.TimeOver * 60 END) ELSE NULL END AS TimeOver,
+				CASE WHEN LBID.TimeOverageRate IS NOT NULL THEN (CASE WHEN LBID.TimeOverageRate < 0 THEN 0 ELSE LBID.TimeOverageRate END) ELSE NULL END AS TimeOverageRate,
+				LBID.TimeBillingAmount AS TimeBillingAmount,
+				CASE WHEN LBID.CycleRecorded IS NOT NULL THEN (CASE WHEN LBID.CycleRecorded < 0 THEN 0 ELSE LBID.CycleRecorded END) ELSE NULL END AS CycleRecorded,
+				CASE WHEN LBID.CycleLimit IS NOT NULL THEN (CASE WHEN LBID.CycleLimit < 0 THEN 0 ELSE LBID.CycleLimit END) ELSE NULL END AS CycleLimit,
+				CASE WHEN LBID.CycleOver IS NOT NULL THEN (CASE WHEN LBID.CycleOver < 0 THEN 0 ELSE LBID.CycleOver END) ELSE NULL END AS CycleOver,
+				CASE WHEN LBID.CycleOverageRate IS NOT NULL THEN (CASE WHEN LBID.CycleOverageRate < 0 THEN 0 ELSE LBID.CycleOverageRate END) ELSE NULL END AS CycleOverageRate,
+				LBID.CycleBillingAmount AS CycleBillingAmount,
+				BI.BillingInvoicingId, CASE WHEN ISNULL(BI.IsInvoicePosted, 0) = 1 THEN 'Y' ELSE 'D' END AS BillingStatus, BI.InvoiceNo AS InvoiceNumber, BI.InvoiceDate,
 				CAST(1 AS BIT) AS HasUsageInfo, LSL.IsActive, LSL.LeaseStatusId,
-				CAST(0 AS BIGINT) AS PeriodSeq, 1 AS LineSortOrder
+				CAST(0 AS BIGINT) AS PeriodSeq,
+				CASE LBID.LineType WHEN 'Flat Rate' THEN 1 WHEN 'Overrun' THEN 2 ELSE 3 END AS LineSortOrder
 			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBID WITH (NOLOCK)
 			INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = LBID.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
-			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.BillingInvoicingItemId = LBID.BillingInvoicingItemId AND BII.IsDeleted = 0
+			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.BillingInvoicingItemId = LBID.BillingInvoicingItemId AND BII.IsDeleted = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
 			INNER JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId
-			WHERE LSL.LeaseHeaderId = @LeaseHeaderId AND LSL.IsDeleted = 0 AND ISNULL(LBID.IsDeleted, 0) = 0
-
-			UNION ALL
-
-			SELECT
-				LBID.LeaseStocklineId, LSL.PN AS PartNumber, LSL.PNDescription AS PartDescription, SLIVE.SerialNumber,
-				LSL.QtyReserved AS Qty, LBID.BillingMethod, LBID.BillingFrequency,
-				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
-				'Overrun' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
-				CAST(NULL AS DECIMAL(18,6)) AS LineAmount,
-				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded,
-				CAST(NULL AS DECIMAL(18,6)) AS TimeLimit,
-				CASE WHEN LBID.TimeOver IS NOT NULL THEN LBID.TimeOver * 60 ELSE NULL END AS TimeOver,
-				LBID.TimeOverageRate AS TimeOverageRate,
-				CASE WHEN LBID.TimeBillingAmount IS NOT NULL THEN LBID.TimeBillingAmount - ISNULL(LBID.TimeUsageAmount, 0) ELSE NULL END AS TimeBillingAmount,
-				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded,
-				CAST(NULL AS DECIMAL(18,6)) AS CycleLimit,
-				LBID.CycleOver AS CycleOver,
-				LBID.CycleOverageRate AS CycleOverageRate,
-				CASE WHEN LBID.CycleBillingAmount IS NOT NULL THEN LBID.CycleBillingAmount - ISNULL(LBID.CycleUsageAmount, 0) ELSE NULL END AS CycleBillingAmount,
-				BI.BillingInvoicingId, 'Y' AS BillingStatus, BI.InvoiceNo AS InvoiceNumber, BI.InvoiceDate,
-				CAST(1 AS BIT) AS HasUsageInfo, LSL.IsActive, LSL.LeaseStatusId,
-				CAST(0 AS BIGINT) AS PeriodSeq, 2 AS LineSortOrder
-			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBID WITH (NOLOCK)
-			INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = LBID.LeaseStocklineId
-			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
-			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.BillingInvoicingItemId = LBID.BillingInvoicingItemId AND BII.IsDeleted = 0
-			INNER JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId
-			WHERE LSL.LeaseHeaderId = @LeaseHeaderId AND LSL.IsDeleted = 0 AND ISNULL(LBID.IsDeleted, 0) = 0
+			WHERE LSL.LeaseHeaderId = @LeaseHeaderId AND LSL.IsDeleted = 0 AND ISNULL(LBID.IsDeleted, 0) = 0 AND ISNULL(LBID.IsVersionIncrease, 0) = 0
+			  AND NOT (LBID.LineType = 'Overrun' AND ISNULL(LBID.LineAmount, 0) = 0)
 		)
-		SELECT
+				SELECT
 			LeaseStocklineId,
 			PartNumber,
 			PartDescription,
@@ -601,10 +671,11 @@ BEGIN
 			CycleOver,
 			CycleOverageRate,
 			CycleBillingAmount,
-			BillingInvoicingId,
+			-- Pending rows have not been invoiced yet: don't show the stockline's previous/draft invoice reference on them
+			CASE WHEN BillingStatus = 'N' THEN NULL ELSE BillingInvoicingId END AS BillingInvoicingId,
 			BillingStatus,
-			InvoiceNumber,
-			InvoiceDate,
+			CASE WHEN BillingStatus = 'N' THEN NULL ELSE InvoiceNumber END AS InvoiceNumber,
+			CASE WHEN BillingStatus = 'N' THEN NULL ELSE InvoiceDate END AS InvoiceDate,
 			HasUsageInfo,
 			IsActive,
 			LeaseStatusId
@@ -612,6 +683,10 @@ BEGIN
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM PeriodLines
 			UNION ALL
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM OneTimeLines
+			UNION ALL
+			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM ChargesByPeriod
+			UNION ALL
+			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM ChargesNoPeriod
 			UNION ALL
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency, FlatRate, LineType, FromDate, ToDate, LineAmount, TimeRecorded, TimeLimit, TimeOver, TimeOverageRate, TimeBillingAmount, CycleRecorded, CycleLimit, CycleOver, CycleOverageRate, CycleBillingAmount, BillingInvoicingId, BillingStatus, InvoiceNumber, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId, PeriodSeq, LineSortOrder FROM FlatRateNoPeriod
 			UNION ALL

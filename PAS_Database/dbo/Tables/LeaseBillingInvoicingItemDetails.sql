@@ -30,6 +30,11 @@
     [CycleUsageQty]                     DECIMAL (18, 6) NULL,
     [CycleUsageRate]                    DECIMAL (18, 6) NULL,
     [CycleUsageAmount]                  DECIMAL (18, 6) NULL,
+    [LineType]                          VARCHAR (50)    NULL,
+    [FromDate]                          DATETIME2 (7)   NULL,
+    [ToDate]                            DATETIME2 (7)   NULL,
+    [LineAmount]                        DECIMAL (18, 6) NULL,
+    [IsVersionIncrease]                 BIT             CONSTRAINT [DF_LeaseBillingInvoicingItemDetails_IsVersionIncrease] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_LeaseBillingInvoicingItemDetails] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailId] ASC),
     CONSTRAINT [FK_LeaseBillingInvoicingItemDetails_BillingInvoicingItems] FOREIGN KEY ([BillingInvoicingItemId]) REFERENCES [dbo].[BillingInvoicingItems] ([BillingInvoicingItemId]),
     CONSTRAINT [FK_LeaseBillingInvoicingItemDetails_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId])
@@ -67,14 +72,14 @@ BEGIN
 			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
 			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
 			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
-			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount], [LineType], [FromDate], [ToDate], [LineAmount], [IsVersionIncrease]
 		)
 		SELECT
 			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
 			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
 			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
 			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
-			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount], [LineType], [FromDate], [ToDate], [LineAmount], [IsVersionIncrease]
 		FROM INSERTED
 	END
 
@@ -87,14 +92,14 @@ BEGIN
 			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
 			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
 			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
-			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount], [LineType], [FromDate], [ToDate], [LineAmount], [IsVersionIncrease]
 		)
 		SELECT
 			[LeaseBillingInvoicingItemDetailId], [BillingInvoicingItemId], [LeaseStocklineId], [BillingMethod], [BillingFrequency],
 			[TimeRecorded], [TimeLimit], [TimeOver], [TimeOverageRate], [TimeBillingAmount],
 			[CycleRecorded], [CycleLimit], [CycleOver], [CycleOverageRate], [CycleBillingAmount],
 			[TotalBillingAmount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
-			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount]
+			[UpdatedDate], [IsActive], [IsDeleted], [FlatRate], [FlatRateAmount], [TimeUsageQty], [TimeUsageRate], [TimeUsageAmount], [CycleUsageQty], [CycleUsageRate], [CycleUsageAmount], [LineType], [FromDate], [ToDate], [LineAmount], [IsVersionIncrease]
 		FROM DELETED
 	END
 END

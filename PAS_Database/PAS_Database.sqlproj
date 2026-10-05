@@ -4804,6 +4804,9 @@
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
     <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncLeaseBillingDraftInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
     <Build Include="dbo\Tables\LeaseShippingItemAudit.sql" />

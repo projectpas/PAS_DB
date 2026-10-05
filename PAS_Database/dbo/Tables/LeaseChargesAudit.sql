@@ -18,5 +18,7 @@ CREATE TABLE [dbo].[LeaseChargesAudit] (
     [UpdatedDate]         DATETIME        NULL,
     [IsActive]            BIT             NULL,
     [IsDeleted]           BIT             NULL,
+    [IsInvoiced]          BIT             NULL,
+    [BillingInvoicingItemId] BIGINT       NULL,
     CONSTRAINT [PK_LeaseChargesAudit] PRIMARY KEY CLUSTERED ([LeaseChargesAuditId] ASC)
 );

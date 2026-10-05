@@ -26,6 +26,8 @@
                                      [SubTotal] only still subtracts MiscCharges). SubTotal now reflects the
                                      sum of every item-detail row except Charges, which stays broken out into
                                      MiscCharges as before.
+    3    05/10/2026   Kishor Makwana	[PN-17949] SUBTOTAL now shows the sum of ALL item rows including the Charges row, and the MISC CHARGES box is returned as 0 (Charges are no longer split out of
+                                     SUBTOTAL). TOTAL / AMOUNT DUE are unchanged (BillingInvoicing.GrandTotal).
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease] 1,72,55
 **************************************************************/
@@ -48,15 +50,22 @@ BEGIN
 	SELECT @MiscCharges = ISNULL(SUM(ISNULL(LC.[ExtendedCost], 0)), 0)
 	FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
 	INNER JOIN [dbo].[LeaseCharges] LC WITH (NOLOCK) ON LC.[LeaseStocklineId] = BII.[SubReferenceId] AND LC.[IsDeleted] = 0
-	WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsDeleted], 0) = 0;
+	WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsDeleted], 0) = 0 AND ISNULL(BII.[IsVersionIncrease], 0) = 0;
 
-	-- [PN-18072 follow-up] Maintenance/Insurance/Taxes are ordinary item-detail lines now (see
-	-- RPT_GetCommonBillingInvoicingItems_Lease), not a "Sales Tax" - they stay inside BI.SubTotal
-	-- below instead of being pulled out here, so @Tax/[Tax] ("SALES TAX" on the RDL) is always 0.
+	IF EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] BX WITH (NOLOCK)
+			   INNER JOIN [dbo].[LeaseBillingInvoicingItemDetails] LX WITH (NOLOCK) ON LX.[BillingInvoicingItemId] = BX.[BillingInvoicingItemId]
+					AND ISNULL(LX.[IsDeleted], 0) = 0 AND ISNULL(LX.[IsVersionIncrease], 0) = 0 AND LX.[LineType] IS NOT NULL
+			   WHERE BX.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BX.[IsDeleted], 0) = 0 AND ISNULL(BX.[IsVersionIncrease], 0) = 0)
+	BEGIN
+		SELECT @MiscCharges = ISNULL(SUM(ISNULL(LX.[LineAmount], 0)), 0)
+		FROM [dbo].[BillingInvoicingItems] BX WITH (NOLOCK)
+		INNER JOIN [dbo].[LeaseBillingInvoicingItemDetails] LX WITH (NOLOCK) ON LX.[BillingInvoicingItemId] = BX.[BillingInvoicingItemId]
+			AND ISNULL(LX.[IsDeleted], 0) = 0 AND ISNULL(LX.[IsVersionIncrease], 0) = 0 AND LX.[LineType] = 'Charges'
+		WHERE BX.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BX.[IsDeleted], 0) = 0 AND ISNULL(BX.[IsVersionIncrease], 0) = 0;
+	END
+
 	DECLARE @Tax DECIMAL(18, 6) = 0;
 
-	-- [PN-18072 follow-up] Same for the "Other" service component - it's an ordinary item-detail
-	-- line now, stays inside BI.SubTotal below, so @OtherTaxAmt/[OtherTax] ("OTHER TAX") is always 0.
 	DECLARE @OtherTaxAmt DECIMAL(18, 6) = 0;
 
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
@@ -145,10 +154,10 @@ BEGIN
 					SignEmpTitle = ISNULL(jt.Description,''),
 					SignEmpDate = bi.CreatedDate,
 					ShippingTerms = '',
-					ISNULL(BI.[SubTotal], 0) - ISNULL(@MiscCharges, 0) AS [SubTotal], -- [PN-18072 follow-up] now includes Maintenance/Insurance/Taxes/Other - only Charges is still pulled out (into MiscCharges)
+					ISNULL(BI.[SubTotal], 0) AS [SubTotal], -- [PN-18072 PR 4] SUBTOTAL = sum of EVERY item row incl. Charges (matches the item grid); the MISC CHARGES box is no longer used
 					ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal], 0) AS [GrandTotal],
-					ISNULL(@MiscCharges, 0) AS [MiscCharges],
+					CAST(0 AS DECIMAL(18, 6)) AS [MiscCharges], -- [PN-18072 PR 4] Charges are already part of SUBTOTAL, so this box stays 0 (still returned for the RDL)
 					ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(CUSTADDRESS.[Line1],CUSTADDRESS.[Line2],NULL,CUSTADDRESS.[City],CUSTADDRESS.[StateOrProvince],CUSTADDRESS.[PostalCode],CONT.[countries_name],NULL,NULL,NULL,MC.MasterCompanyCode)),
   				    BILLTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(CUSTADDRESS.[Line1],CUSTADDRESS.[Line2],NULL,CUSTADDRESS.[City],CUSTADDRESS.[StateOrProvince],CUSTADDRESS.[PostalCode],CONT.[countries_name],BUYERCONTACT.[WorkPhone],NULL,BUYERCONTACT.[Email],MC.MasterCompanyCode)),

@@ -56,6 +56,7 @@
    30   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] Display Total Amount Based on All Records in LOT Tabs: added page-independent SUM() grand totals (computed against the fully-filtered #temp table, before OFFSET/FETCH paging - same pattern as the existing @Count/NumberOfItems) for the PNInStockView, PNQuoteView, PNSoldView, RepairedView, OtherCost and Commission branches. Each branch now also returns its new '<Column>Sum' totals alongside NumberOfItems so the UI no longer has to (incorrectly) sum only the current page of rows.
    31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
    32   16-Sep-2026   RAJESH GAMI      [PN-17881] Commission tab (ELSE IF(UPPER(@Type) = UPPER('Commission')) section): CommissionExpenseNew CROSS APPLY now reads ltCal.IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails 'Trans Out (SO)' snapshot) instead of the LotConsignment LC join, since ltCal is already uniquely joined per LotTransInOutId (no duplication) and already scoped to this LotId and Type='Trans Out (SO)'. The LC join itself is kept only for the pre-existing HowCalculate fallback CASE (IsRevenueSplit has no LotCalculationDetails equivalent).
+   33   23-Sep-2026   RAJESH GAMI      [PN-18032] OtherCost tab: added IsNonStock to all 4 UNION ALL blocks (CAST(0 AS BIT) placeholder on the PO/RO/SO blocks, ISNULL(loc.IsNonStock,0) on the manual LOTOtherCostDetails block) and to the outer GROUP BY, so the grid/Edit popup can tell a Non-Stock Serviceable manual row apart from a normal sold-stockline row (Stockline stays disabled on Edit, Memo stays optional, same as it already does for IsNA rows).
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
@@ -2005,6 +2006,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(0 AS BIT) IsNonStock -- [PN-18032] no Non-Stock parts on PO/RO/SO rows
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
@@ -2052,6 +2054,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(0 AS BIT) IsNonStock -- [PN-18032] no Non-Stock parts on PO/RO/SO rows
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
@@ -2099,6 +2102,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(NULL AS VARCHAR(100)) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 				,CAST(NULL AS BIGINT) ConditionId -- [PN-17853] 03-Sep-2026
 				,CAST(0 AS BIT) IsNA -- [PN-17853]
+				,CAST(0 AS BIT) IsNonStock -- [PN-18032] no Non-Stock parts on PO/RO/SO rows
 				,CAST(NULL AS DECIMAL(18,2)) ReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) UnReconciledFreight -- [PN-17853]
 				,CAST(NULL AS DECIMAL(18,2)) ManualAdjFreight -- [PN-17853]
@@ -2157,6 +2161,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 	,ISNULL(loc.StocklineNumber, sl2.StockLineNumber) StkLineNum -- [PN-17853] 03-Sep-2026: FieldMaster 'stkLineNum' column (Rajesh)
 						 	,loc.ConditionId -- [PN-17853] 03-Sep-2026
 						 	,ISNULL(loc.IsNA,0) IsNA -- [PN-17853]
+						 	,ISNULL(loc.IsNonStock,0) IsNonStock -- [PN-18032]
 						 	,loc.ReconciledFreight -- [PN-17853]
 						 	,loc.UnReconciledFreight -- [PN-17853]
 						 	,loc.ManualAdjFreight -- [PN-17853]
@@ -2204,7 +2209,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,PostedDate,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum; 04-Sep-2026: added PostedDate
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock,LotNumber,LotOtherCostDetailId,ItemMasterId,StocklineId,StocklineNumber,StkLineNum,ConditionId,IsNA,IsNonStock,ReconciledFreight,UnReconciledFreight,ManualAdjFreight,ReconciledCharges,UnReconciledCharges,ManualAdjCharges,PostedDate,Memo -- [PN-17853] 03-Sep-2026: added LotNumber/StocklineNumber/ConditionId; 03-Sep-2026 round 2: added StkLineNum/Memo, SO-prefixed manual PoNum; 04-Sep-2026: added PostedDate
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl

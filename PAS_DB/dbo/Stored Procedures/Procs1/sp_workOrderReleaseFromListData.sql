@@ -29,6 +29,7 @@
 	15   24/06/2026   Amit Ghediya   Updated For get LogBook Label data [PN-16471]	
 	16    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	17    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	18   17/09/2026   Moin Bloch      Added [FormTypeId] [PN-17942]
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
@@ -58,11 +59,16 @@ BEGIN
 			    DECLARE @MSModuleId INT;
 				SET @MSModuleId = 0; -- For WO PART NUMBER
 
-				DECLARE @WorkOrderSettlementId BIGINT
+				DECLARE @WorkOrderSettlementId BIGINT,@FAA8130Only BIGINT,@FAA8130EASA BIGINT,@FAA8130UK BIGINT,@CAAC BIGINT
 
 				SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDERMPN';
-				
+
 				SELECT @WorkOrderSettlementId = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE UPPER([WorkOrderSettlementName]) = UPPER('FINAL COND/CERT');
+
+				SELECT @FAA8130Only = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 Only';
+				SELECT @FAA8130EASA = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 + EASA';
+				SELECT @FAA8130UK = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'FAA - 8130 + UK Wording';
+				SELECT @CAAC = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WITH(NOLOCK) WHERE [FormName] = 'CAAC';
 
 				IF(ISNULL(@IsListData,0) > 0)
 				BEGIN
@@ -118,7 +124,7 @@ BEGIN
 							  ,wop.[ManagementStructureId]
 							  ,wro.[EmployeeId]
 							  ,wro.[FormTypeId]
-							  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
+							  ,CASE WHEN wro.[FormTypeId] = @FAA8130Only THEN '8130 ONLY' WHEN wro.[FormTypeId] = @FAA8130EASA THEN 'EASA' WHEN wro.[FormTypeId] = @FAA8130UK THEN 'UK-CAA' WHEN wro.[FormTypeId] = @CAAC THEN 'CAAC' ELSE '' END WOFormType
 							  ,wro.Is813013aeOr14ae
 							  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 							  ,wro.[VersionNo]
@@ -252,7 +258,7 @@ BEGIN
 						  ,wop.[ManagementStructureId]
 						  ,wro.[EmployeeId]
 						  ,wro.[FormTypeId]
-						  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
+						  ,CASE WHEN wro.[FormTypeId] = @FAA8130Only THEN '8130 ONLY' WHEN wro.[FormTypeId] = @FAA8130EASA THEN 'EASA' WHEN wro.[FormTypeId] = @FAA8130UK THEN 'UK-CAA' WHEN wro.[FormTypeId] = @CAAC THEN 'CAAC' ELSE '' END WOFormType
 						  ,wro.Is813013aeOr14ae
 						  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 						  ,wro.[VersionNo]
@@ -395,7 +401,7 @@ BEGIN
 							  ,wop.[ManagementStructureId]
 							  ,wro.[EmployeeId]
 							  ,wro.[FormTypeId]
-							  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
+							  ,CASE WHEN wro.[FormTypeId] = @FAA8130Only THEN '8130 ONLY' WHEN wro.[FormTypeId] = @FAA8130EASA THEN 'EASA' WHEN wro.[FormTypeId] = @FAA8130UK THEN 'UK-CAA' WHEN wro.[FormTypeId] = @CAAC THEN 'CAAC' ELSE '' END WOFormType
 							  ,wro.Is813013aeOr14ae
 							  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 							  ,wro.[VersionNo]
@@ -531,7 +537,7 @@ BEGIN
 								  ,wop.[ManagementStructureId]
 								  ,wro.[EmployeeId]
 								  ,wro.[FormTypeId]
-								  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
+								  ,CASE WHEN wro.[FormTypeId] = @FAA8130Only THEN '8130 ONLY' WHEN wro.[FormTypeId] = @FAA8130EASA THEN 'EASA' WHEN wro.[FormTypeId] = @FAA8130UK THEN 'UK-CAA' WHEN wro.[FormTypeId] = @CAAC THEN 'CAAC' ELSE '' END WOFormType
 								  ,wro.Is813013aeOr14ae
 								  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 								  ,wro.[VersionNo]

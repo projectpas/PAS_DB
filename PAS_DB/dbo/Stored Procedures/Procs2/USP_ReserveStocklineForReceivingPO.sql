@@ -46,6 +46,7 @@
 	29   03/19/2026   Moin Bloch        Do not reserve stockline in Work Order during PO/RO receipt when WO is already Closed or moved to Finished Goods PN-15797
 	30   09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	31   20/July/2026	RAJESH GAMI		[PN-17271] - As a part of allow both(Stock and NonStock) for the PO(Remove IsNonStock = 0 condition)
+	32   23/Sep/2026  Kishor Makwana    [PN-18058] PO RecevingTime Total Reserve Qty Update
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
@@ -1770,12 +1771,12 @@ BEGIN
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
-										[ReferenceNumber])
+										[ReferenceNumber],ToTalReservedQty)
 										SELECT @SalesOrderPartIdToUpdate, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
 										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
 										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
-										@RefNumber;
+										@RefNumber,@Qty;
 									
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
@@ -1922,12 +1923,12 @@ BEGIN
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
-										[ReferenceNumber])
+										[ReferenceNumber],ToTalReservedQty)
 										SELECT @InsertedSalesOrderPartId, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
 										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
 										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
-										@RefNumber;
+										@RefNumber,@Qty;
 
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 

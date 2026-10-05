@@ -13,7 +13,7 @@
     [WorkflowWorkOrderId]           BIGINT          NULL,
     [WOPartNoId]                    BIGINT          NULL,
     [MaterialCost]                  DECIMAL (20, 2) NULL,
-    [MaterialBilling]               DECIMAL (20, 2) NULL,
+    [MaterialBilling]               DECIMAL (28, 2) NULL,
     [MaterialRevenuePercentage]     DECIMAL (20, 2) NULL,
     [MaterialMargin]                DECIMAL (20, 2) NULL,
     [LaborHours]                    INT             NULL,
@@ -73,6 +73,8 @@
     CONSTRAINT [FK_WorkOrderQuoteDetails_WorkFlowWorkOrderId] FOREIGN KEY ([WorkflowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderQuoteDetails_WorkOrderQuote] FOREIGN KEY ([WorkOrderQuoteId]) REFERENCES [dbo].[WorkOrderQuote] ([WorkOrderQuoteId])
 );
+
+
 
 
 GO

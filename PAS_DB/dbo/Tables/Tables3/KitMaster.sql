@@ -15,7 +15,7 @@
     [IsDeleted]       BIT             NULL,
     [CustomerId]      BIGINT          NULL,
     [CustomerName]    VARCHAR (250)   NULL,
-    [KitCost]         DECIMAL (18, 2) NOT NULL,
+    [KitCost]         DECIMAL (28, 2) NOT NULL,
     [KitDescription]  VARCHAR (MAX)   NULL,
     [WorkScopeId]     BIGINT          NULL,
     [WorkScopeName]   VARCHAR (250)   NULL,

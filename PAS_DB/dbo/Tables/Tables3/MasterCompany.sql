@@ -30,6 +30,10 @@
     [TokenPassword]            VARCHAR (100)  NULL,
     [IsXeroAccountingEnabled]  BIT            NULL,
     [DBName]                   VARCHAR (255)  NULL,
+    -- [PN-18181] Company-level login redirect configuration (Rajesh Gami, 01-Oct-2026)
+    [IsRedirect]               BIT            NULL,
+    [ReDirectURL]              VARCHAR (MAX)  NULL,
+    [ReDirectURLMessage]       VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
 

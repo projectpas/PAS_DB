@@ -29,6 +29,15 @@
     4    04-Sep-2026  RAJESH GAMI     [PN-17853] Added @PostedDate - a plain user-entered "Date" field on the
                                       Add/Edit popup (Rajesh, 04-Sep-2026), stored as-is (not derived
                                       server-side like ReferenceDate above).
+    5    23-Sep-2026  RAJESH GAMI     [PN-18032] Added @IsNonStock - persisted as-is (like @IsNA), so the
+                                      Other Cost grid/Edit popup can tell a Non-Stock Serviceable row apart
+                                      from a normal sold-stockline row on Edit (Stockline stays disabled,
+                                      Memo stays optional for these rows - only @IsNA requires Memo, that
+                                      check below is unchanged). No other logic changes needed here: the
+                                      existing @StocklineId > 0 guards around the Stockline/Reconciled-
+                                      Freight/Charges lookup and the Reference(SO) lookup already skip
+                                      correctly whenever the Angular popup sends @StocklineId = NULL for a
+                                      Non-Stock row (same as they already do for @IsNA = 1 rows).
 **************************************************************
  EXEC USP_LOTOtherCostDetails_AddUpdate
 **************************************************************/
@@ -38,6 +47,8 @@ CREATE PROCEDURE [dbo].[USP_LOTOtherCostDetails_AddUpdate]
 @StocklineId bigint = NULL,
 @ItemMasterId bigint = NULL,
 @IsNA bit = 0,
+-- [PN-18032] Non-Stock Serviceable part selected (Stockline not applicable, same as NA - but Memo NOT required)
+@IsNonStock bit = 0,
 @UnReconciledFreight decimal(18,2) = NULL,
 @ManualAdjFreight decimal(18,2) = NULL,
 @UnReconciledCharges decimal(18,2) = NULL,
@@ -136,14 +147,14 @@ BEGIN
 				([LotId],[LotNumber],[ReconciledFreight],[UnReconciledFreight],[ManualAdjFreight],[TotalFreight]
 				,[ReconciledCharges],[UnReconciledCharges],[ManualAdjCharges],[TotalOtherCost]
 				,[StocklineId],[StocklineNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName]
-				,[ConditionId],[Condition],[IsNA],[ModuleId],[ModuleName]
+				,[ConditionId],[Condition],[IsNA],[IsNonStock],[ModuleId],[ModuleName]
 				,[ReferenceId],[ReferenceNumber],[ReferenceDate],[PostedDate],[Memo]
 				,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 			VALUES
 				(@LotId,@LotNumber,@ReconciledFreight,@UnReconciledFreight,@ManualAdjFreight,@TotalFreight
 				,@ReconciledCharges,@UnReconciledCharges,@ManualAdjCharges,@TotalOtherCost
 				,@StocklineId,@StocklineNumber,@ItemMasterId,@PartNumber,@PartDescription,@ManufacturerId,@ManufacturerName
-				,@ConditionId,@Condition,@IsNA,@OtherCostModuleId,@OtherCostModuleName
+				,@ConditionId,@Condition,@IsNA,@IsNonStock,@OtherCostModuleId,@OtherCostModuleName
 				,@ReferenceId,@ReferenceNumber,@ReferenceDate,@PostedDate,@Memo
 				,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 			SET @LotOtherCostDetailId = SCOPE_IDENTITY();
@@ -169,6 +180,7 @@ BEGIN
 			      ,[ConditionId] = @ConditionId
 			      ,[Condition] = @Condition
 			      ,[IsNA] = @IsNA
+			      ,[IsNonStock] = @IsNonStock
 			      ,[ModuleId] = @OtherCostModuleId
 			      ,[ModuleName] = @OtherCostModuleName
 			      ,[ReferenceId] = @ReferenceId

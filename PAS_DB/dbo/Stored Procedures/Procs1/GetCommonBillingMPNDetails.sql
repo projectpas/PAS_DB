@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -34,14 +33,22 @@
 	21   09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	22   20/July/2026 RAJESH GAMI		[PN-17350] - Removed IsNonStock=0 filter so Non-Stock parts' MPN details populate correctly on SO billing (WorkOrder branch untouched).
 	23	 05/Aug/2026 Kishor Makwana		Removed the unused LEFT JOINs to SalesOrderPartCost (PC) and SalesOrderStockLineCost (SOSC) in the SO stockline insert - neither table's columns were selected there, but when either had more than one matching row (e.g. cost revision history) the JOIN silently duplicated the SalesOrderStocklineV1 row into two grid rows with the same PN/Condition/StockLineNum/Qty but different Total Cost.
-	24   18/Aug/2026 Kishor Makwana	[PN-17688] - Added SubReference Id Join - Revised Invoice for Individual Part: Other Part Billing incorrectly changes to Old Version
-	25	 24/AUG/2026 Hemant Saliya	SO Billing Issue Fix for Invoice Before Shipping case
+	24   18/Aug/2026 Kishor Makwana		[PN-17688] - Added SubReference Id Join - Revised Invoice for Individual Part: Other Part Billing incorrectly changes to Old Version
+	25	 24/AUG/2026 Hemant Saliya		SO Billing Issue Fix for Invoice Before Shipping case
+	26	 30/Sep/2026 Kishor Makwana		PN-18154 Fixed: SO Billing could not bill the full picked/shipped qty when the same Stockline was picked across multiple Pick Tickets (e.g. 9 + 1). The OUTER APPLY resolving SHIPPINGINFO used TOP 1, collapsing all shipments for a part into a single row, and QtyBilled used the stockline-level QtyOrder on every fanned-out row instead of the shipment-specific shipped qty. Now returns one row per distinct SalesOrderShippingId with its own summed QtyShipped, and QtyBilled falls back to QtyOrder only when no shipment exists yet.
+	27   02/Oct/2026 Kishor Makwana		PN-18220 - Fixed: the above fix's SHIPPINGINFO OUTER APPLY was correlated only to
+	                                      SOP.SalesOrderPartId, not to the specific Stockline, so when one Sales Order Part had
+	                                      several Stocklines shipped under the same shipment (e.g. 5 Stocklines, qty 1 each),
+	                                      every Stockline's row showed the SAME summed total for the whole shipment (5) instead
+	                                      of its own qty (1). Joined SalesOrderShippingItem to SOPickTicket and added
+	                                      AND spt.SalesOrderPartStocklineId = STK.SalesOrderStocklineId so SHIPPINGINFO now
+	                                      resolves per Stockline, not per Part.
 
 
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 19821,19957,'19957',15,1,0
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE      PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -555,7 +562,7 @@ BEGIN
 				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
 				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 								, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
-						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,ISNULL(SHIPPINGINFO.QtyShipped, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END),Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 				FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					 --LEFT JOIN dbo.SalesOrderPartCost PC WITH (NOLOCK) ON SOP.SalesOrderPartId = PC.SalesOrderPartId
@@ -565,10 +572,13 @@ BEGIN
 					 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 					  OUTER APPLY (
-						SELECT TOP 1 s.SalesOrderShippingId
+						SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 						FROM [dbo].[SalesOrderShippingItem] s
+						INNER JOIN [dbo].[SOPickTicket] spt WITH (NOLOCK) ON spt.SOPickTicketId = s.SOPickTicketId
 						WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-						ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+						  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+						  AND spt.SalesOrderPartStocklineId = STK.SalesOrderStocklineId
+						GROUP BY s.SalesOrderShippingId
 					) SHIPPINGINFO
 				WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 				  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
@@ -603,17 +613,20 @@ BEGIN
 				  --For Non Stock Service Part Invoice
 				  SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 									, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
-							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,ISNULL(SHIPPINGINFO.QtyShipped, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END),Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 					FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
 						 INNER JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId AND  STK.ToTalReservedQty > 0
 						 INNER JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
 						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 						 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 						  OUTER APPLY (
-							SELECT TOP 1 s.SalesOrderShippingId
+							SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 							FROM [dbo].[SalesOrderShippingItem] s
+							INNER JOIN [dbo].[SOPickTicket] spt WITH (NOLOCK) ON spt.SOPickTicketId = s.SOPickTicketId
 							WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-							ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+							  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+							  AND spt.SalesOrderPartStocklineId = STK.SalesOrderStocklineId
+							GROUP BY s.SalesOrderShippingId
 						) SHIPPINGINFO
 					WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.IsNonStock,0) = 1 AND ISNULL(sl.IsService,0) = 1
 				  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
@@ -624,7 +637,7 @@ BEGIN
 				  --For Proforma Invoice Part
 				  SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 									, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
-							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,ISNULL(SHIPPINGINFO.QtyShipped, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END),Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 				FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId AND  STK.ToTalReservedQty > 0
@@ -632,10 +645,13 @@ BEGIN
 					 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 					  OUTER APPLY (
-						SELECT TOP 1 s.SalesOrderShippingId
+						SELECT s.SalesOrderShippingId, SUM(ISNULL(s.QtyShipped,0)) AS QtyShipped
 						FROM [dbo].[SalesOrderShippingItem] s
+						INNER JOIN [dbo].[SOPickTicket] spt WITH (NOLOCK) ON spt.SOPickTicketId = s.SOPickTicketId
 						WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
-						ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+						  AND s.IsActive = 1 AND ISNULL(s.IsDeleted,0) = 0
+						  AND spt.SalesOrderPartStocklineId = STK.SalesOrderStocklineId
+						GROUP BY s.SalesOrderShippingId
 					) SHIPPINGINFO
 				WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 				  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                

@@ -14,6 +14,10 @@
 ** 5    26/05/2026    Priyansh Patel    Fixed the issue with time [PN-16588]
 ** 6    15/06/2026    Amit Ghediya		bind Wo Num, Ws Status [PN-16694]
 ** 7    27/07/2026    Amit Ghediya		Remove VW_WorkScopeType
+** 8    30/09/2026    Amit Ghediya		Added WorkOrderId/WorkOrderPartId filters - worksheets created directly from a
+**                                    Work Order (WH.WorkOrderId set) resolve WorkOrderNo/WorkOrderId from dbo.WorkOrder
+**                                    directly instead of only via the aircraft/program join, so multiple parts on the
+**                                    same WO can each be matched to their own worksheet by exact part id.
 
 
 ************************************************************/
@@ -27,6 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
     @WorksheetNumber                VARCHAR(50)     = NULL,
     @WorksheetType                  VARCHAR(50)     = NULL,
     @WorkOrderNo                    VARCHAR(50)     = NULL,
+    @WorkOrderId                    BIGINT          = NULL,
+    @WorkOrderPartId                BIGINT          = NULL,
 	@PNNum							VARCHAR(50)     = NULL,
     @MakeType                       VARCHAR(100)    = NULL,
     @AircraftModel                  VARCHAR(100)    = NULL,
@@ -65,8 +71,13 @@ BEGIN
                 WH.WorksheetHeaderId,
                 WH.WorksheetNumber,
                 ACS.Section AS WorksheetType,
-                CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END AS WorkOrderNo,
-				CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderId ELSE LWO.WorkOrderId END AS WorkOrderId,
+                CASE WHEN ISNULL(WH.WorkOrderId,0) > 0 THEN DWO.WorkOrderNum
+                     WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum
+                     ELSE LWO.WorkOrderNum END AS WorkOrderNo,
+				CASE WHEN ISNULL(WH.WorkOrderId,0) > 0 THEN WH.WorkOrderId
+				     WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderId
+				     ELSE LWO.WorkOrderId END AS WorkOrderId,
+				WH.WorkOrderPartId,
 				CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END AS PNNum,
                 WH.MakeTypeId,
                 WH.MakeType,
@@ -118,6 +129,7 @@ BEGIN
             LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
 			LEFT JOIN [dbo].[AircraftInstalledPartDetails] AIPD WITH(NOLOCK) ON AIPD.AircraftInstalledPartDetailsId = WH.AircraftInstalledPartDetailsId
+			LEFT JOIN [dbo].[WorkOrder] DWO WITH (NOLOCK) ON DWO.WorkOrderId = WH.WorkOrderId
 			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId,WOP_inner.WorkOrderStatusId
 				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
 				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
@@ -140,7 +152,7 @@ BEGIN
                     @GlobalFilter IS NULL
                     OR WH.WorksheetNumber   LIKE '%' + @GlobalFilter + '%'
                     OR ACS.Section     LIKE '%' + @GlobalFilter + '%'
-                    OR CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END       LIKE '%' + @GlobalFilter + '%'
+                    OR CASE WHEN ISNULL(WH.WorkOrderId,0) > 0 THEN DWO.WorkOrderNum WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END       LIKE '%' + @GlobalFilter + '%'
 					OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END	LIKE '%' + @GlobalFilter + '%'
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
@@ -155,7 +167,9 @@ BEGIN
                 -- Row-level column filters
                 AND (@WorksheetNumber            IS NULL OR WH.WorksheetNumber           LIKE '%' + @WorksheetNumber           + '%')
                 AND (@WorksheetType              IS NULL OR ACS.Section             LIKE '%' + @WorksheetType             + '%')
-                AND (@WorkOrderNo                IS NULL OR CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END               LIKE '%' + @WorkOrderNo               + '%')
+                AND (@WorkOrderNo                IS NULL OR CASE WHEN ISNULL(WH.WorkOrderId,0) > 0 THEN DWO.WorkOrderNum WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END               LIKE '%' + @WorkOrderNo               + '%')
+                AND (@WorkOrderId                IS NULL OR WH.WorkOrderId = @WorkOrderId)
+                AND (@WorkOrderPartId            IS NULL OR WH.WorkOrderPartId = @WorkOrderPartId)
 				AND (@PNNum						 IS NULL OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END               LIKE '%' + @PNNum               + '%')
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
@@ -184,6 +198,7 @@ BEGIN
             WorksheetType,
             WorkOrderNo,
 			WorkOrderId,
+			WorkOrderPartId,
 			PNNum,
             MakeTypeId,
             MakeType,

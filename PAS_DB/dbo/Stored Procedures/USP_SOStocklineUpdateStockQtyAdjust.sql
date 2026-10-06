@@ -11,6 +11,7 @@
  ** PR   Date         Author  			    Change Description
  ** --   --------     -------			    --------------------------------
     1    21/08/2026   Kishor Makwana		Created
+    2    06/10/2026   Kishor Makwana		[PN-18238] - Guard: reject QtyOrder below reserved+shipped qty (logged to Appl_ErrorLog, ModuleName SO_QTY_GUARD)
 
 ***************************************************************/
 
@@ -45,6 +46,33 @@ BEGIN
         BEGIN
             -- stale data - stockline's QtyOrder changed since the popup was opened, don't overwrite it
             ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- [SO-QTY-GUARD] never allow Qty Ordered below the qty already reserved / shipped on this stockline
+        DECLARE @FloorQty INT = 0;
+
+        SELECT @FloorQty = CASE WHEN ISNULL(ToTalReservedQty, 0) > ISNULL(QtyReserved, 0) THEN ISNULL(ToTalReservedQty, 0) ELSE ISNULL(QtyReserved, 0) END
+        FROM [dbo].[SalesOrderStockLineV1]
+        WHERE SalesOrderStocklineId = @SalesOrderStocklineId
+          AND SalesOrderPartId = @SalesOrderPartId;
+
+        IF ISNULL(@NewQtyOrder, 0) < @FloorQty
+        BEGIN
+            ROLLBACK TRANSACTION;
+
+            BEGIN TRY
+                INSERT INTO Appl_ErrorLog ([SQLUserName],[ErrorNumber],[ErrorSeverity],[ErrorState],[ErrorProcedure],[ProcedureParameters],[ErrorLine],[ErrorMessage],DatabaseName,ModuleName,AdhocComments,RolledBackTranCount,SPID,HostName,ClientAppName,ApplicationName)
+                VALUES (ISNULL(CONVERT(sysname, CURRENT_USER), ''), 0, 0, 0, 'USP_SOStocklineUpdateStockQtyAdjust',
+                    'SalesOrderPartId=' + CAST(ISNULL(@SalesOrderPartId, 0) AS VARCHAR(20)) + ';SalesOrderStocklineId=' + CAST(ISNULL(@SalesOrderStocklineId, 0) AS VARCHAR(20))
+                    + ';OldQtyOrder=' + CAST(ISNULL(@OldQtyOrder, 0) AS VARCHAR(20)) + ';NewQtyOrder=' + CAST(ISNULL(@NewQtyOrder, 0) AS VARCHAR(20)) + ';Floor=' + CAST(@FloorQty AS VARCHAR(20)),
+                    0, 'Qty adjust below reserved/shipped qty rejected.',
+                    DB_NAME(), 'SO_QTY_GUARD', 'SO_QTY_GUARD', 0, @@SPID, HOST_NAME(), SUBSTRING(APP_NAME(), 0, 300), 'PAS');
+            END TRY
+            BEGIN CATCH
+                SET @FloorQty = @FloorQty; -- logging must never break the call
+            END CATCH
+
             RETURN;
         END
 

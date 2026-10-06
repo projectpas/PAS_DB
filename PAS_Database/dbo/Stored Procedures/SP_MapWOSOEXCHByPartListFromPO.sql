@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_MapWOSOEXCHByPartListFromPO]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Map WO,SO,EXCH,LOT from the PO 
@@ -12,6 +11,7 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    03/Oct/2024   RAJESH GAMI			Created
+	2    05/Oct/2026   MOIN BLOCH			PN-18217 - SO reference Qty = SalesOrderPartV1.QtyRequested (capped by QuantityOrdered)
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[SP_MapWOSOEXCHByPartListFromPO]
@@ -31,7 +31,7 @@ BEGIN
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT,@PurchaseOrderId BIGINT, @LotId BIGINT, @WorkOrderId BIGINT;
 			DECLARE @SalesOrderId BIGINT,@SubWorkOrderId BIGINT,@RequestedQtyFromWO [decimal](18,6) = 0,@ExchangeSalesOrderId BIGINT 
 			DECLARE @WOModuleId INT = 1, @SOModuleId INT = 3, @ExchModuleId INT = 4, @SubWOModuleId INT = 5, @LOTModuleId INT = 6
-			DECLARE @POPartRecordCount INT = 0,@QuantityOrdered [decimal](18,6) =0,@IsFromSubWorkOrder BIT = 0;
+			DECLARE @POPartRecordCount INT = 0,@QuantityOrdered [decimal](18,6) =0,@IsFromSubWorkOrder BIT = 0,@SOQtyRequested [decimal](18,6) = 0;
 			IF OBJECT_ID(N'tempdb..#tmpPoPartList') IS NOT NULL    
 			BEGIN    
 				DROP TABLE #tmpPoPartList
@@ -99,35 +99,49 @@ BEGIN
 				BEGIN
 					IF(@POPartRecordCount > 0)
 					BEGIN
-						INSERT INTO [dbo].[PurchaseOrderPartReference]
-										   ([PurchaseOrderId]
-										   ,[PurchaseOrderPartId]
-										   ,[ModuleId]
-										   ,[ReferenceId]
-										   ,[Qty]
-										   ,[MasterCompanyId]
-										   ,[CreatedBy]
-										   ,[UpdatedBy]
-										   ,[CreatedDate]
-										   ,[UpdatedDate]
-										   ,[IsActive]
-										   ,[IsDeleted])
-									 VALUES
-										   (@PurchaseOrderId
-										   ,@PurchaseOrderPartRecordId
-										   ,@SOModuleId
-										   ,@SalesOrderId
-										   ,@QuantityOrdered
-										   ,@masterCompanyId
-										   ,@userName
-										   ,@userName
-										   ,GETUTCDATE()
-										   ,GETUTCDATE()
-										   ,1
-										   ,0)
+						SELECT @SOQtyRequested = SUM(ISNULL(SOP.QtyRequested,0))
+						FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
+						INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.[ItemMasterId] = SOP.[ItemMasterId] AND POP.ConditionId = SOP.ConditionId
+						WHERE SOP.[SalesOrderId] = @SalesOrderId AND POP.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SOP.[IsDeleted] = 0;
+
+						SET @SOQtyRequested = CASE WHEN ISNULL(@SOQtyRequested,0) > 0 AND @SOQtyRequested < @QuantityOrdered THEN @SOQtyRequested ELSE @QuantityOrdered END;
+
+						IF EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPartReference] WITH (NOLOCK) WHERE [PurchaseOrderPartId] = @PurchaseOrderPartRecordId AND [ReferenceId] = @SalesOrderId AND [ModuleId] = @SOModuleId AND [IsDeleted] = 0)
+						BEGIN
+							UPDATE [dbo].[PurchaseOrderPartReference] SET [Qty] = @SOQtyRequested, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @userName
+								   WHERE [PurchaseOrderPartId] = @PurchaseOrderPartRecordId AND [ReferenceId] = @SalesOrderId AND [ModuleId] = @SOModuleId
+						END
+						ELSE
+						BEGIN
+							INSERT INTO [dbo].[PurchaseOrderPartReference]
+											   ([PurchaseOrderId]
+											   ,[PurchaseOrderPartId]
+											   ,[ModuleId]
+											   ,[ReferenceId]
+											   ,[Qty]
+											   ,[MasterCompanyId]
+											   ,[CreatedBy]
+											   ,[UpdatedBy]
+											   ,[CreatedDate]
+											   ,[UpdatedDate]
+											   ,[IsActive]
+											   ,[IsDeleted])
+										 VALUES
+											   (@PurchaseOrderId
+											   ,@PurchaseOrderPartRecordId
+											   ,@SOModuleId
+											   ,@SalesOrderId
+											   ,@SOQtyRequested
+											   ,@masterCompanyId
+											   ,@userName
+											   ,@userName
+											   ,GETUTCDATE()
+											   ,GETUTCDATE()
+											   ,1
+											   ,0)
+						END
 					END
 				END
-
 ------------------------ END: SalesOrder Mapping ----------------------------------
 
 ------------------------ START: ExchangeSalesOrder Mapping ----------------------------------

@@ -24,6 +24,7 @@
 	                                        saved on the invoice). Items that have typed detail rows now print exactly one row per detail row (TypedLines, same labels/amounts as the preview).
 	                                        Legacy items (no typed rows) still use the old single-row Lines logic.
 	                                        [Usage Based] A Usage Based period line prints as two lines - 'Usage Time' (TimeUsageQty x rate) and 'Usage Cycle' (CycleUsageQty x rate) - from the saved TimeUsage* / CycleUsage* columns.
+    4    06/10/2026     Kishor Makwana  [PN-18188 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
     
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_Lease] 1,72
 ********************************************************************************************/
@@ -70,9 +71,9 @@ BEGIN
 					LBID.[CycleUsageAmount],
 					ISNULL(BII.[GrandTotal], 0) AS GrandTotal,
 					ISNULL(ChargesAgg.Charges, 0) AS Charges,
-					LSL.[Maintenance],
-					LSL.[Insurance],
-					LSL.[Taxes],
+					COALESCE(SC_SUM.MaintenanceAmount, LSL.[Maintenance]) AS [Maintenance],
+					COALESCE(SC_SUM.InsuranceAmount, LSL.[Insurance]) AS [Insurance],
+					COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 					ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount
 				FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK)
 				INNER JOIN [dbo].[LeaseStockline] LSL WITH(NOLOCK) ON BII.[SubReferenceId] = LSL.[LeaseStocklineId]
@@ -85,7 +86,11 @@ BEGIN
 					WHERE LC.LeaseStocklineId = LSL.LeaseStocklineId AND LC.IsDeleted = 0
 				) ChargesAgg
 				LEFT JOIN (
-					SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+					SELECT LeaseStocklineId,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount
 					FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 					WHERE IsDeleted = 0
 					GROUP BY LeaseStocklineId

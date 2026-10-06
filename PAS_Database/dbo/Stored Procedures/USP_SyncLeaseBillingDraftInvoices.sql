@@ -15,6 +15,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    05/10/2026     Kishor Makwana          [PN-18072 draft sync] Created
+    2    06/10/2026     Kishor Makwana          [PN-18188 service component dates] Maintenance/Insurance/Taxes/Others lines now carry the component's Start Date / End Date as From Date / To Date (earliest start / latest end of the matching LeaseStocklineServiceComponent rows) instead of blank dates.
  ** EXEC USP_SyncLeaseBillingDraftInvoices @LeaseHeaderId = 1, @UpdatedBy = 'ADMIN User'
  **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SyncLeaseBillingDraftInvoices]
@@ -48,7 +49,7 @@ BEGIN
 				WHERE H.LeaseStocklineId = BX.SubReferenceId AND H.IsActive = 1 AND H.IsDeleted = 0
 				  AND ISNULL(H.IsInvoiced, 0) = 0 AND H.BillingInvoicingItemId IS NULL AND H.FromDate IS NOT NULL
 				  AND EXISTS (SELECT 1 FROM [dbo].[LeaseBillingInvoicingItemDetails] LX WITH (NOLOCK)
-							  WHERE LX.BillingInvoicingItemId = BX.BillingInvoicingItemId AND ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL
+							  WHERE LX.BillingInvoicingItemId = BX.BillingInvoicingItemId AND ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL AND ISNULL(LX.LineType, '') NOT IN ('Maintenance', 'Insurance', 'Taxes', 'Others')
 								AND DATEFROMPARTS(YEAR(LX.FromDate), MONTH(LX.FromDate), 1) = DATEFROMPARTS(YEAR(H.FromDate), MONTH(H.FromDate), 1))
 			)
 			-- (b) new, not-yet-billed charge reported in a month this draft covers
@@ -57,7 +58,7 @@ BEGIN
 				WHERE LC.LeaseStocklineId = BX.SubReferenceId AND LC.IsDeleted = 0
 				  AND ISNULL(LC.IsInvoiced, 0) = 0 AND LC.BillingInvoicingItemId IS NULL AND LC.ReportedDate IS NOT NULL
 				  AND EXISTS (SELECT 1 FROM [dbo].[LeaseBillingInvoicingItemDetails] LX WITH (NOLOCK)
-							  WHERE LX.BillingInvoicingItemId = BX.BillingInvoicingItemId AND ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL
+							  WHERE LX.BillingInvoicingItemId = BX.BillingInvoicingItemId AND ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL AND ISNULL(LX.LineType, '') NOT IN ('Maintenance', 'Insurance', 'Taxes', 'Others')
 								AND DATEFROMPARTS(YEAR(LX.FromDate), MONTH(LX.FromDate), 1) = DATEFROMPARTS(YEAR(LC.ReportedDate), MONTH(LC.ReportedDate), 1))
 			)
 			-- (c) lease terms / Maintenance / Insurance / Taxes / service components edited after the draft was generated

@@ -27,6 +27,8 @@
     [CurrencyId]                INT             NULL,
     [Currency]                  VARCHAR (50)    NULL,
     [EmployeeId]                INT             NULL,
+    [AircraftEngine]            VARCHAR (256)   NULL,
+    [VerifiedDate]              DATETIME        NULL,
     CONSTRAINT [PK_VendorCapabiliyAudit] PRIMARY KEY CLUSTERED ([AuditVendorCapabilityId] ASC),
     CONSTRAINT [FK_VendorCapabiliyAudit_VendorCapabiliy] FOREIGN KEY ([VendorCapabilityId]) REFERENCES [dbo].[VendorCapability] ([VendorCapabilityId])
 );

@@ -11,6 +11,7 @@
 ** --   ----------   ------------   --------------------------------
 ** 1    02-07-2025   Ayushi Patel   Created
 ** 2    05-12-2025   Moin Bloch     Added CapabilityTypeName
+** 3    10-01-2026   Nakul          Added AircraftEngine and VerifiedDate (PN-17977)
 
 -- EXEC USP_AddUpdateVendorCapabilities 4797
 **************************************************************/
@@ -74,7 +75,9 @@ BEGIN
                 @CurrencyId BIGINT,
                 @Currency NVARCHAR(50),
                 @EmployeeId BIGINT,
-				@CapabilityTypeDesc VARCHAR(256)
+				@CapabilityTypeDesc VARCHAR(256),
+                @AircraftEngine VARCHAR(256),
+                @VerifiedDate DATETIME
 
             SELECT
                 @VendorCapabilityId = VendorCapabilityId,
@@ -96,7 +99,9 @@ BEGIN
                 @CostDate = CostDate,
                 @CurrencyId = CurrencyId,
                 @Currency = Currency,
-                @EmployeeId = EmployeeId
+                @EmployeeId = EmployeeId,
+                @AircraftEngine = AircraftEngine,
+                @VerifiedDate = VerifiedDate
             FROM #TempVendorCapabilities
             WHERE RowNum = @Row;
 
@@ -126,6 +131,8 @@ BEGIN
                     CurrencyId = @CurrencyId,
                     Currency = @Currency,
                     EmployeeId = @EmployeeId,
+                    AircraftEngine = @AircraftEngine,
+                    VerifiedDate = @VerifiedDate,
                     UpdatedBy = @UpdatedBy,
                     UpdatedDate = GETUTCDATE()
                 WHERE VendorCapabilityId = @VendorCapabilityId;
@@ -154,7 +161,7 @@ BEGIN
                         VendorId, CapabilityTypeId,[CapabilityTypeName],CapabilityTypeDescription, ItemMasterId, VendorRanking,
                         IsPMA, IsDER, Cost, TAT, Memo, IsActive, IsDeleted,
                         PartNumber, PartDescription, ManufacturerId, ManufacturerName,
-                        CostDate, CurrencyId, Currency, EmployeeId,
+                        CostDate, CurrencyId, Currency, EmployeeId, AircraftEngine, VerifiedDate,
                         CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, MasterCompanyId
                     )
                     VALUES
@@ -162,7 +169,7 @@ BEGIN
                         @VendorId, @CapabilityTypeId,@CapabilityTypeDesc, @CapabilityTypeDescription, @ItemMasterId, @VendorRanking,
                         @IsPMA, @IsDER, @Cost, @TAT, @Memo, @IsActive, @IsDeleted,
                         @PartNum, @PartDescription, @ManufacturerId, @ManufacturerName,
-                        @CostDate, @CurrencyId, @Currency, @EmployeeId,
+                        @CostDate, @CurrencyId, @Currency, @EmployeeId, @AircraftEngine, @VerifiedDate,
                         @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @MasterCompanyId
                     );
                 END

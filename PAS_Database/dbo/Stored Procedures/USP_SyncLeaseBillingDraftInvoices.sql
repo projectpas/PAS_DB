@@ -17,7 +17,7 @@
     1    05/10/2026     Kishor Makwana          [PN-18072 draft sync] Created
  ** EXEC USP_SyncLeaseBillingDraftInvoices @LeaseHeaderId = 1, @UpdatedBy = 'ADMIN User'
  **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_SyncLeaseBillingDraftInvoices]
+CREATE PROCEDURE [dbo].[USP_SyncLeaseBillingDraftInvoices]
 	@LeaseHeaderId BIGINT,
 	@UpdatedBy VARCHAR(256) = 'System'
 AS

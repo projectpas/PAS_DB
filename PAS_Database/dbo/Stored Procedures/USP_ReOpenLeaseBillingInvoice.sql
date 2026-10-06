@@ -45,7 +45,7 @@
     EXEC [dbo].[USP_ReOpenLeaseBillingInvoice] @BillingInvoicingId = 8998, @UpdatedBy = 'ADMIN User'
 
 **********************/
-CREATE Or ALTER PROCEDURE [dbo].[USP_ReOpenLeaseBillingInvoice]
+CREATE PROCEDURE [dbo].[USP_ReOpenLeaseBillingInvoice]
 	@BillingInvoicingId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS

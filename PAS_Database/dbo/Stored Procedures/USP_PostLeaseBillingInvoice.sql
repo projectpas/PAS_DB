@@ -22,7 +22,7 @@
 
 EXEC USP_PostLeaseBillingInvoice @BillingInvoicingId = 1, @UpdatedBy = 'test'
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_PostLeaseBillingInvoice]
+CREATE PROCEDURE [dbo].[USP_PostLeaseBillingInvoice]
 	@BillingInvoicingId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS

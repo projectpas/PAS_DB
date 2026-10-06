@@ -23,9 +23,10 @@
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 	13   17-09-2026         Ayushi Patel        Removed Round from QuantityAvailable [PN-17938]
+	14   02-10-2026         Bhargav Saliya      Performance: vendor Id/Name/Code via joins instead of 6 correlated subqueries per stockline; dropped redundant DISTINCT (all joins are 1:1 on PKs)
 *******************************************************************************
 *******************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
 @PageNumber INT = 1,
 @PageSize INT = 10,
 @SortColumn VARCHAR(50)=NULL,
@@ -86,11 +87,11 @@ BEGIN
 		IF @IsVCMAdd IS NULL OR @IsVCMAdd = 0
 		BEGIN
 			;WITH Result AS (	
-			SELECT DISTINCT
+			SELECT
 				SL.[StockLineId]
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorId]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.[VendorId] FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.[VendorId] FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorId] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorId] END)
 			    ELSE '' END 'VendorId'
 			   ,SL.[PurchaseOrderId]
 			   ,SL.[RepairOrderId]
@@ -107,12 +108,12 @@ BEGIN
 				--,SL.[UnitCost]
 				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorName] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorName] END)
 			    ELSE '' END 'VendorName'
 				,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorCode]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.[VendorCode] FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.[VendorCode] FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorCode] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorCode] END)
 			    ELSE '' END 'VendorCode'
 			   ,SL.[StockLineNumber]
 			   ,SL.[IdNumber]
@@ -127,6 +128,8 @@ BEGIN
 		  LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
 		  LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		  LEFT JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON SL.[VendorId] = VO.[VendorId]
+		  LEFT JOIN [dbo].[Vendor] PV WITH (NOLOCK) ON PO.[VendorId] = PV.[VendorId]
+		  LEFT JOIN [dbo].[Vendor] RV WITH (NOLOCK) ON RO.[VendorId] = RV.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
@@ -190,11 +193,11 @@ BEGIN
 		ELSE 
 		BEGIN
 			;WITH Result AS (	
-			SELECT DISTINCT
+			SELECT
 				SL.[StockLineId]
 				,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorId]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.[VendorId] FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.[VendorId] FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorId] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorId] END)
 			    ELSE '' END 'VendorId'
 			   ,SL.[PurchaseOrderId]
 			   ,SL.[RepairOrderId]
@@ -208,12 +211,12 @@ BEGIN
 			   ,SL.[QuantityAvailable]
 			   ,SL.[UnitCost]
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorName] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorName] END)
 			    ELSE '' END 'VendorName'
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorCode]
-			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.[VendorCode] FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
-			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.[VendorCode] FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
+			    WHEN SL.[PurchaseOrderId] > 0  THEN (CASE WHEN PV.[VendorId] IS NOT NULL THEN PO.[VendorCode] END)
+			    WHEN SL.[RepairOrderId] > 0  THEN (CASE WHEN RV.[VendorId] IS NOT NULL THEN RO.[VendorCode] END)
 			    ELSE '' END 'VendorCode'
 			   --,VO.[VendorCode]
 			   ,SL.[StockLineNumber]
@@ -229,6 +232,8 @@ BEGIN
 		  LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
 		  LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		  LEFT JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON SL.[VendorId] = VO.[VendorId]
+		  LEFT JOIN [dbo].[Vendor] PV WITH (NOLOCK) ON PO.[VendorId] = PV.[VendorId]
+		  LEFT JOIN [dbo].[Vendor] RV WITH (NOLOCK) ON RO.[VendorId] = RV.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) 
 			AND SL.StockLineId NOT IN 

@@ -77,3 +77,8 @@
     CONSTRAINT [FK_RMAShipping_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RMAShipping_VendorRMAId]
+    ON [dbo].[RMAShipping]([VendorRMAId] ASC);
+

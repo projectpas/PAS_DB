@@ -34,3 +34,15 @@
     CONSTRAINT [FK_VendorRMADetail_VendorRMAStatus] FOREIGN KEY ([VendorRMAStatusId]) REFERENCES [dbo].[VendorRMAStatus] ([VendorRMAStatusId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorRMADetail_VendorRMAId]
+    ON [dbo].[VendorRMADetail]([VendorRMAId] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [VendorRMAStatusId], [VendorRMAReturnReasonId]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorRMADetail_StockLineId]
+    ON [dbo].[VendorRMADetail]([StockLineId] ASC)
+    INCLUDE([VendorRMAId]);
+

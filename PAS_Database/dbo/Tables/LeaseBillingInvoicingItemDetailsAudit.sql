@@ -31,6 +31,11 @@
     [CycleUsageAmount]                        DECIMAL (18, 6) NULL,
     [FlatRate]                                DECIMAL (18, 6) NULL,
     [FlatRateAmount]                          DECIMAL (18, 6) NULL,
+    [LineType]                                VARCHAR (50)    NULL,
+    [FromDate]                                DATETIME2 (7)   NULL,
+    [ToDate]                                  DATETIME2 (7)   NULL,
+    [LineAmount]                              DECIMAL (18, 6) NULL,
+    [IsVersionIncrease]                       BIT             NULL,
     CONSTRAINT [PK_LeaseBillingInvoicingItemDetailsAudit] PRIMARY KEY CLUSTERED ([LeaseBillingInvoicingItemDetailsAuditId] ASC)
 );
 

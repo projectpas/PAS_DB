@@ -17,12 +17,15 @@
     [UpdatedDate]      DATETIME        CONSTRAINT [DF_LeaseCharges_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [IsActive]         BIT             CONSTRAINT [DF_LeaseCharges_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT             CONSTRAINT [DF_LeaseCharges_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsInvoiced]       BIT             CONSTRAINT [DF_LeaseCharges_IsInvoiced] DEFAULT ((0)) NOT NULL,
+    [BillingInvoicingItemId] BIGINT    NULL,
     CONSTRAINT [PK_LeaseCharges] PRIMARY KEY CLUSTERED ([LeaseChargesId] ASC),
     CONSTRAINT [FK_LeaseCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_LeaseCharges_LeaseHeader] FOREIGN KEY ([LeaseHeaderId]) REFERENCES [dbo].[LeaseHeader] ([LeaseHeaderId]),
     CONSTRAINT [FK_LeaseCharges_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId]),
     CONSTRAINT [FK_LeaseCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_LeaseCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
+    CONSTRAINT [FK_LeaseCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
+    CONSTRAINT [FK_LeaseCharges_BillingInvoicingItems] FOREIGN KEY ([BillingInvoicingItemId]) REFERENCES [dbo].[BillingInvoicingItems] ([BillingInvoicingItemId])
 );
 
 
@@ -55,4 +58,9 @@ GO
 CREATE NONCLUSTERED INDEX [IX_LeaseCharges_LeaseStocklineId]
     ON [dbo].[LeaseCharges]([LeaseStocklineId] ASC)
     INCLUDE([ExtendedCost], [IsDeleted]);
+
+GO
+CREATE NONCLUSTERED INDEX [IX_LeaseCharges_LeaseStocklineId_IsInvoiced]
+    ON [dbo].[LeaseCharges]([LeaseStocklineId] ASC, [IsInvoiced] ASC)
+    INCLUDE([ReportedDate], [ExtendedCost], [IsDeleted]);
 

@@ -279,6 +279,10 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
 
+
+
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Stockline]
     ON [dbo].[Stockline]
@@ -697,4 +701,16 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_ProcStockList_Covering]
     ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
     INCLUDE([StockLineId], [ItemMasterId], [PartNumber], [PNDescription], [Manufacturer], [RevicedPNNumber], [itemGroup], [StockUnitOfMeasureId], [StockUnitOfMeasure], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [isSerialized], [SerialNumber], [IsCustomerStock], [CustomerId], [StockLineNumber], [ControlNumber], [IdNumber], [Condition], [ReceivedDate], [ShippingReference], [ExpirationDate], [TagDate], [TaggedByName], [TagType], [TraceableToName], [itemType], [ItemTypeId], [IsNonStock], [isActive], [CreatedDate], [CreatedBy], [PartCertificationNumber], [CertifiedBy], [CertifiedDate], [UpdatedDate], [UpdatedBy], [Level1], [Level2], [Level3], [Level4], [IsTurnIn], [IsStkTimeLife], [ObtainFromName], [OwnerName], [WorkOrderId], [SubWorkOrderId], [WorkOrderNumber], [Location], [LocationId], [Site], [SiteId], [Warehouse], [WarehouseId], [LotNumber], [CustomerName], [PurchaseOrderNumber], [RepairOrderNumber], [ReceiverNumber], [QuantityAdjustment], [IsDocument], [IsRepairManagement], [IsBatchStock], [BatchNumber], [UnitCost], [InventoryGLAccName], [IsPMA], [IsDER], [OEM], [EngineSerialNumber], [ManagementStructureId], [Model]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_VendorRMAId]
+    ON [dbo].[Stockline]([VendorRMAId] ASC)
+    INCLUDE([VendorRMADetailId], [ItemMasterId], [Quantity], [IsParent], [isDeleted]) WHERE ([VendorRMAId] IS NOT NULL);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_VendorRMADetailId]
+    ON [dbo].[Stockline]([VendorRMADetailId] ASC)
+    INCLUDE([VendorRMAId], [ItemMasterId], [Quantity], [IsParent], [isDeleted], [PurchaseOrderId], [RepairOrderId], [StockLineNumber], [Condition]) WHERE ([VendorRMADetailId] IS NOT NULL);
 

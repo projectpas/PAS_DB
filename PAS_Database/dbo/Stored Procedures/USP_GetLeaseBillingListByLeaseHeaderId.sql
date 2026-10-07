@@ -53,6 +53,7 @@
 	                                            change #6 (still one Flat Rate + Overrun pair per historical invoice item, from LeaseBillingInvoicingItemDetails) - only Pending rows were in scope for this pass.
     7   05/10/2026     Kishor Makwana          [PN-18072 IsVersionIncrease] Invoice items / detail rows are versioned with IsVersionIncrease (1 = superseded by a re-generated draft, 0 = current) instead of being
                                             soft-deleted - every read of BillingInvoicingItems / LeaseBillingInvoicingItemDetails here now keeps only ISNULL(IsVersionIncrease, 0) = 0.
+    8    06/10/2026   Kishor Makwana          [PN-17949 shipment billing] A stockline is billable only once it has been SHIPPED (a non-deleted LeaseShippingItem with QtyShipped > 0 on a non-deleted LeaseShipping), unless LeaseHeader.AllowInvoiceBeforeShipping = 1 (default 0) - then reservation alone is enough, as before. Same rule as Sales Order billing.
 
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -77,16 +78,17 @@ BEGIN
 				LSL.BillingInterval AS BillingFrequency,
 				LSL.FlatRate,
 				LSL.RateUnit,
-				LSL.Maintenance,
-				LSL.Insurance,
-				LSL.Taxes,
+				COALESCE(SC_SUM.MaintenanceAmount, LSL.Maintenance) AS Maintenance,
+				COALESCE(SC_SUM.InsuranceAmount, LSL.Insurance) AS Insurance,
+				COALESCE(SC_SUM.TaxesAmount, LSL.Taxes) AS Taxes,
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
+				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
 				ISNULL(ChargesAgg.Charges, 0) AS Charges,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
 				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
 				LSL.UsagePerUnitTimes,
 				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
 				LSL.MinimumCycles AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
@@ -117,7 +119,19 @@ BEGIN
 				WHERE LC.LeaseStocklineId = LSL.LeaseStocklineId AND LC.IsDeleted = 0
 			) ChargesAgg
 			LEFT JOIN (
-				SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+				SELECT LeaseStocklineId,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN StartDate END) AS MaintenanceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN EndDate END) AS MaintenanceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN StartDate END) AS InsuranceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN EndDate END) AS InsuranceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN StartDate END) AS TaxesFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN EndDate END) AS TaxesTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN StartDate END) AS OtherFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN EndDate END) AS OtherTo
 				FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 				WHERE IsDeleted = 0
 				GROUP BY LeaseStocklineId
@@ -125,6 +139,12 @@ BEGIN
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
+			  AND (
+					ISNULL((SELECT TOP 1 LHB.[AllowInvoiceBeforeShipping] FROM [dbo].[LeaseHeader] LHB WITH (NOLOCK) WHERE LHB.[LeaseHeaderId] = @LeaseHeaderId), 0) = 1
+					OR EXISTS (SELECT 1 FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
+							   INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0
+							   WHERE LSI.[LeaseStocklineId] = LSL.[LeaseStocklineId] AND ISNULL(LSI.[IsDeleted], 0) = 0 AND ISNULL(LSI.[IsActive], 1) = 1 AND ISNULL(LSI.[QtyShipped], 0) > 0)
+				  )
 		),
 		TimeSeries AS (
 			SELECT
@@ -470,7 +490,7 @@ BEGIN
 		),
 		OneTimeAnchor AS (
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
-				Maintenance, Insurance, Taxes, OtherComponentAmount, Charges,
+				Maintenance, Insurance, Taxes, OtherComponentAmount, MaintenanceFrom, MaintenanceTo, InsuranceFrom, InsuranceTo, TaxesFrom, TaxesTo, OtherFrom, OtherTo, Charges,
 				BillingInvoicingId, InvoiceNo, InvoiceDate, HasUsageInfo, IsActive, LeaseStatusId
 			FROM StocklineBase
 			WHERE IsInvoicePost = 0
@@ -488,7 +508,7 @@ BEGIN
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
 				'Maintenance' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
+				CAST(MaintenanceFrom AS DATETIME2(7)) AS FromDate, CAST(MaintenanceTo AS DATETIME2(7)) AS ToDate,
 				Maintenance AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
@@ -501,7 +521,7 @@ BEGIN
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
 				'Insurance' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
+				CAST(InsuranceFrom AS DATETIME2(7)) AS FromDate, CAST(InsuranceTo AS DATETIME2(7)) AS ToDate,
 				Insurance AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
@@ -514,7 +534,7 @@ BEGIN
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
 				'Taxes' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
+				CAST(TaxesFrom AS DATETIME2(7)) AS FromDate, CAST(TaxesTo AS DATETIME2(7)) AS ToDate,
 				Taxes AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
@@ -527,7 +547,7 @@ BEGIN
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
 				'Others' AS LineType,
-				CAST(NULL AS DATETIME2(7)) AS FromDate, CAST(NULL AS DATETIME2(7)) AS ToDate,
+				CAST(OtherFrom AS DATETIME2(7)) AS FromDate, CAST(OtherTo AS DATETIME2(7)) AS ToDate,
 				OtherComponentAmount AS LineAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
 				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,

@@ -58,7 +58,8 @@
 	                                            covered LeaseStocklineUsageHistory row IsInvoiced = 1 + this invoice's BillingInvoicingItemId, and sets LeaseStockline.IsInvoicePost = 1 -
 	                                            see LeaseBilling_MultiPeriod_Schema.sql for both new columns. Also added a WHERE filter dropping a stockline from this run entirely when it
 	                                            has zero pending periods AND IsInvoicePost is already 1 (genuinely nothing left to bill), instead of still inserting a $0 invoice line for it.
-	6    05/10/2026     Kishor Makwana         [PN-18072 multi-part invoice] Several lease stocklines on one invoice: the selected stockline list is de-duplicated (@SelIds) before it is used.
+	6    05/10/2026     Kishor Makwana         [PN-17949 multi-part invoice] Several lease stocklines on one invoice: the selected stockline list is de-duplicated (@SelIds) before it is used.
+    7    06/10/2026     Kishor Makwana         [PN-17949 split draft] Selecting only SOME parts of an open multi-part draft now creates a NEW invoice for them (Sales Order behaviour): their old lines on the original draft are superseded (IsVersionIncrease = 1) and the original draft keeps its other parts with a refreshed total. The same invoice is only re-generated when the selection contains every part of that draft (what the draft sync sends).
 
 DECLARE @Ids dbo.TVP_BigInt;
 INSERT INTO @Ids (Value) VALUES (1), (2);
@@ -176,13 +177,21 @@ BEGIN
 		SELECT LX.LeaseStocklineId, DATEFROMPARTS(YEAR(LX.FromDate), MONTH(LX.FromDate), 1)
 		FROM [dbo].[LeaseBillingInvoicingItemDetails] LX WITH (NOLOCK)
 		INNER JOIN @AbsorbItems AI ON AI.BillingInvoicingItemId = LX.BillingInvoicingItemId
-		WHERE ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL;
+		WHERE ISNULL(LX.IsDeleted, 0) = 0 AND ISNULL(LX.IsVersionIncrease, 0) = 0 AND LX.FromDate IS NOT NULL
+		  AND ISNULL(LX.LineType, '') NOT IN ('Maintenance', 'Insurance', 'Taxes', 'Others');
 
+		-- The draft invoice that is RE-GENERATED (same BillingInvoicingId / InvoiceNo) is one whose parts are ALL in this selection (this is
+		-- also what the draft sync always sends). When the user selects only SOME parts of a draft, those parts get a NEW invoice and their
+		-- old lines on the original draft are superseded (IsVersionIncrease = 1); the original draft keeps its other parts. Same as Sales Order.
 		DECLARE @DraftInvoiceId BIGINT;
-		SELECT @DraftInvoiceId = MIN(BillingInvoicingId) FROM @AbsorbItems;
+		SELECT @DraftInvoiceId = MIN(AI.BillingInvoicingId)
+		FROM @AbsorbItems AI
+		WHERE NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] Y WITH (NOLOCK)
+						  WHERE Y.BillingInvoicingId = AI.BillingInvoicingId AND Y.IsDeleted = 0 AND ISNULL(Y.IsVersionIncrease, 0) = 0
+							AND NOT EXISTS (SELECT 1 FROM @SelIds S2 WHERE S2.Value = Y.SubReferenceId));
 		DECLARE @BillingInvoicingId BIGINT = @DraftInvoiceId;
 
-		IF (@DraftInvoiceId IS NOT NULL)
+		IF EXISTS (SELECT 1 FROM @AbsorbItems)
 		BEGIN
 			-- Release the old usage / charges so they are billed again together with the new usage
 			UPDATE H
@@ -217,9 +226,18 @@ BEGIN
 				SET BI.InvoiceStatus = 'Voided', BI.InvoiceStatusId = ISNULL(@VoidedStatusId, BI.InvoiceStatusId),
 					BI.IsReOpened = 1, BI.UpdatedBy = @CreatedBy, BI.UpdatedDate = GETUTCDATE()
 			FROM [dbo].[BillingInvoicing] BI
-			WHERE BI.BillingInvoicingId IN (SELECT DISTINCT BillingInvoicingId FROM @AbsorbItems WHERE BillingInvoicingId <> @DraftInvoiceId)
+			WHERE BI.BillingInvoicingId IN (SELECT DISTINCT BillingInvoicingId FROM @AbsorbItems WHERE BillingInvoicingId <> ISNULL(@DraftInvoiceId, 0))
 			  AND NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] X WITH (NOLOCK)
 							  WHERE X.BillingInvoicingId = BI.BillingInvoicingId AND X.IsDeleted = 0 AND ISNULL(X.IsVersionIncrease, 0) = 0);
+
+			-- A draft that lost only SOME of its parts to the new invoice stays open: refresh its header total from the lines it still holds
+			UPDATE BI
+				SET BI.GrandTotal = T.Total, BI.SubTotal = T.Total, BI.UpdatedBy = @CreatedBy, BI.UpdatedDate = GETUTCDATE()
+			FROM [dbo].[BillingInvoicing] BI
+			CROSS APPLY (SELECT SUM(ISNULL(X.GrandTotal, 0)) AS Total FROM [dbo].[BillingInvoicingItems] X WITH (NOLOCK)
+						 WHERE X.BillingInvoicingId = BI.BillingInvoicingId AND X.IsDeleted = 0 AND ISNULL(X.IsVersionIncrease, 0) = 0) T
+			WHERE BI.BillingInvoicingId IN (SELECT DISTINCT BillingInvoicingId FROM @AbsorbItems WHERE BillingInvoicingId <> ISNULL(@DraftInvoiceId, 0))
+			  AND ISNULL(BI.InvoiceStatus, '') <> 'Voided';
 		END
 
 		-- One-time lines (and the no-usage flat fee) that already sit on an OPEN draft invoice (generated but not
@@ -245,26 +263,39 @@ BEGIN
 				LSL.BillingInterval AS BillingFrequency,
 				LSL.FlatRate,
 				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
 				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
 				LSL.UsagePerUnitTimes,
 				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
 				LSL.MinimumCycles AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
-				LSL.[Maintenance],
-				LSL.[Insurance],
-				LSL.[Taxes],
+				COALESCE(SC_SUM.MaintenanceAmount, LSL.[Maintenance]) AS [Maintenance],
+				COALESCE(SC_SUM.InsuranceAmount, LSL.[Insurance]) AS [Insurance],
+				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
+				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
 				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
 				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN (
-				SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+				SELECT LeaseStocklineId,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN StartDate END) AS MaintenanceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN EndDate END) AS MaintenanceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN StartDate END) AS InsuranceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN EndDate END) AS InsuranceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN StartDate END) AS TaxesFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN EndDate END) AS TaxesTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN StartDate END) AS OtherFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN EndDate END) AS OtherTo
 				FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 				WHERE IsDeleted = 0
 				GROUP BY LeaseStocklineId
@@ -272,6 +303,12 @@ BEGIN
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
+			  AND (
+					ISNULL((SELECT TOP 1 LHB.[AllowInvoiceBeforeShipping] FROM [dbo].[LeaseHeader] LHB WITH (NOLOCK) WHERE LHB.[LeaseHeaderId] = @LeaseHeaderId), 0) = 1
+					OR EXISTS (SELECT 1 FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
+							   INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0
+							   WHERE LSI.[LeaseStocklineId] = LSL.[LeaseStocklineId] AND ISNULL(LSI.[IsDeleted], 0) = 0 AND ISNULL(LSI.[IsActive], 1) = 1 AND ISNULL(LSI.[QtyShipped], 0) > 0)
+				  )
 		),
 		TimeSeries AS (
 			SELECT
@@ -444,26 +481,39 @@ BEGIN
 				LSL.BillingInterval AS BillingFrequency,
 				LSL.FlatRate,
 				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
 				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
 				LSL.UsagePerUnitTimes,
 				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
 				LSL.MinimumCycles AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
-				LSL.[Maintenance],
-				LSL.[Insurance],
-				LSL.[Taxes],
+				COALESCE(SC_SUM.MaintenanceAmount, LSL.[Maintenance]) AS [Maintenance],
+				COALESCE(SC_SUM.InsuranceAmount, LSL.[Insurance]) AS [Insurance],
+				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
+				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
 				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
 				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN (
-				SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+				SELECT LeaseStocklineId,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN StartDate END) AS MaintenanceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN EndDate END) AS MaintenanceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN StartDate END) AS InsuranceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN EndDate END) AS InsuranceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN StartDate END) AS TaxesFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN EndDate END) AS TaxesTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN StartDate END) AS OtherFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN EndDate END) AS OtherTo
 				FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 				WHERE IsDeleted = 0
 				GROUP BY LeaseStocklineId
@@ -471,6 +521,12 @@ BEGIN
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
+			  AND (
+					ISNULL((SELECT TOP 1 LHB.[AllowInvoiceBeforeShipping] FROM [dbo].[LeaseHeader] LHB WITH (NOLOCK) WHERE LHB.[LeaseHeaderId] = @LeaseHeaderId), 0) = 1
+					OR EXISTS (SELECT 1 FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
+							   INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0
+							   WHERE LSI.[LeaseStocklineId] = LSL.[LeaseStocklineId] AND ISNULL(LSI.[IsDeleted], 0) = 0 AND ISNULL(LSI.[IsActive], 1) = 1 AND ISNULL(LSI.[QtyShipped], 0) > 0)
+				  )
 		),
 		ChargesToBill AS (
 			SELECT PA.LeaseStocklineId, PA.PeriodKey, PA.PeriodFromDate, PA.PeriodToDate, LC.LeaseChargesId, LC.ExtendedCost
@@ -507,26 +563,39 @@ BEGIN
 				LSL.BillingInterval AS BillingFrequency,
 				LSL.FlatRate,
 				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
 				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
 				LSL.UsagePerUnitTimes,
 				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
 				LSL.MinimumCycles AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
-				LSL.[Maintenance],
-				LSL.[Insurance],
-				LSL.[Taxes],
+				COALESCE(SC_SUM.MaintenanceAmount, LSL.[Maintenance]) AS [Maintenance],
+				COALESCE(SC_SUM.InsuranceAmount, LSL.[Insurance]) AS [Insurance],
+				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
+				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
 				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
 				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 			LEFT JOIN (
-				SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
+				SELECT LeaseStocklineId,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+				SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN StartDate END) AS MaintenanceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN EndDate END) AS MaintenanceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN StartDate END) AS InsuranceFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN EndDate END) AS InsuranceTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN StartDate END) AS TaxesFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN EndDate END) AS TaxesTo,
+				MIN(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN StartDate END) AS OtherFrom,
+				MAX(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN EndDate END) AS OtherTo
 				FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 				WHERE IsDeleted = 0
 				GROUP BY LeaseStocklineId
@@ -534,6 +603,12 @@ BEGIN
 			WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 			  AND LSL.IsDeleted = 0
 			  AND LSL.QtyReserved > 0
+			  AND (
+					ISNULL((SELECT TOP 1 LHB.[AllowInvoiceBeforeShipping] FROM [dbo].[LeaseHeader] LHB WITH (NOLOCK) WHERE LHB.[LeaseHeaderId] = @LeaseHeaderId), 0) = 1
+					OR EXISTS (SELECT 1 FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
+							   INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0
+							   WHERE LSI.[LeaseStocklineId] = LSL.[LeaseStocklineId] AND ISNULL(LSI.[IsDeleted], 0) = 0 AND ISNULL(LSI.[IsActive], 1) = 1 AND ISNULL(LSI.[QtyShipped], 0) > 0)
+				  )
 		),
 		ChargesByPeriodTotals AS (
 			SELECT LeaseStocklineId, PeriodKey, PeriodFromDate, PeriodToDate, SUM(ISNULL(ExtendedCost, 0)) AS ChargesAmount
@@ -669,7 +744,7 @@ BEGIN
 			SELECT
 				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
 				LineType = 'Maintenance',
-				FromDate = NULL, ToDate = NULL,
+				FromDate = S.MaintenanceFrom, ToDate = S.MaintenanceTo,
 				NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				LineAmount = S.[Maintenance]
 			FROM StocklineBase S
@@ -681,7 +756,7 @@ BEGIN
 			SELECT
 				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
 				LineType = 'Insurance',
-				FromDate = NULL, ToDate = NULL,
+				FromDate = S.InsuranceFrom, ToDate = S.InsuranceTo,
 				NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				LineAmount = S.[Insurance]
 			FROM StocklineBase S
@@ -693,7 +768,7 @@ BEGIN
 			SELECT
 				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
 				LineType = 'Taxes',
-				FromDate = NULL, ToDate = NULL,
+				FromDate = S.TaxesFrom, ToDate = S.TaxesTo,
 				NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				LineAmount = S.[Taxes]
 			FROM StocklineBase S
@@ -705,7 +780,7 @@ BEGIN
 			SELECT
 				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
 				LineType = 'Others',
-				FromDate = NULL, ToDate = NULL,
+				FromDate = S.OtherFrom, ToDate = S.OtherTo,
 				NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 				LineAmount = S.OtherComponentAmount
 			FROM StocklineBase S

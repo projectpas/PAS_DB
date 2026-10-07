@@ -28,6 +28,7 @@
                                                      SCRIPT, not dictated - please review the two ASSUMPTION comments below (Tool Id /
                                                      MPN filter columns) and the sortable-column list, and correct if off.
     2    21/September/2026   Rajesh Gami  [PN-17979] Added Tool Description & currCalStatus computed from AssetInventory.CalibrationRequired + CalibrationManagment.NextCalibrationDate (CalibrationTypeId hardcode replaced with declared @CalibrationTypeId), via OUTER APPLY TOP 1 latest NextCalibrationDate to avoid duplicate rows, per Rajesh's clarification.
+    3    05/October/2026   Rajesh Gami   [PN-18187] MPN Shipped Date was blank because WorkOrderPartNumber.ShipDate is never populated. Now taken from WorkOrderShipping.ShipDate via WorkOrderShippingItem.WorkOrderPartNumId (OUTER APPLY + MAX = one latest ship date per WO part, no duplicate report rows), with WOP.ShipDate kept as fallback.
  **************************************************************
  EXEC usprpt_GetToolingReportData @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Check In Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Check In Date</FieldName><FieldValue>9/18/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -138,7 +139,9 @@ BEGIN
         CIN.CheckInDate AS checkInWODateRaw,
         CIN.CheckOutDate AS checkOutWODateRaw,
         WOP.ReceivedDate AS mpnReceivedDateRaw,
-        WOP.ShipDate AS mpnShippedDateRaw,
+        -- [PN-18187] WorkOrderPartNumber.ShipDate is never populated, so the real ship date now comes from
+        -- WorkOrderShipping.ShipDate (via the SHIP OUTER APPLY below); WOP.ShipDate kept only as a fallback.
+        ISNULL(SHIP.ShipDate, WOP.ShipDate) AS mpnShippedDateRaw,
 
         UPPER(MSD.Level1Name) AS level1,
         UPPER(MSD.Level2Name) AS level2,
@@ -199,6 +202,21 @@ BEGIN
           AND WOTDup.IsActive = 1
           AND ISNULL(WOTDup.IsDeleted,0) = 0
       ) Dup
+
+      -- [PN-18187] MPN Shipped Date: WorkOrderShippingItem.WorkOrderPartNumId = WorkOrderPartNumber.Id, then
+      -- WorkOrderShipping.ShipDate via WorkOrderShippingId. OUTER APPLY + MAX collapses partial / multiple
+      -- shipments of the same WO part to ONE (latest) ship date, so this can never multiply the report rows
+      -- (a plain LEFT JOIN would return one row per shipment item). No shipment -> NULL (blank, as before).
+      OUTER APPLY
+      (
+        SELECT MAX(WOS.ShipDate) AS ShipDate
+        FROM dbo.WorkOrderShippingItem WOSI WITH(NOLOCK)
+        INNER JOIN dbo.WorkOrderShipping WOS WITH(NOLOCK)
+          ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId
+        WHERE WOSI.WorkOrderPartNumId = WOP.ID
+          AND WOSI.IsActive = 1 AND ISNULL(WOSI.IsDeleted,0) = 0
+          AND WOS.IsActive = 1 AND ISNULL(WOS.IsDeleted,0) = 0
+      ) SHIP
 
       WHERE WO.MasterCompanyId = @mastercompanyid
         AND ISNULL(WO.IsDeleted,0) = 0

@@ -12,8 +12,9 @@
     2    04-Mar-2025		RAJESH GAMI			 Implement the logic for insert ParentId based on the taskId
 	3    07-Mar-2025		RAJESH GAMI			 Resovle duplicate child entry issue
 	4    11-Mar-2025		RAJESH GAMI			 IsDefaultInstruction implemented
+    5    01-Sep-2026		Bhargav Saliya		 Added @NewTaskInstructionId
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SaveTaskInstructionMaster]
+CREATE    PROCEDURE [dbo].[USP_SaveTaskInstructionMaster]
     @TaskInstructionId BIGINT = NULL,
     @Title VARCHAR(8000) = NULL,
     @Description VARCHAR(MAX) = NULL,
@@ -35,6 +36,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+    DECLARE @NewTaskInstructionId BIGINT = 0;
 
     BEGIN TRY
         IF (ISNULL(@TaskInstructionId, 0) = 0)
@@ -72,6 +75,7 @@ BEGIN
             VALUES (@Title, @Description, ISNULL(@TaskId, 0), @MaxSequence +1, @ParentTaskInsId, @IsParentTask, 
             @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@IsDefaultInstruction,1);
 			SET @InsertedTaskInstructionId = SCOPE_IDENTITY();
+			SET @NewTaskInstructionId = @InsertedTaskInstructionId;
 
 			IF((SELECT COUNT(1) FROM dbo.TaskInstructionMaster WITH(NOLOCK) WHERE TaskInstructionId = @ParentIntructionId AND ISNULL(SequenceNumber,0) = 0) = 0)
 			BEGIN
@@ -85,6 +89,7 @@ BEGIN
 					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[IsDefaultInstruction],[IsParentInstruction])
 					VALUES (@Title, @Description, @TaskId, (@MaxSequence + 1), @InsertedTaskInstructionId, 0, 
 					@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,1,1);
+					SET @NewTaskInstructionId = SCOPE_IDENTITY();
 				END
 			END
 		
@@ -106,6 +111,7 @@ BEGIN
             [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
             VALUES (@Title, @Description, ISNULL(@TaskId, 0), @NewSequenceNumber, @TaskInstructionId, 0, 
             @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+            SET @NewTaskInstructionId = SCOPE_IDENTITY();
         END
         ELSE
         BEGIN
@@ -126,8 +132,11 @@ BEGIN
                 [UpdatedDate] = GETUTCDATE(),
 				[IsDefaultInstruction] = @IsDefaultInstruction
             WHERE [TaskInstructionId] = @TaskInstructionId AND [MasterCompanyId] = @MasterCompanyId;
-		
+			SET @NewTaskInstructionId = @TaskInstructionId;
+
         END
+
+        SELECT @NewTaskInstructionId AS NewTaskInstructionId;
 
     END TRY   
     BEGIN CATCH      

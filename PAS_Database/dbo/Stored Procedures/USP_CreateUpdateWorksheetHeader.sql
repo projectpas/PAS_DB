@@ -23,6 +23,14 @@
 	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
     7    30/06/2026     Divyesh Kathiriya       Added WorkSheetStatusId fields [PN-16897]
 	8    27/07/2026     Amit Ghediya			Added for mapping table WorksheetMapping for multiple ws. [PN-17396]
+	9    30/09/2026     Amit Ghediya			Added WorkOrderId/WorkOrderPartId so a worksheet created from a Work Order is linked by ID, not just WorkOrderNo text
+	10   05/10/2026     Amit Ghediya			Fixed: @IsFromAircraft was declared but never populated from the TVP, and the
+											USP_LinkPartToExistingWorksheet call ran unconditionally on every save. For a
+											worksheet created from a Work Order (no ProgramId/AircraftInstalledPartDetailsId),
+											that call always re-stamped WorksheetHeader.IsFromAircraft/AircraftRegistryId back
+											to NULL right after the correct value had just been saved above, so the Edit
+											Worksheet screen showed "Engine ..." labels instead of "AC ..." after reload.
+											Now only runs when there is an actual Program/InstalledPartDetails link to sync.
 
 **************************************************************/
 
@@ -42,12 +50,13 @@ BEGIN
 				@IsFromAircraft                  BIT,
 				@UpdatedBy                       VARCHAR(256);
 
-		SELECT 
+		SELECT
 			@WorksheetHeaderId             = WorksheetHeaderId,
 			@MasterCompanyId                = MasterCompanyId,
 			@AircraftRegistryId             = AircraftRegistryId,
 			@ProgramId                      = ProgramId,
 			@AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId,
+			@IsFromAircraft                  = IsFromAircraft,
 			@UpdatedBy						= UpdatedBy
 		FROM @tbl_WorksheetHeaderType;
 
@@ -155,6 +164,8 @@ BEGIN
 					WH.IsFromAircraft				= T.IsFromAircraft,
                     WH.AircraftRegistryId           = T.AircraftRegistryId,
 					WH.EngineRegistryId				= T.EngineRegistryId,
+					WH.WorkOrderId					= T.WorkOrderId,
+					WH.WorkOrderPartId				= T.WorkOrderPartId,
                     WH.IsActive                      = ISNULL(T.IsActive,  WH.IsActive),
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
@@ -280,6 +291,8 @@ BEGIN
 					IsFromAircraft,
 					AircraftRegistryId,
 					EngineRegistryId,
+					WorkOrderId,
+					WorkOrderPartId,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
@@ -333,6 +346,8 @@ BEGIN
 					T.IsFromAircraft,
 					T.AircraftRegistryId,
 					T.EngineRegistryId,
+					T.WorkOrderId,
+					T.WorkOrderPartId,
                     ISNULL(T.IsActive,  1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,
@@ -414,8 +429,14 @@ BEGIN
             END
         END
 
-		--Add into Mapping WorksheetMapping table
-		EXEC USP_LinkPartToExistingWorksheet @WorksheetHeaderId,@ProgramId,@AircraftInstalledPartDetailsId,@IsFromAircraft,@MasterCompanyId,@UpdatedBy
+		--Add into Mapping WorksheetMapping table - only when actually linking to an existing
+		--maintenance program / installed part; a plain Work-Order-linked worksheet has neither,
+		--and this call would otherwise unconditionally re-stamp IsFromAircraft/AircraftRegistryId
+		--back to NULL right after the correct values were just saved above.
+		IF ISNULL(@ProgramId, 0) > 0 OR ISNULL(@AircraftInstalledPartDetailsId, 0) > 0
+		BEGIN
+			EXEC USP_LinkPartToExistingWorksheet @WorksheetHeaderId,@ProgramId,@AircraftInstalledPartDetailsId,@IsFromAircraft,@MasterCompanyId,@UpdatedBy
+		END
 
     END TRY
     BEGIN CATCH

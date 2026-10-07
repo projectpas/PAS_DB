@@ -51,9 +51,13 @@
     [InspectionTypeId]               BIGINT         NULL,
     [IsFromAircraft]                 BIT            NULL,
     [EngineRegistryId]               BIGINT         NULL,
+    [WorkOrderId]                    BIGINT         NULL,
+    [WorkOrderPartId]                BIGINT         NULL,
     CONSTRAINT [PK_WorksheetHeader] PRIMARY KEY CLUSTERED ([WorksheetHeaderId] ASC),
     CONSTRAINT [FK_WorksheetHeader_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
-    CONSTRAINT [FK_WorksheetHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_WorksheetHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_WorksheetHeader_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
+    CONSTRAINT [FK_WorksheetHeader_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
 
 GO

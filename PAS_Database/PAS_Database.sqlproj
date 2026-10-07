@@ -4616,6 +4616,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetPartStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoForWorkOrderPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetParts.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetHeader.sql" />

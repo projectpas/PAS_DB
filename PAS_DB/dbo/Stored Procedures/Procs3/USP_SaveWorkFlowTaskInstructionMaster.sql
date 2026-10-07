@@ -15,9 +15,9 @@
     5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
     6    11-March-2025		Devendra Shekh					Modified (adding WorkFlowTask if not exists)
     7    24-March-2025		Ekta Chandegra					Cast GETUTCDATE value as DATE
-     8    02-Sep-2026		SUMIT KUMAR						[PN-17813] Modified (Copying TaskInstructionImage to WorkFlowDirectionImage and linking WorkFlowTaskId)
-     9    03-Sep-2026		SUMIT KUMAR						[PN-17813] Fixed child node image copying from template and returned newly inserted WorkflowDirectionId
- 
+	8    02-Sep-2026		SUMIT KUMAR						[PN-17813] Modified (Copying TaskInstructionImage to WorkFlowDirectionImage and linking WorkFlowTaskId)
+	9    03-Sep-2026		SUMIT KUMAR						[PN-17813] Fixed child node image copying from template and returned newly inserted WorkflowDirectionId
+
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
 @ParentId=default,@IsParent=default,@MasterCompanyId=1,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',
@@ -41,13 +41,15 @@ CREATE    PROCEDURE [dbo].[USP_SaveWorkFlowTaskInstructionMaster]
 	@IsAddChildNode BIT = NULL,
 	@IsTaskDetails BIT = NULL,
 	@WorkflowId BIGINT = NULL,
-	@InstructionListId BIGINT = NULL
+	@InstructionListId VARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	BEGIN TRY
+
+		DECLARE @InsertedWorkflowDirectionId BIGINT = 0;
 
 		IF (ISNULL(@WorkflowDirectionId, 0) = 0)
 		BEGIN
@@ -157,6 +159,11 @@ BEGIN
 					-- Get the newly generated ID
 					DECLARE @NewWorkflowDirectionId INT = SCOPE_IDENTITY();
 
+					IF (ISNULL(@InsertedWorkflowDirectionId, 0) = 0)
+					BEGIN
+						SET @InsertedWorkflowDirectionId = @NewWorkflowDirectionId;
+					END
+
 					-- Store the mapping of TaskInstructionId to the new WorkflowDirectionId
 					INSERT INTO @IdMapping (TaskInstructionId, WorkflowDirectionId)
 					VALUES (@TaskInstructionId, @NewWorkflowDirectionId);
@@ -181,7 +188,6 @@ BEGIN
 			ELSE
 			BEGIN
 				DECLARE @MaxSequence INT;
-				DECLARE @InsertedWorkflowDirectionId BIGINT = 0;
 
 				SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
 				FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)

@@ -16,6 +16,7 @@
     5    04/07/2025   Devendra Shekh Resolved an issue related to a manually added description
     6    04/28/2025   Ekta Chandegra Manage instruction sequence for parent and child
     7    05/12/2025   Ekta Chandegra Add parameter for USP_InsertWorkOrderTaskInstructionHistory
+	8    04-Sep-2026  SUMIT KUMAR	 Copy images from TaskInstructionImage to WorkOrderTaskInstructionImage [PN-17814]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
@@ -52,11 +53,12 @@ BEGIN
 	@NewParentId INT,
 	@SequenceNo INT;
 
+	DECLARE @InsertedWorkOrderTaskInstructionId BIGINT = 0;
+
 	IF (ISNULL(@WorkOrderTaskInstructionId, 0) = 0)
 	BEGIN
 		DECLARE @WorkOrderId BIGINT;
 		DECLARE @MaxSequence INT;
-		DECLARE @InsertedWorkOrderTaskInstructionId BIGINT = 0;
 		DECLARE @TaskMasterLoopID AS INT;
 		DECLARE @StatusCode VARCHAR(100), @TemplateBody VARCHAR(MAX), @TaskName VARCHAR(250), @InstructionTitleNew VARCHAR(MAX);
 		DECLARE @ModuleId INT, @SubModuleId INT;
@@ -203,6 +205,20 @@ BEGIN
 
 				-- Get the newly generated ID
 				DECLARE @NewWorkOrderTaskInstructionId INT = SCOPE_IDENTITY();
+				IF (ISNULL(@InsertedWorkOrderTaskInstructionId, 0) = 0)
+					SET @InsertedWorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId;
+
+				-- Copy images from TaskInstructionImage to WorkOrderTaskInstructionImage [PN-17814]
+				INSERT INTO [dbo].[WorkOrderTaskInstructionImage]
+					([WorkOrderTaskInstructionId], [WorkOrderTaskId], [FileName], [Link], [FileType], [FileSize],
+					 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				SELECT
+					@NewWorkOrderTaskInstructionId, @WorkOrderTaskId, IMG.[FileName], IMG.[Link], IMG.[FileType], IMG.[FileSize],
+					IMG.[MasterCompanyId], @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+				FROM [dbo].[TaskInstructionImage] IMG WITH (NOLOCK)
+				WHERE IMG.[TaskInstructionId] = @TaskInstructionId
+				  AND ISNULL(IMG.[IsDeleted], 0) = 0
+				  AND ISNULL(IMG.[IsActive], 1) = 1;
 
 				WITH RecursiveCTE AS (
 					-- Anchor member (top-level instructions)
@@ -326,6 +342,7 @@ BEGIN
 
 			-- Get new generated WorkOrderTaskInstructionId
 			DECLARE @Id INT = SCOPE_IDENTITY();
+			SET @InsertedWorkOrderTaskInstructionId = @Id;
 
 			-- Add Work Order Task history
 			EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @Id , NULL
@@ -469,6 +486,20 @@ BEGIN
 
 				-- Get the newly generated ID
 				DECLARE @NewWorkOrderTaskInstructionId_1 INT = SCOPE_IDENTITY();
+				IF (ISNULL(@InsertedWorkOrderTaskInstructionId, 0) = 0)
+					SET @InsertedWorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId_1;
+
+				-- Copy images from TaskInstructionImage to WorkOrderTaskInstructionImage [PN-17814]
+				INSERT INTO [dbo].[WorkOrderTaskInstructionImage]
+					([WorkOrderTaskInstructionId], [WorkOrderTaskId], [FileName], [Link], [FileType], [FileSize],
+					 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				SELECT
+					@NewWorkOrderTaskInstructionId_1, @WorkOrderTaskId, IMG.[FileName], IMG.[Link], IMG.[FileType], IMG.[FileSize],
+					IMG.[MasterCompanyId], @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+				FROM [dbo].[TaskInstructionImage] IMG WITH (NOLOCK)
+				WHERE IMG.[TaskInstructionId] = @TaskInstructionId
+				  AND ISNULL(IMG.[IsDeleted], 0) = 0
+				  AND ISNULL(IMG.[IsActive], 1) = 1;
 
 				WITH RecursiveCTE AS (
 				-- Anchor member (top-level instructions)
@@ -594,6 +625,7 @@ BEGIN
 
 			-- Get new generated WorkOrderTaskInstructionId
 			DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
+			SET @InsertedWorkOrderTaskInstructionId = @NewWOTIID;
 
 			WITH RecursiveCTE AS (
 			-- Anchor member (top-level instructions)
@@ -703,8 +735,10 @@ BEGIN
 		-- Add Work Order Task Instruction History 
 		EXEC USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL, 0
 
-		SELECT @WorkOrderTaskInstructionId AS WorkOrderTaskInstructionId;
+		SET @InsertedWorkOrderTaskInstructionId = @WorkOrderTaskInstructionId;
 	END
+
+	SELECT @InsertedWorkOrderTaskInstructionId AS WorkOrderTaskInstructionId;
   COMMIT  TRANSACTION
   END TRY
   BEGIN CATCH

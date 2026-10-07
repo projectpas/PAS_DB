@@ -4454,6 +4454,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowDirectionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowDirectionImages.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkFlowDirectionImage.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskInstructionImage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionImages.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderTaskInstructionImage.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

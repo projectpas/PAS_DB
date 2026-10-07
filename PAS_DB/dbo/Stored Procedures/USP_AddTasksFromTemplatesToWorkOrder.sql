@@ -10,6 +10,7 @@
 ** 1    07/06/2026   SUMIT KUMAR      Created
 ** 2    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
 ** 3    07/08/2026   SUMIT KUMAR      Changes to allow duplicate tasks to be added to the same Work Order Part Number [PN-17716 & PN-17643]
+** 4    04-Sep-2026   SUMIT KUMAR      Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddTasksFromTemplatesToWorkOrder]
@@ -376,6 +377,18 @@ BEGIN
                         WHERE ID = @WFDirCurrent;
 
                         SET @NewInstId = SCOPE_IDENTITY();
+
+                        -- Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814]
+                        INSERT INTO [dbo].[WorkOrderTaskInstructionImage]
+                            ([WorkOrderTaskInstructionId], [WorkOrderTaskId], [FileName], [Link], [FileType], [FileSize],
+                             [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+                        SELECT
+                            @NewInstId, @NewTaskId, IMG.[FileName], IMG.[Link], IMG.[FileType], IMG.[FileSize],
+                            IMG.[MasterCompanyId], @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
+                        FROM [dbo].[WorkFlowDirectionImage] IMG WITH (NOLOCK)
+                        WHERE IMG.[WorkflowDirectionId] = @ParentWfdId
+                          AND ISNULL(IMG.[IsDeleted], 0) = 0
+                          AND ISNULL(IMG.[IsActive], 1) = 1;
 
                         UPDATE #tmpWFDir 
                         SET NewParentId = @NewInstId 

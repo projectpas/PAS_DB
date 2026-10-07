@@ -14,6 +14,7 @@
 	3   03/24/2025   Ekta Chandegra		Update IsDeleted value of deleted Work Order Task Instruction in WorkOrderTaskHistory 
 	4   04/29/2025   Ekta Chandegra		Rearrange sequence of remaining instructions after delete
     5   08/01/2025   SUMIT KUMAR		[PN-17518] Supplied IsFromWorkFlow to USP_InsertWorkOrderTaskInstructionHistory as 0 as it was missing and throughing error
+	6   04-Sep-2026  SUMIT KUMAR		[PN-17814] Remove associated WorkOrderTaskInstructionImage records
 
 EXEC [DeleteWorkOrderTaskInstruction] 3
 **************************************************************/
@@ -30,23 +31,47 @@ AS
 
 		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId,@CreatedBy,@WorkOrderTaskInstructionId,NULL
 
-		   -- STEP 2: Recursive delete
-        ;WITH RecursiveDelete AS (
-            SELECT WorkOrderTaskInstructionId
-            FROM dbo.WorkOrderTaskInstruction WITH (NOLOCK)
-            WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+		-- STEP 2: Collect target instruction IDs (parent + recursive children)
+		IF OBJECT_ID(N'tempdb..#TempToDelete') IS NOT NULL
+		BEGIN
+			DROP TABLE #TempToDelete;
+		END
 
-            UNION ALL
+        -- Create a temporary table to hold the IDs of the instructions to be deleted
+		CREATE TABLE #TempToDelete (
+			WorkOrderTaskInstructionId BIGINT
+		);
 
-            SELECT child.WorkOrderTaskInstructionId
-            FROM dbo.WorkOrderTaskInstruction child WITH (NOLOCK)
-            INNER JOIN RecursiveDelete parent 
-                ON child.ParentId = parent.WorkOrderTaskInstructionId
-        )
+		;WITH RecursiveDelete AS (
+			SELECT WorkOrderTaskInstructionId
+			FROM dbo.WorkOrderTaskInstruction WITH (NOLOCK)
+			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+
+			UNION ALL
+
+			SELECT child.WorkOrderTaskInstructionId
+			FROM dbo.WorkOrderTaskInstruction child WITH (NOLOCK)
+			INNER JOIN RecursiveDelete parent 
+				ON child.ParentId = parent.WorkOrderTaskInstructionId
+		)
+
+        -- Insert the IDs of the instructions to be deleted into the temporary table
+		INSERT INTO #TempToDelete (WorkOrderTaskInstructionId)
+		SELECT WorkOrderTaskInstructionId FROM RecursiveDelete;
+
+		-- Delete associated images in WorkOrderTaskInstructionImage [PN-17814]
+		DELETE FROM dbo.WorkOrderTaskInstructionImage
+		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM #TempToDelete);
 
 		-- Delete all identified records
-		DELETE FROM DBO.WorkOrderTaskInstruction
-		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM RecursiveDelete);
+		DELETE FROM dbo.WorkOrderTaskInstruction
+		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM #TempToDelete);
+
+        -- Clean up temporary table
+		IF OBJECT_ID(N'tempdb..#TempToDelete') IS NOT NULL
+		BEGIN
+			DROP TABLE #TempToDelete;
+		END
 
 		 -- STEP 3: Mark deleted in SubWorkOrderTaskHistory
         UPDATE dbo.WorkOrderTaskHistory
@@ -128,7 +153,7 @@ AS
 				DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'DeleteWorkOrderTaskInstruction' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderTaskInstructionId, '') + ''
+              , @ProcedureParameters VARCHAR(3000)  = '@WorkOrderTaskInstructionId = ''' + ISNULL(CAST(@WorkOrderTaskInstructionId AS VARCHAR(100)), '') + ''''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

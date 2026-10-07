@@ -24,7 +24,8 @@
 	                                        saved on the invoice). Items that have typed detail rows now print exactly one row per detail row (TypedLines, same labels/amounts as the preview).
 	                                        Legacy items (no typed rows) still use the old single-row Lines logic.
 	                                        [Usage Based] A Usage Based period line prints as two lines - 'Usage Time' (TimeUsageQty x rate) and 'Usage Cycle' (CycleUsageQty x rate) - from the saved TimeUsage* / CycleUsage* columns.
-    4    06/10/2026     Kishor Makwana  [PN-18188 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
+    4    06/10/2026     Kishor Makwana   [PN-18188 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
+    5    07/10/2026     Kishor Makwana   [PN-17949 service component by date] Service components with a Start Date and End Date are now billed month by month and saved as one detail row per month (USP_CreateLeaseBillingInvoice), so the typed rows already print each month's share. The legacy single-row fallback (items with no detail rows) no longer adds the TOTAL of dated components as a one-time line (only components without dates).
     
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_Lease] 1,72
 ********************************************************************************************/
@@ -87,10 +88,10 @@ BEGIN
 				) ChargesAgg
 				LEFT JOIN (
 					SELECT LeaseStocklineId,
-					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
-					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
-					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
-					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN (CASE WHEN (StartDate IS NOT NULL AND EndDate IS NOT NULL AND EndDate >= StartDate) THEN 0 ELSE ISNULL(Amount, 0) END) END) AS MaintenanceAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN (CASE WHEN (StartDate IS NOT NULL AND EndDate IS NOT NULL AND EndDate >= StartDate) THEN 0 ELSE ISNULL(Amount, 0) END) END) AS InsuranceAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN (CASE WHEN (StartDate IS NOT NULL AND EndDate IS NOT NULL AND EndDate >= StartDate) THEN 0 ELSE ISNULL(Amount, 0) END) END) AS TaxesAmount,
+					SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') OR (StartDate IS NOT NULL AND EndDate IS NOT NULL AND EndDate >= StartDate) THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount
 					FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 					WHERE IsDeleted = 0
 					GROUP BY LeaseStocklineId

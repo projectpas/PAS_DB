@@ -13,6 +13,7 @@
 	2    11/08/2025   Moin Bloch   	    Added IsRead,EmailPath,Subject 
 	3    12/08/2025   Moin Bloch   	    Added Subject 
 	4    08/12/2025   Devendra Shekh   	Added [VendorRfqId]
+	5    06/10/2026   Amit Ghediya   	Added RFQPO/RFQRO number afetr create from email.
 
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
@@ -98,10 +99,12 @@ BEGIN
 		  ,ISNULL(IE.[IsRead],0) [IsRead]
 		  ,IE.[EmailPath]
 		  ,CR.[RfqId]
-		  ,TPR.[RfqId] AS [VendorRfqId]
+		  ,ISNULL(TPR.[RfqId], ISNULL(VRFQPO.[VendorRFQPurchaseOrderNumber],VRQRO.[VendorRFQRepairOrderNumber])) AS [VendorRfqId]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
   LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
   LEFT JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = TPR.[ThirdPartyRFQId]
+  LEFT JOIN [dbo].[VendorRFQPurchaseOrder] VRFQPO WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = VRFQPO.[VendorRFQPurchaseOrderId]
+  LEFT JOIN [dbo].[VendorRFQRepairOrder] VRQRO WITH(NOLOCK) ON    IE.[ThirdPartyRFQId] = VRQRO.[VendorRFQRepairOrderId] 
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = 0) 	
 	AND (IE.[IsActive] = 1)

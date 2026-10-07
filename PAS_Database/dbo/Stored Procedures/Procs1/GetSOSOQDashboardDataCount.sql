@@ -18,6 +18,7 @@
 	6	 30-Jun-2025  Devendra Shekh	Modified(SO Billing Table Changes)
 	7    24/Aug/2026  Kishor Makwana    [PN-17439] - Fixed Amount mismatch between this procedure's dashboard tiles and SOQSODashboardData's "More Info" grid: all 8 Amount calculations (SOQReceived, SOQApprovedInternal, SOQApprovedCustomer, SOApprovedInternal, SOApprovedCustomer, SOFullfilling, SOShipping, SOInvoiced) read Charges/Freight from the cached SalesOrderQuotePartCost/SalesOrderPartCost MiscCharges/Freight columns, which were out of sync with the live line-item data. Now summed directly from SalesOrderQuoteCharges/SalesOrderQuoteFreight/SalesOrderCharges/SalesOrderFreight via OUTER APPLY, matching how SOQSODashboardData.sql computes the grid totals.
 	8    01/Oct/2026   Moin Bloch        Fixed doubled SOQ count/amount when a Quote Version is updated: all 6 SalesOrderQuote (SOQ/PO alias) queries were missing a filter for the superseded version row, so both the old and new version of a revised quote were counted. Added `IsNewVersionCreated = 0` to each.
+	9    08/Oct/2026   Vishal Suthar     [PN-16682] Exclude deleted SalesOrderQuoteCharges/SalesOrderQuoteFreight from SOQReceived and SOQApprovedInternal amounts
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
 	@MasterCompanyId INT = 1,
@@ -125,8 +126,8 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=SOQP.SalesOrderQuotePartId and ISNULL(SOQPC.IsDeleted, 0)=0
 				INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
-				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId) BFC
-				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId) BFF
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFF
 			WHERE  (ISNULL(SOQ.IsDeleted, 0) = 0) and (ISNULL(SOQP.IsDeleted, 0) = 0) and (ISNULL(SOQ.IsNewVersionCreated,0) = 0) and (SOQ.StatusId =@SOQReceivedId) AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 			GROUP BY SOQ.StatusId
@@ -148,8 +149,8 @@ BEGIN
 				INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = PO.SalesOrderQuoteId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = PO.CustomerId
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND SOQAP.InternalStatusId=4
-				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId) BFC
-				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId) BFF
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Charges FROM dbo.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFC
+				OUTER APPLY (SELECT SUM(BillingAmount) AS Freight FROM dbo.SalesOrderQuoteFreight WITH (NOLOCK) WHERE SalesOrderQuotePartId = POP.SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0) BFF
 			WHERE ISNULL(PO.IsDeleted, 0) = 0 and ISNULL(POP.IsDeleted, 0) = 0 AND ISNULL(PO.IsNewVersionCreated,0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 

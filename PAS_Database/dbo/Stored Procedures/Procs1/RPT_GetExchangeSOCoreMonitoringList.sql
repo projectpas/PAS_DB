@@ -37,7 +37,7 @@ BEGIN
 		,UPPER(EXCHCT.[Name]) as 'CoreLetterName',UPPER(EXCHSO.CustomerName) as 'CustomerName', 
 		 CASE WHEN ISNULL(EXCHSOP.POId,0) != 0 THEN 'PO Num - ' + CAST(EXCHSOP.PONumber AS varchar) + ' ,' ELSE '' END as 'PO Num'
 		 , 'Exchange Sales Order Number - ' + UPPER(EXCHSO.ExchangeSalesOrderNumber) + CASE WHEN ISNULL(EXCHSOP.POId,0) != 0 THEN ', PO Num - ' + CAST(EXCHSOP.PONumber AS varchar) ELSE '' END + (CASE WHEN ISNULL(IM.PartNumber,'') != '' THEN ', PN - ' + IM.PartNumber ELSE '' END) AS 'ExchangeSalesOrderNumber',
-		 CL.LetterDescription
+		 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(CL.LetterDescription,''), '<p><br></p>', '<br />'), '<p><br/></p>', '<br />'), '<p><br /></p>', '<br />'), '<p>', ''), '</p>', '<br />') AS LetterDescription
 		from [DBO].ExchangeCoreMonitoringDetails EMD WITH (NOLOCK)
 		INNER JOIN [DBO].ExchangeSalesOrder EXCHSO WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = EMD.ExchangeSalesOrderId
 		INNER JOIN [DBO].ExchangeSalesOrderPart EXCHSOP WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId

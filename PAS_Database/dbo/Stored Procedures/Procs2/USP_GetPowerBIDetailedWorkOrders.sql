@@ -10,6 +10,9 @@
  **************************************************************             
  ** S NO   Date         Author           Change Description              
  ** 1      12-AUG-2026  SUMIT KUMAR      Created
+ ** 2      08-OCT-2026  SUMIT KUMAR      Aligned QuoteTAT / ActualTAT with usprpt_GetWorkOrderTATReport (application TAT report):
+ **                                      removed date-based fallback (< 1 day now returns 0) and truncated to whole days.
+ **                                      [Date] now returns WOS.ShipDate (the From/To date filter field of the application TAT report).
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIDetailedWorkOrders]   
     @mastercompanyid INT
@@ -64,27 +67,16 @@ BEGIN
             ISNULL(NULLIF(MSD.Level4Name, ''), MSD.Level3Name) AS Station,  
             CASE WHEN WOPN.IsClosed = 1 THEN 'Closed' ELSE 'Open' END AS Status,  
               
-            -- Quoted TAT  
-            CASE   
-                WHEN ISNULL(SD.QuoteDays, 0) >= 1 THEN SD.QuoteDays  
-                ELSE ISNULL(DATEDIFF(day, WOPN.ReceivedDate, WOQ.SentDate), 0)  
-            END AS QuotedTat,  
-              
-            -- Actual TAT  
-            CASE   
-                WHEN ISNULL(SD.TatDays, 0) >= 1 THEN SD.TatDays  
-                ELSE   
-                    CASE   
-                        WHEN WOPN.IsClosed = 1 THEN   
-                            ISNULL(DATEDIFF(day, WOPN.ReceivedDate, WOPN.closeddate),   
-                            ISNULL(DATEDIFF(day, WOPN.ReceivedDate, WOBI.InvoiceDate),   
-                            ISNULL(DATEDIFF(day, WOPN.ReceivedDate, WOS.ShipDate), 0)))  
-                        ELSE   
-                            DATEDIFF(day, WOPN.ReceivedDate, GETUTCDATE())  
-                    END  
-            END AS ActualTat,  
+            -- Quoted TAT (same as usprpt_GetWorkOrderTATReport 'quotedays'):
+            -- sum of time in stages flagged QuoteDays; < 1 day => 0; whole days only (app stores it as INT)
+            CASE WHEN ISNULL(SD.QuoteDays, 0) >= 1 THEN FLOOR(SD.QuoteDays) ELSE 0 END AS QuotedTat,
+
+            -- Actual TAT (same as usprpt_GetWorkOrderTATReport 'tat'):
+            -- sum of time in stages flagged IncludeInTAT; < 1 day => 0; whole days only (app stores it as INT)
+            CASE WHEN ISNULL(SD.TatDays, 0) >= 1 THEN FLOOR(SD.TatDays) ELSE 0 END AS ActualTat,
               
             WOPN.ReceivedDate,  
+            WOS.ShipDate,  
             CASE WHEN WOPN.IsClosed = 1 THEN ISNULL(WOPN.closeddate, ISNULL(WOBI.InvoiceDate, WOS.ShipDate)) ELSE NULL END AS CompletedDate,  
             WOPN.EstimatedShipDate,  
             WOPN.IsClosed,  
@@ -130,7 +122,8 @@ BEGIN
             Station,  
             Workspace AS Workscope,  
             Status,  
-            CONVERT(VARCHAR(30), ReceivedDate, 127) + 'Z' AS [Date],  
+            -- [Date] = actual Ship Date, same date usprpt_GetWorkOrderTATReport applies @Fromdate/@Todate on (WOS.ShipDate)
+            CASE WHEN ShipDate IS NOT NULL THEN CONVERT(VARCHAR(30), ShipDate, 127) + 'Z' ELSE NULL END AS [Date],  
             CASE WHEN CompletedDate IS NOT NULL THEN CONVERT(VARCHAR(30), CompletedDate, 127) + 'Z' ELSE NULL END AS ClosedDate,  
             CAST(ActualTat AS DECIMAL(18,1)) AS ActualTAT,  
             CAST(TargetTat AS DECIMAL(18,1)) AS TargetTAT,  
@@ -159,4 +152,3 @@ BEGIN
         RETURN (1);           
     END CATCH
 END
-GO

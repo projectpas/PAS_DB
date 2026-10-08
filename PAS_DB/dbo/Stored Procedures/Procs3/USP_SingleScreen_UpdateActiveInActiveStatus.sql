@@ -15,7 +15,7 @@
    4    29/05/2026   Nakul Chandigra  Merge the UAT Changes 
    5    11/06/2026   Nakul Chandigra  added Condition for [RFQTRACEABILITY] table (PN-16803) 
    6    28/08/2026   Sahdev Saliya    Removed  'LeaseType' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-17495]
-   7    01/10/2026   Sahdev Saliya    Removed  'CoreLetter' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-18143]
+   7    08/10/2026   Sahdev Saliya    Removed  'CoreLetter' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-18143]
 
 **********************/
 --EXEC  USP_SingleScreen_UpdateActiveInActiveStatus 10, 0, 'assetlocation'

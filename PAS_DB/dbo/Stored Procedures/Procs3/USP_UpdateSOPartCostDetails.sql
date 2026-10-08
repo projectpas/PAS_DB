@@ -26,6 +26,7 @@
 	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
   	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
 	12   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
+	13   08/Oct/2026   Vishal Suthar    Exclude deleted Freight and Charges from part Freight/MiscCharges totals
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -114,10 +115,10 @@ SET NOCOUNT ON
 					DECLARE @SalesOrderQuoteModuleId BIGINT;
 
 					SELECT @Freight_S = ISNULL(SUM(F.BillingAmount), 0) FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK)
-					WHERE F.SalesOrderPartId = @SalesOrderPartId;
+					WHERE F.SalesOrderPartId = @SalesOrderPartId AND ISNULL(F.IsDeleted, 0) = 0;
 
 					SELECT @Charges_S = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK)
-					WHERE C.SalesOrderPartId = @SalesOrderPartId;
+					WHERE C.SalesOrderPartId = @SalesOrderPartId AND ISNULL(C.IsDeleted, 0) = 0;
 
 					DECLARE @UnitSalesPrice_S AS [decimal](18, 4) = 0;
 					DECLARE @SalesPriceExtended_S AS [decimal](18, 4) = 0;

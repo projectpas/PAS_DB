@@ -36,6 +36,11 @@
 									   MarginConsignorPercentId, ConsigneeTypeId, ConsigneeId to LotCalculationDetails - mirrored from
 									   LotConsignment (IsRevenue/IsMargin/IsFixedAmount already existed) and populated at
 									   UPPER(@Type) = UPPER('Trans Out (SO)').
+	11  08-Oct-2026   RAJESH GAMI      [PN-18257] Added BillingInvoicingId and BillingInvoicingItemId to LotCalculationDetails. They come in as
+									   new optional scalar parameters (@BillingInvoicingId / @BillingInvoicingItemId, default NULL) rather
+									   than as new LotCalculationDetailsType columns, so every other caller of this SP / that table type
+									   is unaffected. Written only in the UPPER(@Type) = UPPER('Trans Out (SO)') branch (both the first
+									   post and the repost-after-Re-Open update path); a NULL value never overwrites an existing id.
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -47,7 +52,9 @@ CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
 	@CreatedBy VARCHAR(200),
 	@UpdatedBy VARCHAR(200),
 	@CreatedDate DATETIME,
-	@UpdatedDate DATETIME
+	@UpdatedDate DATETIME,
+	@BillingInvoicingId BIGINT = NULL,		-- PN-18257 (used only for 'Trans Out (SO)')
+	@BillingInvoicingItemId BIGINT = NULL	-- PN-18257 (used only for 'Trans Out (SO)')
 AS
 BEGIN
 	  SET NOCOUNT ON;
@@ -367,7 +374,9 @@ BEGIN
 						--TransferredOutCost = COGS ,
 						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END), HowCalculate = @HowCalculate,
 						-- PN-17881: LotConsignment mirror fields (raw ids/values, not the derived percent/HowCalculate above)
-						RevenuePercentId = @ConPercentId, FixedAmount = @ConsignmentFixedAmt, RevenueConsignorPercentId = @ConRevenueConsignorPercentId, MarginPercentId = @ConMarginPercentId, MarginConsignorPercentId = @ConMarginConsignorPercentId, ConsigneeTypeId = @ConConsigneeTypeId, ConsigneeId = @ConConsigneeId
+						RevenuePercentId = @ConPercentId, FixedAmount = @ConsignmentFixedAmt, RevenueConsignorPercentId = @ConRevenueConsignorPercentId, MarginPercentId = @ConMarginPercentId, MarginConsignorPercentId = @ConMarginConsignorPercentId, ConsigneeTypeId = @ConConsigneeTypeId, ConsigneeId = @ConConsigneeId,
+						-- PN-18257: SO invoice mapping (a NULL param keeps whatever is already stored)
+						BillingInvoicingId = ISNULL(@BillingInvoicingId, BillingInvoicingId), BillingInvoicingItemId = ISNULL(@BillingInvoicingItemId, BillingInvoicingItemId)
 					WHERE LotCalculationId = @LatestId;
 
 				IF(@IsFixedAmount = 1)

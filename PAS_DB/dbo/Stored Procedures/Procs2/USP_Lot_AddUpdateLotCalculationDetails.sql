@@ -41,6 +41,9 @@
 									   than as new LotCalculationDetailsType columns, so every other caller of this SP / that table type
 									   is unaffected. Written only in the UPPER(@Type) = UPPER('Trans Out (SO)') branch (both the first
 									   post and the repost-after-Re-Open update path); a NULL value never overwrites an existing id.
+									   Partial billing: the PN-17647 repost dedup now also considers BillingInvoicingId, so a second
+									   (partial) invoice against the same LotTransInOutId inserts its own new LotCalculationDetails row
+									   instead of overwriting the first invoice's row; reposting the same invoice still updates in place.
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -312,7 +315,14 @@ BEGIN
 				WHERE LotId = @LotId
 				  AND Type = @Type
 				  AND LotTransInOutId = (SELECT LotTransInOutId FROM #tmpLotCalculationDetailsType WHERE ID = @count)
-				ORDER BY LotCalculationId DESC
+				  -- PN-18257: partial billing. A repost is only the SAME invoice posted again, so only a row stamped with
+				  -- this BillingInvoicingId counts as "already posted". A row stamped with a DIFFERENT invoice means an
+				  -- earlier partial invoice for the same LotTransInOutId -> no match -> a new row is inserted for this
+				  -- invoice (LotTransInOutDetails itself is still updated in place by the caller). Rows with NULL
+				  -- BillingInvoicingId (posted before PN-18257) and calls that do not send an id keep the old
+				  -- PN-17647 behaviour (match on LotId + Type + LotTransInOutId).
+				  AND (@BillingInvoicingId IS NULL OR BillingInvoicingId IS NULL OR BillingInvoicingId = @BillingInvoicingId)
+				ORDER BY (CASE WHEN BillingInvoicingId = @BillingInvoicingId THEN 0 ELSE 1 END), LotCalculationId DESC
 
 				IF (@ExistingLotCalculationId IS NULL)
 				BEGIN

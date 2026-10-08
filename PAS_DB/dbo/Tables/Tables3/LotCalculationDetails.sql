@@ -58,6 +58,10 @@
     [MarginConsignorPercentId] BIGINT          NULL,
     [ConsigneeTypeId]          INT             NULL,
     [ConsigneeId]              BIGINT          NULL,
+    -- PN-18257: SO invoice mapping, populated only for Type = 'Trans Out (SO)' (PASConstants.LOT_TransOut_SO)
+    -- so a Trans Out (SO) row can be traced to the BillingInvoicing / BillingInvoicingItems it was posted from.
+    [BillingInvoicingId]       BIGINT          NULL,
+    [BillingInvoicingItemId]   BIGINT          NULL,
     CONSTRAINT [PK_LotCalculationDetails] PRIMARY KEY CLUSTERED ([LotCalculationId] ASC),
     CONSTRAINT [FK_LotCalculationDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

@@ -14,6 +14,9 @@
 	3	 11-01-2024		Moin Bloch		        Modified chaned Status Open To Approved
 	4	 17-01-2024		Moin Bloch		        Modified Added [TaxTypeId]
 	5	 17-JAN-2025	RAJESH GAMI		        Modified to status change auto approve to OPEN based on condition.(When @IsEnforceNonPoApproval = 0)
+	6	 09-OCT-2026	Claude (Rajesh Gami)	[PN-18257] Line level ReceiptId (LOT Commission Report "Initiate Payment" creates
+	                                            one line per LOT / Cash Receipt). Stored on insert; on update kept unless a new one is sent.
+	                                            Flags CustomerPayments.IsNonPOGenerated = 1 for every ReceiptId saved on an active line.
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveNonPOInvoicePartsDetails]
 @tbl_NonPOInvoicePartDetails NonPOInvoicePartDetailsType READONLY
@@ -55,6 +58,7 @@ BEGIN
 								,TARGET.[Qty] =SOURCE.[Qty]
 								,TARGET.[ExtendedPrice] =SOURCE.[ExtendedPrice]
 								,TARGET.[TaxTypeId] = SOURCE.[TaxTypeId]
+								,TARGET.[ReceiptId] = ISNULL(SOURCE.[ReceiptId], TARGET.[ReceiptId])
 							
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (
@@ -84,6 +88,7 @@ BEGIN
 										,[Qty]
 										,[ExtendedPrice]
 										,[TaxTypeId]
+										,[ReceiptId]
 								   )
 							VALUES (
 										 SOURCE.[NonPOInvoiceId]
@@ -112,8 +117,17 @@ BEGIN
 										,SOURCE.[Qty]
 										,SOURCE.[ExtendedPrice]
 										,SOURCE.[TaxTypeId]
+										,SOURCE.[ReceiptId]
 										);
 					 END
+
+					-- [PN-18257] the cash receipts paid by these lines are now "Non PO generated"
+					UPDATE CP
+					   SET CP.[IsNonPOGenerated] = 1
+					  FROM [dbo].[CustomerPayments] CP
+					 WHERE CP.[ReceiptId] IN (SELECT DISTINCT S.[ReceiptId] FROM @tbl_NonPOInvoicePartDetails S
+					                          WHERE ISNULL(S.[ReceiptId],0) > 0 AND ISNULL(S.[IsDeleted],0) = 0)
+					   AND ISNULL(CP.[IsNonPOGenerated],0) = 0;
 
 					IF(@NonPOInvoiceId > 0)
 					BEGIN

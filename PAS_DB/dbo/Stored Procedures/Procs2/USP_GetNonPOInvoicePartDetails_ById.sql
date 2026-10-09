@@ -16,6 +16,7 @@
  ** --		--------		-------		--------------------------------            
 	1		21-09-2023		Devendra			created  
 	2		26-10-2023		Devendra			added new columns  
+	3		09-10-2026		Claude (Rajesh Gami)	[PN-18257] added ReceiptId (line level)
        
 EXECUTE   [dbo].[USP_GetNonPOInvoicePartDetails_ById] 1,1  
 **************************************************************/  
@@ -58,7 +59,8 @@ BEGIN
 		ISNULL(UnitOfMeasureId , 0) AS [UnitOfMeasureId],
 		ISNULL(Qty , 0) AS [Qty],
 		ISNULL(ExtendedPrice , 0) AS [ExtendedPrice],
-		NPD.[TaxTypeId]
+		NPD.[TaxTypeId],
+		NPD.[ReceiptId]
     FROM [DBO].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)   
     WHERE NPD.[NonPOInvoiceId] = @NonPOInvoiceId and NPD.MasterCompanyId = @MasterCompanyId 
                   

@@ -85,6 +85,9 @@
          LotCalculationId) instead of a plain LEFT JOIN to dbo.LotConsignment - LotConsignment itself is no
          longer read here. The OUTER APPLY is required (not a plain join) because LotCalculationDetails has
          many rows per LotId, unlike LotConsignment's one row per LotId.
+    10   09/October/2026   Claude (Rajesh Gami)   [PN-18257] Non PO invoice lookups (npoNumber + PaymentCTE
+         LotResolved) also match the new line level NonPOInvoicePartDetails.ReceiptId, not only
+         NonPOInvoiceHeader.ReceiptId (multi-line "Initiate Payment" from the LOT Commission Report).
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -355,7 +358,10 @@ BEGIN
         SELECT TOP 1 NPOH2.NPONumber
         FROM dbo.NonPOInvoiceHeader NPOH2 WITH (NOLOCK)
         WHERE ISNULL(CP.IsNonPOGenerated,0) = 1
-          AND NPOH2.ReceiptId = CP.ReceiptId
+          -- [PN-18257] header ReceiptId (old one-receipt invoices) OR line level ReceiptId (multi-line "Initiate Payment")
+          AND (NPOH2.ReceiptId = CP.ReceiptId
+               OR EXISTS (SELECT 1 FROM dbo.NonPOInvoicePartDetails NPD2 WITH (NOLOCK)
+                          WHERE NPD2.NonPOInvoiceId = NPOH2.NonPOInvoiceId AND NPD2.ReceiptId = CP.ReceiptId AND ISNULL(NPD2.IsDeleted,0) = 0))
           AND ISNULL(NPOH2.IsDeleted,0) = 0
         ORDER BY NPOH2.NonPOInvoiceId DESC
       ) NPOH
@@ -489,7 +495,10 @@ BEGIN
         SELECT TOP 1 NPOH2.NPONumber
         FROM dbo.NonPOInvoiceHeader NPOH2 WITH (NOLOCK)
         WHERE ISNULL(CP.IsNonPOGenerated,0) = 1
-          AND NPOH2.ReceiptId = CP.ReceiptId
+          -- [PN-18257] header ReceiptId (old one-receipt invoices) OR line level ReceiptId (multi-line "Initiate Payment")
+          AND (NPOH2.ReceiptId = CP.ReceiptId
+               OR EXISTS (SELECT 1 FROM dbo.NonPOInvoicePartDetails NPD2 WITH (NOLOCK)
+                          WHERE NPD2.NonPOInvoiceId = NPOH2.NonPOInvoiceId AND NPD2.ReceiptId = CP.ReceiptId AND ISNULL(NPD2.IsDeleted,0) = 0))
           AND ISNULL(NPOH2.IsDeleted,0) = 0
         ORDER BY NPOH2.NonPOInvoiceId DESC
       ) NPOH
@@ -641,7 +650,9 @@ BEGIN
           INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND BII.ModuleId = @WOModuleId
           LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = BII.StocklineId
           LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = STK.LotId AND ISNULL(LT.IsDeleted,0) = 0
-          WHERE CP.ReceiptId = NPIH.ReceiptId
+          WHERE (CP.ReceiptId = NPIH.ReceiptId
+                 OR CP.ReceiptId IN (SELECT NPD3.ReceiptId FROM dbo.NonPOInvoicePartDetails NPD3 WITH (NOLOCK)
+                                     WHERE NPD3.NonPOInvoiceId = NPIH.NonPOInvoiceId AND ISNULL(NPD3.IsDeleted,0) = 0)) -- [PN-18257]
           ORDER BY BI.BillingInvoicingId DESC, STK.StockLineId DESC
 
           UNION ALL
@@ -654,7 +665,9 @@ BEGIN
           INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND BII.ModuleId = @SOModuleId
           LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = BII.StocklineId
           LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = STK.LotId AND ISNULL(LT.IsDeleted,0) = 0
-          WHERE CP.ReceiptId = NPIH.ReceiptId
+          WHERE (CP.ReceiptId = NPIH.ReceiptId
+                 OR CP.ReceiptId IN (SELECT NPD3.ReceiptId FROM dbo.NonPOInvoicePartDetails NPD3 WITH (NOLOCK)
+                                     WHERE NPD3.NonPOInvoiceId = NPIH.NonPOInvoiceId AND ISNULL(NPD3.IsDeleted,0) = 0)) -- [PN-18257]
           ORDER BY BI.BillingInvoicingId DESC, STK.StockLineId DESC
         ) LotResolvedX
         ORDER BY LotResolvedX.SortOrder

@@ -49,6 +49,7 @@
 						QtyBilled/UOM-conversion logic differs enough from the other 3 arms that it was left untouched pending
 						confirmation - see PR notes.
 	31	 09/Oct/2026 Kishor Makwana		[PN-18238] - SO billing popup: (1) an invoice only hides the shipment it was created for (a draft invoice is found whatever shipment it was created for); (2) a stockline with a POSTED and a later DRAFT invoice uses the draft (was INVOICED -> No Records Found); (3) AllowInvoiceBeforeShipping = 0 returns ONE line per stockline = shipped qty minus posted qty; (4) AllowInvoiceBeforeShipping = 1: qty reserved after an invoice was posted is billable again; part cost priced on the qty being invoiced.
+	32   09/OCT/2026 Kishor Makwana     [PN-18276] - a Proforma created before any stockline was reserved has no stockline on its item; match it so the revise supersedes it
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 1162,1830,'1830',10,1,0
 	exec dbo.GetCommonBillingMPNDetails @ReferenceId=1211,@SubReferenceId=1884,@SubReferenceIds=N'1884',@ModuleId=10,@IsCreatedFromQuote=1,@IsProformaInvoice=0
@@ -722,12 +723,12 @@ BEGIN
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
-							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL) OR (ISNULL(@IsProformaInvoice,0) = 1 AND ISNULL(BII.StocklineId,0) = 0)) -- [PN-18238] a Proforma created before any stockline was reserved has no stockline on its item; match it so the revise supersedes it
+							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL) OR (ISNULL(@IsProformaInvoice,0) = 1 AND ISNULL(BII.StocklineId,0) = 0)) 
 							AND (cpd.SubReferenceId = BII.SubReferenceId OR (cpd.SubReferenceId IS NULL))
 							AND (ISNULL(cpd.ShippingId,0) = 0 OR ISNULL(BII.ShippingId,0) = 0 OR BII.ShippingId = cpd.ShippingId OR (@ModuleId = @SOModuleId AND ISNULL(BI.IsInvoicePosted,0) = 0 AND ISNULL(BI.InvoiceStatus,'') <> 'INVOICED')) -- [PN-18238] an invoice only hides the shipment it was posted for, not later shipments of the same stockline
 							WHERE cpd.ReferenceId = @ReferenceId  AND ((ISNULL(Bi.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0) OR  (ISNULL(Bi.IsVersionIncrease,0) = 1 AND ISNULL(BII.IsVersionIncrease,0) = 0)) AND  [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);
 
-				-- [PN-18238] A stockline can have a POSTED invoice (e.g. 4 qty) and a later DRAFT invoice (e.g. 1 qty). The lookup above takes MAX(status) = 'INVOICED' over both,
+				-- [PN-17760] A stockline can have a POSTED invoice (e.g. 4 qty) and a later DRAFT invoice (e.g. 1 qty). The lookup above takes MAX(status) = 'INVOICED' over both,
 				-- so the draft was hidden ("No Records Found") and could not be revised. When a draft exists, use the draft.
 				IF (@ModuleId = @SOModuleId AND ISNULL(@IsProformaInvoice,0) = 0 AND ISNULL(@InvoiceStatusName,'') = 'INVOICED')
 				BEGIN

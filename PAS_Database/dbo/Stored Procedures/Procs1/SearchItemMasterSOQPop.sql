@@ -5,6 +5,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from alt-part subquery, StockLine join, and main WHERE clause.
+	4    01/Oct/2026			 Bhargav Saliya					[PN-15173] - UOM: convert QtyAvailable/QtyOnHand (stock -> consume), matching SearchStockLineSOQPop; SO Add PN / Adjust Qty popup was showing stock UOM.
 **************************************************************/
 CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
@@ -21,8 +22,8 @@ BEGIN
 		,im.ItemMasterId As PartId
 		,im.ItemMasterId As ItemMasterId
 		,im.PartDescription AS Description
-		,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-		,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
+		,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.QuantityAvailable, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable, 0), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, im.MasterCompanyId) END) AS QtyAvailable
+		,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.QuantityOnHand, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand, 0), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, im.MasterCompanyId) END) AS QtyOnHand
 		,ig.Description AS ItemGroup
 		,mf.Name Manufacturer
 		,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -50,12 +51,8 @@ BEGIN
 		AND sl.IsDeleted = 0
 		--AND ((sl.ConditionId = CASE WHEN @ConditionIds = '' THEN @ConditionIds ELSE sl.ConditionId END)
 		--	OR sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))
-	LEFT JOIN DBO.PurchaseOrder po ON po.PurchaseOrderId = sl.PurchaseOrderId 
-		AND sl.IsDeleted = 0
-	LEFT JOIN DBO.PurchaseOrderPart pop ON po.PurchaseOrderId = pop.PurchaseOrderId 
-		AND pop.ItemMasterId = im.ItemMasterId 
-		AND pop.IsDeleted = 0
-		AND pop.ItemTypeId = @StockType
+		AND sl.IsParent = 1
+		AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
 	LEFT JOIN DBO.ItemGroup ig ON im.ItemGroupId = ig.ItemGroupId
 	LEFT JOIN DBO.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 	LEFT JOIN DBO.ItemClassification ic ON im.ItemClassificationId = ic.ItemClassificationId

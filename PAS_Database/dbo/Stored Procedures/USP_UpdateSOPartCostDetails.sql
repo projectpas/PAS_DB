@@ -27,6 +27,7 @@
   	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
     12   06/30/2026   Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on recalculated MarginAmount so the child SP stores it in the same stock-UOM convention as USP_AddUpdateSalesOrderPart
     13   22/Aug/2026  Kishor Makwana   [PN-17732] - Skip Pick Ticket removal for a ticket that already has a SalesOrderShippingItem against it
+    14   08/Oct/2026  Vishal Suthar    [PN-16682] Exclude deleted Freight and Charges from part Freight/MiscCharges totals
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -130,10 +131,10 @@ SET NOCOUNT ON
 					DECLARE @SalesOrderQuoteModuleId BIGINT;
 
 					SELECT @Freight_S = ISNULL(SUM(F.BillingAmount), 0) FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK)
-					WHERE F.SalesOrderPartId = @SalesOrderPartId;
+					WHERE F.SalesOrderPartId = @SalesOrderPartId AND ISNULL(F.IsDeleted, 0) = 0;
 
 					SELECT @Charges_S = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK)
-					WHERE C.SalesOrderPartId = @SalesOrderPartId;
+					WHERE C.SalesOrderPartId = @SalesOrderPartId AND ISNULL(C.IsDeleted, 0) = 0;
 
 					DECLARE @UnitSalesPrice_S AS [decimal](18, 6) = 0;
 					DECLARE @SalesPriceExtended_S AS [decimal](18, 6) = 0;

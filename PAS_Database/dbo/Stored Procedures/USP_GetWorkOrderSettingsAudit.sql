@@ -10,7 +10,8 @@
  ** --   --------     -------				--------------------------------          
 	1    12/18/2024   BHARGAV SALIA			Created
 	2    02/06/2025   Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone
-	3    02/29/2025   Amit Ghediya		    Get IsFlatRate 
+	3    02/29/2025   Amit Ghediya		    Get IsFlatRate
+	4    30-Sep-2026  Amit Ghediya		    Added AllowWorksheet to select
 
 	exec USP_GetWorkOrderSettingsAudit @WorkOrderSettingsId = 2, @EmployeeId = 215
 **************************************************************/ 
@@ -118,7 +119,8 @@ BEGIN
 					WHEN wos.IsWoAlwaysOrOndemandId = 2 THEN 'OnDemand'
 			        ELSE ''
 			    END AS IsWoAlwaysOrOndemand,
-				wos.IsFlatRate
+				wos.IsFlatRate,
+				ISNULL(wos.AllowWorksheet, 0) AS AllowWorksheet
 			FROM [DBO].WorkOrderSettingsAudit wos WITH(NOLOCK)
 			LEFT JOIN [DBO].WorkOrderType wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 			LEFT JOIN [DBO].Condition c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

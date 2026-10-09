@@ -42,6 +42,8 @@
     [IsFromAircraft]                 BIT            NULL,
     [AircraftRegistryId]             BIGINT         NULL,
     [EngineRegistryId]               BIGINT         NULL,
+    [WorkOrderId]                    BIGINT         NULL,
+    [WorkOrderPartId]                BIGINT         NULL,
     [IsActive]                       BIT            NULL,
     [IsDeleted]                      BIT            NULL,
     [MasterCompanyId]                INT            NOT NULL,

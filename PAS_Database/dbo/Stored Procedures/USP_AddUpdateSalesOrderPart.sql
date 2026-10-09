@@ -27,6 +27,7 @@
 	16   30/July/2026	  MOIN BLOCH        [PN-17485] - Added [IsService],[IsNonStock] Conditions If IsNonStock then Create StockLine
 	17   01/July/2026	  MOIN BLOCH        [PN-17485] - Update QtyOnhand And Qty Reserved in Stockline on update Part Qty
 	18   21/Aug/2026	  KISHOR MAKWANA    [PN-17734] - Updated Condition
+	14   06/Oct/2026	  KISHOR MAKWANA    [PN-18238] - Guard: a save can no longer lower QtyOrder/QtyRequested below reserved+shipped qty (reserved line was being set to 0 by a stale/blank row); attempts are logged to Appl_ErrorLog (ModuleName SO_QTY_GUARD)
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -315,7 +316,57 @@ BEGIN
 				SELECT @ExistingUnitSales = SOPC.UnitSalesPrice FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
 			END
 			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderPartId) FROM #SOPartDetails WHERE SalesOrderPartId = @SalesOrderPartId AND ISNULL(StocklineId,0) > 0),0)
-					
+			
+			-- [SO-QTY-GUARD] A save must never lower Qty Ordered / Qty Requested below what is already reserved or shipped.
+			-- Root cause: the Parts List posts every row on Update; a stale/blank row (qty = 0) used to overwrite a reserved stockline.
+			DECLARE @GuardStkCurrentQty decimal(18, 6), @GuardStkFloor decimal(18, 6), @GuardPartFloor decimal(18, 6), @GuardOrigQtyOrder decimal(18, 6), @GuardOrigQtyRequested decimal(18, 6);
+			SET @GuardStkCurrentQty = NULL;
+			SET @GuardStkFloor = 0;
+			SET @GuardPartFloor = 0;
+			SET @GuardOrigQtyOrder = @QtyOrder;
+			SET @GuardOrigQtyRequested = @QtyRequested;
+
+			IF (ISNULL(@SalesOrderStocklineId, 0) > 0)
+			BEGIN
+				SELECT @GuardStkCurrentQty = ISNULL(STK.QtyOrder, 0),
+					   @GuardStkFloor = CASE WHEN ISNULL(STK.ToTalReservedQty, 0) > ISNULL(STK.QtyReserved, 0) THEN ISNULL(STK.ToTalReservedQty, 0) ELSE ISNULL(STK.QtyReserved, 0) END
+				FROM [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK)
+				WHERE STK.SalesOrderStocklineId = @SalesOrderStocklineId;
+
+				IF (@GuardStkCurrentQty IS NOT NULL AND ISNULL(@QtyOrder, 0) < @GuardStkFloor)
+				BEGIN
+					SET @QtyOrder = CASE WHEN @GuardStkCurrentQty >= @GuardStkFloor THEN @GuardStkCurrentQty ELSE @GuardStkFloor END;
+				END
+			END
+
+			SELECT @GuardPartFloor = ISNULL(SUM(CASE WHEN ISNULL(GS.ToTalReservedQty, 0) > ISNULL(GS.QtyReserved, 0) THEN ISNULL(GS.ToTalReservedQty, 0) ELSE ISNULL(GS.QtyReserved, 0) END), 0)
+			FROM [dbo].[SalesOrderStocklineV1] GS WITH (NOLOCK)
+			WHERE GS.SalesOrderPartId = @SalesOrderPartId AND ISNULL(GS.IsDeleted, 0) = 0;
+
+			IF (ISNULL(@QtyRequested, 0) < @GuardPartFloor)
+			BEGIN
+				SET @QtyRequested = CASE WHEN ISNULL(@ExistingQtyReq, 0) >= @GuardPartFloor THEN @ExistingQtyReq ELSE @GuardPartFloor END;
+			END
+
+			IF (ISNULL(@GuardOrigQtyOrder, 0) <> ISNULL(@QtyOrder, 0) OR ISNULL(@GuardOrigQtyRequested, 0) <> ISNULL(@QtyRequested, 0))
+			BEGIN
+				-- Log who/what tried to zero a reserved line (query: SELECT * FROM Appl_ErrorLog WHERE ModuleName = 'SO_QTY_GUARD' ORDER BY 1 DESC)
+				BEGIN TRY
+					INSERT INTO Appl_ErrorLog ([SQLUserName],[ErrorNumber],[ErrorSeverity],[ErrorState],[ErrorProcedure],[ProcedureParameters],[ErrorLine],[ErrorMessage],DatabaseName,ModuleName,AdhocComments,RolledBackTranCount,SPID,HostName,ClientAppName,ApplicationName)
+					VALUES (ISNULL(CONVERT(sysname, CURRENT_USER), ''), 0, 0, 0, 'USP_AddUpdateSalesOrderPart',
+						'SalesOrderId=' + CAST(ISNULL(@SalesOrderId, 0) AS VARCHAR(20)) + ';SalesOrderPartId=' + CAST(ISNULL(@SalesOrderPartId, 0) AS VARCHAR(20))
+						+ ';SalesOrderStocklineId=' + CAST(ISNULL(@SalesOrderStocklineId, 0) AS VARCHAR(20))
+						+ ';PayloadQtyOrder=' + CAST(ISNULL(@GuardOrigQtyOrder, 0) AS VARCHAR(20)) + ';PayloadQtyRequested=' + CAST(ISNULL(@GuardOrigQtyRequested, 0) AS VARCHAR(20))
+						+ ';AppliedQtyOrder=' + CAST(ISNULL(@QtyOrder, 0) AS VARCHAR(20)) + ';AppliedQtyRequested=' + CAST(ISNULL(@QtyRequested, 0) AS VARCHAR(20))
+						+ ';StocklineFloor=' + CAST(ISNULL(@GuardStkFloor, 0) AS VARCHAR(20)) + ';PartFloor=' + CAST(ISNULL(@GuardPartFloor, 0) AS VARCHAR(20))
+						+ ';User=' + ISNULL(@CreatedBy, ''),
+						0, 'Save tried to lower Qty Ordered/Qty Requested below reserved/shipped qty; payload value ignored.',
+						DB_NAME(), 'SO_QTY_GUARD', 'SO_QTY_GUARD', 0, @@SPID, HOST_NAME(), SUBSTRING(APP_NAME(), 0, 300), 'PAS');
+				END TRY
+				BEGIN CATCH
+					SET @GuardStkFloor = @GuardStkFloor; -- logging must never break the save
+				END CATCH
+			END
 			
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,

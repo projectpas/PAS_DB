@@ -9,7 +9,8 @@
  **************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			------------------------------ 
-	1    03/26/2024   Devendra Shekh		created
+	1    03/26/2024   Devendra Shekh	created
+	2    10/02/2026   Amit Ghediya		Add LegalEntityId in VendorPayment side to allow payment [PN-16487]
 
 EXEC [dbo].[USP_AddVendorPaymentDetails_ForCustomerCreditPaymentDetailById] 5
 ************************************************************************/
@@ -36,14 +37,15 @@ BEGIN
 				       ([ReadyToPayId], [DueDate], [VendorId], [VendorName], [PaymentMethodId], [PaymentMethodName], [ReceivingReconciliationId], [InvoiceNum], [CurrencyId], [CurrencyName],
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
-						[NonPOInvoiceId], [CustomerCreditPaymentDetailId])
+						[NonPOInvoiceId], [CustomerCreditPaymentDetailId],[LegalEntityId])
 			     SELECT 0, GETUTCDATE(),  CCPD.[VendorId], V.[VendorName], @DefaultMethodId, @DefaultMethodName, 0, CCPD.SuspenseUnappliedNumber, V.[CurrencyId], CU.[Code],
 						0, CCPD.RemainingAmount, 0, 0, 0, NULL, 0, 0, CCPD.RemainingAmount, 0, CCPD.RemainingAmount,
 						0, 0,  CCPD.[StatusId], 'Processed', @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), CCPD.[IsActive], CCPD.[IsDeleted], CCPD.RemainingAmount,
-						0, @CustomerCreditPaymentDetailId
+						0, @CustomerCreditPaymentDetailId, CP.LegalEntityId
 				   FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) 
 					INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON CCPD.VendorId = V.VendorId  
 					LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId  
+					LEFT JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = CCPD.ReceiptId
 					WHERE CCPD.CustomerCreditPaymentDetailId = @CustomerCreditPaymentDetailId;
     END
     COMMIT  TRANSACTION

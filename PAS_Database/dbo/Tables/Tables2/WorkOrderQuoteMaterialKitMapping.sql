@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WorkOrderQuoteMaterialKitMapping] (
+CREATE TABLE [dbo].[WorkOrderQuoteMaterialKitMapping] (
     [WOQMaterialKitMappingId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkOrderQuoteId]        BIGINT          NOT NULL,
     [WorkflowWorkOrderId]     BIGINT          NOT NULL,
@@ -29,4 +29,81 @@
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+GO
+
+----------------------------------------------
+
+CREATE TRIGGER [dbo].[Trg_WorkOrderQuoteMaterialKitMappingAudit]
+
+   ON  [dbo].[WorkOrderQuoteMaterialKitMapping]
+
+   AFTER INSERT,UPDATE
+
+AS 
+
+BEGIN
+
+	INSERT INTO [dbo].[WorkOrderQuoteMaterialKitMappingAudit] 
+	(
+		[WOQMaterialKitMappingId],
+		[WorkOrderQuoteId],
+		[WorkflowWorkOrderId],
+		[kitId],
+		[KitNumber],
+		[ItemMasterId],
+		[TaskId],
+		[Quantity],
+		[UnitCost],
+		[ExtendedCost],
+		[MasterCompanyId],
+		[CreatedBy],
+		[UpdatedBy],
+		[CreatedDate],
+		[UpdatedDate],
+		[IsActive],
+		[IsDeleted],
+		[Memo],
+		[MarkupPercentageId],
+		[MarkupFixedPrice],
+		[BillingAmount],
+		[BillingRate],
+		[HeaderMarkupId],
+		[BillingMethodId],
+		[BillingName],
+		[MarkUp]
+	)
+    SELECT 
+		i.[WOQMaterialKitMappingId],
+		i.[WorkOrderQuoteId],
+		i.[WorkflowWorkOrderId],
+		i.[kitId],
+		i.[KitNumber],
+		i.[ItemMasterId],
+		i.[TaskId],
+		i.[Quantity],
+		i.[UnitCost],
+		i.[ExtendedCost],
+		i.[MasterCompanyId],
+		i.[CreatedBy],
+		i.[UpdatedBy],
+		CASE WHEN d.[WOQMaterialKitMappingId] IS NULL THEN GETUTCDATE() ELSE i.[CreatedDate] END,
+		GETUTCDATE(),
+		i.[IsActive],
+		i.[IsDeleted],
+		i.[Memo],
+		i.[MarkupPercentageId],
+		i.[MarkupFixedPrice],
+		i.[BillingAmount],
+		i.[BillingRate],
+		i.[HeaderMarkupId],
+		i.[BillingMethodId],
+		i.[BillingName],
+		i.[MarkUp]
+	FROM INSERTED i
+	LEFT JOIN DELETED d ON d.[WOQMaterialKitMappingId] = i.[WOQMaterialKitMappingId];
+
+	SET NOCOUNT ON;
+
+END
+
 

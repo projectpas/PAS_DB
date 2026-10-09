@@ -35,6 +35,7 @@
 	23   19/Aug/2026    RAJESH GAMI			[PN-17683] - Added RepairOrderId OR PurchaseOrderId condition in the respective JOIN with StocklineDraft (po.PurchaseOrderId = stkdf.PurchaseOrderId OR po.RepairOrderId = stkdf.RepairOrderId)
 	24   26/Aug/2026    Divyesh Kathiriya	[PN-17784] - Removed the remaining IsNonStock = 0 condition from the single-part Purchase Order branch so both Stock and Non-Stock rows are returned.
 	25   17/Sept/2026	Moin Bloch      	[PN-17914] - Added IsGRNIAdjustment flag
+	26   01/Oct/2026    RAJESH GAMI			[PN-18183] - Single-part PO Stock branches (not 'Multiple', @Type = 1): removed INNER JOIN with StocklineDraft (same as 'Multiple' section) so partially received stocklines (draft not linked) are returned; split-part branch ReceivedQty from Stockline.Quantity instead of StocklineDraft.QuantityOnHand
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPoData]
@@ -80,7 +81,8 @@ BEGIN
 				INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
-					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
+					-- [PN-18183] Removed StocklineDraft join (same as 'Multiple' section): partially received stocklines are not linked in the draft, so they were missing in Receiving Reconciliation
+					--INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
 				CROSS APPLY (
 				SELECT IsSameUOM     = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN 1 ELSE 0 END,
 				ConvertedQty    = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure
@@ -117,7 +119,7 @@ BEGIN
 					pop.UnitOfMeasure AS 'UnitOfMeasure',
 					stk.StockUnitOfMeasure AS 'StockUnitOfMeasure',
 					pop.QuantityOrdered AS 'POQtyOrder',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
+					SUM(ISNULL(stk.Quantity,0)) AS 'ReceivedQty',
 					pop.UnitCost AS 'POUnitCost',
 					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
 					stk.RRQty AS 'InvoicedQty',
@@ -133,7 +135,8 @@ BEGIN
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND ISNULL(pop.[IsGRNIAdjustment],0) = 0
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
-					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
+					-- [PN-18183] Removed StocklineDraft join (same as 'Multiple' section): partially received stocklines are not linked in the draft, so they were missing in Receiving Reconciliation
+					--INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId AND po.PurchaseOrderId = stkdf.PurchaseOrderId-- AND stk.ControlNumber = stkdf.ControlNumber
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId,pop.UnitOfMeasure,stk.StockUnitOfMeasure 

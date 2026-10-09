@@ -28,6 +28,7 @@
 	11	 12/26/2025	  Bhargav Saliya  Add  Default Entry In [WorkOrderTaskDetails] fro 'All Task'
 	12   06/01/2026   Moin Bloch      Added LaborHoursId in WorkOrderLaborHeader
 	13   29/07/2026   Moin Bloch      Due To Dynamic Task [dbo].[Task] Table Entry not able to work so commented Wrong Entry Storing PN-17434
+	14   02/10/2026   Moin Bloch      Removed @IstravelerTask Condition due to not adding Default entry all task [PN-18171]
 
 -- EXEC [USP_CreateTravelerLabourTask] 10181,10386,10248,1,'JONAS  KAHNWALD'
 **************************************************************/  
@@ -140,7 +141,7 @@ BEGIN
 	 IF(@WorkOrderFormTypeId = 0)
 	 BEGIN
 
-		 IF(@Traveler_setupid > 0 AND @IstravelerTask = 1)  
+		 IF(@Traveler_setupid > 0)  
 		 BEGIN  
 			IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId) 
 			BEGIN   
@@ -295,7 +296,7 @@ BEGIN
 		 END
 		 ELSE
 		 BEGIN
-			IF(@Traveler_setupid = 0 AND @IstravelerTask = 1)
+			IF(@Traveler_setupid = 0)
 			BEGIN
 				IF(@LaborHoursId = @AssignTotalHourstoWork)
 				BEGIN
@@ -413,7 +414,7 @@ BEGIN
 	BEGIN
 		DECLARE @TaskId BIGINT,@Description VARCHAR(200) = NULL;	 
 
-		 IF(@Traveler_setupid > 0 AND @IstravelerTask = 1)  
+		 IF(@Traveler_setupid > 0)  
 		 BEGIN  
 			IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId) 
 			BEGIN   
@@ -592,7 +593,7 @@ BEGIN
 		 END
 		 ELSE
 		 BEGIN
-			IF(@Traveler_setupid = 0 AND @IstravelerTask = 1)
+			IF(@Traveler_setupid = 0)
 			BEGIN
 				IF(@LaborHoursId = @AssignTotalHourstoWork)
 				BEGIN

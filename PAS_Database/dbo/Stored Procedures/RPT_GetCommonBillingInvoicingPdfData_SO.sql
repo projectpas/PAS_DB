@@ -21,6 +21,8 @@
 	9    12-05-2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
 	10   07/01/2026    Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on PartCost, per item, when computing Proforma SubTotal & GrandTotal so totals match the line-item report
 	11   06/07/2026    Kishor Makwana   Added ResaleNumber in select statement
+	12   02/OCT/2026   Kishor Makwana   [PN-18220] While we Generate multiple invoicefrom SO the 1st invoice Print Header Detail is Blank. we commented ISNULL(BI.[IsVersionIncrease],0) = 0  in where condition.
+	13   07/10/2026    Vishal Suthar    Use InvoiceDate + InvoiceTime for Invoice Date & Time and Due Date instead of UTC conversion.
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -52,6 +54,14 @@ BEGIN
 		WHERE E.EmployeeId = @EmployeeId; 
 
 		SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+		-- Invoice Date + Invoice Time as entered by user (already local), fallback to UTC conversion when time is not available
+		DECLARE @InvoiceDateTime DATETIME2 = NULL;
+		SELECT @InvoiceDateTime = CASE WHEN [InvoiceDate] IS NULL OR CAST([InvoiceDate] AS DATETIME2) = CAST('0001-01-01 00:00:00' AS DATETIME2) THEN NULL
+									   WHEN TRY_CONVERT(TIME, [InvoiceTime]) IS NOT NULL
+									   THEN CAST(CONCAT(CONVERT(VARCHAR(10), CAST([InvoiceDate] AS DATE), 120), ' ', CONVERT(VARCHAR(8), TRY_CONVERT(TIME, [InvoiceTime]), 108)) AS DATETIME2)
+									   ELSE CAST(dbo.ConvertUTCtoLocal([InvoiceDate], @CurrntEmpTimeZoneDesc) AS DATETIME2) END
+		  FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId;
 
 		DECLARE @SOMasterCompanyId INT = NULL;
 		SELECT @SOMasterCompanyId = [MasterCompanyId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
@@ -133,9 +143,9 @@ BEGIN
 					ISNULL(SO.[CustomerReference], '') [CustomerReference],
 					CUST.[CustomerPhone] [CustToPhone],
 					CASE WHEN BI.[PostedDate] IS NOT NULL THEN FORMAT(DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate]), 'MM/dd/yyyy') ELSE '' END [DueDate],
-					case when CAST(BI.[InvoiceDate] as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(BI.[InvoiceDate], @CurrntEmpTimeZoneDesc) as datetime2))end [NewDateAndTime],
+					@InvoiceDateTime [NewDateAndTime],
 					SHIPPINGINFO.[ShipDate] [NewShipDate],
-					case when CAST((DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate])) as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal((DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate])), @CurrntEmpTimeZoneDesc) as datetime2))end [NewDueDate],
+					DATEADD(DAY, ISNULL(SO.[NetDays],0), @InvoiceDateTime) [NewDueDate],
 					ISNULL(BI.[IsPerformaInvoice], 0) [IsProformaInvoice],
 					0 [WorkFlowWorkOrderId],  
 					SO.[MasterCompanyId],
@@ -248,7 +258,7 @@ BEGIN
 				LEFT JOIN [dbo].[Countries] oriCountry WITH(NOLOCK) ON Bi.OriginCountryId = oriCountry.[countries_id]
 				LEFT JOIN [dbo].[Countries] destCountry WITH(NOLOCK) ON Bi.ShipToCountryId = destCountry.[countries_id]
 				LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON SO.MasterCompanyId = MC.MasterCompanyId
-				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
+				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 --AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: SALES ORDER ********/		
 	END TRY    

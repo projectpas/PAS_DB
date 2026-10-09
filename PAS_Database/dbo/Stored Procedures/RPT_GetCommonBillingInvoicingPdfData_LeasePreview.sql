@@ -15,6 +15,8 @@
     2    28/SEP/2026   Kishor Makwana	[PN-18072 follow-up] Maintenance/Insurance/Taxes/Other now
                                      fold into @SubTotal instead of @Tax/@OtherTaxAmt - see the
                                      comment just above the SELECT that sets them.
+    3    05/OCT/2026   Kishor Makwana	[PN-18072 preview parity] SubTotal now sums the same lines the Billing grid computes (USP_GetLeaseBillingListByLeaseHeaderId), matching the
+                                     Items preview and what Create Invoice saves, instead of the old legacy calculation.
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
@@ -111,75 +113,22 @@ BEGIN
 	DECLARE @OtherTaxAmt DECIMAL(18, 6) = 0;
 
 	-- ================= Live SubTotal/GrandTotal from the selected stocklines =================
-	;WITH SelectedIds AS (
-		SELECT DISTINCT CAST(Item AS BIGINT) AS LeaseStocklineId
-		FROM [dbo].[SplitString](@LeaseStocklineIds, ',')
-		WHERE ISNUMERIC(Item) = 1
-	),
-	Base AS (
-		SELECT
-			LSL.[LeaseStocklineId],
-			LSL.[QtyReserved] AS Qty,
-			LSL.[BillingMethod],
-			LSL.[FlatRate],
-			CASE WHEN U.LeaseStocklineUsageId IS NOT NULL
-				 THEN ISNULL(U.CurrentTSNHours, 0) * 60 + ISNULL(U.CurrentTSNMinutes, 0)
-				 ELSE NULL END AS TimeRecorded,
-			CASE WHEN LSL.MaximumTimes IS NOT NULL THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
-			LSL.OverrunPerUnitTimes AS TimeOverageRateRaw,
-			U.CurrentCSN AS CycleRecorded,
-			LSL.MaximumCycles AS CycleLimit,
-			LSL.OverrunPerUnitCycles AS CycleOverageRateRaw,
-			ISNULL(ChargesAgg.Charges, 0) AS Charges,
-			LSL.[Maintenance],
-			LSL.[Insurance],
-			LSL.[Taxes],
-			ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount
-		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
-		INNER JOIN SelectedIds SEL ON SEL.LeaseStocklineId = LSL.LeaseStocklineId
-		LEFT JOIN [dbo].[LeaseStocklineUsage] U WITH (NOLOCK) ON U.LeaseStocklineId = LSL.LeaseStocklineId AND U.IsDeleted = 0
-		OUTER APPLY (
-			SELECT SUM(ISNULL(LC.ExtendedCost, 0)) AS Charges
-			FROM [dbo].[LeaseCharges] LC WITH (NOLOCK)
-			WHERE LC.LeaseStocklineId = LSL.LeaseStocklineId AND LC.IsDeleted = 0
-		) ChargesAgg
-		LEFT JOIN (
-			SELECT LeaseStocklineId, SUM(ISNULL(Amount, 0)) AS OtherComponentAmount
-			FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
-			WHERE IsDeleted = 0
-			GROUP BY LeaseStocklineId
-		) SC_SUM ON SC_SUM.LeaseStocklineId = LSL.LeaseStocklineId
-		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
-		  AND LSL.IsDeleted = 0
-		  AND LSL.QtyReserved > 0
-	),
-	WithOver AS (
-		SELECT *,
-			IsOverageBillingMethod = CASE WHEN BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END,
-			IsFlatRateBillingMethod = CASE WHEN BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END,
-			TimeOverRaw = CASE WHEN TimeRecorded IS NOT NULL THEN
-				CASE WHEN (TimeRecorded - ISNULL(TimeLimit, 0)) < 0 THEN 0 ELSE (TimeRecorded - ISNULL(TimeLimit, 0)) END
-			ELSE NULL END,
-			CycleOverRaw = CASE WHEN CycleRecorded IS NOT NULL THEN
-				CASE WHEN (CycleRecorded - ISNULL(CycleLimit, 0)) < 0 THEN 0 ELSE (CycleRecorded - ISNULL(CycleLimit, 0)) END
-			ELSE NULL END
-		FROM Base
-	)
-	-- [PN-18072 follow-up] Maintenance/Insurance/Taxes/Other are ordinary item-detail lines (see
-	-- RPT_GetCommonBillingInvoicingItems_LeasePreview), not a real sales tax - folded into @SubTotal
-	-- directly instead of being pulled into @Tax/@OtherTaxAmt (the "SALES TAX"/"OTHER TAX" boxes),
-	-- which are now always 0. Only Charges still comes out separately, into @MiscCharges, as before.
-	SELECT
-		@SubTotal = SUM(
-			ISNULL(CASE WHEN IsFlatRateBillingMethod = 1 THEN ISNULL(FlatRate, 0) * Qty ELSE 0 END, 0)
-		  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND TimeOverRaw IS NOT NULL THEN (TimeOverRaw / 60.0) * ISNULL(TimeOverageRateRaw, 0) * Qty ELSE 0 END, 0)
-		  + ISNULL(CASE WHEN IsOverageBillingMethod = 1 AND CycleOverRaw IS NOT NULL THEN CycleOverRaw * ISNULL(CycleOverageRateRaw, 0) * Qty ELSE 0 END, 0)
-		  + ISNULL(Maintenance, 0) + ISNULL(Insurance, 0) + ISNULL(Taxes, 0) + ISNULL(OtherComponentAmount, 0)
-		),
-		@MiscCharges = SUM(ISNULL(Charges, 0)),
-		@Tax = 0,
-		@OtherTaxAmt = 0
-	FROM WithOver;
+	CREATE TABLE #G (
+		LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
+		BillingMethod NVARCHAR(100), BillingFrequency NVARCHAR(100), FlatRate DECIMAL(28,6), LineType NVARCHAR(100), FromDate DATETIME2(7), ToDate DATETIME2(7),
+		LineAmount DECIMAL(28,6), TimeRecorded DECIMAL(28,6), TimeLimit DECIMAL(28,6), TimeOver DECIMAL(28,6), TimeOverageRate DECIMAL(28,6), TimeBillingAmount DECIMAL(28,6),
+		CycleRecorded DECIMAL(28,6), CycleLimit DECIMAL(28,6), CycleOver DECIMAL(28,6), CycleOverageRate DECIMAL(28,6), CycleBillingAmount DECIMAL(28,6),
+		BillingInvoicingId BIGINT, BillingStatus VARCHAR(5), InvoiceNumber NVARCHAR(100), InvoiceDate DATETIME2(7),
+		HasUsageInfo BIT, IsActive BIT, LeaseStatusId INT);
+	-- The preview shows exactly what Create Invoice will save: the same lines the Billing grid computes (one source of truth).
+	INSERT INTO #G EXEC [dbo].[USP_GetLeaseBillingListByLeaseHeaderId] @LeaseHeaderId = @LeaseHeaderId;
+
+	SELECT @SubTotal = SUM(TX.Total)
+	FROM #G G
+	CROSS APPLY (SELECT ISNULL(G.LineAmount, 0) + ISNULL(G.TimeBillingAmount, 0) + ISNULL(G.CycleBillingAmount, 0) AS Total) TX
+	WHERE G.LeaseStocklineId IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+	  AND (G.BillingStatus = 'D' OR (G.BillingStatus = 'N' AND TX.Total <> 0));
+	SET @MiscCharges = 0;
 	-- ============================================================================================
 
 	SELECT TOP 1
@@ -259,10 +208,10 @@ BEGIN
 			SignEmpTitle = ISNULL(jt.Description,''),
 			SignEmpDate = GETUTCDATE(),
 			ShippingTerms = '',
-			ISNULL(@SubTotal, 0) AS [SubTotal],
+			ISNULL(@SubTotal, 0) + ISNULL(@MiscCharges, 0) AS [SubTotal], -- SUBTOTAL = every item row incl. Charges; MISC CHARGES box stays 0
 			0 [DepositAmount],
 			ISNULL(@SubTotal, 0) + ISNULL(@MiscCharges, 0) + ISNULL(@Tax, 0) + ISNULL(@OtherTaxAmt, 0) AS [GrandTotal],
-			ISNULL(@MiscCharges, 0) AS [MiscCharges],
+			CAST(0 AS DECIMAL(18, 6)) AS [MiscCharges],
 			ISNULL(@SubTotal, 0) + ISNULL(@MiscCharges, 0) + ISNULL(@Tax, 0) + ISNULL(@OtherTaxAmt, 0) [RemainingAmount],
 			SHIPTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(CUSTADDRESS.[Line1],CUSTADDRESS.[Line2],NULL,CUSTADDRESS.[City],CUSTADDRESS.[StateOrProvince],CUSTADDRESS.[PostalCode],CONT.[countries_name],NULL,NULL,NULL,MC.MasterCompanyCode)),
   				BILLTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(CUSTADDRESS.[Line1],CUSTADDRESS.[Line2],NULL,CUSTADDRESS.[City],CUSTADDRESS.[StateOrProvince],CUSTADDRESS.[PostalCode],CONT.[countries_name],BUYERCONTACT.[WorkPhone],NULL,BUYERCONTACT.[Email],MC.MasterCompanyCode)),

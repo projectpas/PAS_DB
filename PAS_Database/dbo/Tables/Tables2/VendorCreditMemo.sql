@@ -32,3 +32,8 @@
     CONSTRAINT [FK_VendorCreditMemo_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorCreditMemo_VendorRMAId]
+    ON [dbo].[VendorCreditMemo]([VendorRMAId] ASC);
+

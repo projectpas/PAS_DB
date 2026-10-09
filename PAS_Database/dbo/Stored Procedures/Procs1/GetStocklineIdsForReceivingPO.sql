@@ -18,6 +18,7 @@
 	2    06-12-2023   Shrey Chandegara Updated For Nonstock 
 	3    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    16/July/2026   RAJESH GAMI   [PN-17271] - NonStockInventoryIds now reads DBO.Stockline (IsNonStock=1) instead of legacy DBO.NonStockInventory.
+	5    05/Oct/2026    Moin Bloch    [PN-17589] - check workorder IsFinishGood to identify it is Created fro Work Order or Receiving PO
 EXEC [GetStocklineIdsForReceivingPO] 2174  
 **************************************************************/    
 CREATE PROCEDURE [dbo].[GetStocklineIdsForReceivingPO]  
@@ -32,20 +33,20 @@ BEGIN
     BEGIN TRY  
     BEGIN  
     
-  SELECT STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(100))  
+  SELECT STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(MAX))  
         FROM DBO.Stockline Stk WITH (NOLOCK)  
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
-        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 0      
+        AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 0 AND ISNULL(Stk.IsFinishGood,0) = 0 
         FOR XML PATH('')), 1, 1, '') StocklineIds,   
-   STUFF((SELECT ',' + CAST(Stk.AssetInventoryId AS VARCHAR(100))  
+   STUFF((SELECT ',' + CAST(Stk.AssetInventoryId AS VARCHAR(MAX))  
         FROM DBO.AssetInventory Stk WITH (NOLOCK)  
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
         AND Stk.IsActive = 1 AND Stk.IsDeleted = 0      
         FOR XML PATH('')), 1, 1, '') AssetInventoryIds,
-	STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(100))
+	STUFF((SELECT ',' + CAST(Stk.StockLineId AS VARCHAR(MAX))
         FROM DBO.Stockline Stk WITH (NOLOCK)
         Where Stk.PurchaseOrderId = @PurchaseOrderId      
-        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 1
+        AND  Stk.IsDeleted = 0 AND ISNULL(Stk.IsNonStock,0) = 1  AND ISNULL(Stk.IsFinishGood,0) = 0
         FOR XML PATH('')), 1, 1, '') NonStockInventoryIds;
   
  END  

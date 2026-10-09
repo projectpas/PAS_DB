@@ -1370,6 +1370,7 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMapping.sql" />
+    <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMappingAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettings.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettingsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteStatus.sql" />
@@ -4446,6 +4447,9 @@
     <Build Include="dbo\Tables\UOMFamilyType.sql" />
     <Build Include="dbo\Tables\UOMFamilyTypeAudit.sql" />
     <Build Include="dbo\Views\vw_UOMFamilyTypeAudit.sql" />
+    <Build Include="dbo\Tables\CoreLetter.sql" />
+    <Build Include="dbo\Tables\CoreLetterAudit.sql" />
+    <Build Include="dbo\Views\vw_CoreLetter.sql" />
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
@@ -4612,6 +4616,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetPartStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoForWorkOrderPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetParts.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetHeader.sql" />
@@ -4803,8 +4808,13 @@
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteChargesCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteMaterialCommonHistory.sql" />
     <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncLeaseBillingDraftInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
     <Build Include="dbo\Tables\LeaseShippingItemAudit.sql" />
@@ -4872,6 +4882,7 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIPartsAvailabilityAndStockout.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIVendorPerformance.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBILaborUtilization.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>

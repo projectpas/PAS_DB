@@ -16,6 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    09-May-2025   Bhargav Saliya		Created
+    2    30-Sep-2026   Amit Ghediya		Added AllowWorksheet to select
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderSettingsDetails]
@@ -83,7 +84,8 @@ BEGIN
         ISNULL(wos.LaborHoursMedthodId, 0) AS LaborHoursMedthodId,
         wos.EnforcePickTicket,
         wos.PickTicketEffectiveDate,
-        wos.IsFlatRate
+        wos.IsFlatRate,
+        ISNULL(wos.AllowWorksheet, 0) AS AllowWorksheet
 
     FROM [dbo].[WorkOrderSettings] wos WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id

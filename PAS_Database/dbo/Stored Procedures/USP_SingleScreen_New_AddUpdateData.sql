@@ -18,6 +18,7 @@
     7    05/05/2026   Nakul Chandigra  Added a Case for null in Update*(PN-16281)
     8    07/07/2026   Priyansh Patel   Changed the Id parameter to be Output [PN-17039]
     9    23/09/2026   Sahdev Saliya    Handle 'int' FieldType in Edit mode so Code Prefix StartsFrom is updated [PN-17951]
+    10   02/10/2026   Nakul            Set static Class, DecimalPlaces and ShortCode (= ShortName) on Add for UnitOfMeasure
 
 declare @p5 dbo.SingleScreenColumnType
 insert into @p5 values(N'Description',N'TEST',N'string',N'')
@@ -184,9 +185,14 @@ BEGIN
 	  SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ',CreatedDate,UpdatedDate'+')' + ' VALUES (' + @FieldValue + ',GETUTCDATE(),GETUTCDATE()'+')'    
       PRINT @Query
 	  EXEC (@Query)    
-      SET @ID = IDENT_CURRENT(@PageName)    
+      SET @ID = IDENT_CURRENT(@PageName)
 
-	  IF(@PageName = 'defaultmessage')  
+	  IF(@PageName = 'unitofmeasure')
+	  BEGIN
+		UPDATE [dbo].[UnitOfMeasure] SET [Class] = 'Decimal', [DecimalPlaces] = 2, [ShortCode] = [ShortName] WHERE [UnitOfMeasureId] = @ID
+	  END
+
+	  IF(@PageName = 'defaultmessage')
 	  BEGIN			
 		DECLARE @IsDefault BIT = 0
 		SELECT @IsDefault = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'IsDefault')

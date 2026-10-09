@@ -54,11 +54,12 @@
 	38    13/Aug/2026   RAJESH GAMI       [PN-17008] - Re-added missing ISNULL(im.IsNonStock,0) = 0 filter on the #tmpPNManufacturer (STOCK) rebuild query's ItemMaster JOIN; the query was independently rewritten (LastStockline CTE) after the BETA port and the rewrite dropped the filter that the twin NS-suffixed block still has.
     39   25-SEP-2026  HEMANT SALIYA     Commented code IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) By Hemant due to stockline is not avaiable in Reconcilation
     40   29-SEP-2026  Ayushi Patel      [PN-18138]Re-enabled IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) (Stock / Non-Stock) to allow receiving the remaining qty after partial receiving(as discussed with hemant sir)
-
+    41   01-OCT-2026  RAJESH GAMI       [PN-18183] Stock: StocklineDraft StockLineId update (@QtyAdded > @maxQtyLimit) now only for the draft being received (@SelectedStockLineDraftId) and skipped when @NewStocklineId is NULL (partial receipt). Earlier it updated ALL IsParent = 1 drafts of the PO part, so the last receipt overwrote the earlier receipts' drafts
+	30   02-OCT-2026  Rajesh Gami       Modified the IS NULL condition to use the proper ISNULL condition. (stocklinedraft.Stockline IS NULL to ISNULL(stocklinedraft.Stockline,0) = 0)
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE  PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,
@@ -765,10 +766,10 @@ BEGIN
                             SELECT [StocklineDraftId] FROM DBO.StocklineDraft WITH (NOLOCK)
                             WHERE PurchaseOrderId = @PurchaseOrderId
                                   AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
-                                  AND IsParent = 0
-                                  AND isSerialized = 0
+                                  AND ISNULL(IsParent,0) = 0
+                                  AND ISNULL(isSerialized,0) = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND StockLineId IS NULL 
+                                  AND ISNULL(StockLineId,0) =0
                             ORDER BY StocklineDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive = MAX(ID) FROM #StocklineDraftForQtyToReceive;
@@ -1061,10 +1062,11 @@ BEGIN
                         END
 						
 						/*******Due to not showing PO Part while receive reconciliation (When QTY is more than 500)********/
-						IF(@QtyAdded > @maxQtyLimit)
+						IF(@QtyAdded > @maxQtyLimit AND @NewStocklineId IS NOT NULL)
 						BEGIN
 							  UPDATE dbo.StocklineDraft SET StockLineId = @NewStocklineId, StockLineNumber = @StockLineNumber,	ControlNumber =@ControlNumber 
 									WHERE PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND isSerialized = 0
+									  AND StockLineDraftId = @SelectedStockLineDraftId
 						END
 
                         EXEC UpdateStocklineColumnsWithId @NewStocklineId;
@@ -2028,10 +2030,10 @@ BEGIN
                             FROM DBO.AssetInventoryDraft WITH (NOLOCK)
                             WHERE PurchaseOrderId = @PurchaseOrderId
                                   AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
-                                  AND IsParent = 0
-                                  AND isSerialized = 0
+                                  AND ISNULL(IsParent,0) = 0
+                                  AND ISNULL(isSerialized,0) = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND AssetInventoryId IS NULL
+                                  AND ISNULL(AssetInventoryId,0) = 0
                             ORDER BY AssetInventoryDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive_Asset = MAX(ID)
@@ -2061,11 +2063,11 @@ BEGIN
                                 SET @LoopID_QtyToReceive_Asset = @LoopID_QtyToReceive_Asset - 1;
                             END
 
-                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            --BEGIN
-                            --    SET @StockLineNumber_Asset = NULL;
-                            --    SET @NewStocklineId_Asset = NULL;
-                            --END
+                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            BEGIN
+                                SET @StockLineNumber_Asset = NULL;
+                                SET @NewStocklineId_Asset = NULL;
+                            END
 
                             UPDATE dstl
                             SET dstl.AssetInventoryId = @NewStocklineId_Asset,
@@ -2730,7 +2732,7 @@ DELETE FROM #tmpCodePrefixes_NS;
 										AND IsParent = 0
 										AND isSerialized = 0
 										AND IsSameDetailsForAllParts = 1
-                                  AND StockLineId IS NULL 
+                                  AND ISNULL(StockLineId,0) = 0 
                             ORDER BY StocklineDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive_NS = MAX(ID) FROM #StocklineDraftForQtyToReceive_NS;

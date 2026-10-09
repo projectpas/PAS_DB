@@ -30,6 +30,7 @@
 	17   03/Aug/2026  Moin Bloch		[PN-17540] - Fix For Duplicate Issue
 	18   11-Aug-2026  Rajesh Gami		[PN-17636] Added IsReOpen Flag to handle the Reopen Invoice
 	19   17/Aug/2026  Moin Bloch		[PN-17667] - Non-Stock Part Gets Unselected When Creating a Single Invoice for Stock and Non-Stock Parts
+	19   09-Oct-2026   Rajesh Gami		[PN-18268] Added IsStandardInvoicePosted to the output (from BillingInvoicing, Proforma rows) so the UI can disable Re-Open for a Proforma invoice whose Standard invoice is already posted.
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
@@ -135,6 +136,7 @@ BEGIN
 				[IsNewInvoice] INT NULL,
 				[IsBilling] BIT NULL,
 				[IsReOpened] BIT NULL,
+				[IsStandardInvoicePosted] BIT NULL,
 				[ECCN] VARCHAR(200) NULL,
 				[HSCODE] VARCHAR(200) NULL,
 				[Weight] DECIMAL(18,2) NULL,
@@ -1554,6 +1556,11 @@ BEGIN
 					
 			END /*********END: SALES ORDER ********/
 			UPDATE #InvoiceMainDetails SET IsFinishGood = (CASE WHEN @IsTearDownWO =  1 THEN 1 ELSE IsFinishGood END)
+			-- [PN-18268] Standard-invoice-posted flag on Proforma rows (drives the Re-Open action on the UI)
+			UPDATE IMD SET IMD.[IsStandardInvoicePosted] = ISNULL(BI.[IsStandardInvoicePosted], 0)
+			FROM #InvoiceMainDetails IMD
+			INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BI.[BillingInvoicingId] = IMD.[BillingInvoicingId]
+			WHERE ISNULL(IMD.[IsProformaInvoice], 0) = 1
 			SELECT * FROM #InvoiceMainDetails ORDER BY IsProformaInvoice ASC, BillingInvoicingId DESC,InvoiceNo DESC, VersionNo DESC;	
 		END TRY    
 		BEGIN CATCH      

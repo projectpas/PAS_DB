@@ -20,6 +20,8 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    22/07/2026     Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
+	8    12/10/2026     BHARGAV SALIYA          Allow Non-Stock Items in Bulk Stockline Adjustment and return ItemType PN-17481
+       
 -- EXEC USP_GetbulkstocklineadjustmentById 110,2  
 ************************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_GetbulkstocklineadjustmentById]  
@@ -87,13 +89,14 @@ BEGIN
 			   STL.[StockUnitOfMeasure] AS [UnitOfMeasure],
 			   BSAD.[NewUnitCostTotransfer],
 			   BSAD.[AdjustmentReasonId],
-			   BSSS.[BulkStockScrapCertificateId]
+			   BSSS.[BulkStockScrapCertificateId],
+			   CASE WHEN ISNULL(STL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 		  FROM [dbo].[BulkStockLineAdjustmentDetails] BSAD WITH (NOLOCK)  
 		  INNER JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON  STL.StockLineId = BSAD.StockLineId
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON STL.[ItemMasterId] = IM.[ItemMasterId]
 		   LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON STL.ManufacturerId = MF.ManufacturerId
 		   LEFT JOIN [dbo].[BulkStockScrapCertificate] BSSS WITH (NOLOCK) ON BSSS.[BulkStkLineAdjDetailsId] = BSAD.[BulkStkLineAdjDetailsId] AND BSSS.[IsActive] = 1 AND BSSS.[IsDeleted]=0
-		  WHERE BSAD.[BulkStkLineAdjId] = @BulkStkLineAdjId AND BSAD.[IsActive] = 1 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ;
+		  WHERE BSAD.[BulkStkLineAdjId] = @BulkStkLineAdjId AND BSAD.[IsActive] = 1;
 	END
 END TRY      
  BEGIN CATCH        

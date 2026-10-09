@@ -63,6 +63,7 @@
 	50	 19-Aug-2026        Ayushi Patel			PN-17722: WorkOrderMaterials upload does not requires Unit Cost when the material line's Task is TEARDOWN.
 	51   28-Aug-2026        Sahdev Saliya           Added validation for LeaseType setup screen Upload [PN-17495]
 	52   08-Oct-2026        Sahdev Saliya           [PN-18143] Added @CoreLetterModule + duplicate Header Name error message for the new Core Letter setup screen Upload.
+	52   08-Oct-2026        Nakul Chandigra         Added validation for VendorCapability Upload: PN + Manufacturer lookup, Currency required when Cost > 0, Cost decimals, dates, duplicate Vendor + PN + Cap Type; returns PN Description / Manufacturer / Capability Desc, defaults Cost Date and Employee (PN-18200)
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -242,6 +243,8 @@ BEGIN
 		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
 		DECLARE @LeaseTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeaseType');
 		DECLARE @CoreLetterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CoreLetter');
+		DECLARE @VendorCapabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorCapability');
+		DECLARE @VC_VendorId BIGINT, @VC_ItemMasterId BIGINT, @VC_CapabilityTypeId BIGINT, @VC_DuplicateMsg VARCHAR(250);
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -360,7 +363,15 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			--ORDER BY IMF.DisplaySortOrder ASC
-			--SELECT * FROM #ImportFields 
+			--SELECT * FROM #ImportFields
+
+			-- VendorCapability: Employee not given -> logged-in employee (same default as the old Upload Capes popup) (PN-18200)
+			IF (@ModuleId = @VendorCapabilityModule)
+			BEGIN
+				DECLARE @VC_LoggedInEmployeeName VARCHAR(256) = (SELECT TOP 1 [EmployeeName] FROM [DBO].[View_Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
+				UPDATE #DynamicKeyValue SET FieldValue = @VC_LoggedInEmployeeName WHERE FieldName = 'EmployeeId' AND ISNULL(FieldValue, '') = '' AND ISNULL(@VC_LoggedInEmployeeName, '') <> '';
+				UPDATE #ImportFields SET FieldValue = @VC_LoggedInEmployeeName WHERE FieldName = 'EmployeeId' AND ISNULL(FieldValue, '') = '' AND ISNULL(@VC_LoggedInEmployeeName, '') <> '';
+			END
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			
 			WHILE(@TotalRow >= @CurrentRow)
@@ -368,9 +379,9 @@ BEGIN
 				DECLARE @wManufacturerId VARCHAR(255)
 				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName, @IsMultiValue = IsMultiValue
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
-				if(@ModuleId = @WorkOrderMaterialsModule)
+				if(@ModuleId = @WorkOrderMaterialsModule OR @ModuleId = @VendorCapabilityModule)
 				BEGIN
-					SELECT @wManufacturerId = FieldValue 
+					SELECT @wManufacturerId = FieldValue
 						FROM #ImportFields 
 						WHERE FieldName = 'ManufacturerId';
 				END
@@ -393,7 +404,7 @@ BEGIN
 						END
 						ELSE
 						BEGIN
-						IF(@ModuleId = @WorkOrderMaterialsModule AND @DropdownListId = 'ItemMasterId')
+						IF((@ModuleId = @WorkOrderMaterialsModule OR @ModuleId = @VendorCapabilityModule) AND @DropdownListId = 'ItemMasterId')
 						BEGIN
 							IF (
 								SELECT COUNT(*)
@@ -670,8 +681,30 @@ BEGIN
 														 AND IMF.FieldName = 'UnitCost'
 														 AND (SELECT LOWER(LTRIM(RTRIM(FieldValue))) FROM #DynamicKeyValue WHERE FieldName = 'TaskId') = 'teardown'
 													 )
+													 -- VendorCapability: PN Description / Manufacturer come from the PN (PN-18200)
+													 AND NOT (@ModuleId = @VendorCapabilityModule AND IMF.FieldName IN ('PartDescription', 'ManufacturerId'))
 												THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												------------START: VendorCapability Validation (PN-18200)------------
+												WHEN @ModuleId = @VendorCapabilityModule AND IMF.FieldName = 'CurrencyId' AND ISNULL(TMP.FieldValue, '') = ''
+													 AND ISNULL(TRY_CAST(REPLACE((SELECT TOP 1 FieldValue FROM #DynamicKeyValue WHERE FieldName = 'Cost'), ',', '') AS DECIMAL(18,2)), 0) > 0
+												THEN IMF.HeaderName + ' is Required when Cost is greater than 0'
+												WHEN @ModuleId = @VendorCapabilityModule AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(TMP.FieldValue, '') = '' THEN ''
+												WHEN @ModuleId = @VendorCapabilityModule AND IMF.FieldName = 'Cost' AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND (TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+														  OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) < 0
+														  OR (CHARINDEX('.', TMP.FieldValue) > 0 AND LEN(PARSENAME(TMP.FieldValue, 1)) > 2))
+												THEN IMF.HeaderName + ' must be a valid amount with up to 2 decimal places'
+												WHEN @ModuleId = @VendorCapabilityModule AND IMF.FieldName = 'Cost' THEN ''
+												WHEN @ModuleId = @VendorCapabilityModule AND ISNULL(IMF.FieldType, '') IN ('date', 'datetime') AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND TRY_CAST(REPLACE(TMP.FieldValue, 'Z', '') AS DATETIME) IS NULL
+												THEN IMF.HeaderName + ' must be a valid date (MM/DD/YYYY)'
+												WHEN @ModuleId = @VendorCapabilityModule AND IMF.FieldName = 'ManufacturerId' AND ISNULL(TMP.FieldValue, '') = ''
+													 AND (SELECT COUNT(1) FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+														  WHERE UPPER(TRIM(IM.[PartNumber])) = UPPER(TRIM((SELECT TOP 1 FieldValue FROM #ImportFields WHERE FieldName = 'ItemMasterId')))
+															AND IM.[MasterCompanyId] = @MasterCompanyId AND ISNULL(IM.[IsNonStock], 0) = 0) > 1
+												THEN IMF.HeaderName + ' is Required, PN exists for more than one Manufacturer'
+												------------END: VendorCapability Validation (PN-18200)------------
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
 												WHEN (@ModuleId = @ItemMasterModule)
 												THEN LTRIM(RTRIM(
@@ -1355,6 +1388,39 @@ BEGIN
 				--SET @Manufacture = @ManufacturerId;
 				--SET @ManufacturerId = @ManufacturerName;
 			END
+			------------START: VendorCapability duplicate Vendor + PN + Cap Type (PN-18200)------------
+			IF (@ModuleId = @VendorCapabilityModule)
+			BEGIN
+				SET @VC_DuplicateMsg = '';
+				SET @VC_VendorId = TRY_CAST((SELECT TOP 1 DropdownListValueId FROM #ImportFields WHERE FieldName = 'VendorId') AS BIGINT);
+				SET @VC_ItemMasterId = TRY_CAST((SELECT TOP 1 DropdownListValueId FROM #ImportFields WHERE FieldName = 'ItemMasterId') AS BIGINT);
+				SET @VC_CapabilityTypeId = TRY_CAST((SELECT TOP 1 DropdownListValueId FROM #ImportFields WHERE FieldName = 'CapabilityTypeId') AS BIGINT);
+
+				IF (ISNULL(@VC_VendorId, 0) > 0 AND ISNULL(@VC_ItemMasterId, 0) > 0 AND ISNULL(@VC_CapabilityTypeId, 0) > 0
+					AND EXISTS (SELECT 1 FROM [DBO].[VendorCapability] VC WITH(NOLOCK)
+								WHERE VC.[VendorId] = @VC_VendorId AND VC.[ItemMasterId] = @VC_ItemMasterId AND VC.[CapabilityTypeId] = @VC_CapabilityTypeId
+								  AND VC.[MasterCompanyId] = @MasterCompanyId AND ISNULL(VC.[IsDeleted], 0) = 0))
+				BEGIN
+					SET @VC_DuplicateMsg = 'Vendor Capability already exists for this Vendor, PN and Cap Type';
+				END
+				ELSE IF ((SELECT COUNT(1) FROM @UploadData UD
+						  WHERE UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.VendorId')))         = UPPER(TRIM(JSON_VALUE(@UploadRecord, '$.VendorId')))
+							AND UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.ItemMasterId')))     = UPPER(TRIM(JSON_VALUE(@UploadRecord, '$.ItemMasterId')))
+							AND UPPER(TRIM(ISNULL(JSON_VALUE(UD.UploadRecord, '$.ManufacturerId'), ''))) = UPPER(TRIM(ISNULL(JSON_VALUE(@UploadRecord, '$.ManufacturerId'), '')))
+							AND UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.CapabilityTypeId'))) = UPPER(TRIM(JSON_VALUE(@UploadRecord, '$.CapabilityTypeId')))) > 1)
+				BEGIN
+					SET @VC_DuplicateMsg = 'Duplicate Vendor, PN and Cap Type found in the uploaded file';
+				END
+
+				IF (@VC_DuplicateMsg <> '')
+				BEGIN
+					UPDATE #ImportFields SET DuplicateErrorMsg = @VC_DuplicateMsg WHERE FieldName = 'ItemMasterId';
+				END
+
+				-- Cost Date not given: default to today (same as the old Upload Capes popup)
+				UPDATE #DynamicKeyValue SET FieldValue = CONVERT(VARCHAR(10), GETDATE(), 23) WHERE FieldName = 'CostDate' AND ISNULL(FieldValue, '') = '';
+			END
+			------------END: VendorCapability duplicate Vendor + PN + Cap Type (PN-18200)------------
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
@@ -1518,12 +1584,48 @@ BEGIN
 			BEGIN
 			IF (@ManufacturerName IS NOT NULL)
 				BEGIN
-					UPDATE #uploadDataResults 
-					SET 
+					UPDATE #uploadDataResults
+					SET
 						OriginalRecordData = JSON_MODIFY(OriginalRecordData, '$.ManufacturerId', @ManufacturerName) WHERE RecordId = @CurrentRecord;
 				END
 			END
-			
+
+			------------START: VendorCapability - show PN Description / Manufacturer / Capability Desc of the matched PN and Cape Type (read-only in the grid) (PN-18200)------------
+			IF (@ModuleId = @VendorCapabilityModule AND ISNULL(@VC_ItemMasterId, 0) > 0)
+			BEGIN
+				UPDATE UDR
+				SET UDR.OriginalRecordData = JSON_MODIFY(JSON_MODIFY(UDR.OriginalRecordData,
+												'$.PartDescription', ISNULL(IM.[PartDescription], '')),
+												'$.ManufacturerId', ISNULL(M.[Name], ISNULL(IM.[ManufacturerName], '')))
+				FROM #uploadDataResults UDR
+				INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = @VC_ItemMasterId
+				LEFT JOIN [DBO].[Manufacturer] M WITH(NOLOCK) ON M.[ManufacturerId] = IM.[ManufacturerId]
+				WHERE UDR.RecordId = @CurrentRecord;
+			END
+			IF (@ModuleId = @VendorCapabilityModule AND ISNULL(@VC_CapabilityTypeId, 0) > 0)
+			BEGIN
+				UPDATE UDR
+				SET UDR.OriginalRecordData = JSON_MODIFY(UDR.OriginalRecordData, '$.CapabilityTypeDescription', ISNULL(CT.[Description], ''))
+				FROM #uploadDataResults UDR
+				INNER JOIN [DBO].[CapabilityType] CT WITH(NOLOCK) ON CT.[CapabilityTypeId] = @VC_CapabilityTypeId
+				WHERE UDR.RecordId = @CurrentRecord;
+			END
+			IF (@ModuleId = @VendorCapabilityModule)
+			BEGIN
+				-- Cost Date defaults to today, Employee defaults to the logged-in employee (same as the old Upload Capes popup)
+				UPDATE UDR
+				SET UDR.OriginalRecordData = JSON_MODIFY(UDR.OriginalRecordData, '$.CostDate', CONVERT(VARCHAR(10), GETDATE(), 23))
+				FROM #uploadDataResults UDR
+				WHERE UDR.RecordId = @CurrentRecord AND ISNULL(JSON_VALUE(UDR.OriginalRecordData, '$.CostDate'), '') = '';
+
+				UPDATE UDR
+				SET UDR.OriginalRecordData = JSON_MODIFY(UDR.OriginalRecordData, '$.EmployeeId', E.[EmployeeName])
+				FROM #uploadDataResults UDR
+				INNER JOIN [DBO].[View_Employee] E WITH(NOLOCK) ON E.[EmployeeId] = @EmployeeId
+				WHERE UDR.RecordId = @CurrentRecord AND ISNULL(JSON_VALUE(UDR.OriginalRecordData, '$.EmployeeId'), '') = '';
+			END
+			------------END: VendorCapability - show PN Description / Manufacturer / Capability Desc (PN-18200)------------
+
 			INSERT INTO [dbo].[UploadModuleData] ([ModuleId], [OriginalRecordData], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], 
 						[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 			SELECT [ModuleId], [OriginalRecordData], [UploadRecord], '', [Status], 0, [IsError], [MasterCompanyId], [UserName], GETUTCDATE(), [UserName], GETUTCDATE(), 1, 0

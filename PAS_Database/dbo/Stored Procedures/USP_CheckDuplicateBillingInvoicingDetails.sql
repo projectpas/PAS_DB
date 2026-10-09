@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
     1    08/09/2025   MOIN BLOCH     Created  
+    2    09/Oct/2026  Kishor Makwana [PN-18238] - Sales Order: a new invoice for a stockline that already has an invoice was always reported as a duplicate, so the remaining qty (partial reservation/shipping/billing) could not be invoiced. It is now a duplicate only when the qty already on live invoices covers the shipped/reserved qty.
 
 -- EXEC USP_CheckDuplicateBillingInvoicingDetails 
 ************************************************************************/  
@@ -143,7 +144,9 @@ BEGIN
 
 			IF(@BillingInvoicingIdI = 0)
 			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[BillingInvoicingItems] WHERE [MasterCompanyId] = @MasterCompanyId AND [ModuleId] = @ModuleId AND [ReferenceId] = @ReferenceIdI AND [SubModuleId] = @SubModuleId AND [SubReferenceId] = @SubReferenceId AND [StocklineId] = @StocklineId AND ISNULL([IsPerformaInvoice],0) = @IsPerformaInvoiceI AND ISNULL([IsVersionIncrease],0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK)
+				INNER JOIN BillingInvoicing BI WITH(NOLOCK) ON BI.BillingInvoicingId =BII.BillingInvoicingId
+				WHERE BII.[MasterCompanyId] = @MasterCompanyId AND BII.[ModuleId] = @ModuleId AND BII.[ReferenceId] = @ReferenceIdI AND BII.[SubModuleId] = @SubModuleId AND BII.[SubReferenceId] = @SubReferenceId AND BII.[StocklineId] = @StocklineId AND ISNULL(BII.[IsPerformaInvoice],0) = @IsPerformaInvoiceI AND ISNULL(BII.[IsVersionIncrease],0) = 0 AND BI.InvoiceStatusId <> 3)
 				BEGIN				
 					SET @Flag = 0;
 				END

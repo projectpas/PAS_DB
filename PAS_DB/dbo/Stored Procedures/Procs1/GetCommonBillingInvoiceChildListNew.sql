@@ -57,11 +57,13 @@
 	                                      belonged to the same invoice displayed the SAME invoice-wide total instead of its own item amount (e.g. an invoice billing 5 Stocklines at $3,543.75 each showed $17,718.75 -
 	                                      the full invoice total - on every single Stockline row). Confirmed against live data: BillingInvoicingItems had the correct distinct per-Stockline GrandTotal rows all along.
 	                                      Changed to ISNULL(sobii.GrandTotal, 0) (matching the pattern already used correctly in the Non-Stock Service arm just below), and updated the GROUP BY to reference sobii.GrandTotal instead of sobi.GrandTotal to match.
-    30   09-Oct-2026   Rajesh Gami		[PN-18268] Added IsStandardInvoicePosted to the output (from BillingInvoicing, Proforma rows) so the UI can disable Re-Open for a Proforma invoice whose Standard invoice is already posted.
+    30   09-Oct-2026   Rajesh Gami		  [PN-18268] Added IsStandardInvoicePosted to the output (from BillingInvoicing, Proforma rows) so the UI can disable Re-Open for a Proforma invoice whose Standard invoice is already posted.
+	31   08/Oct/2026   Kishor Makwana     [PN-17760] - SO @AllowBillingBeforeShipping = 0 branch: the BillingInvoicingItems join matched an earlier invoice by part+stockline only, so a later shipment of the same stockline (e.g. 1 invoiced, then 2 shipped) inherited the first invoice (InvoiceNo/QtyBilled 1/Status) instead of showing Qty to Bill 2. Join now also matches sobii.ShippingId to the shipment (legacy NULL ShippingId kept), and shipment x pick-ticket rows with no shipping item are dropped once the part has shipped.
+    
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 11268,11723,1,10,2,10,103606
 
-CREATE   PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
+CREATE PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
 @ReferenceId BIGINT = NULL,
 @SubReferenceId BIGINT = NULL, 
 @IncludeProformaInvoice BIT = NULL,
@@ -690,7 +692,7 @@ BEGIN
 					LEFT JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = sos.SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 					LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId AND sosi.SalesOrderPartId=sop.SalesOrderPartId AND sosi.SalesOrderPartId=@SubReferenceId 
 					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.ItemMasterId = sop.ItemMasterId and sobii.SubReferenceId = @SubReferenceId
-						AND sobii.StockLineId = stk.StockLineId
+						AND sobii.StockLineId = stk.StockLineId AND (ISNULL(sobii.ShippingId, 0) = 0 OR sobii.ShippingId = sos.SalesOrderShippingId) 
 						AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId 
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND SOBI.ModuleId = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
@@ -702,6 +704,7 @@ BEGIN
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId 
 					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					WHERE sos.SalesOrderId = @ReferenceId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SubReferenceId
+					AND (sosi.SalesOrderShippingItemId IS NOT NULL OR NOT EXISTS (SELECT 1 FROM DBO.SalesOrderShippingItem sosx WITH (NOLOCK) WHERE sosx.SalesOrderPartId = sop.SalesOrderPartId AND sosx.IsActive = 1 AND ISNULL(sosx.IsDeleted,0) = 0)) 
 					GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,
 					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
@@ -910,7 +913,7 @@ BEGIN
 								INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId  AND b.SubReferenceId = sop.SalesOrderPartId
 								Where a.ReferenceId = @ReferenceId AND b.BillingInvoicingItemId = sobii.BillingInvoicingItemId  AND a.ModuleId = @SOModuleId AND b.SubReferenceId = @SubReferenceId
 								AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS InvoiceStatus,
-							(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.ShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
+							(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.ShippingId > 0 THEN ISNULL((SELECT TOP 1 NULLIF(SOSM.SmentNum,0) FROM DBO.SalesOrderShipping SOSM WITH (NOLOCK) WHERE SOSM.SalesOrderShippingId = SOBII.ShippingId),1) ELSE 0 END) else ISNULL((SELECT TOP 1 NULLIF(SOSM.SmentNum,0) FROM DBO.SalesOrderShipping SOSM WITH (NOLOCK) WHERE SOSM.SalesOrderShippingId = SOSI.SalesOrderShippingId),1) end) AS 'SmentNo', 
 							sobii.VersionNo, 
 							(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 							CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
@@ -1090,7 +1093,22 @@ BEGIN
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
 							INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = Stk.StockLineId AND SOR.SalesOrderId = @ReferenceId
-							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND SOBII.ModuleId = @SOModuleId AND sobii.SubReferenceId =@SubReferenceId
+							-- [PN-18238] one row per existing invoice item PLUS one unbilled row for the reserved qty not yet invoiced
+							CROSS APPLY (
+								SELECT bx.BillingInvoicingItemId AS SlotItemId
+								FROM DBO.BillingInvoicingItems bx WITH (NOLOCK)
+								WHERE bx.SubReferenceId = sop.SalesOrderPartId AND bx.StockLineId = stk.StockLineId
+									AND ISNULL(bx.IsPerformaInvoice,0) = 0 AND bx.ModuleId = @SOModuleId AND bx.SubReferenceId = @SubReferenceId
+								UNION ALL
+								SELECT CAST(NULL AS BIGINT)
+								WHERE ISNULL(SOR.QtyToReserve, 0) - ISNULL((SELECT SUM(ISNULL(bb.QtyBilled, 0))
+										FROM DBO.BillingInvoicingItems bb WITH (NOLOCK)
+										INNER JOIN DBO.BillingInvoicing bh WITH (NOLOCK) ON bh.BillingInvoicingId = bb.BillingInvoicingId
+										WHERE bb.SubReferenceId = sop.SalesOrderPartId AND bb.StockLineId = stk.StockLineId
+											AND ISNULL(bb.IsPerformaInvoice,0) = 0 AND bb.ModuleId = @SOModuleId
+											AND ISNULL(bh.IsVersionIncrease,0) = 0), 0) > 0
+							) SLOT
+							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingItemId = SLOT.SlotItemId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId AND SOBI.ModuleId = @SOModuleId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
 							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
@@ -1104,21 +1122,26 @@ BEGIN
 						WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId and SOP.ConditionId = @ConditionId AND SOP.SalesOrderPartId = @SubReferenceId
 						AND SOR.QtyToReserve > 0
 
-						UPDATE  #InvoiceMainDetails SET QtyToBill = tmpcash.QtyToBill
-									FROM( SELECT ISNULL(SORR.QtyToReserve, 0)  QtyToBill, tmpSOBI.StockLineId
-											FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK)
-											JOIN #InvoiceMainDetails tmpSOBI ON SORR.SalesOrderPartId = tmpSOBI.SalesOrderPartId 
-											AND SORR.StockLineId = tmpSOBI.StockLineId
-											AND SORR.SalesOrderId = @ReferenceId
-									) tmpcash WHERE tmpcash.StockLineId = #InvoiceMainDetails.StockLineId
+						-- [PN-18238] invoiced rows: nothing left to bill on them. The unbilled row: reserved qty minus qty already on live invoices.
+						UPDATE #InvoiceMainDetails SET QtyToBill = 0 WHERE BillingInvoicingItemId IS NOT NULL
 
-						UPDATE  #InvoiceMainDetails SET QtyBilled = tmpcash.QtyBilled
-									FROM( SELECT b.QtyBilled, b.SubReferenceId, b.StockLineId
-										FROM dbo.BillingInvoicingItems b WITH (NOLOCK) 
-												JOIN #InvoiceMainDetails tmpSOBI ON tmpSOBI.BillingInvoicingItemId = b.BillingInvoicingItemId
-												WHERE b.BillingInvoicingItemId = tmpSOBI.BillingInvoicingItemId
-												AND ISNULL(b.IsPerformaInvoice,0) = 0   AND b.ModuleId = @SOModuleId 
-									) tmpcash WHERE tmpcash.StockLineId = #InvoiceMainDetails.StockLineId
+						UPDATE TMP SET QtyToBill = ISNULL(SORR.QtyToReserve, 0) - ISNULL((SELECT SUM(ISNULL(bb.QtyBilled, 0))
+									FROM DBO.BillingInvoicingItems bb WITH (NOLOCK)
+									INNER JOIN DBO.BillingInvoicing bh WITH (NOLOCK) ON bh.BillingInvoicingId = bb.BillingInvoicingId
+									WHERE bb.SubReferenceId = TMP.SalesOrderPartId AND bb.StockLineId = TMP.StockLineId
+										AND ISNULL(bb.IsPerformaInvoice,0) = 0 AND bb.ModuleId = @SOModuleId
+										AND ISNULL(bh.IsVersionIncrease,0) = 0), 0)
+						FROM #InvoiceMainDetails TMP
+						JOIN DBO.SalesOrderReserveParts SORR WITH (NOLOCK) ON SORR.SalesOrderPartId = TMP.SalesOrderPartId AND SORR.StockLineId = TMP.StockLineId AND SORR.SalesOrderId = @ReferenceId
+						WHERE TMP.BillingInvoicingItemId IS NULL
+
+						-- [PN-18238] keyed by invoice item (was by stockline only, ambiguous with several invoices on one stockline)
+						UPDATE TMP SET QtyBilled = b.QtyBilled
+									FROM #InvoiceMainDetails TMP
+									JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON b.BillingInvoicingItemId = TMP.BillingInvoicingItemId
+									WHERE ISNULL(b.IsPerformaInvoice,0) = 0 AND b.ModuleId = @SOModuleId
+
+						UPDATE #InvoiceMainDetails SET QtyBilled = 0 WHERE BillingInvoicingItemId IS NULL AND QtyBilled IS NULL
 						
 						UPDATE  #InvoiceMainDetails SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 						FROM( SELECT 
@@ -1160,6 +1183,13 @@ BEGIN
 						) tmpcash WHERE 
 						tmpcash.SalesOrderStocklineId = #InvoiceMainDetails.SalesOrderStocklineId
 						AND tmpcash.BillingInvoicingId IS NULL
+
+						-- [PN-18238] unbilled row is priced for its own qty only
+						UPDATE TMP SET TotalSales = (ISNULL(SOSC.NetSaleAmount, 0) / NULLIF(ISNULL(STK.QtyOrder, 1), 0)) * ISNULL(TMP.QtyToBill, 0)
+						FROM #InvoiceMainDetails TMP
+						INNER JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderStocklineId = TMP.SalesOrderStocklineId
+						LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
+						WHERE TMP.BillingInvoicingItemId IS NULL
 
 						UPDATE  #InvoiceMainDetails SET TotalFreight = tmpcash.TotalFreight
 						FROM( SELECT SUM(ISNULL((BillingAmount), 0)) AS TotalFreight , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId

@@ -45,10 +45,11 @@
 	                                      resolves per Stockline, not per Part.
 
 
+	28   08/Oct/2026 Kishor Makwana		[PN-18238] - SO billing popup: a stockline with a POSTED invoice and a later DRAFT invoice returned status INVOICED (MAX over both) and the draft was removed (No Records Found). The draft invoice is now used when one exists.
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 19821,19957,'19957',15,1,0
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -592,14 +593,21 @@ BEGIN
 				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
 				SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 									, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
-							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,sosi.SalesOrderShippingId
+							SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,
+							-- [PN-17760] ONE line per stockline: qty shipped over all shipments minus qty already on POSTED invoices (a draft invoice's qty is merged back in), latest shipment as the shipping ref
+							ISNULL(SUM(ISNULL(sosi.QtyShipped,0)),0) - ISNULL(PB.PostedQty,0),Sl.StockLineNumber,MAX(sosi.SalesOrderShippingId)
 
 				FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					 INNER JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId AND  STK.ToTalReservedQty > 0
 					 INNER JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
 					 INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = SOP.SalesOrderId AND SOPT.SalesOrderPartStocklineId = STK.SalesOrderStocklineId
 					 INNER JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SOP.SalesOrderId  
-					 INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId AND sosi.SalesOrderPartId=sop.SalesOrderPartId AND sosi.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,','))
+					 INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId AND sosi.SalesOrderPartId=sop.SalesOrderPartId AND sosi.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')) AND ISNULL(sosi.IsDeleted,0) = 0
+					 OUTER APPLY (SELECT SUM(ISNULL(bb.QtyBilled,0)) AS PostedQty FROM dbo.BillingInvoicingItems bb WITH (NOLOCK)
+								  INNER JOIN dbo.BillingInvoicing bh WITH (NOLOCK) ON bh.BillingInvoicingId = bb.BillingInvoicingId
+								  WHERE bb.ReferenceId = SOP.SalesOrderId AND bb.SubReferenceId = SOP.SalesOrderPartId AND bb.StocklineId = STK.StockLineId AND bb.ModuleId = @ModuleId
+									AND ISNULL(bb.IsPerformaInvoice,0) = 0 AND ISNULL(bh.IsVersionIncrease,0) = 0
+									AND (ISNULL(bh.IsInvoicePosted,0) = 1 OR ISNULL(bh.InvoiceStatus,'') = 'INVOICED')) PB
 					 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 				WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
@@ -607,6 +615,9 @@ BEGIN
 				  AND ISNULL(SOP.IsDeleted,0) = 0 AND  (((@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0)) 
 				  OR ((SELECT SUM(ISNULL(sopi.QtyShipped,0)) FROM dbo.SalesOrderShippingItem sopi WITH(NOLOCK) WHERE  sopi.SalesOrderPartId = SOP.SalesOrderPartId and SOPI.IsActive = 1 AND ISNULL(SOPI.IsDeleted,0) = 0)) > 0
 				  )
+				  GROUP BY Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],SOP.ConditionId,STK.[ConditionId],STK.SalesOrderStocklineId,con.[Description],COND.[Description],
+						   SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],Sl.StockLineNumber,PB.PostedQty
+				  HAVING ISNULL(SUM(ISNULL(sosi.QtyShipped,0)),0) - ISNULL(PB.PostedQty,0) > 0
 
 				  UNION
 				  
@@ -704,7 +715,56 @@ BEGIN
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
 							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))
 							AND (cpd.SubReferenceId = BII.SubReferenceId OR (cpd.SubReferenceId IS NULL))
+							AND (ISNULL(cpd.ShippingId,0) = 0 OR ISNULL(BII.ShippingId,0) = 0 OR BII.ShippingId = cpd.ShippingId OR (@ModuleId = @SOModuleId AND ISNULL(BI.IsInvoicePosted,0) = 0 AND ISNULL(BI.InvoiceStatus,'') <> 'INVOICED')) -- [PN-18238] an invoice only hides the shipment it was posted for, not later shipments of the same stockline
 							WHERE cpd.ReferenceId = @ReferenceId  AND ((ISNULL(Bi.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0) OR  (ISNULL(Bi.IsVersionIncrease,0) = 1 AND ISNULL(BII.IsVersionIncrease,0) = 0)) AND  [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);	
+
+				-- [PN-17760] A stockline can have a POSTED invoice (e.g. 4 qty) and a later DRAFT invoice (e.g. 1 qty). The lookup above takes MAX(status) = 'INVOICED' over both,
+				-- so the draft was hidden ("No Records Found") and could not be revised. When a draft exists, use the draft.
+				IF (@ModuleId = @SOModuleId AND ISNULL(@IsProformaInvoice,0) = 0 AND ISNULL(@InvoiceStatusName,'') = 'INVOICED')
+				BEGIN
+					DECLARE @DraftBillingInvoicingId BIGINT = 0, @DraftBillingInvoicingItemId BIGINT = 0, @DraftItemGrandTotal DECIMAL(18,2) = 0, @DraftInvoiceStatus VARCHAR(100) = '';
+					SELECT TOP 1 @DraftBillingInvoicingId = ISNULL(BI.BillingInvoicingId,0), @DraftBillingInvoicingItemId = ISNULL(BII.BillingInvoicingItemId,0),
+						@DraftItemGrandTotal = ISNULL(BII.GrandTotal,0), @DraftInvoiceStatus = ISNULL(BI.InvoiceStatus,'')
+					FROM #TempCommonPartNumberDetailsForBilling cpd
+						INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId
+						INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = cpd.ItemMasterId
+							AND (BII.ConditionId = cpd.ConditionId OR (cpd.ConditionId IS NULL))
+							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))
+							AND (cpd.SubReferenceId = BII.SubReferenceId OR (cpd.SubReferenceId IS NULL))
+					WHERE cpd.ReferenceId = @ReferenceId AND cpd.[PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = 0
+						AND ISNULL(BI.IsInvoicePosted,0) = 0 AND ISNULL(BI.InvoiceStatus,'') <> 'INVOICED'
+						AND ISNULL(BI.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0
+					ORDER BY BII.BillingInvoicingItemId DESC;
+					IF (@DraftBillingInvoicingId > 0)
+					BEGIN
+						SET @BillingInvoicingId = @DraftBillingInvoicingId;
+						SET @BillingInvoicingItemId = @DraftBillingInvoicingItemId;
+						SET @itemProformaGrandTotal = @DraftItemGrandTotal;
+						SET @InvoiceStatusName = @DraftInvoiceStatus;
+					END
+				END
+
+				-- [PN-17760] Allow-invoice-before-shipping: qty reserved AFTER an invoice was posted is still billable. A posted invoice must only hide
+				-- the part when the whole reserved qty is already on live invoices; otherwise show the remainder (reserved - billed) as a new invoice qty.
+				DECLARE @PreShipUnbilledQty DECIMAL(10,2) = 0;
+				IF (ISNULL(@AllowInvoiceBeforeShipping,0) = 1 AND ISNULL(@IsProformaInvoice,0) = 0 AND ISNULL(@InvoiceStatusName,'') = 'INVOICED'
+					AND NOT EXISTS (SELECT 1 FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId AND ISNULL(ShippingId,0) > 0))
+				BEGIN
+					SET @PreShipUnbilledQty = ISNULL((SELECT SUM(ISNULL(SORR.QtyToReserve,0)) FROM dbo.SalesOrderReserveParts SORR WITH (NOLOCK)
+													   WHERE SORR.SalesOrderId = @ReferenceId AND SORR.SalesOrderPartId = @ID AND SORR.StockLineId = @stocklineID),0)
+											- ISNULL((SELECT SUM(ISNULL(bb.QtyBilled,0)) FROM dbo.BillingInvoicingItems bb WITH (NOLOCK)
+													   INNER JOIN dbo.BillingInvoicing bh WITH (NOLOCK) ON bh.BillingInvoicingId = bb.BillingInvoicingId
+													   WHERE bb.ReferenceId = @ReferenceId AND bb.SubReferenceId = @ID AND bb.StocklineId = @stocklineID AND bb.ModuleId = @ModuleId
+														 AND ISNULL(bb.IsPerformaInvoice,0) = 0 AND ISNULL(bh.IsVersionIncrease,0) = 0),0);
+					IF (@PreShipUnbilledQty > 0)
+					BEGIN
+						SET @InvoiceStatusName = '';
+						SET @BillingInvoicingId = 0;
+						SET @BillingInvoicingItemId = 0;
+						SET @itemProformaGrandTotal = 0;
+						UPDATE #TempCommonPartNumberDetailsForBilling SET QtyBilled = @PreShipUnbilledQty WHERE [PKID] = @MinId;
+					END
+				END
 				
 				IF(@SoChargesBillingMethodId != 0 AND @SoChargesBillingMethodId != @FlatBillingMethodId)
 				BEGIN
@@ -727,6 +787,14 @@ BEGIN
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select TOP 1 ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
+				IF (@PreShipUnbilledQty > 0) SET @totalQtyShippedReserved = @PreShipUnbilledQty -- [PN-17760] price only the qty being invoiced now
+				-- [PN-17760] AllowInvoiceBeforeShipping = 0: the line qty is already shipped qty minus posted qty, price exactly that
+				DECLARE @SoLineQty DECIMAL(10,2) = 0;
+				IF (@ModuleId = @SOModuleId AND ISNULL(@AllowInvoiceBeforeShipping,0) = 0 AND ISNULL(@IsProformaInvoice,0) = 0)
+				BEGIN
+					SELECT @SoLineQty = ISNULL(QtyBilled,0) FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId AND ISNULL(ShippingId,0) > 0;
+					IF (@SoLineQty > 0) SET @totalQtyShippedReserved = @SoLineQty;
+				END
 		
 				--SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END

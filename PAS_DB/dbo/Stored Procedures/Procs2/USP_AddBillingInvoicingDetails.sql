@@ -33,11 +33,12 @@
 	20   18/08/2026   Kishor Makwana [PN-17439] -Not Proper Update IsVersionIncrease in BillingInvoicingItems.
 	21   24/08/2026   Kishor Makwana Update Shipping ID based on the Stockline ID and PickticktetID
 	22   17/09/2026   Vishal Suthar  Fixed BillingInvoicing.InvoiceDate always saved as current date (@CreatedDate) instead of the user-selected @InvoiceDate
+	23   08/10/2026   Kishor Makwana [PN-17760] 'Update Shipping ID' UPDATE was not limited to the invoice being saved and overwrote ShippingId on every non-versioned invoice item of the same part/stockline with an arbitrary shipment (so an invoice for shipment 1 could end up pointing at shipment 2). It now only fills a missing ShippingId on the new invoice, using a shipment not already billed.
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
-CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -512,7 +513,9 @@ BEGIN
 						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
 						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
 						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
-						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0
+						AND BII.BillingInvoicingId = @BillingInvoicingIdNew AND ISNULL(BII.ShippingId,0) = 0
+						AND NOT EXISTS (SELECT 1 FROM BillingInvoicingItems BIX WITH (NOLOCK) WHERE BIX.ReferenceId = BII.ReferenceId AND BIX.SubReferenceId = BII.SubReferenceId AND BIX.StocklineId = BII.StocklineId AND BIX.ShippingId = SOSI.SalesOrderShippingId AND BIX.BillingInvoicingItemId <> BII.BillingInvoicingItemId AND ISNULL(BIX.IsVersionIncrease,0) = 0 AND ISNULL(BIX.IsPerformaInvoice,0) = 0);
 					END
 
 
@@ -619,7 +622,9 @@ BEGIN
 						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
 						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
 						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
-						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0;
+						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0
+						AND BII.BillingInvoicingId = @BillingInvoicingIdNew AND ISNULL(BII.ShippingId,0) = 0
+						AND NOT EXISTS (SELECT 1 FROM BillingInvoicingItems BIX WITH (NOLOCK) WHERE BIX.ReferenceId = BII.ReferenceId AND BIX.SubReferenceId = BII.SubReferenceId AND BIX.StocklineId = BII.StocklineId AND BIX.ShippingId = SOSI.SalesOrderShippingId AND BIX.BillingInvoicingItemId <> BII.BillingInvoicingItemId AND ISNULL(BIX.IsVersionIncrease,0) = 0 AND ISNULL(BIX.IsPerformaInvoice,0) = 0);
 					END
 				
 			END						

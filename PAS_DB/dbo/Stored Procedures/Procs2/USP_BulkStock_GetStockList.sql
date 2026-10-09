@@ -20,6 +20,8 @@
 	8    06/07/2026         BHARGAV SALIYA          Added [StockLineId] as tie-breaker in ORDER BY for stable pagination PN-17116
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+   11    08/10/2026         BHARGAV SALIYA          Allow Non-Stock Items in Bulk Stockline Adjustment (Qty, Unit Price, Inter/Intra Company) and return/filter ItemType PN-17481
+   12    09/10/2026         BHARGAV SALIYA          Quantity adjustment: also list stocklines with Qty OH = 0 (Stock and Non-Stock) so their qty can be increased PN-17481
 *********
 *********/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -44,7 +46,8 @@ CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList]
 	@ManagementStructureId BIGINT = NULL,
 	@CustomerId BIGINT = NULL,
 	@UnitOfMeasure VARCHAR(50) = NULL,
-	@QuantityOnHand INT = NULL
+	@QuantityOnHand INT = NULL,
+	@ItemType VARCHAR(50) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -81,15 +84,15 @@ BEGIN
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   0 AS [IsSelected],
+					   CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
-					AND SL.[IsParent] = 1
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND ((SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0) OR (ISNULL(SL.[QuantityOnHand],0) = 0 AND ISNULL(SL.[QuantityAvailable],0) = 0)) -- PN-17481: allow OH = 0 stocklines for Qty adjustment
+					AND SL.[IsParent] = 1), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM  Result 
 				WHERE 
@@ -97,6 +100,7 @@ BEGIN
 						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
 						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
 						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([ItemType] LIKE '%' + @GlobalFilter + '%') OR
 						([ControlNumber] LIKE '%' + @GlobalFilter + '%') OR
 						([IdNumber] LIKE '%' + @GlobalFilter + '%') OR
 						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -108,6 +112,7 @@ BEGIN
 						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@ItemType, '') = '' OR [ItemType] LIKE '%' + @ItemType + '%') AND
 						(ISNULL(@ControlNumber, '') = '' OR [ControlNumber] LIKE '%' + @ControlNumber + '%') AND
 						(ISNULL(@IdNumber, '') = '' OR [IdNumber] LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
@@ -118,7 +123,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,[ItemType] FROM #TempResult
 			ORDER BY  
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -140,6 +145,8 @@ BEGIN
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn='ItemType') THEN ItemType END ASC,
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='ItemType') THEN ItemType END DESC,
 			[StockLineId] DESC	
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY	
@@ -161,15 +168,15 @@ BEGIN
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   0 AS [IsSelected],
+					   CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
-					AND SL.[IsCustomerStock] = 0 AND IsParent = 1
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[IsCustomerStock] = 0 AND IsParent = 1), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempUnitResult FROM  Result 
 				WHERE 
@@ -177,6 +184,7 @@ BEGIN
 						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
 						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
 						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([ItemType] LIKE '%' + @GlobalFilter + '%') OR
 						([ControlNumber] LIKE '%' + @GlobalFilter + '%') OR
 						([IdNumber] LIKE '%' + @GlobalFilter + '%') OR
 						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -188,6 +196,7 @@ BEGIN
 						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@ItemType, '') = '' OR [ItemType] LIKE '%' + @ItemType + '%') AND
 						(ISNULL(@ControlNumber, '') = '' OR [ControlNumber] LIKE '%' + @ControlNumber + '%') AND
 						(ISNULL(@IdNumber, '') = '' OR [IdNumber] LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
@@ -198,7 +207,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempUnitResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempUnitResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,[ItemType] FROM #TempUnitResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -220,6 +229,8 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn='ItemType') THEN ItemType END ASC,
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='ItemType') THEN ItemType END DESC,
 			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
@@ -241,7 +252,8 @@ BEGIN
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   0 AS [IsSelected],
+					   CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
@@ -249,8 +261,7 @@ BEGIN
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsCustomerStock] = 0 AND SL.[IsParent] = 1 
-					AND SL.[ManagementStructureId] = @ManagementStructureId
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[ManagementStructureId] = @ManagementStructureId), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempIntraInterResult FROM  Result 
 				WHERE 
@@ -258,6 +269,7 @@ BEGIN
 						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
 						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
 						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([ItemType] LIKE '%' + @GlobalFilter + '%') OR
 						([ControlNumber] LIKE '%' + @GlobalFilter + '%') OR
 						([IdNumber] LIKE '%' + @GlobalFilter + '%') OR
 						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -269,6 +281,7 @@ BEGIN
 						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@ItemType, '') = '' OR [ItemType] LIKE '%' + @ItemType + '%') AND
 						(ISNULL(@ControlNumber, '') = '' OR [ControlNumber] LIKE '%' + @ControlNumber + '%') AND
 						(ISNULL(@IdNumber, '') = '' OR [IdNumber] LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
@@ -279,7 +292,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempIntraInterResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempIntraInterResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,[ItemType] FROM #TempIntraInterResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -301,6 +314,8 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn='ItemType') THEN ItemType END ASC,
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='ItemType') THEN ItemType END DESC,
 			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
@@ -325,7 +340,8 @@ BEGIN
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[IsCustomerStock],
-					   0 AS [IsSelected]
+					   0 AS [IsSelected],
+					   CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						--INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						--LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
@@ -343,6 +359,7 @@ BEGIN
 						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
 						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
 						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([ItemType] LIKE '%' + @GlobalFilter + '%') OR
 						([UnitOfMeasure] LIKE '%' + @GlobalFilter + '%') OR
 						(CAST([QuantityOnHand] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
 						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -354,6 +371,7 @@ BEGIN
 						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@ItemType, '') = '' OR [ItemType] LIKE '%' + @ItemType + '%') AND
 						(ISNULL(@UnitOfMeasure, '') = '' OR [UnitOfMeasure] LIKE '%' + @UnitOfMeasure + '%') AND
 						--(CAST(ISNULL(@QuantityOnHand,'') AS VARCHAR(200)) = '' OR CAST([QuantityOnHand] AS VARCHAR(200)) Like '%' +  CAST(ISNULL(@QuantityOnHand,'') AS VARCHAR(200)) +'%') AND  
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
@@ -364,7 +382,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempCustStockResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[IsCustomerStock],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[UnitOfMeasure],[QuantityOnHand],[IsSelected], @Count AS NumberOfItems FROM #TempCustStockResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[IsCustomerStock],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[UnitOfMeasure],[QuantityOnHand],[IsSelected], @Count AS NumberOfItems,[ItemType] FROM #TempCustStockResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -386,6 +404,8 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn='ItemType') THEN ItemType END ASC,
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='ItemType') THEN ItemType END DESC,
 			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
@@ -409,15 +429,15 @@ BEGIN
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   0 AS [IsSelected],
+					   CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [ItemType]
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
-					AND SL.[IsCustomerStock] = 0 AND SL.[isSerialized] = 0 AND SL.[IsParent] = 1 
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[IsCustomerStock] = 0 AND SL.[isSerialized] = 0 AND SL.[IsParent] = 1 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempOtherResult FROM  Result 
 				WHERE 
@@ -425,6 +445,7 @@ BEGIN
 						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
 						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
 						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([ItemType] LIKE '%' + @GlobalFilter + '%') OR
 						([ControlNumber] LIKE '%' + @GlobalFilter + '%') OR
 						([IdNumber] LIKE '%' + @GlobalFilter + '%') OR
 						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
@@ -436,6 +457,7 @@ BEGIN
 						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@ItemType, '') = '' OR [ItemType] LIKE '%' + @ItemType + '%') AND
 						(ISNULL(@ControlNumber, '') = '' OR [ControlNumber] LIKE '%' + @ControlNumber + '%') AND
 						(ISNULL(@IdNumber, '') = '' OR [IdNumber] LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
@@ -446,7 +468,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempOtherResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempOtherResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,[ItemType] FROM #TempOtherResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -468,6 +490,8 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn='ItemType') THEN ItemType END ASC,
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='ItemType') THEN ItemType END DESC,
 			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	

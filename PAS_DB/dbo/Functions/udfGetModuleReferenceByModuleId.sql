@@ -20,6 +20,7 @@
 	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
 	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    14/08/2026  Amit Ghediya        [PN-17597] - added for leasing module refrencenumber
+	7    08/10/2026  BHARGAV SALIYA      Return reference number for Non-Stock stocklines in BulkStockAdjustments module PN-17481
 	
 **************************************************************/
 CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
@@ -93,7 +94,7 @@ BEGIN
 		END
 		IF (@ModuleName = 'BulkStockAdjustments')
 		BEGIN
-			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId AND ISNULL(Stk.IsNonStock,0) = 0;
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
 		END
 		IF (@ModuleName = 'StockAdjustments')
 		BEGIN

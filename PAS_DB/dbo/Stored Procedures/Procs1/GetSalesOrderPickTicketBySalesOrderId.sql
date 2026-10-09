@@ -14,8 +14,9 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    06/12/2024		EKTA CHANDEGRA	 Created  
+    2    07/10/2026		Bhargav Saliya	 Added CreditTermName and ShippingAccountNo for Pick Ticket print
 
- EXEC GetSalesOrderPickTicketBySalesOrderId 1 , 1
+ EXEC GetSalesOrderPickTicketBySalesOrderId 1357 , 1266
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderPickTicketBySalesOrderId] 
     @SalesOrderId BIGINT,
@@ -25,7 +26,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	SET NOCOUNT ON;   
 	BEGIN TRY
-		DECLARE @SalesOrderModuleId BIGINT = 10;
+		DECLARE @SalesOrderModuleId BIGINT = (SELECT ModuleId FROM dbo.[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER');
 
 		BEGIN
 		SELECT TOP 1
@@ -68,7 +69,9 @@ BEGIN
         ISNULL(empy.FirstName, '') + ' ' + ISNULL(empy.LastName, '') AS ConfirmedByName,
         sopkt.ConfirmedDate,
         sopkt.CreatedDate AS PTCreatedDate,
-        soq.CustomerReference
+        soq.CustomerReference, 
+        ISNULL(posv.ShippingTerms ,'') AS ShippingTermName,
+        ISNULL(posv.ShippingAccountNo, '') AS ShippingAccountNo
 			FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
 			LEFT JOIN [dbo].[SOPickTicket] sopkt WITH(NOLOCK) ON soq.SalesOrderId = sopkt.SalesOrderId AND sopkt.SOPickTicketId = @SOPickTicketId
 			LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId

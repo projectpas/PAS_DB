@@ -28,6 +28,7 @@
     12   06/30/2026   Bhargav Saliya   Apply UOM conversion (fn_ConvertUOM) on recalculated MarginAmount so the child SP stores it in the same stock-UOM convention as USP_AddUpdateSalesOrderPart
     13   22/Aug/2026  Kishor Makwana   [PN-17732] - Skip Pick Ticket removal for a ticket that already has a SalesOrderShippingItem against it
     14   08/Oct/2026  Vishal Suthar    [PN-16682] Exclude deleted Freight and Charges from part Freight/MiscCharges totals
+    15    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -61,8 +62,8 @@ SET NOCOUNT ON
 					FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK)
 					WHERE [SalesOrderPartId] = @SalesOrderPartId;
 
-					SELECT @StockUnitOfMeasure   = su.[ShortCode],
-					       @ConsumeUnitOfMeasure = cu.[ShortCode]
+					SELECT @StockUnitOfMeasure   = su.[ShortName],
+					       @ConsumeUnitOfMeasure = cu.[ShortName]
 					FROM [dbo].[ItemMaster] im WITH(NOLOCK)
 					LEFT JOIN [dbo].[UnitOfMeasure] su WITH(NOLOCK) ON im.[StockUnitOfMeasureId]   = su.[UnitOfMeasureId]
 					LEFT JOIN [dbo].[UnitOfMeasure] cu WITH(NOLOCK) ON im.[ConsumeUnitOfMeasureId] = cu.[UnitOfMeasureId]

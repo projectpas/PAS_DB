@@ -20,6 +20,7 @@
 ** 10   03/06/2025		Vishal Suthar			Fixed issue with Qty Picked and Qty Remaining calculation
 ** 11   30/30/2026		Moin Bloch			    UOM Changes PN-15067
 ** 12	19/06/2026	    Ayushi					[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+** 13    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
 exec sp_savePickTicketItemInterface @SOPickTicketId=0,@SOPickTicketNumber=N'PT(SO)-000742',@SalesOrderId=1570,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',@IsActive=1,@IsDeleted=0,@SalesOrderPartId=1973,@SalesOrderStocklineId=2517,@Qty=0,@QtyToShip=1,@MasterCompanyId=1,@Status=1,@PickedById=55,@ConfirmedById=0,@Memo=default,@IsConfirmed=0,@CodePrefixId=17,@CurrentNummber=742
 ********************************************************************************/
 CREATE      PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
@@ -62,9 +63,9 @@ BEGIN
   SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[SalesOrderPartV1] WHERE [SalesOrderId] = @SalesOrderId AND [SalesOrderPartId] = @SalesOrderPartId		
 
   SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
- 	 SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
-	 SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
-	 SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+ 	 SET @POUnitOfMeasure = (SELECT [ShortName] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
+	 SET @StockUnitOfMeasure = (SELECT [ShortName] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
+	 SET @ConsumeUnitOfMeasure = (SELECT [ShortName] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
 
   IF (@Qty > 0)
     SET @Qty = CASE 

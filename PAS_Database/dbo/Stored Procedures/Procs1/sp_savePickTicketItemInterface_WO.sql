@@ -23,6 +23,7 @@
  7	  19/03/2026	Priyansh Patel		Added the @IsAutoConfirmPickTicket logic [PN-15606]
  8	  19/06/2026	Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
@@ -68,8 +69,8 @@ BEGIN
 			IF(ISNULL(@IsMPN,0) = 0)
 			BEGIN
 				DECLARE	@StockUnitOfMeasure VARCHAR(100), @ConsumeUnitOfMeasure VARCHAR(100);
-				SELECT @StockUnitOfMeasure  = su.ShortCode,
-					   @ConsumeUnitOfMeasure = cu.ShortCode
+				SELECT @StockUnitOfMeasure  = su.ShortName,
+					   @ConsumeUnitOfMeasure = cu.ShortName
 				FROM DBO.Stockline sl WITH (NOLOCK)
 					LEFT JOIN DBO.UnitOfMeasure su WITH (NOLOCK) ON sl.StockUnitOfMeasureId = su.UnitOfMeasureId
 					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId

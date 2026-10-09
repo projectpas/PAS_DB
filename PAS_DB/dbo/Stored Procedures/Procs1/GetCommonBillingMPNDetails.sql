@@ -46,6 +46,7 @@
 
 
 	28   08/Oct/2026 Kishor Makwana		[PN-18238] - SO billing popup: a stockline with a POSTED invoice and a later DRAFT invoice returned status INVOICED (MAX over both) and the draft was removed (No Records Found). The draft invoice is now used when one exists.
+	29   09/OCT/2026 Kishor Makwana     [PN-18276] - a Proforma created before any stockline was reserved has no stockline on its item; match it so the revise supersedes it
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 19821,19957,'19957',15,1,0
 ************************************************************************/
@@ -713,7 +714,7 @@ BEGIN
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
-							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))
+							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL) OR (ISNULL(@IsProformaInvoice,0) = 1 AND ISNULL(BII.StocklineId,0) = 0)) 
 							AND (cpd.SubReferenceId = BII.SubReferenceId OR (cpd.SubReferenceId IS NULL))
 							AND (ISNULL(cpd.ShippingId,0) = 0 OR ISNULL(BII.ShippingId,0) = 0 OR BII.ShippingId = cpd.ShippingId OR (@ModuleId = @SOModuleId AND ISNULL(BI.IsInvoicePosted,0) = 0 AND ISNULL(BI.InvoiceStatus,'') <> 'INVOICED')) -- [PN-18238] an invoice only hides the shipment it was posted for, not later shipments of the same stockline
 							WHERE cpd.ReferenceId = @ReferenceId  AND ((ISNULL(Bi.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0) OR  (ISNULL(Bi.IsVersionIncrease,0) = 1 AND ISNULL(BII.IsVersionIncrease,0) = 0)) AND  [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);	

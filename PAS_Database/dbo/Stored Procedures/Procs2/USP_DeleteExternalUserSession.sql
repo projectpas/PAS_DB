@@ -1,9 +1,9 @@
 /*********************
  ** File:   DELETE EXTERNAL USER SESSION
  ** Author:  Nakul
- ** Description: Ends an External webpage session on logout (ExternalApiController.Logout)
- ** Purpose: Deletes the session row of the access token being logged out (@JwtId). The user's other sessions
- **          (other browsers/devices) are not affected. Returns the number of sessions removed (0 if already gone).
+ ** Description: Ends an External webpage user's sessions on logout (ExternalApiController.Logout)
+ ** Purpose: Deletes ALL session rows of @ExternalUserId, so logging out on one browser/device logs that user out on
+ **          every device. Sessions of other users are not affected. Returns the number of sessions removed (0 if none).
  ** Date:  09/10/2026
 
  ************************************************************
@@ -12,27 +12,26 @@
   ** PR   Date         Author			Change Description
   ** --   --------     -------			--------------------------------
      1    09/10/2026   Nakul            Created for External webpage logout (sessions)
+     2    09/10/2026   Nakul            Logout now ends all sessions of the user (every device), not only the token being logged out - removed @JwtId
 
- exec USP_DeleteExternalUserSession @ExternalUserId=1, @JwtId='0f8fad5bd9cb469fa165708f6b1e2c3d'
+ exec USP_DeleteExternalUserSession @ExternalUserId=1
 *************************************************************/
 CREATE PROCEDURE [dbo].[USP_DeleteExternalUserSession]
-    @ExternalUserId BIGINT,
-    @JwtId          VARCHAR(100)
+    @ExternalUserId BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
         DELETE FROM [dbo].[ExternalUserSession]
-        WHERE [ExternalUserId] = @ExternalUserId AND [JwtId] = @JwtId;
+        WHERE [ExternalUserId] = @ExternalUserId;
 
         SELECT @@ROWCOUNT AS SessionsRemoved;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = DB_NAME(),
                 @AdhocComments VARCHAR(150) = 'USP_DeleteExternalUserSession',
-                @ProcedureParameters VARCHAR(3000) = '@ExternalUserId = ''' + CAST(ISNULL(@ExternalUserId, '') AS VARCHAR(100)) + '''' +
-                                                     ', @JwtId = ''' + ISNULL(@JwtId, '') + '''',
+                @ProcedureParameters VARCHAR(3000) = '@ExternalUserId = ''' + CAST(ISNULL(@ExternalUserId, '') AS VARCHAR(100)) + '''',
                 @ApplicationName VARCHAR(100) = 'PAS';
 
         EXEC spLogException

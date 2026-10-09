@@ -25,6 +25,7 @@
 	14	 07 JAN 2026	Amit Ghediya		Modified for add contact details for existing customer diffrent email & phone.
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16   01 Aug 2026	Kishor Makwana		[PN-17515] -Customer RFQ: SOQ creation from Email fails due to missing Contact information and null Content data
+	17   10 Oct 2026	Vishal Suthar		Fixed NULL CustomerContactId on SOQ auto-created from Email (SOQ failed to open with 500)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
@@ -288,10 +289,7 @@ BEGIN
 					SET	TMP.CustomerId = @NewCustomerId
 					FROM #tmpQuote TMP --WHERE RowId = @CurrentQuoteRow;
 
-					--Get CustomerContactId
-					SET @NewCustomerContactId = (SELECT [CustomerContactId] FROM [DBO].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @NewCustomerId);
-
-					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;
+					SET @CustomerId = @NewCustomerId;
 				END
 
 				--Update Existing Customer contact if diffrent from added
@@ -306,9 +304,9 @@ BEGIN
 						@ContactId BIGINT = 0;
 
 					SELECT
-						@CustomerName = CASE WHEN ISNULL([BuyerName],'') != '' THEN [BuyerName] ELSE [CompanyName] END,
-						@CustomerEmail = Email,
-						@CustomerPhone = [Phone],
+						@CustomerName = COALESCE(NULLIF([BuyerName],''), NULLIF([CompanyName],''), NULLIF([CustomerName],''), 'NA'),
+						@CustomerEmail = ISNULL(Email,''),
+						@CustomerPhone = ISNULL([Phone],''),
 						@CustomerPhoneExt = '',
 						@IsActive = 1
 					FROM @tbl_RfqCustomerType;
@@ -328,8 +326,23 @@ BEGIN
 							  @CreatedBy,
 							  @NewCustomerContactId OUTPUT;
 					END
+					ELSE
 					BEGIN
-						SELECT TOP 1 @NewCustomerContactId = CustomerContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK) WHERE CCNT.CustomerId = @CustomerId AND ISNULL(CCNT.IsDefaultContact,0) =1;
+							SELECT TOP 1 @NewCustomerContactId = CCNT.CustomerContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK) JOIN [dbo].[Contact] CNT WITH(NOLOCK) ON CNT.ContactId = CCNT.ContactId
+							WHERE CCNT.CustomerId = @CustomerId AND ISNULL(CCNT.IsDeleted,0) = 0 AND ISNULL(CNT.WorkPhone,'') = @CustomerPhone AND ISNULL(CNT.Email,'') = @CustomerEmail
+							ORDER BY ISNULL(CCNT.IsDefaultContact,0) DESC, CCNT.CustomerContactId;
+
+							IF(ISNULL(@NewCustomerContactId, 0) = 0)
+							BEGIN
+								SELECT TOP 1 @NewCustomerContactId = CCNT.CustomerContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK)
+								WHERE CCNT.CustomerId = @CustomerId AND ISNULL(CCNT.IsDeleted,0) = 0
+								ORDER BY ISNULL(CCNT.IsDefaultContact,0) DESC, ISNULL(CCNT.IsActive,0) DESC, CCNT.CustomerContactId;
+							END
+					END
+
+					IF(ISNULL(@NewCustomerContactId, 0) > 0) AND NOT EXISTS(SELECT 1 FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND ISNULL([IsDefaultContact],0) = 1 AND ISNULL([IsDeleted],0) = 0)
+					BEGIN
+						UPDATE [dbo].[CustomerContact] SET [IsDefaultContact] = 1 WHERE [CustomerContactId] = @NewCustomerContactId;
 					END
 
 					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;
@@ -357,7 +370,7 @@ BEGIN
 
 				--Update Latest ContactId in SOQ
 				SET @QuoteReferenceId = (SELECT [ReferenceId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId);
-				IF(ISNULL(@QuoteReferenceId,0) > 0)
+				IF(ISNULL(@QuoteReferenceId,0) > 0) AND ISNULL(@NewCustomerContactId,0) > 0
 				BEGIN
 					 UPDATE [dbo].[SalesOrderQuote] SET [CustomerContactId] = @NewCustomerContactId WHERE [SalesOrderQuoteId] = @QuoteReferenceId;
 				END

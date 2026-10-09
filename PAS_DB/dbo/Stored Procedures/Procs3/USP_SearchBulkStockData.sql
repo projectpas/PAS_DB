@@ -20,6 +20,7 @@
     6    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    08/10/2026     BHARGAV SALIYA          Allow Non-Stock Items in DETAILS view and return/filter ItemType PN-17481
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
@@ -50,7 +51,8 @@ CREATE   PROCEDURE [dbo].[USP_SearchBulkStockData]
     @LastMSLevel   VARCHAR(200) = NULL,
     @AllMSLevels   VARCHAR(500) = NULL,
     @AdjustmentReasonId bigint = NULL,
-	@AdjustmentReason VARCHAR(200) = NULL
+	@AdjustmentReason VARCHAR(200) = NULL,
+	@ItemType VARCHAR(50) = NULL
 
 AS
 BEGIN  
@@ -180,6 +182,7 @@ BEGIN
                     STL.[Condition],
                     STL.StockLineNumber,
                     STL.ControlNumber,
+                    CASE WHEN ISNULL(STL.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
                     bsadj.StatusId,
                     BSAD.AdjustmentReasonId,
 					SAR.[Description] AS AdjustmentReason
@@ -197,8 +200,7 @@ BEGIN
                 WHERE
                     bsadj.MasterCompanyId = @MasterCompanyId
                     AND ISNULL(BSAD.IsDeleted, 0) = 0
-                    AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
-             AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ),
+                    AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )),
             FinalResult AS
             (
                 SELECT
@@ -215,6 +217,7 @@ BEGIN
                     [Condition],
                     StockLineNumber,
                     ControlNumber,
+                    ItemType,
                     StatusId,
                     AdjustmentReasonId,
 					AdjustmentReason
@@ -228,6 +231,7 @@ BEGIN
                         OR LOWER(PartDescription) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(StockLineNumber) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(ControlNumber) LIKE '%' + LOWER(@GlobalFilter) + '%'
+                        OR LOWER(ItemType) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AdjustmentType) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(LastMSLevel) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AllMSLevels) LIKE '%' + LOWER(@GlobalFilter) + '%'
@@ -246,6 +250,7 @@ BEGIN
                     AND (ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%')
                     AND (ISNULL(@StockLineNumber, '') = '' OR StockLineNumber LIKE '%' + @StockLineNumber + '%')
                     AND (ISNULL(@ControlNumber, '') = '' OR ControlNumber LIKE '%' + @ControlNumber + '%')
+                    AND (ISNULL(@ItemType, '') = '' OR ItemType LIKE '%' + @ItemType + '%')
                     AND (ISNULL(@LastMSLevel, '') = '' OR LastMSLevel LIKE '%' + @LastMSLevel + '%')
                     AND (ISNULL(@AllMSLevels, '') = '' OR AllMSLevels LIKE '%' + @AllMSLevels + '%')
                     AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(QtyAdjustment AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
@@ -272,6 +277,7 @@ BEGIN
                 [Condition],
                 StockLineNumber,
                 ControlNumber,
+                ItemType,
                 StatusId,
                 NumberOfItems,
                 AdjustmentReasonId,
@@ -301,6 +307,9 @@ BEGIN
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END DESC,
+
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'ITEMTYPE') THEN ItemType END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ITEMTYPE') THEN ItemType END DESC,
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END DESC,

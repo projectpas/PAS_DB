@@ -10,7 +10,8 @@
 ** PR   Date         Author				Change Description                
 ** --   --------     -------			--------------------------------              
  1   15/02/2024		Hemant Saliya		Created 
- 2	 02/06/2025		Abhishek Jirawla	Fixed Name concat read script 
+ 2	 02/06/2025		Abhishek Jirawla	Fixed Name concat read script
+ 3	 19/Sep/2026	Vishal Suthar		[Back-dated Date] - Added optional @AsOfDate parameter.
 
 DECLARE @IsRestrict BIT 
 DECLARE @IsAccountByPass BIT 
@@ -23,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](
  @AccountingCalendarId BIGINT = NULL,
  @UpdateBy VARCHAR(200) = NULL,
  @IsRestrict BIT OUTPUT,
- @IsAccountByPass BIT OUTPUT
+ @IsAccountByPass BIT OUTPUT,
+ @AsOfDate DATETIME2(7) = NULL
 )  
 AS    
 BEGIN  
@@ -50,13 +52,17 @@ BEGIN
 
 				IF(ISNULL(@AccountingCalendarId, 0) = 0)
 				BEGIN
+					-- CHANGED: was CAST(GETUTCDATE() as date) on both sides - now uses the caller-supplied
+					-- @AsOfDate when given, falling back to GETUTCDATE() when it isn't (NULL default),
+					-- so existing callers are unaffected
 					SELECT TOP 1  @AccountingCalendarId = ACC.AccountingCalendarId,
 								  @AccountingCalendar = PeriodName 
 					FROM [dbo].[EntityStructureSetup] ES WITH(NOLOCK) 
 						INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) on ES.Level1Id = MSL.ID 
 						INNER JOIN [dbo].[AccountingCalendar] ACC WITH(NOLOCK) on msl.LegalEntityId = ACC.LegalEntityId AND ACC.IsDeleted =0
 					WHERE ES.EntityStructureId = @ManagementStructureId AND ACC.MasterCompanyId = @MasterCompanyId 
-						AND CAST(GETUTCDATE() as date) >= CAST(FromDate as date) AND CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+						AND CAST(ISNULL(@AsOfDate, GETUTCDATE()) as date) >= CAST(FromDate as date)
+						AND CAST(ISNULL(@AsOfDate, GETUTCDATE()) as date) <= CAST(ToDate as date)
 				END
 
 				IF OBJECT_ID(N'tempdb..#SubLedger') IS NOT NULL

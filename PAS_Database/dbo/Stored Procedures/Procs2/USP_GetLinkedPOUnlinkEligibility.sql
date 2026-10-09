@@ -61,6 +61,10 @@
 	                                        actually reserved to this Sales Order. RepairOrder/Exchange/Lot keep the
 	                                        blanket FN_PurchaseOrderHasAnyReceipt (reason 1) - no per-stockline usage
 	                                        mechanism for them yet.
+    7    24/09/2026   Aayushi Patel			Qty and ReservedQty are stored in Purchase UOM,so they are converted Purchase -> Stock UOM
+    8    28/09/2026   Aayushi Patel			Unlink PO popup now shows quantities in Consume UOM: Qty and ReservedQty are
+	                                        converted Purchase -> Consume UOM, and QtyReceivedOnLine (Stockline Quantity,
+	                                        stored in Stock UOM) is converted Stock -> Consume UOM
 
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 1, @PurchaseOrderId = 1863, @PurchaseOrderPartRecordId = 100
  EXEC USP_GetLinkedPOUnlinkEligibility @Opr = 2, @SourceModuleId = 1, @ReferenceId = 500, @ReferencePartId = 900, @IsKit = 0
@@ -136,7 +140,10 @@ BEGIN
     IF OBJECT_ID('tempdb..#Resolved') IS NOT NULL DROP TABLE #Resolved
     SELECT
         R.PurchaseOrderPartReferenceId, R.PurchaseOrderId, R.PurchaseOrderPartId, R.ModuleId, R.ReferenceId,
-        R.Qty, R.RequestedQty, R.ReservedQty AS QtyReserved, R.IssuedQty AS QtyIssued,
+        (CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN R.Qty ELSE [dbo].[fn_ConvertUOM](R.Qty, IM.[PurchaseUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.[MasterCompanyId]) END) AS Qty,
+        R.RequestedQty,
+        (CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN R.ReservedQty ELSE [dbo].[fn_ConvertUOM](R.ReservedQty, IM.[PurchaseUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.[MasterCompanyId]) END) AS QtyReserved,
+        R.IssuedQty AS QtyIssued,
         POP.ItemMasterId, POP.PartNumber, POP.PartDescription, POP.ConditionId, POP.Condition,
         ISNULL(POP.IsKit,0) AS IsKit, ISNULL(POP.IsSubWO,0) AS IsSubWO, POP.EstDeliveryDate,
         PO.PurchaseOrderNumber, PO.VendorId, PO.VendorName, PO.StatusId, PO.Status,
@@ -154,7 +161,8 @@ BEGIN
              WHEN R.ModuleId = 4 THEN 'Exchange'
              WHEN R.ModuleId = 5 THEN 'Sub Work Order'
              WHEN R.ModuleId = 6 THEN 'Lot' ELSE NULL END AS ModuleName,
-        CAST(ISNULL((SELECT SUM(Quantity) FROM dbo.Stockline WITH (NOLOCK)
+        CAST(ISNULL((SELECT CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN SUM(Quantity) ELSE [dbo].[fn_ConvertUOM](SUM(Quantity), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, IM.[MasterCompanyId]) END
+                FROM dbo.Stockline WITH (NOLOCK)
                 WHERE PurchaseOrderId = R.PurchaseOrderId
                       AND (PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
                            OR PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart WITH (NOLOCK) WHERE ParentId = POP.PurchaseOrderPartRecordId))), 0) AS DECIMAL(18,6)) AS QtyReceivedOnLine,
@@ -170,6 +178,7 @@ BEGIN
     FROM #Rel R
     INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = R.PurchaseOrderPartId
     INNER JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = R.PurchaseOrderId
+    LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
     INNER JOIN #POReceipt PORc ON PORc.PurchaseOrderId = R.PurchaseOrderId
     OUTER APPLY (
         SELECT TOP 1 * FROM dbo.Nha_Tla_Alt_Equ_ItemMapping WITH (NOLOCK)

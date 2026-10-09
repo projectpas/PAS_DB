@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/03/2025   Moin Bloch    Created
+	2    02/10/2026   Moin Bloch    Removed @IstravelerTask Condition due to not adding Default entry  [PN-18171]
      
 --   EXEC [dbo].[CreateTravelerLabourTask]
 **************************************************************/
@@ -54,12 +55,12 @@ BEGIN
 		
 		SELECT @ID=[ID],@IsTraveler=[IsTraveler] FROM #tempCreateTravelerLabourTaskForCreateWO WHERE [PKID] = @MinId
 
-		IF(@IsTraveler = 1)
-		BEGIN
+		--IF(@IsTraveler = 1)
+		--BEGIN
 			SELECT TOP 1 @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @ID;
 
 			EXEC [dbo].[USP_CreateTravelerLabourTask] @WorkOrderId,@ID,@WorkFlowWorkOrderId,@MasterCompanyId,@CreatedBy;
-		END
+		--END
 			
 		SET @MinId = @MinId + 1
 	END

@@ -19,6 +19,7 @@
     8    04/05/2026   BHARGAV Saliya        addd '[MaintenanceCategory]'  (PN-16503)
     9    11/06/2026   Nakul Chandigra  added Condition for [RFQTRACEABILITY] table (PN-16803)    
 	10   06/08/2026   Sahdev Saliya         Removed  'LeaseType' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-17495]
+	11   01/10/2026   Sahdev Saliya         Removed  'CoreLetter' from the exec of [USP_InsertAuditDataForSingleScreen] [PN-18143]
 
 **************************************************************/
 -- EXEC  USP_SingleScreen_DeleteAndRestoreRecord 10, 'assetlocation'
@@ -52,7 +53,7 @@ BEGIN
     END  
  
     IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME' AND UPPER(@PageName) <> 'MAINTENANCETYPE' AND UPPER(@PageName) <> 'MAINTENANCECLASS' AND UPPER(@PageName) <> 'AIRCRAFTSECTION' AND UPPER(@PageName) <> 'MAINTENANCECATEGORY' AND UPPER(@PageName) <> 'LEASETYPE'
-         AND UPPER(@PageName) <> 'RFQTRACEABILITY')    
+         AND UPPER(@PageName) <> 'RFQTRACEABILITY' AND UPPER(@PageName) <> 'CORELETTER')    
     BEGIN  
 	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
     END

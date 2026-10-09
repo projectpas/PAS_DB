@@ -17,11 +17,12 @@
     1    Unknown     Unknown		    Created
 	2    20-03-2024  Abhishek Jirawla   Adding detail regarding BulStockAdjustment Module
 	3    20-03-2024  Rajesh Gami        Added StockAdjustments 
-	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
+	4    07-11-2024  Moin Bloch        Added CycleCount Module
 	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    14/08/2026  Amit Ghediya        [PN-17597] - added for leasing module refrencenumber
+	7    17/Sep/2026  SAHDEV SALIYA      [PN-17875] - Added CustomerRMA module reference (RMANumber) for Stockline Inventory History
 **************************************************************/
-CREATE FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
+CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
 (  
    @ModuleId BIGINT = NULL,
    @ReferenceId BIGINT = NULL,
@@ -85,6 +86,10 @@ BEGIN
 		IF (@ModuleName = 'VendorRMA')
 		BEGIN
 			SELECT @ReferenceNumber = RMA.[RMANumber] FROM [dbo].[VendorRMA] RMA WITH (NOLOCK) WHERE RMA.VendorRMAId = @ReferenceId;
+		END
+		IF (@ModuleName = 'CustomerRMA')
+		BEGIN
+			SELECT @ReferenceNumber = RMA.[RMANumber] FROM [dbo].[CustomerRMAHeader] RMA WITH (NOLOCK) WHERE RMA.RMAHeaderId = @ReferenceId;
 		END
 		IF (@ModuleName = 'ReceivingVendorRMA')
 		BEGIN

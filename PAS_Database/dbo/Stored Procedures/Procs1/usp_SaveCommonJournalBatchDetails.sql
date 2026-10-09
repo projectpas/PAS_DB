@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------            
  1    08/10/2022             		 Created   
  2    10/05/2023  Moin Bloch		 added IsUpdated 
+ 3    28/09/2026  Moin Bloch	     PN-18130 - Passed every created/updated CommonJournalBatchDetailId to PROCAddUpdateAccountingBatchMSData
 
  EXEC usp_SaveCommonJournalBatchDetails 
 ************************************************************************/  
@@ -33,6 +34,16 @@ BEGIN
 				DECLARE @ID BIGINT = 0, @DistributionName VARCHAR(250),@ManualName VARCHAR(100) ='Manual';
 
 				SELECT @ID = [ID], @DistributionName = [Name] FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER([Name]) = UPPER(@ManualName) AND UPPER([DistributionSetupCode]) = UPPER(@ManualName);
+
+				-- Holds the IDs the MERGE creates or updates, so MS data can be saved for every row
+				DECLARE @tblMergedBatchDetails TABLE
+				(
+					 [RowNo] INT IDENTITY(1,1)
+					,[ActionType] NVARCHAR(10)
+					,[CommonJournalBatchDetailId] BIGINT
+					,[ManagementStructureId] BIGINT
+					,[UpdatedBy] VARCHAR(100)
+				);
 
 				--  JournalBatchDetails LIST
 					IF((SELECT COUNT(CommonJournalBatchDetailId) FROM @tbl_CommonJournalBatchDetails) > 0 )
@@ -111,18 +122,25 @@ BEGIN
 										,@ID
 										,@DistributionName
 										,1
-										);
+										)
+						-- Capture the generated/updated IDs for the MS data loop below
+						OUTPUT $action, INSERTED.[CommonJournalBatchDetailId], INSERTED.[ManagementStructureId], INSERTED.[UpdatedBy]
+						INTO @tblMergedBatchDetails ([ActionType], [CommonJournalBatchDetailId], [ManagementStructureId], [UpdatedBy]);
 					 END
 
 			 DECLARE @commonBatchDetailsId BIGINT;
+			 DECLARE @ManagementStructureId BIGINT;
+			 DECLARE @UpdateBy VARCHAR(100)
 			 DECLARE @BDetailsId BIGINT;
 			 DECLARE @manualentry BIT;
 			 DECLARE @DAmount DECIMAL(18,6)=0;
 			 DECLARE @CAmount DECIMAL(18,6)=0;
 			 DECLARE @isdebit BIT;
-			 SET @commonBatchDetailsId = (SELECT TOP 1 [CommonJournalBatchDetailId] FROM @tbl_CommonJournalBatchDetails)
+			 -- Read from the MERGE output so new rows use their generated ID instead of 0
+			 SET @commonBatchDetailsId = (SELECT TOP 1 [CommonJournalBatchDetailId] FROM @tblMergedBatchDetails ORDER BY [RowNo])		 
 
-			 SELECT @BDetailsId = [JournalBatchDetailId] FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE [CommonJournalBatchDetailId] = @commonBatchDetailsId;
+			 
+			 SELECT @BDetailsId = [JournalBatchDetailId],@ManagementStructureId = [ManagementStructureId], @UpdateBy = [UpdatedBy] FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE [CommonJournalBatchDetailId] = @commonBatchDetailsId;
 
 			 SELECT @DAmount = ISNULL(SUM([DebitAmount]),0),@CAmount = ISNULL(SUM([CreditAmount]),0) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@BDetailsId AND IsDeleted=0
 			 
@@ -133,9 +151,12 @@ BEGIN
 	         DECLARE @TotalBalance DECIMAL(18,6)=0
 			 DECLARE @JournalBatchHeaderId BIGINT 
 			 DECLARE @MasterCompanyId BIGINT 
+			 DECLARE @AccountMSModuleId BIGINT
+
+			 SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal'
 
 			 SET @JournalBatchHeaderId = (SELECT TOP 1 [JournalBatchHeaderId] from @tbl_CommonJournalBatchDetails)
-
+			 
 			 SELECT @TotalDebit = ISNULL(SUM([DebitAmount]),0),@TotalCredit = ISNULL(SUM([CreditAmount]),0),@MasterCompanyId=MasterCompanyId FROM [dbo].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted=0 GROUP BY JournalBatchHeaderId,MasterCompanyId
 			   	          
 			 SET @TotalBalance = @TotalDebit-@TotalCredit
@@ -143,6 +164,24 @@ BEGIN
 			 UPDATE [dbo].[BatchHeader] SET [TotalDebit] = @TotalDebit,[TotalCredit]=@TotalCredit,[TotalBalance]=@TotalBalance,[UpdatedDate]=GETUTCDATE() WHERE [JournalBatchHeaderId]= @JournalBatchHeaderId
 
 			 UPDATE JBD SET jbd.[GlAccountName] = gl.[AccountName],jbd.[GlAccountNumber]=gl.[AccountCode] FROM dbo.[CommonBatchDetails] JBD LEFT JOIN dbo.[GLAccount] GL on Gl.[GLAccountId]=JBD.[GLAccountId] 
+
+			 -- Save MS data for every created/updated CommonBatchDetails row, not just the first one
+			 DECLARE @MSRowNo INT = 1, @MSTotalRows INT = 0;
+			 DECLARE @MSCommonBatchDetailsId BIGINT, @MSManagementStructureId BIGINT, @MSUpdatedBy VARCHAR(100);
+
+			 SELECT @MSTotalRows = COUNT(1) FROM @tblMergedBatchDetails;
+
+			 WHILE (@MSRowNo <= @MSTotalRows)
+			 BEGIN
+				SELECT @MSCommonBatchDetailsId = [CommonJournalBatchDetailId],
+					   @MSManagementStructureId = [ManagementStructureId],
+					   @MSUpdatedBy = [UpdatedBy]
+				FROM @tblMergedBatchDetails WHERE [RowNo] = @MSRowNo;
+
+				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @MSCommonBatchDetailsId,@MSManagementStructureId,@MasterCompanyId,@MSUpdatedBy,@AccountMSModuleId,1; 
+
+				SET @MSRowNo = @MSRowNo + 1;
+			 END
 			 
 			 DECLARE @JournalBatchDetailId int;
 			 DECLARE db_cursor CURSOR FOR 

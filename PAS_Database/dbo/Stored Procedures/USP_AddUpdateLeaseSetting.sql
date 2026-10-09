@@ -10,9 +10,10 @@
 ** PR   Date         Author  		    Change Description
 ** --   --------     -------		    --------------------------------
    1    06/08/2026   Ayushi Patel       [PN-17561]Created
+   2    17/09/2026   Bhargav Saliya     [PN-17931]Added EnforcePickTicketConfirmation (Lease Pick Ticket)
 
 **********************/
---EXEC USP_AddUpdateLeaseSetting 0, 10, 1, 2, 3, 4, 'admin'
+--EXEC USP_AddUpdateLeaseSetting 0, 10, 1, 2, 3, 4, 0, 'admin'
 CREATE   PROCEDURE [dbo].[USP_AddUpdateLeaseSetting]
  @LeaseSettingId INT = 0,
  @MasterCompanyId INT = NULL,
@@ -20,6 +21,7 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateLeaseSetting]
  @OverageCycleGLAccountId INT = NULL,
  @OverageTimeGLAccountId INT = NULL,
  @UsageBasedGLAccountId INT = NULL,
+ @EnforcePickTicketConfirmation BIT = 0,
  @UpdatedBy NVARCHAR(100) = NULL
 AS
 BEGIN
@@ -33,6 +35,7 @@ BEGIN
           OverageCycleGLAccountId  = @OverageCycleGLAccountId,
           OverageTimeGLAccountId   = @OverageTimeGLAccountId,
           UsageBasedGLAccountId    = @UsageBasedGLAccountId,
+          EnforcePickTicketConfirmation = ISNULL(@EnforcePickTicketConfirmation, 0),
           UpdatedBy                = @UpdatedBy,
           UpdatedDate              = GETUTCDATE()
       WHERE MasterCompanyId = @MasterCompanyId
@@ -42,11 +45,11 @@ BEGIN
     BEGIN
       INSERT INTO dbo.LeaseSetting
           (MasterCompanyId, FlatRateGLAccountId, OverageCycleGLAccountId,
-           OverageTimeGLAccountId, UsageBasedGLAccountId,
+           OverageTimeGLAccountId, UsageBasedGLAccountId, EnforcePickTicketConfirmation,
            CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted)
       VALUES
           (@MasterCompanyId, @FlatRateGLAccountId, @OverageCycleGLAccountId,
-           @OverageTimeGLAccountId, @UsageBasedGLAccountId,
+           @OverageTimeGLAccountId, @UsageBasedGLAccountId, ISNULL(@EnforcePickTicketConfirmation, 0),
            @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0);
     END
 

@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
 ** File:  [USP_GetVendorCapabilityById]
 ** Author:   Ayushi Patel
 ** Description: Get Vendor Capability By Id
@@ -11,6 +11,7 @@
 ** --   ----------   ------------   --------------------------------
 ** 1    03-07-2025   Ayushi Patel   Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    3    24-09-2026  Nakul          added AircraftEngine & VerifiedDate
 -- EXEC [USP_GetVendorCapabilityById] 4797
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetVendorCapabilityById]
@@ -48,7 +49,9 @@ BEGIN
             vcat.CapabilityTypeDesc AS CapDescription,
             vc.EmployeeId,
             vc.Currency,
-            vc.CurrencyId
+            vc.CurrencyId,
+            vc.AircraftEngine,
+            vc.VerifiedDate
         FROM dbo.VendorCapability vc WITH(NOLOCK)
         INNER JOIN dbo.Vendor v WITH(NOLOCK) ON vc.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

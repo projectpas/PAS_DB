@@ -18,6 +18,7 @@
     [OpenAIAPIKeys]                NVARCHAR (MAX)  NULL,
     [DocumentTypeId]               NVARCHAR (250)  NULL,
     [VRFQEmailSubject]             NVARCHAR (250)  NULL,
+    [VRFQROEmailSubject]           NVARCHAR (250)  NULL,
     CONSTRAINT [PK_AiIntegrationSetting] PRIMARY KEY CLUSTERED ([AiIntegrationSettingId] ASC)
 );
 

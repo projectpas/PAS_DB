@@ -279,6 +279,10 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
 
+
+
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Stockline]
     ON [dbo].[Stockline]
@@ -333,6 +337,7 @@ BEGIN
             CASE WHEN d.[IsNonStock] = 1 OR d.[IsNonStock] = 0 THEN ISNULL(digs.[StockInventoryName], '') END AS [InventoryGLSettingName],
             d.[InventoryGLAccName],
             d.[GoodsReceivedNotInvoicesGLAccName],
+            d.[WorkInProgressGLAccName],
             d.[RevenueSoGLAccName],
             d.[Memo],
             d.[RevicedPNNumber],
@@ -429,6 +434,7 @@ BEGIN
             CASE WHEN i.[IsNonStock] = 1 OR i.[IsNonStock] = 0 THEN ISNULL(iigs.[StockInventoryName], '') END AS [InventoryGLSettingName],            
             i.[InventoryGLAccName],
             i.[GoodsReceivedNotInvoicesGLAccName],
+            i.[WorkInProgressGLAccName],
             i.[RevenueSoGLAccName],
             i.[Memo],
             i.[RevicedPNNumber],
@@ -682,4 +688,29 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_TaggedByName]
     ON [dbo].[Stockline]([TaggedByName] ASC)
     INCLUDE([TaggedByType], [TaggedByTypeName], [MasterCompanyId]) WHERE ([TaggedByName] IS NOT NULL);
+
+
+GO
+-- Added 17-Sep-2026 (Rajesh Gami) - covering index for dbo.ProcStockList (Stockline listing SP).
+-- IX_Stockline_StockReport/IX_Stockline_Report share this same leading key but only INCLUDE a
+-- handful of columns; ProcStockList selects ~65 columns from stl, so most rows needed a Key
+-- Lookup back to the clustered index, and because ProcStockList filters before pagination, that
+-- Key Lookup ran once per row of the full filtered set, not just the current page. Column list
+-- built from this branch's own copy of ProcStockList (includes StockUnitOfMeasureId/
+-- StockUnitOfMeasure and Model, which the PAS_DB branch's version of the SP doesn't select).
+CREATE NONCLUSTERED INDEX [IX_Stockline_ProcStockList_Covering]
+    ON [dbo].[Stockline]([MasterCompanyId] ASC, [IsParent] ASC, [isDeleted] ASC)
+    INCLUDE([StockLineId], [ItemMasterId], [PartNumber], [PNDescription], [Manufacturer], [RevicedPNNumber], [itemGroup], [StockUnitOfMeasureId], [StockUnitOfMeasure], [QuantityOnHand], [QuantityAvailable], [QuantityReserved], [isSerialized], [SerialNumber], [IsCustomerStock], [CustomerId], [StockLineNumber], [ControlNumber], [IdNumber], [Condition], [ReceivedDate], [ShippingReference], [ExpirationDate], [TagDate], [TaggedByName], [TagType], [TraceableToName], [itemType], [ItemTypeId], [IsNonStock], [isActive], [CreatedDate], [CreatedBy], [PartCertificationNumber], [CertifiedBy], [CertifiedDate], [UpdatedDate], [UpdatedBy], [Level1], [Level2], [Level3], [Level4], [IsTurnIn], [IsStkTimeLife], [ObtainFromName], [OwnerName], [WorkOrderId], [SubWorkOrderId], [WorkOrderNumber], [Location], [LocationId], [Site], [SiteId], [Warehouse], [WarehouseId], [LotNumber], [CustomerName], [PurchaseOrderNumber], [RepairOrderNumber], [ReceiverNumber], [QuantityAdjustment], [IsDocument], [IsRepairManagement], [IsBatchStock], [BatchNumber], [UnitCost], [InventoryGLAccName], [IsPMA], [IsDER], [OEM], [EngineSerialNumber], [ManagementStructureId], [Model]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_VendorRMAId]
+    ON [dbo].[Stockline]([VendorRMAId] ASC)
+    INCLUDE([VendorRMADetailId], [ItemMasterId], [Quantity], [IsParent], [isDeleted]) WHERE ([VendorRMAId] IS NOT NULL);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_VendorRMADetailId]
+    ON [dbo].[Stockline]([VendorRMADetailId] ASC)
+    INCLUDE([VendorRMAId], [ItemMasterId], [Quantity], [IsParent], [isDeleted], [PurchaseOrderId], [RepairOrderId], [StockLineNumber], [Condition]) WHERE ([VendorRMADetailId] IS NOT NULL);
 

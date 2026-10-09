@@ -1,6 +1,20 @@
-﻿
--- 10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
-CREATE   PROCEDURE [dbo].[GetVendorCapesList]
+﻿/*************************************************************
+** File:    [GetVendorCapesList]
+** Author:   
+** Description: Get Vendor CapabilityList
+** Purpose:  
+** Date:     02-07-2025
+**************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author         Change Description
+** --   ----------   ------------   --------------------------------
+** 1								   Created
+** 2    10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+   3    24-09-2026  Nakul          added AircraftEngine & VerifiedDate
+   4    26-09-2026  Nakul          AircraftEngine & VerifiedDate were display-only; wired them up as filters
+**************************************************************/
+CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -28,6 +42,8 @@ CREATE   PROCEDURE [dbo].[GetVendorCapesList]
 	@ConditionId int=null,
 	@CostDate datetime=null,
 	@ManufacturerName  varchar(50)=null,
+	@AircraftEngine varchar(50)=null,
+	@VerifiedDate datetime=null,
 	@EmployeeId bigint
 AS
 BEGIN
@@ -120,6 +136,8 @@ BEGIN
 					case when CAST(vc.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(vc.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					vc.UpdatedBy
 					,ct.ConditionId
+					,vc.AircraftEngine
+					,CAST(vc.VerifiedDate as date) VerifiedDate
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
@@ -142,7 +160,8 @@ BEGIN
 					(Cost LIKE '%' +@GlobalFilter+'%') OR
 					(Memo LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(AircraftEngine LIKE '%' +@GlobalFilter+'%')
 					))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND 
@@ -162,7 +181,9 @@ BEGIN
 					--(ISNULL(@ConditionId,'') ='' OR CAST(ISNULL(ConditionId,'') as varchar) LIKE '%' + @ConditionId+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)) AND
-					(ISNULL(@CostDate,'') ='' OR CAST(CostDate as date)=CAST(@CostDate as date)))
+					(ISNULL(@CostDate,'') ='' OR CAST(CostDate as date)=CAST(@CostDate as date)) AND
+					(ISNULL(@AircraftEngine,'') ='' OR AircraftEngine LIKE '%' + @AircraftEngine+'%') AND
+					(ISNULL(@VerifiedDate,'') ='' OR CAST(VerifiedDate as date)=CAST(@VerifiedDate as date)))
 					)
 
 		SELECT @Count = COUNT(VendorId) from #TempResult			
@@ -231,8 +252,10 @@ BEGIN
 			  + '@Parameter21 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
 			  + '@Parameter22 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
 			  + '@Parameter23 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))  
-			  + '@Parameter24 = ''' + CAST(ISNULL(@CostDate, '') AS varchar(100)) 
-			  
+			  + '@Parameter24 = ''' + CAST(ISNULL(@CostDate, '') AS varchar(100))
+			  + '@Parameter25 = ''' + CAST(ISNULL(@AircraftEngine, '') AS varchar(100))
+			  + '@Parameter26 = ''' + CAST(ISNULL(@VerifiedDate, '') AS varchar(100))
+
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

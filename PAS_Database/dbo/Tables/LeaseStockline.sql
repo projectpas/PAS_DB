@@ -12,7 +12,8 @@
     [ConditionId]          BIGINT          NOT NULL,
     [OutrightPrice]        DECIMAL (18, 6) NULL,
     [FlatRate]             DECIMAL (18, 6) NULL,
-    [PricingMethod]        NVARCHAR (100)  NULL,
+    [IsOutrightSale]       BIT             NULL,
+    [IsFlatRate]           BIT             NULL,
     [BillingInterval]      NVARCHAR (100)  NULL,
     [MinimumCycles]        DECIMAL (18, 6) NULL,
     [MinimumTimes]         DECIMAL (18, 6) NULL,
@@ -47,6 +48,7 @@
     [UpdatedBy]            VARCHAR (256)   NOT NULL,
     [UpdatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [LeaseStatusId]        INT             NULL,
+    [IsInvoicePost]        BIT             CONSTRAINT [DF_LeaseStockline_IsInvoicePost] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_LeaseStockline] PRIMARY KEY CLUSTERED ([LeaseStocklineId] ASC),
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

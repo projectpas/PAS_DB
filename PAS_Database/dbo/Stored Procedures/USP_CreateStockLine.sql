@@ -35,6 +35,8 @@
 									 Stockline call was failing at runtime with "procedure has too many
 									 arguments specified". Added the params and wired them into both the
 									 Insert column list and the Update SET clause, matching BETA.
+	11   22-Sep-2026   Bhargav Saliya   [PN-17506] Duplicate PN/SN check now only blocks when the existing Stockline still has Quantity On Hand > 0. A depleted stockline (Qty OH = 0) no longer raises 'Record already Exist
+									   with these details, so the same Serial Number can be taken back into stock. 
 --   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -468,11 +470,11 @@ BEGIN
 		DECLARE @ExStockLineId BIGINT = 0;
 		IF(@SerialNumber IS NOT NULL AND @SerialNumber <> '')
 		BEGIN
-			SELECT @ExStockLineId = [StockLineId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND [SerialNumber] = @SerialNumber;	
+			SELECT TOP 1 @ExStockLineId = [StockLineId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND [SerialNumber] = @SerialNumber AND ISNULL([QuantityOnHand],0) > 0;	
 		END
 		ELSE
 		BEGIN
-			SELECT @ExStockLineId = [StockLineId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND [StockLineNumber] = @StockLineNumber AND [SerialNumber] = @SerialNumber AND [ControlNumber] = @ControlNumber AND [IdNumber] = @IdNumber		  
+			SELECT TOP 1 @ExStockLineId = [StockLineId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND [StockLineNumber] = @StockLineNumber AND [SerialNumber] = @SerialNumber AND [ControlNumber] = @ControlNumber AND [IdNumber] = @IdNumber AND ISNULL([QuantityOnHand],0) > 0		  
 		END
 
 		IF(@ExStockLineId > 0)

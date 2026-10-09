@@ -18,6 +18,7 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    22/July/2026			RAJESH GAMI					[PN-17350] - Removed leftover IsNonStock=0 Stock-only exclusion filters (8 occurrences across @Opr branches) added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters are no longer needed)
 	8	24/Aug/2026    Kishor Makwana    [PN-17439] - Added Sequence Number with Part Number
+	9   01/Oct/2026    Moin Bloch        Fixed doubled rows in @Opr=1/2/3 (SOQ grids) when a Quote Version is updated: added IsNewVersionCreated = 0 so only the current version of a revised quote is returned
 ************************************************************************/
 CREATE PROCEDURE [dbo].[SOQSODashboardData]
 	-- Add the parameters for the stored procedure here
@@ -142,7 +143,7 @@ BEGIN
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 				INNER JOIN DeduplicatedRoles DR ON DR.ReferenceID = SOQ.SalesOrderQuoteId
 
-				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.StatusId=1 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
+				Where (SOQ.IsDeleted=0) AND ISNULL(SOQ.IsNewVersionCreated,0) = 0 AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.StatusId=1 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
 				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
@@ -247,7 +248,7 @@ BEGIN
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 				INNER JOIN DeduplicatedRoles DR ON DR.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOQAP.InternalStatusId=4
-				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
+				Where (SOQ.IsDeleted=0) AND ISNULL(SOQ.IsNewVersionCreated,0) = 0 AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
 				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
@@ -355,7 +356,7 @@ BEGIN
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 				INNER JOIN DeduplicatedRoles DR ON DR.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOQAP.CustomerStatusId=4
-				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
+				Where (SOQ.IsDeleted=0) AND ISNULL(SOQ.IsNewVersionCreated,0) = 0 AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
 				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,

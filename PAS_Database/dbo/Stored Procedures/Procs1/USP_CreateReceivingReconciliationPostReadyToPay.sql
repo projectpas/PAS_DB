@@ -2,8 +2,8 @@
  ** File:   [USP_CreateReceivingReconciliationPostReadyToPays]             
  ** Author:   
  ** Description: This stored procedure is used to Add  Vendor Payment Details
- ** Date:   
-         
+ ** Date:  
+           
  **************************************************************             
   ** Change History             
  **************************************************************             
@@ -15,6 +15,7 @@
 	4    16/02/2026   Amit Ghediya  update to get due date from ReceivingReconciliation duedate (PN-15444)
 	5    26/02/2026   HEMANT SALIYA UPDATE TO SET IS Active and IS Delete default values
 	6    07/08/2026   Moin Bloch     Fix For Receiving Reconciliation Entry
+	7    23/09/2026   Moin Bloch     Added [InvoiceTotal] > 0 condition for vendor payment
 
 EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
@@ -123,7 +124,7 @@ BEGIN
 						@LastMSLevel,
 						@LegalEntityId
 				   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
-				  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
+				  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [InvoiceTotal] > 0
 			
 			SET @BatchId = @ReceivingReconciliationId;			
     END

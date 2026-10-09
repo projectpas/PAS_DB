@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[UOMFamilyType] (
     [UpdatedBy]       VARCHAR (256) NOT NULL,
     [CreatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_UOMFamilyType_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
-    [Code]            AS ([Name]) PERSISTED,
+    [Code]            VARCHAR (100) NULL,
     CONSTRAINT [PK_UOMFamilyType] PRIMARY KEY CLUSTERED ([UOMFamilyTypeId] ASC),
     CONSTRAINT [Unique_UOMFamilyType_Name] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
@@ -125,4 +125,19 @@ GO
                 (m.Action = 'I' AND m.NewValue IS NOT NULL)
                 OR
                 (m.Action = 'D' AND m.OldValue IS NOT NULL);
+        END;
+
+GO
+
+
+     CREATE     TRIGGER [dbo].[trg_UOMFamilyType_SetCodeOnInsert]
+        ON [dbo].[UOMFamilyType]
+        AFTER INSERT
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            UPDATE FT
+            SET FT.Code = I.Name
+            FROM dbo.UOMFamilyType FT
+            INNER JOIN INSERTED I ON FT.UOMFamilyTypeId = I.UOMFamilyTypeId;
         END;

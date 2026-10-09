@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
  ** Author:   MOIN BLOCH
  ** Description: This stored procedure is used Update Stockline Details
@@ -29,6 +29,7 @@
 	13   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14   23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 more leftover soft IsNonStock=0 exclusions (IMRI/IMoem/IMTLA/IMNHA aliases) missed by the earlier PN-17009 bugfix pass.
 	15   04/Sep/2026    Divyesh Kathriya		[PN-17842] - Populate the Non-Stock classification display value after Stockline bulk upload.
+	16   29/Sep/2026    Sahdev Saliya		[PN-18088] - Default WIP GL Account from Item Master (fallback to Inventory GL Setting).
 
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -189,8 +190,8 @@ BEGIN
 					 SL.InventoryGLAccName = GA.AccountCode+'-'+ GA.AccountName, 
 					SL.GoodsReceivedNotInvoicesGLAccId = I.GoodsReceivedNotInvoicesGLAccId,
 					SL.GoodsReceivedNotInvoicesGLAccName = GL2.AccountCode + '-' + GL2.AccountName,
-					SL.WorkInProgressGLAccId = I.WorkInProgressGLAccId,
-					SL.WorkInProgressGLAccName = GL3.AccountCode + '-' + GL3.AccountName,
+					SL.WorkInProgressGLAccId = ISNULL(IM.WorkInProgressGLAccId, I.WorkInProgressGLAccId),
+					SL.WorkInProgressGLAccName = CASE WHEN IM.WorkInProgressGLAccId IS NOT NULL THEN IM.WorkInProgressGLAccName ELSE GL3.AccountCode + '-' + GL3.AccountName END,
 					SL.InventoryToBillGLAccId = I.InventoryToBillGLAccId,
 					SL.InventoryToBillGLAccName = GL4.AccountCode + '-' + GL4.AccountName,
 					SL.FinishedGoodsGLAccId = I.FinishedGoodsGLAccId,

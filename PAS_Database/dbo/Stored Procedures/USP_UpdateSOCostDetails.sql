@@ -16,6 +16,7 @@
  ** --   --------		-------			--------------------------------          
     1    07/25/2024		Vishal Suthar		Created
     2    12/12/2014		Vishal Suthar		Resolved issue with price calculation
+    3    10/08/2026		Vishal Suthar		Exclude deleted Freight and Charges from SO Freight/MiscCharges totals
      
  EXECUTE USP_UpdateSOCostDetails 766, 'Admin User', 1
 **************************************************************/ 
@@ -60,15 +61,15 @@ SET NOCOUNT ON
 				DECLARE @IsFlatRateAdded_Charges BIT = 0;
 				DECLARE @IsFlatRateAdded_Freight BIT = 0;
 
-				IF EXISTS (SELECT * FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK) WHERE F.SalesOrderId = @SalesOrderId)
+				IF EXISTS (SELECT * FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK) WHERE F.SalesOrderId = @SalesOrderId AND ISNULL(F.IsDeleted, 0) = 0)
 				BEGIN
-					SELECT @Freight_S = SUM(ISNULL(BillingAmount, 0)) FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK) WHERE F.SalesOrderId = @SalesOrderId;
+					SELECT @Freight_S = SUM(ISNULL(BillingAmount, 0)) FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK) WHERE F.SalesOrderId = @SalesOrderId AND ISNULL(F.IsDeleted, 0) = 0;
 					SET @IsFlatRateAdded_Freight = (CASE WHEN @Freight_S > 0 THEN 1 ELSE 0 END);
 				END
 
 				IF EXISTS (SELECT * FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK) WHERE C.SalesOrderQuoteId = @SalesOrderId)
 				BEGIN
-					SELECT @Charges_S = SUM(ISNULL(BillingAmount, 0)) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK) WHERE C.SalesOrderId = @SalesOrderId;
+					SELECT @Charges_S = SUM(ISNULL(BillingAmount, 0)) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK) WHERE C.SalesOrderId = @SalesOrderId AND ISNULL(C.IsDeleted, 0) = 0;
 					SET @IsFlatRateAdded_Charges = (CASE WHEN @Charges_S > 0 THEN 1 ELSE 0 END);
 				END
 

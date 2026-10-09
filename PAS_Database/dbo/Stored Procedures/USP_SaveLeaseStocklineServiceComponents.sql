@@ -15,10 +15,11 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    14/09/2026     Amit Ghediya            Created
+    2    05-Oct-2026    Divyesh Kathriya        [PN-18188] - Added GL Account, Start Date, and End Date.
 
 DECLARE @Components dbo.LeaseStocklineServiceComponentType;
-INSERT INTO @Components (LeaseStocklineServiceComponentId, ComponentName, Amount, Per, IsDeleted)
-VALUES (0, N'Storage Fee', 500, N'Monthly', 0);
+INSERT INTO @Components (LeaseStocklineServiceComponentId, ComponentName, GLAccountId, StartDate, EndDate, Amount, Per, IsDeleted)
+VALUES (0, N'Storage Fee', 2, '2026-09-08', '2026-10-08', 500, N'Monthly', 0);
 exec USP_SaveLeaseStocklineServiceComponents @LeaseStocklineId=1, @Components=@Components, @MasterCompanyId=1, @UpdatedBy='test'
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[USP_SaveLeaseStocklineServiceComponents]
@@ -36,33 +37,45 @@ BEGIN
 		-- SQL Server's MERGE only allows a second WHEN MATCHED clause if it's a DELETE,
 		-- so the soft-delete (an UPDATE) can't share this MERGE with the normal-field
 		-- UPDATE - handled as a separate UPDATE statement below instead.
-		MERGE [dbo].[LeaseStocklineServiceComponent] AS TARGET
-		USING (SELECT * FROM @Components WHERE ISNULL(IsDeleted, 0) = 0) AS SOURCE
-			ON TARGET.LeaseStocklineServiceComponentId = SOURCE.LeaseStocklineServiceComponentId
-			AND TARGET.LeaseStocklineId = @LeaseStocklineId
+		MERGE [dbo].[LeaseStocklineServiceComponent] AS TARGET		
+		USING (
+			SELECT [LeaseStocklineServiceComponentId], [ComponentName], [GLAccountId],
+				[StartDate], [EndDate], [Amount], [Per], [IsDeleted]
+			FROM @Components
+			WHERE ISNULL([IsDeleted], 0) = 0
+		) AS SOURCE
+			ON TARGET.[LeaseStocklineServiceComponentId] = SOURCE.[LeaseStocklineServiceComponentId]
+			AND TARGET.[LeaseStocklineId] = @LeaseStocklineId
 		WHEN MATCHED THEN
 			UPDATE SET
-				ComponentName = SOURCE.ComponentName,
-				Amount        = SOURCE.Amount,
-				Per           = SOURCE.Per,
-				UpdatedBy     = @UpdatedBy,
-				UpdatedDate   = GETUTCDATE()
-		WHEN NOT MATCHED BY TARGET THEN
-			INSERT (LeaseStocklineId, ComponentName, Amount, Per, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
-			VALUES (@LeaseStocklineId, SOURCE.ComponentName, SOURCE.Amount, SOURCE.Per, @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+				[ComponentName] = SOURCE.[ComponentName],
+				[GLAccountId]   = SOURCE.[GLAccountId],
+				[StartDate]     = CONVERT(DATE, SOURCE.[StartDate]),
+				[EndDate]       = CONVERT(DATE, SOURCE.[EndDate]),
+				[Amount]        = SOURCE.[Amount],
+				[Per]           = SOURCE.[Per],
+				[UpdatedBy]     = @UpdatedBy,
+				[UpdatedDate]   = GETUTCDATE()
+		WHEN NOT MATCHED BY TARGET THEN			
+			INSERT ([LeaseStocklineId], [ComponentName], [GLAccountId], [StartDate], [EndDate], [Amount], [Per],
+				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			VALUES (@LeaseStocklineId, SOURCE.[ComponentName], SOURCE.[GLAccountId],
+				CONVERT(DATE, SOURCE.[StartDate]), CONVERT(DATE, SOURCE.[EndDate]), SOURCE.[Amount], SOURCE.[Per],
+				@MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
 
 		UPDATE T
-			SET T.IsDeleted   = 1,
-				T.UpdatedBy   = @UpdatedBy,
-				T.UpdatedDate = GETUTCDATE()
+			SET T.[IsDeleted]   = 1,
+				T.[UpdatedBy]   = @UpdatedBy,
+				T.[UpdatedDate] = GETUTCDATE()
 		FROM [dbo].[LeaseStocklineServiceComponent] T
-		INNER JOIN @Components S ON S.LeaseStocklineServiceComponentId = T.LeaseStocklineServiceComponentId
-		WHERE T.LeaseStocklineId = @LeaseStocklineId AND ISNULL(S.IsDeleted, 0) = 1;
+		INNER JOIN @Components S ON S.[LeaseStocklineServiceComponentId] = T.[LeaseStocklineServiceComponentId]
+		WHERE T.[LeaseStocklineId] = @LeaseStocklineId AND ISNULL(S.[IsDeleted], 0) = 1;
 
-		SELECT LeaseStocklineServiceComponentId, LeaseStocklineId, ComponentName, Amount, Per
+		SELECT [LeaseStocklineServiceComponentId], [LeaseStocklineId], [ComponentName],
+			[GLAccountId], [StartDate], [EndDate], [Amount], [Per]
 		FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
-		WHERE LeaseStocklineId = @LeaseStocklineId AND IsDeleted = 0
-		ORDER BY LeaseStocklineServiceComponentId;
+		WHERE [LeaseStocklineId] = @LeaseStocklineId AND [IsDeleted] = 0
+		ORDER BY [LeaseStocklineServiceComponentId];
 
 		COMMIT TRANSACTION;
 	END TRY

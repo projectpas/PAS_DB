@@ -16,6 +16,8 @@
     [SequenceNo]           INT            NULL,
     [ShortCode]            VARCHAR (20)   NULL,
     [Class]                VARCHAR (100)  NULL,
-    [DecimalPlaces]        INT            NULL
+    [DecimalPlaces]        INT            NULL,
+    [UOMFamilyTypeId]      INT            NULL,
+    [UOMFamilyTypeName]    VARCHAR (100)  NULL
 );
 

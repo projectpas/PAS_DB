@@ -11,7 +11,7 @@
     [ManagementStructureId]     INT             NOT NULL,
     [LastMSLevel]               VARCHAR (200)   NULL,
     [AllMSlevels]               VARCHAR (MAX)   NULL,
-    [Memo]                      VARCHAR (500)   NULL,
+    [Memo]                      VARCHAR (MAX)   NULL,
     [JournalType]               VARCHAR (200)   NULL,
     [MasterCompanyId]           INT             NOT NULL,
     [CreatedBy]                 VARCHAR (50)    NOT NULL,
@@ -28,6 +28,8 @@
     [TaxTypeId]                 BIGINT          NULL,
     CONSTRAINT [PK_NonPOInvoicePartDetails] PRIMARY KEY CLUSTERED ([NonPOInvoicePartDetailsId] ASC)
 );
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_NonPOInvoicePartDetails_NonPOInvoiceId_Perf]
     ON [dbo].[NonPOInvoicePartDetails]([NonPOInvoiceId] ASC)

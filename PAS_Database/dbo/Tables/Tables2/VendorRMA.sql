@@ -20,4 +20,8 @@
 );
 
 
+GO
+CREATE NONCLUSTERED INDEX [IX_VendorRMA_MasterCompanyId_StatusId]
+    ON [dbo].[VendorRMA]([MasterCompanyId] ASC, [VendorRMAStatusId] ASC)
+    INCLUDE([VendorId], [RMANumber], [OpenDate], [CreatedDate]);
 

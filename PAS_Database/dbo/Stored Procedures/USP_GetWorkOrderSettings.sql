@@ -21,6 +21,7 @@
 	 5	  28-Aug-2025		Moin Bloch			    Added IsAllowEmployeeToMoreTask
 	 6    22-Jan-2026       Sahdev Saliya           Added IsRegulationSpecifiedInBlock12
 	 7    03-Mar-2026		Priyansh Patel			Added IsAutoConfirmPickTicket and BypassPopups [PN-15606],[PN-15600]
+	 8    29-Sep-2026		Amit Ghediya			Added AllowWorksheet to select
 
 	 EXEC [dbo].[USP_GetWorkOrderSettings] 1,1
 ****************************************************************************************/
@@ -115,7 +116,8 @@ BEGIN
 					ISNULL(wos.IsAllowEmployeeToMoreTask, 0) AS isAllowEmployeeToMoreTask,
 					wos.isRegulationSpecifiedInBlock12,
 					ISNULL(wos.BypassPopups, 0) AS bypassPopups,
-					ISNULL(wos.IsAutoConfirmPickTicket, 0) AS isAutoConfirmPickTicket
+					ISNULL(wos.IsAutoConfirmPickTicket, 0) AS isAutoConfirmPickTicket,
+					ISNULL(wos.AllowWorksheet, 0) AS allowWorksheet
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

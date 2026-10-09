@@ -24,9 +24,10 @@
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter from SO branch WHERE clause so Non-Stock parts' billing invoicing items load correctly (WorkOrder branch untouched).
 	14   27/07/2026   Bhargav Saliya    Return StockLineNumber for billing invoice items [PN-17359]
+	15   24/09/2026   Kishor Makwana    Added Lease branch [PN-18072]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
+CREATE    PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS
@@ -40,6 +41,8 @@ BEGIN
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+	DECLARE @LeaseModuleId INT
+	SELECT @LeaseModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
 	
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 		BEGIN	
@@ -316,6 +319,136 @@ BEGIN
 			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
 			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
 			  LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON BII.[StocklineId] = STK.[StockLineId]
+			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId ;
+		END
+		ELSE IF(@ModuleId = @LeaseModuleId) /*********START: LEASE ********/
+		BEGIN
+			SELECT BI.[BillingInvoicingId]
+				  ,BI.[ModuleId]
+				  ,BI.[ReferenceId]
+				  ,BI.[InvoiceTypeId]
+				  ,BI.[InvoiceNo]
+				  ,BI.[InvoiceDate]
+				  ,BI.[InvoiceTime]
+				  ,BI.[PrintDate]
+				  ,BI.[EmployeeId]
+				  ,BI.[CurrencyId]
+				  ,BI.[RevisionTypeId]
+				  ,BI.[InvoiceStatusId]
+				  ,BI.[InvoiceStatus]
+				  ,BI.[InvoiceFilePath]
+				  ,BI.[RevType]
+				  ,BI.[VersionNo]
+				  ,BI.[CostPlusType]
+				  ,ISNULL(BI.[IsPerformaInvoice],0) [IsPerformaInvoice]
+				  ,ISNULL(BI.[IsVersionIncrease],0) [IsVersionIncrease]
+				  ,BI.[PostedDate]
+				  ,ISNULL(BI.[SubTotal],0) [SubTotal]
+				  ,ISNULL(BI.[OtherTax],0) [OtherTax]
+				  ,ISNULL(BI.[SalesTax],0) [SalesTax]
+				  ,ISNULL(BI.[DepositAmount],0) [DepositAmount]
+				  ,ISNULL(BI.[GrandTotal],0) [GrandTotal]
+				  ,ISNULL(BI.[IsInvoicePosted],0) [IsInvoicePosted]
+				  ,ISNULL(BI.[UsedDeposit],0) [UsedDeposit]
+				  ,ISNULL(BI.[ProformaDeposit],0) [ProformaDeposit]
+				  ,BI.[Notes]
+				  ,BI.[WorkOrderShippingId]
+				  ,BI.[ManagementStructureId]
+				  ,BI.[MasterCompanyId]
+				  ,BI.[CreatedBy]
+				  ,BI.[UpdatedBy]
+				  ,BI.[CreatedDate]
+				  ,BI.[UpdatedDate]
+				  ,BI.[IsActive]
+				  ,BI.[IsDeleted]
+				  ,ISNULL(BI.[IsReversedJE],0) [IsReversedJE]
+				  ,BI.[QuickBooksReferenceId]
+				  ,ISNULL(BI.[IsUpdated],0) [IsUpdated]
+				  ,BI.[LastSyncDate]
+				  ,BI.[SyncToken]
+				  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
+				  ,ISNULL(BI.[IsQuickBookGeneratedInvoice],0) [IsQuickBookGeneratedInvoice]
+				  ,LH.[CustomerId]
+			  FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK) 
+			  INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON BI.[ReferenceId] = LH.[LeaseHeaderId]
+			  WHERE BI.[BillingInvoicingId] = @BillingInvoicingId;
+
+			SELECT BII.[BillingInvoicingItemId]
+				  ,BII.[BillingInvoicingId]
+				  ,BII.[ModuleId]
+				  ,BII.[ReferenceId]
+				  ,BII.[SubModuleId]
+				  ,BII.[SubReferenceId]
+				  ,BII.[ItemMasterId]
+				  ,BII.[StocklineId]
+				  ,BII.[ConditionId]
+				  ,BII.[CostPlusType]
+				  ,ISNULL(BII.[UnitPrice],0) [UnitPrice]
+				  ,ISNULL(BII.[QtyBilled],0) [QtyBilled]
+				  ,ISNULL(BII.[PartCost],0) [PartCost]
+				  ,ISNULL(BII.[IsTotalCheck],0) [IsTotalCheck]
+				  ,ISNULL(BII.[TotalBillingCost],0) [TotalBillingCost]
+				  ,ISNULL(BII.[TotalBillingCostPercent],0) [TotalBillingCostPercent]
+				  ,ISNULL(BII.[TotalBillingCostPlus],0) [TotalBillingCostPlus]
+				  ,ISNULL(BII.[IsMaterialCheck],0) [IsMaterialCheck]
+				  ,ISNULL(BII.[MaterialCost],0) [MaterialCost]
+				  ,ISNULL(BII.[MaterialCostPercent],0) [MaterialCostPercent]
+				  ,ISNULL(BII.[MaterialCostPlus],0) [MaterialCostPlus]
+				  ,ISNULL(BII.[IsLaborCheck],0) [IsLaborCheck]
+				  ,ISNULL(BII.[LaborCost],0) [LaborCost]
+				  ,ISNULL(BII.[LaborCostPercent],0) [LaborCostPercent]
+				  ,ISNULL(BII.[LaborCostPlus],0) [LaborCostPlus]
+				  ,ISNULL(BII.[IsFreightCheck],0) [IsFreightCheck]
+				  ,ISNULL(BII.[Freight],0) [Freight] 
+				  ,ISNULL(BII.[FreightCostPercent],0) [FreightCostPercent]
+				  ,ISNULL(BII.[FreightCostPlus],0) [FreightCostPlus]
+				  ,ISNULL(BII.[IsMiscChargesCheck],0) [IsMiscChargesCheck]
+				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
+				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
+				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
+				  ,ISNULL(BII.[SubTotal],0) [SubTotal]
+				  ,ISNULL(salePer.PercentValue,0) [SalesTaxPercent]
+				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
+				  ,ISNULL(otherPer.PercentValue,0) [OtherTaxPercent]
+				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
+				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
+				  ,BII.[PDFPath]
+				  ,BII.[VersionNo]
+				  ,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]
+				  ,ISNULL(BII.[IsPerformaInvoice],0) [IsPerformaInvoice]
+				  ,BII.[MasterCompanyId]
+				  ,BII.[CreatedBy]
+				  ,BII.[UpdatedBy]
+				  ,BII.[CreatedDate]
+				  ,BII.[UpdatedDate]
+				  ,BII.[IsActive]
+				  ,BII.[IsDeleted]
+				  ,LSL.[PN] [PNumber]			
+				  ,LSL.[PNDescription]  [PNDescription]
+				  ,SLIVE.[SerialNumber]  [SerialNumber]    						 
+				  ,COND.[Description] [ConditionName]								
+				  ,LH.[Notes]
+				  ,MN.Name [Manufacturer]
+				  ,ISNULL(TBP.[PercentValue],0) [TotalBillingCostPercentValue]
+				  ,ISNULL(MCP.[PercentValue],0) [MaterialCostPercentValue]
+				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
+				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
+				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
+				  ,LSL.[StocklineNumber] [StockLineNumber] 
+			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
+			  INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON BII.[ReferenceId] = LH.[LeaseHeaderId]
+			  INNER JOIN [dbo].[LeaseStockline] LSL WITH(NOLOCK) ON BII.[SubReferenceId] = LSL.[LeaseStocklineId]
+			  LEFT JOIN [dbo].[Stockline] SLIVE WITH(NOLOCK) ON LSL.[StockLineId] = SLIVE.[StockLineId]
+			  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON BII.[ItemMasterId] = IM.[ItemMasterId]
+			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON MN.[ManufacturerId] = IM.[ManufacturerId]
+			  LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON BII.ConditionId = COND.[ConditionId]
+			  LEFT JOIN dbo.[Percent] salePer WITH(NOLOCK) ON BII.SalesTaxPercent = salePer.PercentId
+			  LEFT JOIN dbo.[Percent] otherPer WITH(NOLOCK) ON BII.OtherTaxPercent = otherPer.PercentId
+			  LEFT JOIN dbo.[Percent] TBP WITH(NOLOCK) ON BII.TotalBillingCostPercent = TBP.PercentId
+			  LEFT JOIN dbo.[Percent] MCP WITH(NOLOCK) ON BII.MaterialCostPercent = MCP.PercentId
+			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
+			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
+			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId ;
 		END
 	END TRY    

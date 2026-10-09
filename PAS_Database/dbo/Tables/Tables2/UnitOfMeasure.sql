@@ -15,9 +15,11 @@
     [ShortCode]       VARCHAR (20)   NULL,
     [Class]           VARCHAR (100)  NULL,
     [DecimalPlaces]   INT            NULL,
+    [UOMFamilyTypeId] INT            NULL,
     CONSTRAINT [PK_UnitOfMeasure] PRIMARY KEY CLUSTERED ([UnitOfMeasureId] ASC),
     CONSTRAINT [FK_UnitOfMeasure_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_UnitOfMeasure_Standard] FOREIGN KEY ([StandardId]) REFERENCES [dbo].[Standard] ([StandardId]),
+    CONSTRAINT [FK_UnitOfMeasure_UOMFamilyType] FOREIGN KEY ([UOMFamilyTypeId]) REFERENCES [dbo].[UOMFamilyType] ([UOMFamilyTypeId]),
     CONSTRAINT [Unique_UnitOfMeasure_Description] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_UnitOfMeasure_ShortName] UNIQUE NONCLUSTERED ([ShortName] ASC, [MasterCompanyId] ASC)
 );
@@ -46,21 +48,25 @@ DECLARE @IsActive bit,@IsDeleted bit
 
 DECLARE @CreatedDate datetime, @UpdatedDate datetime;
 
+DECLARE @UOMFamilyTypeId int, @UOMFamilyTypeName varchar(100);
+
 SELECT @UnitOfMeasureId = UnitOfMeasureId , @Description = [Description] , @ShortName = ShortName , @Memo=Memo ,
 
  	   @MasterCompanyId = MasterCompanyId ,	@IsActive = IsActive , @CreatedBy = CreatedBy ,
 
 	   @UpdatedBy = UpdatedBy , @CreatedDate = CreatedDate , @UpdatedDate = UpdatedDate , @IsDeleted = IsDeleted,
 
-	   @StandardId = StandardId , @SequenceNo =  SequenceNo, @ShortCode = ShortCode, @Class = Class,@DecimalPlaces =DecimalPlaces FROM INSERTED
+	   @StandardId = StandardId , @SequenceNo =  SequenceNo, @ShortCode = ShortCode, @Class = Class,@DecimalPlaces =DecimalPlaces, @UOMFamilyTypeId = UOMFamilyTypeId FROM INSERTED
 
 SELECT @StandardName = StandardName FROM [dbo].[Standard] WHERE StandardId=@StandardId
+
+SELECT @UOMFamilyTypeName = [Name] FROM [dbo].[UOMFamilyType] WHERE UOMFamilyTypeId=@UOMFamilyTypeId AND MasterCompanyId=@MasterCompanyId
 
 	INSERT INTO UnitOfMeasureAudit
 
 	SELECT @UnitOfMeasureId,@Description,@ShortName,@Memo,@MasterCompanyId,@IsActive,@CreatedBy,
 
-	       @UpdatedBy,@CreatedDate,@UpdatedDate,@IsDeleted,@StandardId,@StandardName,@SequenceNo,@ShortCode,@Class,@DecimalPlaces FROM INSERTED
+	       @UpdatedBy,@CreatedDate,@UpdatedDate,@IsDeleted,@StandardId,@StandardName,@SequenceNo,@ShortCode,@Class,@DecimalPlaces,@UOMFamilyTypeId,@UOMFamilyTypeName FROM INSERTED
 
 	SET NOCOUNT ON;
 

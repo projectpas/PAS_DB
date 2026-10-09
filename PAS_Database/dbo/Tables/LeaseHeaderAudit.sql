@@ -25,6 +25,7 @@
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_LeaseHeaderAudit_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [IsActive]              BIT             CONSTRAINT [DF_LeaseHeaderAudit_Active] DEFAULT ((1)) NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_LeaseHeaderAudit_Delete] DEFAULT ((0)) NULL,
+    [AllowInvoiceBeforeShipping] BIT             CONSTRAINT [DF_LeaseHeaderAudit_AllowInvoiceBeforeShipping] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_LeaseHeaderAudit] PRIMARY KEY CLUSTERED ([LeaseHeaderAuditId] ASC)
 );
 

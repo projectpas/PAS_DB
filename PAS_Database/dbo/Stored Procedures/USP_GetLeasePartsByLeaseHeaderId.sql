@@ -33,10 +33,16 @@
                                                  Taxes fields OR any active dynamic LeaseStocklineServiceComponent row
                                                  exists, so the Angular "Add/Edit Service Component" label is correct
                                                  even when only dynamic components were saved
+    14   16/09/2026     Amit Ghediya            Added OtherComponentAmount - sum of Amount across all active dynamic
+                                                 LeaseStocklineServiceComponent rows for the stockline (the "Other"
+                                                 column shown alongside the static Maintenance/Insurance/Taxes columns)
+    15   25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] PricingMethod replaced with
+                                                 IsOutrightSale/IsFlatRate (see USP_CreateUpdateLeaseStockLine).
+    16   06/10/2026     Kishor Makwana          [PN-17949 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
+CREATE     PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT = 0
 AS
@@ -69,7 +75,8 @@ BEGIN
 			LSL.StocklineNumber,
 			LSL.OutrightPrice,
 			LSL.FlatRate,
-			LSL.PricingMethod,
+			LSL.IsOutrightSale,
+			LSL.IsFlatRate,
 			LSL.RateUnit,
 			LSL.BillingInterval,
 			LSL.BillingMethod,
@@ -81,12 +88,13 @@ BEGIN
 			LSL.UsagePerUnitTimes,
 			LSL.OverrunPerUnitCycles,
 			LSL.OverrunPerUnitTimes,
-			LSL.Maintenance,
+			COALESCE(SC_SUM.MaintenanceAmount, LSL.Maintenance) AS Maintenance,
 			LSL.MaintenancePer,
-			LSL.Insurance,
+			COALESCE(SC_SUM.InsuranceAmount, LSL.Insurance) AS Insurance,
 			LSL.InsurancePer,
-			LSL.Taxes,
+			COALESCE(SC_SUM.TaxesAmount, LSL.Taxes) AS Taxes,
 			LSL.TaxesPer,
+			SC_SUM.OtherComponentAmount,
 			LSL.RepairOrderId,
 			LSL.RONumber,
 			RO.StatusId AS RepairOrderStatusId,
@@ -114,6 +122,16 @@ BEGIN
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = LSL.RepairOrderId
 		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
+		LEFT JOIN (
+			SELECT LeaseStocklineId,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount
+			FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
+			WHERE IsDeleted = 0
+			GROUP BY LeaseStocklineId
+		) SC_SUM ON SC_SUM.LeaseStocklineId = LSL.LeaseStocklineId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0
 		  AND (ISNULL(@LeaseStocklineId, 0) = 0 OR LSL.LeaseStocklineId = @LeaseStocklineId)

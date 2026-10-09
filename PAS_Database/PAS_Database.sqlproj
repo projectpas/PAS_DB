@@ -1370,6 +1370,7 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMapping.sql" />
+    <Build Include="dbo\Tables\Tables2\WorkOrderQuoteMaterialKitMappingAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettings.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteSettingsAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderQuoteStatus.sql" />
@@ -1850,7 +1851,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\MigrateItemMasterRecords.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\MigrateKitItemMasterRecords.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\MigrateStocklineRecords.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\ModuleWiseDataForMigrationByType.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\PrintCheckSetupList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\Proc_GetNonStockList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\PROC_linkWOtoPOROData.sql" />
@@ -3875,6 +3875,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetContactsByVendorId.sql" />
     <Build Include="dbo\Tables\UserSessions.sql" />
+    <Build Include="dbo\Tables\ExternalUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerATAMappingByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
@@ -4472,6 +4473,9 @@
     <Build Include="dbo\Tables\UOMFamilyType.sql" />
     <Build Include="dbo\Tables\UOMFamilyTypeAudit.sql" />
     <Build Include="dbo\Views\vw_UOMFamilyTypeAudit.sql" />
+    <Build Include="dbo\Tables\CoreLetter.sql" />
+    <Build Include="dbo\Tables\CoreLetterAudit.sql" />
+    <Build Include="dbo\Views\vw_CoreLetter.sql" />
     <Build Include="dbo\Functions\fn_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
@@ -4638,6 +4642,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetPartStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoForWorkOrderPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetParts.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetHeader.sql" />
@@ -4747,21 +4752,47 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionImages.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderTaskInstructionImage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPNStockSummary.sql" />
+    <Build Include="dbo\Tables\LeasePickTicketAudit.sql" />
+    <Build Include="dbo\Tables\LeasePickTicket.sql" />
     <Build Include="dbo\Tables\LeaseStocklineAudit.sql" />
     <Build Include="dbo\Tables\LeaseStockline.sql" />
     <Build Include="dbo\Tables\LeaseStocklineServiceComponentAudit.sql" />
     <Build Include="dbo\Tables\LeaseStocklineServiceComponent.sql" />
     <Build Include="dbo\User Defined Types\LeaseStocklineServiceComponentType.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineUsageAudit.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineUsage.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineUsageHistoryAudit.sql" />
+    <Build Include="dbo\Tables\LeaseStocklineUsageHistory.sql" />
+    <Build Include="dbo\Tables\LeaseChargesAudit.sql" />
+    <Build Include="dbo\Tables\LeaseCharges.sql" />
+    <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineServiceComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetUsageInfoLeaseStockPartsListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineUsageByLeaseStocklineId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineUsageHistoryByLeaseStocklineId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineUsage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklinesForChargesByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseChargesByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLeaseCharge.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreLeaseCharge.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineReceivedStockLine.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineProperties.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseHeaderState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetNextLeasePickTicketNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePickTicketApproveList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePickTicketChildList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchStockLineForLeasePickTicketPop.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeasePickTicketItem.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePickTicketForEdit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePickTicketByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePickTicketPrint.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReserveUnReserveLeaseStockLine.sql" />
     <Build Include="dbo\Stored Procedures\USP_LeaseHeaderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetUnReservedLeaseStockPartsListByLeaseHeaderId.sql" />
@@ -4795,9 +4826,58 @@
     <Build Include="dbo\Tables\LeaseRateUnit.sql" />
     <Build Include="dbo\Tables\LeaseBillingInterval.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostGRNIAdjusmentBatchDetails.sql" />
-    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingEditableFields.sql" />
-    <Build Include="dbo\Stored Procedures\USP_ReallocateWOInvoiceAccountingPeriod.sql" />
-    <Build Include="dbo\Stored Procedures\USP_ReallocateSOInvoiceAccountingPeriod.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderTATReportPowerBI.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPowerBIWorkOrderTATReport.sql" />
+    <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseBillingListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteChargesCommonHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteMaterialCommonHistory.sql" />
+    <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncLeaseBillingDraftInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenLeaseBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
+    <Build Include="dbo\Tables\LeaseShippingItemAudit.sql" />
+    <Build Include="dbo\Tables\LeaseShippingItem.sql" />
+    <Build Include="dbo\Tables\LeaseShippingAudit.sql" />
+    <Build Include="dbo\Tables\LeaseShipping.sql" />
+    <Build Include="dbo\Tables\LeaseCustomsInfoAudit.sql" />
+    <Build Include="dbo\Tables\LeaseCustomsInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchLeasePickTicketForShippingPop.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseShipping.sql">
+      <QuotedIdentifier>On</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingParentList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingLabel.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingForEdit.sql">
+      <QuotedIdentifier>On</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingChildList.sql">
+      <QuotedIdentifier>On</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\User Defined Types\LeaseShippingType.sql" />
+    <Build Include="dbo\User Defined Types\LeaseShippingItemsType.sql" />
+    <Build Include="dbo\User Defined Types\LeaseCustomsInfoType.sql" />
+    <Build Include="dbo\Tables\LeaseBillingInvoicingItemDetailsAudit.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_LeasePreview.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_Lease.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_LeasePreview.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_Lease.sql" />
+    <Build Include="dbo\Tables\LeasePackagingSlipItem.sql" />
+    <Build Include="dbo\Tables\LeasePackagingSlipHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseShippingCarrierResult.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeasePackagingSlip.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePackagingLabel.sql" />
+    <Build Include="dbo\User Defined Types\LeasePackagingSlipItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveEngineCycleTimeMappings.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4818,6 +4898,17 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIDetailedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWIPDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetExternalUserByUserName.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_UpdateExternalUserLoginStatus.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetExternalLeaseList.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_CreateExternalUser.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStockInventories.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIStocklineData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIItemMasterData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIPartsAvailabilityAndStockout.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIVendorPerformance.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBILaborUtilization.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
   </ItemGroup>
   <ItemGroup>

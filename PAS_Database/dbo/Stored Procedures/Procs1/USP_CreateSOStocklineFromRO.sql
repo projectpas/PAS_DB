@@ -31,6 +31,7 @@
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters tied to the SalesOrder-linked branches (SalesOrderPartV1/SalesOrderStocklineV1), added during PN-17008 transitional Non-Stock merge phase. The 2 RepairOrder-only branches (lines ~201/466) were left untouched, out of scope.
 	17   03/Aug/2026  Bhargav Saliya	Fixed Create Stockline Issue after Receiving RO [PN-17319]
+	18   24/Sep/2026  Kishor Makwana    [PN-18058] RO RecevingTime Total Reserve Qty Update in Sales ORder
  EXECUTE USP_CreateSOStocklineFromRO 2667
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
@@ -211,7 +212,7 @@ BEGIN
 					[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
 					[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],[PartDescription],
 					[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId],[LotId],[IsLotAssigned],
-					[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+					[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[ToTalReservedQty])
 					SELECT DISTINCT
                       ROS.SalesOrderId,
                       SL.ItemMasterId,
@@ -258,7 +259,11 @@ BEGIN
 					  ime.[ExportWeight],
 					  ime.[ExportSizeLength],
 					  ime.[ExportSizeWidth],
-					  ime.[ExportSizeHeight]
+					  ime.[ExportSizeHeight],
+					  CASE
+                        WHEN SL.QuantityAvailable > @Quantity THEN @Quantity
+                        ELSE SL.QuantityAvailable
+                      END
                     FROM #ROStockLineRevisedPart ROS WITH (NOLOCK)
                     JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
                     JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
@@ -501,7 +506,7 @@ BEGIN
 					BEGIN
 						INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 						CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-						IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber)
+						IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber,ToTalReservedQty)
 						SELECT DISTINCT
 						  @ExSalesOrderPartId,
 						  @StockLineId,
@@ -534,7 +539,11 @@ BEGIN
 						  ime.[ExportSizeLength],
 						  ime.[ExportSizeWidth],
 						  ime.[ExportSizeHeight],
-						  @RefNumber
+						  @RefNumber,
+						  CASE
+							WHEN SL.QuantityAvailable > @Quantity THEN @Quantity
+							ELSE SL.QuantityAvailable
+						  END
 							FROM #ROStockLineSamePart ROS WITH (NOLOCK)
 							JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 							JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
@@ -697,11 +706,11 @@ BEGIN
 								INSERT INTO [dbo].[SalesOrderPartV1] (SalesOrderId,ItemMasterId,ConditionId,QtyRequested,QtyOrder,QtyReserved,CurrencyId,
 								PriorityId,StatusId,FxRate,CustomerRequestDate,PromisedDate,EstimatedShipDate,POId,PONumber,PONextDlvrDate,Notes,MasterCompanyId,
 								CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,OldSalesOrderPartId,PartNumber,PartDescription,ConditionName,
-								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,ToTalReservedQty)
 								SELECT SalesOrderId,ItemMasterId,ConditionId,QtyRequested,QtyOrder,QtyReserved,CurrencyId,
 								PriorityId,StatusId,FxRate,CustomerRequestDate,PromisedDate,EstimatedShipDate,POId,PONumber,PONextDlvrDate,Notes,MasterCompanyId,
 								CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,OldSalesOrderPartId,PartNumber,PartDescription,ConditionName,
-								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight
+								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,ToTalReservedQty
 								FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId;
 
 								SELECT @NewSalesOrderPartId = SCOPE_IDENTITY();
@@ -716,10 +725,10 @@ BEGIN
 							
 								INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 								CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber)
+								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber,ToTalReservedQty)
 								SELECT SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 								CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,@RefNumber
+								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,@RefNumber,ToTalReservedQty
 								FROM [dbo].SalesOrderStocklineV1 WITH(NOLOCK) WHERE SalesOrderStocklineId = @ExSalesOrderStocklineId;
 
 								SELECT @SalesOrderStockLineId = SCOPE_IDENTITY();
@@ -813,11 +822,12 @@ BEGIN
 
 						UPDATE [dbo].[SalesOrderPartV1] 
 						SET StatusId = @soPartFulfilledStatusId,
-						QtyReserved = @Quantity
+						QtyReserved = @Quantity,ToTalReservedQty = @Quantity
 						WHERE SalesOrderPartId = @ExSalesOrderPartId
 
 						UPDATE [dbo].[SalesOrderStocklineV1]
-						SET QtyReserved = @Quantity
+						SET QtyReserved = @Quantity, ToTalReservedQty = @Quantity
+
 						WHERE SalesOrderStocklineId = @NewSalesOrderStocklineId;
 
 						INSERT INTO [dbo].[SalesOrderReserveParts]
@@ -873,11 +883,11 @@ BEGIN
 								INSERT INTO [dbo].[SalesOrderPartV1] (SalesOrderId,ItemMasterId,ConditionId,QtyRequested,QtyOrder,QtyReserved,CurrencyId,
 								PriorityId,StatusId,FxRate,CustomerRequestDate,PromisedDate,EstimatedShipDate,POId,PONumber,PONextDlvrDate,Notes,MasterCompanyId,
 								CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,OldSalesOrderPartId,PartNumber,PartDescription,ConditionName,
-								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,ToTalReservedQty)
 								SELECT SalesOrderId,ItemMasterId,ConditionId,QtyRequested,QtyOrder,QtyReserved,CurrencyId,
 								PriorityId,StatusId,FxRate,CustomerRequestDate,PromisedDate,EstimatedShipDate,POId,PONumber,PONextDlvrDate,Notes,MasterCompanyId,
 								CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,OldSalesOrderPartId,PartNumber,PartDescription,ConditionName,
-								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight
+								CurrencyName,PriorityName,StatusName,SalesOrderQuotePartId,LotId,IsLotAssigned,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,ToTalReservedQty
 								FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId;
 
 								SELECT @NewSalesOrderPartId = SCOPE_IDENTITY();
@@ -892,10 +902,10 @@ BEGIN
 							
 								INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 								CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber)
+								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber,ToTalReservedQty)
 								SELECT SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 								CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,@RefNumber
+								IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,@RefNumber,ToTalReservedQty
 								FROM [dbo].SalesOrderStocklineV1 WITH(NOLOCK) WHERE SalesOrderStocklineId = @ExSalesOrderStocklineId;
 
 								SELECT @SalesOrderStockLineId = SCOPE_IDENTITY();

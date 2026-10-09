@@ -40,6 +40,11 @@
 										the SP was found out of sync with dbo.Stored Procedures.Procs3 copy - missing
 										changes #5 and #6 entirely - brought back to parity as part of this change.)
 										And change the word can't to can not in the message to match the payment guard message.
+
+    7    09-Oct-2026  Rajesh Gami		[PN-18268] Allow Re-Open for Proforma invoices (UI condition removed). Added a Proforma guard: blocks
+										re-open of a Proforma invoice when its Standard invoice has already been posted
+										(BillingInvoicing.IsStandardInvoicePosted = 1), to avoid billing the same items twice.
+										The Sales Order status revert below applies to Proforma the same way as Standard.
 										
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
@@ -62,13 +67,14 @@ BEGIN
 		DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder'
 
-		DECLARE @ModuleId INT, @ReferenceId BIGINT, @IsPerformaInvoice BIT, @InvoiceStatus VARCHAR(50), @MasterCompanyId INT
+		DECLARE @ModuleId INT, @ReferenceId BIGINT, @IsPerformaInvoice BIT, @InvoiceStatus VARCHAR(50), @MasterCompanyId INT, @IsStandardInvoicePosted BIT
 
 		SELECT	@ModuleId = [ModuleId],
 				@ReferenceId = [ReferenceId],
 				@IsPerformaInvoice = ISNULL([IsPerformaInvoice],0),
 				@InvoiceStatus = [InvoiceStatus],
-				@MasterCompanyId = [MasterCompanyId]
+				@MasterCompanyId = [MasterCompanyId],
+				@IsStandardInvoicePosted = ISNULL([IsStandardInvoicePosted],0)
 		FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
 		WHERE [BillingInvoicingId] = @BillingInvoicingId
 
@@ -87,6 +93,13 @@ BEGIN
 		IF (ISNULL(@InvoiceStatus,'') <> 'Invoiced')
 		BEGIN
 			SELECT 0 AS IsSuccess, 'Only a posted (Invoiced) invoice can be Re-Opened.' AS Message
+			RETURN
+		END
+
+		-- Proforma guard: a Proforma invoice can not be Re-Opened once the Standard invoice has been posted
+		IF (ISNULL(@IsPerformaInvoice,0) = 1 AND ISNULL(@IsStandardInvoicePosted,0) = 1)
+		BEGIN
+			SELECT 0 AS IsSuccess, 'This Proforma invoice can not be Re-Opened because the Standard invoice has already been posted.' AS Message
 			RETURN
 		END
 

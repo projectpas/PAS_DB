@@ -77,6 +77,14 @@
          PaymentCTE row for a payment whose customer payment touches both a WO and a SO billing
          invoice item).
 	8    14/September/2026   Rajesh Gami   [PN-17830] Added Qty in the COGS price (UnitCost * QtyBilled) --LessCOGSRepairCalc
+    9    16/September/2026   RAJESH GAMI   [PN-17881] ConsigneePortion/ConsignorPortionGross (both the SO and
+         WO branches of CashCTE) now source LG.IsRevenue/IsMargin/IsFixedAmount/PercentId/PerAmount/
+         ConsignorPercentId/MarginPercentId/MarginConsignorPercentId from dbo.LotCalculationDetails
+         (RevenuePercentId/FixedAmount/RevenueConsignorPercentId/MarginPercentId/MarginConsignorPercentId,
+         aliased back to the same names) via an OUTER APPLY (TOP 1, LotId + Type='Trans Out (SO)', latest
+         LotCalculationId) instead of a plain LEFT JOIN to dbo.LotConsignment - LotConsignment itself is no
+         longer read here. The OUTER APPLY is required (not a plain join) because LotCalculationDetails has
+         many rows per LotId, unlike LotConsignment's one row per LotId.
  **************************************************************
  EXEC usprpt_GetLotCommissionReportInvoiceDate @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>1/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>9/2/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -305,7 +313,19 @@ BEGIN
       INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = BII.SubReferenceId
       INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = BII.ItemMasterId
       LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = SOP.LotId AND ISNULL(LT.IsDeleted,0) = 0
-      LEFT JOIN dbo.LotConsignment LG WITH (NOLOCK) ON LG.LotId = LT.LotId
+      -- [PN-17881] switched from dbo.LotConsignment to dbo.LotCalculationDetails (this Lot's own newly-added
+      -- mirror columns). OUTER APPLY + TOP 1 + explicit LotId/Type filter (not a plain JOIN) is required here -
+      -- LotCalculationDetails has many rows per LotId (one per 'Trans Out (SO)' transaction), so a plain join
+      -- would duplicate every CashCTE row per extra LotCalculationDetails row; ORDER BY LotCalculationId DESC
+      -- picks the latest posted commission-split snapshot for the Lot.
+      OUTER APPLY (
+        SELECT TOP 1 LCD.IsRevenue, LCD.IsMargin, LCD.IsFixedAmount, LCD.RevenuePercentId AS PercentId,
+               LCD.FixedAmount AS PerAmount, LCD.RevenueConsignorPercentId AS ConsignorPercentId,
+               LCD.MarginPercentId, LCD.MarginConsignorPercentId
+        FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+        WHERE LCD.LotId = LT.LotId AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out (SO)',' ',''))
+        ORDER BY LCD.LotCalculationId DESC
+      ) LG
       LEFT JOIN dbo.[Percent] CRP  WITH (NOLOCK) ON CRP.PercentId  = LG.PercentId
       LEFT JOIN dbo.[Percent] CRP1 WITH (NOLOCK) ON CRP1.PercentId = LG.ConsignorPercentId
       LEFT JOIN dbo.[Percent] CRMP  WITH (NOLOCK) ON CRMP.PercentId  = LG.MarginPercentId
@@ -427,7 +447,19 @@ BEGIN
       INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = BII.ItemMasterId
       LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = BII.StocklineId
       LEFT JOIN dbo.Lot LT WITH (NOLOCK) ON LT.LotId = STK.LotId AND ISNULL(LT.IsDeleted,0) = 0
-      LEFT JOIN dbo.LotConsignment LG WITH (NOLOCK) ON LG.LotId = LT.LotId
+      -- [PN-17881] switched from dbo.LotConsignment to dbo.LotCalculationDetails (this Lot's own newly-added
+      -- mirror columns). OUTER APPLY + TOP 1 + explicit LotId/Type filter (not a plain JOIN) is required here -
+      -- LotCalculationDetails has many rows per LotId (one per 'Trans Out (SO)' transaction), so a plain join
+      -- would duplicate every CashCTE row per extra LotCalculationDetails row; ORDER BY LotCalculationId DESC
+      -- picks the latest posted commission-split snapshot for the Lot.
+      OUTER APPLY (
+        SELECT TOP 1 LCD.IsRevenue, LCD.IsMargin, LCD.IsFixedAmount, LCD.RevenuePercentId AS PercentId,
+               LCD.FixedAmount AS PerAmount, LCD.RevenueConsignorPercentId AS ConsignorPercentId,
+               LCD.MarginPercentId, LCD.MarginConsignorPercentId
+        FROM dbo.LotCalculationDetails LCD WITH (NOLOCK)
+        WHERE LCD.LotId = LT.LotId AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out (SO)',' ',''))
+        ORDER BY LCD.LotCalculationId DESC
+      ) LG
       LEFT JOIN dbo.[Percent] CRP  WITH (NOLOCK) ON CRP.PercentId  = LG.PercentId
       LEFT JOIN dbo.[Percent] CRP1 WITH (NOLOCK) ON CRP1.PercentId = LG.ConsignorPercentId
       LEFT JOIN dbo.[Percent] CRMP  WITH (NOLOCK) ON CRMP.PercentId  = LG.MarginPercentId

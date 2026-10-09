@@ -20,6 +20,7 @@
 	3	 12 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
 	4	 31/12/2024	  Bhargav saliya  In WO DashBoards Resolved [RECEIVED] Count Issue (PN-10677)
     5    25/06/2026   Ayushi Patel	  UOM Changes [PN-16963] 
+    6    17-Sep-2026  Anand		  [Session TimeOut issue] - Fixed varchar to bigint error in CATCH block and Cost overflow
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetWODashboardDataCount]
@@ -70,7 +71,8 @@ BEGIN
 					 StageCode VARCHAR(100) NULL,
 					 CodeDescription VARCHAR(200) NULL,
 					 Counts INT NULL,
-					 Cost DECIMAL(18,6) NULL,
+					 --Cost DECIMAL(18,6) NULL,
+					 Cost DECIMAL(28,6) NULL,
 					 GroupNo INT NULL
 				)
 
@@ -137,8 +139,11 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetWODashboardDataCount' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@MasterCompanyId, '') + '''
-													   @Parameter2 = '''+ ISNULL(@EmployeeId, '') + '''
+              --, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@MasterCompanyId, '') + '''
+													   --@Parameter2 = '''+ ISNULL(@EmployeeId, '') + '''
+													   --@Parameter3 = ' + ISNULL(@Type ,'') +''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@MasterCompanyId AS VARCHAR(20)), '') + '''
+													   @Parameter2 = '''+ ISNULL(CAST(@EmployeeId AS VARCHAR(20)), '') + '''
 													   @Parameter3 = ' + ISNULL(@Type ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

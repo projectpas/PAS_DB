@@ -1,4 +1,4 @@
-﻿--DROP PROCEDURE usp_SavePostKitforWOQ
+--DROP PROCEDURE usp_SavePostKitforWOQ
 --/****** Object:  UserDefinedTableType [dbo].[WorkOrderQuoteMaterialType]    Script Date: 1/12/2026 4:09:19 PM ******/
 
 /*************************************************************             
@@ -24,6 +24,7 @@
 	4	 21 APR 2025	HEMANT SALIYA		Update For WOM Kit Cost is not updating
 	5	 01 Jul 2025	Moin Bloch			Modified (Fixed For Billing Amount in WOQ Kit)
 	6	 12 Jan 2026	Rajesh Gami			Modified: UOM Conversion related change
+	7	 02 OCT 2026	AYUSHI PATEL		[PN-14788]Modified: Fixed CreatedDate and UpdatedDate to GETUTCDATE() on new kit mapping insert
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
@@ -87,7 +88,7 @@ BEGIN
 		    (WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],[Quantity],[UnitCost],[ExtendedCost],
 		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[BillingRate],[BillingAmount],[TaskId])
 		    SELECT WorkOrderQuoteId,WorkflowWorkOrderId,tmp.KitId,KM.KitNumber,tmp.[ItemMasterId],[Quantity],[UnitCost],(UnitCost),
-		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],tmp.[CreatedDate],tmp.[UpdatedDate],tmp.[IsActive],tmp.[IsDeleted],[UnitCost],tmp.[BillingAmount],tmp.[TaskId]   --(UnitCost),
+		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],GETUTCDATE(),GETUTCDATE(),tmp.[IsActive],tmp.[IsDeleted],[UnitCost],tmp.[BillingAmount],tmp.[TaskId]   --(UnitCost),
 		    FROM #KITPartType tmp
 			INNER JOIN [dbo].[KitMaster] KM WITH (NOLOCK) ON KM.KitId = tmp.KitId 
 		    WHERE tmp.WOQMaterialKitMappingId = 0

@@ -13,6 +13,7 @@
  ** --   --------    -------		--------------------------------          
     1    03/02/2026  Vishal Suthar  Created
     2    03/03/2026  Vishal Suthar  Fixed issue with Merge statement
+	3    18/09/2026  Amit Ghediya	Type mismatch in the table
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq_PartsBase]
@@ -46,7 +47,8 @@ BEGIN
 
 		MERGE INTO [dbo].[CustomerRfq] AS target
 		USING (SELECT * FROM SourceDedup WHERE rn = 1) AS source
-			ON target.RfqId = source.RfqId
+			--type mismatch in the table
+			ON target.RfqId = CAST(source.RfqId AS NVARCHAR(400))
 			AND target.RfqItemId = source.RfqItemId
 			AND target.IntegrationPortalId = source.IntegrationPortalId
 			AND target.MasterCompanyId = @MasterCompanyId

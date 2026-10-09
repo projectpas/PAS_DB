@@ -19,6 +19,7 @@
     3    07/07/2025   Abhishek Jirawla	RO Piece Parts do not need approval
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/Sep/2026			 Aayushi Patel						[PN-18003] - RO Pick Ticket tab shows blank in history view once Repair Order is Closed : Also include parts with a confirmed pick ticket when the Repair Order is Closed
 -- EXEC [dbo].[sp_GetROPickTicketApproveList] 2651
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROPickTicketApproveList]
@@ -31,9 +32,12 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		
+
 		DECLARE @ApprovalStatusId INT = 0;
 		SELECT @ApprovalStatusId = ApprovalStatusId FROM DBO.[ApprovalStatus] WITH(NOLOCK) WHERE Name = 'Approved'
+
+		DECLARE @ROClosedStatusId BIGINT = 0;
+		SELECT @ROClosedStatusId = ROStatusId FROM DBO.[ROStatus] WITH(NOLOCK) WHERE UPPER([Status]) = 'CLOSED'
 
 		SELECT 
 			rop.RepairOrderPartRecordId as RepairOrderPartId, 
@@ -64,7 +68,14 @@ BEGIN
 			LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
 			LEFT JOIN DBO.ROPickTicket ropt WITH (NOLOCK) on ropt.RepairOrderId = rop.RepairOrderId and ropt.RepairOrderPartId = rop.RepairOrderPartRecordId
 		WHERE rop.IsParent = 1 AND
-		rop.RepairOrderId = @RepairOrderId AND (rop.QuantityReserved > 0)
+		rop.RepairOrderId = @RepairOrderId
+		AND (
+			rop.QuantityReserved > 0
+			OR (
+				ro.StatusId = @ROClosedStatusId
+				AND EXISTS (SELECT 1 FROM DBO.ROPickTicket rpth WITH (NOLOCK) WHERE rpth.RepairOrderId = rop.RepairOrderId AND rpth.RepairOrderPartId = rop.RepairOrderPartRecordId AND rpth.IsConfirmed = 1)
+			)
+		)
 		AND (
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
 			OR (ro.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)

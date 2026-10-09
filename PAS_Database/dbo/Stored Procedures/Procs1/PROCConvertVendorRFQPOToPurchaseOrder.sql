@@ -29,6 +29,7 @@
 	14   12/12/2025  Devendra Shekh	   Added SP usp_MapRFQReferences For PO Part Reference Mapping
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 3 leftover IsNonStock=0 exclusion filters added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	17    25/Sep/2026			 Bhargav							[PN-17506] - RFQ-PO View (@Opr = 1): convert remaining unconverted parts instead of returning -2. Both @Opr = 1 and @Opr = 2: add parts to the RFQ's latest PO while it is Open/Pending; create a NEW PO when it is Fulfilling/Closed/Canceled.
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
@@ -75,6 +76,23 @@ BEGIN
   DECLARE @FunctionalCurrencyId BIGINT = 0;
   DECLARE @ReportCurrencyId BIGINT = 0;
   DECLARE @ForeignExchangeRate BIGINT = 0;
+  DECLARE @LatestPOId BIGINT = NULL;
+  DECLARE @LatestPOStatusId INT = NULL;
+  DECLARE @CreateNewPO BIT = 0;
+
+  -- Latest PO already created from this RFQ. Parts go onto it while it is Open/Pending;
+  -- once it is Fulfilling, Closed or Canceled, a NEW PO is created instead.
+  SELECT TOP 1 @LatestPOId = [PurchaseOrderId], @LatestPOStatusId = [StatusId]
+    FROM dbo.PurchaseOrder WITH(NOLOCK)
+   WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ISNULL([IsDeleted], 0) = 0
+   ORDER BY [PurchaseOrderId] DESC;
+
+  IF (@LatestPOId IS NULL
+      OR @LatestPOStatusId IN (SELECT [POStatusId] FROM [dbo].[POStatus] WITH(NOLOCK)
+							   WHERE ([Description] LIKE '%Fulfilling%' OR [Description] LIKE '%Closed%' OR [Description] LIKE '%Cancel%') AND ISNULL([IsDeleted], 0) = 0))
+  BEGIN
+	SET @CreateNewPO = 1;
+  END
 
   SELECT @FunctionalCurrencyId = FunctionalCurrencyId,
 		   @ReportCurrencyId = ReportCurrencyId,
@@ -89,15 +107,20 @@ BEGIN
   CREATE TABLE #tmpVendorRFQPurchaseOrderPartDetails
   (
 	[ID] BIGINT NOT NULL IDENTITY, 
-	[PartId] BIGINT NULL,
-	[RfqPartId] BIGINT NULL
+	[PartId] BIGINT NULL,
+	[RfqPartId] BIGINT NULL
   )
 
   IF(@Opr = 1)    
-  BEGIN 
+  BEGIN
 
-   IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId )    
-   BEGIN       
+   -- No usable PO (none yet, or latest is Fulfilling/Closed/Canceled) and parts are still unconverted:
+   -- create a NEW PO holding only the unconverted parts.
+   IF @CreateNewPO = 1
+      AND (@LatestPOId IS NULL
+		   OR EXISTS (SELECT 1 FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
+					  AND [PurchaseOrderId] IS NULL AND ISNULL([IsNoQuote], 0) = 0 AND ISNULL([IsDeleted], 0) = 0))
+   BEGIN
     SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)    
       WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;    
     
@@ -210,7 +233,7 @@ BEGIN
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
          GETUTCDATE(),GETUTCDATE(),VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
-                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0
+                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0 AND VRFQP.[PurchaseOrderId] IS NULL
     	SET @POPartID = IDENT_CURRENT('PurchaseOrderPart');
 		
 		INSERT INTO #tmpVendorRFQPurchaseOrderPartDetails ([PartId],[RfqPartId])
@@ -245,7 +268,7 @@ BEGIN
 			LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PRPART WITH(NOLOCK) ON PRPART.VendorRFQPOPartRecordId = VRC.VendorRFQPOPartRecordId AND PRPART.IsDeleted = 0
 			WHERE PRPART.[VendorRFQPOPartRecordId] = @RFQPartId AND VRC.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PRPART.[IsNoQuote], 0) = 0 AND VRC.IsDeleted = 0 									
 									
-			SET @MinId = @MinId + 1;
+			SET @MinId = @MinId + 1;
 
 		END
     
@@ -254,12 +277,12 @@ BEGIN
      UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed',ClosedDate = GETUTCDATE() WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
     
      UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber     
-                WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 				
+                WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] IS NULL;
 
 	 INSERT INTO [dbo].[PurchaseOrderPartReference]([PurchaseOrderId],[PurchaseOrderPartId],[ModuleId],[ReferenceId],[Qty],[RequestedQty],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 	 SELECT PART.PurchaseOrderId,PART.PurchaseOrderPartRecordId,VRFQ.ModuleId,VRFQ.ReferenceId,VRFQ.Qty,VRFQ.RequestedQty,VRFQ.MasterCompanyId,VRFQ.CreatedBy,VRFQ.UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0
 	 FROM DBO.VendorRFQPurchaseOrderPartReference VRFQ WITH(NOLOCK) INNER JOIN dbo.[PurchaseOrderPart] PART WITH(NOLOCK) ON VRFQ.VendorRFQPOPartRecordId = PART.VendorRFQPOPartRecordId 
-		WHERE VRFQ.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
+		WHERE VRFQ.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND PART.[PurchaseOrderId] = @PID
 		
          
      IF OBJECT_ID(N'tempdb..#tblPurchaseOrderPart') IS NOT NULL    
@@ -332,20 +355,63 @@ BEGIN
 	 END
 
     END    
-    ELSE    
-    BEGIN         
-     SELECT @Result = -1;    
-    END    
-   END    
-  ELSE    
-  BEGIN       
-   SELECT @Result = -2;    
-  END    
-  END    
-  IF(@Opr = 2)    
-  BEGIN    
-   IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId)    
-   BEGIN    
+    ELSE
+    BEGIN
+     SELECT @Result = -1;
+    END
+   END
+  ELSE IF EXISTS (SELECT 1 FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
+				  AND [PurchaseOrderId] IS NULL AND ISNULL([IsNoQuote], 0) = 0 AND ISNULL([IsDeleted], 0) = 0)
+  BEGIN
+   -- Latest PO is still Open/Pending: add every unconverted part to it via the single-part (@Opr = 2) path.
+   DECLARE @RemainingPartId BIGINT, @PartResult INT;
+
+   IF OBJECT_ID(N'tempdb..#tmpRemainingRFQPOParts') IS NOT NULL
+   BEGIN
+	DROP TABLE #tmpRemainingRFQPOParts
+   END
+
+   CREATE TABLE #tmpRemainingRFQPOParts
+   (
+	[ID] BIGINT NOT NULL IDENTITY,
+	[VendorRFQPOPartRecordId] BIGINT NOT NULL
+   )
+
+   INSERT INTO #tmpRemainingRFQPOParts ([VendorRFQPOPartRecordId])
+   SELECT [VendorRFQPOPartRecordId] FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK)
+    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] IS NULL AND ISNULL([IsNoQuote], 0) = 0 AND ISNULL([IsDeleted], 0) = 0
+    ORDER BY [VendorRFQPOPartRecordId];
+
+   SELECT @ID = 1;
+   WHILE @ID <= (SELECT MAX(ID) FROM #tmpRemainingRFQPOParts)
+   BEGIN
+	SELECT @RemainingPartId = [VendorRFQPOPartRecordId] FROM #tmpRemainingRFQPOParts WHERE ID = @ID;
+
+	EXEC [dbo].[PROCConvertVendorRFQPOToPurchaseOrder] @VendorRFQPurchaseOrderId, @RemainingPartId, 0, @MasterCompanyId, @CodeTypeId, 2, @IsFromRFQ, @PartResult OUTPUT;
+
+	SET @ID = @ID + 1;
+   END
+
+   SELECT @PONumber = [PurchaseOrderNumber] FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [PurchaseOrderId] = @LatestPOId;
+
+   -- Same as the new-PO path above: No-Quote parts are not copied to the PO but are stamped with it, so the RFQ closes.
+   UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = @LatestPOId,[PurchaseOrderNumber] = @PONumber
+    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] IS NULL AND ISNULL([IsDeleted], 0) = 0;
+
+   UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed',ClosedDate = GETUTCDATE() WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
+
+   SELECT @Result = @LatestPOId;
+  END
+  ELSE
+  BEGIN
+   SELECT @Result = -2;
+  END
+  END
+  IF(@Opr = 2)
+  BEGIN
+   -- No PO yet, or the latest one is Fulfilling/Closed/Canceled: create a NEW PO for this part; otherwise add it to the latest PO.
+   IF @CreateNewPO = 1
+   BEGIN
     SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)    
       WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;    
     
@@ -563,8 +629,8 @@ BEGIN
    BEGIN  
    
 
-    SELECT TOP 1 @PurchaseOrderId = [PurchaseOrderId],    
-              @PONumber = [PurchaseOrderNumber] FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] > 0;    
+    SELECT @PurchaseOrderId = [PurchaseOrderId],
+           @PONumber = [PurchaseOrderNumber] FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [PurchaseOrderId] = @LatestPOId;
     
     INSERT INTO [dbo].[PurchaseOrderPart]([PurchaseOrderId],[ItemMasterId],[PartNumber],[PartDescription],[AltEquiPartNumberId],[AltEquiPartNumber],    
          [AltEquiPartDescription],[StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[ConditionId],    

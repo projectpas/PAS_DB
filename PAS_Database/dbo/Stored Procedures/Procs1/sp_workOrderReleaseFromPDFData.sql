@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -28,6 +28,7 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13   13/July/2026 Priyansh Patel Added missing longbook Id [PN-17081]     
+	14   17/09/2026   Moin Bloch      Added [FormTypeId] [PN-17942]
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
@@ -118,6 +119,7 @@ BEGIN
 					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 					  ,wro.[EmployeeId]
 					   ,0 as IsAircraftLogBook
+					   ,wro.[FormTypeId]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 

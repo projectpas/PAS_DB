@@ -17,6 +17,8 @@
     6    30/03/2026   Nakul Chandigra  Handle the empty value to null for sequence number (PN-15865,PN-15867)
     7    05/05/2026   Nakul Chandigra  Added a Case for null in Update*(PN-16281)
     8    07/07/2026   Priyansh Patel   Changed the Id parameter to be Output [PN-17039]
+    9    23/09/2026   Sahdev Saliya    Handle 'int' FieldType in Edit mode so Code Prefix StartsFrom is updated [PN-17951]
+    10   02/10/2026   Nakul            Set static Class, DecimalPlaces and ShortCode (= ShortName) on Add for UnitOfMeasure
 
 declare @p5 dbo.SingleScreenColumnType
 insert into @p5 values(N'Description',N'TEST',N'string',N'')
@@ -32,7 +34,7 @@ insert into @p5 values(N'UpdatedBy',N'ADMIN User',N'string',NULL)
 exec USP_SingleScreen_New_AddUpdateData @ID=0,@PageName=N'employeeexpertise',@Mode=N'Add',@PrimaryKey=N'EmployeeExpertiseId',@Fields=@p5,@ReferenceTable=N'',@ManagementStructure=0,@ManagementStructureTable=N'',@ManagementStructureIds=N''
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
+CREATE     PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
  @ID int = NULL OUTPUT,    
  @PageName varchar(100) = NULL,    
  @Fields SingleScreenColumnType READONLY,    
@@ -183,9 +185,14 @@ BEGIN
 	  SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ',CreatedDate,UpdatedDate'+')' + ' VALUES (' + @FieldValue + ',GETUTCDATE(),GETUTCDATE()'+')'    
       PRINT @Query
 	  EXEC (@Query)    
-      SET @ID = IDENT_CURRENT(@PageName)    
+      SET @ID = IDENT_CURRENT(@PageName)
 
-	  IF(@PageName = 'defaultmessage')  
+	  IF(@PageName = 'unitofmeasure')
+	  BEGIN
+		UPDATE [dbo].[UnitOfMeasure] SET [Class] = 'Decimal', [DecimalPlaces] = 2, [ShortCode] = [ShortName] WHERE [UnitOfMeasureId] = @ID
+	  END
+
+	  IF(@PageName = 'defaultmessage')
 	  BEGIN			
 		DECLARE @IsDefault BIT = 0
 		SELECT @IsDefault = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'IsDefault')
@@ -242,7 +249,7 @@ BEGIN
           WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
           WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,'  END)    
           WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' THEN FieldName + ' = ' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL' WHEN FieldValue IS NULL THEN 'NULL' ELSE FieldValue END) + ',' ELSE CASE
+          WHEN FieldType = 'integer' OR FieldType = 'int' THEN FieldName + ' = ' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL' WHEN FieldValue IS NULL THEN 'NULL' ELSE FieldValue END) + ',' ELSE CASE
 									 WHEN FieldType = 'number' THEN FieldName + ' = ' + FieldValue + ',' ELSE '' end
 		  END)
 		  , 

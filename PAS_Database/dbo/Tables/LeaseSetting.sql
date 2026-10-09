@@ -5,6 +5,7 @@
     [OverageCycleGLAccountId] INT            NULL,
     [OverageTimeGLAccountId]  INT            NULL,
     [UsageBasedGLAccountId]   INT            NULL,
+    [EnforcePickTicketConfirmation] BIT      CONSTRAINT [DF_LeaseSetting_EnforcePickTicketConfirmation] DEFAULT ((0)) NULL,
     [CreatedBy]               NVARCHAR (100) NULL,
     [CreatedDate]             DATETIME       NULL,
     [UpdatedBy]               NVARCHAR (100) NULL,

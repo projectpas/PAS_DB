@@ -30,8 +30,8 @@
 	14    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	15   08/Aug/2026			 Divyesh Kathiriya					[PN-17554] - Added Non-Stock and Service flags to disable Pick Ticket creation for Non-Stock Service parts.
 	16  24/Aug/2026   Kishor Makwana	[PN-17439] - Fixed SalesOrderPartId (was hardcoded to 0) and scoped the per-line Qty/QtyToShip/QtyToPick/ReadyToPick/TotalReadyToPick subqueries to SalesOrderPartId instead of ItemMasterId+ConditionId, so duplicate Part+Condition lines (different SequenceNumber) no longer merge into a single Pick Ticket summary row. Also prefixed PartNumber with SequenceNumber for display.
-	
--- EXEC [dbo].[sp_GetPickTicketApproveList] 10851
+	17	08/Oct/2026   Bhargav Saliya    [PN-18256]  - PN NUM is showing Blank When Creating From Dashboard
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 1609
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
@@ -47,7 +47,7 @@ BEGIN
 		(SELECT DISTINCT sop.SalesOrderPartId AS SalesOrderPartId,
 		        sop.ItemMasterId,
 				sop.SalesOrderId,
-				CAST(sop.SequenceNumber AS VARCHAR(10)) + ' - ' + imt.PartNumber AS PartNumber,
+				ISNULL(CAST(sop.SequenceNumber AS VARCHAR(10)), '') + ' - ' + imt.PartNumber AS PartNumber,
 				imt.PartDescription,
 				ISNULL(imt.[IsNonStock], 0) AS [IsNonStock], 
 				ISNULL(imt.[IsService], 0) AS [IsService],

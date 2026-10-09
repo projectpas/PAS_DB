@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
 ** File:    [USP_GetVendorCapabilityList]
 ** Author:   Ayushi Patel
 ** Description: Get Vendor CapabilityList
@@ -12,9 +12,10 @@
 ** 1    02-07-2025   Ayushi Patel   Created
 ** 2    05-12-2025   Moin Bloch   Added EmployeeName
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+    4    24-09-2026  Nakul          added AircraftEngine & VerifiedDate
 -- EXEC USP_GetVendorCapabilityList 4797
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetVendorCapabilityList]
+CREATE     PROCEDURE [dbo].[USP_GetVendorCapabilityList]
     @VendorId BIGINT = 0,
     @Status VARCHAR(10) = 'all'
 AS
@@ -59,7 +60,9 @@ BEGIN
             vc.CurrencyId,
             vc.Currency,
             vc.EmployeeId,
-			E.FirstName + ' ' + E.LastName [EmployeeName]
+			E.FirstName + ' ' + E.LastName [EmployeeName],
+            vc.AircraftEngine,
+            vc.VerifiedDate
         FROM [dbo].[VendorCapability] vc WITH (NOLOCK)
         INNER JOIN [dbo].[Vendor] v WITH (NOLOCK) ON vc.VendorId = v.VendorId
          LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId

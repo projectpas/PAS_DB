@@ -66,6 +66,7 @@
     [IsRegulationSpecifiedInBlock12]   BIT            NULL,
     [IsAutoConfirmPickTicket]          BIT            NULL,
     [BypassPopups]                     BIT            NULL,
+    [AllowWorksheet]                   BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

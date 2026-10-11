@@ -21,6 +21,7 @@
 	9    23/July/2026   RAJESH GAMI	[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	10   11/August/2026  Priyansh Patel [PN-17573]	SOQ/SO/Invoice Print: Added IsNonStock and IsService so the Sales Invoice SSRS report can hide Stockline Number/Serial Number for Non-Stock Service Items.
 	11   18/Aug/2026   Kishor Makwana  [PN-17687] - Display Freight and Charges Display as per Part
+	12   10/OCT/2026   Vishal Suthar    [PN-15856] - Show Misc Charges / Freight details only when billed on the invoice line, so charges added to the SO later don't appear on a previously generated (Proforma) invoice
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
@@ -92,6 +93,9 @@ BEGIN
 					ISNULL(im.IsService, 0) AS IsService,
 					ShipViaDetails = CASE
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
+										-- Only list Freight when this invoice line actually billed Freight, so Freight added to the SO
+										-- after the invoice was created doesn't show up on it (it belongs to a revised invoice)
+										WHEN ISNULL(bii.FreightCostPlus, 0) = 0 THEN 'NA'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
@@ -109,6 +113,9 @@ BEGIN
 									END,
 					MiscChargesDetails = CASE  
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
+										-- Only list Charges when this invoice line actually billed Misc Charges, so Charges added to the SO
+										-- after the invoice was created doesn't show up on it (it belongs to a revised invoice)
+										WHEN ISNULL(bii.MiscChargesCostPlus, 0) = 0 THEN 'NA'
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(

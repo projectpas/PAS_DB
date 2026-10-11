@@ -31,6 +31,11 @@
 											to NULL right after the correct value had just been saved above, so the Edit
 											Worksheet screen showed "Engine ..." labels instead of "AC ..." after reload.
 											Now only runs when there is an actual Program/InstalledPartDetails link to sync.
+	11   09/10/2026     Amit Ghediya			On UPDATE, bump WorkSheetStatusId from Open(1) to In Process(2) - editing and
+											saving the header counts as "work has started". Deliberately not based on
+											UpdatedDate (USP_UpdateWorksheetState also touches that on remove/restore,
+											which must NOT flip the status).Replaced the inline 1/2 literals from #11 with declared variables
+											(@WorkSheetStatusId for Open, @WSStatusInProcess for In Process) [PN-18266].
 
 **************************************************************/
 
@@ -49,6 +54,9 @@ BEGIN
 				@AircraftInstalledPartDetailsId  BIGINT,
 				@IsFromAircraft                  BIT,
 				@UpdatedBy                       VARCHAR(256);
+
+		-- dbo.WorkSheetStatus: 2 = In Process (see @WorkSheetStatusId below for Open = 1)
+		DECLARE @WSStatusInProcess INT = 2;
 
 		SELECT
 			@WorksheetHeaderId             = WorksheetHeaderId,
@@ -170,7 +178,8 @@ BEGIN
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
                     WH.UpdatedDate                   = GETUTCDATE(),
-					WH.IsScheduled                   = T.IsScheduled
+					WH.IsScheduled                   = T.IsScheduled,
+					WH.WorkSheetStatusId             = CASE WHEN ISNULL(WH.WorkSheetStatusId, @WorkSheetStatusId) = @WorkSheetStatusId THEN @WSStatusInProcess ELSE WH.WorkSheetStatusId END
                 FROM dbo.[WorksheetHeader] WH
                 INNER JOIN @tbl_WorksheetHeaderType T
                     ON WH.WorksheetHeaderId = T.WorksheetHeaderId

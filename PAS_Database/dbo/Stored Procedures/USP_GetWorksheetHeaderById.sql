@@ -18,6 +18,10 @@
                                      "AC ..." or "Engine ..." field labels, but this SP never returned
                                      it, so every worksheet fell back to showing "Engine ..." labels
                                      on reload regardless of how it was actually created
+    4    09/10/2026   Amit Ghediya       Added WorkOrderId/WorkOrderPartId - this SP never returned them, so
+                                     editing an existing Work-Order-linked worksheet loaded a payload with
+                                     both null, and saving it wiped out the link (the worksheet then
+                                     disappeared from that Work Order's embedded Worksheet tab entirely) [PN-18266]
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderById]
@@ -71,6 +75,8 @@ BEGIN
 			WH.IsFromAircraft,
 			WH.AircraftRegistryId,
 			WH.EngineRegistryId,
+			WH.WorkOrderId,
+			WH.WorkOrderPartId,
             WH.IsActive,
             WH.IsDeleted,
             WH.MasterCompanyId,

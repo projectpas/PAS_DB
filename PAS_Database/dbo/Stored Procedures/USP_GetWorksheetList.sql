@@ -18,6 +18,11 @@
 **                                    Work Order (WH.WorkOrderId set) resolve WorkOrderNo/WorkOrderId from dbo.WorkOrder
 **                                    directly instead of only via the aircraft/program join, so multiple parts on the
 **                                    same WO can each be matched to their own worksheet by exact part id.
+** 9    09/10/2026    Amit Ghediya		WSStatus for WorkOrderId-linked worksheets now: Open (no WorksheetPart rows yet),
+**                                    In Process (at least one WorksheetPart logged, linked WO still open), Closed
+**                                    (linked WO's WorkOrderStatusId = 2) - previously always showed 'Open' since this
+**                                    branch fell through to the aircraft/program-only logic below, which doesn't know
+**                                    about the direct WH.WorkOrderId link [PN-18266].
 
 
 ************************************************************/
@@ -65,6 +70,11 @@ BEGIN
 
     BEGIN TRY
 
+        -- dbo.WorkOrderStatus: 2 = Closed. dbo.WorkSheetStatus: 1 = Open, 2 = In Process, 3 = Closed.
+        DECLARE @WOStatusClosed    INT = 2,
+                @WSStatusOpen      INT = 1,
+                @WSStatusInProcess INT = 2;
+
         WITH CTE AS
         (
             SELECT
@@ -101,15 +111,21 @@ BEGIN
                 WP.DefectDescription,
                 WP.MaintenanceAction,
 				CASE
+					WHEN ISNULL(WH.WorkOrderId, 0) > 0 THEN
+						CASE
+							WHEN ISNULL(DWO.WorkOrderStatusId, 0) = @WOStatusClosed THEN 'Closed'
+							WHEN ISNULL(WH.WorkSheetStatusId, @WSStatusOpen) = @WSStatusInProcess THEN 'In Process'
+							ELSE 'Open'
+						END
 					WHEN ISNULL(WH.AircraftInstalledPartDetailsId, 0) = 0
 						 AND LWO.WorkOrderId IS NULL
 					THEN 'Open'
 					WHEN ISNULL(
 							CASE
 								WHEN ISNULL(WH.AircraftInstalledPartDetailsId, 0) > 0
-								THEN WOP.WorkOrderStatusId      
-								ELSE LWO.WorkOrderStatusId     
-							END, 0) = 2
+								THEN WOP.WorkOrderStatusId
+								ELSE LWO.WorkOrderStatusId
+							END, 0) = @WOStatusClosed
 					THEN 'Closed'
 					ELSE 'In Process'
 				END AS WSStatus,

@@ -17,6 +17,10 @@
  ** --   --------      -------           --------------------------------     
     1    14/05/2026    Priyansh Patel    Created [PN-16408]
     2    14/05/2026    Priyansh Patel    Added SignById [PN-16520]
+    3    09/10/2026    Amit Ghediya      Bump the parent WorksheetHeader's WorkSheetStatusId from Open(1) to
+                                     In Process(2) when a defect/line item is saved - see
+                                     USP_GetWorksheetList/USP_CreateUpdateWorksheetHeader for the rest
+                                     of the worksheet status lifecycle [PN-18266].
 
 **************************************************************/
 
@@ -29,6 +33,10 @@ BEGIN
     BEGIN TRY
 
         DECLARE @WorksheetHeaderId BIGINT = (SELECT TOP 1 WorksheetHeaderId FROM @tbl_WorksheetPartType);
+
+        -- dbo.WorkSheetStatus: 1 = Open, 2 = In Process, 3 = Closed
+        DECLARE @WSStatusOpen      INT = 1,
+                @WSStatusInProcess INT = 2;
 
         IF (
             EXISTS (
@@ -116,6 +124,13 @@ BEGIN
                     GETUTCDATE()
                 FROM @tbl_WorksheetPartType T
                 WHERE ISNULL(T.WorksheetPartId, 0) = 0;
+
+                -- A defect/line item being logged is "work has started" - bump the parent header's
+                -- status from Open to In Process. Leave it alone if already In Process/Closed.
+                UPDATE [dbo].[WorksheetHeader]
+                SET WorkSheetStatusId = @WSStatusInProcess
+                WHERE WorksheetHeaderId = @WorksheetHeaderId
+                  AND ISNULL(WorkSheetStatusId, @WSStatusOpen) = @WSStatusOpen;
 
             COMMIT TRANSACTION;
 

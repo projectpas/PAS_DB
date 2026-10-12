@@ -15,9 +15,7 @@
     1    02-June-2026   Vishal Suthar   Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
-	4    10-Oct-2026	Vishal Suthar	Fixed Vendor RFQ PO not created when RFQ details come from an attached file: match/create ItemMaster by
-										PartNumber + Manufacturer (its unique key) instead of PartNumber + Description, handle duplicate part lines,
-										handle missing/long Vendor & Manufacturer names, and roll back before the early RETURNs
+	4    10-Oct-2026	Vishal Suthar	Fixed Vendor RFQ PO not created when RFQ details come from an attached file
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -60,7 +58,6 @@ BEGIN
                 @Now                          DATETIME2     = GETUTCDATE(),
                 @NeedByDate                   DATETIME2     = DATEADD(DAY, 30, GETUTCDATE());
 
-            -- Vendor name can be missing (e.g. not found in the attached document) - fall back to the email; Vendor.VendorName is VARCHAR(100) NOT NULL
             SET @VendorName = LEFT(COALESCE(NULLIF(LTRIM(RTRIM(@VendorName)), ''), NULLIF(LTRIM(RTRIM(@VendorEmail)), ''), 'N/A'), 100);
 
             ------------------------------------------------------------
@@ -308,12 +305,11 @@ BEGIN
             BEGIN
                 SET @LoopManufacturerId = NULL;
 
-                -- Use 'N/A' if manufacturer name is missing (Manufacturer.Name is VARCHAR(100))
+                -- Use 'N/A' if manufacturer name is missing
                 IF ISNULL(LTRIM(RTRIM(@LoopManufacturer)), '') = ''
                     SET @LoopManufacturer = 'N/A';
                 SET @LoopManufacturer = LEFT(@LoopManufacturer, 100);
 
-                -- Same part listed more than once in the email/attachment - resolve it only once
                 IF EXISTS (SELECT 1 FROM @PartManufacturers WHERE PartNumber = @LoopPartNumber AND ManufacturerName = @LoopManufacturer)
                 BEGIN
                     FETCH NEXT FROM mfg_cursor INTO @LoopPartNumber, @LoopManufacturer;
@@ -455,7 +451,6 @@ BEGIN
                 im.RevenueExchGLAccName, im.COGS_ExchSalesOrderGLAccName
             FROM
             (
-                -- One row per Part + Manufacturer, even if the part is listed more than once
                 SELECT pm.PartNumber, pm.ManufacturerId,
                        MAX(ISNULL(NULLIF(LTRIM(RTRIM(p.Description)), ''), 'N/A')) AS PartDescription
                 FROM @tbl_EmailParts p
@@ -466,8 +461,6 @@ BEGIN
             ) np
             CROSS JOIN dbo.ItemMaster im
             WHERE im.ItemMasterId = @TemplateItemMasterId
-              -- Match on the ItemMaster unique key (PartNumber + Manufacturer + Company + ItemType), not on Description:
-              -- descriptions from an attached document rarely match the existing ItemMaster, which caused a duplicate key error
               AND NOT EXISTS
               (
                   SELECT 1 FROM dbo.ItemMaster x WITH (NOLOCK)
@@ -535,7 +528,6 @@ BEGIN
                    ON c.MasterCompanyId = @MasterCompanyId
                   AND c.IsActive = 1 AND c.IsDeleted = 0
                   AND c.Description = UPPER(LTRIM(RTRIM(p.Condition)))
-            -- Existing or just-created ItemMaster for this Part + Manufacturer (not matched on Description)
             CROSS APPLY
             (
                 SELECT TOP 1 x.ItemMasterId, x.PurchaseUnitOfMeasureId

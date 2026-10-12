@@ -22,5 +22,6 @@
     [UnitOfMeasureId]           BIGINT          NULL,
     [Qty]                       DECIMAL (18, 6) NULL,
     [ExtendedPrice]             DECIMAL (18, 6) NULL,
-    [TaxTypeId]                 BIGINT          NULL);
+    [TaxTypeId]                 BIGINT          NULL,
+    [ReceiptId]                 BIGINT          NULL); -- [PN-18257]
 

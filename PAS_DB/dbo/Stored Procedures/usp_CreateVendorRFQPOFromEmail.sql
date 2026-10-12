@@ -17,9 +17,7 @@
 	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
 	4	 27-July-2026   Vishal Suthar   Modified to get matching conditions if does not found to get picked like RP, RPD, Repair, Repaired
 	5    28-Aug-2026    Vishal Suthar   Added @VendorContactName param so vendor Contact First/Last Name is sourced from the individual contact
-	6    12-Oct-2026    Vishal Suthar   Fixed Vendor RFQ PO not created when RFQ details come from an attached file: match/create ItemMaster by
-										PartNumber + Manufacturer (its unique key) instead of PartNumber + Description, handle duplicate part lines,
-										handle missing/long Vendor & Manufacturer names, and roll back before the early RETURNs
+	6    12-Oct-2026    Vishal Suthar   Fixed Vendor RFQ PO not created when RFQ details come from an attached file
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -63,7 +61,6 @@ BEGIN
                 @Now                          DATETIME2     = GETUTCDATE(),
                 @NeedByDate                   DATETIME2     = DATEADD(DAY, 30, GETUTCDATE());
 
-            -- Vendor name can be missing (e.g. not found in the attached document) - fall back to the email; Vendor.VendorName is VARCHAR(100) NOT NULL
             SET @VendorName = LEFT(COALESCE(NULLIF(LTRIM(RTRIM(@VendorName)), ''), NULLIF(LTRIM(RTRIM(@VendorEmail)), ''), 'N/A'), 100);
 
             ------------------------------------------------------------
@@ -317,7 +314,7 @@ BEGIN
             BEGIN
                 SET @LoopManufacturerId = NULL;
 
-                -- Use 'N/A' if manufacturer name is missing (Manufacturer.Name is VARCHAR(100))
+                -- Use 'N/A' if manufacturer name is missing
                 IF ISNULL(LTRIM(RTRIM(@LoopManufacturer)), '') = ''
                     SET @LoopManufacturer = 'N/A';
                 SET @LoopManufacturer = LEFT(@LoopManufacturer, 100);
@@ -404,8 +401,6 @@ BEGIN
             ------------------------------------------------------------
             DECLARE @NewItemMasters TABLE (ItemMasterId BIGINT);
 
-			-- One row per Part + Manufacturer (the ItemMaster unique key), even if the part is listed more than once
-			-- or with different descriptions
 			;WITH DistinctParts AS
 			(
 				SELECT
@@ -482,8 +477,6 @@ BEGIN
 			FROM DistinctParts dp
             CROSS JOIN dbo.ItemMaster im
             WHERE im.ItemMasterId = @TemplateItemMasterId
-              -- Match on the ItemMaster unique key (PartNumber + Manufacturer + Company + ItemType), not on Description:
-              -- descriptions from an attached document rarely match the existing ItemMaster, which caused a duplicate key error
               AND NOT EXISTS
 			  (
 				SELECT 1
@@ -626,7 +619,6 @@ BEGIN
 			        UPPER(LTRIM(RTRIM(c.Description))) = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
 			        OR UPPER(LTRIM(RTRIM(c.Code)))      = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
 			    )
-            -- Existing or just-created ItemMaster for this Part + Manufacturer (not matched on Description)
             CROSS APPLY
             (
                 SELECT TOP 1 x.ItemMasterId, x.PurchaseUnitOfMeasureId

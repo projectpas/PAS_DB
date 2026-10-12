@@ -115,7 +115,7 @@
          full amount, not prorated - to Freight / Other Cost of only the FIRST child row of that LOT in the
          report (ordered by Deposit Date, Receipt, Invoice); the LOT's other rows don't repeat it.
     14   09/October/2026   Claude (Rajesh Gami)   [PN-18257] Vendor (Consignor) payments - Paid to Consignor at
-         LOT (child) level: generated, non-voided, non-deleted checks (VendorReadyToPayDetails, CheckDate up to
+         LOT (child) level: generated, non-voided, non-deleted checks (VendorReadyToPayDetails, [CheckDate filter removed in #17]
          the To date) paid against Non PO invoices created by "Initiate Payment". Each check is spread over its
          invoice's lines by line amount; a line is matched to the child row by NonPOInvoicePartDetails.ReceiptId
          + Item (= LOT Number). Owed to Consignor = Due - Paid. Parent / totals = sum of children.
@@ -127,6 +127,26 @@
     16   09/October/2026   Claude (Rajesh Gami)   [PN-18257] Manual Inv Num (Non PO invoice number) at LOT level:
          child npoNumber = Non PO invoice(s) whose line has this ReceiptId + Item (= LOT Number). Parent npoNumber =
          the child number when all children share one, 'Multiple' when children have different numbers.
+    17   12/October/2026   Claude (Rajesh Gami)   [PN-18257] Paid to Consignor showed nothing when the vendor
+         payment (check) was made after the report's To Deposit Date / with no CheckDate: the payment is always
+         made after the cash deposit, so the CheckDate filter (CheckDate <= To date) is removed - every generated,
+         non-voided payment of a Non PO invoice that pays these receipt lines counts. Non PO invoice is read from
+         VendorReadyToPayDetails.NonPOInvoiceId, or VendorPaymentDetails.NonPOInvoiceId when the first is empty
+         (same VRPH -> VRPD -> VPD path as usprpt_GetLotCommissionReportInvoiceDate).
+    18   12/October/2026   Claude (Rajesh Gami)   [PN-18257] Vendor (Consignor) payments reworked as per
+         usprpt_GetLotCommissionReportInvoiceDate (PaymentCTE) - Rajesh: "validate with CheckDate" and
+         "vendor payment line is always one to one": each generated, non-voided payment
+         (VendorReadyToPayHeader -> VendorReadyToPayDetails -> VendorPaymentDetails) whose CheckDate is within
+         the From/To date is its own PARENT row with exactly ONE child (LOT) row. LOT resolved from the Receiving
+         Reconciliation stockline, else the Non PO invoice line (Item = LOT Number), else the Non PO invoice's
+         Cash Receipt. Paid to Consignor = PaymentMade, Owed = -Paid; Due and all sales amounts 0 on that row.
+         Removes #16/#17 matching of payments into the Cash Receipt child rows (STEP 4b) - no double counting.
+    19   12/October/2026   Claude (Rajesh Gami)   [PN-18257] Vendor payment covering several LOTs: parent LOT Num
+         lists all its LOTs comma separated and there is ONE CHILD ROW PER LOT (line wise). LOT lines come from the
+         first source that has any - Receiving Reconciliation lines (stockline LOT), Non PO invoice lines (Item =
+         LOT Number), or the Non PO invoice's Cash Receipt billing lines - and the payment is split over them by
+         line amount (rounding cents on the last LOT), so the children add up to the parent's Paid. Lot Num /
+         Level filters apply per LOT line.
  **************************************************************
  EXEC usprpt_GetLotCommissionReportCashPosted @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Cash Post Date</FieldName><FieldValue>10/01/2026</FieldValue></Filter><Filter><FieldName>To Cash Post Date</FieldName><FieldValue>10/08/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -566,73 +586,6 @@ BEGIN
     INNER JOIN FirstLotRow FirstRow ON FirstRow.ReceiptId = LotChild.ReceiptId AND FirstRow.BillingInvoicingId = LotChild.BillingInvoicingId AND FirstRow.LotId = LotChild.LotId AND FirstRow.RN = 1
     INNER JOIN #LotNAOtherCost LotNACost ON LotNACost.LotId = LotChild.LotId;
 
-    /*=====================================================================================
-      STEP 4b : Paid to Consignor (vendor payments) - LOT level.
-                Check (VendorReadyToPayDetails) -> Non PO invoice -> its lines (ReceiptId + Item = LOT Number).
-                A check is spread over the invoice lines by line amount (partial payments too).
-    =====================================================================================*/
-    IF OBJECT_ID(N'tempdb..#LotConsignorPaid') IS NOT NULL DROP TABLE #LotConsignorPaid;
-    CREATE TABLE #LotConsignorPaid
-    (
-      ReceiptId  BIGINT NOT NULL,
-      LotNum     VARCHAR(250) NOT NULL,
-      PaidAmount DECIMAL(18,2) NULL,
-      PRIMARY KEY (ReceiptId, LotNum)
-    );
-
-    ;WITH NonPOInvoiceLines AS (
-      SELECT NPD.NonPOInvoiceId,
-             NPD.ReceiptId,
-             UPPER(LTRIM(RTRIM(ISNULL(NPD.Item,''))))                                          AS LotNum,
-             ISNULL(NPD.ExtendedPrice, ISNULL(NPD.Amount,0) * ISNULL(NPD.Qty,1))              AS LineAmount,
-             SUM(ISNULL(NPD.ExtendedPrice, ISNULL(NPD.Amount,0) * ISNULL(NPD.Qty,1)))
-                 OVER (PARTITION BY NPD.NonPOInvoiceId)                                         AS InvoiceLinesTotal
-      FROM dbo.NonPOInvoicePartDetails NPD WITH (NOLOCK)
-      INNER JOIN dbo.NonPOInvoiceHeader NPH WITH (NOLOCK) ON NPH.NonPOInvoiceId = NPD.NonPOInvoiceId AND ISNULL(NPH.IsDeleted,0) = 0
-      WHERE ISNULL(NPD.IsDeleted,0) = 0
-        AND NPD.NonPOInvoiceId IN (SELECT ReceiptLine.NonPOInvoiceId FROM dbo.NonPOInvoicePartDetails ReceiptLine WITH (NOLOCK)
-                                   WHERE ReceiptLine.ReceiptId IN (SELECT DISTINCT ReceiptId FROM #LotCommissionChild))
-    ),
-    NonPOInvoicePaid AS (
-      SELECT VRPD.NonPOInvoiceId, SUM(ISNULL(VRPD.PaymentMade,0)) AS PaidAmount
-      FROM dbo.VendorReadyToPayDetails VRPD WITH (NOLOCK)
-      INNER JOIN dbo.VendorReadyToPayHeader VRPH WITH (NOLOCK) ON VRPH.ReadyToPayId = VRPD.ReadyToPayId
-      WHERE ISNULL(VRPD.IsGenerated,0) = 1
-        AND ISNULL(VRPD.IsVoidedCheck,0) = 0
-        AND ISNULL(VRPD.IsDeleted,0) = 0
-        AND ISNULL(VRPH.IsDeleted,0) = 0
-        AND VRPH.MasterCompanyId = @mastercompanyid
-        AND (@ToDepositDt IS NULL OR CAST(VRPD.CheckDate AS DATE) <= @ToDepositDt)
-        AND VRPD.NonPOInvoiceId IN (SELECT DISTINCT NonPOInvoiceId FROM NonPOInvoiceLines)
-      GROUP BY VRPD.NonPOInvoiceId
-    )
-    INSERT INTO #LotConsignorPaid (ReceiptId, LotNum, PaidAmount)
-    SELECT InvoiceLine.ReceiptId, InvoiceLine.LotNum,
-           ROUND(SUM(InvoicePaid.PaidAmount * InvoiceLine.LineAmount / NULLIF(InvoiceLine.InvoiceLinesTotal,0)), 2)
-    FROM NonPOInvoiceLines InvoiceLine
-    INNER JOIN NonPOInvoicePaid InvoicePaid ON InvoicePaid.NonPOInvoiceId = InvoiceLine.NonPOInvoiceId
-    WHERE ISNULL(InvoiceLine.ReceiptId,0) > 0 AND InvoiceLine.LotNum <> ''
-    GROUP BY InvoiceLine.ReceiptId, InvoiceLine.LotNum;
-
-    -- same Receipt + LOT on more than one child row (LOT billed on 2 invoices of one receipt):
-    -- split the paid amount over those rows by their Due to Consignor (equally when Due is 0).
-    ;WITH PaidTargetRows AS (
-      SELECT LotChild.ReceiptId, LotChild.BillingInvoicingId, LotChild.LotId, UPPER(LTRIM(RTRIM(LotChild.LotNum))) AS LotNum,
-             ISNULL(LotChild.DueToConsignor,0) AS Due,
-             SUM(ISNULL(LotChild.DueToConsignor,0)) OVER (PARTITION BY LotChild.ReceiptId, UPPER(LTRIM(RTRIM(LotChild.LotNum)))) AS DueTotal,
-             COUNT(1) OVER (PARTITION BY LotChild.ReceiptId, UPPER(LTRIM(RTRIM(LotChild.LotNum))))                        AS RowCnt
-      FROM #LotCommissionChild LotChild
-    )
-    UPDATE LotChild SET
-      LotChild.PaidToConsignor = ROUND(CASE WHEN PaidTarget.RowCnt = 1 OR PaidTarget.DueTotal = 0 THEN LotPaid.PaidAmount / PaidTarget.RowCnt
-                                      ELSE LotPaid.PaidAmount * PaidTarget.Due / PaidTarget.DueTotal END, 2),
-      LotChild.OwedToConsignor = ISNULL(LotChild.DueToConsignor,0)
-                           - ROUND(CASE WHEN PaidTarget.RowCnt = 1 OR PaidTarget.DueTotal = 0 THEN LotPaid.PaidAmount / PaidTarget.RowCnt
-                                        ELSE LotPaid.PaidAmount * PaidTarget.Due / PaidTarget.DueTotal END, 2)
-    FROM #LotCommissionChild LotChild
-    INNER JOIN PaidTargetRows PaidTarget ON PaidTarget.ReceiptId = LotChild.ReceiptId AND PaidTarget.BillingInvoicingId = LotChild.BillingInvoicingId AND PaidTarget.LotId = LotChild.LotId
-    INNER JOIN #LotConsignorPaid LotPaid ON LotPaid.ReceiptId = LotChild.ReceiptId AND LotPaid.LotNum = PaidTarget.LotNum;
-
     -- [PN-18257] Child info columns: Part Num(s), Revenue/Margin Consignee/Consignor %, Consignee name.
     UPDATE LotChild SET
       LotChild.PartNumber                 = LotPartNumbers.PartNumbers,
@@ -707,8 +660,11 @@ BEGIN
     =====================================================================================*/
     CREATE TABLE #LotCommissionParent
     (
-      ReceiptId              BIGINT NOT NULL,
-      BillingInvoicingId     BIGINT NOT NULL,
+      ParentRowId            INT IDENTITY(1,1) PRIMARY KEY,
+      IsVendorPayment        BIT NOT NULL DEFAULT 0,     -- [PN-18257] 1 = Consignor (vendor) payment row
+      ReadyToPayDetailsId    BIGINT NULL,                -- [PN-18257] VendorReadyToPayDetails row of that payment
+      ReceiptId              BIGINT NULL,
+      BillingInvoicingId     BIGINT NULL,
       ReceiptNo              VARCHAR(100) NULL,
       CashReceiptDateRaw     DATETIME NULL,
       CustomerPaymentRef     VARCHAR(100) NULL,
@@ -741,8 +697,7 @@ BEGIN
       level8                 VARCHAR(500) NULL,
       level9                 VARCHAR(500) NULL,
       level10                VARCHAR(500) NULL,
-      LotDetails             NVARCHAR(MAX) NULL,
-      PRIMARY KEY (ReceiptId, BillingInvoicingId)
+      LotDetails             NVARCHAR(MAX) NULL
     );
 
     INSERT INTO #LotCommissionParent
@@ -838,6 +793,299 @@ BEGIN
         AND ISNULL(LotChildNPO.NPONumber,'') <> ''
     ) ChildNPO;
 
+
+    /*=====================================================================================
+      STEP 5b : Vendor (Consignor) payments - one PARENT row per payment, ONE CHILD row per LOT of
+                that payment (line wise). Same source and CheckDate validation as the original
+                usprpt_GetLotCommissionReportInvoiceDate (PaymentCTE):
+                VendorReadyToPayHeader -> VendorReadyToPayDetails -> VendorPaymentDetails,
+                generated, not voided, CheckDate within the From/To date.
+                LOT lines, first source that has any:
+                  0 = Receiving Reconciliation lines (stockline LOT, weight InvoicedExtCost)
+                  1 = Non PO invoice lines (Item = LOT Number, weight ExtendedPrice)
+                  2 = Non PO invoice's Cash Receipt -> SO billing lines (stockline LOT, weight GrandTotal)
+                The payment is split over its LOT lines by line amount, so children add up to the parent.
+    =====================================================================================*/
+    IF OBJECT_ID(N'tempdb..#LotVendorPayment')       IS NOT NULL DROP TABLE #LotVendorPayment;
+    IF OBJECT_ID(N'tempdb..#LotVendorPaymentSource') IS NOT NULL DROP TABLE #LotVendorPaymentSource;
+    IF OBJECT_ID(N'tempdb..#LotVendorPaymentLine')   IS NOT NULL DROP TABLE #LotVendorPaymentLine;
+
+    -- payment header (one row per generated check / payment)
+    CREATE TABLE #LotVendorPayment
+    (
+      ReadyToPayDetailsId        BIGINT NOT NULL PRIMARY KEY,
+      ControlNumber              VARCHAR(100) NULL,
+      CheckNumber                VARCHAR(100) NULL,
+      CheckDate                  DATETIME NULL,
+      InvoiceNum                 VARCHAR(256) NULL,
+      NPONumber                  VARCHAR(150) NULL,
+      PaidAmount                 DECIMAL(18,2) NULL,
+      NonPOInvoiceId             BIGINT NULL,
+      NonPOReceiptId             BIGINT NULL,
+      ReceivingReconciliationId  BIGINT NULL
+    );
+
+    INSERT INTO #LotVendorPayment
+    (
+      ReadyToPayDetailsId, ControlNumber, CheckNumber, CheckDate, InvoiceNum, NPONumber, PaidAmount,
+      NonPOInvoiceId, NonPOReceiptId, ReceivingReconciliationId
+    )
+    SELECT
+      VRPD.ReadyToPayDetailsId,
+      CAST(VRPD.ControlNumber AS VARCHAR(100)),
+      CAST(VRPD.CheckNumber AS VARCHAR(100)),
+      VRPD.CheckDate,
+      CAST(CASE WHEN ISNULL(RRH.ReceivingReconciliationId,0) > 0 THEN RRH.InvoiceNum
+                WHEN ISNULL(NPIH.NonPOInvoiceId,0) > 0 THEN NPIH.InvoiceNumber ELSE '' END AS VARCHAR(256)),
+      NPIH.NPONumber,
+      ISNULL(VRPD.PaymentMade,0),
+      NPIH.NonPOInvoiceId,
+      NPIH.ReceiptId,
+      RRH.ReceivingReconciliationId
+    FROM dbo.VendorReadyToPayHeader VRPH WITH (NOLOCK)
+    INNER JOIN dbo.VendorReadyToPayDetails VRPD WITH (NOLOCK) ON VRPD.ReadyToPayId = VRPH.ReadyToPayId
+    INNER JOIN dbo.VendorPaymentDetails VPD WITH (NOLOCK) ON VPD.VendorPaymentDetailsId = VRPD.VendorPaymentDetailsId
+    LEFT JOIN dbo.NonPOInvoiceHeader NPIH WITH (NOLOCK) ON NPIH.NonPOInvoiceId = COALESCE(VRPD.NonPOInvoiceId, VPD.NonPOInvoiceId)
+    LEFT JOIN dbo.ReceivingReconciliationHeader RRH WITH (NOLOCK) ON RRH.ReceivingReconciliationId = VRPD.ReceivingReconciliationId
+    WHERE ISNULL(VRPD.IsGenerated,0) = 1
+      AND ISNULL(VRPD.IsVoidedCheck,0) = 0
+      AND ISNULL(VRPH.IsDeleted,0) = 0
+      AND VRPH.MasterCompanyId = @mastercompanyid
+      -- CheckDate validation (as in the original Invoice Date SP), report From/To date
+      AND (@FromDepositDt IS NULL OR CAST(VRPD.CheckDate AS DATE) >= @FromDepositDt)
+      AND (@ToDepositDt   IS NULL OR CAST(VRPD.CheckDate AS DATE) <= @ToDepositDt)
+      AND (ISNULL(RRH.ReceivingReconciliationId,0) > 0 OR ISNULL(NPIH.NonPOInvoiceId,0) > 0)
+      AND (ISNULL(@InvoiceNum,'') = ''
+           OR (ISNULL(RRH.ReceivingReconciliationId,0) > 0 AND RRH.InvoiceNum LIKE '%' + @InvoiceNum + '%')
+           OR (ISNULL(NPIH.NonPOInvoiceId,0) > 0 AND NPIH.InvoiceNumber LIKE '%' + @InvoiceNum + '%'));
+
+    -- every candidate LOT line of every payment, tagged with its source (0 / 1 / 2)
+    CREATE TABLE #LotVendorPaymentSource
+    (
+      ReadyToPayDetailsId  BIGINT NOT NULL,
+      SourceType           INT NOT NULL,
+      LotId                BIGINT NOT NULL,
+      LineAmount           DECIMAL(18,2) NULL
+    );
+
+    -- 0: Receiving Reconciliation lines -> stockline LOT
+    INSERT INTO #LotVendorPaymentSource (ReadyToPayDetailsId, SourceType, LotId, LineAmount)
+    SELECT VendorPayment.ReadyToPayDetailsId, 0, RRStockline.LotId, ISNULL(RRD.InvoicedExtCost,0)
+    FROM #LotVendorPayment VendorPayment
+    INNER JOIN dbo.ReceivingReconciliationDetails RRD WITH (NOLOCK) ON RRD.ReceivingReconciliationId = VendorPayment.ReceivingReconciliationId
+    INNER JOIN dbo.Stockline RRStockline WITH (NOLOCK) ON RRStockline.StockLineId = RRD.StocklineId
+    INNER JOIN dbo.Lot RRLot WITH (NOLOCK) ON RRLot.LotId = RRStockline.LotId AND ISNULL(RRLot.IsDeleted,0) = 0
+    WHERE ISNULL(VendorPayment.ReceivingReconciliationId,0) > 0;
+
+    -- 1: Non PO invoice lines created by "Initiate Payment" -> Item = LOT Number
+    INSERT INTO #LotVendorPaymentSource (ReadyToPayDetailsId, SourceType, LotId, LineAmount)
+    SELECT VendorPayment.ReadyToPayDetailsId, 1, NPOLineLot.LotId,
+           ISNULL(NPOPayLine.ExtendedPrice, ISNULL(NPOPayLine.Amount,0) * ISNULL(NPOPayLine.Qty,1))
+    FROM #LotVendorPayment VendorPayment
+    INNER JOIN dbo.NonPOInvoicePartDetails NPOPayLine WITH (NOLOCK) ON NPOPayLine.NonPOInvoiceId = VendorPayment.NonPOInvoiceId AND ISNULL(NPOPayLine.IsDeleted,0) = 0
+    INNER JOIN dbo.Lot NPOLineLot WITH (NOLOCK) ON UPPER(LTRIM(RTRIM(NPOLineLot.LotNumber))) = UPPER(LTRIM(RTRIM(NPOPayLine.Item)))
+                                               AND NPOLineLot.MasterCompanyId = @mastercompanyid AND ISNULL(NPOLineLot.IsDeleted,0) = 0
+    WHERE ISNULL(VendorPayment.NonPOInvoiceId,0) > 0;
+
+    -- 2: Non PO invoice's Cash Receipt(s) (header or line ReceiptId) -> SO billing lines -> stockline LOT
+    INSERT INTO #LotVendorPaymentSource (ReadyToPayDetailsId, SourceType, LotId, LineAmount)
+    SELECT VendorPayment.ReadyToPayDetailsId, 2, ReceiptLot.LotId, ISNULL(PayBillingItem.GrandTotal,0)
+    FROM #LotVendorPayment VendorPayment
+    INNER JOIN dbo.InvoicePayments PayInvoice WITH (NOLOCK) ON ISNULL(PayInvoice.IsDeleted,0) = 0
+                                                          AND (PayInvoice.ReceiptId = VendorPayment.NonPOReceiptId
+                                                               OR PayInvoice.ReceiptId IN (SELECT NPOReceiptLine.ReceiptId FROM dbo.NonPOInvoicePartDetails NPOReceiptLine WITH (NOLOCK)
+                                                                                           WHERE NPOReceiptLine.NonPOInvoiceId = VendorPayment.NonPOInvoiceId
+                                                                                             AND ISNULL(NPOReceiptLine.IsDeleted,0) = 0))
+    INNER JOIN dbo.BillingInvoicingItems PayBillingItem WITH (NOLOCK) ON PayBillingItem.BillingInvoicingId = PayInvoice.SOBillingInvoicingId AND ISNULL(PayBillingItem.IsDeleted,0) = 0
+    INNER JOIN dbo.Stockline PayStockline WITH (NOLOCK) ON PayStockline.StockLineId = PayBillingItem.StocklineId
+    INNER JOIN dbo.Lot ReceiptLot WITH (NOLOCK) ON ReceiptLot.LotId = PayStockline.LotId AND ISNULL(ReceiptLot.IsDeleted,0) = 0
+    WHERE ISNULL(VendorPayment.NonPOInvoiceId,0) > 0;
+
+    -- one child row per (payment, LOT) from the payment's first available source; payment split by line amount
+    CREATE TABLE #LotVendorPaymentLine
+    (
+      ReadyToPayDetailsId  BIGINT NOT NULL,
+      LotId                BIGINT NOT NULL,
+      LotNumber            VARCHAR(200) NULL,
+      LotManagementStructureId BIGINT NULL,
+      PaidAmount           DECIMAL(18,2) NULL,
+      ConsigneeName        VARCHAR(500) NULL,
+      ConsigneeTypeId      INT NULL,
+      ConsigneeId          BIGINT NULL,
+      level1  VARCHAR(500) NULL, level2  VARCHAR(500) NULL, level3 VARCHAR(500) NULL, level4 VARCHAR(500) NULL, level5 VARCHAR(500) NULL,
+      level6  VARCHAR(500) NULL, level7  VARCHAR(500) NULL, level8 VARCHAR(500) NULL, level9 VARCHAR(500) NULL, level10 VARCHAR(500) NULL,
+      PRIMARY KEY (ReadyToPayDetailsId, LotId)
+    );
+
+    ;WITH PaymentSourceChoice AS (
+      SELECT PaymentSource.ReadyToPayDetailsId, MIN(PaymentSource.SourceType) AS SourceType
+      FROM #LotVendorPaymentSource PaymentSource
+      GROUP BY PaymentSource.ReadyToPayDetailsId
+    ),
+    PaymentLotAmount AS (
+      SELECT PaymentSource.ReadyToPayDetailsId, PaymentSource.LotId, SUM(ISNULL(PaymentSource.LineAmount,0)) AS LotLineAmount
+      FROM #LotVendorPaymentSource PaymentSource
+      INNER JOIN PaymentSourceChoice ON PaymentSourceChoice.ReadyToPayDetailsId = PaymentSource.ReadyToPayDetailsId
+                                    AND PaymentSourceChoice.SourceType = PaymentSource.SourceType
+      GROUP BY PaymentSource.ReadyToPayDetailsId, PaymentSource.LotId
+    ),
+    PaymentLotShare AS (
+      SELECT PaymentLotAmount.ReadyToPayDetailsId, PaymentLotAmount.LotId, PaymentLotAmount.LotLineAmount,
+             SUM(PaymentLotAmount.LotLineAmount) OVER (PARTITION BY PaymentLotAmount.ReadyToPayDetailsId) AS PaymentLineTotal,
+             COUNT(1) OVER (PARTITION BY PaymentLotAmount.ReadyToPayDetailsId)                       AS PaymentLotCount
+      FROM PaymentLotAmount
+    )
+    INSERT INTO #LotVendorPaymentLine (ReadyToPayDetailsId, LotId, LotNumber, LotManagementStructureId, PaidAmount)
+    SELECT PaymentLotShare.ReadyToPayDetailsId, PaymentLotShare.LotId, PaymentLotRecord.LotNumber, PaymentLotRecord.ManagementStructureId,
+           ROUND(CASE WHEN ISNULL(PaymentLotShare.PaymentLineTotal,0) = 0
+                      THEN VendorPayment.PaidAmount / PaymentLotShare.PaymentLotCount
+                      ELSE VendorPayment.PaidAmount * PaymentLotShare.LotLineAmount / PaymentLotShare.PaymentLineTotal END, 2)
+    FROM PaymentLotShare
+    INNER JOIN #LotVendorPayment VendorPayment ON VendorPayment.ReadyToPayDetailsId = PaymentLotShare.ReadyToPayDetailsId
+    INNER JOIN dbo.Lot PaymentLotRecord WITH (NOLOCK) ON PaymentLotRecord.LotId = PaymentLotShare.LotId;
+
+    -- rounding: put any cent difference on the payment's last LOT so the children add up to the payment
+    ;WITH PaymentRounding AS (
+      SELECT PaymentLine.ReadyToPayDetailsId, PaymentLine.LotId,
+             ROW_NUMBER() OVER (PARTITION BY PaymentLine.ReadyToPayDetailsId ORDER BY PaymentLine.LotNumber DESC) AS RowFromLast,
+             VendorPayment.PaidAmount - SUM(PaymentLine.PaidAmount) OVER (PARTITION BY PaymentLine.ReadyToPayDetailsId) AS RoundingDiff
+      FROM #LotVendorPaymentLine PaymentLine
+      INNER JOIN #LotVendorPayment VendorPayment ON VendorPayment.ReadyToPayDetailsId = PaymentLine.ReadyToPayDetailsId
+    )
+    UPDATE PaymentLine SET PaymentLine.PaidAmount = PaymentLine.PaidAmount + PaymentRounding.RoundingDiff
+    FROM #LotVendorPaymentLine PaymentLine
+    INNER JOIN PaymentRounding ON PaymentRounding.ReadyToPayDetailsId = PaymentLine.ReadyToPayDetailsId
+                              AND PaymentRounding.LotId = PaymentLine.LotId AND PaymentRounding.RowFromLast = 1
+    WHERE PaymentRounding.RoundingDiff <> 0;
+
+    -- MS levels of each LOT + Lot Num / Level filters (a payment whose LOTs are all filtered out disappears)
+    UPDATE PaymentLine SET
+      PaymentLine.level1  = CASE WHEN UPPER(MSD.Level1Name)  IS NOT NULL THEN UPPER(MSD.Level1Name)  ELSE UPPER(CAST(MSL1.Code  AS VARCHAR(250)) + ' - ' + MSL1.[Description])  END,
+      PaymentLine.level2  = CASE WHEN UPPER(MSD.Level2Name)  IS NOT NULL THEN UPPER(MSD.Level2Name)  ELSE UPPER(CAST(MSL2.Code  AS VARCHAR(250)) + ' - ' + MSL2.[Description])  END,
+      PaymentLine.level3  = CASE WHEN UPPER(MSD.Level3Name)  IS NOT NULL THEN UPPER(MSD.Level3Name)  ELSE UPPER(CAST(MSL3.Code  AS VARCHAR(250)) + ' - ' + MSL3.[Description])  END,
+      PaymentLine.level4  = CASE WHEN UPPER(MSD.Level4Name)  IS NOT NULL THEN UPPER(MSD.Level4Name)  ELSE UPPER(CAST(MSL4.Code  AS VARCHAR(250)) + ' - ' + MSL4.[Description])  END,
+      PaymentLine.level5  = CASE WHEN UPPER(MSD.Level5Name)  IS NOT NULL THEN UPPER(MSD.Level5Name)  ELSE UPPER(CAST(MSL5.Code  AS VARCHAR(250)) + ' - ' + MSL5.[Description])  END,
+      PaymentLine.level6  = CASE WHEN UPPER(MSD.Level6Name)  IS NOT NULL THEN UPPER(MSD.Level6Name)  ELSE UPPER(CAST(MSL6.Code  AS VARCHAR(250)) + ' - ' + MSL6.[Description])  END,
+      PaymentLine.level7  = CASE WHEN UPPER(MSD.Level7Name)  IS NOT NULL THEN UPPER(MSD.Level7Name)  ELSE UPPER(CAST(MSL7.Code  AS VARCHAR(250)) + ' - ' + MSL7.[Description])  END,
+      PaymentLine.level8  = CASE WHEN UPPER(MSD.Level8Name)  IS NOT NULL THEN UPPER(MSD.Level8Name)  ELSE UPPER(CAST(MSL8.Code  AS VARCHAR(250)) + ' - ' + MSL8.[Description])  END,
+      PaymentLine.level9  = CASE WHEN UPPER(MSD.Level9Name)  IS NOT NULL THEN UPPER(MSD.Level9Name)  ELSE UPPER(CAST(MSL9.Code  AS VARCHAR(250)) + ' - ' + MSL9.[Description])  END,
+      PaymentLine.level10 = CASE WHEN UPPER(MSD.Level10Name) IS NOT NULL THEN UPPER(MSD.Level10Name) ELSE UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) END
+    FROM #LotVendorPaymentLine PaymentLine
+    LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = PaymentLine.LotId AND MSD.EntityMSID = PaymentLine.LotManagementStructureId
+    LEFT JOIN dbo.ManagementStructureLevel MSL1  WITH (NOLOCK) ON MSD.Level1Id  = MSL1.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL2  WITH (NOLOCK) ON MSD.Level2Id  = MSL2.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL3  WITH (NOLOCK) ON MSD.Level3Id  = MSL3.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL4  WITH (NOLOCK) ON MSD.Level4Id  = MSL4.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL5  WITH (NOLOCK) ON MSD.Level5Id  = MSL5.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL6  WITH (NOLOCK) ON MSD.Level6Id  = MSL6.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL7  WITH (NOLOCK) ON MSD.Level7Id  = MSL7.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL8  WITH (NOLOCK) ON MSD.Level8Id  = MSL8.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL9  WITH (NOLOCK) ON MSD.Level9Id  = MSL9.ID
+    LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID;
+
+    DELETE PaymentLine
+    FROM #LotVendorPaymentLine PaymentLine
+    LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @LotModuleId AND MSD.ReferenceID = PaymentLine.LotId AND MSD.EntityMSID = PaymentLine.LotManagementStructureId
+    WHERE NOT (
+          (@LotIds IS NULL OR PaymentLine.LotId IN (SELECT Item FROM DBO.SPLITSTRING(@LotIds,',')))
+      AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+      AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+      AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+      AND (ISNULL(@Level4,'')  = '' OR MSD.Level4Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+      AND (ISNULL(@Level5,'')  = '' OR MSD.Level5Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+      AND (ISNULL(@Level6,'')  = '' OR MSD.Level6Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+      AND (ISNULL(@Level7,'')  = '' OR MSD.Level7Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+      AND (ISNULL(@Level8,'')  = '' OR MSD.Level8Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+      AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+      AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+    );
+
+    -- Consignor of each payment LOT (same LotConsignment rule as the Cash Receipt child rows)
+    UPDATE PaymentLine SET
+      PaymentLine.ConsigneeTypeId = PaymentConsignment.ConsigneeTypeId,
+      PaymentLine.ConsigneeId     = PaymentConsignment.ConsigneeId,
+      PaymentLine.ConsigneeName   = CASE
+                                      WHEN PaymentConsignment.ConsigneeTypeId = @VendorModuleId   THEN ISNULL(PaymentConsignorVendor.VendorName, PaymentConsignment.ConsigneeName)
+                                      WHEN PaymentConsignment.ConsigneeTypeId = @CustomerModuleId THEN ISNULL(PaymentConsignorCustomer.[Name], PaymentConsignment.ConsigneeName)
+                                      WHEN PaymentConsignment.ConsigneeTypeId = @CompanyModuleId  THEN ISNULL(PaymentConsignorLegalEntity.[Name], PaymentConsignment.ConsigneeName)
+                                      ELSE PaymentConsignment.ConsigneeName
+                                    END
+    FROM #LotVendorPaymentLine PaymentLine
+    CROSS APPLY (
+      SELECT TOP 1 PayLotCons.ConsigneeTypeId, PayLotCons.ConsigneeId, PayLotCons.ConsigneeName
+      FROM dbo.LotConsignment PayLotCons WITH (NOLOCK)
+      WHERE PayLotCons.LotId = PaymentLine.LotId AND ISNULL(PayLotCons.IsDeleted,0) = 0
+      ORDER BY PayLotCons.ConsignmentId DESC
+    ) PaymentConsignment
+    LEFT JOIN dbo.Vendor PaymentConsignorVendor           WITH (NOLOCK) ON PaymentConsignment.ConsigneeTypeId = @VendorModuleId   AND PaymentConsignorVendor.VendorId           = PaymentConsignment.ConsigneeId
+    LEFT JOIN dbo.Customer PaymentConsignorCustomer       WITH (NOLOCK) ON PaymentConsignment.ConsigneeTypeId = @CustomerModuleId AND PaymentConsignorCustomer.CustomerId       = PaymentConsignment.ConsigneeId
+    LEFT JOIN dbo.LegalEntity PaymentConsignorLegalEntity WITH (NOLOCK) ON PaymentConsignment.ConsigneeTypeId = @CompanyModuleId  AND PaymentConsignorLegalEntity.LegalEntityId = PaymentConsignment.ConsigneeId;
+
+    -- one parent row per payment (LOT Num(s) comma separated), children = its LOT lines
+    INSERT INTO #LotCommissionParent
+    (
+      IsVendorPayment, ReadyToPayDetailsId, ReceiptId, BillingInvoicingId, ReceiptNo, CashReceiptDateRaw, CustomerPaymentRef,
+      InvoiceNum, InvoiceDate, InvoiceAmount, CashReceipt, ReceivedPercent, LOTNum, LotId, LotAmount, AllocatedAmount,
+      ConsigneePortion, ConsignorPortionGross, LessCogsRepair, LessFreight, LessOtherCost,
+      DueToConsignor, PaidToConsignor, OwedToConsignor, IsNonPOGenerated, npoNumber,
+      level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, LotDetails
+    )
+    SELECT
+      1, VendorPayment.ReadyToPayDetailsId, NULL, NULL,
+      VendorPayment.ControlNumber, VendorPayment.CheckDate, VendorPayment.CheckNumber,
+      VendorPayment.InvoiceNum, NULL, 0, 0, NULL,
+      PaymentLotList.LotNumbers, PaymentLotList.FirstLotId, 0, 0,
+      0, 0, 0, 0, 0,
+      0, PaymentLotList.PaidTotal, 0 - PaymentLotList.PaidTotal, 1, VendorPayment.NPONumber,
+      PaymentFirstLine.level1, PaymentFirstLine.level2, PaymentFirstLine.level3, PaymentFirstLine.level4, PaymentFirstLine.level5,
+      PaymentFirstLine.level6, PaymentFirstLine.level7, PaymentFirstLine.level8, PaymentFirstLine.level9, PaymentFirstLine.level10,
+      (
+        SELECT PaymentChild.LotId                       AS lotId,
+               PaymentChild.LotNumber                   AS lotNum,
+               CAST(0 AS DECIMAL(18,2))                 AS lotAmount,
+               CAST(NULL AS DECIMAL(18,2))              AS receivedPercent,
+               CAST(0 AS DECIMAL(18,2))                 AS allocatedAmount,
+               CAST(0 AS DECIMAL(18,2))                 AS consigneePortion,
+               CAST(0 AS DECIMAL(18,2))                 AS consignorPortionGross,
+               CAST(0 AS DECIMAL(18,2))                 AS lessCogsRepair,
+               CAST(0 AS DECIMAL(18,2))                 AS lessFreight,
+               CAST(0 AS DECIMAL(18,2))                 AS lessOtherCost,
+               CAST(0 AS DECIMAL(18,2))                 AS dueToConsignor,
+               PaymentChild.PaidAmount                  AS paidToConsignor,
+               0 - PaymentChild.PaidAmount              AS owedToConsignor,
+               CAST(NULL AS VARCHAR(10))                AS partNumber,
+               PaymentChild.ConsigneeName               AS consigneeName,
+               PaymentChild.ConsigneeTypeId             AS consigneeTypeId,
+               PaymentChild.ConsigneeId                 AS consigneeId,
+               CAST(NULL AS DECIMAL(18,2))              AS revenueConsigneePercentage,
+               CAST(NULL AS DECIMAL(18,2))              AS revenueConsignorPercent,
+               CAST(NULL AS DECIMAL(18,2))              AS marginConsigneerPercentage,
+               CAST(NULL AS DECIMAL(18,2))              AS marginConsignorPercentage,
+               VendorPayment.NPONumber                  AS npoNumber
+        FROM #LotVendorPaymentLine PaymentChild
+        WHERE PaymentChild.ReadyToPayDetailsId = VendorPayment.ReadyToPayDetailsId
+        ORDER BY PaymentChild.LotNumber
+        FOR JSON PATH, INCLUDE_NULL_VALUES
+      )
+    FROM #LotVendorPayment VendorPayment
+    CROSS APPLY (
+      SELECT STRING_AGG(CAST(PaymentLotLine.LotNumber AS VARCHAR(MAX)), ', ') WITHIN GROUP (ORDER BY PaymentLotLine.LotNumber) AS LotNumbers,
+             MIN(PaymentLotLine.LotId)       AS FirstLotId,
+             SUM(PaymentLotLine.PaidAmount)  AS PaidTotal,
+             COUNT(1)                        AS LotCount
+      FROM #LotVendorPaymentLine PaymentLotLine
+      WHERE PaymentLotLine.ReadyToPayDetailsId = VendorPayment.ReadyToPayDetailsId
+    ) PaymentLotList
+    OUTER APPLY (
+      SELECT TOP 1 PaymentLevelLine.level1, PaymentLevelLine.level2, PaymentLevelLine.level3, PaymentLevelLine.level4, PaymentLevelLine.level5,
+                   PaymentLevelLine.level6, PaymentLevelLine.level7, PaymentLevelLine.level8, PaymentLevelLine.level9, PaymentLevelLine.level10
+      FROM #LotVendorPaymentLine PaymentLevelLine
+      WHERE PaymentLevelLine.ReadyToPayDetailsId = VendorPayment.ReadyToPayDetailsId
+      ORDER BY PaymentLevelLine.LotNumber
+    ) PaymentFirstLine
+    WHERE PaymentLotList.LotCount > 0;   -- LOT Commission report: only payments that belong to a LOT
+
+
     /*=====================================================================================
       STEP 6 : Paged Parent output (+ totals across all pages).
     =====================================================================================*/
@@ -859,6 +1107,8 @@ BEGIN
       LotId,
       ReceiptId,
       BillingInvoicingId,
+      IsVendorPayment,
+      ReadyToPayDetailsId,
       IsNonPOGenerated,
       npoNumber,
       LOTNum,
@@ -890,7 +1140,7 @@ BEGIN
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'InvoiceNum')       THEN InvoiceNum END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'DueToConsignor')   THEN DueToConsignor END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'DueToConsignor')   THEN DueToConsignor END DESC,
-      CashReceiptDateRaw ASC, ReceiptId ASC, InvoiceNum ASC
+      CashReceiptDateRaw ASC, IsVendorPayment ASC, ReceiptId ASC, InvoiceNum ASC
     OFFSET ((@PageNumber - 1) * @PageSize) ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 

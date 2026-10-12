@@ -3222,6 +3222,8 @@
     <Build Include="dbo\Tables\CycleCountStatus.sql" />
     <Build Include="dbo\Tables\CycleCountSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\CycleCountSettingMaster.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingPrintField.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingPrintFieldAudit.sql" />
     <Build Include="dbo\Tables\CycleCountDetail.sql" />
     <Build Include="dbo\Tables\CycleCount.sql" />
     <Build Include="dbo\Stored Procedures\USP_CycleCount_Stockline_DetailsById.sql" />
@@ -3362,6 +3364,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetProformaInvoiceHistory_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteVendorProformaInvoicePart_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_GetDetailsById_Report.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_GetPrintFieldData_Report.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetQuickBookCreditTermsById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsUpdateSyncePendingList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsSyncPendingList.sql" />

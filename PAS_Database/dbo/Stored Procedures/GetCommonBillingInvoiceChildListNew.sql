@@ -162,6 +162,7 @@ BEGIN
 				[IsNewInvoice] INT NULL,
 				[IsBilling] BIT NULL,
 				[IsReOpened] BIT NULL,
+				[IsStandardInvoicePosted] BIT NULL,
 				[ECCN] VARCHAR(200) NULL,
 				[HSCODE] VARCHAR(200) NULL,
 				[Weight] DECIMAL(18,6) NULL,
@@ -221,7 +222,7 @@ BEGIN
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
-						,wobi.[CreditMemoHeaderId]
+						,ISNULL(wobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 					FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId AND wosi.WorkOrderPartNumId = wof.WorkOrderPartNoId
@@ -316,7 +317,7 @@ BEGIN
 								,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 								,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 								,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
-								,wobi.[CreditMemoHeaderId]
+										,ISNULL(wobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 							FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 							INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
 							 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
@@ -409,7 +410,7 @@ BEGIN
 							,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 							,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 							,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
-							,wobi.[CreditMemoHeaderId]
+									,ISNULL(wobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 						 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
 						 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.ModuleId = @WOModuleId
@@ -507,7 +508,7 @@ BEGIN
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
-						,wobi.[CreditMemoHeaderId]					
+								,ISNULL(wobi.[CreditMemoHeaderId],0)CreditMemoHeaderId				
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 					 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
 					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1AND wobii.ModuleId = @WOModuleId
@@ -680,7 +681,7 @@ BEGIN
 					sop.SizeWidth AS BillSizeWidth,
 					sop.SizeHeight AS BillSizeHeight,
 					ISNULL(imt.isSerialized,0)  AS IsSerialized,
-					sobi.CreditMemoHeaderId
+							ISNULL(sobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 					FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId AND sop.SalesOrderPartId  = @SubReferenceId --AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -769,7 +770,7 @@ BEGIN
 					sop2.SizeWidth AS SizeWidth,
 					sop2.SizeHeight AS SizeHeight,
 					ISNULL(im.isSerialized,0) AS isSerialized,
-					sobi2.CreditMemoHeaderId
+					ISNULL(sobi2.[CreditMemoHeaderId],0)CreditMemoHeaderId
 					FROM DBO.SalesOrderPartV1 sop2 WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrder so2 WITH (NOLOCK) ON so2.SalesOrderId = sop2.SalesOrderId
 					INNER JOIN [DBO].[ItemMaster] im WITH (NOLOCK) ON sop2.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) = 1 AND ISNULL(im.[IsNonStock],0) = 1)
@@ -929,7 +930,7 @@ BEGIN
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
 							,ISNULL(imt.isSerialized,0) AS isSerialized,
-							sobi.CreditMemoHeaderId
+							ISNULL(sobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 							FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND sop.SalesOrderId = @ReferenceId
@@ -1019,7 +1020,7 @@ BEGIN
 								stk.SizeWidth AS BillSizeWidth,
 								stk.SizeHeight AS BillSizeHeight
 								,ISNULL(imt.isSerialized,0) AS isSerialized
-								,sobi.CreditMemoHeaderId
+								,ISNULL(sobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 							FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 								INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
 								INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -1225,7 +1226,7 @@ BEGIN
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
 								,ISNULL(imt.isSerialized,0) AS isSerialized
-							,sobi.CreditMemoHeaderId
+							,ISNULL(sobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
@@ -1460,7 +1461,7 @@ BEGIN
 						WHERE [SO].[SalesOrderId] = @ReferenceId AND so.ChargesBilingMethodId = @FlateBilingMethodId)
 						AS TotalFlatCharges
 							,ISNULL(imt.isSerialized,0) AS isSerialized
-						,sobi.CreditMemoHeaderId
+						,ISNULL(sobi.[CreditMemoHeaderId],0)CreditMemoHeaderId
 						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
@@ -1684,7 +1685,11 @@ BEGIN
 			WHERE t.Id <> g.KeepId;
 
 			DROP TABLE #BilledLineGroups;
-
+			-- [PN-18268] Standard-invoice-posted flag on Proforma rows (drives the Re-Open action on the UI)
+			UPDATE IMD SET IMD.[IsStandardInvoicePosted] = ISNULL(BI.[IsStandardInvoicePosted], 0)
+			FROM #InvoiceMainDetails IMD
+			INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BI.[BillingInvoicingId] = IMD.[BillingInvoicingId]
+			WHERE ISNULL(IMD.[IsProformaInvoice], 0) = 1
 			SELECT * FROM #InvoiceMainDetails ORDER BY IsProformaInvoice ASC, BillingInvoicingId DESC,InvoiceNo DESC, VersionNo DESC;	
 		END TRY    
 		BEGIN CATCH      

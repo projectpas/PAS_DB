@@ -4810,6 +4810,7 @@
     <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportDataAll.sql" />
     <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
+    <Build Include="dbo\Tables\ExternalUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIDetailedWorkOrders.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />

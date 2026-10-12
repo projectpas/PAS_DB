@@ -124,6 +124,9 @@
          renamed to descriptive names (BaseRow, LotLineSource, LotLineCalc, ReceiptPay, LotStockOtherCost,
          LotChildSum, LotLine, LotChild, LotNACost, FirstRow, PaidTarget, LotPaid, LatestConsignment,
          ConsignorVendor/Customer/LegalEntity, LotParent, ParentHeader, NonPOInvoiceLines, NonPOInvoicePaid ...).
+    16   09/October/2026   Claude (Rajesh Gami)   [PN-18257] Manual Inv Num (Non PO invoice number) at LOT level:
+         child npoNumber = Non PO invoice(s) whose line has this ReceiptId + Item (= LOT Number). Parent npoNumber =
+         the child number when all children share one, 'Multiple' when children have different numbers.
  **************************************************************
  EXEC usprpt_GetLotCommissionReportCashPosted @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Cash Post Date</FieldName><FieldValue>10/01/2026</FieldValue></Filter><Filter><FieldName>To Cash Post Date</FieldName><FieldValue>10/08/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -496,7 +499,8 @@ BEGIN
       RevenueConsigneePercentage  DECIMAL(18,2) NULL,
       RevenueConsignorPercent     DECIMAL(18,2) NULL,
       MarginConsigneerPercentage  DECIMAL(18,2) NULL,
-      MarginConsignorPercentage   DECIMAL(18,2) NULL
+      MarginConsignorPercentage   DECIMAL(18,2) NULL,
+      NPONumber                   VARCHAR(MAX) NULL        -- Manual Inv Num (Non PO invoice) of this LOT line
     );
 
     INSERT INTO #LotCommissionChild
@@ -679,6 +683,23 @@ BEGIN
     LEFT JOIN dbo.Customer ConsignorCustomer     WITH (NOLOCK) ON LatestConsignment.ConsigneeTypeId = @CustomerModuleId AND ConsignorCustomer.CustomerId      = LatestConsignment.ConsigneeId
     LEFT JOIN dbo.LegalEntity ConsignorLegalEntity WITH (NOLOCK) ON LatestConsignment.ConsigneeTypeId = @CompanyModuleId  AND ConsignorLegalEntity.LegalEntityId  = LatestConsignment.ConsigneeId;
 
+    -- [PN-18257] Manual Inv Num per LOT: Non PO invoice line(s) with this ReceiptId + Item = LOT Number
+    UPDATE LotChild SET
+      LotChild.NPONumber = LotNonPO.NPONumbers
+    FROM #LotCommissionChild LotChild
+    OUTER APPLY (
+      SELECT STRING_AGG(CAST(DistinctNPO.NPONumber AS VARCHAR(MAX)), ', ') WITHIN GROUP (ORDER BY DistinctNPO.NPONumber) AS NPONumbers
+      FROM (
+        SELECT DISTINCT NPOHeader.NPONumber
+        FROM dbo.NonPOInvoicePartDetails NPOLine WITH (NOLOCK)
+        INNER JOIN dbo.NonPOInvoiceHeader NPOHeader WITH (NOLOCK) ON NPOHeader.NonPOInvoiceId = NPOLine.NonPOInvoiceId
+        WHERE NPOLine.ReceiptId = LotChild.ReceiptId
+          AND UPPER(LTRIM(RTRIM(ISNULL(NPOLine.Item,'')))) = UPPER(LTRIM(RTRIM(ISNULL(LotChild.LotNum,''))))
+          AND ISNULL(NPOLine.IsDeleted,0) = 0
+          AND ISNULL(NPOHeader.IsDeleted,0) = 0
+      ) DistinctNPO
+    ) LotNonPO;
+
     /*=====================================================================================
       STEP 5 : Parent rows - one row per Cash Receipt / Invoice = SUM of its children
                (so child totals always tie back to the parent). LOTNum = comma separated LOTs,
@@ -755,7 +776,9 @@ BEGIN
       LotParent.IsNonPOGenerated   = CASE WHEN NonPOInvoices.NPONumber IS NOT NULL THEN 1 ELSE 0 END,
       LotParent.level1 = ParentHeader.level1, LotParent.level2 = ParentHeader.level2, LotParent.level3 = ParentHeader.level3, LotParent.level4 = ParentHeader.level4,
       LotParent.level5 = ParentHeader.level5, LotParent.level6 = ParentHeader.level6, LotParent.level7 = ParentHeader.level7, LotParent.level8 = ParentHeader.level8, LotParent.level9 = ParentHeader.level9, LotParent.level10 = ParentHeader.level10,
-      LotParent.npoNumber          = NonPOInvoices.NPONumber,
+      -- [PN-18257] one Manual Inv Num across the LOT lines -> show it; different numbers -> 'Multiple'
+      LotParent.npoNumber          = CASE WHEN ChildNPO.DistinctCount > 1 THEN 'Multiple'
+                                          WHEN ChildNPO.DistinctCount = 1 THEN ChildNPO.SingleNPONumber END,
       LotParent.LotDetails         = (
         SELECT LotChild.LotId                 AS lotId,
                LotChild.LotNum                AS lotNum,
@@ -777,7 +800,8 @@ BEGIN
                LotChild.RevenueConsigneePercentage AS revenueConsigneePercentage,
                LotChild.RevenueConsignorPercent    AS revenueConsignorPercent,
                LotChild.MarginConsigneerPercentage AS marginConsigneerPercentage,
-               LotChild.MarginConsignorPercentage  AS marginConsignorPercentage
+               LotChild.MarginConsignorPercentage  AS marginConsignorPercentage,
+               LotChild.NPONumber                  AS npoNumber
         FROM #LotCommissionChild LotChild
         WHERE LotChild.ReceiptId = LotParent.ReceiptId AND LotChild.BillingInvoicingId = LotParent.BillingInvoicingId
         ORDER BY LotChild.LotNum
@@ -803,7 +827,16 @@ BEGIN
           AND ISNULL(NPOLine.IsDeleted,0) = 0
           AND ISNULL(NPOHeader.IsDeleted,0) = 0
       ) NPOList
-    ) NonPOInvoices;
+    ) NonPOInvoices
+    -- [PN-18257] Manual Inv Num(s) of this row's LOT lines
+    OUTER APPLY (
+      SELECT COUNT(DISTINCT LotChildNPO.NPONumber) AS DistinctCount,
+             MAX(LotChildNPO.NPONumber)            AS SingleNPONumber
+      FROM #LotCommissionChild LotChildNPO
+      WHERE LotChildNPO.ReceiptId = LotParent.ReceiptId
+        AND LotChildNPO.BillingInvoicingId = LotParent.BillingInvoicingId
+        AND ISNULL(LotChildNPO.NPONumber,'') <> ''
+    ) ChildNPO;
 
     /*=====================================================================================
       STEP 6 : Paged Parent output (+ totals across all pages).

@@ -15,8 +15,8 @@
  ** --   --------		-------			--------------------------------            
     1    06/12/2024		EKTA CHANDEGRA	 Created  
 	2    31/03/2026		Moin Bloch	     UOM Changes PN-15067
-	3    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
-
+	3    09/Oct/2026    Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
+    4    12/OCt/2026    Bhargav Saliya	 Added CreditTermName and ShippingAccountNo for Pick Ticket print
  EXEC GetSalesOrderPickTicketBySalesOrderId 1 , 1
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderPickTicketBySalesOrderId] 
@@ -28,7 +28,7 @@ BEGIN
 	SET NOCOUNT ON;   
 	BEGIN TRY
 	BEGIN
-		DECLARE @SalesOrderModuleId BIGINT = 10;
+		DECLARE @SalesOrderModuleId BIGINT = (SELECT ModuleId FROM dbo.[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER');
 		DECLARE @SalesOrderPartId BIGINT = 0,@ItemMasterId BIGINT = 0
 		DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
         DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
@@ -83,7 +83,9 @@ BEGIN
         ISNULL(empy.FirstName, '') + ' ' + ISNULL(empy.LastName, '') AS ConfirmedByName,
         sopkt.ConfirmedDate,
         sopkt.CreatedDate AS PTCreatedDate,
-        soq.CustomerReference
+        soq.CustomerReference,
+        ISNULL(posv.ShippingTerms ,'') AS ShippingTermName,
+        ISNULL(posv.ShippingAccountNo, '') AS ShippingAccountNo
 		FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
 			LEFT JOIN [dbo].[SOPickTicket] sopkt WITH(NOLOCK) ON soq.SalesOrderId = sopkt.SalesOrderId AND sopkt.SOPickTicketId = @SOPickTicketId
 			LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId

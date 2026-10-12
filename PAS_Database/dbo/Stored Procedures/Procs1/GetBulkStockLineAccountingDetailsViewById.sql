@@ -1,4 +1,4 @@
--- Author:		<Jevik Raiyani>
+﻿-- Author:		<Jevik Raiyani>
 -- Create date: <27-11-2023>
 -- Description:	<This stored procedure is used Get GetBulkStockLineAccountingDetailsViewById for Bulk stockline accounting list>
 -- =============================================
@@ -11,8 +11,8 @@
 	2    12-03-2024		AMIT GHEDIYA		Update join for mngmt get.
 	3    01-08-2024     Sahdev Saliya       Added (AccountingPeriod) And Set JournalTypeNumber Order by desc
 	4    09/July/2026     RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	5    08/10/2026     BHARGAV SALIYA    Show Non-Stock stocklines in Bulk Stockline Adjustment accounting details PN-17481
-
+	5    12/10/2026     BHARGAV SALIYA    Show Non-Stock stocklines in Bulk Stockline Adjustment accounting details PN-17481
+		 -------			--------------------------------            
 EXEC GetBulkStockLineAccountingDetailsViewById 119
 ************************************************************************/   
 

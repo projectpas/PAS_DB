@@ -26,6 +26,7 @@
     [Qty]                       BIGINT          NULL,
     [ExtendedPrice]             DECIMAL (18, 2) NULL,
     [TaxTypeId]                 BIGINT          NULL,
+    [ReceiptId]                 BIGINT          NULL, -- [PN-18257] CustomerPayments.ReceiptId this line pays the consignor for (LOT Commission Report)
     CONSTRAINT [PK_NonPOInvoicePartDetails] PRIMARY KEY CLUSTERED ([NonPOInvoicePartDetailsId] ASC)
 );
 

@@ -11,7 +11,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    02-Sep-2026    Bhargav Saliya       [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	3    24-09-2026     Nakul                [PN-17977] added AircraftEngine & VerifiedDate
-	4    26-09-2026     Nakul                [PN-17977] AircraftEngine & VerifiedDate were display-only; wired them up as filters
+	4    26-09-2026     Nakul                [PN-17977] AircraftEngine & VerifiedDate were display-only; wired them up as filters & added sorting for them
 ****************************************************************************************************************************************/
 CREATE     PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
@@ -218,7 +218,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='COSTDATE')  THEN CostDate END ASC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='AIRCRAFTENGINE')  THEN AircraftEngine END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='AIRCRAFTENGINE')  THEN AircraftEngine END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='VERIFIEDDATE')  THEN VerifiedDate END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VERIFIEDDATE')  THEN VerifiedDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		
 

@@ -36,6 +36,14 @@
 									   MarginConsignorPercentId, ConsigneeTypeId, ConsigneeId to LotCalculationDetails - mirrored from
 									   LotConsignment (IsRevenue/IsMargin/IsFixedAmount already existed) and populated at
 									   UPPER(@Type) = UPPER('Trans Out (SO)').
+	11  08-Oct-2026   RAJESH GAMI      [PN-18257] Added BillingInvoicingId and BillingInvoicingItemId to LotCalculationDetails. They come in as
+									   new optional scalar parameters (@BillingInvoicingId / @BillingInvoicingItemId, default NULL) rather
+									   than as new LotCalculationDetailsType columns, so every other caller of this SP / that table type
+									   is unaffected. Written only in the UPPER(@Type) = UPPER('Trans Out (SO)') branch (both the first
+									   post and the repost-after-Re-Open update path); a NULL value never overwrites an existing id.
+									   Partial billing: the PN-17647 repost dedup now also considers BillingInvoicingId, so a second
+									   (partial) invoice against the same LotTransInOutId inserts its own new LotCalculationDetails row
+									   instead of overwriting the first invoice's row; reposting the same invoice still updates in place.
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -47,7 +55,9 @@ CREATE PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
 	@CreatedBy VARCHAR(200),
 	@UpdatedBy VARCHAR(200),
 	@CreatedDate DATETIME,
-	@UpdatedDate DATETIME
+	@UpdatedDate DATETIME,
+	@BillingInvoicingId BIGINT = NULL,		-- PN-18257 (used only for 'Trans Out (SO)')
+	@BillingInvoicingItemId BIGINT = NULL	-- PN-18257 (used only for 'Trans Out (SO)')
 AS
 BEGIN
 	  SET NOCOUNT ON;
@@ -305,7 +315,14 @@ BEGIN
 				WHERE LotId = @LotId
 				  AND Type = @Type
 				  AND LotTransInOutId = (SELECT LotTransInOutId FROM #tmpLotCalculationDetailsType WHERE ID = @count)
-				ORDER BY LotCalculationId DESC
+				  -- PN-18257: partial billing. A repost is only the SAME invoice posted again, so only a row stamped with
+				  -- this BillingInvoicingId counts as "already posted". A row stamped with a DIFFERENT invoice means an
+				  -- earlier partial invoice for the same LotTransInOutId -> no match -> a new row is inserted for this
+				  -- invoice (LotTransInOutDetails itself is still updated in place by the caller). Rows with NULL
+				  -- BillingInvoicingId (posted before PN-18257) and calls that do not send an id keep the old
+				  -- PN-17647 behaviour (match on LotId + Type + LotTransInOutId).
+				  AND (@BillingInvoicingId IS NULL OR BillingInvoicingId IS NULL OR BillingInvoicingId = @BillingInvoicingId)
+				ORDER BY (CASE WHEN BillingInvoicingId = @BillingInvoicingId THEN 0 ELSE 1 END), LotCalculationId DESC
 
 				IF (@ExistingLotCalculationId IS NULL)
 				BEGIN
@@ -367,7 +384,9 @@ BEGIN
 						--TransferredOutCost = COGS ,
 						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentRevenuePercent END), HowCalculate = @HowCalculate,
 						-- PN-17881: LotConsignment mirror fields (raw ids/values, not the derived percent/HowCalculate above)
-						RevenuePercentId = @ConPercentId, FixedAmount = @ConsignmentFixedAmt, RevenueConsignorPercentId = @ConRevenueConsignorPercentId, MarginPercentId = @ConMarginPercentId, MarginConsignorPercentId = @ConMarginConsignorPercentId, ConsigneeTypeId = @ConConsigneeTypeId, ConsigneeId = @ConConsigneeId
+						RevenuePercentId = @ConPercentId, FixedAmount = @ConsignmentFixedAmt, RevenueConsignorPercentId = @ConRevenueConsignorPercentId, MarginPercentId = @ConMarginPercentId, MarginConsignorPercentId = @ConMarginConsignorPercentId, ConsigneeTypeId = @ConConsigneeTypeId, ConsigneeId = @ConConsigneeId,
+						-- PN-18257: SO invoice mapping (a NULL param keeps whatever is already stored)
+						BillingInvoicingId = ISNULL(@BillingInvoicingId, BillingInvoicingId), BillingInvoicingItemId = ISNULL(@BillingInvoicingItemId, BillingInvoicingItemId)
 					WHERE LotCalculationId = @LatestId;
 
 				IF(@IsFixedAmount = 1)

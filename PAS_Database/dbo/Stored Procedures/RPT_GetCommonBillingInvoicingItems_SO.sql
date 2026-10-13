@@ -19,6 +19,7 @@
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    10/OCT/2026   Vishal Suthar    [PN-15856] - Show Misc Charges / Freight details only when billed on the invoice line, so charges added to the SO later don't appear on a previously generated (Proforma) invoice
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
@@ -88,6 +89,9 @@ BEGIN
 					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
 					ShipViaDetails = CASE 
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
+										-- Only list Freight when this invoice line actually billed Freight, so Freight added to the SO
+										-- after the invoice was created doesn't show up on it (it belongs to a revised invoice)
+										WHEN ISNULL(bii.FreightCostPlus, 0) = 0 THEN 'NA'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
@@ -104,6 +108,9 @@ BEGIN
 									END,
 					MiscChargesDetails = CASE  
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
+										-- Only list Charges when this invoice line actually billed Misc Charges, so Charges added to the SO
+										-- after the invoice was created doesn't show up on it (it belongs to a revised invoice)
+										WHEN ISNULL(bii.MiscChargesCostPlus, 0) = 0 THEN 'NA'
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(

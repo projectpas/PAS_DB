@@ -17,6 +17,9 @@
  ** PR   Date			Author				Change Description              
  ** --   --------		-------			--------------------------------            
 	1	O9/22/2023		Devendra Shekh		Modified to return SUM of all the records before paging  
+	2	10/09/2026		Claude (Rajesh Gami)	[PN-18257] when the deleted line paid a Cash Receipt (ReceiptId) and no other
+							active line still does, reset CustomerPayments.IsNonPOGenerated = 0 so the LOT
+							Commission Report allows "Initiate Payment" again for that receipt.
 
 **************************************************************/  
 
@@ -30,7 +33,19 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
+				DECLARE @DeletedReceiptId BIGINT = NULL;
+				SELECT @DeletedReceiptId = [ReceiptId] FROM [dbo].[NonPOInvoicePartDetails] WITH (NOLOCK)
+				 WHERE NonPOInvoicePartDetailsId = @NonPOInvoicePartDetailsId AND MasterCompanyId = @MasterCompanyId;
+
 				DELETE FROM NonPOInvoicePartDetails WHERE NonPOInvoicePartDetailsId = @NonPOInvoicePartDetailsId AND MasterCompanyId = @MasterCompanyId
+
+				IF (ISNULL(@DeletedReceiptId,0) > 0
+				    AND NOT EXISTS (SELECT 1 FROM [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)
+				                    INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK) ON NPH.[NonPOInvoiceId] = NPD.[NonPOInvoiceId]
+				                    WHERE NPD.[ReceiptId] = @DeletedReceiptId AND ISNULL(NPD.[IsDeleted],0) = 0 AND ISNULL(NPH.[IsDeleted],0) = 0))
+				BEGIN
+					UPDATE [dbo].[CustomerPayments] SET [IsNonPOGenerated] = 0 WHERE [ReceiptId] = @DeletedReceiptId;
+				END
 			END
 		COMMIT  TRANSACTION
 

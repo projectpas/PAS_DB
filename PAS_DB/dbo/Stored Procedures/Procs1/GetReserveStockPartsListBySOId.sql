@@ -23,13 +23,14 @@
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
    	9    10-06-2026	  Rajesh Gami		Getting LOTID from the Stockline instead of PART PN-[16681]  
-	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
-	13    30/July/2026			 MOIN BLOCH					        [PN-17485] - Added [IsService],[IsNonStock] 
+	10    01/July/2026			 RAJESH GAMI		008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI		009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	12    23/July/2026			 RAJESH GAMI		350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+	13    30/July/2026			 MOIN BLOCH			[PN-17485] - Added [IsService],[IsNonStock] 
+	14    08/Oct/2026			 Kishor Makwana		[PN-17760] - Returned QtyToBeReserved ignored already-shipped qty (Ordered 5, Shipped 2, Reserved 0 returned 5 instead of 3), so the Reserve popup offered more than was pending. It now subtracts the part's shipped qty, the same way the WHERE filter already did.
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=898
 **************************************************************/
-CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
+CREATE PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
 	@ItemMasterId BIGINT = NULL
 AS
@@ -213,7 +214,7 @@ BEGIN
 		EquPartMasterPartId,
 		QtyToReserve,
 		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
-		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (PartQuantityOnOrder - QuantityReserved) END
+		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (PartQuantityOnOrder - QuantityReserved - (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId WHERE SOSI.SalesOrderPartId = FinalReserveList.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) END
 		END)
 		) QtyToBeReserved,
 		StkQtyToBeReserved,

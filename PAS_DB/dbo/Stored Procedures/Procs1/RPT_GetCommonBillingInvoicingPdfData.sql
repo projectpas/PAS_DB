@@ -17,6 +17,7 @@
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	6	 01/05/2025    AMIT GHEDIYA     Get Email & Phone from Contact (Before from cust general info.).
 	8    12/05/2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
+	9    07/10/2026    Vishal Suthar    Use InvoiceDate + InvoiceTime for Invoice Date & Time and Due Date instead of UTC conversion.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
 **********************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
@@ -58,6 +59,13 @@ BEGIN
 			WHERE T.[BillingInvoicingId] = @BillingInvoicingId;
 
 			SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+			-- Invoice Date + Invoice Time as entered by user (already local), fallback to UTC conversion when time is not available
+			DECLARE @InvoiceDateTime DATETIME = NULL;
+			SELECT @InvoiceDateTime = CASE WHEN TRY_CONVERT(TIME, [InvoiceTime]) IS NOT NULL
+										   THEN CAST(CAST([InvoiceDate] AS DATE) AS DATETIME) + CAST(TRY_CONVERT(TIME, [InvoiceTime]) AS DATETIME)
+										   ELSE CAST(dbo.ConvertUTCtoLocal([InvoiceDate], @CurrntEmpTimeZoneDesc) AS DATETIME) END
+			  FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId AND [InvoiceDate] IS NOT NULL;
 
 			SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
 			FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
@@ -145,9 +153,12 @@ BEGIN
 					ISNULL(CUSTREF.[CustomerReference], '') [CustomerReference],
 					CUST.[CustomerPhone] [CustToPhone],
 					CASE WHEN BI.[PostedDate] IS NOT NULL THEN FORMAT(DATEADD(DAY, ISNULL(WO.[NetDays],0), BI.[InvoiceDate]), 'MM/dd/yyyy') ELSE '' END [DueDate],					
-					CASE WHEN BI.[InvoiceDate] IS NOT NULL THEN (CAST(dbo.ConvertUTCtoLocal(BI.[InvoiceDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) ELSE NULL END [NewDateAndTime],
-					SHIPPINGINFO.[ShipDate] [NewShipDate],					
-					CASE WHEN BI.[InvoiceDate] IS NOT NULL THEN (CAST(dbo.ConvertUTCtoLocal(DATEADD(DAY, ISNULL(WO.[NetDays],0), BI.[InvoiceDate]), @CurrntEmpTimeZoneDesc) AS DATETIME)) ELSE NULL END [NewDueDate],
+					--CASE WHEN BI.[InvoiceDate] IS NOT NULL THEN (CAST(dbo.ConvertUTCtoLocal(BI.[InvoiceDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) ELSE NULL END [NewDateAndTime],
+					@InvoiceDateTime [NewDateAndTime],
+					--SHIPPINGINFO.[ShipDate] [NewShipDate],	
+					SHIPPINGINFO.[ShipDate] [NewShipDate],
+					--CASE WHEN BI.[InvoiceDate] IS NOT NULL THEN (CAST(dbo.ConvertUTCtoLocal(DATEADD(DAY, ISNULL(WO.[NetDays],0), BI.[InvoiceDate]), @CurrntEmpTimeZoneDesc) AS DATETIME)) ELSE NULL END [NewDueDate],
+					DATEADD(DAY, ISNULL(WO.[NetDays],0), @InvoiceDateTime) [NewDueDate],
 					CAST(dbo.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATETIME) [PrintDate],					
 					ISNULL(BI.[IsPerformaInvoice], 0) [IsProformaInvoice],
 					0 [WorkFlowWorkOrderId],  

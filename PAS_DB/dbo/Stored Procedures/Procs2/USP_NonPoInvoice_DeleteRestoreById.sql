@@ -15,6 +15,9 @@
  ** --   --------		 -------					--------------------------------          
     1    09/13/2023		Devendra Shekh					Created
     1    09/14/2023		Devendra Shekh					added updatedby
+    2    10/09/2026		Claude (Rajesh Gami)			[PN-18257] after delete / restore, re-sync CustomerPayments.IsNonPOGenerated
+                                                    for the Cash Receipts paid by this invoice's lines (LOT Commission Report
+                                                    "Initiate Payment" is allowed again once no active invoice pays the receipt).
 
 exec USP_NonPoInvoice_DeleteRestoreById 1,0,'JIM ROBERTS'
 
@@ -43,6 +46,19 @@ BEGIN
 						SET IsDeleted = 0, UpdatedBy = @UpdatedBy
 						WHERE [NonPOInvoiceId] = @NonPOInvoiceId
 					END
+
+				-- [PN-18257] re-sync IsNonPOGenerated for the receipts this invoice pays (line level + old header level ReceiptId)
+				UPDATE CP
+				   SET CP.[IsNonPOGenerated] = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)
+				                                                 INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK) ON NPH.[NonPOInvoiceId] = NPD.[NonPOInvoiceId]
+				                                                 WHERE NPD.[ReceiptId] = CP.[ReceiptId] AND ISNULL(NPD.[IsDeleted],0) = 0 AND ISNULL(NPH.[IsDeleted],0) = 0)
+				                                    THEN 1 ELSE 0 END
+				  FROM [dbo].[CustomerPayments] CP
+				 WHERE CP.[ReceiptId] IN (SELECT NPD.[ReceiptId] FROM [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)
+				                          WHERE NPD.[NonPOInvoiceId] = @NonPOInvoiceId AND ISNULL(NPD.[ReceiptId],0) > 0
+				                          UNION
+				                          SELECT NPH.[ReceiptId] FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
+				                          WHERE NPH.[NonPOInvoiceId] = @NonPOInvoiceId AND ISNULL(NPH.[ReceiptId],0) > 0);
 			END
 		COMMIT  TRANSACTION
 

@@ -4810,6 +4810,7 @@
     <Build Include="dbo\Views\vw_LegalEntityWithCode.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportDataAll.sql" />
     <Build Include="dbo\Tables\PowerBiReportMapping.sql" />
+    <Build Include="dbo\Tables\ExternalUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPowerBIDetailedWorkOrders.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineByLocation.sql" />
@@ -4824,6 +4825,9 @@
     <Build Include="dbo\Tables\Tables3\LOTOtherCostDetailsAudit.sql" />
     <Build Include="dbo\Tables\Tables3\LOTOtherCostDetails.sql" />
     <Build Include="dbo\Views\vw_LeaseType.sql" />
+    <Build Include="dbo\Tables\CoreLetter.sql" />
+    <Build Include="dbo\Tables\CoreLetterAudit.sql" />
+    <Build Include="dbo\Views\vw_CoreLetter.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestoreUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteUserRoleById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckUserRoleForDelete.sql" />

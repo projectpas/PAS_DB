@@ -12,6 +12,7 @@
 	2    02/06/2025   Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone
 	3    02/29/2025   Amit Ghediya		    Get IsFlatRate
 	4    30-Sep-2026  Amit Ghediya		    Added AllowWorksheet to select
+	5    12-Oct-2026  Nakul				    Added MaterialShortageWarningDays, BypassStockShortageWarning to select [PN-12034]
 
 	exec USP_GetWorkOrderSettingsAudit @WorkOrderSettingsId = 2, @EmployeeId = 215
 **************************************************************/ 
@@ -120,7 +121,9 @@ BEGIN
 			        ELSE ''
 			    END AS IsWoAlwaysOrOndemand,
 				wos.IsFlatRate,
-				ISNULL(wos.AllowWorksheet, 0) AS AllowWorksheet
+				ISNULL(wos.AllowWorksheet, 0) AS AllowWorksheet,
+				ISNULL(wos.MaterialShortageWarningDays, 30) AS MaterialShortageWarningDays,
+				ISNULL(wos.BypassStockShortageWarning, 0) AS BypassStockShortageWarning
 			FROM [DBO].WorkOrderSettingsAudit wos WITH(NOLOCK)
 			LEFT JOIN [DBO].WorkOrderType wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 			LEFT JOIN [DBO].Condition c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

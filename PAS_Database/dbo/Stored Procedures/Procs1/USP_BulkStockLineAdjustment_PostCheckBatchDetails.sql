@@ -33,6 +33,7 @@
 	17   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
 	18   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6
 	19	 08/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	20  12/10/2026   BHARGAV SALIYA    Do not create accounting entries for a line whose Adjustment Amount is 0 (PN-17481)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -363,7 +364,8 @@ BEGIN
 						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, @BulkStkLineAdjHeaderId, NULL, NULL, 9, @TransferQtyAdjustment, @UpdateBy;
 					END
 
-					IF(ISNULL(@Amount,0) <> 0)
+					--Skip accounting for a line whose Adjustment Amount is 0  no financial adjustment, no journal entry
+					IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@AdjustmentAmount,0) <> 0)
 					BEGIN
 						-----Inventory-Stock--------
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)

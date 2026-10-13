@@ -22,6 +22,8 @@
    10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    11    08/10/2026         BHARGAV SALIYA          Allow Non-Stock Items in Bulk Stockline Adjustment (Qty, Unit Price, Inter/Intra Company) and return/filter ItemType PN-17481
    12    09/10/2026         BHARGAV SALIYA          Quantity adjustment: also list stocklines with Qty OH = 0 (Stock and Non-Stock) so their qty can be increased PN-17481
+   	14    12/10/2026         BHARGAV SALIYA          Exclude Non-Stock service parts (IsService = 1) from Bulk Stockline Adjustment PN-17481
+
 *********
 *********/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -91,8 +93,9 @@ BEGIN
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-					AND ((SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0) OR (ISNULL(SL.[QuantityOnHand],0) = 0 AND ISNULL(SL.[QuantityAvailable],0) = 0)) -- PN-17481: allow OH = 0 stocklines for Qty adjustment
-					AND SL.[IsParent] = 1), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND ((SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0) OR (ISNULL(SL.[QuantityOnHand],0) = 0 AND ISNULL(SL.[QuantityAvailable],0) = 0)) 
+					AND SL.[IsParent] = 1
+					AND NOT (ISNULL(SL.IsNonStock,0) = 1 AND (ISNULL(SL.IsService,0) = 1 OR ISNULL(IM.IsService,0) = 1))), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM  Result 
 				WHERE 
@@ -176,7 +179,8 @@ BEGIN
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
-					AND SL.[IsCustomerStock] = 0 AND IsParent = 1), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[IsCustomerStock] = 0 AND IsParent = 1
+					AND NOT (ISNULL(SL.IsNonStock,0) = 1 AND (ISNULL(SL.IsService,0) = 1 OR ISNULL(IM.IsService,0) = 1))), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempUnitResult FROM  Result 
 				WHERE 
@@ -261,7 +265,8 @@ BEGIN
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
 					AND SL.[IsCustomerStock] = 0 AND SL.[IsParent] = 1 
-					AND SL.[ManagementStructureId] = @ManagementStructureId), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[ManagementStructureId] = @ManagementStructureId
+					AND NOT (ISNULL(SL.IsNonStock,0) = 1 AND (ISNULL(SL.IsService,0) = 1 OR ISNULL(IM.IsService,0) = 1))), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempIntraInterResult FROM  Result 
 				WHERE 
@@ -437,7 +442,8 @@ BEGIN
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
-					AND SL.[IsCustomerStock] = 0 AND SL.[isSerialized] = 0 AND SL.[IsParent] = 1 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[IsCustomerStock] = 0 AND SL.[isSerialized] = 0 AND SL.[IsParent] = 1
+					AND NOT (ISNULL(SL.IsNonStock,0) = 1 AND (ISNULL(SL.IsService,0) = 1 OR ISNULL(IM.IsService,0) = 1))), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempOtherResult FROM  Result 
 				WHERE 

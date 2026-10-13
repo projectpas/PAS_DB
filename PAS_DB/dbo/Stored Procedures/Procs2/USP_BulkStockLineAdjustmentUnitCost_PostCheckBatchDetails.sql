@@ -28,6 +28,7 @@
 	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	13   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
 	14	 08/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	15  12/10/2026   BHARGAV SALIYA    Do not create accounting entries for a line whose Adjustment Amount is 0 (PN-17481)
      
 **************************************************************/
 

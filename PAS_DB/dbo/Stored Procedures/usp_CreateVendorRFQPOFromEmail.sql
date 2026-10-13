@@ -17,6 +17,7 @@
 	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
 	4	 27-July-2026   Vishal Suthar   Modified to get matching conditions if does not found to get picked like RP, RPD, Repair, Repaired
 	5    28-Aug-2026    Vishal Suthar   Added @VendorContactName param so vendor Contact First/Last Name is sourced from the individual contact
+	6    12-Oct-2026    Vishal Suthar   Fixed Vendor RFQ PO not created when RFQ details come from an attached file
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -59,6 +60,8 @@ BEGIN
                 @CreatedBy                    NVARCHAR(100) = 'ADMIN ADMIN',
                 @Now                          DATETIME2     = GETUTCDATE(),
                 @NeedByDate                   DATETIME2     = DATEADD(DAY, 30, GETUTCDATE());
+
+            SET @VendorName = LEFT(COALESCE(NULLIF(LTRIM(RTRIM(@VendorName)), ''), NULLIF(LTRIM(RTRIM(@VendorEmail)), ''), 'N/A'), 100);
 
             ------------------------------------------------------------
 			-- 1. Try exact match on BOTH email AND name (most confident)
@@ -215,21 +218,21 @@ BEGIN
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
             ORDER BY PriorityId;
 
-            IF @PriorityId IS NULL RETURN;
+            IF @PriorityId IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             -- 4. Get default management structure
             SELECT TOP 1 @ManagementStructureId = EntityStructureId
             FROM dbo.EntityStructureSetup WITH (NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
-            IF @ManagementStructureId IS NULL RETURN;
+            IF @ManagementStructureId IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             -- 5. Get and increment CodePrefix
             SELECT @CurrentNumber = CurrentNummber, @CodePrefixVal = CodePrefix, @CodeSuffix = CodeSufix
             FROM dbo.CodePrefixes WITH (NOLOCK)
             WHERE CodeTypeId = 61 AND MasterCompanyId = @MasterCompanyId;
 
-            IF @CurrentNumber IS NULL RETURN;
+            IF @CurrentNumber IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             SET @CurrentNumber = @CurrentNumber + 1;
 
@@ -314,6 +317,7 @@ BEGIN
                 -- Use 'N/A' if manufacturer name is missing
                 IF ISNULL(LTRIM(RTRIM(@LoopManufacturer)), '') = ''
                     SET @LoopManufacturer = 'N/A';
+                SET @LoopManufacturer = LEFT(@LoopManufacturer, 100);
 
                 -- Lookup existing manufacturer by name (and code if provided)
                 SELECT TOP 1 @LoopManufacturerId = ManufacturerId
@@ -399,14 +403,15 @@ BEGIN
 
 			;WITH DistinctParts AS
 			(
-				SELECT DISTINCT
-					LTRIM(RTRIM(p.PartNumber)) AS PartNumber,
-					ISNULL(LTRIM(RTRIM(p.Description)), 'N/A') AS Description,
-					pm.ManufacturerId,
-					pm.ManufacturerName
+				SELECT
+					pm.PartNumber,
+					MAX(ISNULL(NULLIF(LTRIM(RTRIM(p.Description)), ''), 'N/A')) AS Description,
+					pm.ManufacturerId
 				FROM @tbl_EmailParts p
 				INNER JOIN @PartManufacturers pm
 					ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+				   AND pm.ManufacturerName = LEFT(ISNULL(NULLIF(LTRIM(RTRIM(p.Manufacturer)), ''), 'N/A'), 100)
+				GROUP BY pm.PartNumber, pm.ManufacturerId
 			)
 
             INSERT INTO dbo.ItemMaster
@@ -478,9 +483,8 @@ BEGIN
 				FROM dbo.ItemMaster x
 				WHERE x.MasterCompanyId = @MasterCompanyId
 				  AND x.PartNumber = dp.PartNumber
-				  AND x.PartDescription = dp.Description
 				  AND x.ManufacturerId = dp.ManufacturerId
-				  AND x.IsDeleted = 0
+				  AND x.ItemTypeId = im.ItemTypeId
 			  );
 
             ------------------------------------------------------------
@@ -606,6 +610,7 @@ BEGIN
             FROM @tbl_EmailParts p
             INNER JOIN @PartManufacturers pm
                     ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+                   AND pm.ManufacturerName = LEFT(ISNULL(NULLIF(LTRIM(RTRIM(p.Manufacturer)), ''), 'N/A'), 100)
 			LEFT JOIN @ConditionMapping cm ON cm.Alias = UPPER(LTRIM(RTRIM(ISNULL(p.Condition, ''))))
 			LEFT JOIN dbo.Condition c WITH (NOLOCK) ON c.MasterCompanyId = @MasterCompanyId
 			    AND c.IsActive = 1
@@ -614,12 +619,16 @@ BEGIN
 			        UPPER(LTRIM(RTRIM(c.Description))) = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
 			        OR UPPER(LTRIM(RTRIM(c.Code)))      = ISNULL(cm.CanonicalCondition, UPPER(LTRIM(RTRIM(ISNULL(p.Condition, '')))))
 			    )
-            INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
-                   ON im.MasterCompanyId = @MasterCompanyId
-                  AND im.IsActive = 1 AND im.IsDeleted = 0
-                  AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
-                  AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-				  AND im.ManufacturerId = pm.ManufacturerId
+            CROSS APPLY
+            (
+                SELECT TOP 1 x.ItemMasterId, x.PurchaseUnitOfMeasureId
+                FROM dbo.ItemMaster x WITH (NOLOCK)
+                WHERE x.MasterCompanyId = @MasterCompanyId
+                  AND x.IsActive = 1 AND x.IsDeleted = 0
+                  AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
+                  AND x.ManufacturerId = pm.ManufacturerId
+                ORDER BY x.ItemMasterId
+            ) im
             WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '' ;
 
             -- 7a. Save part management structure details

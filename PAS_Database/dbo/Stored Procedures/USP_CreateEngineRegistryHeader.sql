@@ -17,7 +17,15 @@
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
  ** 1    29/06/2026   Amit Ghediya		Created [PN-17037]
-
+ ** 2    09/10/2026   Amit Ghediya		Fixed ModuleName passed to USP_SaveAircraftHistory - was hardcoded
+									to 'Aircraft Registry' (copy-paste from the aircraft header SP),
+									which also made "History of Engine" unable to tell this row apart
+									from an aircraft's. Now correctly 'Engine Registry'.
+ ** 3    12/10/2026   Amit Ghediya		Guarded every REPLACE() in the Add-history TemplateBody build with
+									ISNULL(...,'') - REPLACE returns NULL if the replacement value is
+									NULL, which silently collapsed TemplateBody to NULL (skipping the
+									"Created" history save) whenever a field wasn't captured by the
+									calling screen, e.g. "Receive Engine" has no Tail Num/Make-Type inputs.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateEngineRegistryHeader]
@@ -414,18 +422,21 @@ BEGIN
 
 			 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[AircraftHistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @TemplateCode;
 
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcTailNum##', @AcTailNum)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcMake##', @AcMake)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', @AcModel)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', @SerialNum)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', @CreatedBy)
+			 -- REPLACE() returns NULL if the replacement value is NULL, which silently collapses the
+			 -- whole TemplateBody to NULL (and skips the history save below) whenever a field isn't
+			 -- captured by the calling screen - e.g. "Receive Engine" has no Tail Num/Make-Type inputs.
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcTailNum##', ISNULL(@AcTailNum,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcMake##', ISNULL(@AcMake,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', ISNULL(@AcModel,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', ISNULL(@SerialNum,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', ISNULL(@CreatedBy,''))
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', ISNULL(CONVERT(VARCHAR(30), GETUTCDATE(),   103), ''))
 		END
 
         -- ── Call usp_SaveAircraftHistory only if rows exist ───
         IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
 		BEGIN
-			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 1,@ModuleName = 'Aircraft Registry',@RefferenceId = @EngineRegistryId,@FieldsName = NULL,
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 1,@ModuleName = 'Engine Registry',@RefferenceId = @EngineRegistryId,@FieldsName = NULL,
 												 @OldValue = NULL,@NewValue = @EngineRegistryNum,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
 												 @CreatedBy = @CreatedBy;
 		END

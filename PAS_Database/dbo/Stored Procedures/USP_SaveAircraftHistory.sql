@@ -9,7 +9,11 @@
 ********************
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
-** 1    04/06/2026   Amit Ghediya     Created  
+** 1    04/06/2026   Amit Ghediya     Created
+** 2    09/10/2026   Amit Ghediya     Look up EngineRegistryHeader instead of AircraftRegistryHeader
+**                                when @ModuleName indicates an engine save (convention: starts with
+**                                "Engine") - previously always looked up AircraftRegistryHeader, so
+**                                an engine's history row got AcTailNum/AcMake/AcModel/SerialNum = NULL.
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_SaveAircraftHistory]
@@ -36,10 +40,19 @@ BEGIN
 			DECLARE @AcTailNum          VARCHAR(50)     = NULL,
 					@AcMake             VARCHAR(100)    = NULL,
 					@AcModel            VARCHAR(100)    = NULL,
-					@SerialNum          VARCHAR(100)    = NULL; 
+					@SerialNum          VARCHAR(100)    = NULL,
+					@EngineModuleName   VARCHAR(50) = 'Engine Registry';
 
-			SELECT @AcTailNum = TailNum,@AcMake = MakeType,@AcModel = AircraftModel,@SerialNum = SerialNum 
-			FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @RefferenceId;
+			IF (@ModuleName = @EngineModuleName)
+			BEGIN
+				SELECT @AcTailNum = TailNum,@AcMake = MakeType,@AcModel = EngineModel,@SerialNum = SerialNum
+				FROM dbo.[EngineRegistryHeader] WITH(NOLOCK) WHERE EngineRegistryId = @RefferenceId;
+			END
+			ELSE
+			BEGIN
+				SELECT @AcTailNum = TailNum,@AcMake = MakeType,@AcModel = AircraftModel,@SerialNum = SerialNum
+				FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @RefferenceId;
+			END
 
 			INSERT INTO [dbo].[AircraftHistory]
 			(

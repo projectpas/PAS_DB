@@ -12,6 +12,7 @@
     1	 05 Dec 2025		Devendra Shekh		Created
 	2	 08 Dec 2025		Devendra Shekh		Modified to save IntegrationEmailID to [VendorRFQPart] And [ThirdPartyRFQId] to [IntegrationEmail]
 	3	 10 Dec 2025		Devendra Shekh		Duplicate RFQ Issue Resolved
+	4	 12 Oct 2026		Bhargav Saliya		Skip when VendorRFQPart already saved for this email (Re-Sync duplicate guard)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQFromEmail]
@@ -28,6 +29,7 @@ BEGIN
 	BEGIN
 
 		IF NOT EXISTS(SELECT 1 FROM [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.ThirdPartyRFQId = TPR.ThirdPartyRFQId WHERE IE.IntegrationEmailID = @IntegrationEmailID)
+		   AND NOT EXISTS(SELECT 1 FROM [dbo].[VendorRFQPart] VRP WITH(NOLOCK) WHERE VRP.[IntegrationEmailID] = @IntegrationEmailID) -- re-sync must not duplicate parts
 		BEGIN
 
 		IF EXISTS(SELECT 1 FROM @tbl_VendorPartRFQType)

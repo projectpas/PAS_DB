@@ -4196,6 +4196,12 @@
     <Build Include="dbo\Stored Procedures\USP_AutoCreateILSQuoteSyc.sql" />
     <Build Include="dbo\Stored Procedures\ProcStockListFromExpiredDays.sql" />
     <Build Include="dbo\Stored Procedures\usp_UpdateIntegrationEmailStatus.sql" />
+    <Build Include="dbo\Tables\IntegrationEmailProcessHistory.sql" />
+    <Build Include="dbo\Functions\udfGetIntegrationEmailRfqStatus.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveIntegrationEmailProcessResult.sql" />
+    <Build Include="dbo\Stored Procedures\usp_ValidateEmailRFQData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_ClaimIntegrationEmailForProcessing.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetIntegrationEmailForReprocess.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForReadEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQQuoteDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesQuoteIdFromCustomerRfq.sql" />

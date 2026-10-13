@@ -15,6 +15,7 @@
     1    02-June-2026   Vishal Suthar   Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    24/July/2026	RAJESH GAMI		[PN-17350] - Removed obsolete ItemMaster.IsNonStock=0 filters (4) to allow Non-Stock items when creating Vendor RFQ PO from Email
+	4    10-Oct-2026	Vishal Suthar	Fixed Vendor RFQ PO not created when RFQ details come from an attached file
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -56,6 +57,8 @@ BEGIN
                 @CreatedBy                    NVARCHAR(100) = 'ADMIN ADMIN',
                 @Now                          DATETIME2     = GETUTCDATE(),
                 @NeedByDate                   DATETIME2     = DATEADD(DAY, 30, GETUTCDATE());
+
+            SET @VendorName = LEFT(COALESCE(NULLIF(LTRIM(RTRIM(@VendorName)), ''), NULLIF(LTRIM(RTRIM(@VendorEmail)), ''), 'N/A'), 100);
 
             ------------------------------------------------------------
 			-- 1. Try exact match on BOTH email AND name (most confident)
@@ -207,21 +210,21 @@ BEGIN
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
             ORDER BY PriorityId;
 
-            IF @PriorityId IS NULL RETURN;
+            IF @PriorityId IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             -- 4. Get default management structure
             SELECT TOP 1 @ManagementStructureId = EntityStructureId
             FROM dbo.EntityStructureSetup WITH (NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
-            IF @ManagementStructureId IS NULL RETURN;
+            IF @ManagementStructureId IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             -- 5. Get and increment CodePrefix
             SELECT @CurrentNumber = CurrentNummber, @CodePrefixVal = CodePrefix, @CodeSuffix = CodeSufix
             FROM dbo.CodePrefixes WITH (NOLOCK)
             WHERE CodeTypeId = 61 AND MasterCompanyId = @MasterCompanyId;
 
-            IF @CurrentNumber IS NULL RETURN;
+            IF @CurrentNumber IS NULL BEGIN ROLLBACK TRANSACTION; RETURN; END
 
             SET @CurrentNumber = @CurrentNumber + 1;
 
@@ -305,6 +308,13 @@ BEGIN
                 -- Use 'N/A' if manufacturer name is missing
                 IF ISNULL(LTRIM(RTRIM(@LoopManufacturer)), '') = ''
                     SET @LoopManufacturer = 'N/A';
+                SET @LoopManufacturer = LEFT(@LoopManufacturer, 100);
+
+                IF EXISTS (SELECT 1 FROM @PartManufacturers WHERE PartNumber = @LoopPartNumber AND ManufacturerName = @LoopManufacturer)
+                BEGIN
+                    FETCH NEXT FROM mfg_cursor INTO @LoopPartNumber, @LoopManufacturer;
+                    CONTINUE;
+                END
 
                 -- Lookup existing manufacturer by name (and code if provided)
                 SELECT TOP 1 @LoopManufacturerId = ManufacturerId
@@ -416,7 +426,7 @@ BEGIN
                 im.IsOpenDateAvailable, im.OpenDays, im.IsShippedDateAvailable, im.ShippedDays,
                 im.IsOtherDateAvailable, im.OtherDays, im.IsDER, im.IsSchematic, im.OverhaulHours,
                 im.RPHours, im.TestHours, im.RFQTracking,
-                pm.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
+                np.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
                 im.GLAccountId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId,
                 im.LeadTimeDays, im.ReorderPoint, im.ReorderQuantiy, im.MinimumOrderQuantity,
                 im.CurrencyId, im.PurchaseCurrencyId, im.SalesCurrencyId,
@@ -426,8 +436,8 @@ BEGIN
                 im.turnTimeMfg, im.turnTimeBenchTest, im.SiteId, im.ItemMasterAssetTypeId,
                 im.IsHotItem, im.IsAcquiredMethodBuy, im.IsOEM, im.MTBUR,
                 im.NE, im.NS, im.OH, im.REP, im.SVC,
-                LTRIM(RTRIM(p.PartNumber)),
-                ISNULL(LTRIM(RTRIM(p.Description)), 'N/A'),
+                np.PartNumber,
+                np.PartDescription,
                 1, 0,
                 im.InventoryGLSettingId, im.GoodsReceivedNotInvoicesGLAccId, im.WorkInProgressGLAccId,
                 im.InventoryToBillGLAccId, im.FinishedGoodsGLAccId, im.InventoryExchAgreementGLAccId,
@@ -439,17 +449,25 @@ BEGIN
                 im.COGS_WorkOrderGLAccName, im.COGS_SalesOrderGLAccName, im.COGS_QtyVarianceGLAccName,
                 im.COGS_UnitCostVarianceGLAccName, im.RevenueMroGLAccName, im.RevenueSoGLAccName,
                 im.RevenueExchGLAccName, im.COGS_ExchSalesOrderGLAccName
-            FROM @tbl_EmailParts p
-            INNER JOIN @PartManufacturers pm ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+            FROM
+            (
+                SELECT pm.PartNumber, pm.ManufacturerId,
+                       MAX(ISNULL(NULLIF(LTRIM(RTRIM(p.Description)), ''), 'N/A')) AS PartDescription
+                FROM @tbl_EmailParts p
+                INNER JOIN @PartManufacturers pm
+                        ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+                       AND pm.ManufacturerName = LEFT(ISNULL(NULLIF(LTRIM(RTRIM(p.Manufacturer)), ''), 'N/A'), 100)
+                GROUP BY pm.PartNumber, pm.ManufacturerId
+            ) np
             CROSS JOIN dbo.ItemMaster im
             WHERE im.ItemMasterId = @TemplateItemMasterId
               AND NOT EXISTS
               (
                   SELECT 1 FROM dbo.ItemMaster x WITH (NOLOCK)
                   WHERE x.MasterCompanyId = @MasterCompanyId
-                    AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
-					AND x.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-                    AND x.IsDeleted = 0
+                    AND x.PartNumber = np.PartNumber
+                    AND x.ManufacturerId = np.ManufacturerId
+                    AND x.ItemTypeId = im.ItemTypeId
 			  );
 
             ------------------------------------------------------------
@@ -505,16 +523,21 @@ BEGIN
             FROM @tbl_EmailParts p
             INNER JOIN @PartManufacturers pm
                     ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+                   AND pm.ManufacturerName = LEFT(ISNULL(NULLIF(LTRIM(RTRIM(p.Manufacturer)), ''), 'N/A'), 100)
             LEFT JOIN dbo.Condition c WITH (NOLOCK)
                    ON c.MasterCompanyId = @MasterCompanyId
                   AND c.IsActive = 1 AND c.IsDeleted = 0
                   AND c.Description = UPPER(LTRIM(RTRIM(p.Condition)))
-            INNER JOIN dbo.ItemMaster im WITH (NOLOCK)
-                   ON im.MasterCompanyId = @MasterCompanyId
-                  AND im.IsActive = 1 AND im.IsDeleted = 0
-                  AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
-                  AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-				  AND im.ManufacturerId = pm.ManufacturerId
+            CROSS APPLY
+            (
+                SELECT TOP 1 x.ItemMasterId, x.PurchaseUnitOfMeasureId
+                FROM dbo.ItemMaster x WITH (NOLOCK)
+                WHERE x.MasterCompanyId = @MasterCompanyId
+                  AND x.IsActive = 1 AND x.IsDeleted = 0
+                  AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
+                  AND x.ManufacturerId = pm.ManufacturerId
+                ORDER BY x.ItemMasterId
+            ) im
             WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '' ;
 
             -- 7a. Save part management structure details

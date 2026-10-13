@@ -13,6 +13,7 @@
     1    23/11/2024   BHARGAV SALIYA       Created
     2    25/12/2024   BHARGAV SALIYA       Truncate the PartNumber
     3    09/July/2026   RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+    4    12/10/2026   SAHDEV SALIYA       [PN-18223] - Cycle Count print: show the full name of the last available Site / Warehouse / Location / Shelf
  ** -----------------------------------------------------------          
 	exec [USP_CycleCountDetail_GetDetailsById_Report] 15,1
 ************************************************************************/    
@@ -39,10 +40,10 @@ BEGIN
 			  ,CC.[UnitOfMeasureName]
 			  ,CC.[UnitCost]
 			  ,CC.[CurrencyName]
-			  ,CASE WHEN LEN(UPPER(CC.[Site])) > 18 then LEFT(UPPER(CC.[Site]), 18) + '...' else  UPPER(CC.[Site]) end as [Site] 
-			  ,CASE WHEN LEN(UPPER(CC.[Warehouse])) > 9 then LEFT(UPPER(CC.[Warehouse]), 9) + '...' else  UPPER(CC.[Warehouse]) end as [Warehouse] 
-			  ,CASE WHEN LEN(UPPER(CC.[Location])) > 8 then LEFT(UPPER(CC.[Location]), 8) + '...' else  UPPER(CC.[Location]) end as [Location] 
-			  ,CASE WHEN LEN(UPPER(CC.[Shelf])) > 8 then LEFT(UPPER(CC.[Shelf]), 8) + '...' else  UPPER(CC.[Shelf]) end as [Shelf] 
+			  ,CASE WHEN LEN(UPPER(CC.[Site])) > 18 AND ISNULL(LTRIM(RTRIM(CC.[Warehouse])), '') <> '' then LEFT(UPPER(CC.[Site]), 18) + '...' else  UPPER(CC.[Site]) end as [Site]
+			  ,CASE WHEN LEN(UPPER(CC.[Warehouse])) > 9 AND ISNULL(LTRIM(RTRIM(CC.[Location])), '') <> '' then LEFT(UPPER(CC.[Warehouse]), 9) + '...' else  UPPER(CC.[Warehouse]) end as [Warehouse]
+			  ,CASE WHEN LEN(UPPER(CC.[Location])) > 8 AND ISNULL(LTRIM(RTRIM(CC.[Shelf])), '') <> '' then LEFT(UPPER(CC.[Location]), 8) + '...' else  UPPER(CC.[Location]) end as [Location]
+			  ,CASE WHEN LEN(UPPER(CC.[Shelf])) > 8 AND ISNULL(LTRIM(RTRIM(CC.[Bin])), '') <> '' then LEFT(UPPER(CC.[Shelf]), 8) + '...' else  UPPER(CC.[Shelf]) end as [Shelf]
 			  ,CASE WHEN LEN(UPPER(CC.[Bin])) > 7 then LEFT(UPPER(CC.[Bin]), 7) + '...' else  UPPER(CC.[Bin]) end as [Bin] 
 			  ,CC.[CurrentStockQuantity]
 			  ,CC.[CountedQuantity]

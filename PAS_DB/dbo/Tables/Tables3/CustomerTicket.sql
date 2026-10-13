@@ -24,6 +24,17 @@
 );
 
 
+
+/**************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author      Change Description
+ ** --   --------     -------     --------------------------------
+    1    <orig date>  <author>    Created
+    2    10/13/2026   Sumit       Fixed Msg 8152 "String or binary data would be truncated" when EmailBody (or any VARCHAR(MAX)
+                                  column) exceeds ~4000 chars. (PN-18305)
+**************************************************************/
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
         ON [dbo].[CustomerTicket]
@@ -140,14 +151,14 @@ CREATE TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
 					ELSE m.NewValue
 				END AS NewValue
             FROM merged m
-			LEFT JOIN dbo.[SupportDepartment] sd_old ON m.ColumnName = 'DepartmentId' AND TRY_CAST(m.OldValue AS INT) = sd_old.DepartmentId
-			LEFT JOIN dbo.[SupportDepartment] sd_new ON m.ColumnName = 'DepartmentId' AND TRY_CAST(m.NewValue AS INT) = sd_new.DepartmentId
-			LEFT JOIN dbo.[TicketPriority] tp_old ON m.ColumnName = 'PriorityId' AND TRY_CAST(m.OldValue AS INT) = tp_old.PriorityId
-			LEFT JOIN dbo.[TicketPriority] tp_new ON m.ColumnName = 'PriorityId' AND TRY_CAST(m.NewValue AS INT) = tp_new.PriorityId
-			LEFT JOIN dbo.[TicketStatus] s_old ON m.ColumnName = 'StatusId' AND TRY_CAST(m.OldValue AS INT) = s_old.TicketStatusId
-			LEFT JOIN dbo.[TicketStatus] s_new ON m.ColumnName = 'StatusId' AND TRY_CAST(m.NewValue AS INT) = s_new.TicketStatusId
-			LEFT JOIN dbo.[Employee] e_old ON m.ColumnName = 'AssignTo' AND TRY_CAST(m.OldValue AS INT) = e_old.EmployeeId
-			LEFT JOIN dbo.[Employee] e_new ON m.ColumnName = 'AssignTo' AND TRY_CAST(m.NewValue AS INT) = e_new.EmployeeId
+			LEFT JOIN dbo.[SupportDepartment] sd_old ON m.ColumnName = 'DepartmentId' AND TRY_CAST(CASE WHEN m.ColumnName = 'DepartmentId' THEN m.OldValue END AS INT) = sd_old.DepartmentId
+			LEFT JOIN dbo.[SupportDepartment] sd_new ON m.ColumnName = 'DepartmentId' AND TRY_CAST(CASE WHEN m.ColumnName = 'DepartmentId' THEN m.NewValue END AS INT) = sd_new.DepartmentId
+			LEFT JOIN dbo.[TicketPriority] tp_old ON m.ColumnName = 'PriorityId' AND TRY_CAST(CASE WHEN m.ColumnName = 'PriorityId' THEN m.OldValue END AS INT) = tp_old.PriorityId
+			LEFT JOIN dbo.[TicketPriority] tp_new ON m.ColumnName = 'PriorityId' AND TRY_CAST(CASE WHEN m.ColumnName = 'PriorityId' THEN m.NewValue END AS INT) = tp_new.PriorityId
+			LEFT JOIN dbo.[TicketStatus] s_old ON m.ColumnName = 'StatusId' AND TRY_CAST(CASE WHEN m.ColumnName = 'StatusId' THEN m.OldValue END AS INT) = s_old.TicketStatusId
+			LEFT JOIN dbo.[TicketStatus] s_new ON m.ColumnName = 'StatusId' AND TRY_CAST(CASE WHEN m.ColumnName = 'StatusId' THEN m.NewValue END AS INT) = s_new.TicketStatusId
+			LEFT JOIN dbo.[Employee] e_old ON m.ColumnName = 'AssignTo' AND TRY_CAST(CASE WHEN m.ColumnName = 'AssignTo' THEN m.OldValue END AS BIGINT) = e_old.EmployeeId
+			LEFT JOIN dbo.[Employee] e_new ON m.ColumnName = 'AssignTo' AND TRY_CAST(CASE WHEN m.ColumnName = 'AssignTo' THEN m.NewValue END AS BIGINT) = e_new.EmployeeId
             WHERE
 				m.ColumnName <> 'CustomerTicketId' and (
                 (m.Action = 'U' AND (

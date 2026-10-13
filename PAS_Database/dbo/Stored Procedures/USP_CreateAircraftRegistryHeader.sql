@@ -23,6 +23,11 @@
 	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
 	6    04/06/2026   Amit Ghediya		   Adding Header data in History module [PN-16581]
 	7    01/07/2026   Amit Ghediya		   Update for Engine data  [PN-17075]
+	8    12/10/2026   Amit Ghediya		   Guarded every REPLACE() in the Add-history TemplateBody build with
+									ISNULL(...,'') - REPLACE returns NULL if the replacement value is
+									NULL, which silently collapsed TemplateBody to NULL (skipping the
+									"Created" history save) whenever a field wasn't captured by the
+									calling screen.
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
@@ -420,11 +425,14 @@ BEGIN
 
 			 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[AircraftHistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @TemplateCode;
 
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcTailNum##', @AcTailNum)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcMake##', @AcMake)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', @AcModel)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', @SerialNum)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', @CreatedBy)
+			 -- REPLACE() returns NULL if the replacement value is NULL, which silently collapses the
+			 -- whole TemplateBody to NULL (and skips the history save below) whenever a field isn't
+			 -- captured by the calling screen.
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcTailNum##', ISNULL(@AcTailNum,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcMake##', ISNULL(@AcMake,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', ISNULL(@AcModel,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', ISNULL(@SerialNum,''))
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', ISNULL(@CreatedBy,''))
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', ISNULL(CONVERT(VARCHAR(30), GETUTCDATE(),   103), ''))
 		END
 

@@ -27,7 +27,10 @@
    16    01/07/2026	    Amit Ghediya	        Remove update time ac & engine id not required
    17    27/07/2026	    Amit Ghediya	        Remove VW_WorkScopeType & add new view VW_MaintenanceType
    18    08/09/2026	    Kishor Makwana	        [PN-17374] - Convert TimeLimit (Months) to a day-equivalent via dbo.fn_GetDaysForMonths before calculating TimeLimit/TimeRemaining when FlightHoursLimitMonthsOrDays = 1
-   
+   19    09/10/2026	    Amit Ghediya	        History module ModuleName now 'Engine Maintenance' when @IsFromAircraft = 0
+								(was always 'Aircraft Maintenance', which made an engine's maintenance
+								history indistinguishable from an aircraft's in USP_GetAircraftHistory)
+
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -476,8 +479,9 @@ BEGIN
         -- Call usp_SaveAircraftHistory once
         IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
         BEGIN
-			
-			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft Maintenance',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+			DECLARE @HistModuleName VARCHAR(100) = CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN 'Aircraft Maintenance' ELSE 'Engine Maintenance' END;
+
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = @HistModuleName,@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
 												 @OldValue = NULL,@NewValue = @ProgramIdStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
 												 @CreatedBy = @CreatedBy;
         END

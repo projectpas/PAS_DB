@@ -20,6 +20,9 @@
  **  8   30/06/2026	  Amit Ghediya	    Update for Engine data [PN-17075]
  **  9   07/07/2026	  Kishor Makwana	[PN-17162] insert/Update ServiceLifeUnitMonthsOrDays, ServiceLifeLimit 
  ** 10   09/08/2026	  Kishor Makwana	[PN-17374] -Added RemainingTimeDayMonth: day-equivalent of ServiceLifeLimit (via dbo.fn_GetDaysForMonths, anchored to DateInstalled, when ServiceLifeUnitMonthsOrDays = 1/Months; carried through unchanged for Days/unset)
+ ** 11   09/10/2026	  Amit Ghediya		History module ModuleName now 'Engine Installed Components' when
+								@IsFromAircraft = 0 (was always 'Installed Components', which made
+								an engine's component history indistinguishable from an aircraft's)
  ************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -500,7 +503,9 @@ BEGIN
         -- Call usp_SaveAircraftHistory once
         IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
         BEGIN
-			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 3,@ModuleName = 'Installed Components',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+			DECLARE @HistModuleName VARCHAR(100) = CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN 'Aircraft Installed Components' ELSE 'Engine Installed Components' END;
+
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 3,@ModuleName = @HistModuleName,@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
 												 @OldValue = NULL,@NewValue = @PartIdStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
 												 @CreatedBy = @UpdatedBy;
         END

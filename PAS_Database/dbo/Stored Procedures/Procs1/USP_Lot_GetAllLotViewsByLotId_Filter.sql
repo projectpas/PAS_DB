@@ -53,6 +53,7 @@
    33   23-Sep-2026   RAJESH GAMI      [PN-18032] OtherCost tab: added IsNonStock to all 4 UNION ALL blocks (CAST(0 AS BIT) placeholder on the PO/RO/SO blocks, ISNULL(loc.IsNonStock,0) on the manual LOTOtherCostDetails block) and to the outer GROUP BY, so the grid/Edit popup can tell a Non-Stock Serviceable manual row apart from a normal sold-stockline row (Stockline stays disabled on Edit, Memo stays optional, same as it already does for IsNA rows).
    31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2, ported from RG_S67_LOTChange: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
    32   16-Sep-2026   RAJESH GAMI      [PN-17881] Commission tab (ELSE IF(UPPER(@Type) = UPPER('Commission')) section): CommissionExpenseNew CROSS APPLY now reads ltCal.IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails 'Trans Out (SO)' snapshot) instead of the LotConsignment lc join, since ltCal is already uniquely joined per LotTransInOutId (no duplication) and already scoped to this LotId and Type='Trans Out (SO)'. The lc join itself is kept only for the pre-existing HowCalculate fallback CASE (IsRevenueSplit has no LotCalculationDetails equivalent).
+   33   13-OCT-2026   RAJESH GAMI      Added  ISDELETED where condition in the STOCKLINE table. 
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -231,7 +232,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
            ,SL.[CertType],SL.[TagTypeId],SL.[IsFinishGood],SL.[IsTurnIn],SL.[IsCustomerRMA],SL.[RMADeatilsId],SL.[DaysReceived],SL.[ManufacturingDays],SL.[TagDays],SL.[OpenDays],SL.[ExchangeSalesOrderId],SL.[RRQty],SL.[SubWorkOrderNumber] ,SL.[IsManualEntry],SL.[WorkOrderMaterialsKitId],SL.[LotId],SL.[IsLotAssigned],SL.[LOTQty],SL.[LOTQtyReserve],SL.[OriginalCost],SL.[POOriginalCost],SL.[ROOriginalCost] ,SL.[VendorRMAId]
            ,SL.[VendorRMADetailId] ,SL.[LotMainStocklineId],SL.[IsFromInitialPO],SL.[LotSourceId],SL.[Adjustment]
 				INTO #commonTemp FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK) 
-				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId
+				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId AND ISNULL(sl.IsDeleted,0) = 0 AND ISNULL(sl.isActive,0) = 1
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN

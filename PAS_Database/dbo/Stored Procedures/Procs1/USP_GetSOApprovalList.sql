@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSOApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -29,7 +29,7 @@
 	13   09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
+CREATE   PROCEDURE [dbo].[USP_GetSOApprovalList] 
 (
 	@SalesOrderId BIGINT = NULL
 )
@@ -294,7 +294,7 @@ BEGIN
 		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.ConsumeUnitOfMeasureId  = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId

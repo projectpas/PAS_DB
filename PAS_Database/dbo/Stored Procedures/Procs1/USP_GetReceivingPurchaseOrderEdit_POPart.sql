@@ -28,6 +28,7 @@
 	12   16/July/2026 RAJESH GAMI		[PN-17271] - NonStockCTE now reads StocklineDraft (IsNonStock=1) instead of NonStockInventoryDraft; StockCTE excludes IsNonStock=1 rows.
 	13   20/Aug/2026  Abhishek Jirawala	[PN-16823] - For Asset (ItemTypeId=11), exclude the IsParent placeholder row from the AssetInventoryDraft sum used for QuantityBackOrdered/QuantityReceived; it can end up with AssetInventoryId set on it too, double counting Qty Received
     14   03/09/2026   Ayushi Patel      [PN-17846] - get the quantityBackorder , QuantityReceived from purchaseOrderPart table instead of stocklineDraft
+    15   14-Oct-2026  RAJESH GAMI       [PN-18295] - Return Item Master expiration rules (IsOpenDateAvailable, DaysReceived, OpenDays) with the part so Receiving can auto-populate Exp Date
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8233
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
@@ -165,6 +166,9 @@ BEGIN
         (CASE WHEN part.ItemTypeId = 1 THEN itm.IsReceivedDateAvailable ELSE 0 END) AS IsReceivedDateAvailable,      
         (CASE WHEN part.ItemTypeId = 1 THEN itm.IsTagDateAvailable ELSE 0 END) AS IsTagDateAvailable,      
         (CASE WHEN part.ItemTypeId = 1 THEN itm.IsExpirationDateAvailable ELSE 0 END) AS IsExpirationDateAvailable,      
+        (CASE WHEN part.ItemTypeId = 1 THEN itm.IsOpenDateAvailable ELSE 0 END) AS IsOpenDateAvailable,
+        (CASE WHEN part.ItemTypeId = 1 THEN ISNULL(itm.DaysReceived, 0) ELSE 0 END) AS DaysReceived,
+        (CASE WHEN part.ItemTypeId = 1 THEN ISNULL(itm.OpenDays, 0) ELSE 0 END) AS OpenDays,
   part.AltEquiPartNumberId,      
         part.AltEquiPartNumber,      
         part.AltEquiPartDescription,      

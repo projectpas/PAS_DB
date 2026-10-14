@@ -28,6 +28,10 @@
     [AttemptCount]       INT            NULL,
     [ThirdPartyRFQId]    BIGINT         NULL,
     [MessageId]          NVARCHAR (255) NULL,
+    [ErrorMessage]       NVARCHAR (1000) NULL,
+    [RfqType]            VARCHAR (50)   NULL,
+    [ExtractedData]      NVARCHAR (MAX) NULL,
+    [LastProcessedDate]  DATETIME2 (7)  NULL,
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

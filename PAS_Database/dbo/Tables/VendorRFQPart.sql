@@ -40,3 +40,8 @@
     CONSTRAINT [PK_VendorRFQPart] PRIMARY KEY CLUSTERED ([VendorRFQPartId] ASC)
 );
 
+GO
+
+CREATE NONCLUSTERED INDEX [IX_VendorRFQPart_IntegrationEmailID]
+    ON [dbo].[VendorRFQPart]([IntegrationEmailID] ASC);
+

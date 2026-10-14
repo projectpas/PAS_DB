@@ -28,6 +28,16 @@
 	15    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
   16	 05/August/2026	    Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 	17   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+  18   14-Oct-2026    RAJESH GAMI          PN-18312 Performance tuning for companies with large quote volume - NO logic / output changes:
+ **                                      1. Employee time-zone offset is resolved ONCE (was dbo.ConvertUTCtoLocal scalar UDF x2 per row over
+ **                                         every candidate quote part). Same DATEADD result, same NULL behaviour when the zone is unresolved.
+ **                                      2. dbo.GenearteVersionNumber (scalar UDF that reads CodePrefixes) is evaluated once per DISTINCT quote
+ **                                         Version into #VerMap and joined (was once per row).
+ **                                      3. The SalesOrderNumber correlated TOP 1 lookup (SalesOrder + SalesOrderPartV1) now runs for every candidate
+ **                                         row only when SalesOrderNumber is filtered / sorted / global-searched; otherwise only for the returned page.
+ **                                      4. dbo.fn_NormalizePartNumber(@GlobalFilter / @PartNumberType) evaluated once into a variable (was per row).
+ **                                      5. New index IX_SalesOrder_SalesOrderQuoteId_Perf on dbo.SalesOrder(SalesOrderQuoteId) - see
+ **                                         PN_SO_ViewData_Perf_Deploy.sql (the SalesOrderNumber lookup had no usable index).
 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
@@ -136,6 +146,31 @@ BEGIN
 	BEGIN
 		DROP TABLE #tmpSOPartTblDataFinal
 	END
+    DROP TABLE IF EXISTS #VerMap;
+
+    /* [Perf] One-time lookups that replace per-row scalar UDF calls (results identical). */
+
+    -- Same lookup dbo.ConvertUTCtoLocal performs per call. NULL when the zone cannot be resolved,
+    -- exactly like the UDF (DATEADD(SECOND, NULL, x) returns NULL).
+    DECLARE @TzOffsetSec INT;
+    SELECT TOP 1 @TzOffsetSec = BaseUtcOffsetSec
+    FROM dbo.TimeZone WITH (NOLOCK)
+    WHERE [Description] = @CurrntEmpTimeZoneDesc;
+
+    -- dbo.GenearteVersionNumber depends only on the Version value (+ CodePrefixes), so call it once per distinct Version.
+    CREATE TABLE #VerMap (Version INT NOT NULL PRIMARY KEY, VersionNumber VARCHAR(50) NULL);
+    INSERT INTO #VerMap (Version, VersionNumber)
+    SELECT V.Version, dbo.GenearteVersionNumber(V.Version)
+    FROM (SELECT DISTINCT Version FROM dbo.SalesOrderQuote WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId) V;
+
+    -- SalesOrderNumber is expensive (correlated lookup per quote part). Only compute it for ALL candidate rows when
+    -- it is actually used to filter / sort; otherwise it is resolved for the returned page only (see below).
+    DECLARE @NeedSONumberEarly BIT =
+        CASE WHEN ISNULL(@GlobalFilter, '') <> '' OR ISNULL(@SalesOrderNumber, '') <> '' OR @SortColumn = 'SALESORDERNUMBER'
+             THEN 1 ELSE 0 END;
+
+    DECLARE @GlobalFilterNorm   VARCHAR(100) = dbo.fn_NormalizePartNumber(@GlobalFilter);
+    DECLARE @PartNumberTypeNorm VARCHAR(100) = dbo.fn_NormalizePartNumber(@PartNumberType);
 
    ;WITH Result AS (
     SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status',
@@ -143,15 +178,16 @@ BEGIN
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(SP.PriorityName,'') AS 'Priority',ISNULL(SP.PriorityName, '') AS 'PriorityType', (E.FirstName + ' ' + E.LastName) AS SalesPerson,  
     ISNULL(IM.partnumber,'') AS 'PartNumber',M.Name AS 'ManufacturerType',IsNull(IM.partnumber,'') AS 'PartNumberType', ISNULL(im.PartDescription, '') AS 'PartDescription', ISNULL(im.PartDescription, '') AS 'PartDescriptionType',  
     SOQ.AccountTypeName AS 'CustomerType',
+	CASE WHEN @NeedSONumberEarly = 1 THEN
 	(
     SELECT TOP 1 SO.SalesOrderNumber
     FROM DBO.SalesOrder SO WITH (NOLOCK) INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
     WHERE SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOP.ConditionId = SP.ConditionId AND SOP.ItemMasterId = SP.ItemMasterId
-) AS SalesOrderNumber,
+) END AS SalesOrderNumber,
 --SO.SalesOrderNumber,
-	(CAST(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
-	(CAST(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',ISNULL(count(SP.SalesOrderQuotePartId),0) AS NumberOfItemCount,
+	(CAST(DATEADD(SECOND, @TzOffsetSec, CAST(SOQ.CreatedDate AS DATETIME)) AS DATE)) CreatedDate,
+	(CAST(DATEADD(SECOND, @TzOffsetSec, CAST(SOQ.UpdatedDate AS DATETIME)) AS DATE)) UpdatedDate,
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,VM.VersionNumber as 'VersionNumber',ISNULL(count(SP.SalesOrderQuotePartId),0) AS NumberOfItemCount,
 	  CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END SourceBy, 
 	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef,
 	  SP.SalesOrderQuotePartId,
@@ -163,6 +199,7 @@ BEGIN
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=SP.ItemMasterId  
     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
   LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
+    LEFT JOIN #VerMap VM ON VM.Version = SOQ.Version   -- [Perf] replaces per-row dbo.GenearteVersionNumber(SOQ.Version)
  --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  AND SOP.SalesOrderId = SO.SalesOrderId
 	
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId  
@@ -174,7 +211,7 @@ BEGIN
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
     SOQ.AccountTypeName, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,SP.ConditionId, SP.ItemMasterId,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice,IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure])
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version,VM.VersionNumber, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice,IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure])
 	,  
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
@@ -186,7 +223,7 @@ BEGIN
 	   (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR
        (Status LIKE '%' +@GlobalFilter+'%') OR  
        (PriorityType LIKE '%' +@GlobalFilter+'%') OR  
-       (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+       (PartNumberType LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + @GlobalFilterNorm + '%') OR  
        (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
        (CustomerReference LIKE '%' +@GlobalFilter+'%') OR  
        (@VersionNumber LIKE '%'+@GlobalFilter+'%') OR  
@@ -206,7 +243,7 @@ BEGIN
        (ISNULL(@SalesPerson,'') ='' OR SalesPerson LIKE '%'+ @SalesPerson+'%') AND  
 	    (ISNULL(@ManufacturerType,'') ='' OR ManufacturerType LIKE '%'+ @ManufacturerType+'%') AND  
        (ISNULL(@PriorityType,'') ='' OR PriorityType LIKE '%'+ @PriorityType+'%') AND  
-       (ISNULL(@PartNumberType,'') ='' OR PartNumberType LIKE '%'+@PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%') AND  
+       (ISNULL(@PartNumberType,'') ='' OR PartNumberType LIKE '%'+@PartNumberType+'%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + @PartNumberTypeNorm + '%') AND  
        (ISNULL(@PartDescriptionType,'') ='' OR PartDescriptionType LIKE '%'+@PartDescriptionType+'%') AND  
        (ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%'+@CustomerReference+'%') AND  
        (ISNULL(@CustomerType,'') ='' OR CustomerType LIKE '%'+@CustomerType+'%') AND  
@@ -267,7 +304,21 @@ BEGIN
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='MarketplaceRef')  THEN MarketplaceRef END DESC  
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
-       
+
+	      /* [Perf] SalesOrderNumber was not needed to filter / sort, so it was left NULL above.
+	         Resolve it now for the returned page only - same TOP 1 lookup, same UPPER() as the early path. */
+	      IF @NeedSONumberEarly = 0
+	      BEGIN
+	          UPDATE T
+	          SET SalesOrderNumber = UPPER((
+	                SELECT TOP 1 SO.SalesOrderNumber
+	                FROM DBO.SalesOrder SO WITH (NOLOCK)
+	                INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+	                INNER JOIN DBO.SalesOrderQuotePartV1 QP WITH (NOLOCK) ON QP.SalesOrderQuotePartId = T.SalesOrderQuotePartId
+	                WHERE SO.SalesOrderQuoteId = T.SalesOrderQuoteId AND SOP.ConditionId = QP.ConditionId AND SOP.ItemMasterId = QP.ItemMasterId))
+	          FROM #tmpSOPartTblData T;
+	      END
+
 	  /****** Total Part Wise COST Calculation (Quote Amount)******/
 	   ;WITH CTE_Cost AS (
 			SELECT 

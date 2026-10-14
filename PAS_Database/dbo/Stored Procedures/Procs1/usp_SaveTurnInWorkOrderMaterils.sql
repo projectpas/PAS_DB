@@ -36,6 +36,7 @@
    27   27/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
    28   27/07/2025  SUMIT                Added notes field in material list [PN-16818]
    29   02/09/2026  Moin Bloch           Added COGSUnitCost IN SP PN-17835
+   30   14-Oct-2026 Divyesh Kathriya     Add an Action history entry for tendered material stocklines [PN-18307].
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
@@ -899,6 +900,35 @@ BEGIN
                 EXEC USP_UpdateWOCostDetails      @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy;
                 EXEC USP_UpdateWOMaterialsCost    @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId;
             END
+        END
+
+        -- =============================================
+        -- PN-18307: Record material and outgoing MPN stockline creation after all save steps succeed.
+        -- =============================================       
+        IF (@StockLineId > 0)
+        BEGIN
+            DECLARE @TenderHistoryCode VARCHAR(256) = 'TenderStocklineCreated',
+                    @TenderHistoryBody VARCHAR(MAX),
+                    @TenderHistoryDate DATETIME = GETUTCDATE();
+
+            SELECT @TenderHistoryBody = REPLACE([TemplateBody], '##PN##', @PartNumber)
+            FROM [DBO].[HistoryTemplate] WITH(NOLOCK)
+            WHERE [TemplateCode] = @TenderHistoryCode;
+
+            EXEC [DBO].[USP_History]
+                @ModuleId = @HistoryModuleId,
+                @RefferenceId = @WorkOrderId,
+                @SubModuleId = 0,
+                @SubRefferenceId = @WorkOrderPartNoId,
+                @OldValue = '',
+                @NewValue = '',
+                @HistoryText = @TenderHistoryBody,
+                @StatusCode = @TenderHistoryCode,
+                @MasterCompanyId = @MasterCompanyId,
+                @CreatedBy = @UpdatedBy,
+                @CreatedDate = @TenderHistoryDate,
+                @UpdatedBy = @UpdatedBy,
+                @UpdatedDate = @TenderHistoryDate;
         END
 
         -- =============================================

@@ -1,23 +1,28 @@
 ﻿/*************************************************************
  ** File:   [USP_BatchTriggerLeaseInvoice]
- ** Description: Creates the accounting journal (GL entries) for a POSTED Lease billing invoice. Lease equivalent of
+ ** Description: Creates the accounting journal (GL entries) for a POSTED Lease billing invoice (PN-18302). Lease equivalent of
  **              USP_BatchTriggerSOInvoiceNewCommon. Called by USP_PostLeaseBillingInvoice inside the post transaction,
  **              so the journal is created only when an invoice is posted (not when a draft is saved).
  **
- **              Journal shape (all GL accounts come from DistributionSetup of DistributionMaster 'LEASEINVOICE'):
- **                Debit   Accounts Receivable               (LEASEACCOUNTSRECEIVABLE)  = total of all revenue lines
- **                Credit  one line per lease stockline and invoice LineType, amount = SUM(LineAmount) of that
- **                        stockline/LineType on the invoice (current rows only, IsVersionIncrease = 0):
- **                          Flat Rate -> REVENUELEASEFLATRATE     Overrun   -> REVENUELEASEOVERRUN
- **                          Charges   -> REVENUELEASECHARGES      Maintenance -> REVENUELEASEMAINTENANCE
- **                          Insurance -> REVENUELEASEINSURANCE    Others    -> REVENUELEASEOTHERS
- **                          Taxes     -> LEASETAXPAYABLE
+ **              The journal depends on the Lease Type name of the lease (Finance = name contains FINANC, Operating = name contains OPERAT):
+ **
+ **              OPERATING LEASE - OLI (DistributionMaster OPERATINGLEASEINVOICE)
+ **                Debit   Accounts Receivable            (OLIACCOUNTSRECEIVABLE)       = invoice total
+ **                Credit  Revenue - Operating Lease      (OLIREVENUEOPERATINGLEASE)    = invoice amount, one line per lease stockline
+ **
+ **              FINANCE LEASE - FLI (DistributionMaster FINANCELEASEINVOICE)
+ **                Debit   Accounts Receivable                    (FLIACCOUNTSRECEIVABLE)                 = invoice total
+ **                Credit  Revenue - Financing Lease              (FLIREVENUEFINANCINGLEASE)              = fixed flat-rate payment, plus Charges / Others lines
+ **                Credit  Revenue - Time / Cycle overage         (FLIREVENUETIMEOVERAGE / FLIREVENUECYCLEOVERAGE)
+ **                Credit  Revenue - Maintenance / Insurance      (FLIREVENUEMAINTENANCE / FLIREVENUEINSURANCE)
+ **                Credit  Revenue - Tax Payable                  (FLITAXPAYABLE)
+ **
+ **              Amounts are taken from the current invoice rows only (IsVersionIncrease = 0). Journal lines follow the DisplayNumber (Seq) of the distribution setup.
  **              Every credit/debit line is linked to the lease through LeaseBatchDetails (Lease -> Accounting tab).
  **
- **              Safe no-op (nothing is written, posting is NOT blocked) when: accounting is bypassed for the company,
- **              the LEASEINVOICE distribution / journal type / journal-number prefix is not set up, any needed
- **              distribution has no GL account yet, the invoice has no billable amount, or a journal already
- **              exists for the invoice (idempotent). Any unexpected error is raised so the post rolls back.
+ **              Safe no-op (nothing is written, posting is NOT blocked) when: accounting is bypassed for the company, the lease type is neither Finance nor Operating,
+ **              the distribution / journal type / journal-number prefix is not set up, any needed distribution has no GL account yet, the invoice has no billable amount,
+ **              or a journal already exists for the invoice (idempotent). Any unexpected error is raised so the post rolls back.
  **
  **              Auto-post: when the AR distribution row has IsAutoPost = 1 the batch is posted immediately
  **              (same mechanism as Sales Order: UpdateToPostFullBatch for a new batch, USP_UpdateCommonBatchStatus
@@ -30,6 +35,7 @@
  ** --   --------       -------                 --------------------------------
     1    08/10/2026     Kishor Makwana          [Lease Accounting] Created
     2    08/10/2026     Kishor Makwana          LastMSLevel / AllMSlevels (udfGetAllEntityMSLevelString) stored on BatchDetails and CommonBatchDetails
+    3    14/10/2026     Kishor Makwana          [PN-18302] Journal by lease type: Finance -> FLI, Operating -> OLI. Replaces the LEASEINVOICE distribution.
 
 EXEC USP_BatchTriggerLeaseInvoice @BillingInvoicingId = 1, @MasterCompanyId = 1, @UpdateBy = 'ADMIN User'
 ************************************************************************/
@@ -42,8 +48,8 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @DistributionCode VARCHAR(100) = 'LEASEINVOICE';
-		DECLARE @ARCode VARCHAR(100) = 'LEASEACCOUNTSRECEIVABLE';
+		DECLARE @DistributionCode VARCHAR(100), @ARCode VARCHAR(100);			-- set below from the lease type (Finance: FLI, Operating: OLI)
+		DECLARE @IsFinance BIT = 0, @IsOperating BIT = 0, @LeaseTypeName VARCHAR(500);
 		DECLARE @JournalCodeTypeId BIGINT = 74;			-- same journal-number sequence (CodePrefixes) Sales Order uses
 		DECLARE @ModuleName VARCHAR(200) = 'LeaseInvoice';
 		DECLARE @ReferenceModule VARCHAR(100) = 'LEASE';
@@ -71,6 +77,18 @@ BEGIN
 		-- one journal per invoice
 		IF EXISTS (SELECT 1 FROM [dbo].[LeaseBatchDetails] WITH (NOLOCK) WHERE DocumentId = @BillingInvoicingId) RETURN (0);
 
+		-- Finance Lease -> FLI journal, Operating Lease -> OLI journal (decided by the Lease Type name); any other lease type posts nothing
+		SELECT @LeaseTypeName = LT.[LeaseType]
+		FROM [dbo].[LeaseHeader] LH WITH (NOLOCK)
+		INNER JOIN [dbo].[LeaseType] LT WITH (NOLOCK) ON LT.LeaseTypeId = LH.LeaseTypeId
+		WHERE LH.LeaseHeaderId = @LeaseHeaderId;
+		IF (UPPER(ISNULL(@LeaseTypeName, '')) LIKE '%FINANC%') SET @IsFinance = 1;
+		ELSE IF (UPPER(ISNULL(@LeaseTypeName, '')) LIKE '%OPERAT%') SET @IsOperating = 1;
+		IF (@IsFinance = 0 AND @IsOperating = 0) RETURN (0);
+
+		SET @DistributionCode = CASE WHEN @IsFinance = 1 THEN 'FINANCELEASEINVOICE' ELSE 'OPERATINGLEASEINVOICE' END;
+		SET @ARCode = CASE WHEN @IsFinance = 1 THEN 'FLIACCOUNTSRECEIVABLE' ELSE 'OLIACCOUNTSRECEIVABLE' END;
+
 		-- DistributionMaster and JournalType are common to all companies (MasterCompanyId = 0); only DistributionSetup is per company
 		SELECT TOP 1 @DistributionMasterId = ID FROM [dbo].[DistributionMaster] WITH (NOLOCK)
 		WHERE UPPER(DistributionCode) = @DistributionCode AND ISNULL(IsDeleted, 0) = 0;
@@ -88,35 +106,82 @@ BEGIN
 
 		-- ---- invoice lines: one per lease stockline and LineType (current rows only) ----
 		IF OBJECT_ID(N'tempdb..#LeaseJournalLines') IS NOT NULL DROP TABLE #LeaseJournalLines;
+		IF OBJECT_ID(N'tempdb..#InvLines') IS NOT NULL DROP TABLE #InvLines;
+		IF OBJECT_ID(N'tempdb..#RawJournalLines') IS NOT NULL DROP TABLE #RawJournalLines;
+
 		CREATE TABLE #LeaseJournalLines (
 			Seq INT IDENTITY(1,1) NOT NULL,
 			LeaseStocklineId BIGINT NULL, StocklineId BIGINT NULL, StocklineNumber VARCHAR(100) NULL,
 			ItemMasterId BIGINT NULL, PartNumber NVARCHAR(100) NULL,
 			LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL
 		);
+		CREATE TABLE #RawJournalLines (LeaseStocklineId BIGINT NULL, LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL);
 
+		SELECT LBID.LeaseStocklineId, LBID.LineType, SUM(ISNULL(LBID.LineAmount, 0)) AS Amount, SUM(ISNULL(LBID.TimeBillingAmount, 0)) AS TimeAmount, SUM(ISNULL(LBID.CycleBillingAmount, 0)) AS CycleAmount,
+			   MIN(LBID.FromDate) AS FromDate, MAX(LBID.ToDate) AS ToDate
+		INTO #InvLines
+		FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
+		INNER JOIN [dbo].[LeaseBillingInvoicingItemDetails] LBID WITH (NOLOCK) ON LBID.BillingInvoicingItemId = BII.BillingInvoicingItemId
+		WHERE BII.BillingInvoicingId = @BillingInvoicingId AND ISNULL(BII.IsDeleted, 0) = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
+		  AND ISNULL(LBID.IsDeleted, 0) = 0 AND ISNULL(LBID.IsVersionIncrease, 0) = 0
+		GROUP BY LBID.LeaseStocklineId, LBID.LineType
+		HAVING SUM(ISNULL(LBID.LineAmount, 0)) > 0;
+
+		IF NOT EXISTS (SELECT 1 FROM #InvLines) BEGIN DROP TABLE #InvLines; DROP TABLE #LeaseJournalLines; DROP TABLE #RawJournalLines; RETURN (0); END
+
+		IF (@IsOperating = 1)
+		BEGIN
+			-- OLI: AR DR = invoice total, Revenue - Operating Lease CR = invoice amount (one line per lease stockline)
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT LeaseStocklineId, 'Operating Lease', 'OLIREVENUEOPERATINGLEASE', SUM(Amount) FROM #InvLines GROUP BY LeaseStocklineId;
+		END
+		ELSE
+		BEGIN
+			-- FLI: Flat Rate lines. A usage rate line (Usage (Time/Cycle) billing, rate per hour / per cycle) carries its amount in TimeBillingAmount / CycleBillingAmount:
+			-- time part -> Revenue - Time Overage, cycle part -> Revenue - Cycle Overage; whatever is left (fixed monthly amount) -> Revenue - Financing Lease.
+			-- (principal / interest split with an amortization schedule is not implemented yet - pending client requirement)
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT F.LeaseStocklineId, 'Flat Rate', 'FLIREVENUETIMEOVERAGE', CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END
+			FROM #InvLines F WHERE F.LineType = 'Flat Rate';
+
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT F.LeaseStocklineId, 'Flat Rate', 'FLIREVENUECYCLEOVERAGE', CASE WHEN F.CycleAmount > F.Amount - CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END
+														  THEN F.Amount - CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END ELSE F.CycleAmount END
+			FROM #InvLines F WHERE F.LineType = 'Flat Rate';
+
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT F.LeaseStocklineId, 'Flat Rate', 'FLIREVENUEFINANCINGLEASE',
+				   F.Amount - (CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END)
+							- (CASE WHEN F.CycleAmount > F.Amount - CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END THEN F.Amount - CASE WHEN F.TimeAmount > F.Amount THEN F.Amount ELSE F.TimeAmount END ELSE F.CycleAmount END)
+			FROM #InvLines F WHERE F.LineType = 'Flat Rate';
+
+			-- Overrun: time part and cycle part
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT LeaseStocklineId, 'Overrun', 'FLIREVENUETIMEOVERAGE', CASE WHEN TimeAmount > Amount THEN Amount ELSE TimeAmount END FROM #InvLines WHERE LineType = 'Overrun';
+
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT LeaseStocklineId, 'Overrun', 'FLIREVENUECYCLEOVERAGE', Amount - CASE WHEN TimeAmount > Amount THEN Amount ELSE TimeAmount END FROM #InvLines WHERE LineType = 'Overrun';
+
+			-- Maintenance / Insurance / Taxes; Charges, Others and any other line type have no FLI distribution of their own and go to Revenue - Financing Lease
+			INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount)
+			SELECT LeaseStocklineId, LineType,
+				CASE LineType WHEN 'Maintenance' THEN 'FLIREVENUEMAINTENANCE' WHEN 'Insurance' THEN 'FLIREVENUEINSURANCE' WHEN 'Taxes' THEN 'FLITAXPAYABLE' ELSE 'FLIREVENUEFINANCINGLEASE' END,
+				Amount
+			FROM #InvLines WHERE ISNULL(LineType, '') NOT IN ('Flat Rate', 'Overrun');
+		END
+
+		DELETE FROM #RawJournalLines WHERE Amount <= 0;
+
+		-- lines in the order of the distribution setup (Seq / DisplayNumber), then per stockline
 		INSERT INTO #LeaseJournalLines (LeaseStocklineId, StocklineId, StocklineNumber, ItemMasterId, PartNumber, LineType, SetupCode, Amount)
-		SELECT T.LeaseStocklineId, LSL.StockLineId, LSL.StocklineNumber, LSL.ItemMasterId, LSL.PN, T.LineType,
-			CASE T.LineType
-				WHEN 'Flat Rate'   THEN 'REVENUELEASEFLATRATE'
-				WHEN 'Overrun'     THEN 'REVENUELEASEOVERRUN'
-				WHEN 'Charges'     THEN 'REVENUELEASECHARGES'
-				WHEN 'Maintenance' THEN 'REVENUELEASEMAINTENANCE'
-				WHEN 'Insurance'   THEN 'REVENUELEASEINSURANCE'
-				WHEN 'Taxes'       THEN 'LEASETAXPAYABLE'
-				ELSE 'REVENUELEASEOTHERS' END,
-			T.Amount
-		FROM (
-			SELECT LBID.LeaseStocklineId, LBID.LineType, SUM(ISNULL(LBID.LineAmount, 0)) AS Amount
-			FROM [dbo].[BillingInvoicingItems] BII WITH (NOLOCK)
-			INNER JOIN [dbo].[LeaseBillingInvoicingItemDetails] LBID WITH (NOLOCK) ON LBID.BillingInvoicingItemId = BII.BillingInvoicingItemId
-			WHERE BII.BillingInvoicingId = @BillingInvoicingId AND ISNULL(BII.IsDeleted, 0) = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
-			  AND ISNULL(LBID.IsDeleted, 0) = 0 AND ISNULL(LBID.IsVersionIncrease, 0) = 0
-			GROUP BY LBID.LeaseStocklineId, LBID.LineType
-			HAVING SUM(ISNULL(LBID.LineAmount, 0)) > 0
-		) T
-		LEFT JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = T.LeaseStocklineId
-		ORDER BY T.LeaseStocklineId, T.LineType;
+		SELECT R.LeaseStocklineId, LSL.StockLineId, LSL.StocklineNumber, LSL.ItemMasterId, LSL.PN, R.LineType, R.SetupCode, R.Amount
+		FROM #RawJournalLines R
+		LEFT JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = R.LeaseStocklineId
+		LEFT JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.DistributionMasterId = @DistributionMasterId AND DS.MasterCompanyId = @MasterCompanyId
+			 AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = R.SetupCode
+		ORDER BY DS.DisplayNumber, R.LeaseStocklineId;
+
+		DROP TABLE #RawJournalLines;
 
 		IF NOT EXISTS (SELECT 1 FROM #LeaseJournalLines) BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
 
@@ -273,6 +338,7 @@ BEGIN
 
 		UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @JournalCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
+
 		-- ---- auto-post (IsAutoPost on the AR distribution row) ----
 		IF (@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId, @UpdateBy;
@@ -287,10 +353,13 @@ BEGIN
 		END
 
 		DROP TABLE #LeaseJournalLines;
+		IF OBJECT_ID(N'tempdb..#InvLines') IS NOT NULL DROP TABLE #InvLines;
 
 	END TRY
 	BEGIN CATCH
 		IF OBJECT_ID(N'tempdb..#LeaseJournalLines') IS NOT NULL DROP TABLE #LeaseJournalLines;
+		IF OBJECT_ID(N'tempdb..#RawJournalLines') IS NOT NULL DROP TABLE #RawJournalLines;
+		IF OBJECT_ID(N'tempdb..#InvLines') IS NOT NULL DROP TABLE #InvLines;
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = DB_NAME()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			, @AdhocComments VARCHAR(150) = 'USP_BatchTriggerLeaseInvoice'

@@ -13,6 +13,7 @@
 ** 2    10-Sep-2026  Bhargav Saliya  [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
    3    24-09-2026  Nakul          added AircraftEngine & VerifiedDate
    4    26-09-2026  Nakul          AircraftEngine & VerifiedDate were display-only; wired them up as filters
+   5    14-10-2026  Nakul          [PN-18200] added sorting for AircraftEngine & VerifiedDate
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
@@ -219,7 +220,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='COSTDATE')  THEN CostDate END ASC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='AIRCRAFTENGINE')  THEN AircraftEngine END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='AIRCRAFTENGINE')  THEN AircraftEngine END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='VERIFIEDDATE')  THEN VerifiedDate END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VERIFIEDDATE')  THEN VerifiedDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		
 

@@ -70,3 +70,8 @@ GO
 CREATE NONCLUSTERED INDEX [IX_SalesOrderPartV1_SOId]
     ON [dbo].[SalesOrderPartV1]([SalesOrderId] ASC, [ConditionId] ASC, [ItemMasterId] ASC);
 
+GO
+-- PN-18312 14-Oct-2026 - Performance: covers the per-Sales-Order parts roll-up in dbo.SearchSOViewData / dbo.fnGetSalesOrderSoAmount (avoids key lookups)
+CREATE NONCLUSTERED INDEX [IX_SalesOrderPartV1_SOId_Cover_Perf]
+    ON [dbo].[SalesOrderPartV1]([SalesOrderId] ASC)
+    INCLUDE([ItemMasterId], [PriorityId], [IsActive], [IsDeleted], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [QtyRequested], [QtyOrder], [UnitSalesPrice]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

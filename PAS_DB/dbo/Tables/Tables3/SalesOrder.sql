@@ -160,3 +160,9 @@ CREATE NONCLUSTERED INDEX [IX_SalesOrder_MC_IsDel_CreatedDate_Perf]
     ON [dbo].[SalesOrder]([MasterCompanyId] ASC, [IsDeleted] ASC, [CreatedDate] DESC)
     INCLUDE([SalesOrderId], [StatusId], [ManagementStructureId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
+
+GO
+-- PN-18312 14-Oct-2026 - Performance: supports the SalesOrderNumber lookup (SalesOrder.SalesOrderQuoteId = @quote) in dbo.SearchPNViewData
+CREATE NONCLUSTERED INDEX [IX_SalesOrder_SalesOrderQuoteId_Perf]
+    ON [dbo].[SalesOrder]([SalesOrderQuoteId] ASC)
+    INCLUDE([SalesOrderNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

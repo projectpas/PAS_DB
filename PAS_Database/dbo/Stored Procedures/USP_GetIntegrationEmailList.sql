@@ -14,6 +14,7 @@
 	3    12/08/2025   Moin Bloch   	    Added Subject 
 	4    08/12/2025   Devendra Shekh   	Added [VendorRfqId]
 	5    06/10/2026   Amit Ghediya   	Added RFQPO/RFQRO number afetr create from email.
+	6    12/10/2026   Bhargav Saliya   	Added RFQ processing Status, ErrorMessage, IsEditable, RfqType
 
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
@@ -100,11 +101,17 @@ BEGIN
 		  ,IE.[EmailPath]
 		  ,CR.[RfqId]
 		  ,ISNULL(TPR.[RfqId], ISNULL(VRFQPO.[VendorRFQPurchaseOrderNumber],VRQRO.[VendorRFQRepairOrderNumber])) AS [VendorRfqId]
+		  ,IE.[EmailStatusId]
+		  ,ST.[EmailStatusName]
+		  ,IE.[ErrorMessage]
+		  ,IE.[RfqType]
+		  ,ST.[IsEditable]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
   LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
   LEFT JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = TPR.[ThirdPartyRFQId]
   LEFT JOIN [dbo].[VendorRFQPurchaseOrder] VRFQPO WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = VRFQPO.[VendorRFQPurchaseOrderId]
-  LEFT JOIN [dbo].[VendorRFQRepairOrder] VRQRO WITH(NOLOCK) ON    IE.[ThirdPartyRFQId] = VRQRO.[VendorRFQRepairOrderId] 
+  LEFT JOIN [dbo].[VendorRFQRepairOrder] VRQRO WITH(NOLOCK) ON    IE.[ThirdPartyRFQId] = VRQRO.[VendorRFQRepairOrderId]
+  CROSS APPLY [dbo].[udfGetIntegrationEmailRfqStatus](IE.[IntegrationEmailID], IE.[EmailStatusId], IE.[CustomerRfqId], IE.[ThirdPartyRFQId], IE.[EmailSection], IE.[LastProcessedDate]) ST
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = 0) 	
 	AND (IE.[IsActive] = 1)
@@ -114,7 +121,9 @@ BEGIN
 	AND ((IE.[FromEmail] LIKE '%' + @GlobalFilter+'%') OR        
 	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR   
 		 (CR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR   
-		 (TPR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR   
+		 (TPR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR
+		 (ST.[EmailStatusName] LIKE '%' + @GlobalFilter+'%') OR
+		 (IE.[ErrorMessage] LIKE '%' + @GlobalFilter+'%') OR
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
 	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  
@@ -127,13 +136,18 @@ BEGIN
 	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END ASC,
 	CASE WHEN (@SortOrder=1  AND @SortColumn='RfqId') THEN CR.[RfqId] END ASC,
 	CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRfqId') THEN TPR.[RfqId] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='EmailStatusName') THEN ST.[EmailStatusName] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='ErrorMessage') THEN IE.[ErrorMessage] END ASC,
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC, 
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='FromEmail')  THEN [FromEmail] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='Subject')  THEN [Subject] END DESC,        
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC,
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END DESC,	
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='RfqId')  THEN CR.[RfqId] END DESC,
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRfqId')  THEN TPR.[RfqId] END DESC
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRfqId')  THEN TPR.[RfqId] END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailStatusName')  THEN ST.[EmailStatusName] END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='ErrorMessage')  THEN IE.[ErrorMessage] END DESC,
+	IE.[IntegrationEmailID] DESC -- stable paging when sort values tie
 
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   

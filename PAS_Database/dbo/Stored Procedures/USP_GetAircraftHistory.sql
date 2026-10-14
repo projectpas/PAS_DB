@@ -11,19 +11,25 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    05/06/2026   Amit Ghediya    Created  
-	
--- EXEC USP_GetHistory 1,1,'',0,'',1,1  
-************************************************************************/  
+    1    05/06/2026   Amit Ghediya    Created
+    2    09/10/2026   Amit Ghediya    Added @IsEngine - "History of Engine" always showed no records since
+                                  this SP only ever joined AircraftRegistryHeader. Now joins
+                                  EngineRegistryHeader instead when @IsEngine = 1, and filters by
+                                  ModuleName convention too since AircraftRegistryId/EngineRegistryId
+                                  are independent ID sequences that can share the same number.
+
+-- EXEC USP_GetHistory 1,1,'',0,'',1,1
+************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetAircraftHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  
  @SortOrder INT,  
  @GlobalFilter VARCHAR(50) = null,   
- @HistoryId VARCHAR(20),  
- @RefferenceId BIGINT,  
- @AircraftRegistryNumber VARCHAR(MAX) = null,  
+ @HistoryId VARCHAR(20),
+ @RefferenceId BIGINT,
+ @IsEngine BIT = 0,
+ @AircraftRegistryNumber VARCHAR(MAX) = null,
  @PartNumber VARCHAR(MAX) = null,  
  @OldValue VARCHAR(MAX) = null,  
  @NewValue VARCHAR(MAX) = null,  
@@ -64,25 +70,30 @@ BEGIN
     END  
   
     ;With Result AS(  
-    SELECT HS.[HistoryId],  
-		 HS.[ModuleId],  
-		 --HS.[RefferenceId],  
-		 AR.AircraftRegistryNumber,  
-		 0 AS [partnumber],  
-		 HS.[OldValue],  
-		 HS.[NewValue],  
-		 HS.[HistoryText],  
-		 HS.[FieldsName],  
-		 HS.[CreatedBy],  
-		 HS.[CreatedDate],  
-		 HS.[UpdatedBy],  
+    SELECT HS.[HistoryId],
+		 HS.[ModuleId],
+		 --HS.[RefferenceId],
+		 ISNULL(AR.AircraftRegistryNumber, ER.EngineRegistryNumber) AS AircraftRegistryNumber,
+		 0 AS [partnumber],
+		 HS.[OldValue],
+		 HS.[NewValue],
+		 HS.[HistoryText],
+		 HS.[FieldsName],
+		 HS.[CreatedBy],
+		 HS.[CreatedDate],
+		 HS.[UpdatedBy],
 		 CASE WHEN CAST(HS.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate],
          HS.[Activity]
-	FROM [dbo].[AircraftHistory] HS WITH (NOLOCK)  
-	JOIN dbo.AircraftRegistryHeader AR WITH (NOLOCK) ON AR.AircraftRegistryId = HS.RefferenceId
-    WHERE HS.RefferenceId = @RefferenceId 
-	AND HS.MasterCompanyId = @MasterCompanyId    
-    ),  
+	FROM [dbo].[AircraftHistory] HS WITH (NOLOCK)
+	LEFT JOIN dbo.AircraftRegistryHeader AR WITH (NOLOCK) ON AR.AircraftRegistryId = HS.RefferenceId AND ISNULL(@IsEngine, 0) = 0
+	LEFT JOIN dbo.EngineRegistryHeader ER WITH (NOLOCK) ON ER.EngineRegistryId = HS.RefferenceId AND ISNULL(@IsEngine, 0) = 1
+    WHERE HS.RefferenceId = @RefferenceId
+	AND HS.MasterCompanyId = @MasterCompanyId
+	-- AircraftRegistryId/EngineRegistryId are independent ID sequences that can collide on the same
+	-- number, so also match on the ModuleName convention ("Engine ..." vs everything else) to avoid
+	-- showing an unrelated aircraft's/engine's history rows when their RefferenceId happens to match.
+	AND ((ISNULL(@IsEngine, 0) = 0 AND HS.ModuleName NOT LIKE 'Engine%') OR (ISNULL(@IsEngine, 0) = 1 AND HS.ModuleName LIKE 'Engine%'))
+    ),
     FinalResult AS (  
     SELECT HistoryId, ModuleId, AircraftRegistryNumber, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName  
       ,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result  

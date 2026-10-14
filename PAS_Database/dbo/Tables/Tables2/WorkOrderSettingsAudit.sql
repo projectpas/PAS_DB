@@ -67,6 +67,8 @@
     [IsAutoConfirmPickTicket]          BIT            NULL,
     [BypassPopups]                     BIT            NULL,
     [AllowWorksheet]                   BIT            NULL,
+    [MaterialShortageWarningDays]      INT            NULL,
+    [BypassStockShortageWarning]       BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

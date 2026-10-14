@@ -53,6 +53,8 @@
    33   23-Sep-2026   RAJESH GAMI      [PN-18032] OtherCost tab: added IsNonStock to all 4 UNION ALL blocks (CAST(0 AS BIT) placeholder on the PO/RO/SO blocks, ISNULL(loc.IsNonStock,0) on the manual LOTOtherCostDetails block) and to the outer GROUP BY, so the grid/Edit popup can tell a Non-Stock Serviceable manual row apart from a normal sold-stockline row (Stockline stays disabled on Edit, Memo stays optional, same as it already does for IsNA rows).
    31   10-Sep-2026   Claude (Rajesh Gami)   [PN-17888] round 2, ported from RG_S67_LOTChange: PNSoldView (Sales Activity tab) branch now also returns ExtCostSum, to back a new Total Ext Cost footer value (Rajesh: remove PO Unit Cost/Repair Cost/Unit Cost totals on Parts On Hand and Repair Activity, remove Cost/Repair Cost/Margin% totals on Sales Activity, remove Unit Cost total on Trans-In/Trans-Out - all via HTML-only *ngSwitchCase comment-outs, SP/API untouched for those; but Ext Cost on Sales Activity needed a genuinely new total, so extended the SP here too).
    32   16-Sep-2026   RAJESH GAMI      [PN-17881] Commission tab (ELSE IF(UPPER(@Type) = UPPER('Commission')) section): CommissionExpenseNew CROSS APPLY now reads ltCal.IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails 'Trans Out (SO)' snapshot) instead of the LotConsignment lc join, since ltCal is already uniquely joined per LotTransInOutId (no duplication) and already scoped to this LotId and Type='Trans Out (SO)'. The lc join itself is kept only for the pre-existing HowCalculate fallback CASE (IsRevenueSplit has no LotCalculationDetails equivalent).
+   33   13-OCT-2026   RAJESH GAMI      Added  ISDELETED where condition in the STOCKLINE table. 
+   34   13-OCT-2026   RAJESH GAMI      [PN-18267] RepairedView (LOT Repair Activity tab): added ReceivedDate (Stockline.ReceivedDate = the date the RO was received) to the result set, plus @ReceivedDate column filter, global filter and sort support.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -134,7 +136,8 @@ CREATE  PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@IsAvailableQty BIT = 0,
 	@MasterCompanyId int,
 	@EmployeeId bigint,
-	@ReferenceNumber varchar(100) = NULL
+	@ReferenceNumber varchar(100) = NULL,
+	@ReceivedDate datetime = NULL -- RepairedView (LOT Repair Activity) Rec'd Date column filter
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -231,7 +234,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
            ,SL.[CertType],SL.[TagTypeId],SL.[IsFinishGood],SL.[IsTurnIn],SL.[IsCustomerRMA],SL.[RMADeatilsId],SL.[DaysReceived],SL.[ManufacturingDays],SL.[TagDays],SL.[OpenDays],SL.[ExchangeSalesOrderId],SL.[RRQty],SL.[SubWorkOrderNumber] ,SL.[IsManualEntry],SL.[WorkOrderMaterialsKitId],SL.[LotId],SL.[IsLotAssigned],SL.[LOTQty],SL.[LOTQtyReserve],SL.[OriginalCost],SL.[POOriginalCost],SL.[ROOriginalCost] ,SL.[VendorRMAId]
            ,SL.[VendorRMADetailId] ,SL.[LotMainStocklineId],SL.[IsFromInitialPO],SL.[LotSourceId],SL.[Adjustment]
 				INTO #commonTemp FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK) 
-				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId
+				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId AND ISNULL(sl.IsDeleted,0) = 0 AND ISNULL(sl.isActive,0) = 1
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN
@@ -1757,6 +1760,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.CreatedDate
 				,im.ManufacturerName
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
+				,sl.ReceivedDate AS ReceivedDate -- RO received date (Stockline.ReceivedDate), shown on the LOT Repair Activity grid
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -1818,6 +1822,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(TraceableToName like '%' + @GlobalFilter + '%') OR
 					(TaggedByName like '%' + @GlobalFilter + '%') OR
 					(TagDate like '%' + @GlobalFilter + '%') OR
+					(ReceivedDate like '%' + @GlobalFilter + '%') OR
 					(InitialPOCost like '%' + @GlobalFilter + '%') OR
 					(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
@@ -1871,6 +1876,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
+					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date) = CAST(@ReceivedDate AS date)) AND
 					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
 					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
 					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
@@ -1964,6 +1970,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TaggedByName')  THEN TaggedByName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='TagDate')  THEN TagDate END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TagDate')  THEN TagDate END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='InitialPOCost')  THEN InitialPOCost END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='InitialPOCost')  THEN InitialPOCost END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='StocklineTotalCost')  THEN StocklineTotalCost END ASC,

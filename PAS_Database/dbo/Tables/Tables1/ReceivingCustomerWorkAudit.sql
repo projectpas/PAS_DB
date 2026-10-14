@@ -107,6 +107,10 @@
     [TSO]                          VARCHAR (50)    NULL,
     [OutGoingItemMasterId]         BIGINT          NULL,
     [OutGoingPartNumber]           VARCHAR (50)    NULL,
+    [DerNum]                       VARCHAR (100)   NULL,
+    [DerRevDate]                   DATETIME2 (7)   NULL,
+    [CustDer]                      VARCHAR (100)   NULL,
+    [DerRevNum]                    VARCHAR (100)   NULL,
     CONSTRAINT [PK_ReceivingCustomerWorkAudit] PRIMARY KEY CLUSTERED ([AuditReceivingCustomerWorkId] ASC)
 );
 

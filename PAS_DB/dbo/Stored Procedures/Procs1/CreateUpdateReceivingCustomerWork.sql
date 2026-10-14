@@ -28,6 +28,7 @@
 	9	 24-FEB-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12   13-OCT-2026   Moin Bloch 		    PN-18310 Added DerNum, DerRevDate, CustDer And DerRevNum
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -202,7 +203,11 @@ BEGIN
 				[CSO] [varchar](50) NULL,
 				[TSO] [varchar](50) NULL,
 				[OutGoingItemMasterId] [bigint] NULL,
-				[OutGoingPartNumber] [varchar](50) NULL
+				[OutGoingPartNumber] [varchar](50) NULL,
+				[DerNum] [varchar](100) NULL,
+				[DerRevDate] [datetime2](7) NULL,
+				[CustDer] [varchar](100) NULL,
+				[DerRevNum] [varchar](100) NULL
 			)
 	
 		INSERT INTO #tmprReceiveCustomer ([ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
@@ -217,7 +222,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber])
+						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -230,7 +235,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber]
+						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
 				   FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = MIN(Quantity), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
@@ -575,7 +580,7 @@ DELETE FROM #tmpCodePrefixes;
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
 							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart], [IsRepairManagement],[IsSkipShippingReference]
-							   ,[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber])
+							   ,[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,1 ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -588,7 +593,7 @@ DELETE FROM #tmpCodePrefixes;
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
 							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0, ISNULL(@IsRepairManagement, 0),[IsSkipShippingReference],
-							   [CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber] 
+							   [CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
 							   FROM #tmprReceiveCustomer WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
@@ -931,6 +936,10 @@ DELETE FROM #tmpCodePrefixes;
 						  ,RC.[CustReqCertType] = TR.[CustReqCertType]
 						  ,RC.[OutGoingItemMasterId] = TR.[OutGoingItemMasterId]
 						  ,RC.[OutGoingPartNumber] = TR.[OutGoingPartNumber]
+						  ,RC.[DerNum] = TR.[DerNum]
+						  ,RC.[DerRevDate] = TR.[DerRevDate]
+						  ,RC.[CustDer] = TR.[CustDer]
+						  ,RC.[DerRevNum] = TR.[DerRevNum]
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

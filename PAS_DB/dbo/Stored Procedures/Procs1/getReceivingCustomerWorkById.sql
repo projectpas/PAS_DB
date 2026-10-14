@@ -1,4 +1,4 @@
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:  [getReceivingCustomerWorkById]      
  ** Author:    Shrey Chandegara   
  ** Description: Receiving CustomerWork By Id    
@@ -20,6 +20,7 @@
 	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	8    13-OCT-2026        Moin Bloch   		    PN-18310 Added DerNum, DerRevDate, CustDer And DerRevNum
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -199,7 +200,11 @@ AS BEGIN
 				rc.CSO,
 				rc.TSO,
 				rc.OutGoingItemMasterId,
-				rc.OutGoingPartNumber
+				rc.OutGoingPartNumber,
+				rc.DerNum,
+				rc.DerRevDate,
+				rc.CustDer,
+				rc.DerRevNum
 			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId

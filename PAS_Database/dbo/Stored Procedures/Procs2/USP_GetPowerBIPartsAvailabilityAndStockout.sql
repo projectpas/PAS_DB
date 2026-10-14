@@ -10,6 +10,7 @@
  ** S NO   Date         Author           Change Description              
  ** 1      25-SEP-2026  SUMIT KUMAR      Created
  ** 2      13-OCT-2026  SUMIT KUMAR      Resolved ManagementStructure via StocklineManagementStructureDetails (ModuleID=2) as ItemMaster.ManagementStructureId is unpopulated
+                                         Added explicit StockType (Stock/Non-Stock) column and Exposed ItemMasterId in result set for correct DISTINCTCOUNT KPI in Power BI (partNumber alone is not unique)
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIPartsAvailabilityAndStockout]   
     @masterCompanyId INT
@@ -35,7 +36,8 @@ BEGIN
             MAX(stl.Site) AS SiteName,
             MAX(stl.Condition) AS ConditionName,
             MAX(v.VendorName) AS VendorName,
-            MAX(smsd.Level1Name) AS MSLevel1Name
+            MAX(smsd.Level1Name) AS MSLevel1Name,
+            MAX(CAST(ISNULL(stl.IsNonStock, 0) AS TINYINT)) AS IsNonStock
         INTO #StocklineInv
         FROM dbo.Stockline stl WITH (NOLOCK)
         LEFT JOIN dbo.Condition c WITH (NOLOCK) ON stl.ConditionId = c.ConditionId
@@ -121,6 +123,7 @@ BEGIN
 
         -- Main Result Set Selection
         SELECT 
+            im.ItemMasterId                                            AS [itemMasterId],
             im.partnumber                                              AS [partNumber],
             im.PartDescription                                         AS [partDescription],
             ISNULL(ic.Description, im.ItemClassificationName)          AS [itemClassification],
@@ -158,7 +161,8 @@ BEGIN
             CAST(ISNULL(po.AvgPromisedLeadTime, ISNULL(im.LeadTimeDays, 14.0)) AS FLOAT) AS [promisedLeadTimeDays],
             CAST(ISNULL(im.LeadTimeDays, 14.0) AS FLOAT)               AS [expectedLeadTimeDays],
             CAST(ISNULL(vsc.ActualLeadTimeDays, ISNULL(im.LeadTimeDays, 14.0)) AS FLOAT) AS [actualLeadTimeDays],
-            CAST(ISNULL(vsc.VendorOTD, 0.95) AS FLOAT)                 AS [vendorOTD]
+            CAST(ISNULL(vsc.VendorOTD, 0.95) AS FLOAT)                 AS [vendorOTD],
+            CASE WHEN ISNULL(inv.IsNonStock, 0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [stockType]
         FROM dbo.ItemMaster im WITH (NOLOCK)
         LEFT JOIN dbo.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
         LEFT JOIN dbo.Site s WITH (NOLOCK) ON im.SiteId = s.SiteId

@@ -9,6 +9,7 @@
  **************************************************************             
  ** S NO   Date         Author           Change Description              
  ** 1      25-SEP-2026  SUMIT KUMAR      Created
+ ** 2      13-OCT-2026  SUMIT KUMAR      Resolved ManagementStructure via StocklineManagementStructureDetails (ModuleID=2) as ItemMaster.ManagementStructureId is unpopulated
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIPartsAvailabilityAndStockout]   
     @masterCompanyId INT
@@ -33,11 +34,13 @@ BEGIN
             SUM(ISNULL(stl.QuantityAvailable, 0)) AS AvailableQty,
             MAX(stl.Site) AS SiteName,
             MAX(stl.Condition) AS ConditionName,
-            MAX(v.VendorName) AS VendorName
+            MAX(v.VendorName) AS VendorName,
+            MAX(smsd.Level1Name) AS MSLevel1Name
         INTO #StocklineInv
         FROM dbo.Stockline stl WITH (NOLOCK)
         LEFT JOIN dbo.Condition c WITH (NOLOCK) ON stl.ConditionId = c.ConditionId
         LEFT JOIN dbo.Vendor v WITH (NOLOCK) ON stl.VendorId = v.VendorId
+        LEFT JOIN dbo.StocklineManagementStructureDetails smsd WITH (NOLOCK) ON smsd.ModuleID = 2 AND smsd.ReferenceID = stl.StockLineId
         WHERE stl.MasterCompanyId = @masterCompanyId
           AND ISNULL(stl.IsDeleted, 0) = 0
           AND ISNULL(stl.IsParent, 1) = 1
@@ -124,7 +127,7 @@ BEGIN
             ISNULL(s.Name, ISNULL(w.Name, ISNULL(inv.SiteName, 'MIA'))) AS [siteCode],
             ISNULL(s.Name, ISNULL(w.Name, ISNULL(inv.SiteName, 'Miami Facility'))) AS [siteName],
             ISNULL(v.VendorName, ISNULL(inv.VendorName, 'Standard Vendor')) AS [vendorName],
-            ISNULL(ms.Name, 'Commercial Fleet')                        AS [managementStructure],
+            ISNULL(inv.MSLevel1Name, 'N/A')                             AS [managementStructure],
             ISNULL(c.Description, ISNULL(inv.ConditionName, 'Overhauled (OH)')) AS [conditionName],
             ISNULL(c.Code, 'OH')                                       AS [conditionCode],
             CAST(ISNULL(dem.IsAOG, 0) AS BIT)                          AS [isAOG],
@@ -160,7 +163,7 @@ BEGIN
         LEFT JOIN dbo.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
         LEFT JOIN dbo.Site s WITH (NOLOCK) ON im.SiteId = s.SiteId
         LEFT JOIN dbo.Warehouse w WITH (NOLOCK) ON im.WarehouseId = w.WarehouseId
-        LEFT JOIN dbo.ManagementStructure ms WITH (NOLOCK) ON im.ManagementStructureId = ms.ManagementStructureId
+        -- ManagementStructure resolved from StocklineManagementStructureDetails (Level1Name) via #StocklineInv
         LEFT JOIN #StocklineInv inv ON im.ItemMasterId = inv.ItemMasterId
         LEFT JOIN dbo.Condition c WITH (NOLOCK) ON inv.ConditionId = c.ConditionId
         LEFT JOIN dbo.Vendor v WITH (NOLOCK) ON inv.VendorId = v.VendorId

@@ -3122,6 +3122,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAddressDetailsByUser.sql" />
     <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQROChargesAndFreightToRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsListNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialShortageList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderMaterialsListNew.sql" />
     <Build Include="dbo\Tables\WorkOrderAudit.sql" />
     <Build Include="dbo\Tables\StocklineAudit.sql" />
@@ -4196,6 +4197,12 @@
     <Build Include="dbo\Stored Procedures\USP_AutoCreateILSQuoteSyc.sql" />
     <Build Include="dbo\Stored Procedures\ProcStockListFromExpiredDays.sql" />
     <Build Include="dbo\Stored Procedures\usp_UpdateIntegrationEmailStatus.sql" />
+    <Build Include="dbo\Tables\IntegrationEmailProcessHistory.sql" />
+    <Build Include="dbo\Functions\udfGetIntegrationEmailRfqStatus.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveIntegrationEmailProcessResult.sql" />
+    <Build Include="dbo\Stored Procedures\usp_ValidateEmailRFQData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_ClaimIntegrationEmailForProcessing.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetIntegrationEmailForReprocess.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForReadEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQQuoteDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesQuoteIdFromCustomerRfq.sql" />
@@ -4856,6 +4863,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeasePackagingLabel.sql" />
     <Build Include="dbo\User Defined Types\LeasePackagingSlipItemsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveEngineCycleTimeMappings.sql" />
+    <Build Include="dbo\Tables\LeaseBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePendingInvoiceReminderData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAccountingDetailsViewById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerLeaseInvoice.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

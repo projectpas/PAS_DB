@@ -30,6 +30,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 19   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 20   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 21   29-09-2026   Moin Bloch			Added for 'SAR' MasterCompany
+** 22   13-10-2026   Moin Bloch			PN-18310 Added for 'SAR DER,SAR DER Rev Date, Cust DER' for SAR MasterCompany
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -231,8 +232,10 @@ BEGIN
 			   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
 			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter ,
 			   ISNULL(rc.CustReqCertType,'') AS CustReqCertType,
-			   UPPER(@RevisionNum) AS [RevisionNum],
-			   @revisionDate AS [RevisionDate],			   
+			   CASE WHEN @SARMasterCompanyCode = @MasterCompanyCodeAll THEN UPPER(rc.DerNum) ELSE UPPER(@RevisionNum)  END AS [RevisionNum],
+			   CASE WHEN @SARMasterCompanyCode = @MasterCompanyCodeAll THEN rc.DerRevDate ELSE @revisionDate  END AS [RevisionDate],	
+			   UPPER(rc.CustDer) CustDer,
+			   UPPER(rc.DerRevNum) DerRevNum,			   
 			   CASE WHEN LEN(wop.Notes) > 1370 THEN LEFT(wop.Notes,1370) + '...' ELSE wop.Notes END AS MPNNotes    
 			FROM [dbo].[WorkOrder] wo WITH(NOLOCK)              
 			INNER JOIN [dbo].[WorkOrderWorkFlow] wf WITH(NOLOCK) ON wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    

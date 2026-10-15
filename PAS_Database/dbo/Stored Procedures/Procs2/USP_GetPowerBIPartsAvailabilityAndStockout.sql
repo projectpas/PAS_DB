@@ -11,6 +11,7 @@
  ** 1      25-SEP-2026  SUMIT KUMAR      Created
  ** 2      13-OCT-2026  SUMIT KUMAR      Resolved ManagementStructure via StocklineManagementStructureDetails (ModuleID=2) as ItemMaster.ManagementStructureId is unpopulated
                                          Added explicit StockType (Stock/Non-Stock) column and Exposed ItemMasterId in result set for correct DISTINCTCOUNT KPI in Power BI (partNumber alone is not unique)
+ ** 3      15-OCT-2026  SUMIT KUMAR      Fixed #OpenDemand: calculated remaining unfulfilled demand (Quantity - QuantityIssued) instead of UnIssuedQty (which is only for returns); resolved WorkOrderPartNumber JOIN to prevent fanout and NULLs; included WorkOrderMaterialsKit
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIPartsAvailabilityAndStockout]   
     @masterCompanyId INT
@@ -66,22 +67,73 @@ BEGIN
         IF OBJECT_ID(N'tempdb..#OpenDemand') IS NOT NULL  
             DROP TABLE #OpenDemand;
 
+        ;WITH RawDemand AS
+        (
+            SELECT 
+                wom.ItemMasterId,
+                CASE 
+                    WHEN ISNULL(wom.Quantity, 0) > (ISNULL(wom.QuantityIssued, 0) + ISNULL(wom.QuantityReserved, 0)) 
+                    THEN ISNULL(wom.Quantity, 0) - (ISNULL(wom.QuantityIssued, 0) + ISNULL(wom.QuantityReserved, 0)) 
+                    ELSE 0 
+                END AS OpenDemandQty,
+                ISNULL(wopInfo.IsAOG, 0) AS IsAOG
+            FROM dbo.WorkOrderMaterials wom WITH (NOLOCK)
+            INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wom.WorkOrderId = wo.WorkOrderId
+            OUTER APPLY (
+                SELECT 
+                    MAX(CASE WHEN UPPER(p.Description) = 'AOG' OR UPPER(wop.Priority) = 'AOG' THEN 1 ELSE 0 END) AS IsAOG,
+                    MIN(CAST(ISNULL(wop.IsClosed, 0) AS INT)) AS MinIsClosed
+                FROM dbo.WorkOrderPartNumber wop WITH (NOLOCK)
+                LEFT JOIN dbo.Priority p WITH (NOLOCK) ON wop.WorkOrderPriorityId = p.PriorityId
+                WHERE wop.WorkOrderId = wom.WorkOrderId
+                  AND (ISNULL(wom.WOPartNoId, 0) = 0 OR wom.WOPartNoId = wop.ID)
+                  AND ISNULL(wop.IsDeleted, 0) = 0
+            ) wopInfo
+            LEFT JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) ON wo.WorkOrderStatusId = wos.Id
+            WHERE wom.MasterCompanyId = @masterCompanyId
+              AND ISNULL(wom.IsDeleted, 0) = 0
+              AND ISNULL(wom.IsActive, 1) = 1
+              AND ISNULL(wo.IsDeleted, 0) = 0
+              AND (wopInfo.MinIsClosed IS NULL OR wopInfo.MinIsClosed = 0)
+              AND (wos.Id IS NULL OR UPPER(ISNULL(wos.StatusCode, '')) <> 'CLOSED')
+
+            UNION ALL
+
+            SELECT 
+                womk.ItemMasterId,
+                CASE 
+                    WHEN ISNULL(womk.Quantity, 0) > (ISNULL(womk.QuantityIssued, 0) + ISNULL(womk.QuantityReserved, 0)) 
+                    THEN ISNULL(womk.Quantity, 0) - (ISNULL(womk.QuantityIssued, 0) + ISNULL(womk.QuantityReserved, 0)) 
+                    ELSE 0 
+                END AS OpenDemandQty,
+                ISNULL(wopInfo.IsAOG, 0) AS IsAOG
+            FROM dbo.WorkOrderMaterialsKit womk WITH (NOLOCK)
+            INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON womk.WorkOrderId = wo.WorkOrderId
+            OUTER APPLY (
+                SELECT 
+                    MAX(CASE WHEN UPPER(p.Description) = 'AOG' OR UPPER(wop.Priority) = 'AOG' THEN 1 ELSE 0 END) AS IsAOG,
+                    MIN(CAST(ISNULL(wop.IsClosed, 0) AS INT)) AS MinIsClosed
+                FROM dbo.WorkOrderPartNumber wop WITH (NOLOCK)
+                LEFT JOIN dbo.Priority p WITH (NOLOCK) ON wop.WorkOrderPriorityId = p.PriorityId
+                WHERE wop.WorkOrderId = womk.WorkOrderId
+                  AND (ISNULL(womk.WOPartNoId, 0) = 0 OR womk.WOPartNoId = wop.ID)
+                  AND ISNULL(wop.IsDeleted, 0) = 0
+            ) wopInfo
+            LEFT JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) ON wo.WorkOrderStatusId = wos.Id
+            WHERE womk.MasterCompanyId = @masterCompanyId
+              AND ISNULL(womk.IsDeleted, 0) = 0
+              AND ISNULL(womk.IsActive, 1) = 1
+              AND ISNULL(wo.IsDeleted, 0) = 0
+              AND (wopInfo.MinIsClosed IS NULL OR wopInfo.MinIsClosed = 0)
+              AND (wos.Id IS NULL OR UPPER(ISNULL(wos.StatusCode, '')) <> 'CLOSED')
+        )
         SELECT 
-            wom.ItemMasterId,
-            SUM(ISNULL(wom.UnIssuedQty, 0)) AS OpenDemandQty,
-            MAX(CASE WHEN UPPER(p.Description) = 'AOG' OR UPPER(wop.Priority) = 'AOG' THEN 1 ELSE 0 END) AS IsAOG
+            ItemMasterId,
+            SUM(OpenDemandQty) AS OpenDemandQty,
+            MAX(IsAOG) AS IsAOG
         INTO #OpenDemand
-        FROM dbo.WorkOrderMaterials wom WITH (NOLOCK)
-        INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wom.WorkOrderId = wo.WorkOrderId
-        LEFT JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wom.WorkOrderId = wop.WorkOrderId AND wom.ItemMasterId = wop.ItemMasterId
-        LEFT JOIN dbo.Priority p WITH (NOLOCK) ON wop.WorkOrderPriorityId = p.PriorityId
-        LEFT JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) ON wo.WorkOrderStatusId = wos.Id
-        WHERE wom.MasterCompanyId = @masterCompanyId
-          AND ISNULL(wom.IsDeleted, 0) = 0
-          AND ISNULL(wom.IsActive, 1) = 1
-          AND ISNULL(wop.IsClosed, 0) = 0
-          AND UPPER(ISNULL(wos.StatusCode, '')) <> 'CLOSED'
-        GROUP BY wom.ItemMasterId;
+        FROM RawDemand
+        GROUP BY ItemMasterId;
 
         -- 4. Temp Table for Open Purchase Orders / Backorders
         IF OBJECT_ID(N'tempdb..#OpenPO') IS NOT NULL  

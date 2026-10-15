@@ -223,10 +223,10 @@ BEGIN
             ELSE m.NewValue
         END AS NewValue
     FROM merged m
-    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqOld WITH(NOLOCK) ON m.ColumnName = 'StatusId' AND TRY_CAST(m.OldValue AS INT) = msoqOld.Id 
-    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqNew WITH(NOLOCK) ON m.ColumnName = 'StatusId' AND TRY_CAST(m.NewValue AS INT) = msoqNew.Id    
-    LEFT JOIN [dbo].[CustomerType] ctOld WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(m.OldValue AS BIGINT) = ctOld.CustomerTypeId 
-    LEFT JOIN [dbo].[CustomerType] ctNew WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(m.NewValue AS BIGINT) = ctNew.CustomerTypeId 
+    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqOld WITH(NOLOCK) ON m.ColumnName = 'StatusId'      AND TRY_CAST(LEFT(m.OldValue, 20) AS INT)    = msoqOld.Id
+    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqNew WITH(NOLOCK) ON m.ColumnName = 'StatusId'      AND TRY_CAST(LEFT(m.NewValue, 20) AS INT)    = msoqNew.Id
+    LEFT JOIN [dbo].[CustomerType] ctOld          WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(LEFT(m.OldValue, 20) AS BIGINT) = ctOld.CustomerTypeId
+    LEFT JOIN [dbo].[CustomerType] ctNew          WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(LEFT(m.NewValue, 20) AS BIGINT) = ctNew.CustomerTypeId
     WHERE
          m.ColumnName <> 'SalesOrderQuoteId' and (
         (m.Action = 'U' AND (

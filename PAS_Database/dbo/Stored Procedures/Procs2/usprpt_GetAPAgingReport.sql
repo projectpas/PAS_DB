@@ -28,6 +28,7 @@
 	10   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
 	11   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
 	12   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
+    13   14-OCT-2026    RAJESH GAMI        [PN-17022] - Added 'Show PO Num' view (@Typeid = 3): one row per PO with poCost (PurchaseOrderPart.ExtendedCost) and poCost header filter; Summary (1) and Detail (2) unchanged
 
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  
@@ -76,7 +77,8 @@ BEGIN
         @InvoiceNo                   VARCHAR(MAX) = NULL,
         @Terms                       VARCHAR(MAX) = NULL,
         @DueDate                     DATETIME     = NULL,
-		@POReference                 VARCHAR(MAX) = NULL;
+		@POReference                 VARCHAR(MAX) = NULL,
+		@PoCost                      VARCHAR(MAX) = NULL;
 
     BEGIN TRY
 
@@ -131,7 +133,8 @@ BEGIN
             @InvoiceNo   = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'invoiceNo'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @InvoiceNo   END,
             @Terms       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'terms'        THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Terms       END,
             @DueDate     = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'dueDate'      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @DueDate     END,
-			@POReference  = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poReference'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @POReference END
+			@POReference  = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poReference'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @POReference END,
+			@PoCost       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poCost'          THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @PoCost       END
         FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
 
         /* ════════════════════════════════════════════════════════
@@ -341,6 +344,7 @@ BEGIN
                 CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
                      THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
 				,''  AS poReference
+				,rrh.ReceivingReconciliationId AS rrId   /* [PN-17022] helper key to keep one row per invoice, dropped below */
             INTO #tempReceivingReconciliation
             FROM dbo.ReceivingReconciliationHeader      rrh  WITH (NOLOCK)
             INNER JOIN dbo.ReceivingReconciliationDetails rrd  WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrd.[Type] > 0
@@ -367,6 +371,16 @@ BEGIN
               AND (ISNULL(@Level8,'')  = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8,',')))  OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8,',')))  OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8,','))))
               AND (ISNULL(@Level9,'')  = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9,',')))  OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9,',')))  OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9,','))))
               AND (ISNULL(@Level10,'') = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,','))) OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,','))) OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,','))));
+
+            /* [PN-17022] An invoice whose stocklines sit in different management structures (or has both PO and RO lines) came back once per
+               combination, so the same invoice amount was counted twice. Keep ONE row per invoice (rows are already filtered by the Level / Tag filters). */
+            ;WITH rankedInvoiceRows AS (
+                SELECT ROW_NUMBER() OVER (PARTITION BY rrId ORDER BY Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, DocType) AS rowRank
+                FROM #tempReceivingReconciliation
+            )
+            DELETE FROM rankedInvoiceRows WHERE rowRank > 1;
+
+            ALTER TABLE #tempReceivingReconciliation DROP COLUMN rrId;
 
             /* ── Credit Memo ──
                Credit memos have no stored DueDate.
@@ -823,7 +837,22 @@ BEGIN
 				/* ── DaysPastDue: days since DueDate ── */
 				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
-			    ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '') AS poReference			
+				CASE WHEN @Typeid = '3'
+				     THEN ISNULL(rrd.POReference, '')   /* [PN-17022] Show PO Num: one row per PO */
+				     ELSE ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '')
+				     END AS poReference,
+				/* [PN-17022] poCost = PurchaseOrderPart.ExtendedCost of the PO parts invoiced on this invoice for this PO (Show PO Num only) */
+				CASE WHEN @Typeid = '3' AND rrd.[Type] = 1
+				     THEN ISNULL((SELECT SUM(ISNULL(purchaseOrderPart.ExtendedCost, 0))
+				                  FROM (SELECT DISTINCT invoicePoDetail.PurchaseOrderPartRecordId
+				                        FROM dbo.ReceivingReconciliationDetails invoicePoDetail WITH (NOLOCK)
+				                        WHERE invoicePoDetail.ReceivingReconciliationId = rrh.ReceivingReconciliationId
+				                          AND invoicePoDetail.[Type] = 1
+				                          AND ISNULL(invoicePoDetail.POReference, '') = ISNULL(rrd.POReference, '')
+				                          AND invoicePoDetail.PurchaseOrderPartRecordId IS NOT NULL) distinctPoPart
+				                  INNER JOIN dbo.PurchaseOrderPart purchaseOrderPart WITH (NOLOCK) ON purchaseOrderPart.PurchaseOrderPartRecordId = distinctPoPart.PurchaseOrderPartRecordId), 0)
+				     ELSE 0 END AS poCost,
+				rrh.ReceivingReconciliationId AS rrId   /* [PN-17022] helper key to keep one row per invoice (per PO for Show PO Num), dropped below */
 			INTO #tempReceivingReconciliationElse
 			FROM dbo.ReceivingReconciliationHeader      rrh  WITH (NOLOCK)
 			INNER JOIN dbo.ReceivingReconciliationDetails rrd  WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrd.[Type] > 0
@@ -850,6 +879,17 @@ BEGIN
 			  AND (ISNULL(@Level8,'')  = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level8Id   IN (SELECT Item FROM dbo.SplitString(@Level8,',')))  OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8,',')))  OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8,','))))
 			  AND (ISNULL(@Level9,'')  = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level9Id   IN (SELECT Item FROM dbo.SplitString(@Level9,',')))  OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9,',')))  OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9,','))))
 			  AND (ISNULL(@Level10,'') = '' OR (UPPER(rrd.StockType)='STOCK' AND MSD.Level10Id  IN (SELECT Item FROM dbo.SplitString(@Level10,','))) OR (UPPER(rrd.StockType)='NONSTOCK' AND NMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,','))) OR (UPPER(rrd.StockType)='ASSET' AND AMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,','))));
+
+			/* [PN-17022] An invoice whose stocklines sit in different management structures (or has both PO and RO lines) came back once per
+			   combination, so the same invoice showed twice and its amount was counted twice. Keep ONE row per invoice
+			   (one row per invoice and PO for Show PO Num). Rows are already filtered by the Level / Tag filters. */
+			;WITH rankedInvoiceRows AS (
+				SELECT ROW_NUMBER() OVER (PARTITION BY rrId, CASE WHEN @Typeid = '3' THEN poReference ELSE '' END ORDER BY Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, DocType) AS rowRank
+				FROM #tempReceivingReconciliationElse
+			)
+			DELETE FROM rankedInvoiceRows WHERE rowRank > 1;
+
+			ALTER TABLE #tempReceivingReconciliationElse DROP COLUMN rrId;
 
 			/* ── Credit Memo ──
 			   No DueDate column on VendorCreditMemo.
@@ -902,6 +942,7 @@ BEGIN
 				CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), VCM.CreatedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
 				,''  AS poReference
+				,CAST(0 AS DECIMAL(18,6)) AS poCost
 			INTO #tempCreditMemoElse
 			FROM dbo.VendorCreditMemo           VCM  WITH (NOLOCK)
 			INNER JOIN dbo.VendorCreditMemoDetail VCD  WITH (NOLOCK) ON VCD.VendorCreditMemoId = VCM.VendorCreditMemoId
@@ -978,6 +1019,7 @@ BEGIN
 				CASE WHEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, DATEADD(DAY, ISNULL(CTM.NetDays,0), MJH.PostedDate), GETUTCDATE()) ELSE 0 END AS DaysPastDue
 				,''  AS poReference
+				,CAST(0 AS DECIMAL(18,6)) AS poCost
 			INTO #tempManualJEElse
 			FROM dbo.ManualJournalHeader   MJH WITH (NOLOCK)
 			INNER JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2
@@ -1065,7 +1107,8 @@ BEGIN
 				/* ── DaysPastDue: days since DueDate ── */
 				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
-				ISNULL(NPH.PONumber,'') AS poReference				
+				ISNULL(NPH.PONumber,'') AS poReference,
+				CAST(0 AS DECIMAL(18,6)) AS poCost
 			INTO #tempNonPODetailsElse
 			FROM dbo.NonPOInvoiceHeader NPH WITH (NOLOCK)
 			INNER JOIN dbo.VendorPaymentDetails    vpd WITH (NOLOCK) ON vpd.NonPOInvoiceId = NPH.NonPOInvoiceId
@@ -1156,7 +1199,8 @@ BEGIN
 					UPPER(CTE.level9)  AS level9,  UPPER(CTE.level10) AS level10,
 					CTE.MasterCompanyId,
 					CTE.DaysPastDue,
-					CTE.poReference					
+					CTE.poReference,
+					CTE.poCost
 				FROM CTE WITH (NOLOCK)
 				INNER JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = CTE.VendorId
 				WHERE V.MasterCompanyId = @MasterCompanyId
@@ -1175,8 +1219,23 @@ BEGIN
 				  AND (ISNULL(@Amountpaidby120days,'')      = '' OR Amountpaidby120days         LIKE '%' + @Amountpaidby120days       + '%')
 				  AND (ISNULL(@Amountpaidbymorethan120days,'') = '' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
 				  AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
+				  AND (ISNULL(@PoCost,'') = '' OR CTE.poCost LIKE '%' + @PoCost + '%')
 			),
 			ResultCount AS (SELECT COUNT(VendorId) AS totalItems FROM Result),
+			/* [PN-17022] Show PO Num repeats an invoice once per PO, so totals count each invoice only once */
+			TotalSource AS (
+				SELECT MastercompanyId, InvoiceAmount, BalanceAmount, Amountpaidbylessthen0days, Amountpaidby30days, Amountpaidby60days,
+				       Amountpaidby90days, Amountpaidby120days, Amountpaidbymorethan120days
+				FROM Result WHERE ISNULL(@Typeid,'') <> '3'
+				UNION ALL
+				SELECT MastercompanyId, InvoiceAmount, BalanceAmount, Amountpaidbylessthen0days, Amountpaidby30days, Amountpaidby60days,
+				       Amountpaidby90days, Amountpaidby120days, Amountpaidbymorethan120days
+				FROM (SELECT DISTINCT VendorId, InvoiceNo, DocType, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+				             MastercompanyId, InvoiceAmount, BalanceAmount, Amountpaidbylessthen0days, Amountpaidby30days, Amountpaidby60days,
+				             Amountpaidby90days, Amountpaidby120days, Amountpaidbymorethan120days
+				      FROM Result) distinctInvoiceRows
+				WHERE @Typeid = '3'
+			),
 			WithTotal (MastercompanyId, TotalInvoiceAmount, TotalBalanceAmount,
 					   TotalAmountpaidbylessthen0days, TotalAmountpaidby30days, TotalAmountpaidby60days,
 					   TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days)
@@ -1190,6 +1249,12 @@ BEGIN
 					FORMAT(SUM(Amountpaidby90days),       'N','en-us') AS TotalAmountpaidby90days,
 					FORMAT(SUM(Amountpaidby120days),      'N','en-us') AS TotalAmountpaidby120days,
 					FORMAT(SUM(Amountpaidbymorethan120days),'N','en-us') AS TotalAmountpaidbymorethan120days
+				FROM TotalSource
+				GROUP BY MastercompanyId
+			),
+			/* [PN-17022] PO Cost grand total (Show PO Num) - every PO row counts, so it is summed from Result as is */
+			PoCostTotal AS (
+				SELECT MastercompanyId, SUM(ISNULL(poCost,0)) AS TotalPoCost
 				FROM Result
 				GROUP BY MastercompanyId
 			)
@@ -1215,11 +1280,14 @@ BEGIN
 				WC.TotalAmountpaidbylessthen0days, WC.TotalAmountpaidby30days,
 				WC.TotalAmountpaidby60days,        WC.TotalAmountpaidby90days,
 				WC.TotalAmountpaidby120days,       WC.TotalAmountpaidbymorethan120days,
+				FORMAT(ISNULL(PC.TotalPoCost,0), 'N','en-us') AS TotalPoCost,
 				FC.DaysPastDue,
-				FC.poReference,			
+				FC.poReference,
+				FORMAT(ISNULL(FC.poCost,0), 'N','en-us') AS poCost,
 				(SELECT totalItems FROM ResultCount) AS TotalRecordsCount
 			FROM Result FC
 			INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
+			LEFT  JOIN PoCostTotal PC ON FC.MastercompanyId = PC.MastercompanyId
 			ORDER BY
 				CASE WHEN @SortOrder=1  AND @SortColumn='vendorName'                  THEN FC.vendorName                  END ASC,
 				CASE WHEN @SortOrder=-1 AND @SortColumn='vendorName'                  THEN FC.vendorName                  END DESC,
@@ -1254,7 +1322,9 @@ BEGIN
 				CASE WHEN @SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days' THEN FC.Amountpaidbymorethan120days END ASC,
 				CASE WHEN @SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days' THEN FC.Amountpaidbymorethan120days END DESC,
 				CASE WHEN @SortOrder=1  AND @SortColumn='poReference'                 THEN FC.poReference                 END ASC,
-				CASE WHEN @SortOrder=-1 AND @SortColumn='poReference'                 THEN FC.poReference                 END DESC
+				CASE WHEN @SortOrder=-1 AND @SortColumn='poReference'                 THEN FC.poReference                 END DESC,
+				CASE WHEN @SortOrder=1  AND @SortColumn='poCost'                      THEN FC.poCost                      END ASC,
+				CASE WHEN @SortOrder=-1 AND @SortColumn='poCost'                      THEN FC.poCost                      END DESC
 			OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
 		END 

@@ -4867,6 +4867,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeasePendingInvoiceReminderData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseAccountingDetailsViewById.sql" />
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerLeaseInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SplitStocklineForSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
+    <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

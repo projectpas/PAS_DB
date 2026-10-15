@@ -258,8 +258,11 @@
     [NonStockClassification]              VARCHAR (100)   NULL,
     [IsService]                           BIT             NULL,
     [LeasePartId]                         BIGINT          NULL,
-    [MiscAdjustment]                      DECIMAL(18,6)   NULL,
-    [COGSUnitCost]                        DECIMAL (18, 6) DEFAULT ((0)) NULL,
+    [MiscAdjustment]                      DECIMAL (18, 6) NULL,
+    [COGSUnitCost]                        DECIMAL (18, 6) DEFAULT ((0)) NULL,    
+    [SubComponentParentStocklineId]       BIGINT          NULL,
+    [SubComponentQty]                     DECIMAL (18, 6) NULL,
+    [IsSubComponent]                      BIT             CONSTRAINT [DF_StocklineAudit_IsSubComponent] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

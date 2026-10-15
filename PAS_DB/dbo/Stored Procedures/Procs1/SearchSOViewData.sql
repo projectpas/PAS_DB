@@ -22,6 +22,13 @@
 ** 14   29/JUL/2026     Kishor Makwana      [PN-17466] PERFORMANCE REWRITE - Sales Order List filter slowness
 ** 15	05/August/2026	Divyesh Kathiriya	[PN-17555] - Fix filter to the search query.
 ** 16   02-Sep-2026   Bhargav Saliya      [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+** 17   14-Oct-2026   Rajesh Gami         PN-18312 Performance tuning for companies with large Sales Order volume - NO logic / output changes:
+**                                        1. QuoteAmount / Cost (SalesOrderPartCost roll-up) is computed for ALL candidate Sales Orders only when
+**                                           QuoteAmount is filtered or sorted on (gate @NeedQuoteAmountEarly); otherwise it is computed in phase 2
+**                                           for the returned page only.
+**                                        2. dbo.fn_NormalizePartNumber(@GlobalFilter / @PartNumberType) evaluated once into a variable (was per row).
+**                                        3. New covering index IX_SalesOrderPartV1_SOId_Cover_Perf on dbo.SalesOrderPartV1 - see
+**                                           PN_SO_ViewData_Perf_Deploy.sql (removes per-part key lookups in the parts roll-up and SO Amount).
 **
 **  DEPENDENCY: deploy dbo.fnGetSalesOrderSoAmount (fnGetSalesOrderSoAmount.sql) 
 **  BEFORE this procedure.
@@ -155,6 +162,15 @@ BEGIN
 		DECLARE @NeedSoAmountEarly BIT =
 			CASE WHEN @SoAmount IS NOT NULL OR @SortColumn = 'SOAMOUNT' THEN 1 ELSE 0 END;
 
+		-- QuoteAmount / Cost come from the SalesOrderPartCost roll-up. Only needed for ALL candidates when
+		-- QuoteAmount is filtered or sorted on; otherwise phase 2 computes them for the returned page.
+		DECLARE @NeedQuoteAmountEarly BIT =
+			CASE WHEN @QuoteAmount IS NOT NULL OR @SortColumn = 'QUOTEAMOUNT' THEN 1 ELSE 0 END;
+
+		-- normalised filter text, evaluated once instead of once per row
+		DECLARE @GFNorm  VARCHAR(100) = dbo.fn_NormalizePartNumber(@GlobalFilter);
+		DECLARE @PNTNorm VARCHAR(100) = dbo.fn_NormalizePartNumber(@PartNumberType);
+
 		---------------------------------------------------------------------------
 		-- 3. Timezone offset + SARGable date windows (computed ONCE, not per row)
 		---------------------------------------------------------------------------
@@ -223,8 +239,8 @@ BEGIN
 				SO.CustomerReference,
 				MST.[Name]                          AS [Status],
 				SO.StatusId,
-				ISNULL(B.NetSales, 0)               AS QuoteAmount,
-				ISNULL(B.Cost,     0)               AS Cost,
+				CASE WHEN @NeedQuoteAmountEarly = 1 THEN ISNULL(B.NetSales, 0) END AS QuoteAmount,   -- NULL when not needed early (phase 2 fills it)
+				CASE WHEN @NeedQuoteAmountEarly = 1 THEN ISNULL(B.Cost, 0) END AS Cost,
 				(E.FirstName + ' ' + E.LastName)    AS SalesPerson,
 				SO.AccountTypeName                  AS CustomerType,
 				SO.ShippedDate,
@@ -258,6 +274,7 @@ BEGIN
 				       SUM(S.NetSaleAmount) AS NetSales
 				FROM dbo.SalesOrderPartCost S WITH (NOLOCK)
 				WHERE S.SalesOrderId = SO.SalesOrderId
+				  AND @NeedQuoteAmountEarly = 1        -- folded to a constant by RECOMPILE
 			) B
 
 			/* Replaces DatesCTE + PartCTE + PartDescCTE + PartMFCTE + PriorityCTE
@@ -382,7 +399,7 @@ BEGIN
 			WHERE
 			    -- part-derived column filters
 			    (
-						    (@PartNumberType        IS NULL OR PartNumberType        LIKE '%' + @PartNumberType        + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumberType) + '%')
+						    (@PartNumberType        IS NULL OR PartNumberType        LIKE '%' + @PartNumberType        + '%' OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + @PNTNorm + '%')
 						AND (@PartDescriptionType   IS NULL OR PartDescriptionType   LIKE '%' + @PartDescriptionType   + '%')
 						AND (@ManufacturerType      IS NULL OR ManufacturerType      LIKE '%' + @ManufacturerType      + '%')
 						AND (@PriorityType          IS NULL OR PriorityType          LIKE '%' + @PriorityType          + '%')
@@ -409,7 +426,7 @@ BEGIN
 						OR CreatedBy             LIKE @GF
 						OR UpdatedBy             LIKE @GF
 						OR PriorityType          LIKE @GF
-						OR PartNumberType        LIKE @GF OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%'
+						OR PartNumberType        LIKE @GF OR dbo.fn_NormalizePartNumber(PartNumberType) LIKE '%' + @GFNorm + '%'
 						OR PartDescriptionType   LIKE @GF
 						OR ManufacturerType      LIKE @GF
 						OR RequestedDateType     LIKE @GF
@@ -543,8 +560,8 @@ BEGIN
 			UPPER(k.CustomerReference)      AS CustomerReference,
 			UPPER(L.PriorityDescription)    AS Priority,
 			UPPER(T.PriorityType)           AS PriorityType,
-			k.QuoteAmount,
-			k.Cost,
+			ISNULL(k.QuoteAmount, ISNULL(B2.NetSales, 0)) AS QuoteAmount,   -- early value when gated on, else page-level roll-up
+			ISNULL(k.Cost,        ISNULL(B2.Cost,     0)) AS Cost,
 			L.RequestedDate,
 			T.RequestedDateType,
 			L.EstimatedShipDate,
@@ -570,6 +587,15 @@ BEGIN
 			ISNULL(Z.SoAmount, 0)           AS SoAmount,
 			k.MarketplaceRef
 		FROM #Page k
+		OUTER APPLY
+		(
+			/* page-level QuoteAmount / Cost - identical roll-up to the one in phase 1 */
+			SELECT SUM(S2.UnitCost)      AS Cost,
+			       SUM(S2.NetSaleAmount) AS NetSales
+			FROM dbo.SalesOrderPartCost S2 WITH (NOLOCK)
+			WHERE S2.SalesOrderId = k.SalesOrderId
+			  AND @NeedQuoteAmountEarly = 0
+		) B2
 		OUTER APPLY
 		(
 			SELECT

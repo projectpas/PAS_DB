@@ -2,8 +2,8 @@
  ** File:   [USP_CycleCountDetail_GetPrintFieldData_Report]
  ** Author: SAHDEV SALIYA
  ** Description: Returns Cycle Count line data for the Cycle Count print (SSRS) as one row per line + field,
- **              limited to the fields selected in Cycle Count Settings for the count method (Online / Manual)
- **              of the cycle count and ordered by the configured SequenceNo.
+ **              limited to the fields selected in Cycle Count Settings for the count method checked there
+ **              (Online Count / Manual Count) and ordered by the configured SequenceNo.
  **              Fields flow left to right, 6 per print row (GridRow / GridCol):
  **              row group = LineNum, GridRow; column group = GridCol; column header = HeaderLabel; cell = CellHtml.
  ** Purpose:
@@ -15,6 +15,7 @@
  **************************************************************
  ** PR     Date            Author		    Change Description
     1    10/09/2026   SAHDEV SALIYA       [PN-18227] Created
+	2    10/14/2026   SAHDEV SALIYA       [PN-18227] Print fields of the count method checked in Cycle Count Settings (Online / Manual Count)
  ** -----------------------------------------------------------
 	exec [USP_CycleCountDetail_GetPrintFieldData_Report] 36,1
 ************************************************************************/
@@ -29,14 +30,15 @@ BEGIN
 		DECLARE @CountMethodId INT, @CycleCountSettingId BIGINT, @ColumnsPerRow INT = 6,
 				@IsQtyCounted INT, @IsQtyVariance INT, @IsUnitCostAdj INT;
 
-		SELECT @CountMethodId = ISNULL(NULLIF(CC.[CountMethodId], 0), 1),
-			   @IsQtyCounted = ISNULL(CC.[IsQtyCounted], 0),
+		SELECT @IsQtyCounted = ISNULL(CC.[IsQtyCounted], 0),
 			   @IsQtyVariance = ISNULL(CC.[IsQtyVariance], 0),
 			   @IsUnitCostAdj = ISNULL(CC.[IsUnitCoctAdj], 0)
 		  FROM [dbo].[CycleCount] CC WITH(NOLOCK)
 		 WHERE CC.[CycleCountId] = @CycleCountId AND CC.[MasterCompanyId] = @MasterCompanyId;
 
-		SELECT TOP 1 @CycleCountSettingId = CS.[CycleCountSettingId]
+		-- Print the fields of the count method checked in Cycle Count Settings (Online Count / Manual Count)
+		SELECT TOP 1 @CycleCountSettingId = CS.[CycleCountSettingId],
+			   @CountMethodId = CASE WHEN CS.[IsOnlineCount] = 1 THEN 1 ELSE 2 END
 		  FROM [dbo].[CycleCountSettingMaster] CS WITH(NOLOCK)
 		 WHERE CS.[MasterCompanyId] = @MasterCompanyId;
 
@@ -95,7 +97,6 @@ BEGIN
 
 		;WITH Lines AS (
 			SELECT ROW_NUMBER() OVER (ORDER BY CC.[CycleCountDetailId]) AS [LineNum]
-				  ,CC.[CycleCountDetailId]
 				  ,CASE WHEN LEN(UPPER(CC.[PartNumber])) > 13 then LEFT(UPPER(CC.[PartNumber]), 13) + '...' else UPPER(CC.[PartNumber]) end AS [PartNumber]
 				  ,CASE WHEN LEN(UPPER(CC.[PartDescription])) > 23 then LEFT(UPPER(CC.[PartDescription]), 23) + '...' else UPPER(CC.[PartDescription]) end AS [PartDescription]
 				  ,CASE WHEN LEN(UPPER(CC.[ManufacturerName])) > 19 then LEFT(UPPER(CC.[ManufacturerName]), 19) + '...' else UPPER(CC.[ManufacturerName]) end AS [ManufacturerName]
@@ -120,7 +121,7 @@ BEGIN
 			   AND CC.[CycleCountId] = @CycleCountId AND ISNULL(SL.IsNonStock,0) = 0
 		),
 		FieldValues AS (
-			SELECT L.[LineNum], L.[CycleCountDetailId], V.[FieldKey],
+			SELECT L.[LineNum], V.[FieldKey],
 				   -- HTML encode, the report cell uses HTML markup
 				   REPLACE(REPLACE(REPLACE(ISNULL(V.[FieldValue], ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;') AS [FieldValue]
 			  FROM Lines L

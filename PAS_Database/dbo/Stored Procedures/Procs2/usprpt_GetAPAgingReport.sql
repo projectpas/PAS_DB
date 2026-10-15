@@ -29,6 +29,7 @@
 	11   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
 	12   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
     13   14-OCT-2026    RAJESH GAMI        [PN-17022] - Added 'Show PO Num' view (@Typeid = 3): one row per PO with poCost (PurchaseOrderPart.ExtendedCost) and poCost header filter; Summary (1) and Detail (2) unchanged
+    14   15-OCT-2026    RAJESH GAMI        [PN-17022] - Global 'Invoice Num(Optional)' filter now applied to Detail / Show PO Num (matches Invoice Num or Doc Num)
 
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  
@@ -91,7 +92,7 @@ BEGIN
             @CMPostedStatusId INT,
             @MSModuleId      INT    = 0,
             @CMMSModuleID    BIGINT = 61,
-            @invoiceNum      VARCHAR(30) = '';
+            @invoiceNum      VARCHAR(100) = '';
 
         SELECT @PostStatusId    = ManualJournalStatusId FROM dbo.ManualJournalStatus  WHERE Name = 'Posted';
         SELECT @CMPostedStatusId = Id                   FROM dbo.CreditMemoStatus     WHERE Name = 'Posted';
@@ -133,6 +134,7 @@ BEGIN
             @InvoiceNo   = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'invoiceNo'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @InvoiceNo   END,
             @Terms       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'terms'        THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Terms       END,
             @DueDate     = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'dueDate'      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @DueDate     END,
+			@invoiceNum   = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'Invoice Num(Optional)' THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @invoiceNum   END,
 			@POReference  = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poReference'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @POReference END,
 			@PoCost       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poCost'          THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @PoCost       END
         FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
@@ -1220,6 +1222,7 @@ BEGIN
 				  AND (ISNULL(@Amountpaidbymorethan120days,'') = '' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
 				  AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
 				  AND (ISNULL(@PoCost,'') = '' OR CTE.poCost LIKE '%' + @PoCost + '%')
+				  AND (ISNULL(@invoiceNum,'') = '' OR CTE.invoiceNumber LIKE '%' + @invoiceNum + '%' OR CTE.InvoiceNo LIKE '%' + @invoiceNum + '%') -- [PN-17022] global 'Invoice Num(Optional)' filter (Detail / Show PO Num)
 			),
 			ResultCount AS (SELECT COUNT(VendorId) AS totalItems FROM Result),
 			/* [PN-17022] Show PO Num repeats an invoice once per PO, so totals count each invoice only once */

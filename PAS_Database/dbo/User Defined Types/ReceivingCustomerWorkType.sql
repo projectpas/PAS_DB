@@ -131,5 +131,9 @@
     [TSO]                        VARCHAR (50)    NULL,
     [OutGoingItemMasterId]       BIGINT          NULL,
     [OutGoingPartNumber]         VARCHAR (250)   NULL,
-    [StockUnitOfMeasureId]       BIGINT          NULL);
+    [StockUnitOfMeasureId]       BIGINT          NULL,
+    [DerNum]                     VARCHAR (100)   NULL,
+    [DerRevDate]                 DATETIME2 (7)   NULL,
+    [CustDer]                    VARCHAR (100)   NULL,
+    [DerRevNum]                  VARCHAR (100)   NULL);
 

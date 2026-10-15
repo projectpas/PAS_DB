@@ -19,6 +19,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    05/10/2026     Kishor Makwana          [PN-18072 Save vs Post] Created
+    2    14/10/2026     Kishor Makwana          [PN-18262] After the invoice is posted, USP_BatchTriggerLeaseInvoice creates the GL journal (same transaction). Journals are created on Post only.
 
 EXEC USP_PostLeaseBillingInvoice @BillingInvoicingId = 1, @UpdatedBy = 'test'
 ************************************************************************/
@@ -30,7 +31,7 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @LeaseModuleId INT, @InvoiceModuleId INT, @IsPosted BIT, @InvoiceStatus VARCHAR(50), @IsDeleted BIT;
+		DECLARE @LeaseModuleId INT, @InvoiceModuleId INT, @IsPosted BIT, @InvoiceStatus VARCHAR(50), @IsDeleted BIT, @MasterCompanyId INT;
 
 		SELECT TOP 1 @LeaseModuleId = ModuleId FROM [dbo].[Module] WITH (NOLOCK) WHERE ModuleName = 'Leasing';
 
@@ -38,7 +39,8 @@ BEGIN
 			@InvoiceModuleId = ModuleId,
 			@IsPosted = ISNULL(IsInvoicePosted, 0),
 			@InvoiceStatus = InvoiceStatus,
-			@IsDeleted = IsDeleted
+			@IsDeleted = IsDeleted,
+			@MasterCompanyId = MasterCompanyId
 		FROM [dbo].[BillingInvoicing] WITH (NOLOCK)
 		WHERE BillingInvoicingId = @BillingInvoicingId;
 
@@ -100,6 +102,9 @@ BEGIN
 		INNER JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = LSL.LeaseStocklineId
 		WHERE BII.BillingInvoicingId = @BillingInvoicingId AND BII.IsDeleted = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
 		  AND LSL.IsInvoicePost = 0;
+
+		-- Accounting: GL journal for the posted invoice, Finance lease -> FLI, Operating lease -> OLI (no-op when accounting is bypassed / the distribution is not set up yet)
+		EXEC [dbo].[USP_BatchTriggerLeaseInvoice] @BillingInvoicingId = @BillingInvoicingId, @MasterCompanyId = @MasterCompanyId, @UpdateBy = @UpdatedBy;
 
 		COMMIT TRANSACTION;
 

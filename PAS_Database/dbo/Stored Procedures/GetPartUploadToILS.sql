@@ -16,13 +16,17 @@
     2    10/03/2026   Vishal Suthar     Modified to include both ILS and PartsBase
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    14/Oct/2026   Vishal Suthar     Added @StockLineIds to download PartsBase inventory for the selected stocklines
+	6    14/Oct/2026   Vishal Suthar     PartsBase: one row per stockline (first alternate PN), integer quantity, 2-decimal price, trimmed values
  EXEC GetPartUploadToILS 1, 'PARTSBASE'
-**************************************************************/ 
-    
-CREATE PROCEDURE [dbo].[GetPartUploadToILS]       
+ EXEC GetPartUploadToILS 1, 'PARTSBASE', '101,102'
+**************************************************************/
+
+CREATE PROCEDURE [dbo].[GetPartUploadToILS]
 	@MasterCompanyId BIGINT,
-	@Portal VARCHAR(50)
-AS    
+	@Portal VARCHAR(50),
+	@StockLineIds VARCHAR(MAX) = NULL
+AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	SET NOCOUNT ON  
@@ -142,20 +146,20 @@ BEGIN
 				SELECT 
 					1 AS ITEMNUMBER,
 					'' AS 'COMPANYID',
-					IM.Partnumber AS 'PartNumber',
-					IM1.partnumber AS 'AlternatePartNumber',
-					STK.Condition AS Condition,
+					LTRIM(RTRIM(IM.Partnumber)) AS 'PartNumber',
+					LTRIM(RTRIM(ALT.PartNumber)) AS 'AlternatePartNumber',
+					LTRIM(RTRIM(STK.Condition)) AS Condition,
 					'Y' AS ILSLISTCD,
 					0 AS PARTVALUE,
-					IM.PartDescription AS 'PartDescription',
+					LTRIM(RTRIM(IM.PartDescription)) AS 'PartDescription',
 					'' AS CAGE,
-					STK.Quantity AS Quantity,
-					STK.UnitOfMeasure AS UOM,
-					STK.UnitCost AS Price,
+					CAST(ROUND(ISNULL(STK.Quantity, 0), 0) AS INT) AS Quantity,
+					LTRIM(RTRIM(STK.UnitOfMeasure)) AS UOM,
+					CAST(ISNULL(STK.UnitCost, 0) AS DECIMAL(18,2)) AS Price,
 					'' AS PARTCATEGORY,
 					'' AS 'CONTROL',
 					'' AS EXCHANGESEL,
-					STK.Manufacturer AS Manufacturer,
+					LTRIM(RTRIM(STK.Manufacturer)) AS Manufacturer,
 					STK.Location AS Location,
 					'' AS EngineModel,
 					STK.SerialNumber AS SerialNumber,
@@ -166,11 +170,19 @@ BEGIN
 					'' AS Capabilities
 				FROM [dbo].[Stockline] STK WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
-				LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType_PartsBase
-				LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-				 AND ISNULL(IM1.IsNonStock,0) = 0
+				OUTER APPLY (SELECT TOP 1 IM1.partnumber AS PartNumber
+							 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK)
+							 INNER JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId AND ISNULL(IM1.IsNonStock,0) = 0
+							 WHERE TLA.ItemMasterId = STK.ItemMasterId AND TLA.MappingType = @NHA_MappingType_PartsBase
+							 ORDER BY IM1.partnumber) ALT
 				 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
-				WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( STK.MasterCompanyId = @MasterCompanyId 
+				WHERE ISNULL(IM.IsNonStock,0) = 0 AND (
+				(ISNULL(@StockLineIds, '') <> ''
+				AND STK.MasterCompanyId = @MasterCompanyId
+				AND STK.isActive = 1
+				AND STK.isDeleted = 0
+				AND STK.StockLineId IN (SELECT item FROM SplitString(@StockLineIds,',')))
+				OR (ISNULL(@StockLineIds, '') = '' AND ( STK.MasterCompanyId = @MasterCompanyId
 				AND @SiteId_PartsBase IS NULL OR STK.SiteId = @SiteId_PartsBase
 				AND @WarehouseId_PartsBase IS NULL OR STK.WarehouseId = @WarehouseId_PartsBase
 				AND @LocationId_PartsBase IS NULL OR STK.LocationId = @LocationId_PartsBase
@@ -180,7 +192,7 @@ BEGIN
 				AND STK.isDeleted = 0
 				AND STk.MasterCompanyId = @MasterCompanyId
 				AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code_PartsBase,','))
-				) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
+				))) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
 			END
 	END TRY    
 	BEGIN CATCH      

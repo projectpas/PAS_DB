@@ -53,6 +53,7 @@
 	43   28/08/2026         Ayushi Patel            [PN-16987] added effective date
 	44   04/09/2026         Divyesh Kathriya        [PN-17842] Added Stockline Non-Stock modules.
 	45   15-Sep-2026        Divyesh Kathriya        [PN-17924] Store Stockline CreatedDate and UpdatedDate in UTC.
+	46   14-Oct-2026        Nakul Chandigra         [PN-18200] Added VendorCapability module: PN / Manufacturer / Cap Type / Currency details and Employee (uploaded or logged-in) saved with the insert
 
   exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
@@ -158,6 +159,10 @@ BEGIN
 		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
+		DECLARE @VendorCapabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorCapability');
+		DECLARE @VCItemMasterId BIGINT, @VCCapabilityTypeId BIGINT, @VCCurrencyId BIGINT, @VCEmployeeId BIGINT;
+		DECLARE @VCPartNumber VARCHAR(100), @VCPartDescription VARCHAR(255), @VCManufacturerId BIGINT, @VCManufacturerName VARCHAR(100),
+				@VCCapabilityTypeName VARCHAR(100), @VCCapabilityTypeDescription VARCHAR(256), @VCCurrency VARCHAR(50);
 		DECLARE @YesValues TABLE (Value VARCHAR(10));
 		INSERT INTO @YesValues VALUES ('yes'), ('y');
 		DECLARE @NoValues TABLE (Value VARCHAR(10));
@@ -1201,6 +1206,39 @@ BEGIN
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
 				SET @FieldValue += '1'+',' + CAST(ISNULL(@ItemClassificationId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@UomId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkOrderId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkFlowWorkOrderId,0) AS VARCHAR(20)) + ','+ CAST(ISNULL(@WMExtendedCost,0) AS VARCHAR(20)) + ','
+			END
+			ELSE IF (@ModuleId = @VendorCapabilityModule)
+			BEGIN
+				------------START: VendorCapability details from Item Master / Capability Type / Currency (PN-18200)------------
+				SELECT @VCItemMasterId = NULL, @VCCapabilityTypeId = NULL, @VCCurrencyId = NULL, @VCEmployeeId = NULL, @VCPartNumber = NULL, @VCPartDescription = NULL,
+					   @VCManufacturerId = NULL, @VCManufacturerName = NULL, @VCCapabilityTypeName = NULL, @VCCapabilityTypeDescription = NULL, @VCCurrency = NULL;
+
+				SELECT @VCItemMasterId = TRY_CAST(FieldValue AS BIGINT) FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
+				SELECT @VCCapabilityTypeId = TRY_CAST(FieldValue AS BIGINT) FROM #DynamicKeyValue WHERE FieldName = 'CapabilityTypeId';
+				SELECT @VCCurrencyId = TRY_CAST(FieldValue AS BIGINT) FROM #DynamicKeyValue WHERE FieldName = 'CurrencyId';
+				SELECT @VCEmployeeId = TRY_CAST(NULLIF(FieldValue, '') AS BIGINT) FROM #DynamicKeyValue WHERE FieldName = 'EmployeeId';
+
+				SELECT TOP 1 @VCPartNumber = LEFT(IM.[PartNumber], 100), @VCPartDescription = LEFT(IM.[PartDescription], 255),
+					   @VCManufacturerId = IM.[ManufacturerId], @VCManufacturerName = LEFT(ISNULL(M.[Name], IM.[ManufacturerName]), 100)
+				FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+				LEFT JOIN [DBO].[Manufacturer] M WITH(NOLOCK) ON M.[ManufacturerId] = IM.[ManufacturerId]
+				WHERE IM.[ItemMasterId] = @VCItemMasterId;
+
+				SELECT TOP 1 @VCCapabilityTypeName = LEFT(CT.[CapabilityTypeDesc], 100), @VCCapabilityTypeDescription = CT.[Description]
+				FROM [DBO].[CapabilityType] CT WITH(NOLOCK) WHERE CT.[CapabilityTypeId] = @VCCapabilityTypeId;
+
+				SELECT TOP 1 @VCCurrency = CR.[Code] FROM [DBO].[Currency] CR WITH(NOLOCK) WHERE CR.[CurrencyId] = @VCCurrencyId;
+
+				SET @RefFieldName += ', PartNumber, PartDescription, ManufacturerId, ManufacturerName, CapabilityTypeName, CapabilityTypeDescription, Currency, EmployeeId, MasterCompanyId, CreatedBy, UpdatedBy';
+				SET @FieldValue += ISNULL('''' + REPLACE(@VCPartNumber, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL('''' + REPLACE(@VCPartDescription, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL(CAST(@VCManufacturerId AS VARCHAR(20)), 'NULL') + ','
+								 + ISNULL('''' + REPLACE(@VCManufacturerName, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL('''' + REPLACE(@VCCapabilityTypeName, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL('''' + REPLACE(@VCCapabilityTypeDescription, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL('''' + REPLACE(@VCCurrency, '''', '''''') + '''', 'NULL') + ','
+								 + ISNULL(CAST(ISNULL(@VCEmployeeId, @EmployeeId) AS VARCHAR(20)), 'NULL') + ',';
+				------------END: VendorCapability details (PN-18200)------------
 			END
 			ELSE IF(@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )
 			BEGIN

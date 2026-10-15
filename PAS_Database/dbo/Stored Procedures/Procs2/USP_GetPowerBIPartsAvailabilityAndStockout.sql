@@ -72,8 +72,8 @@ BEGIN
             SELECT 
                 wom.ItemMasterId,
                 CASE 
-                    WHEN ISNULL(wom.Quantity, 0) > ISNULL(wom.QuantityIssued, 0) 
-                    THEN ISNULL(wom.Quantity, 0) - ISNULL(wom.QuantityIssued, 0) 
+                    WHEN ISNULL(wom.Quantity, 0) > (ISNULL(wom.QuantityIssued, 0) + ISNULL(wom.QuantityReserved, 0)) 
+                    THEN ISNULL(wom.Quantity, 0) - (ISNULL(wom.QuantityIssued, 0) + ISNULL(wom.QuantityReserved, 0)) 
                     ELSE 0 
                 END AS OpenDemandQty,
                 ISNULL(wopInfo.IsAOG, 0) AS IsAOG
@@ -102,8 +102,8 @@ BEGIN
             SELECT 
                 womk.ItemMasterId,
                 CASE 
-                    WHEN ISNULL(womk.Quantity, 0) > ISNULL(womk.QuantityIssued, 0) 
-                    THEN ISNULL(womk.Quantity, 0) - ISNULL(womk.QuantityIssued, 0) 
+                    WHEN ISNULL(womk.Quantity, 0) > (ISNULL(womk.QuantityIssued, 0) + ISNULL(womk.QuantityReserved, 0)) 
+                    THEN ISNULL(womk.Quantity, 0) - (ISNULL(womk.QuantityIssued, 0) + ISNULL(womk.QuantityReserved, 0)) 
                     ELSE 0 
                 END AS OpenDemandQty,
                 ISNULL(wopInfo.IsAOG, 0) AS IsAOG

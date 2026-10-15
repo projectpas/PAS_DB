@@ -31,6 +31,7 @@
 	13   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
 	14   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
 	15   15-OCT-2026    RAJESH GAMI        [PN-17022] - Show PO Num view (@id3 = 3): one row per PO + poCost / TotalPoCost; one row per invoice (no management-structure / doc-type duplicates) in Summary, Detail and Show PO Num
+	16   15-OCT-2026    RAJESH GAMI        [PN-17022] - Invoice Num filter (@id5) now 'contains' match on Invoice Num / Doc Num (NPO matches NPO number or vendor invoice number), same as the web grid
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1
@@ -67,7 +68,7 @@ BEGIN
   BEGIN TRY        
       DECLARE @ModuleID INT = 2, @NonStockModuleID INT = 11, @AssetModuleID INT = 42;
       DECLARE @Count BIGINT = 0, @PostStatusId INT, @CMPostedStatusId INT, @MSModuleId INT = 0, 
-              @CMMSModuleID BIGINT = 61, @invoiceNum varchar(30) = '', @PageSize int = 0, @PageNumber int = 1;
+              @CMMSModuleID BIGINT = 61, @invoiceNum varchar(100) = '', @PageSize int = 0, @PageNumber int = 1;
 
       SELECT @PostStatusId   = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus]  WHERE [Name] = 'Posted';
       SELECT @CMPostedStatusId = [Id]                  FROM [dbo].[CreditMemoStatus]      WHERE [Name] = 'Posted';
@@ -155,7 +156,7 @@ BEGIN
               AND VCM.[MasterCompanyId]         = @mastercompanyid   
               AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
               AND ISNULL(VCD.ApplierdAmt, 0) > 0 
-              AND VCM.VendorCreditMemoNumber = ISNULL(@invoiceNum, VCM.VendorCreditMemoNumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR VCM.VendorCreditMemoNumber LIKE '%' + @invoiceNum + '%')
               AND (ISNULL(@tagtype, '') = '' OR SES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype, ''), ',')))      
               AND (ISNULL(@Level1,  '') = '' OR SMSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',')))      
               AND (ISNULL(@Level2,  '') = '' OR SMSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',')))      
@@ -183,7 +184,7 @@ BEGIN
               WHERE MJD.ReferenceId              = ISNULL(@vendorId, MJD.ReferenceId)   
               AND MJH.[ManualJournalStatusId]    = @PostStatusId
               AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate - 1 AS DATE) END 
-              AND MJH.JournalNumber              = ISNULL(@invoiceNum, MJH.JournalNumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR MJH.JournalNumber LIKE '%' + @invoiceNum + '%')
               AND MJH.mastercompanyid            = @mastercompanyid    
               AND vpd.RemainingAmount > 0 
               AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
@@ -214,7 +215,7 @@ BEGIN
               WHERE NPH.VendorId              = ISNULL(@vendorId, NPH.VendorId)        
               AND CAST(NPH.InvoiceDate AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate - 1 AS DATE) END 
               AND vpd.RemainingAmount > 0  
-              AND NPH.NPONumber              = ISNULL(@invoiceNum, NPH.NPONumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR NPH.NPONumber LIKE '%' + @invoiceNum + '%' OR NPH.InvoiceNumber LIKE '%' + @invoiceNum + '%')
               AND NPH.MasterCompanyId        = @mastercompanyid
               AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
               AND (ISNULL(@tagtype, '') = '' OR ES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype, ''), ',')))      
@@ -837,7 +838,7 @@ BEGIN
               AND rrh.[MasterCompanyId]          = @mastercompanyid   
               AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
               AND vpd.RemainingAmount > 0  
-              AND rrh.InvoiceNum                 = ISNULL(@invoiceNum, rrh.InvoiceNum)
+              AND (ISNULL(@invoiceNum, '') = '' OR rrh.InvoiceNum LIKE '%' + @invoiceNum + '%' OR rrh.ReceivingReconciliationNumber LIKE '%' + @invoiceNum + '%')
               AND (ISNULL(@tagtype, '') = '' OR ES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype, ''), ',')))      
               AND (ISNULL(@Level1,  '') = '' OR (UPPER(rrd.StockType) = 'STOCK' AND MSD.Level1Id   IN (SELECT Item FROM dbo.SplitString(@Level1,  ','))) OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level1Id  IN (SELECT Item FROM dbo.SplitString(@Level1,  ','))) OR (UPPER(rrd.StockType) = 'ASSET' AND AMSD.Level1Id  IN (SELECT Item FROM dbo.SplitString(@Level1,  ','))))
               AND (ISNULL(@Level2,  '') = '' OR (UPPER(rrd.StockType) = 'STOCK' AND MSD.Level2Id   IN (SELECT Item FROM dbo.SplitString(@Level2,  ','))) OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level2Id  IN (SELECT Item FROM dbo.SplitString(@Level2,  ','))) OR (UPPER(rrd.StockType) = 'ASSET' AND AMSD.Level2Id  IN (SELECT Item FROM dbo.SplitString(@Level2,  ','))))
@@ -929,7 +930,7 @@ BEGIN
               AND VCM.[MasterCompanyId]           = @mastercompanyid   
               AND VCM.[VendorCreditMemoStatusId]  = @CMPostedStatusId
               AND ISNULL(VCD.ApplierdAmt, 0) > 0 
-              AND VCM.VendorCreditMemoNumber      = ISNULL(@invoiceNum, VCM.VendorCreditMemoNumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR VCM.VendorCreditMemoNumber LIKE '%' + @invoiceNum + '%')
               AND (ISNULL(@tagtype, '') = '' OR SES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype, ''), ',')))      
               AND (ISNULL(@Level1,  '') = '' OR SMSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',')))      
               AND (ISNULL(@Level2,  '') = '' OR SMSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',')))      
@@ -1026,7 +1027,7 @@ BEGIN
               WHERE MJD.ReferenceId              = ISNULL(@vendorId, MJD.ReferenceId)    
               AND MJH.[ManualJournalStatusId]    = @PostStatusId
               AND MJD.[ReferenceTypeId]          = 2  
-              AND MJH.JournalNumber              = ISNULL(@invoiceNum, MJH.JournalNumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR MJH.JournalNumber LIKE '%' + @invoiceNum + '%')
               AND vpd.RemainingAmount > 0
               AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
               AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate - 1 AS DATE) END 
@@ -1126,7 +1127,7 @@ BEGIN
               AND NPH.[MasterCompanyId]          = @mastercompanyid 
               AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
               AND vpd.RemainingAmount > 0  
-              AND NPH.NPONumber                  = ISNULL(@invoiceNum, NPH.NPONumber)
+              AND (ISNULL(@invoiceNum, '') = '' OR NPH.NPONumber LIKE '%' + @invoiceNum + '%' OR NPH.InvoiceNumber LIKE '%' + @invoiceNum + '%')
               AND (ISNULL(@tagtype, '') = '' OR ES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype, ''), ',')))      
               AND (ISNULL(@Level1,  '') = '' OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',')))      
               AND (ISNULL(@Level2,  '') = '' OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',')))      

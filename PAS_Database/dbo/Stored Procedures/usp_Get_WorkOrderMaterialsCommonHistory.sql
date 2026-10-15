@@ -15,9 +15,10 @@
  **********************
  ** Change History
  **********************
- ** S NO   Date          Author          Change Description
- ** --     --------      -------------   --------------------------------
-    1      31-AUG-2026   Ayushi Patel    Created (PN-14788) 
+ ** S NO   Date          Author             Change Description
+ ** --     --------      -------------      --------------------------------
+    1      31-AUG-2026   Ayushi Patel       Created (PN-14788) 
+    2      14-Oct-2026   Divyesh Kathriya   Remove Active and Include tendered material stockline,PO and RO creation creation Actions [PN-18307].
 
 exec usp_Get_WorkOrderMaterialsCommonHistory @WorkOrderId=10662, @EmployeeId=2
 **********************/
@@ -111,8 +112,7 @@ BEGIN
                 LAG(Provision) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevProvision,
                 LAG(QtyRequested) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevQtyRequested,
                 LAG(QtyReserved) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevQtyReserved,
-                LAG(QtyIssued) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevQtyIssued,
-                LAG(IsActive) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevIsActive,
+                LAG(QtyIssued) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevQtyIssued,                
                 LAG(IsDeleted) OVER (PARTITION BY WorkOrderMaterialsId ORDER BY WorkOrderMaterialsAuditId) AS PrevIsDeleted
             FROM MaterialRaw
         ),
@@ -132,7 +132,6 @@ BEGIN
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyRequested, -1) <> ISNULL(PrevQtyRequested, -1) THEN ',qtyRequested' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyReserved, -1) <> ISNULL(PrevQtyReserved, -1) THEN ',qtyReserved' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyIssued, -1) <> ISNULL(PrevQtyIssued, -1) THEN ',qtyIssued' ELSE '' END +
-                    CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsActive AS INT), -1) <> ISNULL(CAST(PrevIsActive AS INT), -1) THEN ',isActive' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsDeleted AS INT), -1) <> ISNULL(CAST(PrevIsDeleted AS INT), -1) THEN ',isDeleted' ELSE '' END
                 , 1, 1, '') AS ChangedFields,
                 EventBucket,
@@ -198,7 +197,6 @@ BEGIN
                 LAG(QtyRequested) OVER (PARTITION BY WOMStockLineId ORDER BY WOMStockLineAuditId) AS PrevQtyRequested,
                 LAG(QtyReserved) OVER (PARTITION BY WOMStockLineId ORDER BY WOMStockLineAuditId) AS PrevQtyReserved,
                 LAG(QtyIssued) OVER (PARTITION BY WOMStockLineId ORDER BY WOMStockLineAuditId) AS PrevQtyIssued,
-                LAG(IsActive) OVER (PARTITION BY WOMStockLineId ORDER BY WOMStockLineAuditId) AS PrevIsActive,
                 LAG(IsDeleted) OVER (PARTITION BY WOMStockLineId ORDER BY WOMStockLineAuditId) AS PrevIsDeleted
             FROM StockLineRaw
         ),
@@ -224,7 +222,6 @@ BEGIN
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyRequested, -1) <> ISNULL(PrevQtyRequested, -1) THEN ',qtyRequested' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyReserved, -1) <> ISNULL(PrevQtyReserved, -1) THEN ',qtyReserved' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyIssued, -1) <> ISNULL(PrevQtyIssued, -1) THEN ',qtyIssued' ELSE '' END +
-                    CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsActive AS INT), -1) <> ISNULL(CAST(PrevIsActive AS INT), -1) THEN ',isActive' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsDeleted AS INT), -1) <> ISNULL(CAST(PrevIsDeleted AS INT), -1) THEN ',isDeleted' ELSE '' END
                 , 1, 1, '') AS ChangedFields,
                 EventBucket,
@@ -290,7 +287,6 @@ BEGIN
                 LAG(QtyRequested) OVER (PARTITION BY WorkOrderMaterialsKitId ORDER BY WorkOrderMaterialsKitAuditId) AS PrevQtyRequested,
                 LAG(QtyReserved) OVER (PARTITION BY WorkOrderMaterialsKitId ORDER BY WorkOrderMaterialsKitAuditId) AS PrevQtyReserved,
                 LAG(QtyIssued) OVER (PARTITION BY WorkOrderMaterialsKitId ORDER BY WorkOrderMaterialsKitAuditId) AS PrevQtyIssued,
-                LAG(IsActive) OVER (PARTITION BY WorkOrderMaterialsKitId ORDER BY WorkOrderMaterialsKitAuditId) AS PrevIsActive,
                 LAG(IsDeleted) OVER (PARTITION BY WorkOrderMaterialsKitId ORDER BY WorkOrderMaterialsKitAuditId) AS PrevIsDeleted
             FROM KitRaw
         ),
@@ -315,7 +311,6 @@ BEGIN
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyRequested, -1) <> ISNULL(PrevQtyRequested, -1) THEN ',qtyRequested' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyReserved, -1) <> ISNULL(PrevQtyReserved, -1) THEN ',qtyReserved' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyIssued, -1) <> ISNULL(PrevQtyIssued, -1) THEN ',qtyIssued' ELSE '' END +
-                    CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsActive AS INT), -1) <> ISNULL(CAST(PrevIsActive AS INT), -1) THEN ',isActive' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsDeleted AS INT), -1) <> ISNULL(CAST(PrevIsDeleted AS INT), -1) THEN ',isDeleted' ELSE '' END
                 , 1, 1, '') AS ChangedFields,
                 EventBucket,
@@ -380,7 +375,6 @@ BEGIN
                 LAG(QtyRequested) OVER (PARTITION BY WorkOrderMaterialStockLineKitId ORDER BY WorkOrderMaterialStockLineKitAuditId) AS PrevQtyRequested,
                 LAG(QtyReserved) OVER (PARTITION BY WorkOrderMaterialStockLineKitId ORDER BY WorkOrderMaterialStockLineKitAuditId) AS PrevQtyReserved,
                 LAG(QtyIssued) OVER (PARTITION BY WorkOrderMaterialStockLineKitId ORDER BY WorkOrderMaterialStockLineKitAuditId) AS PrevQtyIssued,
-                LAG(IsActive) OVER (PARTITION BY WorkOrderMaterialStockLineKitId ORDER BY WorkOrderMaterialStockLineKitAuditId) AS PrevIsActive,
                 LAG(IsDeleted) OVER (PARTITION BY WorkOrderMaterialStockLineKitId ORDER BY WorkOrderMaterialStockLineKitAuditId) AS PrevIsDeleted
             FROM KitStockLineRaw
         ),
@@ -406,7 +400,6 @@ BEGIN
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyRequested, -1) <> ISNULL(PrevQtyRequested, -1) THEN ',qtyRequested' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyReserved, -1) <> ISNULL(PrevQtyReserved, -1) THEN ',qtyReserved' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(QtyIssued, -1) <> ISNULL(PrevQtyIssued, -1) THEN ',qtyIssued' ELSE '' END +
-                    CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsActive AS INT), -1) <> ISNULL(CAST(PrevIsActive AS INT), -1) THEN ',isActive' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsDeleted AS INT), -1) <> ISNULL(CAST(PrevIsDeleted AS INT), -1) THEN ',isDeleted' ELSE '' END
                 , 1, 1, '') AS ChangedFields,
                 EventBucket,
@@ -451,9 +444,91 @@ BEGIN
               AND H.Activity IN (
                     SELECT TemplateText FROM [dbo].[HistoryTemplate] WITH (NOLOCK)
                     WHERE TemplateCode IN ('AddPN', 'AddKit', 'DeleteWorkOrderMaterials', 'DeleteWorkOrderMaterialStockline',
-                                            'ReserveParts', 'UnReservedParts', 'IssuedParts', 'UnIssuedParts',
-                                            'DeleteKit', 'DeleteKitPart')
+                                            'ReserveParts', 'UnReservedParts', 'IssuedParts', 'UnIssuedParts',                                        
+                                            'DeleteKit', 'DeleteKitPart', 'TenderStocklineCreated')
               )
+        ),
+        OrderCreationRaw AS
+        (
+            SELECT
+                N'PO' AS OrderType,
+                A.[PurchaseOrderPartRecordId] AS OrderPartId,
+                PO.[PurchaseOrderNumber] AS OrderNumber,
+                COALESCE(NULLIF(A.[PartNumber], ''), IM.[PartNumber]) AS OrderedPartNumber,
+                A.[CreatedDate] AS RawDate,
+                A.[CreatedBy] AS ChangedBy,
+                ROW_NUMBER() OVER (PARTITION BY A.[PurchaseOrderPartRecordId]
+                                   ORDER BY A.[PurchaseOrderPartAuditId]) AS CreationSeq
+            FROM [DBO].[PurchaseOrderPartAudit] A WITH(NOLOCK)
+            JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK)
+                ON PO.[PurchaseOrderId] = A.[PurchaseOrderId]
+               AND PO.[MasterCompanyId] = A.[MasterCompanyId]
+            JOIN [DBO].[WorkOrder] WO WITH(NOLOCK)
+                ON WO.[WorkOrderId] = A.[WorkOrderId]
+               AND WO.[MasterCompanyId] = A.[MasterCompanyId]
+            LEFT JOIN [DBO].[ItemMaster] IM WITH(NOLOCK)
+                ON IM.[ItemMasterId] = A.[ItemMasterId]
+               AND IM.[MasterCompanyId] = A.[MasterCompanyId]
+            WHERE A.[WorkOrderId] = @WorkOrderId
+              AND A.[WorkOrderMaterialsId] > 0
+              AND ISNULL(A.[IsSubWO], 0) = 0
+              AND ISNULL(A.[SubWorkOrderId], 0) = 0
+
+            UNION ALL
+
+            SELECT
+                N'RO' AS OrderType,
+                A.[RepairOrderPartRecordId] AS OrderPartId,
+                RO.[RepairOrderNumber] AS OrderNumber,
+                COALESCE(NULLIF(A.[PartNumber], ''), IM.[PartNumber]) AS OrderedPartNumber,
+                A.[CreatedDate] AS RawDate,
+                A.[CreatedBy] AS ChangedBy,
+                ROW_NUMBER() OVER (PARTITION BY A.[RepairOrderPartRecordId]
+                                   ORDER BY A.[RepairOrderPartAuditId]) AS CreationSeq
+            FROM [DBO].[RepairOrderPartAudit] A WITH(NOLOCK)
+            JOIN [DBO].[RepairOrder] RO WITH(NOLOCK)
+                ON RO.[RepairOrderId] = A.[RepairOrderId]
+               AND RO.[MasterCompanyId] = A.[MasterCompanyId]
+            JOIN [DBO].[WorkOrder] WO WITH(NOLOCK)
+                ON WO.[WorkOrderId] = A.[WorkOrderId]
+               AND WO.[MasterCompanyId] = A.[MasterCompanyId]
+            LEFT JOIN [DBO].[ItemMaster] IM WITH(NOLOCK)
+                ON IM.[ItemMasterId] = A.[ItemMasterId]
+               AND IM.[MasterCompanyId] = A.[MasterCompanyId]
+            WHERE A.[WorkOrderId] = @WorkOrderId
+              AND A.[WorkOrderMaterialsId] > 0
+              AND ISNULL(A.[SubWorkOrderId], 0) = 0
+        ),
+        OrderCreationRows AS
+        (
+            SELECT
+                N'Action' AS Source,
+                CAST(NULL AS VARCHAR(256)) AS PartNumber,
+                CAST(NULL AS VARCHAR(50)) AS StockLineNumber,
+                CAST(NULL AS VARCHAR(256)) AS Task,
+                CAST(NULL AS VARCHAR(256)) AS Condition,
+                CAST(NULL AS VARCHAR(256)) AS RequestType,
+                CAST(NULL AS VARCHAR(256)) AS Provision,
+                CAST(NULL AS DECIMAL(18, 6)) AS QtyRequested,
+                CAST(NULL AS DECIMAL(18, 6)) AS QtyReserved,
+                CAST(NULL AS DECIMAL(18, 6)) AS QtyIssued,
+                CAST(NULL AS DECIMAL(18, 6)) AS QtyRemaining,
+                CAST(NULL AS VARCHAR(256)) AS UOM,
+                CAST(NULL AS VARCHAR(256)) AS Shelf,
+                CAST(NULL AS VARCHAR(256)) AS Bin,
+                CAST(NULL AS BIT) AS IsActive,
+                CAST(NULL AS BIT) AS IsDeleted,
+                CAST(NULL AS NVARCHAR(MAX)) AS Memo,
+                CAST(NULL AS NVARCHAR(MAX)) AS Notes,
+                CAST(CONCAT(OrderNumber, ' Created for ', OrderedPartNumber) AS VARCHAR(MAX)) AS Description,
+                CAST(NULL AS VARCHAR(MAX)) AS ChangedFields,
+                DATEADD(SECOND, (DATEDIFF(SECOND, '2000-01-01', RawDate) / 10) * 10, CAST('2000-01-01' AS DATETIME2(3))) AS EventBucket,
+                CASE WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0 THEN RawDate
+                     ELSE CAST([DBO].[ConvertUTCtoLocal](RawDate, @CurrntEmpTimeZoneDesc) AS DATETIME2(3)) END AS EventDate,
+                ChangedBy,
+                OrderPartId AS RowSeq
+            FROM OrderCreationRaw
+            WHERE CreationSeq = 1
         ),
         Combined AS
         (
@@ -466,10 +541,15 @@ BEGIN
             SELECT * FROM KitStockLineRows
             UNION ALL
             SELECT * FROM ActionRows
+            UNION ALL
+            SELECT Source, PartNumber, StockLineNumber, Task, Condition, RequestType, Provision,
+                   QtyRequested, QtyReserved, QtyIssued, QtyRemaining, UOM, Shelf, Bin, IsActive, IsDeleted,
+                   Memo, Notes, Description, ChangedFields, EventBucket, EventDate, ChangedBy, RowSeq
+            FROM OrderCreationRows
         )
         SELECT
             Source, PartNumber, StockLineNumber, Task, Condition, RequestType, Provision,
-            QtyRequested, QtyReserved, QtyIssued, QtyRemaining, UOM, Shelf, Bin, IsActive, IsDeleted,
+            QtyRequested, QtyReserved, QtyIssued, QtyRemaining, UOM, Shelf, Bin, IsDeleted,
             Memo, Notes, Description, ChangedFields, EventDate, ChangedBy
         FROM Combined
         ORDER BY

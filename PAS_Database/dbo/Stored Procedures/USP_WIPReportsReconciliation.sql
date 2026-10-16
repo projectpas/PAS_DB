@@ -13,6 +13,7 @@
     1    11/02/2026   Priyansh Patel      Created  for Initial Requirements	
 	2    24/02/2026   Hemant Saliya       Corrected balance missmatch for WIP
 	3    26/02/2026   Priyansh Patel      Added IsAccountByPass condition
+	4    16-Oct-2026  Divyesh Kathriya    Apply selected work orders to WIP reconciliation totals. [PN-18207]
 
 
      
@@ -24,13 +25,20 @@ CREATE       PROCEDURE [dbo].[USP_WIPReportsReconciliation]
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),
-@id3 BIGINT = NULL
+@id3 BIGINT = NULL,
+@id5 VARCHAR(MAX) = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY
 		
+		DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+		INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+		SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+		FROM [DBO].[SPLITSTRING](@id5, ',')
+		WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
+
 		DECLARE @FromDate DATETIME = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
 		DECLARE @ToDate DATETIME = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
 
@@ -77,7 +85,8 @@ BEGIN
         JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND ISNULL(WOP.IsFinishGood, 0) = 0 
         WHERE WO.MasterCompanyId = @MasterCompanyId AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 
         AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-        AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+        AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+        AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
 		IF OBJECT_ID(N'tempdb..#tmpWorkOrderPartsCost') IS NOT NULL    
 		BEGIN    
@@ -187,7 +196,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
 	    WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @PostedStatusId  AND WIP.WIPCategoryId = @WIPMaterialCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         --#WIP Materials Un-Posted GL Account
         SELECT @TotalWIPMaterialWIPUnpostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -198,7 +208,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
 	    WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @OpenStatusId  AND WIP.WIPCategoryId = @WIPMaterialCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         --#WIP Direct Labor Posted GL Account
         SELECT @TotalDirectLaborPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -209,7 +220,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
 	    WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @PostedStatusId  AND WIP.WIPCategoryId = @WIPDirectLaborCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         --#WIP Direct Labor Un-Posted GL Account
         SELECT @TotalDirectLaborUnpostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -220,7 +232,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
 	    WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @OpenStatusId  AND WIP.WIPCategoryId = @WIPDirectLaborCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-            AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+            AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+            AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         --#WIP OH Labor Posted GL Account
         SELECT @TotalWIPOverheadPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -231,7 +244,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
 	    WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @PostedStatusId  AND WIP.WIPCategoryId = @WIPOverheadCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-         AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+         AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+         AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         --#WIP OH Labor Un-Posted GL Account
         SELECT @TotalWIPOverheadUnPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -242,7 +256,8 @@ BEGIN
             JOIN [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId  
             JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WBD.MPNPartId = WOP.ID
         WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @OpenStatusId  AND WIP.WIPCategoryId = @WIPOverheadCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
             DECLARE @IsShowReconcile BIT = 0;
 

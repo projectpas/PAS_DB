@@ -13,7 +13,8 @@
 	2	 16-May-2025		Divyesh Kathiriya	Add Nullable Parameter.
 	3	 01-Oct-2025		Bhargav Saliya  	Add Field [IsCreaditRestriction].
 	4    09-Oct-2025        Bhargav Saliya      Added New Field [RestrictMessage]
-    5    20-May-2026        Rajesh Gami			Added New Filed IsCreditLimitWarning, WarningMessage [PN-16501]  
+    5    20-May-2026        Rajesh Gami			Added New Filed IsCreditLimitWarning, WarningMessage [PN-16501]
+    6    16-Oct-2026        Vishal Suthar		Added New Fields AllowBackDateShipping, AllowBackDateBilling
  -- EXEC [USP_CreateLegalEntity] @Name=N'LEGAL ENTITY',@AddressId=0,@PhoneNumber=N'98989892333',@FaxNumber=default,@FunctionalCurrencyId=2,@ReportingCurrencyId=2,
 								 @IsBalancingEntity=1,@TagNames=N'',@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@MasterCompanyId=1,@CompanyCode=N'LEGAL ENTITY CODE',
 								 @CompanyName=N'COMPANY NAME',@IsAddressForBilling=1,@IsAddressForShipping=1,@Address1=N'ADDRESS LINE 1',@Address2=N'ADDRESS LINE 2',
@@ -61,7 +62,9 @@ CREATE   PROCEDURE [dbo].[USP_CreateLegalEntity]
 @IsCreaditRestriction BIT = Null,
 @RestrictMessage VARCHAR(Max) = Null,
 @IsCreditLimitWarning BIT = Null,
-@WarningMessage VARCHAR(Max) = Null
+@WarningMessage VARCHAR(Max) = Null,
+@AllowBackDateShipping BIT = Null,
+@AllowBackDateBilling BIT = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -194,7 +197,7 @@ BEGIN
 							[TimeZoneId],
 							[IsPrintCheckNumber],
 							[IsTurnOffMgmt],
-							[UKCAALicense],[IsCreaditRestriction],[RestrictMessage],IsCreditLimitWarning,WarningMessage)
+							[UKCAALicense],[IsCreaditRestriction],[RestrictMessage],IsCreditLimitWarning,WarningMessage,AllowBackDateShipping,AllowBackDateBilling)
 						VALUES(
 							@Name,
 							@DoingLegalAs,
@@ -233,7 +236,9 @@ BEGIN
 							@IsCreaditRestriction,
 							@RestrictMessage,
 							@IsCreditLimitWarning,
-							@WarningMessage
+							@WarningMessage,
+							ISNULL(@AllowBackDateShipping, 0),
+							ISNULL(@AllowBackDateBilling, 0)
 							)						
 		
 						SET @LegalEntityId = SCOPE_IDENTITY();

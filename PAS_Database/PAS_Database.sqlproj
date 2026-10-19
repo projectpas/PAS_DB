@@ -4027,6 +4027,7 @@
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesOrderPartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPartPublications.sql" />
     <Build Include="dbo\Stored Procedures\GetPartUploadToILS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShipBillBackDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
     <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalShippingDetails.sql" />

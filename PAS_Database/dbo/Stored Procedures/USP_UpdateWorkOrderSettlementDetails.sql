@@ -9,6 +9,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    15/07/2026   Moin Bloch 	    Created - converted from C# repository method
+	2    19/10/2026   kishor Makwana    [PN-18355] - Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderSettlementDetails]
 (
@@ -259,6 +260,9 @@ BEGIN
 				IF (@IsWOClosed = 0)
 				BEGIN
 					UPDATE [dbo].[WorkOrder] SET [UpdatedDate] = @UpdatedDate,[UpdatedBy] = @UpdatedBy,[WorkOrderStatusId] = @ClosedWorkOrderStatusId WHERE [WorkOrderId] = @WorkOrderId;
+
+					-- Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
+					EXEC [dbo].[USP_SyncWorksheetStatusByWorkOrder] @WorkOrderId = @WorkOrderId, @UpdatedBy = @UpdatedBy;
 
 					-- UPDATE WORK ORDER MPN STOCKLINE QTY FOR SHIPPING
 					EXEC [dbo].[USP_UpdateWorkOrderMPNStocklineQtyForShipping] @WorkOrderPartNoId = @WorkOrderPartNoId,@WorkorderId = @WorkOrderId;

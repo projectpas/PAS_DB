@@ -3409,6 +3409,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAllWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskSequenceNumber.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstruction.sql" />
     <Build Include="dbo\Tables\TaskInstructionMasterAudit.sql" />

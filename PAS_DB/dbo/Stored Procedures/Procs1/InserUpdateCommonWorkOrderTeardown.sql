@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2021   Vishal Suthar Created
+	2    10/16/2026   Moin Bloch    Update the existing teardown type row instead of inserting a duplicate when two users save at the same time
 **************************************************************/
 Create   PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
     @CommonWorkOrderTeardownId bigint = 0,
@@ -46,8 +47,21 @@ BEGIN
 	 BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-			    IF (@CommonWorkOrderTeardownId = 0)
-				BEGIN 
+			    IF (ISNULL(@CommonWorkOrderTeardownId, 0) = 0)
+				BEGIN
+					-- Lock and reuse the existing row for this teardown type so simultaneous saves don't insert duplicates
+					SELECT TOP 1 @CommonWorkOrderTeardownId = WoTD.CommonWorkOrderTearDownId
+					FROM [dbo].[CommonWorkOrderTearDown] WoTD WITH (UPDLOCK, HOLDLOCK)
+					WHERE WoTD.WorkOrderId = @WorkOrderId
+					  AND WoTD.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+					  AND WoTD.CommonTeardownTypeId = @CommonTeardownTypeId
+					  AND ISNULL(WoTD.IsSubWorkOrder, 0) = ISNULL(@IsSubWorkOrder, 0)
+					  AND ISNULL(WoTD.SubWOPartNoId, 0) = ISNULL(@SubWOPartNoId, 0)
+					  AND WoTD.IsDeleted = 0;
+				END
+
+			    IF (ISNULL(@CommonWorkOrderTeardownId, 0) = 0)
+				BEGIN
 				      INSERT INTO [dbo].[CommonWorkOrderTearDown](
 									[CommonTeardownTypeId]
 								   ,[WorkOrderId]

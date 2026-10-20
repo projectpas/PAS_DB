@@ -89,31 +89,34 @@ BEGIN
 			
 			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
 			SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId		
-							
-			DECLARE @Start INT, @End INT;
+			
+			IF(@MasterCompanyCode = @CompanyCode)
+			BEGIN
+				DECLARE @Start INT, @End INT;
 
-			WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
-			BEGIN
-				SET @Start = PATINDEX('%<ul%', @CorrectiveAction);
-				SET @End = CHARINDEX('</ul>', @CorrectiveAction, @Start);
-				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
-			END
-			WHILE PATINDEX('%<ol%', @CorrectiveAction) > 0
-			BEGIN
-				SET @Start = PATINDEX('%<ol%', @CorrectiveAction);
-				SET @End = CHARINDEX('</ol>', @CorrectiveAction, @Start);
-				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
-			END			
-			DECLARE @FinalResult NVARCHAR(MAX) = '';
-			SELECT @FinalResult = @FinalResult + '<p>' + LTRIM(SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))) + '</p>'
-			FROM (				
-				SELECT value as RawItem,					  
-					   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) as CleanedItem
-				FROM STRING_SPLIT(REPLACE(@CorrectiveAction, '</p>', '|'), '|')
-			) AS T
-			WHERE CleanedItem LIKE '%*%';
+				WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
+				BEGIN
+					SET @Start = PATINDEX('%<ul%', @CorrectiveAction);
+					SET @End = CHARINDEX('</ul>', @CorrectiveAction, @Start);
+					SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+				END
+				WHILE PATINDEX('%<ol%', @CorrectiveAction) > 0
+				BEGIN
+					SET @Start = PATINDEX('%<ol%', @CorrectiveAction);
+					SET @End = CHARINDEX('</ol>', @CorrectiveAction, @Start);
+					SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+				END			
+				DECLARE @FinalResult NVARCHAR(MAX) = '';
+				SELECT @FinalResult = @FinalResult + '<p>' + LTRIM(SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))) + '</p>'
+				FROM (				
+					SELECT value as RawItem,					  
+						   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) as CleanedItem
+					FROM STRING_SPLIT(REPLACE(@CorrectiveAction, '</p>', '|'), '|')
+				) AS T
+				WHERE CleanedItem LIKE '%*%';
 									
-			SET	@CorrectiveAction = @FinalResult
+				SET	@CorrectiveAction = @FinalResult
+			END
 		END
 		/********* For the ATI company: Release Form *********/
 		IF(@MasterCompanyCodeATI = (SELECT [MasterCompanyCode]FROM [dbo].[MasterCompany] WITH(NOLOCK)WHERE [MasterCompanyId] = @MasterCompanyId	))

@@ -1,4 +1,4 @@
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <05/10/2023>  
 ** Description: <Re-Open Closed WO>  
@@ -19,8 +19,9 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 8    26-08-2025  Bhargav Saliya       Fix WorkOrderStatus isues For After Reopen CLOSED WO
 ** 9	12/02/2026  Moin Bloch			 Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
 ** 10   26/03/2026  Moin Bloch	         Rename TearDown To Internal Teardown PN-15850
-	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   11   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 12   02/09/2026   Ayushi Patel        [PN-14788]history marker for the Re-Open WO action itself (the triggers above capture its side-effects, not the action that caused them).
+** 13   19/10/2026   kishor Makwana [PN-18355] - Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
@@ -206,6 +207,9 @@ AS
 				UPDATE dbo.WorkOrder 
 					SET WorkOrderStatusId = CASE WHEN ISNULL(WorkOrderStatusId, 0) = @ClosedWorkOrderStatusId THEN @WorkOrderStatusId ELSE WorkOrderStatusId END
 				WHERE WorkOrderId = @WorkOrderId;
+
+				-- Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
+				EXEC [dbo].[USP_SyncWorksheetStatusByWorkOrder] @WorkOrderId = @WorkOrderId, @UpdatedBy = @UpdatedBy;
 
 				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
 				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)

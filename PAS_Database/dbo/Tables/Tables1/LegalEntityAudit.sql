@@ -51,6 +51,8 @@
     [RestrictMessage]         VARCHAR (MAX) NULL,
     [IsCreditLimitWarning]    BIT           NULL,
     [WarningMessage]          VARCHAR (MAX) NULL,
+    [AllowBackDateShipping]   BIT           NULL,
+    [AllowBackDateBilling]    BIT           NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
 

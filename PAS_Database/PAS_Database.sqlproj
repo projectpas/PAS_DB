@@ -3409,6 +3409,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAllWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskSequenceNumber.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstruction.sql" />
     <Build Include="dbo\Tables\TaskInstructionMasterAudit.sql" />
@@ -4027,6 +4028,7 @@
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesOrderPartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPartPublications.sql" />
     <Build Include="dbo\Stored Procedures\GetPartUploadToILS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShipBillBackDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
     <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalShippingDetails.sql" />
@@ -4872,6 +4874,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncWorksheetStatusByWorkOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

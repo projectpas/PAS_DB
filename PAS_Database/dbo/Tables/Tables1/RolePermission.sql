@@ -14,8 +14,7 @@
 );
 
 
-
 GO
 CREATE NONCLUSTERED INDEX [IX_RolePermission_UserRoleId]
     ON [dbo].[RolePermission]([UserRoleId] ASC)
-    INCLUDE([ModuleHierarchyMasterId], [PermissionID]);
+    INCLUDE ([ModuleHierarchyMasterId], [PermissionID]);

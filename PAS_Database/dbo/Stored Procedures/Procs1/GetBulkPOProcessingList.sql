@@ -23,6 +23,7 @@
 	17	 09/July/2027            Ayushi Patel						return PoPartUnitCost from stockline table insted of PurchaseOrderUnitCost / uom chnages [PN-17152]
 	18   12/May/2026             RAJESH GAMI						Blank the MPN when it is SO [PN-16401]
 	19   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	20   15-Oct-2026   RAJESH GAMI    [PN-18336] Fixed 'Arithmetic overflow error converting numeric to data type numeric': #TEMPBulkPORecords Quantity/UnitCost/ExtendedCost/LastPurchasePrice widened from DECIMAL(18,6) to DECIMAL(28,6).
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -102,10 +103,12 @@ BEGIN
 				[PNDescription] NVARCHAR(MAX) NULL,
 				[Condition]	VARCHAR(MAX) NULL,
 				[ConditionId] BIGINT NULL,
-				[Quantity] DECIMAL(18,6) NULL,
-				[UnitCost] DECIMAL(18,6) NULL,
-				[ExtendedCost] DECIMAL(18,6) NULL,
-				[LastPurchasePrice]	DECIMAL(18,6) NULL, 
+				-- PN-18336: widened from DECIMAL(18,6) - Quantity * UnitPrice (e.g. SO shortage qty * PP_UnitPurchasePrice) can exceed
+				-- 12 integer digits and raised "Arithmetic overflow error converting numeric to data type numeric" on the INSERT.
+				[Quantity] DECIMAL(28,6) NULL,
+				[UnitCost] DECIMAL(28,6) NULL,
+				[ExtendedCost] DECIMAL(28,6) NULL,
+				[LastPurchasePrice]	DECIMAL(28,6) NULL, 
 				[LastPONumber] VARCHAR(50) NULL,
 				[LastPODate] DATETIME NULL,
 				[VendorName] VARCHAR(200) NULL,

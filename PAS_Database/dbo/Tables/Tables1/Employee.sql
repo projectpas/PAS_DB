@@ -64,6 +64,7 @@
     [LocationId]                         BIGINT          NULL,
     [ShelfId]                            BIGINT          NULL,
     [BinId]                              BIGINT          NULL,
+    [EmployeeInitials]                   VARCHAR (50)    NULL,
     CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED ([EmployeeId] ASC),
     CONSTRAINT [FK__Employee__LegalE__3FC721DF] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_Employee_JobTitle] FOREIGN KEY ([JobTitleId]) REFERENCES [dbo].[JobTitle] ([JobTitleId]),

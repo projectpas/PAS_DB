@@ -14,6 +14,7 @@
  ** --   --------         -------          --------------------------------            
     1    28-07-2025    Sahdev Saliya       Created  
 	2    19-11-2025    Devendra Shekh      Added MasterCompanyId for AspNetUsers
+	3    19-10-2026    Moin Bloch          Added EmployeeInitials
 
 	exec [USP_GetEmployeeViewDetailsList] 243
 **************************************************************/ 
@@ -61,6 +62,7 @@ BEGIN
 			e.StartDate,
 			e.EmployeeCode,
 			e.MobilePhone,
+			e.EmployeeInitials,
 			e.WorkPhone,
 			e.Fax,
 			e.Email,

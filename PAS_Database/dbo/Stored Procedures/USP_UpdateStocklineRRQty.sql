@@ -14,6 +14,7 @@
  ** PR   Date          Author			Change Description            
  ** --   --------      -------			--------------------------------          
     1    30/06/2026    Priyansh Patel	Created - converted from C# loop-based update to set-based SP
+	2    16/10/2026    Moin Bloch       Removed Non-stock Condition bcz we are storing Stock and Non-stock in same [StockLine] table
 
 --   EXEC [USP_UpdateStocklineRRQty] 
 **************************************************************/
@@ -38,22 +39,13 @@ BEGIN
 		       SL.[UpdatedDate] = @UpdatedDate
 		  FROM [dbo].[StockLine] SL
 		 INNER JOIN [dbo].[ItemMaster] IM  WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
-		 INNER JOIN @tbl_ReceivingReconciliationDetails RR ON RR.[StocklineId] = SL.[StockLineId] AND RR.[StockType] = @StockType_STOCK    
+		 INNER JOIN @tbl_ReceivingReconciliationDetails RR ON RR.[StocklineId] = SL.[StockLineId] --AND RR.[StockType] = @StockType_STOCK    
 		 CROSS APPLY (
 		        SELECT ConvertedRRQty = CASE WHEN NULLIF(IM.[StockUnitOfMeasure],'') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure],'') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure]
 		                                      THEN SL.[RRQty]
 		                                      ELSE dbo.fn_ConvertUOM(SL.[RRQty], IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure], 0, IM.[MasterCompanyId])
 		                                 END
 		       ) CV;
-
-		-- NONSTOCK
-		UPDATE NS
-		   SET NS.[RRQty] = CASE WHEN NS.[RRQty] = ISNULL(CASE WHEN RR.[InvoicedQty] > 0 THEN RR.[InvoicedQty] ELSE 0 END,0) THEN 0
-		                         WHEN NS.[RRQty] <= NS.[Quantity] THEN NS.[RRQty] - ISNULL(CASE WHEN RR.[InvoicedQty] > 0 THEN RR.[InvoicedQty] ELSE 0 END,0)
-		                         ELSE NS.[RRQty] END,
-		       NS.[UpdatedDate] = @UpdatedDate
-		  FROM [dbo].[NonStockInventory] NS
-		 INNER JOIN @tbl_ReceivingReconciliationDetails RR ON RR.[StocklineId] = NS.[NonStockInventoryId] AND RR.[StockType] = @StockType_NONSTOCK
 
 		-- ASSET
 		UPDATE AI

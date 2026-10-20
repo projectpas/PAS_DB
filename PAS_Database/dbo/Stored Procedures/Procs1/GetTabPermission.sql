@@ -1,63 +1,95 @@
-﻿/*************************************************************
- ** File:   [GetTabPermission]
- ** Description: Modules (with their ancestors) and permissions of the given roles - used for tab / route access
- **************************************************************
+﻿/*************************************************************************************************
+ ** File:    [GetTabPermission]
+ ** Description: Returns the menus / tabs (with their parents) a role (or comma separated roles)
+ **              has permission for. Used by /api/userrolepermission/getUserTabPermissionByRoleId
+ **
  ** Change History
- **************************************************************
- ** PR   Date			Author					Change Description
- ** -----------------------------------------------------------
-    1					Unknown					Created
-	2    20/10/2026		Vishal Suthar			Performance optimization for role permissions
-
--- EXEC [dbo].[GetTabPermission] '1'
-************************************************************************/
-CREATE Procedure [dbo].[GetTabPermission]
-	@RoleId varchar(max)
+ ** S NO   Date            Author          Change Description
+ ** 1      16-OCT-2026     RAJESH GAMI     [PN-18034] Performance: role ids are split once into a typed temp table,
+ **                                        (module, permission) pairs are de-duplicated BEFORE the parent walk
+ **                                        (set based loop instead of a recursive CTE that walked the hierarchy once per
+ **                                        RolePermission row), final DISTINCT over wide NVARCHAR columns removed,
+ **                                        uses new index IX_RolePermission_UserRoleId. Output columns / rows unchanged.
+ *************************************************************************************************/
+CREATE PROCEDURE [dbo].[GetTabPermission]
+	@RoleId VARCHAR(MAX)
 AS
-Begin
+BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		-- Distinct (module, permission) of the roles (comma separated)
-		SELECT DISTINCT R.[ModuleHierarchyMasterId] AS ModuleId, R.[PermissionID]
-		INTO #RolePerm
-		FROM [dbo].[RolePermission] R WITH (NOLOCK)
-		WHERE R.[UserRoleId] IN (SELECT TRY_CAST(LTRIM(RTRIM([value])) AS BIGINT) FROM STRING_SPLIT(@RoleId, ','));
 
-		-- Each permitted module with all its ancestors (self included); a parent gets the permissions of its children
-		;WITH Anc (ModuleId, AncestorId, ParentId) AS
+		/* Role ids as typed values (SplitString returns NVARCHAR(MAX), which gives poor estimates / conversions) */
+		CREATE TABLE #Roles (RoleId BIGINT NOT NULL PRIMARY KEY);
+
+		INSERT INTO #Roles (RoleId)
+		SELECT DISTINCT TRY_CAST(LTRIM(RTRIM(S.Item)) AS BIGINT)
+		FROM dbo.SplitString(@RoleId, ',') S
+		WHERE TRY_CAST(LTRIM(RTRIM(S.Item)) AS BIGINT) IS NOT NULL;
+
+		/* One row per (module, permission); Lvl = distance from the module the role was granted */
+		CREATE TABLE #Tree
 		(
-			SELECT M.[Id], M.[Id], M.[ParentId]
-			FROM [dbo].[ModuleHierarchyMaster] M WITH (NOLOCK)
-			WHERE M.[Id] IN (SELECT ModuleId FROM #RolePerm)
-			UNION ALL
-			SELECT A.ModuleId, P.[Id], P.[ParentId]
-			FROM Anc A
-			INNER JOIN [dbo].[ModuleHierarchyMaster] P WITH (NOLOCK) ON P.[Id] = A.ParentId
-		)
-		SELECT DISTINCT M.[ID], M.[Name], M.[ParentID], M.[IsMenu], M.[ModuleIcon], M.[RouterLink], RP.[PermissionID], M.[DisplayOrder]
-		FROM #RolePerm RP
-		INNER JOIN Anc A ON A.ModuleId = RP.ModuleId
-		INNER JOIN [dbo].[ModuleHierarchyMaster] M WITH (NOLOCK) ON M.[Id] = A.AncestorId
-		ORDER BY M.[DisplayOrder];
+			ID           INT NOT NULL,
+			PermissionID INT NOT NULL,
+			Lvl          INT NOT NULL,
+			PRIMARY KEY (ID, PermissionID)
+		);
+
+		INSERT INTO #Tree (ID, PermissionID, Lvl)
+		SELECT R.ModuleHierarchyMasterId, R.PermissionID, 0
+		FROM #Roles RL
+		INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.UserRoleId = RL.RoleId
+		GROUP BY R.ModuleHierarchyMasterId, R.PermissionID;
+
+		/* Add the parent of every new row, level by level, until no new (module, permission) pair appears */
+		DECLARE @Lvl INT = 0, @Rows INT = 1;
+
+		WHILE @Rows > 0 AND @Lvl < 50
+		BEGIN
+			INSERT INTO #Tree (ID, PermissionID, Lvl)
+			SELECT M.ParentId, T.PermissionID, @Lvl + 1
+			FROM #Tree T
+			INNER JOIN dbo.ModuleHierarchyMaster M WITH (NOLOCK) ON M.Id = T.ID
+			WHERE T.Lvl = @Lvl
+			  AND M.ParentId IS NOT NULL
+			  AND NOT EXISTS (SELECT 1 FROM #Tree X WHERE X.ID = M.ParentId AND X.PermissionID = T.PermissionID)
+			GROUP BY M.ParentId, T.PermissionID;
+
+			SET @Rows = @@ROWCOUNT;
+			SET @Lvl += 1;
+		END
+
+		SELECT M.Id           AS ID,
+		       M.Name         AS Name,
+		       M.ParentId     AS ParentID,
+		       M.IsMenu       AS IsMenu,
+		       M.ModuleIcon   AS ModuleIcon,
+		       M.RouterLink   AS RouterLink,
+		       T.PermissionID AS PermissionID,
+		       M.DisplayOrder AS DisplayOrder
+		FROM #Tree T
+		INNER JOIN dbo.ModuleHierarchyMaster M WITH (NOLOCK) ON M.Id = T.ID
+		ORDER BY M.DisplayOrder, M.Id, T.PermissionID;
+
 	END TRY
 	BEGIN CATCH
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
+		IF @@TRANCOUNT > 0
 			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+
+		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = DB_NAME()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'GetTabPermission'
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@RoleId, '') + ''
-            , @ApplicationName VARCHAR(100) = 'PAS'
+		, @AdhocComments       VARCHAR(150)  = 'GetTabPermission'
+		, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + ISNULL(@RoleId, '') + ''''
+		, @ApplicationName     VARCHAR(100)  = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-            exec spLogException
-                    @DatabaseName           =  @DatabaseName
-                    , @AdhocComments          =  @AdhocComments
-                    , @ProcedureParameters	   =  @ProcedureParameters
-                    , @ApplicationName        =  @ApplicationName
-                    , @ErrorLogID             =  @ErrorLogID OUTPUT ;
-            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
-            RETURN(1);
+		EXEC spLogException
+			  @DatabaseName         = @DatabaseName
+			, @AdhocComments        = @AdhocComments
+			, @ProcedureParameters  = @ProcedureParameters
+			, @ApplicationName      = @ApplicationName
+			, @ErrorLogID           = @ErrorLogID OUTPUT;
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+		RETURN(1);
 	END CATCH
-End
+END

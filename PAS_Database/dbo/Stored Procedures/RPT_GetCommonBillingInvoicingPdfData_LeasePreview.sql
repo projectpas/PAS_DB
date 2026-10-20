@@ -17,6 +17,11 @@
                                      comment just above the SELECT that sets them.
     3    05/OCT/2026   Kishor Makwana	[PN-18072 preview parity] SubTotal now sums the same lines the Billing grid computes (USP_GetLeaseBillingListByLeaseHeaderId), matching the
                                      Items preview and what Create Invoice saves, instead of the old legacy calculation.
+    4    16/OCT/2026   Kishor Makwana [PN-18338 ship via] New @ShipViaId / @ShipAccountInfo / @ShippingTermsName parameters (what the user picked in the Billing Invoice
+                                     popup) drive ShipVia / ShipAccNumber / ShippingTerms; Awb is the AirwayBill of the latest Lease Shipping that carried the
+                                     selected stocklines. They were returned blank before.
+                                     New @SoldToCustomerId parameter (Bill To customer picked in the popup) drives CreditTerms (Customer > Financial);
+                                     falls back to the lease's customer when not supplied.
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
@@ -28,7 +33,11 @@ CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
 @InvoiceTypeId INT = NULL,
 @CurrencyId INT = NULL,
 @Notes NVARCHAR(MAX) = NULL,
-@CreatedBy VARCHAR(256) = NULL
+@CreatedBy VARCHAR(256) = NULL,
+@ShipViaId BIGINT = NULL,
+@ShipAccountInfo VARCHAR(200) = NULL,
+@ShippingTermsName VARCHAR(256) = NULL,
+@SoldToCustomerId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -123,6 +132,15 @@ BEGIN
 	-- The preview shows exactly what Create Invoice will save: the same lines the Billing grid computes (one source of truth).
 	INSERT INTO #G EXEC [dbo].[USP_GetLeaseBillingListByLeaseHeaderId] @LeaseHeaderId = @LeaseHeaderId;
 
+	-- AWB of the latest shipment (Lease > Shipping) that carried the selected stocklines.
+	DECLARE @Awb VARCHAR(50) = '';
+	SELECT TOP 1 @Awb = ISNULL(LSH.[AirwayBill], '')
+	FROM [dbo].[LeaseShippingItem] LSI WITH (NOLOCK)
+	INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0 AND ISNULL(LSH.[AirwayBill], '') <> ''
+	WHERE ISNULL(LSI.[IsDeleted], 0) = 0
+	  AND LSI.[LeaseStocklineId] IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+	ORDER BY LSH.[LeaseShippingId] DESC;
+
 	SELECT @SubTotal = SUM(TX.Total)
 	FROM #G G
 	CROSS APPLY (SELECT ISNULL(G.LineAmount, 0) + ISNULL(G.TimeBillingAmount, 0) + ISNULL(G.CycleBillingAmount, 0) AS Total) TX
@@ -176,14 +194,14 @@ BEGIN
 			ISNULL(@CreatedBy, ISNULL(emp.[FirstName] + ' ' + emp.[LastName], '')) [PreparedBy],
 			FORMAT(GETUTCDATE(), 'MM/dd/yyyy h:mm tt') [DatePrinted],
 			'0' [Weight],
-			'' AS [CreditTerms],
+			ISNULL((SELECT TOP 1 CTM.[Name] FROM [dbo].[CustomerFinancial] CFN WITH(NOLOCK) INNER JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.[CreditTermsId] = CFN.[CreditTermsId] WHERE CFN.[CustomerId] = ISNULL(NULLIF(@SoldToCustomerId, 0), LH.[CustomerId])), '') AS [CreditTerms],
 			UPPER(ISNULL(cur.[Code], '')) [Currency],
 			'' [OrderDate],
 			'' [ShipDate],
-			'' AS [ShipVia],
-			'' [ShipAccNumber],
+			ISNULL(SHIPINFOVIA.[Name], '') AS [ShipVia],
+			ISNULL(@ShipAccountInfo, '') [ShipAccNumber],
 			'' [ShippingOrderNumber],
-			'' [Awb],
+			ISNULL(@Awb, '') [Awb],
 			NULL [InvoiceStatus],
 			LH.[ManagementStructureId],
 			@NextInvoiceNo [Barcode],
@@ -207,7 +225,7 @@ BEGIN
 			SignEmpName = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
 			SignEmpTitle = ISNULL(jt.Description,''),
 			SignEmpDate = GETUTCDATE(),
-			ShippingTerms = '',
+			ShippingTerms = ISNULL(@ShippingTermsName, ''),
 			ISNULL(@SubTotal, 0) + ISNULL(@MiscCharges, 0) AS [SubTotal], -- SUBTOTAL = every item row incl. Charges; MISC CHARGES box stays 0
 			0 [DepositAmount],
 			ISNULL(@SubTotal, 0) + ISNULL(@MiscCharges, 0) + ISNULL(@Tax, 0) + ISNULL(@OtherTaxAmt, 0) AS [GrandTotal],
@@ -232,6 +250,7 @@ BEGIN
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON @EmployeeId = emp.[EmployeeId]
 		LEFT JOIN [dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId
 		LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON LH.MasterCompanyId = MC.MasterCompanyId
+		LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON SHIPINFOVIA.[ShippingViaId] = @ShipViaId
 		WHERE LH.[LeaseHeaderId] = @LeaseHeaderId AND LH.[IsDeleted] = 0
 
 	END TRY    

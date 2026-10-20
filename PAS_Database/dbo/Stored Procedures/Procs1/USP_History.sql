@@ -23,6 +23,7 @@
 	8    17/01/2025  Vishal Suthar		added new status code CreateWorkOrderTask, UpdateWorkOrderTaskDescrepancy and UpdateWorkOrderTaskResolution    
     9    01/09/2025  Moin Bloch		    Updated Added New Field [Activity]
 	10   03/09/2025  Moin Bloch		    Updated Added TemplateText
+	11   14-Oct-2026 Divyesh Kathriya   Allow tendered material stockline creation history [PN-18307].
 
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
@@ -61,7 +62,8 @@ BEGIN
   OR @StatusCode = 'VendorRMAPickTicketConfirmed' OR @StatusCode = 'VendorRMAShipped' OR @StatusCode = 'CreateVendorCreditMemo' OR @StatusCode = 'UpdateVendorRMAPartQty' OR @StatusCode = 'UpdateVendorRMAReturnReason'
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
   @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution'
-  OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction' OR @StatusCode = 'TravelerDelete' OR @StatusCode = 'DeleteWorkOrderMaterials' OR @StatusCode = 'DeleteWorkOrderMaterialStockline')    
+  OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction' OR @StatusCode = 'TravelerDelete' OR @StatusCode = 'DeleteWorkOrderMaterials' OR @StatusCode = 'DeleteWorkOrderMaterialStockline'
+  OR @StatusCode = 'TenderStocklineCreated')
   BEGIN        
 	SELECT @TemplateText = [TemplateText] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode; 
 	

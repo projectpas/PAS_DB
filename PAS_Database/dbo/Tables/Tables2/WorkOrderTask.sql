@@ -22,6 +22,11 @@
     CONSTRAINT [FK_WorkOrderTask_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderTask_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_WorkOrderTask_WorkOrderId_PartNumber]
+    ON [dbo].[WorkOrderTask]([WorkOrderId] ASC, [WorkOrderPartNumberId] ASC)
+    INCLUDE([IsDeleted]);
 
 
 

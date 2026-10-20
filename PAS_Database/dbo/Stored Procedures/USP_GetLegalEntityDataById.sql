@@ -14,6 +14,7 @@
 	3    01-Oct-2025        Bhargav Saliya      Added New Field IsCreaditRestriction
 	4    09-Oct-2025        Bhargav Saliya      Added New Field Memo
   	5    20-May-2026        Rajesh Gami			Added New Filed IsCreditLimitWarning, WarningMessage [PN-16501]
+	6    16-Oct-2026        Vishal Suthar		Added New Fields AllowBackDateShipping, AllowBackDateBilling
  -- EXEC [USP_GetLegalEntityDataById] @LegalEntityId=34
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLegalEntityDataById]
@@ -86,7 +87,9 @@ BEGIN
 			ISNULL(le.IsCreaditRestriction, 0) AS IsCreaditRestriction,
 			ISNULL(le.[RestrictMessage],'') as RestrictMessage,
 			ISNULL(le.IsCreditLimitWarning, 0) AS IsCreditLimitWarning,
-			ISNULL(le.WarningMessage,'') as WarningMessage
+			ISNULL(le.WarningMessage,'') as WarningMessage,
+			ISNULL(le.[AllowBackDateShipping], 0) AS AllowBackDateShipping,
+			ISNULL(le.[AllowBackDateBilling], 0) AS AllowBackDateBilling
 		FROM [DBO].[LegalEntity] le WITH (NOLOCK) 	
 		LEFT JOIN [DBO].[Address] ad WITH (NOLOCK) ON le.[AddressId] = ad.[AddressId]
 		LEFT JOIN [DBO].[Countries] cont WITH (NOLOCK) ON ad.[CountryId] = cont.[countries_id]

@@ -50,6 +50,8 @@
     [RestrictMessage]         VARCHAR (MAX) NULL,
     [IsCreditLimitWarning]    BIT           NULL,
     [WarningMessage]          VARCHAR (MAX) NULL,
+    [AllowBackDateShipping]   BIT           CONSTRAINT [DF_LegalEntity_AllowBackDateShipping] DEFAULT ((0)) NOT NULL,
+    [AllowBackDateBilling]    BIT           CONSTRAINT [DF_LegalEntity_AllowBackDateBilling] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_LegalEntity] PRIMARY KEY CLUSTERED ([LegalEntityId] ASC),
     CONSTRAINT [FK_LegalEntity_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_LegalEntity_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -132,7 +134,7 @@ BEGIN
 	[TextTransformId],
 	[EnableLockScreen],
 	[TimeoutInMinutes],
-	[UKCAALicense],[IsCreaditRestriction],[RestrictMessage] )
+	[UKCAALicense],[IsCreaditRestriction],[RestrictMessage],[AllowBackDateShipping],[AllowBackDateBilling] )
 
  SELECT 
  
@@ -183,8 +185,10 @@ BEGIN
 	[TimeoutInMinutes],
 	[UKCAALicense],
 	[IsCreaditRestriction],
-	[RestrictMessage]
- 
+	[RestrictMessage],
+	[AllowBackDateShipping],
+	[AllowBackDateBilling]
+
  FROM INSERTED  
  
  SET NOCOUNT ON;  

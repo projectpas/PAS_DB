@@ -65,6 +65,7 @@
     [LocationId]                         BIGINT          NULL,
     [ShelfId]                            BIGINT          NULL,
     [BinId]                              BIGINT          NULL,
+    [EmployeeInitials]                   VARCHAR (50)    NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
 

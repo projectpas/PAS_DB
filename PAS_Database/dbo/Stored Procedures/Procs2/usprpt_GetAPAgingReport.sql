@@ -30,6 +30,7 @@
 	12   20-JUL-2026    RAJESH GAMI        [PN-17350] - Repointed all 3 NONSTOCK-branch MS lookups from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; @NonStockModuleID now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
     13   14-OCT-2026    RAJESH GAMI        [PN-17022] - Added 'Show PO Num' view (@Typeid = 3): one row per PO with poCost (PurchaseOrderPart.ExtendedCost) and poCost header filter; Summary (1) and Detail (2) unchanged
     14   15-OCT-2026    RAJESH GAMI        [PN-17022] - Global 'Invoice Num(Optional)' filter now applied to Detail / Show PO Num (matches Invoice Num or Doc Num)
+    15   16-OCT-2026    RAJESH GAMI        [PN-16277] - Aging buckets / DaysPastDue / DueDate use the stored DueDate (RR, NonPO) and fall back to InvoiceDate + Credit Terms NetDays only when DueDate is NULL; Excel/CSV DueDate now matches the grid
 
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  
@@ -306,17 +307,17 @@ BEGIN
                 rrh.InvoiceDate,
                 ISNULL(ctm.NetDays,0)            AS NetDays,
                 /* ── AGING BUCKETS: based on DueDate ── */
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) <= 0
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) <= 0
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidbylessthen0days,
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 1  AND 30
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 1  AND 30
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidby30days,
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 31 AND 60
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 31 AND 60
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidby60days,
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 61 AND 90
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 61 AND 90
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidby90days,
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 91 AND 120
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 91 AND 120
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidby120days,
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 120
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) > 120
                      THEN vpd.RemainingAmount ELSE 0 END                                                                     AS Amountpaidbymorethan120days,
                 rrh.ManagementStructureId,
                 'AP-Inv'            AS DocType,
@@ -327,7 +328,7 @@ BEGIN
                 rrh.InvoiceTotal    AS InvoiceAmount,
                 0                   AS cmAmount,
                 0                   AS CreditMemoAmount,
-                rrh.DueDate,
+                ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)) AS DueDate,
                 UPPER(COALESCE(MSD.Level1Name,  NMSD.Level1Name,  AMSD.Level1Name))  AS Level1,
                 UPPER(COALESCE(MSD.Level2Name,  NMSD.Level2Name,  AMSD.Level2Name))  AS Level2,
                 UPPER(COALESCE(MSD.Level3Name,  NMSD.Level3Name,  AMSD.Level3Name))  AS Level3,
@@ -343,8 +344,8 @@ BEGIN
                 0   AS StatusId,
                 vpd.PaymentMade AS InvoicePaidAmount,
                 /* ── DaysPastDue: days since DueDate ── */
-                CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
-                     THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+                CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) > 0
+                     THEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) ELSE 0 END AS DaysPastDue
 				,''  AS poReference
 				,rrh.ReceivingReconciliationId AS rrId   /* [PN-17022] helper key to keep one row per invoice, dropped below */
             INTO #tempReceivingReconciliation
@@ -572,24 +573,24 @@ BEGIN
                 NPH.InvoiceDate,
                 ISNULL(ctm.NetDays,0)         AS NetDays,
                 /* ── AGING BUCKETS: based on NPH.DueDate ── */
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) <= 0
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) <= 0
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbylessthen0days,
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 1  AND 30
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 1  AND 30
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby30days,
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 31 AND 60
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 31 AND 60
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby60days,
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 61 AND 90
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 61 AND 90
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby90days,
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 91 AND 120
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 91 AND 120
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby120days,
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 120
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) > 120
                      THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbymorethan120days,
                 NPH.ManagementStructureId,
                 'NPO-Inv' AS DocType, '' AS vendorRef, '' AS Salesperson,
                 ctm.Name AS Terms, '0' AS FixRateAmount,
                 vpd.RemainingAmount AS InvoiceAmount,
                 0 AS cmAmount, 0 AS CreditMemoAmount,
-                NPH.DueDate,
+                ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)) AS DueDate,
                 UPPER(MSD.Level1Name)  AS level1,  UPPER(MSD.Level2Name)  AS level2,
                 UPPER(MSD.Level3Name)  AS level3,  UPPER(MSD.Level4Name)  AS level4,
                 UPPER(MSD.Level5Name)  AS level5,  UPPER(MSD.Level6Name)  AS level6,
@@ -598,8 +599,8 @@ BEGIN
                 NPH.MasterCompanyId,
                 0 AS IsCreditMemo, 0 AS StatusId, 0 AS InvoicePaidAmount,
                 /* ── DaysPastDue: days since DueDate ── */
-                CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 0
-                     THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue
+                CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) > 0
+                     THEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) ELSE 0 END AS DaysPastDue
 				,'' AS poReference					 
             INTO #tempNonPODetails
             FROM dbo.NonPOInvoiceHeader NPH WITH (NOLOCK)
@@ -804,17 +805,17 @@ BEGIN
 				rrh.InvoiceDate,
 				ISNULL(ctm.NetDays,0)         AS NetDays,
 				/* ── AGING BUCKETS: based on rrh.DueDate ── */
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) <= 0
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) <= 0
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbylessthen0days,
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 1  AND 30
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 1  AND 30
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby30days,
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 31 AND 60
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 31 AND 60
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby60days,
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 61 AND 90
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 61 AND 90
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby90days,
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) BETWEEN 91 AND 120
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) BETWEEN 91 AND 120
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby120days,
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 120
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) > 120
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbymorethan120days,
 				rrh.ManagementStructureId,
 				CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END AS DocType,
@@ -822,7 +823,7 @@ BEGIN
 				ctm.Name AS Terms, '0' AS FixRateAmount,
 				rrh.InvoiceTotal AS InvoiceAmount,
 				0 AS cmAmount, 0 AS CreditMemoAmount,
-				rrh.DueDate,
+				ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)) AS DueDate,
 				UPPER(COALESCE(MSD.Level1Name,  NMSD.Level1Name,  AMSD.Level1Name))  AS Level1,
 				UPPER(COALESCE(MSD.Level2Name,  NMSD.Level2Name,  AMSD.Level2Name))  AS Level2,
 				UPPER(COALESCE(MSD.Level3Name,  NMSD.Level3Name,  AMSD.Level3Name))  AS Level3,
@@ -837,8 +838,8 @@ BEGIN
 				0 AS IsCreditMemo, 0 AS StatusId,
 				vpd.PaymentMade AS InvoicePaidAmount,
 				/* ── DaysPastDue: days since DueDate ── */
-				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
-					 THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
+				CASE WHEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) > 0
+					 THEN DATEDIFF(DAY, ISNULL(rrh.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), rrh.InvoiceDate)), GETUTCDATE()) ELSE 0 END AS DaysPastDue,
 				CASE WHEN @Typeid = '3'
 				     THEN ISNULL(rrd.POReference, '')   /* [PN-17022] Show PO Num: one row per PO */
 				     ELSE ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '')
@@ -1081,24 +1082,24 @@ BEGIN
 				NPH.InvoiceDate,
 				ISNULL(ctm.NetDays,0)         AS NetDays,
 				/* ── AGING BUCKETS: based on NPH.DueDate ── */
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) <= 0
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) <= 0
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbylessthen0days,
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 1  AND 30
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 1  AND 30
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby30days,
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 31 AND 60
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 31 AND 60
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby60days,
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 61 AND 90
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 61 AND 90
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby90days,
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) BETWEEN 91 AND 120
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) BETWEEN 91 AND 120
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidby120days,
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 120
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) > 120
 					 THEN vpd.RemainingAmount ELSE 0 END AS Amountpaidbymorethan120days,
 				NPH.ManagementStructureId,
 				'NPO-Inv' AS DocType, '' AS vendorRef, '' AS Salesperson,
 				ctm.Name AS Terms, '0' AS FixRateAmount,
 				vpd.RemainingAmount AS InvoiceAmount,
 				0 AS cmAmount, 0 AS CreditMemoAmount,
-				NPH.DueDate,
+				ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)) AS DueDate,
 				UPPER(MSD.Level1Name)  AS level1,  UPPER(MSD.Level2Name)  AS level2,
 				UPPER(MSD.Level3Name)  AS level3,  UPPER(MSD.Level4Name)  AS level4,
 				UPPER(MSD.Level5Name)  AS level5,  UPPER(MSD.Level6Name)  AS level6,
@@ -1107,8 +1108,8 @@ BEGIN
 				NPH.MasterCompanyId,
 				0 AS IsCreditMemo, 0 AS StatusId, 0 AS InvoicePaidAmount,
 				/* ── DaysPastDue: days since DueDate ── */
-				CASE WHEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) > 0
-					 THEN DATEDIFF(DAY, NPH.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
+				CASE WHEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) > 0
+					 THEN DATEDIFF(DAY, ISNULL(NPH.DueDate, DATEADD(DAY, ISNULL(ctm.NetDays,0), NPH.InvoiceDate)), GETUTCDATE()) ELSE 0 END AS DaysPastDue,
 				ISNULL(NPH.PONumber,'') AS poReference,
 				CAST(0 AS DECIMAL(18,6)) AS poCost
 			INTO #tempNonPODetailsElse
@@ -1190,7 +1191,7 @@ BEGIN
 					CASE WHEN CTE.IsCreditMemo = 0
 						 THEN CASE WHEN ISNULL(@IsDownload,0) = 0
 								   THEN FORMAT(CTE.DueDate,'MM/dd/yyyy')
-								   ELSE CONVERT(VARCHAR(50), DATEADD(DAY, CTE.NetDays, CTE.InvoiceDate), 107)
+								   ELSE CONVERT(VARCHAR(50), CTE.DueDate, 107)
 							  END
 						 ELSE NULL END                AS DueDate,
 					ISNULL(CTE.FixRateAmount,0)       AS FixRateAmount,

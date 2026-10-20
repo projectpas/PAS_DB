@@ -15,6 +15,7 @@
 	2		06/05/2024		HEMANT SALIYA			Updated for Add Provision Condition
 	3		12/Jan/2026		Rajesh Gami			    UOM Conversion Changes 
 	4		09/July/2026		RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	EXEC [USP_GetStockLineLessQtyCheckList] 3993, 3510, 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetStockLineLessQtyCheckList]
@@ -72,7 +73,7 @@ BEGIN
 				WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOM.WorkOrderId = @WorkOrderId 
 						AND WOM.MasterCompanyId = @MasterCompanyId
-						AND (ISNULL(WOMS.Quantity,0 ) - (ISNULL(WOMS.QtyIssued, 0) + ISNULL(WOMS.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
+						AND (ISNULL(WOMS.Quantity,0 ) - (ISNULL(WOMS.QtyIssued, 0) + ISNULL(WOMS.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsService,0) = 0
 
 				--Inserting Materials StockLineKit Data 
 				INSERT INTO #TempStkLineList(PartNumber, PartDescription, StockLineId, StockLineNumber, ControlNumber, SerialNumber,
@@ -95,7 +96,7 @@ BEGIN
 				WHERE	WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOMK.WorkOrderId = @WorkOrderId 
 						AND WOMK.MasterCompanyId = @MasterCompanyId
-						AND (ISNULL(WOMSK.Quantity,0) - (ISNULL(WOMSK.QtyIssued, 0) + ISNULL(WOMSK.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
+						AND (ISNULL(WOMSK.Quantity,0) - (ISNULL(WOMSK.QtyIssued, 0) + ISNULL(WOMSK.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsService,0) = 0
 
 				SELECT * FROM #TempStkLineList;
 				

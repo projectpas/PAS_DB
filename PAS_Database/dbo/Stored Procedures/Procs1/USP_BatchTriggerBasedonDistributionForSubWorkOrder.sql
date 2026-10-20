@@ -24,6 +24,7 @@
 	8    17/Mar/2026  Rajesh Gami	Added UOM Changes [PN-15714]
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10   13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(ITM.IsNonStock,0) = 0 filter to the SubWorkOrderMaterialStockLine/ItemMaster piece lookup
+	11    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
@@ -720,7 +721,7 @@ BEGIN
 						   @PiecePN = ITM.[partnumber]
 					 FROM [dbo].[SubWorkOrderMaterialStockLine] SMS WITH(NOLOCK)
 					 INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SMS.[ItemMasterId] = ITM.[ItemMasterId]				 
-					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId AND ISNULL(ITM.IsNonStock,0) = 0 ;
+					 WHERE SMS.[StockLineId] = @StocklineId AND SMS.[SubWorkOrderMaterialsId] = @ReferencePieceId ;
 				 				 				 
 					SELECT TOP 1 @DistributionSetupId = [ID],
 				             @DistributionName = [Name],

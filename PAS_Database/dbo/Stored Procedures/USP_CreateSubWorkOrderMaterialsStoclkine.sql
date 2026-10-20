@@ -11,6 +11,7 @@
  ** 1    10-MAY-2025			Devendra Shekh				Created
        
  2    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/  
   
 CREATE PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]  
@@ -30,7 +31,7 @@ BEGIN
 		SELECT TMP.[SubWorkOrderMaterialsId], TMP.[StocklineId], TMP.[ItemMasterId], [ConditionCodeId], [ProvisionId], [StocklineQuantity], 0, 0, TMP.[MasterCompanyId], TMP.[CreatedBy], TMP.[UpdatedBy], GETUTCDATE(), GETUTCDATE(),
 		1, 0, TMP.[UnitCost], TMP.[ExtendedCost], STK.[PurchaseOrderUnitCost], TMP.Figure, TMP.[Item], @CreatedMaterial		
 		FROM @tbl_SubWorkOrderMaterialsType TMP
-		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 		 
 	COMMIT TRANSACTION  
 	END TRY      

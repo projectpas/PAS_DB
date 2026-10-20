@@ -35,6 +35,7 @@
 	17   10/08/2026   Moin Bloch     Fixed RO stockline not reserved back to its originating WO when one RO has tendered stocklines from multiple WOs / partial receipt:
 	                                 remaining tendered qty is reduced by the qty reserved for the RO line (@StlQuantity) instead of the SUM of all material stocklines of the RO,
 	                                 Sub WO same part tendered row lookup filtered by RO line, @WorkOrderMaterialsId reset per stockline
+	18    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 EXEC [dbo].[USP_CreateWOStocklineFromRO]   3043,'ADMIN User' 
 **************************************************************/
@@ -220,7 +221,7 @@ SET NOCOUNT ON
 											FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 												JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 												JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-												WHERE SL.StockLineId = @StocklineId AND ISNULL(IM.IsNonStock,0) = 0 ;
+												WHERE SL.StockLineId = @StocklineId ;
 
 											SELECT @WorkOrderMaterialsId = SCOPE_IDENTITY()
 
@@ -256,7 +257,7 @@ SET NOCOUNT ON
 										FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 											JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 											JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-											WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0;
+											WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId);
 
 										SELECT @WorkOrderMaterialStockLineId = SCOPE_IDENTITY()
 
@@ -325,7 +326,7 @@ SET NOCOUNT ON
 											FROM #ROStockLineSamePart ROS WITH(NOLOCK) 
 												JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 												JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SL.ItemMasterId = IM.ItemMasterId
-												WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0;
+												WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.SubWorkOrderMaterialStockLine WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId);
 
 											SELECT @WorkOrderMaterialStockLineId = SCOPE_IDENTITY()
 
@@ -469,7 +470,7 @@ SET NOCOUNT ON
 											FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 													JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 													JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-											WHERE SL.StockLineId = @StocklineId AND ISNULL(IM.IsNonStock,0) = 0;
+											WHERE SL.StockLineId = @StocklineId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 											SET @WorkOrderPartNoId = ISNULL(@WorkOrderPartNoId, 0);
 						
@@ -637,7 +638,7 @@ SET NOCOUNT ON
 												FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 													JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 													JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-													WHERE SL.StockLineId = @StocklineId AND ISNULL(IM.IsNonStock,0) = 0 ;
+													WHERE SL.StockLineId = @StocklineId ;
 
 												SELECT @WorkOrderMaterialsId = SCOPE_IDENTITY()
 											END
@@ -673,7 +674,7 @@ SET NOCOUNT ON
 											FROM #ROStockLineRevisedPart ROS WITH(NOLOCK) 
 												JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 												JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-												WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.WorkOrderMaterialStockLine WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0 ;
+												WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.WorkOrderMaterialStockLine WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) ;
 
 											SELECT @WorkOrderMaterialStockLineId = SCOPE_IDENTITY()
 											UPDATE dbo.WorkOrderMaterialStockLine SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
@@ -749,7 +750,7 @@ SET NOCOUNT ON
 												FROM #ROStockLineSamePart ROS WITH(NOLOCK) 
 													JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 													JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SL.ItemMasterId = IM.ItemMasterId
-													WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.WorkOrderMaterialStockLine WITH(NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId) AND ISNULL(IM.IsNonStock,0) = 0 ;
+													WHERE SL.StockLineId = @StocklineId AND SL.StockLineId NOT IN (SELECT StockLineId FROM dbo.WorkOrderMaterialStockLine WITH(NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId) ;
 
 												SELECT @OldConditionId = ConditionCodeId FROM dbo.WorkOrderMaterials WITH (NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
 												SELECT @NewConditionId = ConditionId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId

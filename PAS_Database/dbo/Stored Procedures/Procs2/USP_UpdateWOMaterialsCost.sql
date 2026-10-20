@@ -25,6 +25,7 @@
 	8    11/28/2024	  HEMANT SALIYA		Added Work Order Work Flow Id
   	9    25/Feb/2026  Rajesh Gami		UOM Changes   
 	10   18/06/2026	  Priyansh Patel	 UOM Conversion purchase to consume uom for material unitcost[PN-16894] 
+	11    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXECUTE USP_UpdateWOMaterialsCost 7351
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
@@ -282,8 +283,10 @@ SET NOCOUNT ON
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
+			END
 					
 				SELECT
 					ERROR_NUMBER() AS ErrorNumber,
@@ -295,7 +298,7 @@ SET NOCOUNT ON
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOMaterialsCost' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderMaterialsId, '') + '' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkOrderMaterialsId), '') + '' 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

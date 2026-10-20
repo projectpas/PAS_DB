@@ -31,6 +31,7 @@
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14	 19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
 	15   21/Aug/2026  Moin Bloch        [PN-17716] - Append sequence number to task name
+	16    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -150,7 +151,6 @@ BEGIN
 					LEFT JOIN dbo.[Percent] per WITH(NOLOCK) ON per.PercentId = wom.MarkupPercentageId
 				WHERE wom.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) --order by wom.CreatedDate desc
 
-				 AND ISNULL(im.IsNonStock,0) = 0
 				UNION ALL
 				 
 				 SELECT 
@@ -218,7 +218,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID
 					LEFT JOIN dbo.[Percent] per WITH(NOLOCK) ON per.PercentId = wom.MarkupPercentageId
 					 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )  AND ISNULL(im.IsNonStock,0) = 0
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )
 				) t;
 
 				UPDATE #tmpWorkOrderQuoteMat 

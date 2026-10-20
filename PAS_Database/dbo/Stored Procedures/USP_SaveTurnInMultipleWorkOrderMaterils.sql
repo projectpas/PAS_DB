@@ -16,6 +16,7 @@
 ** 7    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PartNumber/@IsPMA/@IsDER ItemMaster lookup
+	10    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -175,7 +176,7 @@ BEGIN
 								@isExchange =  (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
 						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  
-								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId ;
 						SELECT @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 						IF(ISNULL(@IsKitType, 0) = 0)
@@ -215,7 +216,6 @@ BEGIN
 							 FROM CTE_Stockline CSTL WITH(NOLOCK)
 							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId  
 							 /* PN Manufacturer Combination Stockline logic */
-						 WHERE ISNULL(IM.IsNonStock,0) = 0
 						END
 
 						IF(ISNULL(@CurrentWOM, 0) = 1)

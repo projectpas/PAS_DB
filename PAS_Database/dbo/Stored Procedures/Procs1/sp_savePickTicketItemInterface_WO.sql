@@ -24,6 +24,7 @@
  8	  19/06/2026	Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
+	11    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
@@ -423,7 +424,7 @@ BEGIN
 
 	   IF(@PNItemMasterId > 0)
 	   BEGIN
-	   	    SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+	   	    SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId ;
 	   END
 	   ELSE
 	   BEGIN 
@@ -453,7 +454,7 @@ BEGIN
 	   		SELECT @WorkOrderPartNoId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;  
 	   		SELECT @ItemMasterId = ItemMasterId FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
 	   	END  
-	   	SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+	   	SELECT @partnumber = partnumber FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @PNItemMasterId ;
 	   END
 	   
 	   --Entry in History Table.

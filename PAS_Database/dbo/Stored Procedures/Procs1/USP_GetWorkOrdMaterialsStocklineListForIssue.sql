@@ -23,6 +23,7 @@
 	6    26/06/2024   Devendra Shekh	added TaskName To Select
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	9    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForIssue 2940,0
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForIssue]
@@ -173,9 +174,9 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_AltMain.IsService,0) = 0
 						 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
-						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_EquMain.IsService,0) = 0
 						  JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 0
 						JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MPTKT.IsKit = 0						
@@ -188,7 +189,7 @@ SET NOCOUNT ON
 						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsService,0) = 0 AND ISNULL(SL.IsService,0) = 0
 						 UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -265,9 +266,9 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_AltMain.IsService,0) = 0
 						 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
-						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_EquMain.IsService,0) = 0
 						  JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 1
 						JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND MPTKT.IsKit = 1
@@ -279,7 +280,7 @@ SET NOCOUNT ON
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 					
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsService,0) = 0 AND ISNULL(SL.IsService,0) = 0
 						 END
 				ELSE
 				BEGIN
@@ -360,9 +361,9 @@ SET NOCOUNT ON
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_AltMain.IsService,0) = 0
 						 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
-						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_EquMain.IsService,0) = 0
 						  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
@@ -371,7 +372,7 @@ SET NOCOUNT ON
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsService,0) = 0 AND ISNULL(SL.IsService,0) = 0
 						 UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -449,9 +450,9 @@ SET NOCOUNT ON
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_AltMain.IsService,0) = 0
 						 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId						
-						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+						 AND ISNULL(IM_EquMain.IsService,0) = 0
 						  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
@@ -459,7 +460,7 @@ SET NOCOUNT ON
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsService,0) = 0 AND ISNULL(SL.IsService,0) = 0
 						 END
 			END
 		COMMIT  TRANSACTION

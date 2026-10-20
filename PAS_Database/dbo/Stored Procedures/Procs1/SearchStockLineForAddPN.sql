@@ -25,6 +25,7 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
+	14    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -239,6 +240,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
 			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 			AND sl.IsParent = 1  
+			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
+			AND ISNULL(sl.IsService,0) = 0 -- [PN-17782] Non-service stocklines only
 	   
 	   --UNION  
   

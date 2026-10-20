@@ -18,6 +18,7 @@
 	2	15-06-2026	    Priyansh Patel      uom changes related to quantity field [PN-16829]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4	20-07-2026	    Priyansh Patel      uom changes removed the conversion due to stock uom return required and added uom conversion for po data [PN-16829] 
+	5    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
@@ -251,7 +252,6 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
-		 AND ISNULL(IMWOM.IsNonStock,0) = 0
 		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (

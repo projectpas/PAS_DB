@@ -11,6 +11,7 @@
 ** 2    29/07/2026   SUMIT KUMAR      Added Notes to workflow materials to copy [PN-16818]
 ** 3    07/08/2026   SUMIT KUMAR      Changes to allow duplicate tasks to be added to the same Work Order Part Number [PN-17716 & PN-17643]
 ** 4    04-Sep-2026   SUMIT KUMAR      Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814]
+** 5    20-Oct-2026   RAJESH GAMI      [PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (UOM conversion and decimal(18,6) logic unchanged)
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_AddTasksFromTemplatesToWorkOrder]
@@ -188,7 +189,6 @@ BEGIN
                     WHERE wfm.WorkflowId = @WfId 
                       AND wfm.TaskId = @TskId 
                       AND ISNULL(wfm.IsDeleted, 0) = 0
-                      AND ISNULL(im.IsNonStock, 0) = 0
                       AND NOT (
                           (@IsDER = 1 AND @IsPMA = 1 AND (ISNULL(im.IsDER, 0) = 1 OR ISNULL(im.IsPMA, 0) = 1)) OR
                           (@IsDER = 0 AND @IsPMA = 1 AND ISNULL(im.IsPMA, 0) = 1) OR

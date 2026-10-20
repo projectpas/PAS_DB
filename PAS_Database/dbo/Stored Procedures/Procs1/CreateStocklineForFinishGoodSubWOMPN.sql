@@ -34,6 +34,7 @@
 17	  24/04/2025   Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 19    24/07/2026   Ayushi patel     [PN-17349]Added stockUnitOfMeasure , StockUnitOfMeasureId into stockline table        
+	20    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
@@ -191,7 +192,6 @@ BEGIN
     ON CSTL.StockLineId = STL.StockLineId  
     /* PN Manufacturer Combination Stockline logic */  
   
-     WHERE ISNULL(IM.IsNonStock,0) = 0
     INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
     SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
     FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId  
@@ -258,7 +258,6 @@ BEGIN
 		LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 		LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 		WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-		 AND ISNULL(iM.IsNonStock,0) = 0
 		GROUP BY iM.ItemMasterId
 		
      INSERT INTO [dbo].[Stockline]  
@@ -283,7 +282,7 @@ BEGIN
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
          ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife], [IntegrationPortal],[StockUnitOfMeasureId],[StockUnitOfMeasure])
-      SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ) ELSE [PartNumber] END,@StockLineNumber,[StocklineMatchKey],[ControlNumber],@ItemMasterId,1,@RevisedConditionId  
+      SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId ) ELSE [PartNumber] END,@StockLineNumber,[StocklineMatchKey],[ControlNumber],@ItemMasterId,1,@RevisedConditionId  
          ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
          ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
          ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]  

@@ -21,6 +21,7 @@
     4	 18/06/2026	   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     6	 15/07/2026	   Ayushi			[PN-17273]Return Consume UOM
+	7    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 --EXEC [GetWorkOrderQoutePirntMateriallist] 10338,10476,8307
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
@@ -75,7 +76,6 @@ BEGIN
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
         LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId 
-     AND ISNULL(imt.IsNonStock,0) = 0
     WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
@@ -118,21 +118,23 @@ BEGIN
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
 	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
 	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1
 	   END  
   COMMIT  TRANSACTION  
   
   END TRY      
   BEGIN CATCH        
-   IF @@trancount > 0  
-    PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
+   IF @@trancount > 0
+   BEGIN
+   	PRINT 'ROLLBACK'
+   	ROLLBACK TRAN;
+   END  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderQoutePirntMateriallist'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkflowWorkOrderId, '') + '''  
-                @Parameter4 = ' + ISNULL(@workOrderPartNoId ,'') +''  
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkflowWorkOrderId), '') + '''  
+                @Parameter4 = ' + ISNULL(CONVERT(VARCHAR(20), @workOrderPartNoId), '') +''  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

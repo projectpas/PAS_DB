@@ -5,9 +5,10 @@
 **              data is deleted; every task WITH transaction data is kept and returned with its reasons.
 **              If every task has transaction data, nothing is deleted.
 **
-**              A task is KEPT when it has any of (history counts too, even on soft-deleted rows):
-**                1. Materials : reserved / issued qty, reserve/issue history, pick ticket, sub WO,
-**                               PO / RO link, or stockline received against the material (stock + kit)
+**              A task is KEPT when it has any of (checked on soft-deleted child rows too):
+**                1. Materials : qty currently reserved / issued, sub WO, PO / RO link, or stockline
+**                               received against the material (stock + kit). Old reserve/issue history of a
+**                               material that was unreserved / returned does NOT block and is cleaned up.
 **                2. Labor     : clock-in / time tracking, labor started (IsBegin / StartDate),
 **                               IN-PROCESS / COMPLETED status, manual hours or adjustments
 **                3. Freight   : any freight entry
@@ -140,7 +141,9 @@ BEGIN
 			INNER JOIN @Tasks T ON T.WorkOrderTaskId = WOA.[TaskId]
 			WHERE WOA.[WorkOrderId] = @WorkOrderId;
 
-			/* ---------- 1. Materials ---------- */
+			/* ---------- 1. Materials ----------
+			   Only what is reserved / issued RIGHT NOW blocks. Reserve/issue history of a material that was later
+			   unreserved / returned does not block (it is cleaned up in the delete section, like USP_DeleteWorkOrderMaterials). */
 			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
 			SELECT M.TaskId, 'Materials reserved/issued'
 			FROM @Materials M
@@ -149,13 +152,7 @@ BEGIN
 			   OR ISNULL(WOM.[TotalReserved], 0) > 0 OR ISNULL(WOM.[TotalIssued], 0) > 0
 			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK)
 						  WHERE WOMS.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId
-						    AND (ISNULL(WOMS.[QtyReserved], 0) > 0 OR ISNULL(WOMS.[QtyIssued], 0) > 0))
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderReservedStock] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId)
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderIssuedStock] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId)
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderUnReservedStock] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId)
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderUnIssuedStock] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId)
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderStockLineReserve] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId)
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkorderPickTicket] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId AND ISNULL(X.[IsKitType], 0) = 0);
+						    AND (ISNULL(WOMS.[QtyReserved], 0) > 0 OR ISNULL(WOMS.[QtyIssued], 0) > 0));
 
 			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
 			SELECT M.TaskId, 'Materials linked to PO/RO/Sub WO/received stock'
@@ -181,8 +178,7 @@ BEGIN
 			   OR ISNULL(WOMK.[TotalReserved], 0) > 0 OR ISNULL(WOMK.[TotalIssued], 0) > 0
 			   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialStockLineKit] WOMSK WITH (NOLOCK)
 						  WHERE WOMSK.[WorkOrderMaterialsKitId] = K.WorkOrderMaterialsKitId
-						    AND (ISNULL(WOMSK.[QtyReserved], 0) > 0 OR ISNULL(WOMSK.[QtyIssued], 0) > 0))
-			   OR EXISTS (SELECT 1 FROM [dbo].[WorkorderPickTicket] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = K.WorkOrderMaterialsKitId AND ISNULL(X.[IsKitType], 0) = 1);
+						    AND (ISNULL(WOMSK.[QtyReserved], 0) > 0 OR ISNULL(WOMSK.[QtyIssued], 0) > 0));
 
 			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
 			SELECT K.TaskId, 'Kit materials linked to PO/RO/received stock'
@@ -276,8 +272,40 @@ BEGIN
 
 		IF @IsBlocked = 0 AND @ValidateOnly = 0
 		BEGIN
-			/* ---------- Planned materials (nothing reserved/issued/linked - verified above).
-			   The FKs from reserve/issue tables to WorkOrderMaterials make a concurrent reserve fail this delete. ---------- */
+			/* ---------- Planned materials (nothing reserved/issued/linked - verified above) ---------- */
+
+			/* Re-check the current qty under an update lock: a reserve/issue that committed after the checks above
+			   must not be wiped together with its history below. The lock also holds off a reserve that starts now. */
+			IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM WITH (UPDLOCK)
+					   INNER JOIN @Materials M ON M.WorkOrderMaterialsId = WOM.[WorkOrderMaterialsId]
+					   WHERE M.IsDeleted = 0
+						 AND (ISNULL(WOM.[QuantityReserved], 0) > 0 OR ISNULL(WOM.[QuantityIssued], 0) > 0
+						   OR ISNULL(WOM.[TotalReserved], 0) > 0 OR ISNULL(WOM.[TotalIssued], 0) > 0))
+			OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH (UPDLOCK)
+					   INNER JOIN @Materials M ON M.WorkOrderMaterialsId = WOMS.[WorkOrderMaterialsId]
+					   WHERE M.IsDeleted = 0 AND (ISNULL(WOMS.[QtyReserved], 0) > 0 OR ISNULL(WOMS.[QtyIssued], 0) > 0))
+			OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialsKit] WOMK WITH (UPDLOCK)
+					   INNER JOIN @KitMaterials K ON K.WorkOrderMaterialsKitId = WOMK.[WorkOrderMaterialsKitId]
+					   WHERE K.IsDeleted = 0
+						 AND (ISNULL(WOMK.[QuantityReserved], 0) > 0 OR ISNULL(WOMK.[QuantityIssued], 0) > 0
+						   OR ISNULL(WOMK.[TotalReserved], 0) > 0 OR ISNULL(WOMK.[TotalIssued], 0) > 0))
+			BEGIN
+				ROLLBACK TRANSACTION;
+				SET @OwnTran = 0;
+				SET @IsBlocked = 1;
+				SET @IsDeleted = 0;
+				SET @Message = 'Task data was changed by another user while deleting. No tasks were deleted, please try again.';
+				GOTO ReturnResult;
+			END
+
+			/* Old reserve/issue history of these planned materials (FK children of WorkOrderMaterials) -
+			   removed the same way USP_DeleteWorkOrderMaterials does before deleting a material */
+			DELETE X FROM [dbo].[WorkOrderIssuedStock]      X INNER JOIN @Materials M ON M.WorkOrderMaterialsId = X.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
+			DELETE X FROM [dbo].[WorkOrderUnIssuedStock]    X INNER JOIN @Materials M ON M.WorkOrderMaterialsId = X.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
+			DELETE X FROM [dbo].[WorkOrderReservedStock]    X INNER JOIN @Materials M ON M.WorkOrderMaterialsId = X.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
+			DELETE X FROM [dbo].[WorkOrderUnReservedStock]  X INNER JOIN @Materials M ON M.WorkOrderMaterialsId = X.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
+			DELETE X FROM [dbo].[WorkOrderStockLineReserve] X INNER JOIN @Materials M ON M.WorkOrderMaterialsId = X.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
+
 			DELETE WOMS FROM [dbo].[WorkOrderMaterialStockLine] WOMS INNER JOIN @Materials M ON M.WorkOrderMaterialsId = WOMS.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
 			DELETE WOM  FROM [dbo].[WorkOrderMaterials] WOM INNER JOIN @Materials M ON M.WorkOrderMaterialsId = WOM.[WorkOrderMaterialsId] WHERE M.IsDeleted = 0;
 
@@ -388,6 +416,7 @@ BEGIN
 			END
 		END
 
+ReturnResult:
 		IF @OwnTran = 1
 			COMMIT TRANSACTION;
 

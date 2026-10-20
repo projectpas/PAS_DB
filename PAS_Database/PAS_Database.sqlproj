@@ -4876,6 +4876,7 @@
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
     <Build Include="dbo\Stored Procedures\USP_SyncWorksheetStatusByWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseUsageInfoReminderData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseSummaryByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

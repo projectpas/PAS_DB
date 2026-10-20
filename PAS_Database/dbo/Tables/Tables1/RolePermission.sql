@@ -13,3 +13,9 @@
     CONSTRAINT [PK__RolePerm__3214EC076FCCF7AB] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_RolePermission_UserRoleId]
+    ON [dbo].[RolePermission]([UserRoleId] ASC)
+    INCLUDE([ModuleHierarchyMasterId], [PermissionID]);

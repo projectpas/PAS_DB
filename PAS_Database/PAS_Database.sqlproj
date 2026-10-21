@@ -2919,6 +2919,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBatchAndDepreciationDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderCustomerDetails.sql" />
     <Build Include="dbo\Functions\DistinctList.sql" />
+    <Build Include="dbo\Functions\fn_SalesOrderIsPrintFormsAllowed.sql" />
     <Build Include="dbo\Views\vw_StocklineAdjustmentReasonAudit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportSSRSData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonVendorList.sql" />
@@ -4874,7 +4875,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_SyncWorksheetStatusByWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseUsageInfoReminderData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseSummaryByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

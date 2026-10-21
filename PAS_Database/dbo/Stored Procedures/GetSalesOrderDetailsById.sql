@@ -17,6 +17,7 @@
 	2	 04/25/2025     Bhargav Saliya   Customer Name Get from the SO table instead of the Customer table
     3    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 	4    19/JUN/2026    AMIT GHEDIYA	 Get [MarketplaceRef] data [PN-16922]
+	5    16/Oct/2026    RAJESH GAMI      [PN-18370] - COC - Manufacturing / ATA 106 print flag: new column IsPrintFormsAllowed via dbo.fn_SalesOrderIsPrintFormsAllowed (stock part that is reserved or shipped; NULL/0 ToTalReservedQty handled)
  EXEC GetSalesOrderDetailsById 1484 
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderDetailsById]
@@ -141,6 +142,7 @@ BEGIN
             ELSE 0 
         END AS ForeignExchangeRate,
 		soq.MarketplaceRef
+        ,[dbo].[fn_SalesOrderIsPrintFormsAllowed](soq.SalesOrderId) AS IsPrintFormsAllowed
 			FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuote] soqt WITH(NOLOCK) ON soq.SalesOrderQuoteId = soqt.SalesOrderQuoteId
 			LEFT JOIN [dbo].[MasterSalesOrderQuoteTypes] qty WITH(NOLOCK) ON soq.TypeId = qty.Id

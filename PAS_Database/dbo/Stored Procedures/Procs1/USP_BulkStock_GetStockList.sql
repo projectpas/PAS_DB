@@ -24,7 +24,7 @@
 	12   22/07/2026         Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
 	13    12/10/2026         BHARGAV SALIYA          Allow Non-Stock Items in Bulk Stockline Adjustment (Qty, Unit Price, Inter/Intra Company) and return/filter ItemType PN-17481
 	14    12/10/2026         BHARGAV SALIYA          Exclude Non-Stock service parts (IsService = 1) from Bulk Stockline Adjustment PN-17481
-	15    21/10/2026         Nakul                   Quantity: exclude customer stock (IsCustomerStock = 0) to match Stockline List PN-18335
+	15    21/10/2026         Nakul                   Quantity: exclude customer stock (IsCustomerStock = 0) to match Stockline List PN-18324
 *************************************************************************/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
 	@PageNumber INT = 1,

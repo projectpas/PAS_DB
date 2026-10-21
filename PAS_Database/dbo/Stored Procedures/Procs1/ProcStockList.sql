@@ -88,7 +88,7 @@
 	                                     (ELSE/non-ALT, stockTypeId=1/ALT, ELSE/ALT), which had not been touched yet.
 	                                     Same care taken as before - no SELECT column, CAST, ROUND, or decimal/numeric
 	                                     expression was changed in any branch, only join structure and subquery timing.
-	37   21-Oct-2026   Nakul             [PN-18335] Hide inactive stocklines (IsActive = 0) in all 4 branches.
+	37   21-Oct-2026   Nakul             [PN-18324] Hide inactive stocklines (IsActive = 0) in all 4 branches.
 
 	(Do Not add any new join or In Query in Stockline list SP)
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,

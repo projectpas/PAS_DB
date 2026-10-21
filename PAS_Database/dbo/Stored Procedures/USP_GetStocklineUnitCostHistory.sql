@@ -19,6 +19,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    10/19/2026   Bhargav Saliya	Created (Unit Cost History on View Stockline)
+    2    10/21/2026   Bhargav Saliya	Adjustment notes show only the unit cost change (removed adjustment reason / memo); added VendorId for the PO/RO view popup
 
 -- EXEC [dbo].[USP_GetStocklineUnitCostHistory] @StocklineId = 214239, @MasterCompanyId = 1
 ************************************************************************/
@@ -51,7 +52,8 @@ BEGIN
 			[Quantity]        DECIMAL(18,6)  NULL,
 			[UnitCostAmount]  DECIMAL(18,6)  NOT NULL,
 			[Notes]           NVARCHAR(MAX)  NULL,
-			[CreatedBy]       VARCHAR(256)   NULL
+			[CreatedBy]       VARCHAR(256)   NULL,
+			[VendorId]        BIGINT         NULL      -- PO / RO vendor, needed by the UI's PO-RO view popup
 		);
 
 		DECLARE @UnitCost DECIMAL(18,6), @POUnitCost DECIMAL(18,6), @ROUnitCost DECIMAL(18,6),
@@ -131,12 +133,10 @@ BEGIN
 				 + CASE WHEN ISNULL(BSD.[FreightAdjustment],0) <> 0 OR ISNULL(BSD.[TaxAdjustment],0) <> 0
 						THEN ' (Freight: ' + CAST(CAST(ISNULL(BSD.[FreightAdjustment],0) AS DECIMAL(18,2)) AS VARCHAR(30))
 						   + ', Tax: '     + CAST(CAST(ISNULL(BSD.[TaxAdjustment],0) AS DECIMAL(18,2)) AS VARCHAR(30)) + ')'
-						ELSE '' END
-				 + ISNULL(' | ' + SAR.[Description], ''),
+						ELSE '' END,
 			   BSA.[UpdatedBy]
 		  FROM [dbo].[BulkStockLineAdjustmentDetails] BSD WITH(NOLOCK)
 		 INNER JOIN [dbo].[BulkStockLineAdjustment] BSA WITH(NOLOCK) ON BSA.[BulkStkLineAdjId] = BSD.[BulkStkLineAdjId]
-		  LEFT JOIN [dbo].[StocklineAdjustmentReason] SAR WITH(NOLOCK) ON SAR.[AdjustmentReasonId] = BSD.[AdjustmentReasonId]
 		 WHERE BSD.[StockLineId] = @StocklineId
 		   AND BSD.[StockLineAdjustmentTypeId] = @BulkUnitPriceTypeId
 		   AND BSD.[IsActive] = 1 AND BSD.[IsDeleted] = 0
@@ -150,9 +150,8 @@ BEGIN
 			   'ADJ-' + RIGHT('000000' + CAST(SA.[StocklineAdjustmentId] AS VARCHAR(20)), 6),
 			   SA.[CreatedDate], NULL,
 			   ISNULL(TRY_CAST(SA.[ChangedTo] AS DECIMAL(18,6)),0) - ISNULL(TRY_CAST(SA.[ChangedFrom] AS DECIMAL(18,6)),0),
-			   'Unit Cost ' + ISNULL(SA.[ChangedFrom],'0') + ' -> ' + ISNULL(SA.[ChangedTo],'0')
-				 + ISNULL(' | ' + NULLIF(CAST(SA.[AdjustmentReason] AS NVARCHAR(MAX)),''), '')
-				 + ISNULL(' | ' + NULLIF(CAST(SA.[AdjustmentMemo] AS NVARCHAR(MAX)),''), ''),
+			   'Unit Cost ' + CAST(CAST(ISNULL(TRY_CAST(SA.[ChangedFrom] AS DECIMAL(18,6)),0) AS DECIMAL(18,2)) AS VARCHAR(30))
+				 + ' -> '   + CAST(CAST(ISNULL(TRY_CAST(SA.[ChangedTo] AS DECIMAL(18,6)),0) AS DECIMAL(18,2)) AS VARCHAR(30)),
 			   SA.[CreatedBy]
 		  FROM [dbo].[StocklineAdjustment] SA WITH(NOLOCK)
 		 WHERE SA.[StocklineId] = @StocklineId
@@ -217,6 +216,16 @@ BEGIN
 					'Unit cost change not linked to a tracked source transaction (e.g. inventory adjustment or legacy data)', @UpdatedBy);
 		END
 
+		UPDATE CH SET CH.[VendorId] = PO.[VendorId]
+		  FROM #CostHistory CH
+		 INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON PO.[PurchaseOrderId] = CH.[ReferenceId]
+		 WHERE CH.[ModuleName] = 'PurchaseOrder';
+
+		UPDATE CH SET CH.[VendorId] = RO.[VendorId]
+		  FROM #CostHistory CH
+		 INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.[RepairOrderId] = CH.[ReferenceId]
+		 WHERE CH.[ModuleName] = 'RepairOrder';
+
 		SELECT ROW_NUMBER() OVER (ORDER BY [SortGroup], [TransactionDate], [ReferenceId]) AS [SeqNo],
 			   [TransactionType],
 			   [ModuleName],
@@ -226,7 +235,8 @@ BEGIN
 			   [Quantity],
 			   [UnitCostAmount],
 			   [Notes],
-			   [CreatedBy]
+			   [CreatedBy],
+			   [VendorId]
 		  FROM #CostHistory
 		 ORDER BY [SeqNo];
 

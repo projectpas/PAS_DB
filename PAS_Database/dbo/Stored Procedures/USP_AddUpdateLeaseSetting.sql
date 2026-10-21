@@ -13,10 +13,11 @@
    2    17/09/2026   Bhargav Saliya     [PN-17931]Added EnforcePickTicketConfirmation (Lease Pick Ticket)
    3    12/10/2026   Kishor Makwana      [PN-18284] Added IsPendingInvoiceReminderEnabled and PendingInvoiceReminderEmails (pending invoice reminder e-mail job)
    4    13/10/2026   Kishor Makwana      [PN-18284] Added PendingInvoiceReminderDaysBeforeMonthEnd (reminder starts N days before month end)
+   5    21/10/2026   Kishor Makwana      [PN-18359] Added IsUsageInfoReminderEnabled (usage information reminder e-mail on/off)
 
 **********************/
 --EXEC USP_AddUpdateLeaseSetting 0, 10, 1, 2, 3, 4, 0, 1, 'billing@company.com,ops@company.com', 2, 'admin'
-CREATE PROCEDURE [dbo].[USP_AddUpdateLeaseSetting]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateLeaseSetting]
  @LeaseSettingId INT = 0,
  @MasterCompanyId INT = NULL,
  @FlatRateGLAccountId INT = NULL,
@@ -27,6 +28,7 @@ CREATE PROCEDURE [dbo].[USP_AddUpdateLeaseSetting]
  @IsPendingInvoiceReminderEnabled BIT = 0,
  @PendingInvoiceReminderEmails NVARCHAR(2000) = NULL,
  @PendingInvoiceReminderDaysBeforeMonthEnd INT = 2,
+ @IsUsageInfoReminderEnabled BIT = 0,
  @UpdatedBy NVARCHAR(100) = NULL
 AS
 BEGIN
@@ -44,6 +46,7 @@ BEGIN
           IsPendingInvoiceReminderEnabled = ISNULL(@IsPendingInvoiceReminderEnabled, 0),
           PendingInvoiceReminderEmails    = NULLIF(LTRIM(RTRIM(@PendingInvoiceReminderEmails)), N''),
           PendingInvoiceReminderDaysBeforeMonthEnd = CASE WHEN @PendingInvoiceReminderDaysBeforeMonthEnd BETWEEN 0 AND 28 THEN @PendingInvoiceReminderDaysBeforeMonthEnd ELSE 2 END,
+          IsUsageInfoReminderEnabled = ISNULL(@IsUsageInfoReminderEnabled, 0),
           UpdatedBy                = @UpdatedBy,
           UpdatedDate              = GETUTCDATE()
       WHERE MasterCompanyId = @MasterCompanyId
@@ -54,13 +57,13 @@ BEGIN
       INSERT INTO dbo.LeaseSetting
           (MasterCompanyId, FlatRateGLAccountId, OverageCycleGLAccountId,
            OverageTimeGLAccountId, UsageBasedGLAccountId, EnforcePickTicketConfirmation,
-           IsPendingInvoiceReminderEnabled, PendingInvoiceReminderEmails, PendingInvoiceReminderDaysBeforeMonthEnd,
+           IsPendingInvoiceReminderEnabled, PendingInvoiceReminderEmails, PendingInvoiceReminderDaysBeforeMonthEnd, IsUsageInfoReminderEnabled,
            CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted)
       VALUES
           (@MasterCompanyId, @FlatRateGLAccountId, @OverageCycleGLAccountId,
            @OverageTimeGLAccountId, @UsageBasedGLAccountId, ISNULL(@EnforcePickTicketConfirmation, 0),
            ISNULL(@IsPendingInvoiceReminderEnabled, 0), NULLIF(LTRIM(RTRIM(@PendingInvoiceReminderEmails)), N''),
-           CASE WHEN @PendingInvoiceReminderDaysBeforeMonthEnd BETWEEN 0 AND 28 THEN @PendingInvoiceReminderDaysBeforeMonthEnd ELSE 2 END,
+           CASE WHEN @PendingInvoiceReminderDaysBeforeMonthEnd BETWEEN 0 AND 28 THEN @PendingInvoiceReminderDaysBeforeMonthEnd ELSE 2 END, ISNULL(@IsUsageInfoReminderEnabled, 0),
            @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0);
     END
 

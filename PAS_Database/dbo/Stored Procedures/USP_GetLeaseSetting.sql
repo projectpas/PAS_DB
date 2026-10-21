@@ -13,10 +13,11 @@
    2    17/09/2026   Bhargav Saliya     [PN-17931]Return EnforcePickTicketConfirmation for the Lease Pick Ticket
    3    12/10/2026   Kishor Makwana      [PN-18284] Return IsPendingInvoiceReminderEnabled and PendingInvoiceReminderEmails (pending invoice reminder e-mail job)
    4    13/10/2026   Kishor Makwana      [PN-18284] Return PendingInvoiceReminderDaysBeforeMonthEnd (reminder starts N days before month end)
+   5    21/10/2026   Kishor Makwana      [PN-18359] Return IsUsageInfoReminderEnabled (usage information reminder e-mail on/off)
 
 **********************/
 --EXEC USP_GetLeaseSetting 10
-CREATE PROCEDURE [dbo].[USP_GetLeaseSetting]
+CREATE   PROCEDURE [dbo].[USP_GetLeaseSetting]
  @MasterCompanyId INT = NULL
 AS
 BEGIN
@@ -34,6 +35,7 @@ BEGIN
         ISNULL(ls.IsPendingInvoiceReminderEnabled, 0) AS IsPendingInvoiceReminderEnabled,
         ls.PendingInvoiceReminderEmails,
         ISNULL(ls.PendingInvoiceReminderDaysBeforeMonthEnd, 2) AS PendingInvoiceReminderDaysBeforeMonthEnd,
+        ISNULL(ls.IsUsageInfoReminderEnabled, 0) AS IsUsageInfoReminderEnabled,
         ls.CreatedBy,
         ls.CreatedDate,
         ls.UpdatedBy,

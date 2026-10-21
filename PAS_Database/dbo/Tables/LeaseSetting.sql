@@ -15,8 +15,11 @@
     [IsPendingInvoiceReminderEnabled]          BIT             CONSTRAINT [DF_LeaseSetting_IsPendingInvoiceReminderEnabled] DEFAULT ((0)) NOT NULL,
     [PendingInvoiceReminderEmails]             NVARCHAR (2000) NULL,
     [PendingInvoiceReminderDaysBeforeMonthEnd] INT             CONSTRAINT [DF_LeaseSetting_PendingInvoiceReminderDaysBeforeMonthEnd] DEFAULT ((2)) NOT NULL,
+    [IsUsageInfoReminderEnabled]               BIT             CONSTRAINT [DF_LeaseSetting_IsUsageInfoReminderEnabled] DEFAULT ((0)) NOT NULL,
     PRIMARY KEY CLUSTERED ([LeaseSettingId] ASC)
 );
+
+
 
 
 

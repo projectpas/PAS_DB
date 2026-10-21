@@ -20,6 +20,8 @@
 	4    09/26/2023   MOIN BLOCH    Modefied (Added 0 ADDAND IN ACCOUNT NUMBER)
 	5    09/29/2023   MOIN BLOCH    Modefied (Removed 10 digit length from Entry Hash)
 	6    10/19/2023   MOIN BLOCH    Modefied (Added Print Amount For Display Decimal Value)
+	7    10/21/2026   Nakul         Vendor routing/account/account type now come from the vendor ACH Transfer record (VendorACHPayment) instead of Domestic Wire (PN-18294)
+	8    10/21/2026   Nakul         PrintAmount now written in cents (PaymentMade is DECIMAL(18,6); removing the decimal point made the NACHA amount 10,000x too large) (PN-18294)
 	
 --EXEC VendorPositivePayExportACHList 
 **************************************************************/
@@ -290,42 +292,42 @@ BEGIN
     BEGIN
 		;WITH Result AS (  
 		 SELECT '6' AS RecordTypeCode
-			    ,CASE WHEN DWP.VendorBankAccountTypeId = @CheckingAccountTypeId THEN '22'
-			          WHEN DWP.VendorBankAccountTypeId = @SavingAccountTypeId THEN '32'
+			    ,CASE WHEN VACH.VendorBankAccountTypeId = @CheckingAccountTypeId THEN '22'
+			          WHEN VACH.VendorBankAccountTypeId = @SavingAccountTypeId THEN '32'
 					  ELSE '22' 
 					END AS TransactionCode
-			   ,CASE WHEN LEN(UPPER(DWP.ABA)) = 1 THEN UPPER(DWP.ABA) + SPACE(7)
-			         WHEN LEN(UPPER(DWP.ABA)) = 2 THEN UPPER(DWP.ABA) + SPACE(6)
-					 WHEN LEN(UPPER(DWP.ABA)) = 3 THEN UPPER(DWP.ABA) + SPACE(5)
-					 WHEN LEN(UPPER(DWP.ABA)) = 4 THEN UPPER(DWP.ABA) + SPACE(4)
-					 WHEN LEN(UPPER(DWP.ABA)) = 5 THEN UPPER(DWP.ABA) + SPACE(3)
-					 WHEN LEN(UPPER(DWP.ABA)) = 6 THEN UPPER(DWP.ABA) + SPACE(2)
-					 WHEN LEN(UPPER(DWP.ABA)) = 7 THEN UPPER(DWP.ABA) + SPACE(1)
-					 WHEN LEN(UPPER(DWP.ABA)) = 8 THEN UPPER(DWP.ABA)
-					 WHEN LEN(UPPER(DWP.ABA)) > 8 THEN LEFT(UPPER(DWP.ABA), 8) 
+			   ,CASE WHEN LEN(UPPER(VACH.ABA)) = 1 THEN UPPER(VACH.ABA) + SPACE(7)
+			         WHEN LEN(UPPER(VACH.ABA)) = 2 THEN UPPER(VACH.ABA) + SPACE(6)
+					 WHEN LEN(UPPER(VACH.ABA)) = 3 THEN UPPER(VACH.ABA) + SPACE(5)
+					 WHEN LEN(UPPER(VACH.ABA)) = 4 THEN UPPER(VACH.ABA) + SPACE(4)
+					 WHEN LEN(UPPER(VACH.ABA)) = 5 THEN UPPER(VACH.ABA) + SPACE(3)
+					 WHEN LEN(UPPER(VACH.ABA)) = 6 THEN UPPER(VACH.ABA) + SPACE(2)
+					 WHEN LEN(UPPER(VACH.ABA)) = 7 THEN UPPER(VACH.ABA) + SPACE(1)
+					 WHEN LEN(UPPER(VACH.ABA)) = 8 THEN UPPER(VACH.ABA)
+					 WHEN LEN(UPPER(VACH.ABA)) > 8 THEN LEFT(UPPER(VACH.ABA), 8) 
 					 ELSE SPACE(8)   
 				END AS ReceivingDFIID
-				,CASE WHEN LEN(UPPER(DWP.ABA)) > 1 THEN RIGHT(UPPER(DWP.ABA), 1) 			       
+				,CASE WHEN LEN(UPPER(VACH.ABA)) > 1 THEN RIGHT(UPPER(VACH.ABA), 1) 			       
 					 ELSE SPACE(1)   
 				END AS CheckDigit				
-				,CASE WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 1 THEN dbo.GetNumOfZero(16) + DWP.[AccountNumber] 
-				      WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 2 THEN dbo.GetNumOfZero(15) + DWP.[AccountNumber] 
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 3 THEN dbo.GetNumOfZero(14) + DWP.[AccountNumber] 
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 4 THEN dbo.GetNumOfZero(13) + DWP.[AccountNumber] 
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 5 THEN dbo.GetNumOfZero(12) + DWP.[AccountNumber] 
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 6 THEN dbo.GetNumOfZero(11) + DWP.[AccountNumber] 
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 7 THEN dbo.GetNumOfZero(10) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 8 THEN dbo.GetNumOfZero(9)  + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 9 THEN dbo.GetNumOfZero(8)  + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 10 THEN dbo.GetNumOfZero(7) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 11 THEN dbo.GetNumOfZero(6) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 12 THEN dbo.GetNumOfZero(5) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 13 THEN dbo.GetNumOfZero(4) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 14 THEN dbo.GetNumOfZero(3) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 15 THEN dbo.GetNumOfZero(2) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 16 THEN dbo.GetNumOfZero(1) + DWP.[AccountNumber]
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) = 17 THEN UPPER(DWP.[AccountNumber])
-					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) > 17 THEN LEFT(UPPER(DWP.[AccountNumber]), 17) 
+				,CASE WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 1 THEN dbo.GetNumOfZero(16) + VACH.[AccountNumber] 
+				      WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 2 THEN dbo.GetNumOfZero(15) + VACH.[AccountNumber] 
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 3 THEN dbo.GetNumOfZero(14) + VACH.[AccountNumber] 
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 4 THEN dbo.GetNumOfZero(13) + VACH.[AccountNumber] 
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 5 THEN dbo.GetNumOfZero(12) + VACH.[AccountNumber] 
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 6 THEN dbo.GetNumOfZero(11) + VACH.[AccountNumber] 
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 7 THEN dbo.GetNumOfZero(10) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 8 THEN dbo.GetNumOfZero(9)  + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 9 THEN dbo.GetNumOfZero(8)  + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 10 THEN dbo.GetNumOfZero(7) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 11 THEN dbo.GetNumOfZero(6) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 12 THEN dbo.GetNumOfZero(5) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 13 THEN dbo.GetNumOfZero(4) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 14 THEN dbo.GetNumOfZero(3) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 15 THEN dbo.GetNumOfZero(2) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 16 THEN dbo.GetNumOfZero(1) + VACH.[AccountNumber]
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) = 17 THEN UPPER(VACH.[AccountNumber])
+					  WHEN LEN(UPPER(ISNULL(VACH.[AccountNumber],''))) > 17 THEN LEFT(UPPER(VACH.[AccountNumber]), 17) 
 					  ELSE dbo.GetNumOfZero(17)
 				END AS DFIAccountNumber
 			 --  ,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 1 THEN '000000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
@@ -354,21 +356,9 @@ BEGIN
 					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) > 10 THEN LEFT(CAST(SUM(VRP.PaymentMade) AS VARCHAR),10)
 					  ELSE  '0000000000'
 				END AS Amount
-				,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 1 THEN '000000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-				      WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 2 THEN '00000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 3 THEN '0000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 4 THEN '000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 5 THEN '00000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 6 THEN '0000' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 7 THEN '000' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 8 THEN '00' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 9 THEN '0' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 10 THEN CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 > 10 THEN LEFT(CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR),10)
-					  ELSE  '0000000000'
-				END AS PrintAmount
-				,CASE WHEN LEN(UPPER(DWP.[AccountNumber])) <= 15 THEN UPPER(DWP.[AccountNumber]) + SPACE(dbo.GetSpace(15,LEN(DWP.[AccountNumber])))			          
-					  WHEN LEN(UPPER(DWP.[AccountNumber])) > 15  THEN LEFT(UPPER(DWP.[AccountNumber]), 15) 
+				,RIGHT('0000000000' + CAST(CAST(ROUND(SUM(ISNULL(VRP.PaymentMade,0)) * 100, 0) AS BIGINT) AS VARCHAR(20)), 10) AS PrintAmount -- amount in cents, zero-padded to 10
+				,CASE WHEN LEN(UPPER(VACH.[AccountNumber])) <= 15 THEN UPPER(VACH.[AccountNumber]) + SPACE(dbo.GetSpace(15,LEN(VACH.[AccountNumber])))			          
+					  WHEN LEN(UPPER(VACH.[AccountNumber])) > 15  THEN LEFT(UPPER(VACH.[AccountNumber]), 15) 
 					  ELSE SPACE(15) END AS IdentificationNumber
 				,CASE WHEN LEN(UPPER(VN.[VendorName])) <= 22 THEN UPPER(VN.[VendorName]) + SPACE(dbo.GetSpace(22,LEN(VN.[VendorName])))			          
 					  WHEN LEN(UPPER(VN.[VendorName])) > 22  THEN LEFT(UPPER(VN.[VendorName]), 22) 
@@ -380,16 +370,15 @@ BEGIN
 			   ,VRP.CheckDate AS 'Date'
 			   ,VN.VendorName
 			   ,SUM(ISNULL(VRP.PaymentMade,0)) AS PaymentAmount
-			   ,DWP.BankName
-	 		   ,DWP.AccountNumber
+			   ,VACH.BeneficiaryBankName AS BankName
+	 		   ,VACH.AccountNumber
 			   ,PM.[Description] AS 'PaymentMethod'			  
 			FROM [dbo].[VendorReadyToPayDetails] VRP  WITH(NOLOCK)
 			INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRP.VendorId = VN.VendorId
 			 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRP.[ReceivingReconciliationId] = RRH.[ReceivingReconciliationId]
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK) ON VRP.ReadyToPayId = VRH.ReadyToPayId
-			 LEFT JOIN [dbo].[VendorDomesticWirePayment] VVP WITH(NOLOCK) ON VVP.VendorId = VN.VendorId
-			 LEFT JOIN [dbo].[DomesticWirePayment] DWP WITH(NOLOCK) ON DWP.DomesticWirePaymentId = VVP.DomesticWirePaymentId
-			 LEFT JOIN [dbo].[VendorBankAccountType] BAT WITH(NOLOCK) ON DWP.VendorBankAccountTypeId = BAT.VendorBankAccountTypeId			 
+			 LEFT JOIN [dbo].[VendorACHPayment] VACH WITH(NOLOCK) ON VACH.VendorId = VN.VendorId AND VACH.IsDeleted = 0
+			 LEFT JOIN [dbo].[VendorBankAccountType] BAT WITH(NOLOCK) ON VACH.VendorBankAccountTypeId = BAT.VendorBankAccountTypeId			 
 			 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VRP.PaymentMethodId			 
 			 INNER JOIN [dbo].[EntityStructureSetup] ESS WITH(NOLOCK) ON ESS.EntityStructureId = VRH.ManagementStructureId
 			 INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = ESS.Level1Id
@@ -398,8 +387,8 @@ BEGIN
 		WHERE (VRP.[MasterCompanyId] = @MasterCompanyId) AND (MSL.LegalEntityId = @LegalEntityId) AND (VRP.[PaymentMethodId] = @ACHTransferPaymentMethodId) AND
 			  (@ReadyToPayIds IS NULL OR VRP.ReadyToPayId IN (SELECT Item FROM dbo.SplitString(@ReadyToPayIds,','))) AND
 		      (@VendorIds IS NULL OR VRP.VendorId IN (SELECT Item FROM dbo.SplitString(@VendorIds,','))) 		       
-			 GROUP BY DWP.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,DWP.BankName,DWP.AccountNumber,VRP.CheckDate
-			         ,VRP.ReadyToPayId,VRP.VendorId,VRP.[PaymentMethodId],PM.[Description],DWP.VendorBankAccountTypeId
+			 GROUP BY VACH.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,VACH.BeneficiaryBankName,VACH.AccountNumber,VRP.CheckDate
+			         ,VRP.ReadyToPayId,VRP.VendorId,VRP.[PaymentMethodId],PM.[Description],VACH.VendorBankAccountTypeId
 		),  
 		FinalResult AS (  
 		SELECT RecordTypeCode,TransactionCode,ReceivingDFIID,CheckDigit,DFIAccountNumber,Amount,IdentificationNumber,
@@ -485,16 +474,15 @@ BEGIN
 			   ,VRP.CheckDate AS 'Date'
 			   ,VN.VendorName
 			   ,SUM(ISNULL(VRP.PaymentMade,0)) AS PaymentAmount
-			   ,DWP.BankName
-	 		   ,DWP.AccountNumber
+			   ,VACH.BeneficiaryBankName AS BankName
+	 		   ,VACH.AccountNumber
 			   ,PM.[Description] AS 'PaymentMethod'
 			  
 			FROM [dbo].[VendorReadyToPayDetails] VRP  WITH(NOLOCK)
 			INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRP.VendorId = VN.VendorId
 			 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRP.[ReceivingReconciliationId] = RRH.[ReceivingReconciliationId]
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK) ON VRP.ReadyToPayId = VRH.ReadyToPayId
-			 LEFT JOIN [dbo].[VendorDomesticWirePayment] VVP WITH(NOLOCK) ON VVP.VendorId = VN.VendorId
-			 LEFT JOIN [dbo].[DomesticWirePayment] DWP WITH(NOLOCK) ON DWP.DomesticWirePaymentId = VVP.DomesticWirePaymentId
+			 LEFT JOIN [dbo].[VendorACHPayment] VACH WITH(NOLOCK) ON VACH.VendorId = VN.VendorId AND VACH.IsDeleted = 0
 			 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VRP.PaymentMethodId			 
 			 INNER JOIN [dbo].[EntityStructureSetup] ESS WITH(NOLOCK) ON ESS.EntityStructureId = VRH.ManagementStructureId
 			 INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = ESS.Level1Id
@@ -504,7 +492,7 @@ BEGIN
 		WHERE (VRP.[MasterCompanyId] = @MasterCompanyId) AND (MSL.LegalEntityId = @LegalEntityId) AND (VRP.[PaymentMethodId] = @ACHTransferPaymentMethodId) AND
 			  (@ReadyToPayIds IS NULL OR VRP.ReadyToPayId IN (SELECT Item FROM dbo.SplitString(@ReadyToPayIds,','))) AND
 		      (@VendorIds IS NULL OR VRP.VendorId IN (SELECT Item FROM dbo.SplitString(@VendorIds,','))) 		       
-			 GROUP BY DWP.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,DWP.BankName,DWP.AccountNumber,VRP.CheckDate
+			 GROUP BY VACH.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,VACH.BeneficiaryBankName,VACH.AccountNumber,VRP.CheckDate
 			         ,VRP.ReadyToPayId,VRP.VendorId,VRP.[PaymentMethodId],PM.[Description],LEE.[taxId],ACH.ABA
 		),  
 		FinalResult AS (  
@@ -569,16 +557,15 @@ BEGIN
 			   ,VRP.CheckDate AS 'Date'
 			   ,VN.VendorName
 			   ,SUM(ISNULL(VRP.PaymentMade,0)) AS PaymentAmount
-			   ,DWP.BankName
-	 		   ,DWP.AccountNumber
+			   ,VACH.BeneficiaryBankName AS BankName
+	 		   ,VACH.AccountNumber
 			   ,PM.[Description] AS 'PaymentMethod'
 			  
 			FROM [dbo].[VendorReadyToPayDetails] VRP  WITH(NOLOCK)
 			INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRP.VendorId = VN.VendorId
 			 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRP.[ReceivingReconciliationId] = RRH.[ReceivingReconciliationId]
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK) ON VRP.ReadyToPayId = VRH.ReadyToPayId
-			 LEFT JOIN [dbo].[VendorDomesticWirePayment] VVP WITH(NOLOCK) ON VVP.VendorId = VN.VendorId
-			 LEFT JOIN [dbo].[DomesticWirePayment] DWP WITH(NOLOCK) ON DWP.DomesticWirePaymentId = VVP.DomesticWirePaymentId
+			 LEFT JOIN [dbo].[VendorACHPayment] VACH WITH(NOLOCK) ON VACH.VendorId = VN.VendorId AND VACH.IsDeleted = 0
 			 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VRP.PaymentMethodId			 
 			 INNER JOIN [dbo].[EntityStructureSetup] ESS WITH(NOLOCK) ON ESS.EntityStructureId = VRH.ManagementStructureId
 			 INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = ESS.Level1Id
@@ -588,7 +575,7 @@ BEGIN
 		WHERE (VRP.[MasterCompanyId] = @MasterCompanyId) AND (MSL.LegalEntityId = @LegalEntityId) AND (VRP.[PaymentMethodId] = @ACHTransferPaymentMethodId) AND
 			  (@ReadyToPayIds IS NULL OR VRP.ReadyToPayId IN (SELECT Item FROM dbo.SplitString(@ReadyToPayIds,','))) AND
 		      (@VendorIds IS NULL OR VRP.VendorId IN (SELECT Item FROM dbo.SplitString(@VendorIds,','))) 		       
-			 GROUP BY DWP.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,DWP.BankName,DWP.AccountNumber,VRP.CheckDate
+			 GROUP BY VACH.ABA,VN.[VendorName],VRP.CheckNumber,VRP.CheckDate,VN.VendorName,VACH.BeneficiaryBankName,VACH.AccountNumber,VRP.CheckDate
 			         ,VRP.ReadyToPayId,VRP.VendorId,VRP.[PaymentMethodId],PM.[Description],ACH.ABA
 		),  
 		FinalResult AS (  

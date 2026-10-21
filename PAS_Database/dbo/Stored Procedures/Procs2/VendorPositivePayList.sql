@@ -17,6 +17,7 @@
     1    07/10/2023   MOIN BLOCH    CREATED 
 	2    07/21/2023   MOIN BLOCH    Added StartDate And EndDate Filter
 	3    06/25/2024   SAHDEV SALIYA Added ReadyToPayDetailsId for Resolve Print Issue
+	4    10/21/2026   Nakul         ACH Transfer Bank Acct Name/Num now come from the vendor ACH Transfer record (VendorACHPayment) (PN-18294)
   
 exec VendorPositivePayList 
 @PageSize=10,@PageNumber=1,@SortColumn=N'invoiceNum',@SortOrder=-1,@GlobalFilter=N'',
@@ -94,16 +95,16 @@ BEGIN
 			,VRP.CheckDate AS 'EntryDate'			
 			,CASE WHEN VRP.IsVoidedCheck =1 THEN VRP.CheckNumber + ' (V)' ELSE VRP.CheckNumber END AS 'PaymentRef'
 			,'' AS 'CheckCrashed'						
-			,CASE WHEN VRP.PaymentMethodId = @Check THEN lebl.BankName WHEN VRP.PaymentMethodId = @DomesticWire THEN DWPL.BankName WHEN VRP.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBank WHEN VRP.PaymentMethodId = @ACHTransfer THEN DWPL.BankName WHEN VRP.PaymentMethodId = @CreditCard THEN '' END AS BankName
+			,CASE WHEN VRP.PaymentMethodId = @Check THEN lebl.BankName WHEN VRP.PaymentMethodId = @DomesticWire THEN DWPL.BankName WHEN VRP.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBank WHEN VRP.PaymentMethodId = @ACHTransfer THEN VACH.BeneficiaryBankName WHEN VRP.PaymentMethodId = @CreditCard THEN '' END AS BankName
 			,CASE WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @Check THEN lebl.BankAccountNumber + ' (V)' 
 			      WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @DomesticWire THEN DWPL.AccountNumber 
 				  WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBankAccount 
-				  WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @ACHTransfer THEN DWPL.AccountNumber 
+				  WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @ACHTransfer THEN VACH.AccountNumber
 				  WHEN VRP.IsVoidedCheck = 1 AND VRP.PaymentMethodId = @CreditCard THEN '' 
 				  WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @Check THEN lebl.BankAccountNumber 
 			      WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @DomesticWire THEN DWPL.AccountNumber 
 				  WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBankAccount 
-				  WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @ACHTransfer THEN DWPL.AccountNumber
+				  WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @ACHTransfer THEN VACH.AccountNumber
 				  WHEN VRP.IsVoidedCheck = 0 AND VRP.PaymentMethodId = @CreditCard THEN '' END AS 'BankAccountNumber'
 			,VRH.ReadyToPayId
 			,VRP.IsVoidedCheck
@@ -119,11 +120,12 @@ BEGIN
 		 LEFT JOIN [dbo].[DomesticWirePayment] DWPL WITH(NOLOCK) ON DWPL.DomesticWirePaymentId = VDWP.DomesticWirePaymentId
 		 LEFT JOIN [dbo].[VendorInternationlWirePayment] VIWP WITH(NOLOCK) ON VIWP.VendorId = VRP.VendorId
 		 LEFT JOIN [dbo].[InternationalWirePayment] IWPL WITH(NOLOCK) ON IWPL.InternationalWirePaymentId = VIWP.InternationalWirePaymentId
+		 LEFT JOIN [dbo].[VendorACHPayment] VACH WITH(NOLOCK) ON VACH.VendorId = VRP.VendorId AND VACH.IsDeleted = 0
 
 		 WHERE ([VRP].[PaymentMethodId] = @PaymentMethodId) AND (VRP.[MasterCompanyId] = @MasterCompanyId) 
 		   AND (@StartDate IS NULL OR CAST(VRP.CheckDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE))
-		 GROUP BY VRP.CheckNumber,lebl.BankName,DWPL.BankName,IWPL.BeneficiaryBank,lebl.BankAccountNumber,DWPL.AccountNumber,IWPL.BeneficiaryBankAccount, VRH.ReadyToPayId,VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,VRP.VendorId,PM.[Description],[VRP].[PaymentMethodId],[VRP].ReadyToPayDetailsId
-    ),  
+		 GROUP BY VRP.CheckNumber,lebl.BankName,DWPL.BankName,IWPL.BeneficiaryBank,lebl.BankAccountNumber,DWPL.AccountNumber,IWPL.BeneficiaryBankAccount, VRH.ReadyToPayId,VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,VRP.VendorId,PM.[Description],[VRP].[PaymentMethodId],[VRP].ReadyToPayDetailsId,VACH.BeneficiaryBankName,VACH.AccountNumber
+    ),
     FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, InvoiceTotal,VendorName, PaymentHold, InvociedDate,EntryDate,  
       PaymentMethod, PaymentRef, CheckCrashed,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,ReadyToPayDetailsId FROM Result  

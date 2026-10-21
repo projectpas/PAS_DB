@@ -10,6 +10,8 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   ------------   --------------------------------
 ** 1    01-07-2025   Ayushi Patel   Created
+** 2    21-10-2026   Nakul          Added Payee Name, Bank Location 1/2, SWIFT and GL Account (Legal Entity banking fields) (PN-18294)
+** 3    21-10-2026   Nakul          Added GLAccountName for vendor view popups (PN-18294)
 
 -- EXEC USP_GetDomesticWirePaymentByVendorId 2345
 **************************************************************/
@@ -53,7 +55,14 @@ BEGIN
             ISNULL(a.PostalCode, '') AS PostalCode,
             a.CountryId,
 
-            ISNULL(c.countries_name, '') AS CountryName
+            ISNULL(c.countries_name, '') AS CountryName,
+
+            ISNULL(dwp.PayeeName, v.VendorName) AS PayeeName,
+            dwp.BankLocation1,
+            dwp.BankLocation2,
+            dwp.SwiftCode,
+            dwp.GLAccountId,
+            ISNULL(gl.AccountCode + ' - ' + gl.AccountName, '') AS GLAccountName
 
         FROM dbo.DomesticWirePayment dwp WITH(NOLOCK)
         INNER JOIN dbo.VendorDomesticWirePayment vdwp WITH(NOLOCK)
@@ -64,6 +73,8 @@ BEGIN
             ON dwp.AccountNameId = v.VendorId
         LEFT JOIN dbo.Countries c WITH(NOLOCK)
             ON a.CountryId = c.countries_id
+        LEFT JOIN dbo.GLAccount gl WITH(NOLOCK)
+            ON dwp.GLAccountId = gl.GLAccountId
         WHERE vdwp.VendorId = @VendorId
             AND dwp.IsDeleted = 0
     END TRY

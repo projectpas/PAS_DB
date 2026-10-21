@@ -2,12 +2,11 @@
  ** File:   [USP_GetLeaseSummaryByLeaseHeaderId]
  ** Description: Lease -> Lease Summary tab: consolidated financial overview of one lease (PO cost, RO cost, other cost, total cost, revenue, profit/loss).
  **
- **              PO Cost     = PO amount of the Purchase Orders the leased stocklines came from (LeaseStockline -> Stockline.PurchaseOrderId):
- **                            PO part lines (parent/standalone lines, Extended Cost) + PO Freight (Amount) + PO Charges (Extended Cost). Each PO is counted ONCE
- **                            even when several leased stocklines came from it.
- **              RO Cost     = actual repair cost of the Repair Orders selected on the lease part lines (LeaseStockline.RepairOrderId):
- **                            RO part lines (Extended Cost) + RO Freight (Amount) + RO Charges (Extended Cost). Each RO is counted ONCE.
- **              Other Cost  = configured Maintenance + Insurance + Taxes amounts of the active (not deleted) lease part lines.
+ **              PO Cost     = stockline wise: for each leased stockline the PO part line it was received on (Stockline.PurchaseOrderPartRecordId),
+ **                            PO unit cost x quantity on the lease. Not summed per whole PO (freight / PO charges are not stockline specific, so not included).
+ **              RO Cost     = stockline wise: actual repair cost (Extended Cost) of the RO part lines of the leased stocklines (RepairOrderPart.StockLineId).
+ **              Other Cost  = Maintenance + Insurance + Taxes + Others of the lease parts' service components (LeaseStocklineServiceComponent), CURRENT MONTH wise
+ **                            exactly like the Billing tab (Amount split over StartDate-EndDate calendar months; full month = 1, part month = days/30; only this month's share).
  **              Total Cost  = PO Cost + RO Cost + Other Cost
  **              Revenue     = generated (draft) and posted lease invoices, voided invoices excluded, Taxes lines excluded; each invoice line counted once
  **                            (Line Amount of LeaseBillingInvoicingItemDetails, version-increase rows ignored).
@@ -20,6 +19,9 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    21/10/2026     Kishor Makwana          [Lease Summary] Created
+    2    22/10/2026     Kishor Makwana          [Lease Summary] PO / RO cost are calculated stockline wise (leased stocklines' PO part lines / RO part lines), not per PO / RO id
+
+    3    22/10/2026     Kishor Makwana          [Lease Summary] Other Cost now from LeaseStocklineServiceComponent (Maintenance, Insurance, Taxes, Others), current month wise like Billing
 
 EXEC USP_GetLeaseSummaryByLeaseHeaderId @LeaseHeaderId = 22
 ************************************************************************/
@@ -34,41 +36,63 @@ BEGIN
 		DECLARE @LeaseModuleId INT = (SELECT TOP 1 [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'Leasing');
 		DECLARE @PoCost DECIMAL(18, 6) = 0, @RoCost DECIMAL(18, 6) = 0, @OtherCost DECIMAL(18, 6) = 0, @Revenue DECIMAL(18, 6) = 0;
 
-		-- PO Cost: each Purchase Order once (DISTINCT), part lines + freight + charges
-		;WITH LeasePO AS (
-			SELECT DISTINCT STK.[PurchaseOrderId]
-			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
-			INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
-			INNER JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON PO.[PurchaseOrderId] = STK.[PurchaseOrderId] AND ISNULL(PO.[IsDeleted], 0) = 0
-			WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0 AND STK.[PurchaseOrderId] IS NOT NULL
-		)
-		SELECT @PoCost =
-			  ISNULL((SELECT SUM(ISNULL(POP.[ExtendedCost], 0)) FROM [dbo].[PurchaseOrderPart] POP WITH (NOLOCK)
-					  WHERE POP.[PurchaseOrderId] IN (SELECT [PurchaseOrderId] FROM LeasePO) AND ISNULL(POP.[IsDeleted], 0) = 0 AND POP.[ParentId] IS NULL), 0)
-			+ ISNULL((SELECT SUM(ISNULL(POF.[Amount], 0)) FROM [dbo].[PurchaseOrderFreight] POF WITH (NOLOCK)
-					  WHERE POF.[PurchaseOrderId] IN (SELECT [PurchaseOrderId] FROM LeasePO) AND ISNULL(POF.[IsDeleted], 0) = 0), 0)
-			+ ISNULL((SELECT SUM(ISNULL(POC.[ExtendedCost], 0)) FROM [dbo].[PurchaseOrderCharges] POC WITH (NOLOCK)
-					  WHERE POC.[PurchaseOrderId] IN (SELECT [PurchaseOrderId] FROM LeasePO) AND ISNULL(POC.[IsDeleted], 0) = 0), 0);
-
-		-- RO Cost: each Repair Order once (DISTINCT), part lines + freight + charges
-		;WITH LeaseRO AS (
-			SELECT DISTINCT LSL.[RepairOrderId]
-			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
-			INNER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.[RepairOrderId] = LSL.[RepairOrderId] AND ISNULL(RO.[IsDeleted], 0) = 0
-			WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0 AND LSL.[RepairOrderId] IS NOT NULL
-		)
-		SELECT @RoCost =
-			  ISNULL((SELECT SUM(ISNULL(ROP.[ExtendedCost], 0)) FROM [dbo].[RepairOrderPart] ROP WITH (NOLOCK)
-					  WHERE ROP.[RepairOrderId] IN (SELECT [RepairOrderId] FROM LeaseRO) AND ISNULL(ROP.[IsDeleted], 0) = 0 AND ROP.[ParentId] IS NULL), 0)
-			+ ISNULL((SELECT SUM(ISNULL(ROF.[Amount], 0)) FROM [dbo].[RepairOrderFreight] ROF WITH (NOLOCK)
-					  WHERE ROF.[RepairOrderId] IN (SELECT [RepairOrderId] FROM LeaseRO) AND ISNULL(ROF.[IsDeleted], 0) = 0), 0)
-			+ ISNULL((SELECT SUM(ISNULL(ROC.[ExtendedCost], 0)) FROM [dbo].[RepairOrderCharges] ROC WITH (NOLOCK)
-					  WHERE ROC.[RepairOrderId] IN (SELECT [RepairOrderId] FROM LeaseRO) AND ISNULL(ROC.[IsDeleted], 0) = 0), 0);
-
-		-- Other Cost: configured Maintenance + Insurance + Taxes of the lease part lines
-		SELECT @OtherCost = ISNULL(SUM(ISNULL(LSL.[Maintenance], 0) + ISNULL(LSL.[Insurance], 0) + ISNULL(LSL.[Taxes], 0)), 0)
+		-- PO Cost: stockline wise - for every leased stockline the PO part line it was received on (Stockline.PurchaseOrderPartRecordId):
+		-- PO unit cost x quantity on the lease (falls back to the stockline PO unit cost). Not based on the whole PO.
+		SELECT @PoCost = ISNULL(SUM(ISNULL(POP.[UnitCost], ISNULL(STK.[PurchaseOrderUnitCost], 0)) * LSL.[QtyOrder]), 0)
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
-		WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0 AND ISNULL(LSL.[IsActive], 1) = 1;
+		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
+		LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.[PurchaseOrderPartRecordId] = STK.[PurchaseOrderPartRecordId] AND ISNULL(POP.[IsDeleted], 0) = 0
+		WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0 AND STK.[PurchaseOrderPartRecordId] IS NOT NULL;
+
+		-- RO Cost: stockline wise - the actual repair cost (Extended Cost) of the RO part lines of the leased stocklines (RepairOrderPart.StockLineId)
+		SELECT @RoCost = ISNULL(SUM(ISNULL(ROP.[ExtendedCost], 0)), 0)
+		FROM [dbo].[RepairOrderPart] ROP WITH (NOLOCK)
+		INNER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] AND ISNULL(RO.[IsDeleted], 0) = 0
+		WHERE ISNULL(ROP.[IsDeleted], 0) = 0 AND ROP.[ParentId] IS NULL
+		  AND ROP.[StockLineId] IN (SELECT LSL.[StockLineId] FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK) WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0);
+
+		-- Other Cost: Maintenance + Insurance + Taxes + Others from the lease parts' service components (LeaseStocklineServiceComponent),
+		-- calculated CURRENT MONTH wise exactly like the Billing tab: the component Amount is the total for StartDate-EndDate, split over the calendar months
+		-- (full month = 1, part month = days / 30, last month takes the rounding remainder) and only the current calendar month's share is counted.
+		-- Components without Start / End date are counted once in full (one-time, same as billing).
+		;WITH LeasedStocklines AS (
+			SELECT DISTINCT LSL.[LeaseStocklineId] FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
+			WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0
+		),
+		Nums AS (
+			SELECT TOP (1200) CAST(ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS INT) AS n FROM sys.all_columns
+		),
+		ComponentSlicesBase AS (
+			SELECT SC.[LeaseStocklineServiceComponentId] AS ComponentId, M.MonthStart, ISNULL(SC.[Amount], 0) AS Amount,
+				CASE WHEN SL.SliceFrom = M.MonthStart AND SL.SliceTo = EOMONTH(M.MonthStart) THEN CAST(1 AS DECIMAL(18,6))
+					ELSE CAST(DATEDIFF(DAY, SL.SliceFrom, SL.SliceTo) + 1 AS DECIMAL(18,6)) / 30.0 END AS Weight
+			FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
+			INNER JOIN LeasedStocklines LS ON LS.[LeaseStocklineId] = SC.[LeaseStocklineId]
+			INNER JOIN Nums N ON N.n <= DATEDIFF(MONTH, SC.[StartDate], SC.[EndDate])
+			CROSS APPLY (SELECT DATEADD(MONTH, N.n, DATEFROMPARTS(YEAR(SC.[StartDate]), MONTH(SC.[StartDate]), 1)) AS MonthStart) M
+			CROSS APPLY (SELECT
+					CASE WHEN CAST(SC.[StartDate] AS DATE) > M.MonthStart THEN CAST(SC.[StartDate] AS DATE) ELSE M.MonthStart END AS SliceFrom,
+					CASE WHEN CAST(SC.[EndDate] AS DATE) < EOMONTH(M.MonthStart) THEN CAST(SC.[EndDate] AS DATE) ELSE EOMONTH(M.MonthStart) END AS SliceTo) SL
+			WHERE SC.[IsDeleted] = 0 AND SC.[StartDate] IS NOT NULL AND SC.[EndDate] IS NOT NULL AND SC.[EndDate] >= SC.[StartDate] AND ISNULL(SC.[Amount], 0) <> 0
+		),
+		ComponentSlicesRounded AS (
+			SELECT ComponentId, MonthStart, Amount,
+				ROUND(Amount * Weight / NULLIF(SUM(Weight) OVER (PARTITION BY ComponentId), 0), 2) AS ShareRounded
+			FROM ComponentSlicesBase
+		),
+		ComponentSlices AS (
+			SELECT ComponentId, MonthStart,
+				CASE WHEN MonthStart = MAX(MonthStart) OVER (PARTITION BY ComponentId)
+					THEN Amount - (SUM(ShareRounded) OVER (PARTITION BY ComponentId) - ShareRounded)
+					ELSE ShareRounded END AS SliceAmount
+			FROM ComponentSlicesRounded
+		)
+		SELECT @OtherCost =
+			ISNULL((SELECT SUM(CS.SliceAmount) FROM ComponentSlices CS
+					WHERE CS.MonthStart = DATEFROMPARTS(YEAR(GETUTCDATE()), MONTH(GETUTCDATE()), 1)), 0)
+			+ ISNULL((SELECT SUM(ISNULL(SC.[Amount], 0)) FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
+					  INNER JOIN LeasedStocklines LS ON LS.[LeaseStocklineId] = SC.[LeaseStocklineId]
+					  WHERE SC.[IsDeleted] = 0 AND (SC.[StartDate] IS NULL OR SC.[EndDate] IS NULL OR SC.[EndDate] < SC.[StartDate])), 0);
 
 		-- Revenue: generated (draft) + posted invoices, not voided; each invoice line once; Taxes lines are not revenue
 		SELECT @Revenue = ISNULL(SUM(ISNULL(D.[LineAmount], 0)), 0)

@@ -18,7 +18,8 @@
     1    02/03/2026   Bhargav Saliya       PN-15582: Added New Field [IncomingPartNumber]
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-**************************************************************/ 
+	4    20/Oct/2026			 Sahdev Saliya						[PN-18326] - Added New Field CustomerType
+**************************************************************/
 CREATE PROCEDURE [dbo].[GetPNTileWorkOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
@@ -42,7 +43,8 @@ CREATE PROCEDURE [dbo].[GetPNTileWorkOrderList]
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
 @ConditionId VARCHAR(250) = NULL,
-@IncomingPartNumber varchar(50) = NULL
+@IncomingPartNumber varchar(50) = NULL,
+@CustomerType varchar(200) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -83,7 +85,8 @@ BEGIN
 				    WO.[CreatedBy],					
 				    WO.[IsActive],
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
-					ISNULL(WPN.IncomingPartNumber,'')IncomingPartNumber
+					ISNULL(WPN.IncomingPartNumber,'')IncomingPartNumber,
+					ISNULL(WO.CustomerType,'')CustomerType
 			   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)	
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			   INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
@@ -108,7 +111,8 @@ BEGIN
 					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
 					(WorkOrderStatus LIKE '%' +@GlobalFilter+'%') OR 
-					(IncomingPartNumber LIKE '%' +@GlobalFilter+'%'))									
+					(IncomingPartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(CustomerType LIKE '%' +@GlobalFilter+'%'))									
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -120,7 +124,8 @@ BEGIN
 					(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
 					(ISNULL(@WorkOrderStatus,'') ='' OR WorkOrderStatus LIKE '%' + @WorkOrderStatus + '%') AND
 					(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND
-					(ISNULL(@IncomingPartNumber,'') ='' OR IncomingPartNumber LIKE '%' + @IncomingPartNumber + '%'))))	 	
+					(ISNULL(@IncomingPartNumber,'') ='' OR IncomingPartNumber LIKE '%' + @IncomingPartNumber + '%') AND
+					(ISNULL(@CustomerType,'') ='' OR CustomerType LIKE '%' + @CustomerType + '%'))))	 	
 			SELECT @Count = COUNT(WorkOrderId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY 
@@ -148,7 +153,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IncomingPartNumber')  THEN IncomingPartNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='IncomingPartNumber')  THEN IncomingPartNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IncomingPartNumber')  THEN IncomingPartNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerType')  THEN CustomerType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerType')  THEN CustomerType END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

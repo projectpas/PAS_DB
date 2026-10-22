@@ -2,10 +2,10 @@
  ** File:   [USP_GetLeaseUsageInfoReminderData]
  ** Description: Data for the Lease "usage information pending" reminder e-mail (job: LeaseUsageInfoReminderService
  **              -> API Leasing/sendLeaseUsageInfoReminders; manual: Usage Info tab -> API Leasing/sendLeaseUsageInfoReminder).
- **              Usage is entered per month; this lists the Usage Based / Flat Rate + Overrun part lines of Active leases that have NO usage entered for the current month,
+ **              Usage is entered per month; this lists the part lines (all billing methods: Usage Based, Flat Rate + Overrun, Flat Rate Only) of Active leases that have NO usage entered for the current month,
  **              so the customer contact selected on the lease (LeaseHeader.Email) can be reminded to enter it.
  **
- **              Eligible line (always): lease is Active and not deleted, line is active/not deleted/reserved and its own status is Active, BillingMethod = 'UsageBased' or 'FlatRatePlusOverrun'.
+ **              Eligible line (always): lease is Active and not deleted, line is active/not deleted/reserved and its own status is Active (any billing method).
  **                - Time  applies when Usage Per Unit Time > 0   (when neither rate is set both Time and Cycle apply)
  **                - Cycle applies when Usage Per Unit Cycle > 0
  **
@@ -24,6 +24,8 @@
  ** --   --------       -------                 --------------------------------
     1    20/10/2026     Kishor Makwana          [PN-18359] Created - usage information reminder (scheduler + manual)
     2    21/10/2026     Kishor Makwana          [PN-18359] Scheduler: usage missing = no usage entry in the current month (from the 28th); manual send: all eligible lines
+    3    21/10/2026     Kishor Makwana          [Lease] Only when Lease Setting "Send Usage Information Reminder Email" (LeaseSetting.IsUsageInfoReminderEnabled) is ON
+    4    21/10/2026     Kishor Makwana          [Lease] All billing methods are included (Flat Rate Only too), not only Usage Based / Flat Rate + Overrun
 
 EXEC USP_GetLeaseUsageInfoReminderData @MasterCompanyId = 1
 EXEC USP_GetLeaseUsageInfoReminderData @MasterCompanyId = 1, @LeaseHeaderId = 20   -- manual: every eligible line
@@ -45,6 +47,12 @@ BEGIN
 		DECLARE @SubjectPrefix NVARCHAR(100) = N'Lease Usage Information Reminder';   -- same prefix the API puts in front of the subject
 		DECLARE @LeaseModuleId INT = (SELECT TOP 1 [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'Leasing');
 		DECLARE @ActiveLeaseStatusId INT = 2;   -- Lease status ids are fixed in the app (LeaseStatusEnum: 1 Draft, 2 Active, 3 Closed)
+
+		-- Lease Setting switch "Send Usage Information Reminder Email": when it is OFF for the company neither the job nor the manual button sends anything
+		IF NOT EXISTS (SELECT 1 FROM [dbo].[LeaseSetting] LS WITH (NOLOCK) WHERE LS.[MasterCompanyId] = @MasterCompanyId AND ISNULL(LS.[IsDeleted], 0) = 0 AND ISNULL(LS.[IsUsageInfoReminderEnabled], 0) = 1)
+		BEGIN
+			RETURN 0;
+		END
 
 		IF (@IsManual = 0 AND @Today < DATEFROMPARTS(YEAR(@Today), MONTH(@Today), @ReminderDayOfMonth))
 		BEGIN
@@ -72,7 +80,6 @@ BEGIN
 			  AND LH.[LeaseStatusId] = @ActiveLeaseStatusId
 			  AND (@LeaseHeaderId IS NULL OR LH.[LeaseHeaderId] = @LeaseHeaderId)
 			  AND LSL.[IsDeleted] = 0 AND ISNULL(LSL.[IsActive], 1) = 1 AND LSL.[QtyReserved] > 0 AND LSL.[LeaseStatusId] = @ActiveLeaseStatusId
-			  AND LSL.[BillingMethod] IN ('UsageBased', 'FlatRatePlusOverrun')   -- both bill from the usage that is entered (overrun = usage over the limit)
 			  AND (@IsManual = 1 OR NOT EXISTS (SELECT 1 FROM [dbo].[Email] E WITH (NOLOCK)
 												WHERE E.[MasterCompanyId] = @MasterCompanyId AND E.[ModuleId] = @LeaseModuleId AND E.[ReferenceId] = LH.[LeaseHeaderId] AND ISNULL(E.[IsDeleted], 0) = 0
 												  AND E.[Subject] LIKE @SubjectPrefix + N'%' AND E.[CreatedDate] >= DATEADD(HOUR, -12, GETUTCDATE())))

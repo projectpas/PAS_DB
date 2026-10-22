@@ -17,6 +17,7 @@
  ** PR   Date               Author    Change Description
  ** --   --------           -------   ---------------------------
     1    21/October/2026    Hemant    [PN-18384] Created.
+    2    22/October/2026    Hemant    [PN-18384] Added WO MPN (woMPN) column after WO Num.
  **************************************************************
  EXEC usprpt_GetWorkOrderBOMByMPNReport @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>10/21/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -90,6 +91,7 @@ BEGIN
     ;WITH BOMCTE AS (
       SELECT
         WO.WorkOrderNum AS woNum,
+        WOIM.partnumber AS woMPN,
         IM.partnumber AS bomPN,
         CASE WHEN IM.IsPma = 1 THEN 'PMA' ELSE 'OEM' END AS oemPma,
         IM.PartDescription AS pnDescription,
@@ -119,6 +121,10 @@ BEGIN
 
       INNER JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK)
         ON WOPN.WorkOrderId = WO.WorkOrderId
+
+      -- WO MPN (the part being worked on)
+      INNER JOIN dbo.ItemMaster WOIM WITH (NOLOCK)
+        ON WOIM.ItemMasterId = WOPN.RevisedItemMasterId
 
       INNER JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK)
         ON WOWF.WorkOrderPartNoId = WOPN.ID
@@ -202,6 +208,7 @@ BEGIN
     SELECT
       COUNT(1) OVER () AS TotalRecordsCount,
       B.woNum,
+      B.woMPN,
       B.bomPN,
       B.oemPma,
       B.pnDescription,
@@ -233,7 +240,7 @@ BEGIN
       WHERE NOT EXISTS (
         SELECT 1
         FROM (VALUES
-          ('woNum', B.woNum), ('bomPN', B.bomPN), ('oemPma', B.oemPma), ('pnDescription', B.pnDescription),
+          ('woNum', B.woNum), ('woMPN', B.woMPN), ('bomPN', B.bomPN), ('oemPma', B.oemPma), ('pnDescription', B.pnDescription),
           ('cond', B.cond), ('qty', CAST(B.qty AS VARCHAR(50))), ('unitcost', CAST(B.unitcost AS VARCHAR(50))),
           ('extCost', CAST(B.extCost AS VARCHAR(50))), ('workScope', B.workScope), ('customer', B.customer),
           ('stage', B.stage), ('opendate', FORMAT(B.opendate, 'MM/dd/yyyy')),
@@ -246,6 +253,8 @@ BEGIN
     ORDER BY
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'woNum')         THEN B.woNum END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'woNum')         THEN B.woNum END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'woMPN')         THEN B.woMPN END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'woMPN')         THEN B.woMPN END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'bomPN')         THEN B.bomPN END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'bomPN')         THEN B.bomPN END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'oemPma')        THEN B.oemPma END ASC,

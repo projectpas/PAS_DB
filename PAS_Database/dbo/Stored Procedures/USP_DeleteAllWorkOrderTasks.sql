@@ -17,12 +17,14 @@
 **
 **              Deleted tasks are removed together with their PLANNED (non-transactional) children:
 **              planned materials / kit materials, planned labor, planned tools, instructions.
-**              Kept tasks are resequenced.
+**              KEPT tasks stay with their transaction rows (and instructions), but their PLANNED material /
+**              kit / labor (pending, never started) / tool (never checked out) rows are removed as well.
+**              Kept tasks are resequenced. Blocked only when there is nothing at all to remove.
 **
 ** Parameters:  @ValidateOnly = 1 -> only validate, never delete (used by the UI before asking to confirm).
 **                                   Runs without a transaction so it holds no locks.
 **
-** Result sets: 1) Status : IsDeleted, TaskCount, DeletableCount, KeptCount, IsBlocked, Message
+** Result sets: 1) Status : IsDeleted, TaskCount, DeletableCount, KeptCount, CleanupCount, IsBlocked, Message
 **              2) Kept tasks : WorkOrderTaskId, SequenceNumber, TaskName, Reasons
 ** Date:   10/14/2026
 **************************************************************
@@ -31,6 +33,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   10/14/2026   Bhargav Saliya		Created - Delete All Tasks on Dynamic Work Order
+	2   10/21/2026   Bhargav Saliya		PN-18117 - Also remove planned material/labor/tool rows from the kept tasks
 
 EXEC [USP_DeleteAllWorkOrderTasks] 10730, 10959, 'ADMIN', 1
 **************************************************************/
@@ -51,16 +54,20 @@ BEGIN
 	DECLARE @OwnTran BIT = 0;
 	DECLARE @DeletableCount INT = 0;
 	DECLARE @KeptCount INT = 0;
+	DECLARE @CleanupCount INT = 0;
 
 	DECLARE @Tasks TABLE (WorkOrderTaskId BIGINT PRIMARY KEY, SequenceNumber VARCHAR(50) NULL, TaskName VARCHAR(500) NULL, MasterCompanyId INT NULL);
 	DECLARE @Blockers TABLE (WorkOrderTaskId BIGINT, Reason VARCHAR(200));
+	DECLARE @TxnRows TABLE (Kind CHAR(1), RowId BIGINT, TaskId BIGINT, Reason VARCHAR(200));
 	DECLARE @Result TABLE (WorkOrderTaskId BIGINT, SequenceNumber VARCHAR(50), TaskName VARCHAR(500), Reasons VARCHAR(MAX));
-	/* Child rows of the tasks, INCLUDING soft-deleted ones (their history still blocks); IsDeleted = 0 rows get removed */
-	DECLARE @Materials TABLE (WorkOrderMaterialsId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT);
-	DECLARE @KitMaterials TABLE (WorkOrderMaterialsKitId BIGINT PRIMARY KEY, TaskId BIGINT, WorkOrderMaterialsKitMappingId BIGINT NULL, IsDeleted BIT);
+	/* Child rows of the tasks, INCLUDING soft-deleted ones (their history still blocks).
+	   IsTxn = 1 -> the row itself has transaction data and is never touched.
+	   IsTxn = 0 AND IsDeleted = 0 -> planned row, removed (on deleted AND on kept tasks). */
+	DECLARE @Materials TABLE (WorkOrderMaterialsId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT, IsTxn BIT NOT NULL DEFAULT 0);
+	DECLARE @KitMaterials TABLE (WorkOrderMaterialsKitId BIGINT PRIMARY KEY, TaskId BIGINT, WorkOrderMaterialsKitMappingId BIGINT NULL, IsDeleted BIT, IsTxn BIT NOT NULL DEFAULT 0);
 	DECLARE @LaborHeaders TABLE (WorkOrderLaborHeaderId BIGINT PRIMARY KEY);
-	DECLARE @Labor TABLE (WorkOrderLaborId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT);
-	DECLARE @Assets TABLE (WorkOrderAssetId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT);
+	DECLARE @Labor TABLE (WorkOrderLaborId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT, IsTxn BIT NOT NULL DEFAULT 0);
+	DECLARE @Assets TABLE (WorkOrderAssetId BIGINT PRIMARY KEY, TaskId BIGINT, IsDeleted BIT, IsTxn BIT NOT NULL DEFAULT 0);
 
 	BEGIN TRY
 		/* Validate-only takes no locks; the real delete re-validates everything inside its transaction */
@@ -144,8 +151,8 @@ BEGIN
 			/* ---------- 1. Materials ----------
 			   Only what is reserved / issued RIGHT NOW blocks. Reserve/issue history of a material that was later
 			   unreserved / returned does not block (it is cleaned up in the delete section, like USP_DeleteWorkOrderMaterials). */
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT M.TaskId, 'Materials reserved/issued'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'M', M.WorkOrderMaterialsId, M.TaskId, 'Materials reserved/issued'
 			FROM @Materials M
 			INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId
 			WHERE ISNULL(WOM.[QuantityReserved], 0) > 0 OR ISNULL(WOM.[QuantityIssued], 0) > 0
@@ -154,8 +161,8 @@ BEGIN
 						  WHERE WOMS.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId
 						    AND (ISNULL(WOMS.[QtyReserved], 0) > 0 OR ISNULL(WOMS.[QtyIssued], 0) > 0));
 
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT M.TaskId, 'Materials linked to PO/RO/Sub WO/received stock'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'M', M.WorkOrderMaterialsId, M.TaskId, 'Materials linked to PO/RO/Sub WO/received stock'
 			FROM @Materials M
 			INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId
 			WHERE ISNULL(WOM.[POId], 0) > 0 OR ISNULL(WOM.[QtyOnOrder], 0) > 0
@@ -170,8 +177,8 @@ BEGIN
 			   OR EXISTS (SELECT 1 FROM [dbo].[StocklineDraft] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId AND ISNULL(X.[IsKitType], 0) = 0)
 			   OR EXISTS (SELECT 1 FROM [dbo].[ChildStockline] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsId] = M.WorkOrderMaterialsId);
 
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT K.TaskId, 'Kit materials reserved/issued'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'K', K.WorkOrderMaterialsKitId, K.TaskId, 'Kit materials reserved/issued'
 			FROM @KitMaterials K
 			INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.[WorkOrderMaterialsKitId] = K.WorkOrderMaterialsKitId
 			WHERE ISNULL(WOMK.[QuantityReserved], 0) > 0 OR ISNULL(WOMK.[QuantityIssued], 0) > 0
@@ -180,8 +187,8 @@ BEGIN
 						  WHERE WOMSK.[WorkOrderMaterialsKitId] = K.WorkOrderMaterialsKitId
 						    AND (ISNULL(WOMSK.[QtyReserved], 0) > 0 OR ISNULL(WOMSK.[QtyIssued], 0) > 0));
 
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT K.TaskId, 'Kit materials linked to PO/RO/received stock'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'K', K.WorkOrderMaterialsKitId, K.TaskId, 'Kit materials linked to PO/RO/received stock'
 			FROM @KitMaterials K
 			INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.[WorkOrderMaterialsKitId] = K.WorkOrderMaterialsKitId
 			WHERE ISNULL(WOMK.[POId], 0) > 0 OR ISNULL(WOMK.[QtyOnOrder], 0) > 0
@@ -194,8 +201,9 @@ BEGIN
 			   OR EXISTS (SELECT 1 FROM [dbo].[ChildStockline] X WITH (NOLOCK) WHERE X.[WorkOrderMaterialsKitId] = K.WorkOrderMaterialsKitId);
 
 			/* ---------- 2. Labor ---------- */
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT L.TaskId, 'Labor started/completed'
+			/* A PENDING / OPEN labor line that was never started or clocked is planned -> removed */
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'L', L.WorkOrderLaborId, L.TaskId, 'Labor started/completed'
 			FROM @Labor L
 			INNER JOIN [dbo].[WorkOrderLabor] WOL WITH (NOLOCK) ON WOL.[WorkOrderLaborId] = L.WorkOrderLaborId
 			LEFT JOIN  [dbo].[TaskStatus] TS WITH (NOLOCK) ON TS.[TaskStatusId] = WOL.[TaskStatusId]
@@ -210,8 +218,8 @@ BEGIN
 			   OR ISNULL(WOL.[Adjustments], 0) <> 0);
 
 			/* Any clock-in / time entry, even on a deleted labor line or a deleted entry, is history */
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT DISTINCT L.TaskId, 'Labor time entries/clock-ins'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'L', L.WorkOrderLaborId, L.TaskId, 'Labor time entries/clock-ins'
 			FROM @Labor L
 			WHERE EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborTracking] WOLT WITH (NOLOCK) WHERE WOLT.[WorkOrderLaborId] = L.WorkOrderLaborId);
 
@@ -230,10 +238,19 @@ BEGIN
 			WHERE WOC.[WorkOrderId] = @WorkOrderId AND WOC.[IsDeleted] = 0;
 
 			/* ---------- 5. Tools ---------- (any check-out/check-in, even on a deleted tool line, is history) */
-			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
-			SELECT DISTINCT A.TaskId, 'Tools checked out/in'
+			INSERT INTO @TxnRows (Kind, RowId, TaskId, Reason)
+			SELECT 'A', A.WorkOrderAssetId, A.TaskId, 'Tools checked out/in'
 			FROM @Assets A
 			WHERE EXISTS (SELECT 1 FROM [dbo].[CheckInCheckOutWorkOrderAsset] CICO WITH (NOLOCK) WHERE CICO.[WorkOrderAssetId] = A.WorkOrderAssetId);
+
+			/* Flag the transactional child rows (never touched) and roll them up into the task-level reasons */
+			UPDATE M SET M.IsTxn = 1 FROM @Materials M    WHERE EXISTS (SELECT 1 FROM @TxnRows X WHERE X.Kind = 'M' AND X.RowId = M.WorkOrderMaterialsId);
+			UPDATE K SET K.IsTxn = 1 FROM @KitMaterials K WHERE EXISTS (SELECT 1 FROM @TxnRows X WHERE X.Kind = 'K' AND X.RowId = K.WorkOrderMaterialsKitId);
+			UPDATE L SET L.IsTxn = 1 FROM @Labor L        WHERE EXISTS (SELECT 1 FROM @TxnRows X WHERE X.Kind = 'L' AND X.RowId = L.WorkOrderLaborId);
+			UPDATE A SET A.IsTxn = 1 FROM @Assets A       WHERE EXISTS (SELECT 1 FROM @TxnRows X WHERE X.Kind = 'A' AND X.RowId = A.WorkOrderAssetId);
+
+			INSERT INTO @Blockers (WorkOrderTaskId, Reason)
+			SELECT DISTINCT TaskId, Reason FROM @TxnRows;
 
 			/* Tasks with transaction data are KEPT (listed back with their reasons); only the clean tasks are deleted */
 			INSERT INTO @Result (WorkOrderTaskId, SequenceNumber, TaskName, Reasons)
@@ -246,7 +263,13 @@ BEGIN
 			SET @KeptCount = (SELECT COUNT(1) FROM @Result);
 			SET @DeletableCount = @TaskCount - @KeptCount;
 
-			IF @DeletableCount = 0
+			/* Planned rows (no transaction data) sitting on the KEPT tasks - these are removed too */
+			SET @CleanupCount = (SELECT COUNT(1) FROM @Materials    WHERE IsDeleted = 0 AND IsTxn = 0 AND TaskId IN (SELECT WorkOrderTaskId FROM @Result))
+							  + (SELECT COUNT(1) FROM @KitMaterials WHERE IsDeleted = 0 AND IsTxn = 0 AND TaskId IN (SELECT WorkOrderTaskId FROM @Result))
+							  + (SELECT COUNT(1) FROM @Labor        WHERE IsDeleted = 0 AND IsTxn = 0 AND TaskId IN (SELECT WorkOrderTaskId FROM @Result))
+							  + (SELECT COUNT(1) FROM @Assets       WHERE IsDeleted = 0 AND IsTxn = 0 AND TaskId IN (SELECT WorkOrderTaskId FROM @Result));
+
+			IF @DeletableCount = 0 AND @CleanupCount = 0
 			BEGIN
 				SET @IsBlocked = 1;
 				SET @Message = 'Delete All Tasks is not allowed because transaction data exists on all '
@@ -254,19 +277,26 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				/* Narrow every working set to the deletable tasks, so the delete section below never touches a kept task */
+				/* Kept tasks stay (with their instructions); transactional child rows are never touched.
+				   What is left in the working sets is exactly what the delete section removes. */
 				DELETE FROM @Tasks        WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM @Result);
-				DELETE FROM @Materials    WHERE TaskId IN (SELECT WorkOrderTaskId FROM @Result);
-				DELETE FROM @KitMaterials WHERE TaskId IN (SELECT WorkOrderTaskId FROM @Result);
-				DELETE FROM @Labor        WHERE TaskId IN (SELECT WorkOrderTaskId FROM @Result);
-				DELETE FROM @Assets       WHERE TaskId IN (SELECT WorkOrderTaskId FROM @Result);
+				DELETE FROM @Materials    WHERE IsTxn = 1;
+				DELETE FROM @KitMaterials WHERE IsTxn = 1;
+				DELETE FROM @Labor        WHERE IsTxn = 1;
+				DELETE FROM @Assets       WHERE IsTxn = 1;
 
 				IF @ValidateOnly = 1
-					SET @Message = CASE WHEN @KeptCount = 0
+					SET @Message = CASE WHEN @DeletableCount = 0
+										THEN 'No tasks can be deleted because all ' + CAST(@TaskCount AS VARCHAR(10)) + ' task(s) have transaction data. Their '
+											 + CAST(@CleanupCount AS VARCHAR(10)) + ' planned record(s) without transactions will be removed.'
+										WHEN @KeptCount = 0
 										THEN 'All ' + CAST(@TaskCount AS VARCHAR(10)) + ' task(s) can be deleted.'
 										ELSE CAST(@DeletableCount AS VARCHAR(10)) + ' of ' + CAST(@TaskCount AS VARCHAR(10))
 											 + ' task(s) can be deleted. ' + CAST(@KeptCount AS VARCHAR(10))
-											 + ' task(s) with transaction data will be kept.' END;
+											 + ' task(s) with transaction data will be kept'
+											 + CASE WHEN @CleanupCount > 0
+													THEN '; their ' + CAST(@CleanupCount AS VARCHAR(10)) + ' planned record(s) without transactions will be removed.'
+													ELSE '.' END END;
 			END
 		END
 
@@ -289,6 +319,17 @@ BEGIN
 					   WHERE K.IsDeleted = 0
 						 AND (ISNULL(WOMK.[QuantityReserved], 0) > 0 OR ISNULL(WOMK.[QuantityIssued], 0) > 0
 						   OR ISNULL(WOMK.[TotalReserved], 0) > 0 OR ISNULL(WOMK.[TotalIssued], 0) > 0))
+			/* Planned labor that got started / clocked, or a planned tool that got checked out, in the meantime */
+			OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderLabor] WOL WITH (UPDLOCK)
+					   INNER JOIN @Labor L ON L.WorkOrderLaborId = WOL.[WorkOrderLaborId]
+					   LEFT JOIN  [dbo].[TaskStatus] TS WITH (NOLOCK) ON TS.[TaskStatusId] = WOL.[TaskStatusId]
+					   WHERE L.IsDeleted = 0
+						 AND (ISNULL(WOL.[IsBegin], 0) = 1 OR WOL.[StartDate] IS NOT NULL
+						   OR UPPER(LTRIM(RTRIM(ISNULL(TS.[Description], '')))) IN ('COMPLETED', 'IN-PROCESS')
+						   OR EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborTracking] WOLT WITH (NOLOCK) WHERE WOLT.[WorkOrderLaborId] = WOL.[WorkOrderLaborId])))
+			OR EXISTS (SELECT 1 FROM [dbo].[CheckInCheckOutWorkOrderAsset] CICO WITH (NOLOCK)
+					   INNER JOIN @Assets A ON A.WorkOrderAssetId = CICO.[WorkOrderAssetId]
+					   WHERE A.IsDeleted = 0)
 			BEGIN
 				ROLLBACK TRANSACTION;
 				SET @OwnTran = 0;
@@ -411,8 +452,15 @@ BEGIN
 				END
 
 				SET @IsDeleted = 1;
-				SET @Message = CAST(@DeletableCount AS VARCHAR(10)) + ' task(s) deleted successfully.'
-							 + CASE WHEN @KeptCount > 0 THEN ' ' + CAST(@KeptCount AS VARCHAR(10)) + ' task(s) with transaction data were kept.' ELSE '' END;
+				SET @Message = CASE WHEN @DeletableCount = 0
+									THEN 'No tasks were deleted because all ' + CAST(@TaskCount AS VARCHAR(10)) + ' task(s) have transaction data. '
+										 + CAST(@CleanupCount AS VARCHAR(10)) + ' planned record(s) without transactions were removed from them.'
+									ELSE CAST(@DeletableCount AS VARCHAR(10)) + ' task(s) deleted successfully.'
+										 + CASE WHEN @KeptCount > 0 THEN ' ' + CAST(@KeptCount AS VARCHAR(10)) + ' task(s) with transaction data were kept' ELSE '' END
+										 + CASE WHEN @KeptCount > 0 AND @CleanupCount > 0
+												THEN '; ' + CAST(@CleanupCount AS VARCHAR(10)) + ' planned record(s) without transactions were removed from them.'
+												WHEN @KeptCount > 0 THEN '.'
+												ELSE '' END END;
 			END
 		END
 
@@ -422,7 +470,7 @@ ReturnResult:
 
 		/* Results are returned only after the commit, so the client never sees "deleted" for a rolled-back run */
 		/* 1) Status */
-		SELECT @IsDeleted AS IsDeleted, @TaskCount AS TaskCount, @DeletableCount AS DeletableCount, @KeptCount AS KeptCount, @IsBlocked AS IsBlocked, @Message AS [Message];
+		SELECT @IsDeleted AS IsDeleted, @TaskCount AS TaskCount, @DeletableCount AS DeletableCount, @KeptCount AS KeptCount, @CleanupCount AS CleanupCount, @IsBlocked AS IsBlocked, @Message AS [Message];
 
 		/* 2) Blocked tasks with their reasons */
 		SELECT WorkOrderTaskId, SequenceNumber, TaskName, Reasons

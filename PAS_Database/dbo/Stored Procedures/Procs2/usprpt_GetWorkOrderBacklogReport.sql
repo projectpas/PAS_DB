@@ -27,6 +27,7 @@
  10  01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  11  09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  12  16-Oct-2026	Divyesh Kathriya		Filter Backlog Incl. Amounts report by selected work orders.[PN-18207]
+ 13  21-Oct-2026	Divyesh Kathriya		Accept 'WO Num' filter [PN-18207]
 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
@@ -84,7 +85,7 @@ BEGIN
      @wotype=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Type'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @wotype END,    
 
-     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Number'
+     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Num'  
      THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @WorkOrderIds END,
     
      @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     

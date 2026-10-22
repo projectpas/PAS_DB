@@ -4463,6 +4463,7 @@
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationById.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBOMByMPNReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

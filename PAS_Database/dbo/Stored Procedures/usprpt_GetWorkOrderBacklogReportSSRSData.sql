@@ -23,6 +23,8 @@
  ** 7   13-11-2025	 Moin Bloch			    Fixed For Duplicate Billing
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10  21-Oct-2026		Divyesh Kathriya	Filter Work Order Backlog by selected work orders Number [PN-18207].
+
 exec usprpt_GetWorkOrderBacklogReportSSRSData @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 EXEC usprpt_GetWorkOrderBacklogReportSSRSData 1,'2025-11-12','2025-11-13','','','','1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
@@ -33,7 +35,8 @@ CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]
 	@id3 VARCHAR(MAX) = NULL,
 	@id4 VARCHAR(10) = NULL,
 	@id5 VARCHAR(10) = NULL,
-	@strFilter VARCHAR(MAX) = NULL
+	@strFilter VARCHAR(MAX) = NULL,
+	@id7 VARCHAR(MAX) = NULL
 AS    
 BEGIN    
   SET NOCOUNT ON;    
@@ -41,6 +44,13 @@ BEGIN
     
   BEGIN TRY    
     BEGIN TRANSACTION    
+
+	DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+
+	INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+	SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+	FROM [DBO].[SPLITSTRING](@id7, ',')
+	WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
 
 	IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 	BEGIN    
@@ -204,6 +214,7 @@ BEGIN
 	 LEFT JOIN [dbo].[BillingInvoicing] WOI WITH(NOLOCK) ON WOI.BillingInvoicingId = WOBI.BillingInvoicingId AND ISNULL(WOI.IsVersionIncrease, 0) = 0 AND ISNULL(WOI.CreditMemoHeaderId,0) = 0
 
    WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)    
+    AND (ISNULL(@id7, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
     AND (ISNULL(@id5,'') ='' OR WOT.Id = ISNULL(@id5,WOT.Id)) AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 1) = 1 AND ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
     AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 --MPN Not Closed  
     AND (ISNULL(@id3,'') ='' OR WOS.WorkOrderStageId IN(SELECT value FROM String_split(ISNULL(@id3,WOS.WorkOrderStageId), ',')))     

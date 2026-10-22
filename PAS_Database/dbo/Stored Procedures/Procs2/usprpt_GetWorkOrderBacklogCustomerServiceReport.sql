@@ -21,6 +21,7 @@
  5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  7    16-Oct-2026	    Divyesh Kathriya	Filter Customer Service Backlog report by selected work orders.[PN-18207]
+ 8    21-Oct-2026	    Divyesh Kathriya	Accept 'WO Num' filter [PN-18207]
 
 **************************************************************/    
 CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
@@ -62,9 +63,9 @@ BEGIN
      @Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date'     
      THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,    
     
-      @customerid = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)'         
-   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @customerid END,   
-     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Number'
+     @customerid = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)'         
+     THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @customerid END,   
+     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Num'
      THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @WorkOrderIds END,
      
      @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     

@@ -1,4 +1,4 @@
-
+﻿
 /*************************************************************
  ** File:   [usprpt_GetWorkOrderBOMByMPNReport]
  ** Author: Hemant
@@ -17,10 +17,14 @@
  ** PR   Date               Author    Change Description
  ** --   --------           -------   ---------------------------
     1    21/October/2026    Hemant    [PN-18384] Created.
+	2    22/October/2026    Hemant    [PN-18384] Added WO MPN (woMPN) column after WO Num.
+    3    22/October/2026    Hemant    [PN-18384] Column filter / sort on Management Structure level1-10.
+    4    22/October/2026    Hemant    [PN-18384] Open / Invoice / Shipped Date column filters use a date picker (yyyy-MM-dd).
+ **************************************************************
  **************************************************************
  EXEC usprpt_GetWorkOrderBOMByMPNReport @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>10/21/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBOMByMPNReport]
+CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBOMByMPNReport]
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,
@@ -90,16 +94,17 @@ BEGIN
     ;WITH BOMCTE AS (
       SELECT
         WO.WorkOrderNum AS woNum,
+		WOIM.partnumber AS woMPN,
         IM.partnumber AS bomPN,
         CASE WHEN IM.IsPma = 1 THEN 'PMA' ELSE 'OEM' END AS oemPma,
         IM.PartDescription AS pnDescription,
-        C.Code AS cond,
+        C.[Description] AS cond,
         ISNULL(BOM.Quantity,0) AS qty,
         CAST(ISNULL(BOM.UnitCost,0) AS DECIMAL(18,2)) AS unitcost,
         CAST(ISNULL(BOM.Quantity,0) * ISNULL(BOM.UnitCost,0) AS DECIMAL(18,2)) AS extCost,
         UPPER(WOPN.WorkScope) AS workScope,
         UPPER(CU.[Name]) AS customer,
-        UPPER(WTG.Stage) AS stage,
+        CONCAT(WTG.Code, '-', UPPER(WTG.Stage)) AS stage,
         CAST(WO.OpenDate AS DATE) AS opendate,
         CAST(INV.InvoiceDate AS DATE) AS invoicedate,
         CAST(SHIP.ShipDate AS DATE) AS shipdate,
@@ -116,51 +121,49 @@ BEGIN
         UPPER(MSD.Level10Name) AS level10
 
       FROM dbo.WorkOrder WO WITH (NOLOCK)
-
-      INNER JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK)
-        ON WOPN.WorkOrderId = WO.WorkOrderId
-
-      INNER JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK)
-        ON WOWF.WorkOrderPartNoId = WOPN.ID
-
+      INNER JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WO.WorkOrderId
+	  -- WO MPN (the part being worked on)
+      INNER JOIN dbo.ItemMaster WOIM WITH (NOLOCK) ON WOIM.ItemMasterId = WOPN.RevisedItemMasterId
+      INNER JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID
       -- BOM components: WO materials + kit materials of the MPN's workflow
       INNER JOIN (
-        SELECT WOM.WorkFlowWorkOrderId, WOM.ItemMasterId, WOM.ConditionCodeId, WOM.Quantity, WOM.UnitCost
-        FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)
-        WHERE WOM.IsActive = 1 AND ISNULL(WOM.IsDeleted,0) = 0
-        UNION ALL
-        SELECT WOMK.WorkFlowWorkOrderId, WOMK.ItemMasterId, WOMK.ConditionCodeId, WOMK.Quantity, WOMK.UnitCost
-        FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
-        WHERE WOMK.IsActive = 1 AND ISNULL(WOMK.IsDeleted,0) = 0
-      ) BOM
-        ON BOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
+			SELECT WOM.WorkFlowWorkOrderId, WOMS.ItemMasterId, WOMS.ConditionId AS ConditionId, WOMS.WOMStockLineId AS WOMStockLineId, WOMS.Quantity, WOMS.UnitCost
+			FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)
+			JOIN dbo.WorkOrderMaterialStockline WOMS WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+			WHERE WOM.IsActive = 1 AND ISNULL(WOM.IsDeleted,0) = 0 AND WOMS.IsActive = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+			
+			UNION ALL
 
-      INNER JOIN dbo.ItemMaster IM WITH (NOLOCK)
-        ON IM.ItemMasterId = BOM.ItemMasterId
-
+			SELECT WOMK.WorkFlowWorkOrderId, WOMK.ItemMasterId, WOMK.ConditionCodeId AS ConditionId, WOMS.WorkOrderMaterialStockLineKitId AS WOMStockLineId, WOMK.Quantity, WOMK.UnitCost
+			FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
+			JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMK.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
+			WHERE WOMK.IsActive = 1 AND ISNULL(WOMK.IsDeleted,0) = 0 AND WOMS.IsActive = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+		  ) BOM
+			ON BOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
+      INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = BOM.ItemMasterId
       -- Invoiced records only: latest 'Invoiced' (non-proforma, current version) invoice date of the MPN.
       -- CROSS APPLY + MAX keeps one row per BOM line even when the MPN has more than one invoice.
       CROSS APPLY
       (
         SELECT MAX(BI.InvoiceDate) AS InvoiceDate
         FROM dbo.BillingInvoicing BI WITH (NOLOCK)
-        INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK)
-          ON BII.BillingInvoicingId = BI.BillingInvoicingId
-         AND ISNULL(BII.IsVersionIncrease,0) = 0
-         AND ISNULL(BII.IsPerformaInvoice,0) = 0
-         AND BII.SubModuleId = @SubModuleId
+			INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK)
+			  ON BII.BillingInvoicingId = BI.BillingInvoicingId
+			 AND ISNULL(BII.IsVersionIncrease,0) = 0
+			 AND ISNULL(BII.IsPerformaInvoice,0) = 0
+			 AND BII.SubModuleId = @SubModuleId
         WHERE BI.ModuleId = @WOModuleId
-          AND BI.ReferenceId = WO.WorkOrderId
-          AND BII.SubReferenceId = WOPN.ID
-          AND BI.InvoiceStatus = 'Invoiced'
-          AND ISNULL(BI.IsVersionIncrease,0) = 0
+			  AND BI.ReferenceId = WO.WorkOrderId
+			  AND BII.SubReferenceId = WOPN.ID
+			  AND BI.InvoiceStatus = 'Invoiced'
+			  AND ISNULL(BI.IsVersionIncrease,0) = 0
       ) INV
 
       INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
         ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = WOPN.ID
 
       LEFT JOIN dbo.Condition C WITH (NOLOCK)
-        ON C.ConditionId = BOM.ConditionCodeId
+        ON C.ConditionId = BOM.ConditionId
 
       LEFT JOIN dbo.Customer CU WITH (NOLOCK)
         ON CU.CustomerId = WO.CustomerId
@@ -202,6 +205,7 @@ BEGIN
     SELECT
       COUNT(1) OVER () AS TotalRecordsCount,
       B.woNum,
+	  B.woMPN,
       B.bomPN,
       B.oemPma,
       B.pnDescription,
@@ -230,14 +234,17 @@ BEGIN
     WHERE NOT EXISTS (
       SELECT 1
       FROM @ColumnFilters F
-      WHERE NOT EXISTS (
+	  WHERE NOT EXISTS (
         SELECT 1
         FROM (VALUES
-          ('woNum', B.woNum), ('bomPN', B.bomPN), ('oemPma', B.oemPma), ('pnDescription', B.pnDescription),
+          ('woNum', B.woNum), ('woMPN', B.woMPN), ('bomPN', B.bomPN), ('oemPma', B.oemPma), ('pnDescription', B.pnDescription),
           ('cond', B.cond), ('qty', CAST(B.qty AS VARCHAR(50))), ('unitcost', CAST(B.unitcost AS VARCHAR(50))),
           ('extCost', CAST(B.extCost AS VARCHAR(50))), ('workScope', B.workScope), ('customer', B.customer),
-          ('stage', B.stage), ('opendate', FORMAT(B.opendate, 'MM/dd/yyyy')),
-          ('invoicedate', FORMAT(B.invoicedate, 'MM/dd/yyyy')), ('shipdate', FORMAT(B.shipdate, 'MM/dd/yyyy'))
+          -- date columns: the grid's date picker sends yyyy-MM-dd
+          ('stage', B.stage), ('opendate', CONVERT(VARCHAR(10), B.opendate, 23)),
+          ('invoicedate', CONVERT(VARCHAR(10), B.invoicedate, 23)), ('shipdate', CONVERT(VARCHAR(10), B.shipdate, 23)),
+          ('level1', B.level1), ('level2', B.level2), ('level3', B.level3), ('level4', B.level4), ('level5', B.level5),
+          ('level6', B.level6), ('level7', B.level7), ('level8', B.level8), ('level9', B.level9), ('level10', B.level10)
         ) V(FieldName, FieldValue)
         WHERE V.FieldName = F.FieldName
           AND V.FieldValue LIKE '%' + F.FieldValue + '%'
@@ -246,6 +253,8 @@ BEGIN
     ORDER BY
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'woNum')         THEN B.woNum END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'woNum')         THEN B.woNum END DESC,
+	  CASE WHEN (@SortOrder = 1  AND @SortColumn = 'woMPN')         THEN B.woMPN END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'woMPN')         THEN B.woMPN END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'bomPN')         THEN B.bomPN END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'bomPN')         THEN B.bomPN END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'oemPma')        THEN B.oemPma END ASC,
@@ -272,6 +281,26 @@ BEGIN
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'invoicedate')   THEN B.invoicedate END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'shipdate')      THEN B.shipdate END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'shipdate')      THEN B.shipdate END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level1')      THEN B.level1 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level1')      THEN B.level1 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level2')      THEN B.level2 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level2')      THEN B.level2 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level3')      THEN B.level3 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level3')      THEN B.level3 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level4')      THEN B.level4 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level4')      THEN B.level4 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level5')      THEN B.level5 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level5')      THEN B.level5 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level6')      THEN B.level6 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level6')      THEN B.level6 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level7')      THEN B.level7 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level7')      THEN B.level7 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level8')      THEN B.level8 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level8')      THEN B.level8 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level9')      THEN B.level9 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level9')      THEN B.level9 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level10')     THEN B.level10 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level10')     THEN B.level10 END DESC,
       B.invoicedate DESC, B.woNum, B.bomPN
     OFFSET ((@PageNumber - 1) * @EffectivePageSize) ROWS
     FETCH NEXT @EffectivePageSize ROWS ONLY;

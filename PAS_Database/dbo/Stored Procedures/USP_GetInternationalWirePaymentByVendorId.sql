@@ -10,6 +10,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   ------------   --------------------------------
 ** 1    01-07-2025   Ayushi Patel   Created
+** 2    21-10-2026   Nakul          Added GLAccountName for vendor view popups (PN-18294)
 
 -- EXEC USP_GetInternationalWirePaymentByVendorId 2345
 **************************************************************/
@@ -55,7 +56,8 @@ BEGIN
 
             viwp.VendorId,
             viwp.VendorInternationalWirePaymentId,
-            ISNULL(vn.VendorName, '') AS VendorName
+            ISNULL(vn.VendorName, '') AS VendorName,
+            ISNULL(gl.AccountCode + ' - ' + gl.AccountName, '') AS GLAccountName
 
         FROM InternationalWirePayment iwp WITH (NOLOCK)
         INNER JOIN VendorInternationlWirePayment viwp WITH (NOLOCK) 
@@ -63,6 +65,7 @@ BEGIN
         LEFT JOIN Address addr WITH (NOLOCK) ON iwp.BankAddressId = addr.AddressId
         LEFT JOIN Countries cty WITH (NOLOCK) ON addr.CountryId = cty.countries_id
         LEFT JOIN Vendor vn WITH (NOLOCK) ON iwp.BeneficiaryCustomerId = vn.VendorId
+        LEFT JOIN GLAccount gl WITH (NOLOCK) ON iwp.GLAccountId = gl.GLAccountId
         WHERE viwp.VendorId = @VendorId
     END TRY
     BEGIN CATCH

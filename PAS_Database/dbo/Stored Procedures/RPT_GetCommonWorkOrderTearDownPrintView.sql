@@ -16,7 +16,7 @@
  ** PR   Date         Author		         Change Description            
  ** --   --------     -------				--------------------------------          
     1    28/12/2023   AMIT GHEDIYA			Created
-	2    19/10/2026   Moin Bloch			PN-17943 Added EmployeeInitials for Technician     
+	2    19/10/2026   Moin Bloch			PN-17943 Added EmployeeInitials for Technician, [Inspector]     
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonWorkOrderTearDownPrintView]
@@ -44,11 +44,17 @@ BEGIN
 
 			    SELECT DISTINCT tdt.[CommonTearDownTypeId],
 					ISNULL(td.[ReasonName],'') ReasonName,                    
-					CASE WHEN @SARMasterCompanyCode = @MasterCompanyCode THEN UPPER(ISNULL(em.[EmployeeInitials],'')) ELSE UPPER(ISNULL(td.[TechnicalName],''))  END AS [Technician],
-                    UPPER(ISNULL(td.[InspectorName],'')) AS Inspector,
-                    --ISNULL(td.Memo,'') as Memo,
-					REPLACE(REPLACE(ISNULL(td.[Memo],''), '<p>', ''),'</p>','<br />') AS [Memo],
-                    --ISNULL(td.TechnicianDate,'') AS TechnicianDate,
+					CASE
+						WHEN @SARMasterCompanyCode = @MasterCompanyCode
+							THEN UPPER(COALESCE(NULLIF(em.[EmployeeInitials], ''), ISNULL(td.[TechnicalName], '')))
+						ELSE UPPER(ISNULL(td.[TechnicalName], ''))
+					END AS [Technician],
+					CASE
+						WHEN @SARMasterCompanyCode = @MasterCompanyCode
+							THEN UPPER(COALESCE(NULLIF(ei.[EmployeeInitials], ''), ISNULL(td.[InspectorName], '')))
+						ELSE UPPER(ISNULL(td.[InspectorName], ''))
+					END AS [Inspector],                    
+					REPLACE(REPLACE(ISNULL(td.[Memo],''), '<p>', ''),'</p>','<br />') AS [Memo],                   
 					td.[TechnicianDate],
                     td.[InspectorDate] AS InspectorDate,
                     td.[IsDocument] AS IsDocumentAdded,
@@ -63,6 +69,7 @@ BEGIN
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td WITH(NOLOCK) ON td.[CommonTearDownTypeId] = tdt.[CommonTearDownTypeId] AND td.WorkOrderId = @WorkorderId AND td.[WorkFlowWorkOrderId] = @workFlowWorkOrderId AND Isnull(td.IsSubWorkOrder,0) = 0
 				LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.[EmployeeId] = td.[TechnicianId]				
+				LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.[EmployeeId] = td.[InspectorId]
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

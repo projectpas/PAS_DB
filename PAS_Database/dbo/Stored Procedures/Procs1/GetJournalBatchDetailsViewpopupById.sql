@@ -58,13 +58,14 @@
  43	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
  44	  10/02/2026  Moin Bloch		     added TWO
  45	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
-	46    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ 46   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  47	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
-	48    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	49    20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed both NONSTOCK-branch MS lookups (RPO/RRO/AST branch @NONStockModuleID; MSTK branch @NONStockModuleIDs) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; both variables now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
-	50    13/08/2026   Moin Bloch		     Fixed For Wrong Management Structure Details
-	51    13/08/2026   Moin Bloch		     Added GRNI PN-17411
-	52	  12/10/2026   BHARGAV SALIYA	     Show Non-Stock stocklines in Bulk Stockline Adjustment batch details PN-17481
+ 48   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ 49   20/July/2026			 RAJESH GAMI						[PN-17350] - Repointed both NONSTOCK-branch MS lookups (RPO/RRO/AST branch @NONStockModuleID; MSTK branch @NONStockModuleIDs) from legacy dbo.NonStocklineManagementStructureDetails to unified dbo.StocklineManagementStructureDetails; both variables now resolved dynamically via ManagementStructureModule (ModuleName='Stockline') instead of hardcoded 11
+ 50   13/08/2026   Moin Bloch		     Fixed For Wrong Management Structure Details
+ 51   13/08/2026   Moin Bloch		     Added GRNI PN-17411
+ 52	  12/10/2026   BHARGAV SALIYA	     Show Non-Stock stocklines in Bulk Stockline Adjustment batch details PN-17481
+ 53   22/10/2026  Kishor Makwana		 [PN-18262] - added Lease modules 'FLS','FLI','FLCR','OLI','OLCR','OPDR' (LeaseBatchDetails)
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5157,@IsDeleted=0,@Module=N'GRNI'
 ************************************************************************/  
@@ -631,6 +632,91 @@ BEGIN
 					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId
 					LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=SBD.CommonJournalBatchDetailId
 					--LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOModuleID AND MSD.ReferenceID = SBD.SalesOrderId
+					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId
+					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId
+					LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]
+					LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID
+					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+					LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESP.Level1Id = MSL1.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON ESP.Level2Id = MSL2.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON ESP.Level3Id = MSL3.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON ESP.Level4Id = MSL4.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON ESP.Level5Id = MSL5.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON ESP.Level6Id = MSL6.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON ESP.Level7Id = MSL7.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON ESP.Level8Id = MSL8.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON ESP.Level9Id = MSL9.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON ESP.Level10Id = MSL10.ID
+				WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted
+				ORDER BY DS.DisplayNumber ASC;
+
+			END
+			-- Lease journals (FLS / FLI / FLCR / OLI / OLCR / OPDR): lines are linked to the lease through LeaseBatchDetails; same output columns as SOI
+			IF(UPPER(@Module) = UPPER('FLS') OR UPPER(@Module) = UPPER('FLI') OR UPPER(@Module) = UPPER('FLCR') OR UPPER(@Module) = UPPER('OLI') OR UPPER(@Module) = UPPER('OLCR') OR UPPER(@Module) = UPPER('OPDR'))  
+			BEGIN  
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName]
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,LBD.LeaseHeaderId AS [ReferenceId]  
+					  ,LBD.LeaseNumber AS [ReferenceName]  
+					  ,LBD.PartId AS [MPNPartId]  
+					  ,LBD.PartNumber AS [MPNName]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,LBD.[CustomerId]  
+					  ,LBD.[CustomerName]  
+					  ,LBD.DocumentId AS [InvoiceId]  
+					  ,LBD.DocumentNumber AS [InvoiceName]  
+					  ,LBD.ARControlNumber AS [ARControlNum]  
+					  ,LBD.CustomerRef AS [CustRefNumber]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.AllowManualJE  
+					  ,JBD.LastMSLevel  
+					  ,JBD.AllMSlevels  
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,le.CompanyName AS LegalEntityName  
+					  ,BD.JournalTypeNumber,BD.CurrentNumber  
+					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
+					  ,UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1
+					  ,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2
+					  ,UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3
+					  ,UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4
+					  ,UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5
+					  ,UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6
+					  ,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS level7
+					  ,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS level8
+					  ,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS level9
+					  ,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS level10
+					  ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)
+					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID
+					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId
+					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId
+					LEFT JOIN [dbo].[LeaseBatchDetails] LBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=LBD.CommonJournalBatchDetailId
 					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId
 					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId
 					LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]

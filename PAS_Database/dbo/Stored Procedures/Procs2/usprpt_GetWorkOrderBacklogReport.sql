@@ -24,8 +24,11 @@
  7 19/08/2025   Fixed the arrangement of inserted values
  8 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
  9 15/06/2026   Priyansh Patel      UOM changes regarding round up and removed the Freight billing cost from approvedamount  [PN-16825]
-	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ 10  01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+ 11  09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+ 12  16-Oct-2026	Divyesh Kathriya		Filter Backlog Incl. Amounts report by selected work orders.[PN-18207]
+ 13  21-Oct-2026	Divyesh Kathriya		Accept 'WO Num' filter [PN-18207]
+
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -59,6 +62,7 @@ BEGIN
     @Level9 VARCHAR(MAX) = NULL,    
     @Level10 VARCHAR(MAX) = NULL,    
     @IsDownload BIT = NULL    
+    DECLARE @WorkOrderIds VARCHAR(MAX) = NULL;
     
      DECLARE @ModuleID INT = 12; -- MS Module ID    
      SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    
@@ -80,6 +84,9 @@ BEGIN
     
      @wotype=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Type'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @wotype END,    
+
+     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Num'  
+     THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @WorkOrderIds END,
     
      @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
@@ -112,6 +119,12 @@ BEGIN
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end    
     
      FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)    
+
+     DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+     INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+     SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+     FROM [DBO].[SPLITSTRING](@WorkOrderIds, ',')
+     WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
   
      IF ISNULL(@PageSize,0)=0    
      BEGIN     
@@ -130,6 +143,7 @@ BEGIN
       LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0   
       LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId         
        WHERE CAST(WO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
+      AND (ISNULL(@WorkOrderIds, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
       AND WOT.Id = ISNULL(@wotype,WOT.Id) AND  ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1  AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
       AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 --WO Not Closed  
       AND (ISNULL(@stage,'') ='' OR WOS.WorkOrderStageId IN(SELECT value FROM String_split(ISNULL(@stage,WOS.WorkOrderStageId), ',')))     
@@ -216,6 +230,7 @@ BEGIN
      LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
      LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
    WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
+    AND (ISNULL(@WorkOrderIds, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
     AND WOT.Id = ISNULL(@wotype,WOT.Id)  AND  ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1 AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
     AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 --MPN Not Closed  
     AND (ISNULL(@stage,'') ='' OR WOS.WorkOrderStageId IN(SELECT value FROM String_split(ISNULL(@stage,WOS.WorkOrderStageId), ',')))     

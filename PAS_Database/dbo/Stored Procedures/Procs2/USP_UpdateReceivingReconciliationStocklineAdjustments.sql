@@ -14,6 +14,7 @@
 	2    06/11/2023   Moin Bloch    Modified(added FreightAdjustmentPerUnit And TaxAdjustmentPerUnit) 
 	3    28/01/2025   Moin Bloch    Modified(Removed POUnitCost & RoUnitCost update in stockline)
 	4    01/09/2026   Moin Bloch    Modified(added [COGSUnitCost],[MiscAdjustment] calculation) PN-17835
+	5    20/10/2026   Moin Bloch    Modified(added Freight, Charges, and Tax are not included in Non-Stock and Asset unit cost calculation) PN-17582
 
 EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 118
 
@@ -104,7 +105,7 @@ BEGIN
 
 				SET @TaxAdjustment = @TaxAdjustmentPerUnit;
 				
-				IF(UPPER(@StockType) = 'STOCK')
+				IF(UPPER(@StockType) = 'STOCK' OR UPPER(@StockType) = 'NONSTOCK')
 				BEGIN					
 					SELECT @PurchaseOrderUnitCost = [PurchaseOrderUnitCost],
 					       @RepairOrderUnitCost = [RepairOrderUnitCost]
@@ -120,11 +121,7 @@ BEGIN
 				      FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;
 
 					EXEC [dbo].[USP_Lot_UpdateCOGSByStocklineId] @StocklineId, @FreightAdjustment, @MiscAdjustment, @TaxAdjustment
-				END
-				IF(UPPER(@StockType) = 'NONSTOCK')
-				BEGIN
-					PRINT  @StockType
-				END
+				END				
 				IF(UPPER(@StockType) = 'ASSET')
 				BEGIN
 					PRINT  @StockType

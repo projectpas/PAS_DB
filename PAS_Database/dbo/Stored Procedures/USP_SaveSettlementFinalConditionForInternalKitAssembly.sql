@@ -14,6 +14,7 @@
  ** --   --------     -------			--------------------------------
     1    28/08/2026   Moin Bloch 	        Created
 	2    15/09/2026   Moin Bloch			[PN-17929] Added [WorkOrderStageId],[WorkOrderStatusId]
+	3    19/10/2026   kishor Makwana        [PN-18355] - Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveSettlementFinalConditionForInternalKitAssembly]
 (
@@ -144,6 +145,9 @@ BEGIN
 
 					-- CLOSED WORK ORDER
 					UPDATE [dbo].[WorkOrder] SET [WorkOrderStatusId] = @WorkOrderClosedStatusId WHERE [WorkOrderId] = @WorkOrderId
+
+					-- Keep Worksheet status in sync (logs CLOSED/RE-OPEN in worksheet history)
+					EXEC [dbo].[USP_SyncWorksheetStatusByWorkOrder] @WorkOrderId = @WorkOrderId, @UpdatedBy = @UpdatedBy;
 				END				
 				
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  

@@ -16,8 +16,8 @@
  ** PR   Date         Author		         Change Description            
  ** --   --------     -------				--------------------------------          
     1    28/12/2023   AMIT GHEDIYA			Created
-     
-
+	2    19/10/2026   Moin Bloch			PN-17943 Added EmployeeInitials for Technician, [Inspector]     
+	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonWorkOrderTearDownPrintView]
 	@WorkorderId bigint = 0,
@@ -32,29 +32,44 @@ BEGIN
 			BEGIN
 				DECLARE @ItemMasterIdlist VARCHAR(max) = '0';
 
-				SELECT @ItemMasterIdlist = TearDownTypes FROM DBO.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkorderId
+				DECLARE @SARMasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyId AS INT = 0;				
 
-			    SELECT DISTINCT tdt.CommonTearDownTypeId,
-					ISNULL(td.ReasonName,'') ReasonName,
-                    UPPER(ISNULL(td.TechnicalName,'')) as Technician,
-                    UPPER(ISNULL(td.InspectorName,'')) as Inspector,
-                    --ISNULL(td.Memo,'') as Memo,
-					REPLACE(REPLACE(ISNULL(td.Memo,''), '<p>', ''),'</p>','<br />') as Memo,
-                    --ISNULL(td.TechnicianDate,'') AS TechnicianDate,
-					td.TechnicianDate,
-                    td.InspectorDate as InspectorDate,
-                    td.IsDocument as IsDocumentAdded,
-					tdt.[Name] as TearDownType,
-					ISNULL(tdt.IsTechnician,0) AS IsTechnician,
+				SELECT @ItemMasterIdlist = [TearDownTypes],@MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE WorkOrderId = @WorkorderId
+
+				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+
+				SELECT @SARMasterCompanyCode = MasterCompanyCode FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('SAR');
+
+			    SELECT DISTINCT tdt.[CommonTearDownTypeId],
+					ISNULL(td.[ReasonName],'') ReasonName,                    
+					CASE
+						WHEN @SARMasterCompanyCode = @MasterCompanyCode
+							THEN UPPER(COALESCE(NULLIF(em.[EmployeeInitials], ''), ISNULL(td.[TechnicalName], '')))
+						ELSE UPPER(ISNULL(td.[TechnicalName], ''))
+					END AS [Technician],
+					CASE
+						WHEN @SARMasterCompanyCode = @MasterCompanyCode
+							THEN UPPER(COALESCE(NULLIF(ei.[EmployeeInitials], ''), ISNULL(td.[InspectorName], '')))
+						ELSE UPPER(ISNULL(td.[InspectorName], ''))
+					END AS [Inspector],                    
+					REPLACE(REPLACE(ISNULL(td.[Memo],''), '<p>', ''),'</p>','<br />') AS [Memo],                   
+					td.[TechnicianDate],
+                    td.[InspectorDate] AS InspectorDate,
+                    td.[IsDocument] AS IsDocumentAdded,
+					tdt.[Name] AS TearDownType,
+					ISNULL(tdt.[IsTechnician],0) AS IsTechnician,
 					tdt.[IsDate],
-					ISNULL(tdt.IsInspector,0) AS IsInspector,
-					ISNULL(tdt.IsInspectorDate,'') AS IsInspectorDate,
-					tdt.IsDocument,
+					ISNULL(tdt.[IsInspector],0) AS IsInspector,
+					ISNULL(tdt.[IsInspectorDate],'') AS IsInspectorDate,
+					tdt.[IsDocument],
 					tdt.[Sequence],
-					tdt.DocumentModuleName
+					tdt.[DocumentModuleName]
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
-				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td WITH(NOLOCK) ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
-				AND td.WorkOrderId = @WorkorderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId AND Isnull(td.IsSubWorkOrder,0) = 0
+				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td WITH(NOLOCK) ON td.[CommonTearDownTypeId] = tdt.[CommonTearDownTypeId] AND td.WorkOrderId = @WorkorderId AND td.[WorkFlowWorkOrderId] = @workFlowWorkOrderId AND Isnull(td.IsSubWorkOrder,0) = 0
+				LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.[EmployeeId] = td.[TechnicianId]				
+				LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.[EmployeeId] = td.[InspectorId]
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

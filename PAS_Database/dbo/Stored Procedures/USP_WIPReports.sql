@@ -13,6 +13,8 @@
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
 	2    11/02/2026   Priyansh Patel     Added UnpostedDirectLaborCost and UnpostedOverheadCost Columns
 	3    09/July/2026   RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    16-Oct-2026   Divyesh Kathriya  Filter WIP report by selected work orders. [PN-18207]
+
 exec USP_WIPReports @mastercompanyid=1,@id='2024-01-25 00:00:00',@id2='2024-05-24 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 EXEC USP_WIPReports @mastercompanyid=1,@id='2024-02-01 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 exec USP_WIPReports @mastercompanyid=1,@id='2024-08-01 00:00:00',@id2='2024-10-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
@@ -26,12 +28,21 @@ CREATE PROCEDURE [dbo].[USP_WIPReports]
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),
 @id3 BIGINT = NULL,
-@strFilter VARCHAR(MAX) = NULL
+@strFilter VARCHAR(MAX) = NULL,
+@id5 VARCHAR(MAX) = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY
+
+		DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+		INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+		SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+		FROM [DBO].[SPLITSTRING](@id5, ',')
+		WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
+
+
 		DECLARE @ModuleID INT = 12; -- WO MPN MS Module ID 
 		DECLARE @FromDate DATETIME; 
 		DECLARE @ToDate DATETIME; 
@@ -180,6 +191,7 @@ BEGIN
 			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 			 AND (@id3 IS NULL OR WOP.ItemMasterId = @id3) AND ISNULL(SL.IsNonStock,0) = 0
+			 AND (ISNULL(@id5, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
 
 		--UPDATE #TEMPOriginalStocklineRecords SET PartCost = 0 FROM(
 		--	SELECT WO.WorkOrderId, WOP.ID AS WorkOrderPartNoId, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, 

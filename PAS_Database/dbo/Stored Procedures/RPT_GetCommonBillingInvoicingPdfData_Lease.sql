@@ -28,6 +28,10 @@
                                      MiscCharges as before.
     3    05/10/2026   Kishor Makwana	[PN-17949] SUBTOTAL now shows the sum of ALL item rows including the Charges row, and the MISC CHARGES box is returned as 0 (Charges are no longer split out of
                                      SUBTOTAL). TOTAL / AMOUNT DUE are unchanged (BillingInvoicing.GrandTotal).
+    4    16/10/2026   Kishor Makwana [PN-18338 ship via] ShipVia / ShipAccNumber / ShippingTerms now come from the Ship Via, Shipping Acct Info and
+                                     Shipping Terms picked in the Billing Invoice popup (BillingInvoicingDetails); Awb is the AirwayBill of the latest
+                                     Lease Shipping that carried the invoiced stocklines. They were returned blank before.
+                                     CreditTerms now returns the Bill To customer's credit terms (Customer > Financial) instead of blank.
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease] 1,72,55
 **************************************************************/
@@ -67,6 +71,15 @@ BEGIN
 	DECLARE @Tax DECIMAL(18, 6) = 0;
 
 	DECLARE @OtherTaxAmt DECIMAL(18, 6) = 0;
+
+	-- [PN-18072 ship via] AWB of the latest shipment (Lease > Shipping) that carried the invoiced stocklines.
+	DECLARE @Awb VARCHAR(50) = '';
+	SELECT TOP 1 @Awb = ISNULL(LSH.[AirwayBill], '')
+	FROM [dbo].[BillingInvoicingItems] BIA WITH (NOLOCK)
+	INNER JOIN [dbo].[LeaseShippingItem] LSI WITH (NOLOCK) ON LSI.[LeaseStocklineId] = BIA.[SubReferenceId] AND ISNULL(LSI.[IsDeleted], 0) = 0
+	INNER JOIN [dbo].[LeaseShipping] LSH WITH (NOLOCK) ON LSH.[LeaseShippingId] = LSI.[LeaseShippingId] AND ISNULL(LSH.[IsDeleted], 0) = 0 AND ISNULL(LSH.[AirwayBill], '') <> ''
+	WHERE BIA.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BIA.[IsDeleted], 0) = 0 AND ISNULL(BIA.[IsVersionIncrease], 0) = 0
+	ORDER BY LSH.[LeaseShippingId] DESC;
 
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
 	  FROM [dbo].[Employee] E WITH (NOLOCK) 
@@ -122,14 +135,14 @@ BEGIN
 					BI.[CreatedBy] [PreparedBy],
 					FORMAT(BI.[PrintDate], 'MM/dd/yyyy h:mm tt') [DatePrinted],
 					'0' [Weight],
-					'' AS [CreditTerms],
+					ISNULL((SELECT TOP 1 CTM.[Name] FROM [dbo].[CustomerFinancial] CFN WITH(NOLOCK) INNER JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.[CreditTermsId] = CFN.[CreditTermsId] WHERE CFN.[CustomerId] = ISNULL(BID.[SoldToCustomerId], LH.[CustomerId])), '') AS [CreditTerms], -- Bill To customer's credit terms (Customer > Financial), as in the popup
 					UPPER(ISNULL(cur.[Code], '')) [Currency],
 					'' [OrderDate],
 					'' [ShipDate],
-					'' AS [ShipVia],
-					'' [ShipAccNumber],
+					ISNULL(SHIPINFOVIA.[Name], '') AS [ShipVia],
+					ISNULL(BID.[ShipAccountInfo], '') [ShipAccNumber],
 					'' [ShippingOrderNumber],
-					'' [Awb],
+					ISNULL(@Awb, '') [Awb],
 					BI.[InvoiceStatus],
 					BI.[ManagementStructureId],
 					BI.[InvoiceNo] [Barcode],
@@ -153,7 +166,7 @@ BEGIN
 					SignEmpName = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
 					SignEmpTitle = ISNULL(jt.Description,''),
 					SignEmpDate = bi.CreatedDate,
-					ShippingTerms = '',
+					ShippingTerms = ISNULL(BID.[ShippingTermsName], ''),
 					ISNULL(BI.[SubTotal], 0) AS [SubTotal], -- [PN-18072 PR 4] SUBTOTAL = sum of EVERY item row incl. Charges (matches the item grid); the MISC CHARGES box is no longer used
 					ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal], 0) AS [GrandTotal],
@@ -179,6 +192,8 @@ BEGIN
 				LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 				LEFT JOIN [dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId
 				LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON LH.MasterCompanyId = MC.MasterCompanyId
+				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BID.[BillingInvoicingId] = BI.[BillingInvoicingId]
+				LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: LEASE ********/

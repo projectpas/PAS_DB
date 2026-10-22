@@ -3410,6 +3410,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAllWorkOrderTasks.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskSequenceNumber.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstruction.sql" />
     <Build Include="dbo\Tables\TaskInstructionMasterAudit.sql" />
@@ -4028,6 +4029,7 @@
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesOrderPartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPartPublications.sql" />
     <Build Include="dbo\Stored Procedures\GetPartUploadToILS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShipBillBackDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
     <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalShippingDetails.sql" />
@@ -4828,6 +4830,7 @@
     <Build Include="dbo\Stored Procedures\USP_SyncLeaseBillingDraftInvoices.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenLeaseBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetToolingReportData.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBOMByMPNReport.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQROFromEmail.sql" />
     <Build Include="dbo\Tables\LeaseShippingItemAudit.sql" />
     <Build Include="dbo\Tables\LeaseShippingItem.sql" />
@@ -4868,6 +4871,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeasePendingInvoiceReminderData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseAccountingDetailsViewById.sql" />
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerLeaseInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SplitStocklineForSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
+    <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncWorksheetStatusByWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseUsageInfoReminderData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseSummaryByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4904,6 +4916,10 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBILaborUtilization.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWorkOrderQuoteActual.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
+    <Build Include="dbo\Tables\VendorACHPayment.sql" />
+    <Build Include="dbo\Tables\VendorACHPaymentAudit.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetVendorACHPaymentByVendorId.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_SaveVendorACHPayment.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

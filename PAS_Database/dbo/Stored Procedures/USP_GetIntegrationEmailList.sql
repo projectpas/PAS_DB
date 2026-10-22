@@ -15,9 +15,7 @@
 	4    08/12/2025   Devendra Shekh   	Added [VendorRfqId]
 	5    06/10/2026   Amit Ghediya   	Added RFQPO/RFQRO number afetr create from email.
 	6    12/10/2026   Bhargav Saliya   	Added RFQ processing Status, ErrorMessage, IsEditable, RfqType
-	7    21/10/2026   Vishal Suthar   	[VendorRfqId]: ThirdPartyRFQId holds a PartsBase/ILS RFQ, a Vendor RFQ PO or a Vendor RFQ RO id -
-										resolve it the same way it is written (Vendor RFQ RO / PO email subject from AiIntegrationSetting)
-										instead of picking the first table that happens to have that id
+	7    21/10/2026   Vishal Suthar   	[PN-15675] VendorRfqId resolved by RFQ / PO / RO email subject
 
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
@@ -111,7 +109,7 @@ BEGIN
 		  ,ST.[IsEditable]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
   LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
-  -- Vendor RFQ subjects that route an email to a Vendor RFQ RO / PO (the RO id overwrites the PO id, which overwrites the RFQ id)
+  -- RFQ / PO / RO by email subject
   OUTER APPLY (SELECT TOP 1 AIS.[VRFQEmailSubject], AIS.[VRFQROEmailSubject]
 			   FROM [dbo].[AiIntegrationSetting] AIS WITH(NOLOCK)
 			   WHERE AIS.[MasterCompanyId] = IE.[MasterCompanyId]

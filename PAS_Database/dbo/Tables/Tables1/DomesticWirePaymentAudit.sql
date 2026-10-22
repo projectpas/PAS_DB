@@ -16,6 +16,11 @@
     [IsDeleted]                  BIT           NOT NULL,
     [AccountNameId]              BIGINT        NULL,
     [VendorBankAccountTypeId]    INT           NULL,
+    [PayeeName]                  VARCHAR (100) NULL,
+    [BankLocation1]              VARCHAR (250) NULL,
+    [BankLocation2]              VARCHAR (250) NULL,
+    [SwiftCode]                  VARCHAR (50)  NULL,
+    [GLAccountId]                BIGINT        NULL,
     CONSTRAINT [PK_DomesticWirePaymentAuditId] PRIMARY KEY CLUSTERED ([DomesticWirePaymentAuditId] ASC),
     CONSTRAINT [FK_DomesticWirePaymentAudit_DomesticWirePayment] FOREIGN KEY ([DomesticWirePaymentId]) REFERENCES [dbo].[DomesticWirePayment] ([DomesticWirePaymentId])
 );

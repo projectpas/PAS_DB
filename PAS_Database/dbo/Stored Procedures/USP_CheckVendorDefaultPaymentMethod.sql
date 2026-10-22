@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    13/05/2025  Ayushi Patel     Created
+    2    21/10/2026  Nakul            Added IsACHTransferPayment (vendor ACH Transfer record) (PN-18294)
      
 -- exec [dbo].[USP_CheckVendorDefaultPaymentMethod]4784
 ************************************************************************/
@@ -52,6 +53,16 @@ BEGIN
                         SELECT 1 
                         FROM dbo.VendorInternationlWirePayment iwp WITH (NOLOCK)
                         WHERE iwp.VendorId = v.VendorId
+                    ) THEN CAST(1 AS BIT)
+                    ELSE CAST(0 AS BIT)
+                END,
+            IsACHTransferPayment =
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM dbo.VendorACHPayment ach WITH (NOLOCK)
+                        WHERE ach.VendorId = v.VendorId
+                          AND ach.IsDeleted = 0 AND ach.IsActive = 1
                     ) THEN CAST(1 AS BIT)
                     ELSE CAST(0 AS BIT)
                 END

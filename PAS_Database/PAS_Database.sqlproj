@@ -4916,6 +4916,10 @@
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBILaborUtilization.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetPowerBIWorkOrderQuoteActual.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_GetLinkedPOUnlinkEligibility.sql" />
+    <Build Include="dbo\Tables\VendorACHPayment.sql" />
+    <Build Include="dbo\Tables\VendorACHPaymentAudit.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetVendorACHPaymentByVendorId.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_SaveVendorACHPayment.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

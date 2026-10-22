@@ -9,24 +9,32 @@
 ** PR     Date         Author         Change Description
 ** --     ----------   ------------   -----------------------------------------------------
 ** 1      17-07-2025   Ayushi Patel   Created
+** 2      21-10-2026   Nakul          Added Payee Name, Bank Location 1/2, Intermediate Bank, SWIFT and GL Account (Legal Entity banking fields) (PN-18294)
+**                                    Bank Address and Bank Account Type are optional; Address row is created only when CountryId is passed
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateVendorDomesticWirePayment]
     @ABA VARCHAR(50),
     @AccountNumber VARCHAR(100),
-    @BankName VARCHAR(200),
+    @BankName VARCHAR(200) = NULL,
     @AccountNameId BIGINT,
-    @VendorBankAccountTypeId BIGINT,
+    @VendorBankAccountTypeId BIGINT = NULL,
     @MasterCompanyId INT,
     @CreatedBy VARCHAR(100),
     @UpdatedBy VARCHAR(100),
-    @CountryId INT,
-    @Line1 VARCHAR(200),
+    @CountryId INT = NULL,
+    @Line1 VARCHAR(200) = NULL,
     @Line2 VARCHAR(200) = NULL,
     @Line3 VARCHAR(200) = NULL,
-    @City VARCHAR(100),
-    @StateOrProvince VARCHAR(100),
-    @PostalCode VARCHAR(50),
-    @NewDomesticWirePaymentId BIGINT OUTPUT
+    @City VARCHAR(100) = NULL,
+    @StateOrProvince VARCHAR(100) = NULL,
+    @PostalCode VARCHAR(50) = NULL,
+    @NewDomesticWirePaymentId BIGINT OUTPUT,
+    @PayeeName VARCHAR(100) = NULL,
+    @BankLocation1 VARCHAR(250) = NULL,
+    @BankLocation2 VARCHAR(250) = NULL,
+    @IntermediaryBankName VARCHAR(100) = NULL,
+    @SwiftCode VARCHAR(50) = NULL,
+    @GLAccountId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -37,50 +45,55 @@ BEGIN
         DECLARE @CurrentDate DATETIME2 = GETUTCDATE();
         DECLARE @AddressId BIGINT;
 
-        INSERT INTO dbo.Address (
-            Line1, Line2, Line3,
-            City, StateOrProvince, PostalCode, CountryId,
-            MasterCompanyId, IsActive, IsDeleted,
-            CreatedBy, CreatedDate, UpdatedBy, UpdatedDate
-        )
-        VALUES (
-            ISNULL(@Line1, ''),
-            @Line2,
-            @Line3,
-            ISNULL(@City, ''),
-            ISNULL(@StateOrProvince, ''),
-            ISNULL(@PostalCode, ''),
-            @CountryId,
-            IIF(@MasterCompanyId = 0, 1, @MasterCompanyId),
-            1, -- IsActive
-            0, -- IsDeleted
-            @CreatedBy,
-            @CurrentDate,
-            @UpdatedBy,
-            @CurrentDate
-        );
+        IF NULLIF(@CountryId, 0) IS NOT NULL
+        BEGIN
+            INSERT INTO dbo.Address (
+                Line1, Line2, Line3,
+                City, StateOrProvince, PostalCode, CountryId,
+                MasterCompanyId, IsActive, IsDeleted,
+                CreatedBy, CreatedDate, UpdatedBy, UpdatedDate
+            )
+            VALUES (
+                ISNULL(@Line1, ''),
+                @Line2,
+                @Line3,
+                ISNULL(@City, ''),
+                ISNULL(@StateOrProvince, ''),
+                ISNULL(@PostalCode, ''),
+                @CountryId,
+                IIF(@MasterCompanyId = 0, 1, @MasterCompanyId),
+                1, -- IsActive
+                0, -- IsDeleted
+                @CreatedBy,
+                @CurrentDate,
+                @UpdatedBy,
+                @CurrentDate
+            );
 
-        SET @AddressId = SCOPE_IDENTITY();
+            SET @AddressId = SCOPE_IDENTITY();
+        END
 
         INSERT INTO dbo.DomesticWirePayment (
             ABA, AccountNumber, BankName, AccountNameId, VendorBankAccountTypeId,
             MasterCompanyId, IsActive,
             CreatedBy, CreatedDate, UpdatedBy, UpdatedDate,
-            BankAddressId
+            BankAddressId,
+            PayeeName, BankLocation1, BankLocation2, IntermediaryBankName, SwiftCode, GLAccountId
         )
         VALUES (
             @ABA,
             @AccountNumber,
-            @BankName,
+            ISNULL(@BankName, ''),
             @AccountNameId,
-            @VendorBankAccountTypeId,
+            NULLIF(@VendorBankAccountTypeId, 0),
             IIF(@MasterCompanyId = 0, 1, @MasterCompanyId),
             1,
             @CreatedBy,
             @CurrentDate,
             @UpdatedBy,
             @CurrentDate,
-            @AddressId
+            @AddressId,
+            @PayeeName, @BankLocation1, @BankLocation2, @IntermediaryBankName, @SwiftCode, @GLAccountId
         );
 
         SET @NewDomesticWirePaymentId = SCOPE_IDENTITY();
@@ -101,7 +114,12 @@ BEGIN
             d.UpdatedBy,
             d.UpdatedDate,
             ISNULL(d.IsActive,0)AS IsActive,
-            ISNULL(d.IsDeleted,0) AS IsDeleted
+            ISNULL(d.IsDeleted,0) AS IsDeleted,
+            d.PayeeName,
+            d.BankLocation1,
+            d.BankLocation2,
+            d.SwiftCode,
+            d.GLAccountId
         FROM dbo.DomesticWirePayment d WITH (NOLOCK)
         WHERE d.DomesticWirePaymentId = @NewDomesticWirePaymentId;
 

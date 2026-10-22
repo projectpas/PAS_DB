@@ -204,6 +204,8 @@ BEGIN
     )
     SELECT
       COUNT(1) OVER () AS TotalRecordsCount,
+      -- Grand total across all filtered rows (computed before OFFSET/FETCH), shown in the grid footer
+      SUM(B.extCost) OVER () AS totalExtCost,
       B.woNum,
 	  B.woMPN,
       B.bomPN,

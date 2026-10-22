@@ -18,6 +18,8 @@
  ** --   --------           -------   ---------------------------
     1    21/October/2026    Hemant    [PN-18384] Created.
     2    22/October/2026    Hemant    [PN-18384] Added WO MPN (woMPN) column after WO Num.
+    3    22/October/2026    Hemant    [PN-18384] Column filter / sort on Management Structure level1-10.
+    4    22/October/2026    Hemant    [PN-18384] Open / Invoice / Shipped Date column filters use a date picker (yyyy-MM-dd).
  **************************************************************
  EXEC usprpt_GetWorkOrderBOMByMPNReport @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>10/21/2026</FieldValue></Filter></ArrayOfFilter>'
 **************************************************************/
@@ -243,8 +245,11 @@ BEGIN
           ('woNum', B.woNum), ('woMPN', B.woMPN), ('bomPN', B.bomPN), ('oemPma', B.oemPma), ('pnDescription', B.pnDescription),
           ('cond', B.cond), ('qty', CAST(B.qty AS VARCHAR(50))), ('unitcost', CAST(B.unitcost AS VARCHAR(50))),
           ('extCost', CAST(B.extCost AS VARCHAR(50))), ('workScope', B.workScope), ('customer', B.customer),
-          ('stage', B.stage), ('opendate', FORMAT(B.opendate, 'MM/dd/yyyy')),
-          ('invoicedate', FORMAT(B.invoicedate, 'MM/dd/yyyy')), ('shipdate', FORMAT(B.shipdate, 'MM/dd/yyyy'))
+          -- date columns: the grid's date picker sends yyyy-MM-dd
+          ('stage', B.stage), ('opendate', CONVERT(VARCHAR(10), B.opendate, 23)),
+          ('invoicedate', CONVERT(VARCHAR(10), B.invoicedate, 23)), ('shipdate', CONVERT(VARCHAR(10), B.shipdate, 23)),
+          ('level1', B.level1), ('level2', B.level2), ('level3', B.level3), ('level4', B.level4), ('level5', B.level5),
+          ('level6', B.level6), ('level7', B.level7), ('level8', B.level8), ('level9', B.level9), ('level10', B.level10)
         ) V(FieldName, FieldValue)
         WHERE V.FieldName = F.FieldName
           AND V.FieldValue LIKE '%' + F.FieldValue + '%'
@@ -281,6 +286,26 @@ BEGIN
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'invoicedate')   THEN B.invoicedate END DESC,
       CASE WHEN (@SortOrder = 1  AND @SortColumn = 'shipdate')      THEN B.shipdate END ASC,
       CASE WHEN (@SortOrder = -1 AND @SortColumn = 'shipdate')      THEN B.shipdate END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level1')      THEN B.level1 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level1')      THEN B.level1 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level2')      THEN B.level2 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level2')      THEN B.level2 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level3')      THEN B.level3 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level3')      THEN B.level3 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level4')      THEN B.level4 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level4')      THEN B.level4 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level5')      THEN B.level5 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level5')      THEN B.level5 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level6')      THEN B.level6 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level6')      THEN B.level6 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level7')      THEN B.level7 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level7')      THEN B.level7 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level8')      THEN B.level8 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level8')      THEN B.level8 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level9')      THEN B.level9 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level9')      THEN B.level9 END DESC,
+      CASE WHEN (@SortOrder = 1  AND @SortColumn = 'level10')     THEN B.level10 END ASC,
+      CASE WHEN (@SortOrder = -1 AND @SortColumn = 'level10')     THEN B.level10 END DESC,
       B.invoicedate DESC, B.woNum, B.bomPN
     OFFSET ((@PageNumber - 1) * @EffectivePageSize) ROWS
     FETCH NEXT @EffectivePageSize ROWS ONLY;

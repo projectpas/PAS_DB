@@ -13,6 +13,7 @@
 	2	 08 Dec 2025		Devendra Shekh		Modified to save IntegrationEmailID to [VendorRFQPart] And [ThirdPartyRFQId] to [IntegrationEmail]
 	3	 10 Dec 2025		Devendra Shekh		Duplicate RFQ Issue Resolved
 	4	 12 Oct 2026		Bhargav Saliya		Skip when VendorRFQPart already saved for this email (Re-Sync duplicate guard)
+	5	 21 Oct 2026		Vishal Suthar		[PN-15675] Link Vendor RFQ by RFQ number and Vendor by email
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQFromEmail]
@@ -77,10 +78,38 @@ BEGIN
 			
 			SELECT @CreatedBy = [CreatedBy], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [IntegrationEmailID] = @IntegrationEmailID;
 			
+			-- Vendor RFQ number
+			DECLARE @VendorRFQNumber VARCHAR(200) = (SELECT TOP 1 LTRIM(RTRIM([VendorRFQNumber])) FROM @tbl_VendorRFQType);
+			DECLARE @VendorRFQNumberKey VARCHAR(200) = UPPER(REPLACE(REPLACE(REPLACE(ISNULL(@VendorRFQNumber, ''), ' ', ''), '-', ''), '#', ''));
+			DECLARE @MatchedThirdPartyRFQId BIGINT = NULL;
+
+			-- 1. Extracted RFQ number (normalised)
+			IF (@VendorRFQNumberKey <> '')
+			BEGIN
+				SELECT TOP 1 @MatchedThirdPartyRFQId = TP.[ThirdPartyRFQId]
+				FROM [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK)
+				WHERE TP.[MasterCompanyId] = @MasterCompanyId AND ISNULL(TP.[IsDeleted], 0) = 0
+				  AND (TP.[RFQId] = @VendorRFQNumber OR TP.[PortalRFQId] = @VendorRFQNumber
+					   OR (ISNULL(TP.[RFQId], '') <> '' AND (@VendorRFQNumberKey = UPPER(TP.[RFQId]) OR @VendorRFQNumberKey LIKE '%[^0-9]' + UPPER(TP.[RFQId])))
+					   OR (ISNULL(TP.[PortalRFQId], '') <> '' AND @VendorRFQNumberKey = UPPER(TP.[PortalRFQId])))
+				ORDER BY TP.[ThirdPartyRFQId] DESC;
+			END
+
+			-- 2. RFQ number in email subject / body
+			IF (@MatchedThirdPartyRFQId IS NULL)
+			BEGIN
+				SELECT TOP 1 @MatchedThirdPartyRFQId = TP.[ThirdPartyRFQId]
+				FROM [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK)
+				CROSS JOIN (SELECT ' ' + ISNULL(IE.[Subject], '') + ' ' + ISNULL(IE.[EmailBody], '') + ' ' AS [EmailText]
+							FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK) WHERE IE.[IntegrationEmailID] = @IntegrationEmailID) E
+				WHERE TP.[MasterCompanyId] = @MasterCompanyId AND ISNULL(TP.[IsDeleted], 0) = 0
+				  AND ISNULL(TP.[RFQId], '') <> ''
+				  AND E.[EmailText] LIKE '%[^0-9A-Za-z]' + TP.[RFQId] + '[^0-9]%'
+				ORDER BY TP.[ThirdPartyRFQId] DESC;
+			END
+
 			SELECT @ILSRFQDetailId = RFQD.ILSRFQDetailId, @ThirdPartyRFQId = RFQD.ThirdPartyRFQId FROM [dbo].[ILSRFQDetail] RFQD WITH(NOLOCK)
-			INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON RFQD.ThirdPartyRFQId = TP.ThirdPartyRFQId
-			WHERE TP.MasterCompanyId = @MasterCompanyId
-			AND (TP.[RFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType) OR TP.[PortalRFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType))
+			WHERE RFQD.ThirdPartyRFQId = @MatchedThirdPartyRFQId
 
 			IF(ISNULL(@EmployeeId, 0) = 0)
 			BEGIN
@@ -123,8 +152,45 @@ BEGIN
 			FROM #tmpVendorRfq TMP
 			INNER JOIN @tbl_VendorRFQType CU ON TMP.[IntegrationEmailID] = CU.[IntegrationEmailID];
 
-			SELECT TOP 1 @VendorId = VN.VendorId FROM [dbo].[Vendor] VN WITH(NOLOCK) 
-			INNER JOIN @tbl_VendorRFQType TMP ON UPPER(TRIM(TMP.VendorName)) = UPPER(TRIM(VN.VendorName)) AND VN.MasterCompanyId = @MasterCompanyId
+			-- Sender / extracted email
+			DECLARE @SenderEmail VARCHAR(320), @ExtractedEmail VARCHAR(255);
+			SELECT @SenderEmail = LTRIM(RTRIM(CASE WHEN CHARINDEX('<', IE.[FromEmail]) > 0 AND CHARINDEX('>', IE.[FromEmail]) > CHARINDEX('<', IE.[FromEmail])
+												   THEN SUBSTRING(IE.[FromEmail], CHARINDEX('<', IE.[FromEmail]) + 1, CHARINDEX('>', IE.[FromEmail]) - CHARINDEX('<', IE.[FromEmail]) - 1)
+												   ELSE IE.[FromEmail] END))
+			FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK) WHERE IE.[IntegrationEmailID] = @IntegrationEmailID;
+			SELECT TOP 1 @ExtractedEmail = NULLIF(LTRIM(RTRIM([Email])), '') FROM @tbl_VendorRFQType;
+
+			-- 1. Vendor email
+			SELECT TOP 1 @VendorId = VN.VendorId FROM [dbo].[Vendor] VN WITH(NOLOCK)
+			WHERE VN.MasterCompanyId = @MasterCompanyId AND ISNULL(VN.IsDeleted, 0) = 0 AND ISNULL(VN.IsActive, 1) = 1
+			  AND ISNULL(VN.VendorEmail, '') <> '' AND LTRIM(RTRIM(VN.VendorEmail)) IN (@SenderEmail, @ExtractedEmail)
+			ORDER BY VN.VendorId;
+
+			-- 2. Vendor contact email
+			IF (@VendorId IS NULL)
+			BEGIN
+				SELECT TOP 1 @VendorId = VC.VendorId FROM [dbo].[VendorContact] VC WITH(NOLOCK)
+				INNER JOIN [dbo].[Contact] C WITH(NOLOCK) ON C.ContactId = VC.ContactId
+				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VN.VendorId = VC.VendorId
+				WHERE VN.MasterCompanyId = @MasterCompanyId AND ISNULL(VN.IsDeleted, 0) = 0 AND ISNULL(VN.IsActive, 1) = 1
+				  AND ISNULL(VC.IsDeleted, 0) = 0 AND ISNULL(C.IsDeleted, 0) = 0
+				  AND ISNULL(C.Email, '') <> '' AND LTRIM(RTRIM(C.Email)) IN (@SenderEmail, @ExtractedEmail)
+				ORDER BY VC.IsDefaultContact DESC, VC.VendorContactId;
+			END
+
+			-- 3. Vendor name
+			IF (@VendorId IS NULL)
+			BEGIN
+				SELECT TOP 1 @VendorId = VN.VendorId FROM [dbo].[Vendor] VN WITH(NOLOCK)
+				INNER JOIN @tbl_VendorRFQType TMP ON UPPER(TRIM(TMP.VendorName)) = UPPER(TRIM(VN.VendorName)) AND VN.MasterCompanyId = @MasterCompanyId;
+			END
+
+			-- Fill missing vendor name / email
+			UPDATE TMP
+			SET TMP.[VendorName] = ISNULL(NULLIF(LTRIM(RTRIM(TMP.[VendorName])), ''), VN.[VendorName]),
+				TMP.[Email] = ISNULL(NULLIF(LTRIM(RTRIM(TMP.[Email])), ''), LEFT(@SenderEmail, 255))
+			FROM #tmpVendorRfq TMP
+			LEFT JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VN.[VendorId] = @VendorId;
 
 			-- Insert into Rfq table
 			INSERT INTO [dbo].[VendorRFQPart]

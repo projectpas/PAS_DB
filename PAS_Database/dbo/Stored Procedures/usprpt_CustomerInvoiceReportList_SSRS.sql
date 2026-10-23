@@ -17,6 +17,7 @@
 	1	 17-FEB-2026	Vishal Suthar  		CREATED
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3	 09/July/2026	RAJESH GAMI  		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5	 23/Oct/2026	Kishor Makwana		[PERF] Slow load: push From/To date range (UTC +-1 day margin) into every source query (WO / SO / Exchange-SO / Credit Memo / WorkFlowData) instead of filtering only at the end; WorkFlowData limited to WorkOrder invoices; OPTION(RECOMPILE) on the catch-all filter statements.
 	4	 20/July/2026	RAJESH GAMI  		[PN-17350] - Removed IsNonStock=0 filter(s) from SO and Exchange-SO branches (all 3 ViewType sections) so Non-Stock parts appear in customer invoice report list SSRS (WorkOrder branches untouched).
 exec usprpt_CustomerInvoiceReportList @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',
 @FromDate='2026-01-11 00:00:00',@ToDate='2026-02-11 00:00:00',@CustomerId=NULL,@strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!',@CustomerName=NULL,
@@ -147,6 +148,17 @@ BEGIN
 		SELECT @FromDate = ISNULL(TRY_CAST([Field] AS DATETIME2), NULL) FROM #TempDataFilter WHERE ID = 1;
 
 		SELECT @ToDate = ISNULL(TRY_CAST([Field] AS DATETIME2), NULL) FROM #TempDataFilter WHERE ID = 2;
+
+		-- [PERF] Date-range pre-filter pushed into the source queries.
+		-- The final filter compares the LOCAL (employee time-zone) invoice date, the source column is UTC.
+		-- Time-zone offset is max +-14h, so a 1 day margin on the lower bound and 2 days on the upper bound can never drop a valid row.
+		-- Only applied when @GlobalFilter = '' (same condition under which the final From/To filter is applied).
+		DECLARE @InvDateFromUtc DATETIME2 = NULL, @InvDateToUtc DATETIME2 = NULL;
+		IF (@GlobalFilter = '')
+		BEGIN
+			IF (@FromDate IS NOT NULL) SET @InvDateFromUtc = DATEADD(DAY, -1, CAST(CAST(@FromDate AS DATE) AS DATETIME2));
+			IF (@ToDate   IS NOT NULL) SET @InvDateToUtc   = DATEADD(DAY,  2, CAST(CAST(@ToDate   AS DATE) AS DATETIME2));
+		END
 
 		SELECT @CustomerId = ISNULL(TRY_CAST([Field] AS BIGINT), NULL)	FROM #TempDataFilter WHERE ID = 3;
 
@@ -311,6 +323,7 @@ BEGIN
 					LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON WOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 					LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
+			AND (@InvDateFromUtc IS NULL OR WOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR WOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			AND (ISNULL(WOBI.IsPerformaInvoice,0) = 0)
@@ -325,7 +338,8 @@ BEGIN
 				FROM dbo.BillingInvoicing PC WITH (NOLOCK) 
 				INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK)  ON PC.BillingInvoicingId = BII.BillingInvoicingId 
 				LEFT JOIN dbo.WorkOrderWorkFlow WOFN WITH (NOLOCK) ON BII.SubReferenceId = WOFN.WorkOrderPartNoId
-				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 AND PC.ModuleId = @workOrderModuleId -- [PERF] only WorkOrder invoices are joined to this CTE
+				AND (@InvDateFromUtc IS NULL OR PC.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR PC.InvoiceDate < @InvDateToUtc) -- [PERF]
 				GROUP BY PC.ReferenceId,PC.BillingInvoicingId
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNum,M.InvoiceStatus,M.InvoiceDate,M.WOSONum,
@@ -432,6 +446,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
+			AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				AND (ISNULL(SOBI.IsPerformaInvoice,0) = 0)
@@ -537,6 +552,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
+			AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0 AND (ISNULL(SOBI.GrandTotal, 0) > 0)
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId, CR.Code, MSL.Code,
@@ -642,6 +658,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
 				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
+				AND (@InvDateFromUtc IS NULL OR CM.CreatedDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR CM.CreatedDate < @InvDateToUtc) -- [PERF]
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM,MNSL.Code,
 						 MSD.[Level2Name], MSD.[Level3Name], MSD.[Level4Name], MSD.[Level5Name], MSD.[Level6Name], MSD.[Level7Name], MSD.[Level8Name], MSD.[Level9Name], MSD.[Level10Name],
@@ -728,6 +745,7 @@ BEGIN
 	  (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 	   (1=1)
 				))
+				OPTION (RECOMPILE) -- [PERF] catch-all filters / date pre-filter
 				   SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(Amount, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResult   
   
 				   SELECT *, @Count As NumberOfItems, @InvoiceTotalAmount AS InvoiceTotalAmount, @RemainingTotalAmount AS RemainingTotalAmount
@@ -861,6 +879,7 @@ BEGIN
 					LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON WOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 					LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
+			AND (@InvDateFromUtc IS NULL OR WOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR WOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			AND (ISNULL(WOBI.IsPerformaInvoice,0) = 0)
@@ -874,7 +893,8 @@ BEGIN
 				FROM dbo.BillingInvoicing PC WITH (NOLOCK) 
 				INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK)  ON PC.BillingInvoicingId = BII.BillingInvoicingId 
 				LEFT JOIN dbo.WorkOrderWorkFlow WOFN WITH (NOLOCK) ON BII.SubReferenceId = WOFN.WorkOrderPartNoId
-				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 AND PC.ModuleId = @workOrderModuleId -- [PERF] only WorkOrder invoices are joined to this CTE
+				AND (@InvDateFromUtc IS NULL OR PC.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR PC.InvoiceDate < @InvDateToUtc) -- [PERF]
 				GROUP BY PC.ReferenceId,PC.BillingInvoicingId
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNum,M.InvoiceStatus,M.InvoiceDate,M.WOSONum,
@@ -983,6 +1003,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
+			AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				AND (ISNULL(SOBI.IsPerformaInvoice,0) = 0)
@@ -1090,6 +1111,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
+			AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0 AND ISNULL(SOBI.GrandTotal, 0) > 0
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId, CR.Code, MSL.Code,
@@ -1197,6 +1219,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
 				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
+				AND (@InvDateFromUtc IS NULL OR CM.CreatedDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR CM.CreatedDate < @InvDateToUtc) -- [PERF]
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM,MNSL.Code,
 						 MSD.[Level2Name], MSD.[Level3Name], MSD.[Level4Name], MSD.[Level5Name], MSD.[Level6Name], MSD.[Level7Name], MSD.[Level8Name], MSD.[Level9Name], MSD.[Level10Name],
@@ -1450,6 +1473,7 @@ BEGIN
   
 				   OFFSET @RecordFrom ROWS   
 				   FETCH NEXT @PageSize ROWS ONLY  
+				   OPTION (RECOMPILE) -- [PERF] catch-all filters / date pre-filter
    END
 	  ELSE IF(@ViewType ='Customer')
 	  BEGIN
@@ -1533,6 +1557,7 @@ BEGIN
 				LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId    
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
+			AND (@InvDateFromUtc IS NULL OR WOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR WOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			AND (ISNULL(WOBI.IsPerformaInvoice,0) = 0)
@@ -1621,6 +1646,7 @@ BEGIN
 				LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId    
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
+			AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
@@ -1713,6 +1739,7 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 				WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 
+				 AND (@InvDateFromUtc IS NULL OR SOBI.InvoiceDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR SOBI.InvoiceDate < @InvDateToUtc) -- [PERF]
 				 AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			     AND ISNULL(SOBI.GrandTotal, 0) > 0
 
@@ -1792,6 +1819,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
 				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
+				AND (@InvDateFromUtc IS NULL OR CM.CreatedDate >= @InvDateFromUtc) AND (@InvDateToUtc IS NULL OR CM.CreatedDate < @InvDateToUtc) -- [PERF]
 
 			),
 			FinalResult AS (
@@ -1971,6 +1999,7 @@ BEGIN
   
 				   OFFSET @RecordFrom ROWS   
 				   FETCH NEXT @PageSize ROWS ONLY	
+				   OPTION (RECOMPILE) -- [PERF] catch-all filters / date pre-filter
 			END
   END TRY
   BEGIN CATCH

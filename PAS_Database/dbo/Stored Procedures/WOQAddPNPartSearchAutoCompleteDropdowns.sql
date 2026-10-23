@@ -145,9 +145,9 @@ BEGIN
 		  Im.BinId,
 		  Im.IsExpirationDateAvailable,
 		  Ig.ItemGroupCode As ItemGroup,
-		  Im.StockUnitOfMeasureId AS StockUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END AS StockUnitOfMeasureId,  
 		  uomStock.ShortName AS StockUnitOfMeasure,
-		  Im.ConsumeUnitOfMeasureId AS ConsumeUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END AS ConsumeUnitOfMeasureId,  
 		  uomConsume.ShortName AS ConsumeUnitOfMeasure,
 		  0 as ConsumeUnitCost,
 		  Im.ItemTypeId
@@ -156,8 +156,8 @@ BEGIN
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))      
      
@@ -196,9 +196,9 @@ BEGIN
 		  Im.BinId,
 		  Im.IsExpirationDateAvailable,
 		  Ig.ItemGroupCode As ItemGroup,
-		  Im.StockUnitOfMeasureId AS StockUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END AS StockUnitOfMeasureId,  
 		  uomStock.ShortName AS StockUnitOfMeasure,
-		  Im.ConsumeUnitOfMeasureId AS ConsumeUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END AS ConsumeUnitOfMeasureId,  
 		  uomConsume.ShortName AS ConsumeUnitOfMeasure,
 		  0 as ConsumeUnitCost,
 		  Im.ItemTypeId
@@ -207,8 +207,8 @@ BEGIN
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
 	 ORDER BY Label      
@@ -281,9 +281,9 @@ BEGIN
 		  Im.BinId,
 		  Im.IsExpirationDateAvailable,
 		  Ig.ItemGroupCode As ItemGroup,
-		  Im.StockUnitOfMeasureId AS StockUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END AS StockUnitOfMeasureId,  
 		  uomStock.ShortName AS StockUnitOfMeasure,
-		  Im.ConsumeUnitOfMeasureId AS ConsumeUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END AS ConsumeUnitOfMeasureId,  
 		  uomConsume.ShortName AS ConsumeUnitOfMeasure,
 		  0 as ConsumeUnitCost,
 		  Im.ItemTypeId
@@ -292,8 +292,8 @@ BEGIN
 		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')  
     
@@ -331,9 +331,9 @@ BEGIN
 		  Im.BinId,
 		  Im.IsExpirationDateAvailable,
 		  Ig.ItemGroupCode As ItemGroup,
-		  Im.StockUnitOfMeasureId AS StockUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END AS StockUnitOfMeasureId,  
 		  uomStock.ShortName AS StockUnitOfMeasure,
-		  Im.ConsumeUnitOfMeasureId AS ConsumeUnitOfMeasureId,  
+		  CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END AS ConsumeUnitOfMeasureId,  
 		  uomConsume.ShortName AS ConsumeUnitOfMeasure,
 		  0 as ConsumeUnitCost,
 		  Im.ItemTypeId
@@ -342,8 +342,8 @@ BEGIN
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON Im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON Im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK)  ON (CASE WHEN ISNULL(Im.IsNonStock,0) = 1 THEN Im.PurchaseUnitOfMeasureId ELSE Im.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   

@@ -39,8 +39,8 @@ BEGIN
    BEGIN    
     SELECT  
         --mt.Quantity,  
-        ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
-        imt.ConsumeUnitOfMeasure as UomName,
+        ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
+        (CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END) as UomName,
         mt.PartNumber as partnumber,  
         mt.ConditionType AS Condition,  
         mt.PartDescription as PartDescription,  
@@ -49,26 +49,26 @@ BEGIN
             CASE 
                 WHEN ISNULL(mt.Quantity,0) = 0 THEN 0
                 ELSE mt.BillingAmount /
-                     ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+                     ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                                   THEN ISNULL(mt.Quantity,0)
-                                  ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                                  ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                              END),0)
             END
         ) AS UnitCost,
 	    --(mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
         (
-            ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+            ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                          THEN ISNULL(mt.Quantity,0)
-                         ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                         ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                     END),0)
             *
             (
                 CASE 
                     WHEN ISNULL(mt.Quantity,0) = 0 THEN 0
                     ELSE mt.BillingAmount /
-                         ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+                         ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                                       THEN ISNULL(mt.Quantity,0)
-                                      ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                                      ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                                  END),0)
                 END
             )
@@ -81,7 +81,7 @@ BEGIN
 
 	UNION ALL
 	SELECT  --wom.Quantity, 
-    ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0)) END),0) AS Quantity,
+    ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0)) END),0) AS Quantity,
         '-' as UomName,  
         wom.KitNumber as partnumber,  
         '-' AS Condition,  
@@ -91,26 +91,26 @@ BEGIN
             CASE 
                 WHEN ISNULL(wom.Quantity,0) = 0 THEN 0
                 ELSE wom.BillingAmount /
-                     ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+                     ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                                   THEN ISNULL(wom.Quantity,0)
-                                  ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                                  ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                              END),0)
             END
         ) AS UnitCost,
 	    --(wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
          (
-            ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+            ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                          THEN ISNULL(wom.Quantity,0)
-                         ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                         ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                     END),0)
             *
             (
                 CASE 
                     WHEN ISNULL(wom.Quantity,0) = 0 THEN 0
                     ELSE wom.BillingAmount /
-                         ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+                         ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                                       THEN ISNULL(wom.Quantity,0)
-                                      ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                                      ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                                  END),0)
                 END
             )

@@ -303,6 +303,9 @@ BEGIN
 						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
 						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 ;
 					END
+					-- [PN-17782] Non-Stock parts: no OEM / PMA / DER check - always allowed
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock, 0) = 1 AND ISNULL(IM.IsService, 0) = 0 ;
 
 					--Except Parts
 					--INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[RestrictedParts] RS WITH(NOLOCK) WHERE RS.IsActive = 1 AND RS.IsDeleted = 0 AND RS.ModuleId = @RestrictPartModuleId AND RS.ReferenceId = @CustomerID;
@@ -2214,10 +2217,10 @@ BEGIN
 						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin],[IsMaterials]
 					FROM #SubWorkOrderMaterials wom
 					LEFT JOIN DBO.Stockline SL ON wom.StockLineId = SL.StockLineId
-					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN SL.PurchaseUnitOfMeasureId ELSE SL.StockUnitOfMeasureId END)
 					LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId 
 					AND SL.ConsumeUnitOfMeasureId IS NULL
-					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = COALESCE(SL.ConsumeUnitOfMeasureId, im.ConsumeUnitOfMeasureId)
+					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = COALESCE((CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN SL.PurchaseUnitOfMeasureId ELSE SL.ConsumeUnitOfMeasureId END), (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END))
 
 					ORDER BY ISNULL(wom.StockLineId,0) DESC
 					

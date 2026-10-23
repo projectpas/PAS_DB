@@ -51,8 +51,8 @@ BEGIN
 					,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyAvailable
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyOnHand
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END), (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),0,im.MasterCompanyId), 0)) AS QtyAvailable
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END), (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),0,im.MasterCompanyId), 0)) AS QtyOnHand
 					,ig.ItemGroupCode AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -73,11 +73,11 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),1,im.MasterCompanyId), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),1,im.MasterCompanyId), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
-					,im.ConsumeUnitOfMeasure
-					,im.StockUnitOfMeasure
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END)
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END)
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
@@ -112,8 +112,8 @@ BEGIN
 					,imps.PP_UnitPurchasePrice
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
-					,im.ConsumeUnitOfMeasure
-					,im.StockUnitOfMeasure,im.MasterCompanyId
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END)
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),im.MasterCompanyId
 				ORDER BY 7 DESC
 			END
 		COMMIT  TRANSACTION

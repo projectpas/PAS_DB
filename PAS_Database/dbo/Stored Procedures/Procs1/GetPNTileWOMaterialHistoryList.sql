@@ -90,28 +90,28 @@ BEGIN
 					WPN.[WorkScope],
 					--WOM.Quantity AS ReqQty,
 					(CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN WOM.Quantity
-						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId)
 					END) AS ReqQty,
 
 					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
 					(CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN (CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END)
 						ELSE [dbo].[fn_ConvertUOM](
 								(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END),
-								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+								(CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId
 							 )
 					END) AS ResQty,
 
 					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
 					(CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN (CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END)
 						ELSE [dbo].[fn_ConvertUOM](
 								(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END),
-								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+								(CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId
 							 )
 					END) AS IssueQty,
 					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.UnitCost ELSE WOMS.UnitCost END) AS UnitCost,
@@ -159,26 +159,26 @@ BEGIN
 					WPN.[WorkScope],
 					--WOM.Quantity AS RequestedQty,
 					CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN WOM.Quantity
-						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+						ELSE [dbo].[fn_ConvertUOM](WOM.Quantity, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId)
 					END AS RequestedQty,
 
 					CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN (CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END)
 						ELSE [dbo].[fn_ConvertUOM](
 								(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END),
-								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+								(CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId
 							 )
 					END AS ResQty,
 
 					CASE 
-						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+						WHEN ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END),'') = ISNULL((CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END),'')
 							THEN (CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END)
 						ELSE [dbo].[fn_ConvertUOM](
 								(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END),
-								IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId
+								(CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.StockUnitOfMeasure END), (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 0, IM.MasterCompanyId
 							 )
 					END AS IssueQty,
 					--(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,

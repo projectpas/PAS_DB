@@ -233,8 +233,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		   LEFT JOIN DBO.Customer cus WITH(NOLOCK) ON sl.CustomerId = cus.CustomerId  
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
 				AND imps.ConditionId = c.ConditionId
-		   LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId  
+		   LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId  
 		WHERE   
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
@@ -349,8 +349,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		   LEFT JOIN DBO.Customer cus WITH(NOLOCK) ON sl.CustomerId = cus.CustomerId  
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
 				AND imps.ConditionId = c.ConditionId
-			LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId  
+			LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END) = uomStock.UnitOfMeasureId
+		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END) = uomConsume.UnitOfMeasureId  
 		WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))  
 		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult);
 

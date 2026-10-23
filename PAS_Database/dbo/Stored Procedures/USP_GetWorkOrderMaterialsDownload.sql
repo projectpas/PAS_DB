@@ -257,8 +257,8 @@ SET NOCOUNT ON
 						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 							INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.[UnitOfMeasureId] = IM.[PurchaseUnitOfMeasureId]
-							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
@@ -359,8 +359,8 @@ SET NOCOUNT ON
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
@@ -499,8 +499,8 @@ SET NOCOUNT ON
 						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 							INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.[UnitOfMeasureId] = IM.[PurchaseUnitOfMeasureId]
-							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
@@ -600,8 +600,8 @@ SET NOCOUNT ON
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
@@ -713,8 +713,8 @@ SET NOCOUNT ON
 					FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -789,8 +789,8 @@ SET NOCOUNT ON
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -905,8 +905,8 @@ SET NOCOUNT ON
 					FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -983,8 +983,8 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						 LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
-						 LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						 LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
+						 LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId						
 						 LEFT JOIN [dbo].[Provision] SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId

@@ -73,8 +73,8 @@ BEGIN
 				SELECT @StockUnitOfMeasure  = su.ShortName,
 					   @ConsumeUnitOfMeasure = cu.ShortName
 				FROM DBO.Stockline sl WITH (NOLOCK)
-					LEFT JOIN DBO.UnitOfMeasure su WITH (NOLOCK) ON sl.StockUnitOfMeasureId = su.UnitOfMeasureId
-					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId
+					LEFT JOIN DBO.UnitOfMeasure su WITH (NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END) = su.UnitOfMeasureId
+					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END) = cu.UnitOfMeasureId
 				WHERE sl.StockLineId = @StocklineId;
 
 				IF (@ConsumeUnitOfMeasure IS NOT NULL 

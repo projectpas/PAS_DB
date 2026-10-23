@@ -230,7 +230,7 @@ BEGIN
 		CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 0 THEN T.[Description] ELSE WT.TaskName END AS TaskName
 		FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
 			JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 			JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 			JOIN dbo.Customer CU WITH (NOLOCK) ON CU.CustomerId = WO.CustomerId
@@ -253,7 +253,7 @@ BEGIN
 		CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 0 THEN T.[Description] ELSE WT.TaskName END AS TaskName
 		FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.StockUnitOfMeasureId END)
 			JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 			JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 			JOIN dbo.Customer CU WITH (NOLOCK) ON CU.CustomerId = WO.CustomerId
@@ -309,7 +309,7 @@ BEGIN
 			FR.[PartRowIndex], FR.[TaskName]
 		FROM #FinalResult FR
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = FR.[ItemMasterId]
-			LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasureId ELSE IM.ConsumeUnitOfMeasureId END)
 		ORDER BY FR.[PartNumber]
 		--OFFSET @RecordFrom ROWS 
 		--FETCH NEXT @PageSize ROWS ONLY

@@ -57,8 +57,8 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND wop.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
-				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
-				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END)
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END)
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0
 
@@ -86,8 +86,8 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND  wop.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
-				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
-				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END)
+				LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END)
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0
 

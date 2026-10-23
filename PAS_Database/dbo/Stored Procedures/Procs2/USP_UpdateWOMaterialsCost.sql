@@ -99,11 +99,11 @@ SET NOCOUNT ON
 
 				UPDATE WorkOrderMaterials SET  
 				UnitCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost 
-				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN IMPS.PP_UnitPurchasePrice 
-				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) END, 0) END,
+				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END) THEN IMPS.PP_UnitPurchasePrice 
+				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 1, IM.MasterCompanyId) END, 0) END,
 				ExtendedCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost * WOM.Quantity 
-				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN IMPS.PP_UnitPurchasePrice 
-				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) END, 0) * WOM.Quantity END,
+				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END) THEN IMPS.PP_UnitPurchasePrice 
+				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 1, IM.MasterCompanyId) END, 0) * WOM.Quantity END,
 				TotalStocklineQtyReq = 0
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 				JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsId = tmp.WorkOrderMaterialsId
@@ -113,11 +113,11 @@ SET NOCOUNT ON
 
 				UPDATE WorkOrderMaterialsKit SET  
 				UnitCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost 
-				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN IMPS.PP_UnitPurchasePrice 
-				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) END, 0) END,
+				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END) THEN IMPS.PP_UnitPurchasePrice 
+				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 1, IM.MasterCompanyId) END, 0) END,
 				ExtendedCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost * WOM.Quantity 
-				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN IMPS.PP_UnitPurchasePrice 
-				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) END, 0) * WOM.Quantity END,
+				ELSE ISNULL(CASE WHEN IM.PurchaseUnitOfMeasure = (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END) THEN IMPS.PP_UnitPurchasePrice 
+				ELSE dbo.fn_ConvertUOM(IMPS.PP_UnitPurchasePrice, IM.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(IM.IsNonStock,0) = 1 THEN IM.PurchaseUnitOfMeasure ELSE IM.ConsumeUnitOfMeasure END), 1, IM.MasterCompanyId) END, 0) * WOM.Quantity END,
 				TotalStocklineQtyReq = 0
 				FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
 				JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsKitId = tmp.WorkOrderMaterialsId

@@ -94,10 +94,10 @@ BEGIN
 			   @ItemGroup = ITM.ItemGroup,
 			   @IsStkTimeLife = ITM.[isTimeLife],
 			   @ItemNonStockClassificationId = ITM.[ItemClassificationId],
-			   @StockUnitOfMeasureId = ITM.[StockUnitOfMeasureId],
-			   @StockUnitOfMeasure = ITM.[StockUnitOfMeasure],
-			   @ConsumeUnitOfMeasureId = ITM.[ConsumeUnitOfMeasureId],
-			   @ConsumeUnitOfMeasure = ITM.[ConsumeUnitOfMeasure]
+			   @StockUnitOfMeasureId = ITM.[PurchaseUnitOfMeasureId],
+			   @StockUnitOfMeasure = ITM.[PurchaseUnitOfMeasure],
+			   @ConsumeUnitOfMeasureId = ITM.[PurchaseUnitOfMeasureId],
+			   @ConsumeUnitOfMeasure = ITM.[PurchaseUnitOfMeasure]
 		FROM [dbo].[ItemMaster] ITM WITH (NOLOCK)
 		WHERE ITM.[ItemMasterId] = @ItemMasterId;
 

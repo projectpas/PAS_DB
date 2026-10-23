@@ -17,6 +17,8 @@
 	6	 19/06/2026	   Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	7    23/07/2026    Ayushi Patel         [PN-17337] Fixed Dashboard "Today's Quoted" showing Part Amount as 0.00 when WOQ is initially saved with Build Up From Details. 
 											MaterialFlatBillingAmount was being passed through as-is from the client (always 0.00 in this mode) instead of being derived from WorkOrderQuoteMaterial.BillingAmount like UpdateWorkOrderQuoteDetails does & code review Changes.
+	8    23-Oct-2026   Divyesh Kathriya     [PN-18341] - Record added material parts against the selected quote MPN.
+
 **************************************************************/
 CREATE      PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
@@ -446,6 +448,43 @@ BEGIN
 
 					SET @CurrentRowId += 1;
 				END
+			END
+		END
+
+		IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteMaterialType WHERE ISNULL([WorkOrderQuoteMaterialId], 0) = 0	AND ISNULL([IsDeleted], 0) = 0 AND ISNULL([KitId], 0) = 0)
+		BEGIN
+			DECLARE @MaterialHistoryStatusCode VARCHAR(256) = 'WorkOrderQuoteMaterialAdded';
+			DECLARE @MaterialHistoryTemplateBody NVARCHAR(MAX), @MaterialHistoryQuoteId BIGINT, @MaterialHistoryPartId BIGINT, @MaterialHistoryModuleId BIGINT;
+			DECLARE @MaterialHistoryText VARCHAR(MAX), @MaterialHistoryNewValue VARCHAR(60), @MaterialHistoryActor VARCHAR(256);
+			DECLARE @MaterialHistoryRowId INT = 1, @MaterialHistoryRowCount INT;
+			DECLARE @AddedMaterialHistory TABLE ([RowId] INT IDENTITY(1,1), [PartNumber] VARCHAR(MAX), [Quantity] DECIMAL(18,6), [UpdatedBy] VARCHAR(256));
+
+			SELECT @MaterialHistoryTemplateBody = [TemplateBody] FROM [DBO].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @MaterialHistoryStatusCode;
+			SELECT @MaterialHistoryModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
+
+			SELECT @MaterialHistoryQuoteId = Q.[WorkOrderQuoteId], @MaterialHistoryPartId = D.[WOPartNoId]
+			FROM [DBO].[WorkOrderQuoteDetails] D WITH(NOLOCK)
+			INNER JOIN [DBO].[WorkOrderQuote] Q WITH(NOLOCK) ON D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND D.[MasterCompanyId] = Q.[MasterCompanyId]
+			WHERE D.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND D.[MasterCompanyId] = @MasterCompanyId;			
+
+			-- Use the entered grid quantity before the existing stock-UOM conversion.
+			INSERT INTO @AddedMaterialHistory ([PartNumber], [Quantity], [UpdatedBy])
+			SELECT IM.[PartNumber], M.[Quantity], COALESCE(NULLIF(M.[UpdatedBy], ''), @UpdatedBy)
+			FROM @tbl_WorkOrderQuoteMaterialType M
+			INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON M.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE ISNULL(M.[WorkOrderQuoteMaterialId], 0) = 0 AND ISNULL(M.[IsDeleted], 0) = 0
+				AND ISNULL(M.[KitId], 0) = 0 AND M.[MasterCompanyId] = @MasterCompanyId;
+			SET @MaterialHistoryRowCount = @@ROWCOUNT;
+
+			WHILE @MaterialHistoryRowId <= @MaterialHistoryRowCount
+			BEGIN
+				SELECT @MaterialHistoryText = REPLACE(@MaterialHistoryTemplateBody, '##PNNUM##', [PartNumber]), @MaterialHistoryNewValue = CONVERT(VARCHAR(60), [Quantity]), @MaterialHistoryActor = [UpdatedBy]
+				FROM @AddedMaterialHistory WHERE [RowId] = @MaterialHistoryRowId;
+				EXEC [DBO].[USP_History] @ModuleId = @MaterialHistoryModuleId, @RefferenceId = @MaterialHistoryQuoteId,
+					@SubModuleId = 0, @SubRefferenceId = @MaterialHistoryPartId, @OldValue = '0', @NewValue = @MaterialHistoryNewValue,
+					@HistoryText = @MaterialHistoryText, @StatusCode = @MaterialHistoryStatusCode, @MasterCompanyId = @MasterCompanyId,
+					@CreatedBy = @MaterialHistoryActor, @UpdatedBy = @MaterialHistoryActor;
+				SET @MaterialHistoryRowId += 1;
 			END
 		END
 

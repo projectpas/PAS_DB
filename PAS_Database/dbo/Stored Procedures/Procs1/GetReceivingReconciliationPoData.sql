@@ -36,6 +36,7 @@
 	24   26/Aug/2026    Divyesh Kathiriya	[PN-17784] - Removed the remaining IsNonStock = 0 condition from the single-part Purchase Order branch so both Stock and Non-Stock rows are returned.
 	25   17/Sept/2026	Moin Bloch      	[PN-17914] - Added IsGRNIAdjustment flag
 	26   01/Oct/2026    RAJESH GAMI			[PN-18183] - Single-part PO Stock branches (not 'Multiple', @Type = 1): removed INNER JOIN with StocklineDraft (same as 'Multiple' section) so partially received stocklines (draft not linked) are returned; split-part branch ReceivedQty from Stockline.Quantity instead of StocklineDraft.QuantityOnHand
+	27   23/Oct/2026    Moin Bloch			[PN-18304] - Modify (PO/RO VendorProformaAmount from SUM of VendorProformaInvoicePartDetails.ExtendedPrice instead of DepositAmount)
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPoData]
@@ -47,6 +48,23 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+		DECLARE @VendorProformaAmount DECIMAL(18,6) = 0;
+
+		IF(@Type = 1)
+		BEGIN
+			SELECT @VendorProformaAmount = ISNULL(SUM(ISNULL(vpd.ExtendedPrice,0)),0)
+			FROM dbo.PurchaseOrder po WITH(NOLOCK)
+				INNER JOIN dbo.VendorProformaInvoicePartDetails vpd WITH(NOLOCK) ON vpd.VendorProformaInvoiceId = po.VendorProformaInvoiceId
+			WHERE po.PurchaseOrderId = @PurchaseOrderId;
+		END
+		ELSE
+		BEGIN
+			SELECT @VendorProformaAmount = ISNULL(SUM(ISNULL(vpd.ExtendedPrice,0)),0)
+			FROM dbo.RepairOrder po WITH(NOLOCK)
+				INNER JOIN dbo.VendorProformaInvoicePartDetails vpd WITH(NOLOCK) ON vpd.VendorProformaInvoiceId = po.VendorProformaInvoiceId
+			WHERE po.RepairOrderId = @PurchaseOrderId;
+		END
+
 		IF (@PurchaseOrderPartRecordId <> 'Multiple')
 		BEGIN
 			IF(@Type = 1)
@@ -74,7 +92,7 @@ BEGIN
 				pop.PurchaseOrderPartRecordId,
 				1 AS 'Type',
 				'STOCK' AS 'StockType',
-				ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+				ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 				po.vendorProformaInvoiceNo AS vendorProformaInvoiceNo,
 				ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -128,7 +146,7 @@ BEGIN
 					(stk.RRQty) AS 'RemainingRRQty',
 					pop.PurchaseOrderPartRecordId,
 					1 as 'Type','STOCK' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -165,7 +183,7 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -201,7 +219,7 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -236,7 +254,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -276,7 +294,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -313,7 +331,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -350,7 +368,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -388,7 +406,7 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 AS 'Type',
 					'STOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -439,7 +457,7 @@ BEGIN
 					SUM(ISNULL(cv.ConvertedRRQty,0))   AS 'RemainingRRQty',
 					pop.PurchaseOrderPartRecordId,
 					1 as 'Type','STOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -487,7 +505,7 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
@@ -556,7 +574,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -596,7 +614,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'STOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
@@ -633,7 +651,7 @@ BEGIN
 					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+					ISNULL(@VendorProformaAmount,0) AS VendorProformaAmount,
 					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
 					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)

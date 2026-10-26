@@ -3465,6 +3465,9 @@
     <Build Include="dbo\Stored Procedures\GetTravelerTaskList.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForTravelerTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterDetailById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterAssetLookup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterAssetDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveItemMasterAssetDetails.sql" />
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewGLAccountSyncPendingListForCreate.sql" />

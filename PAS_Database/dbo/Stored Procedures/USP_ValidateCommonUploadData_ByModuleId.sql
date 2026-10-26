@@ -71,6 +71,7 @@
 	60   14-Sep-2026        Aayushi Patel           [PN-17906] Added @UOMFamilyTypeModule + a duplicate-Name error message branch for the new UOM Family Type setup screen - without a module-specific message here, the generic ELSE branch produces DuplicateErrorMsg = '' and the duplicate is silently accepted (RecordStatus only gets set when DuplicateErrorMsg is non-empty).
 	62   17-Sep-2026        Aayushi Patel           [PN-17906] Fixed false "Entered Data Already Exits!" on Import for modules whose ImportModuleFieldMasterId values have a gap (e.g. a field added later gets a much higher id): the per-field duplicate-check WHILE loop iterates every integer between MIN/MAX id, and iterations landing in the gap left @ChekDuplticateRef1/@ChekDuplticateRef2/@DropdownListTable stuck at their last-matched value, re-running that stale check (e.g. SequenceNo) against unrelated uploaded values. Reset those variables at the top of each loop iteration.
 	63   01-Oct-2026        Sahdev Saliya           [PN-18143] Added @CoreLetterModule + duplicate Header Name error message for the new Core Letter setup screen Upload.
+	64   26-Oct-2026        Amit Ghediya            Enabled support for decimal values in the MRO Flat Rate upload. [PN-18401]
 
 	declare @p4 dbo.UploadModuleDataTableType
 	insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -754,7 +755,7 @@ BEGIN
 													 AND
 													 (
 														 (
-													 @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+													 @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule, @MROPriceMasterModule, @MROPriceMasterListModule)
 															 AND
 															 (
 																 TRY_CAST(TMP.FieldValue AS INT) IS NULL
@@ -765,7 +766,7 @@ BEGIN
 														 OR
 
 														 (
-													 @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+													 @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule, @MROPriceMasterModule, @MROPriceMasterListModule)
 															 AND
 															 (
 																  TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
@@ -791,7 +792,7 @@ BEGIN
 															 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 														THEN IMF.HeaderName + ' must be greater than 0'
 
-												WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule)
+												WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @StocklineNonStockModule, @WorkOrderMaterialsModule, @ItemMasterNonStockModule, @MROPriceMasterModule, @MROPriceMasterListModule)
 														THEN IMF.HeaderName + ' allows only 2 decimal places'
 
 														ELSE IMF.HeaderName + ' must be a whole number (decimals not allowed)'

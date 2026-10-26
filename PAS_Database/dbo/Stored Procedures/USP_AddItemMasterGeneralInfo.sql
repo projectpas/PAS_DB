@@ -18,6 +18,7 @@
 	7    03-Aug-2026         Rajesh Gami        Ported from BETA: added IsAcquiredMethodBuy, IsNonStock,
 	8    03-Aug-2026        Sahdev Saliya       Added IsKitAssy [PN-17371]
 	9   25/Aug/2026			RAJESH GAMI		    PN-17776 - Allow Same PN and Manufacturer for Stock and Non-Stock Items 
+	10   23-Oct-2026   RAJESH GAMI       [PN-18406] - Is Asset on ItemMaster (Stock): IsAsset + asset class snapshot (class, depreciation settings, 7 asset GL accounts)
  -- EXEC [USP_AddItemMasterGeneralInfo]
 **************************************************************/
 CREATE         PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
@@ -103,7 +104,7 @@ BEGIN
 		[IsStartsAvailable],
 		[IsCalendarTimeAvailable],
 		[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
-		[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy])
+		[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy],[IsAsset],[DeprNonDeprTangibleAssetsId],[TangibleClassId],[TangibleClassName],[AssetClassDescription],[DeprNonDeprTangibleClassTypeId],[AssetDeprMethodId],[DepreciationMethodName],[ResidualPercentage],[ResidualPercentageName],[AssetLife],[DepreciationFrequencyId],[DepreciationFrequencyName],[CalibratedGLAccountId],[CalibratedGLAccountName],[AcquiredGLAccountId],[AcquiredGLAccountName],[DeprExpenseGLAccountId],[DeprExpenseGLAccountName],[AccumDeprGLAccountId],[AccumDeprGLAccountName],[AssetSaleGLAccountId],[AssetSaleGLAccountName],[AssetWriteOffGLAccountId],[AssetWriteOffGLAccountName],[AssetWriteDownGLAccountId],[AssetWriteDownGLAccountName])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -126,10 +127,20 @@ BEGIN
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
 				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model],
-				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy]
+				[IsAcquiredMethodBuy], [IsNonStock], [DiscountPurchasePercent], [UnitCost], [ListPrice], [PriceDate], [InWarranty], [MfgExpirationDate], [IsMfgExpirationDate], [IsService],[IsKitAssy],ISNULL([IsAsset],0),[DeprNonDeprTangibleAssetsId],[TangibleClassId],[TangibleClassName],[AssetClassDescription],[DeprNonDeprTangibleClassTypeId],[AssetDeprMethodId],[DepreciationMethodName],[ResidualPercentage],[ResidualPercentageName],[AssetLife],[DepreciationFrequencyId],[DepreciationFrequencyName],[CalibratedGLAccountId],[CalibratedGLAccountName],[AcquiredGLAccountId],[AcquiredGLAccountName],[DeprExpenseGLAccountId],[DeprExpenseGLAccountName],[AccumDeprGLAccountId],[AccumDeprGLAccountName],[AssetSaleGLAccountId],[AssetSaleGLAccountName],[AssetWriteOffGLAccountId],[AssetWriteOffGLAccountName],[AssetWriteDownGLAccountId],[AssetWriteDownGLAccountName]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();
+
+			-- [PN-18406] Asset item: asset GL settings replace the Inventory GL settings
+			UPDATE dbo.ItemMaster
+			SET InventoryGLSettingId = NULL, GoodsReceivedNotInvoicesGLAccId = NULL, WorkInProgressGLAccId = NULL, InventoryToBillGLAccId = NULL, FinishedGoodsGLAccId = NULL,
+				InventoryExchAgreementGLAccId = NULL, InventoryReserveGLAccId = NULL, COGS_WorkOrderGLAccId = NULL, COGS_SalesOrderGLAccId = NULL, COGS_ExchSalesOrderGLAccId = NULL,
+				COGS_QtyVarianceGLAccId = NULL, COGS_UnitCostVarianceGLAccId = NULL, RevenueMroGLAccId = NULL, RevenueSoGLAccId = NULL, RevenueExchGLAccId = NULL,
+				GoodsReceivedNotInvoicesGLAccName = NULL, WorkInProgressGLAccName = NULL, InventoryToBillGLAccName = NULL, FinishedGoodsGLAccName = NULL,
+				InventoryExchAgreementGLAccName = NULL, InventoryReserveGLAccName = NULL, COGS_WorkOrderGLAccName = NULL, COGS_SalesOrderGLAccName = NULL, COGS_ExchSalesOrderGLAccName = NULL,
+				COGS_QtyVarianceGLAccName = NULL, COGS_UnitCostVarianceGLAccName = NULL, RevenueMroGLAccName = NULL, RevenueSoGLAccName = NULL, RevenueExchGLAccName = NULL
+			WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsAsset, 0) = 1;
 
 			-- Insert into ItemMasterRanking
 			IF(@ItemMasterRankingIds IS NOT NULL AND @ItemMasterRankingIds <> '' AND @ItemMasterId > 0)

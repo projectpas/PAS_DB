@@ -21,6 +21,7 @@
 ** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
    10	01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 11    03-Aug-2026   Sahdev Saliya        Added IsKitAssy [PN-17371]
+	11   23-Oct-2026   RAJESH GAMI       [PN-18406] - Is Asset on ItemMaster (Stock): IsAsset + asset class snapshot (class, depreciation settings, 7 asset GL accounts)
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -256,9 +257,46 @@ BEGIN
 		,i.IsService						= ISNULL(PST.IsService, 0)
 		,i.Model = PST.Model
 		,i.IsKitAssy = PST.IsKitAssy
+		-- [PN-18406] IsAsset itself is never changed on edit; the asset class snapshot can only be edited while the item is already an asset
+		,i.DeprNonDeprTangibleAssetsId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DeprNonDeprTangibleAssetsId ELSE i.DeprNonDeprTangibleAssetsId END
+		,i.TangibleClassId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.TangibleClassId ELSE i.TangibleClassId END
+		,i.TangibleClassName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.TangibleClassName ELSE i.TangibleClassName END
+		,i.AssetClassDescription = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetClassDescription ELSE i.AssetClassDescription END
+		,i.DeprNonDeprTangibleClassTypeId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DeprNonDeprTangibleClassTypeId ELSE i.DeprNonDeprTangibleClassTypeId END
+		,i.AssetDeprMethodId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetDeprMethodId ELSE i.AssetDeprMethodId END
+		,i.DepreciationMethodName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DepreciationMethodName ELSE i.DepreciationMethodName END
+		,i.ResidualPercentage = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.ResidualPercentage ELSE i.ResidualPercentage END
+		,i.ResidualPercentageName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.ResidualPercentageName ELSE i.ResidualPercentageName END
+		,i.AssetLife = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetLife ELSE i.AssetLife END
+		,i.DepreciationFrequencyId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DepreciationFrequencyId ELSE i.DepreciationFrequencyId END
+		,i.DepreciationFrequencyName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DepreciationFrequencyName ELSE i.DepreciationFrequencyName END
+		,i.CalibratedGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.CalibratedGLAccountId ELSE i.CalibratedGLAccountId END
+		,i.CalibratedGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.CalibratedGLAccountName ELSE i.CalibratedGLAccountName END
+		,i.AcquiredGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AcquiredGLAccountId ELSE i.AcquiredGLAccountId END
+		,i.AcquiredGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AcquiredGLAccountName ELSE i.AcquiredGLAccountName END
+		,i.DeprExpenseGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DeprExpenseGLAccountId ELSE i.DeprExpenseGLAccountId END
+		,i.DeprExpenseGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.DeprExpenseGLAccountName ELSE i.DeprExpenseGLAccountName END
+		,i.AccumDeprGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AccumDeprGLAccountId ELSE i.AccumDeprGLAccountId END
+		,i.AccumDeprGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AccumDeprGLAccountName ELSE i.AccumDeprGLAccountName END
+		,i.AssetSaleGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetSaleGLAccountId ELSE i.AssetSaleGLAccountId END
+		,i.AssetSaleGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetSaleGLAccountName ELSE i.AssetSaleGLAccountName END
+		,i.AssetWriteOffGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetWriteOffGLAccountId ELSE i.AssetWriteOffGLAccountId END
+		,i.AssetWriteOffGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetWriteOffGLAccountName ELSE i.AssetWriteOffGLAccountName END
+		,i.AssetWriteDownGLAccountId = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetWriteDownGLAccountId ELSE i.AssetWriteDownGLAccountId END
+		,i.AssetWriteDownGLAccountName = CASE WHEN ISNULL(i.IsAsset,0) = 1 THEN PST.AssetWriteDownGLAccountName ELSE i.AssetWriteDownGLAccountName END
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;
+
+		-- [PN-18406] Asset item: asset GL settings replace the Inventory GL settings
+		UPDATE dbo.ItemMaster
+		SET InventoryGLSettingId = NULL, GoodsReceivedNotInvoicesGLAccId = NULL, WorkInProgressGLAccId = NULL, InventoryToBillGLAccId = NULL, FinishedGoodsGLAccId = NULL,
+			InventoryExchAgreementGLAccId = NULL, InventoryReserveGLAccId = NULL, COGS_WorkOrderGLAccId = NULL, COGS_SalesOrderGLAccId = NULL, COGS_ExchSalesOrderGLAccId = NULL,
+			COGS_QtyVarianceGLAccId = NULL, COGS_UnitCostVarianceGLAccId = NULL, RevenueMroGLAccId = NULL, RevenueSoGLAccId = NULL, RevenueExchGLAccId = NULL,
+			GoodsReceivedNotInvoicesGLAccName = NULL, WorkInProgressGLAccName = NULL, InventoryToBillGLAccName = NULL, FinishedGoodsGLAccName = NULL,
+			InventoryExchAgreementGLAccName = NULL, InventoryReserveGLAccName = NULL, COGS_WorkOrderGLAccName = NULL, COGS_SalesOrderGLAccName = NULL, COGS_ExchSalesOrderGLAccName = NULL,
+			COGS_QtyVarianceGLAccName = NULL, COGS_UnitCostVarianceGLAccName = NULL, RevenueMroGLAccName = NULL, RevenueSoGLAccName = NULL, RevenueExchGLAccName = NULL
+		WHERE ItemMasterId = @Id AND ISNULL(IsAsset, 0) = 1;
 
 		--Deleted Ranking If existst
 		DELETE dbo.ItemMasterRanking WHERE ItemMasterId = @Id

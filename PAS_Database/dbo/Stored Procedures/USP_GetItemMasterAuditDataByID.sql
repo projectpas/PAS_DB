@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    18-August-2025		Divyesh Kathiriya	Created
+    2    23-Oct-2026		RAJESH GAMI			[PN-18406] - Is Asset on ItemMaster: IsAsset + asset class snapshot columns added to the history result
     
  -- EXEC [USP_GetItemMasterAuditDataByID] @ItemMasterId=96920
 **************************************************************/
@@ -189,7 +190,34 @@ BEGIN
               [IsUpdated],
               [LastSyncDate],
               [SyncToken],
-              [WorkOrderFormTypeId]
+              [WorkOrderFormTypeId],
+              [IsAsset],
+              [DeprNonDeprTangibleAssetsId],
+              [TangibleClassId],
+              [TangibleClassName],
+              [AssetClassDescription],
+              [DeprNonDeprTangibleClassTypeId],
+              [AssetDeprMethodId],
+              [DepreciationMethodName],
+              [ResidualPercentage],
+              [ResidualPercentageName],
+              [AssetLife],
+              [DepreciationFrequencyId],
+              [DepreciationFrequencyName],
+              [CalibratedGLAccountId],
+              [CalibratedGLAccountName],
+              [AcquiredGLAccountId],
+              [AcquiredGLAccountName],
+              [DeprExpenseGLAccountId],
+              [DeprExpenseGLAccountName],
+              [AccumDeprGLAccountId],
+              [AccumDeprGLAccountName],
+              [AssetSaleGLAccountId],
+              [AssetSaleGLAccountName],
+              [AssetWriteOffGLAccountId],
+              [AssetWriteOffGLAccountName],
+              [AssetWriteDownGLAccountId],
+              [AssetWriteDownGLAccountName]
 		FROM [DBO].[ItemMasterAudit] WITH (NOLOCK)
 		WHERE [ItemMasterId] = @ItemMasterId
 		ORDER BY [ItemMasterAuditId] DESC;	  

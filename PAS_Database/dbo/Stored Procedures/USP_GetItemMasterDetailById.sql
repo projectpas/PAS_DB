@@ -28,6 +28,7 @@
 	15   13-Aug-2026    Rajesh Gami         Removed duplicate IsService column from the SELECT list (it was selected twice - once after InWarranty and again after IsMfgExpirationDate); now selected only once [PN-17008]
 
 **************************************************************
+	16   23-Oct-2026   RAJESH GAMI       [PN-18406] - Is Asset on ItemMaster (Stock): IsAsset + asset class snapshot (class, depreciation settings, 7 asset GL accounts)
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
@@ -221,7 +222,34 @@ BEGIN
 						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
 						iM.MfgExpirationDate,
 						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
-						iM.IsKitAssy
+						iM.IsKitAssy,
+						ISNULL(iM.IsAsset,0) AS IsAsset,
+						iM.DeprNonDeprTangibleAssetsId,
+						iM.TangibleClassId,
+						iM.TangibleClassName,
+						iM.AssetClassDescription,
+						iM.DeprNonDeprTangibleClassTypeId,
+						iM.AssetDeprMethodId,
+						iM.DepreciationMethodName,
+						iM.ResidualPercentage,
+						iM.ResidualPercentageName,
+						iM.AssetLife,
+						iM.DepreciationFrequencyId,
+						iM.DepreciationFrequencyName,
+						iM.CalibratedGLAccountId,
+						iM.CalibratedGLAccountName,
+						iM.AcquiredGLAccountId,
+						iM.AcquiredGLAccountName,
+						iM.DeprExpenseGLAccountId,
+						iM.DeprExpenseGLAccountName,
+						iM.AccumDeprGLAccountId,
+						iM.AccumDeprGLAccountName,
+						iM.AssetSaleGLAccountId,
+						iM.AssetSaleGLAccountName,
+						iM.AssetWriteOffGLAccountId,
+						iM.AssetWriteOffGLAccountName,
+						iM.AssetWriteDownGLAccountId,
+						iM.AssetWriteDownGLAccountName
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

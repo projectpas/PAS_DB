@@ -14,6 +14,7 @@
 	2    24/02/2026   Hemant Saliya       Corrected balance missmatch for WIP
 	3    26/02/2026   Priyansh Patel      Added IsAccountByPass condition
 	4    01/05/2026   Hemant Saliya       Corrected balance missmatch for WIP Labor
+	5    16-Oct-2026  Divyesh Kathriya    Apply selected work orders to WIP reconciliation totals. [PN-18207]
 
 exec USP_WIPReportsReconciliation @mastercompanyid=21,@id='2026-01-01 00:00:00',@id2='2026-04-30 00:00:00',@id3=''
 
@@ -22,12 +23,19 @@ CREATE PROCEDURE [dbo].[USP_WIPReportsReconciliation]
     @mastercompanyid INT,
     @id VARCHAR(MAX),
     @id2 VARCHAR(MAX),
-    @id3 BIGINT = NULL
+    @id3 BIGINT = NULL,
+    @id5 VARCHAR(MAX) = NULL
 AS  
 BEGIN  
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
     SET NOCOUNT ON;  
     BEGIN TRY
+
+        DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+        INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+        SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+        FROM [DBO].[SPLITSTRING](@id5, ',')
+        WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
 
         DECLARE @FromDate   DATETIME = TRY_CAST(@id  AS DATETIME)
         DECLARE @ToDate     DATETIME = TRY_CAST(@id2 AS DATETIME)
@@ -94,6 +102,7 @@ BEGIN
           AND ISNULL(WO.IsActive,  0) = 1
           AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
           AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
           AND NOT EXISTS (                          -- replaces LEFT JOIN … IS NULL
                 SELECT 1
                 FROM [dbo].[BillingInvoicing] BI WITH (NOLOCK)
@@ -261,6 +270,7 @@ BEGIN
           AND ISNULL(WO.IsActive,  0) = 1
           AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
           AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
           AND NOT EXISTS (                          -- replaces LEFT JOIN … IS NULL
                 SELECT 1
                 FROM [dbo].[BillingInvoicing] BI WITH (NOLOCK)
@@ -302,7 +312,8 @@ BEGIN
           AND BD.IsDeleted  = 0
           AND CBD.IsDeleted = 0
           AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND (ISNULL(@id5, '') = '' OR WOP.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds));
 
         -- =============================================
         -- Final result set

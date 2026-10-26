@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_CustomerInvoiceReportList]           
  ** Author:   Vishal Suthar  
  ** Description: Get Data for Customer invoice report
@@ -17,8 +17,9 @@
 	1	 10-FEB-2026	Vishal Suthar  		CREATED
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3	 09/July/2026	RAJESH GAMI  		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-	5	 23/Oct/2026	Kishor Makwana		[PERF] Slow load: push From/To date range (UTC +-1 day margin) into every source query (WO / SO / Exchange-SO / Credit Memo / WorkFlowData) instead of filtering only at the end; WorkFlowData limited to WorkOrder invoices; OPTION(RECOMPILE) on the catch-all filter statements.
 	4	 20/July/2026	RAJESH GAMI  		[PN-17350] - Removed IsNonStock=0 filter(s) from SO and Exchange-SO branches (all 3 ViewType sections) so Non-Stock parts appear in customer invoice report list (WorkOrder branches untouched).
+	5	 23/Oct/2026	Kishor Makwana		[PERF] Slow load: push From/To date range (UTC +-1 day margin) into every source query (WO / SO / Exchange-SO / Credit Memo / WorkFlowData) instead of filtering only at the end; WorkFlowData limited to WorkOrder invoices; OPTION(RECOMPILE) on the catch-all filter statements.
+	
 exec usprpt_CustomerInvoiceReportList @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',
 @FromDate='2026-01-11 00:00:00',@ToDate='2026-02-11 00:00:00',@CustomerId=NULL,@strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!',@CustomerName=NULL,
 @CustomerCode=NULL,@InvoiceNum=N'',@InvoiceDate=NULL,@BaseCurrency=NULL,@Amount=NULL,@WOSONum=NULL,@CustReference=NULL,@PN=NULL,@PNDescription=NULL,

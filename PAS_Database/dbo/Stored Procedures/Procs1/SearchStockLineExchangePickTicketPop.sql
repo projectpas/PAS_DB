@@ -1,3 +1,4 @@
+﻿
 /*************************************************************
 ** Change History
 **************************************************************
@@ -5,8 +6,9 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
+	4    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 **************************************************************/
-CREATE PROCEDURE [dbo].[SearchStockLineExchangePickTicketPop]
+CREATE   PROCEDURE [dbo].[SearchStockLineExchangePickTicketPop]
 @ItemMasterIdlist bigint, 
 @ConditionId BIGINT,
 @ExchangeSalesOrderId bigint
@@ -61,7 +63,7 @@ BEGIN
 				 ,Smf.Name as StkLineManufacturer
 				 ,(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM ExchangeSOPickTicket s WITH(NOLOCK) Where s.ExchangeSalesOrderId = @ExchangeSalesOrderId AND s.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId)) AS QtyToReserve
 		FROM DBO.ItemMaster im WITH(NOLOCK)
-		JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+		JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 		LEFT JOIN DBO.ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.StockLineId = sl.StockLineId
 			AND sop.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 									THEN @ConditionId

@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SearchSubWOStockLinePickTicketPop_WO]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket for sub wo   
@@ -23,6 +23,7 @@
 	7	 19/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchSubWOStockLinePickTicketPop_WO]
@@ -110,7 +111,7 @@ BEGIN
 							 ,0 AS IsKitType
 							 ,im.LocationName AS 'location'
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 						--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 						--						THEN @ConditionId ELSE sl.ConditionId 
 						--						END
@@ -185,7 +186,7 @@ BEGIN
 						,1 AS IsKitType
 						,im.LocationName AS 'location'
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 						LEFT JOIN DBO.SubWorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 						LEFT JOIN DBO.SubWorkOrderMaterialsKit wom WITH (NOLOCK) on wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId
 						LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
@@ -258,7 +259,7 @@ BEGIN
 							 ,0 AS IsKitType
 							 ,im.LocationName AS 'location'
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
+					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
 						--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 						--						THEN @ConditionId ELSE sl.ConditionId 
 						--						END
@@ -333,7 +334,7 @@ BEGIN
 						,1 AS IsKitType
 						,im.LocationName AS 'location'
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
+						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
 							--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 							--						THEN @ConditionId ELSE sl.ConditionId 
 							--						END

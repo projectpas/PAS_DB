@@ -17,10 +17,11 @@
 	4    01/09/2025   Moin Bloch	  Updated Added New Field [Activity]
 	5    01/July/2026 RAJESH GAMI	      [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    21-Oct-2026  Divyesh Kathiriya   Added Module WOQ [PN-18341].
+	7    23-Oct-2026  Divyesh Kathiriya   Display the selected quote MPN for added material parts [PN-18341].
 
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_GetHistory]  
+CREATE PROCEDURE [dbo].[USP_GetHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  
@@ -80,7 +81,7 @@ BEGIN
         SELECT HS.[HistoryId],
              HS.[ModuleId],         
              WOQ.[QuoteNumber] AS [WorkOrderNum],
-             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change') THEN WOPN.[PartNumber]
+             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added') THEN WOPN.[PartNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' AND ISNULL(WOPN.[RevisedSerialNumber], '') <> ''
                        THEN WOPN.[RevisedPartNumber] + '-' + WOPN.[RevisedSerialNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' THEN WOPN.[RevisedPartNumber] + '-' + SL.[ControlNumber]

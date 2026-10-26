@@ -13,7 +13,12 @@
  ** 2      08-OCT-2026  SUMIT KUMAR      Aligned QuoteTAT / ActualTAT with usprpt_GetWorkOrderTATReport (application TAT report):
  **                                      removed date-based fallback (< 1 day now returns 0) and truncated to whole days.
  **                                      [Date] now returns WOS.ShipDate (the From/To date filter field of the application TAT report).
- **************************************************************/  
+ ** 3      22-OCT-2026  BHARGAV SALIYA   Live TAT for open stages: added TatClosedDays / TatOpenStageStartUtc and QuoteClosedDays /
+ **                                      QuoteOpenStageStartUtc so a Power BI measure adds the running stage time at view time
+ **                                      (ActualTAT / QuoteTAT are only correct as of the last dataset refresh).
+ **                                      MPN details as per the application TAT report: MPNPart uses the revised PN when present,
+ **                                      added PartDescription, Quantity, Condition, ReceivedDate and OpenDate.
+ **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetPowerBIDetailedWorkOrders]   
     @mastercompanyid INT
 AS  
@@ -47,8 +52,15 @@ BEGIN
                         END
                     ELSE 0 
                 END
-            ) AS QuoteDays  
-        INTO #StageDays  
+            ) AS QuoteDays,
+            -- Completed stage time + start of the still-open stage, so Power BI can add (now - start) at view time
+            SUM(CASE WHEN WS.IncludeInTAT = 1 AND WT.StatusChangedEndDate IS NOT NULL
+                     THEN ISNULL(WT.[Days], 0) + (ISNULL(WT.[Hours], 0) / 24.0) + (ISNULL(WT.[Mins], 0) / 1440.0) ELSE 0 END) AS TatClosedDays,
+            MIN(CASE WHEN WS.IncludeInTAT = 1 AND WT.StatusChangedEndDate IS NULL THEN WT.StatusChangedDate END) AS TatOpenStageStartUtc,
+            SUM(CASE WHEN WS.QuoteDays = 1 AND WT.StatusChangedEndDate IS NOT NULL
+                     THEN ISNULL(WT.[Days], 0) + (ISNULL(WT.[Hours], 0) / 24.0) + (ISNULL(WT.[Mins], 0) / 1440.0) ELSE 0 END) AS QuoteClosedDays,
+            MIN(CASE WHEN WS.QuoteDays = 1 AND WT.StatusChangedEndDate IS NULL THEN WT.StatusChangedDate END) AS QuoteOpenStageStartUtc
+        INTO #StageDays
         FROM dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK)  
         INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WT.CurrentStageId = WS.WorkOrderStageId  
         GROUP BY WT.WorkOrderPartNoId;  
@@ -61,7 +73,10 @@ BEGIN
             WO.WorkOrderId,  
             WOPN.ID AS WorkOrderPartNoId,  
             WO.WorkOrderNum AS WorkOrderNo,  
-            IM.partnumber AS MPNPart,  
+            CASE WHEN ISNULL(WOPN.RevisedPartNumber, '') = '' THEN IM.partnumber ELSE WOPN.RevisedPartNumber END AS MPNPart,
+            CASE WHEN ISNULL(WOPN.RevisedPartDescription, '') = '' THEN IM.PartDescription ELSE WOPN.RevisedPartDescription END AS PartDescription,
+            WOPN.Quantity,
+            WO.OpenDate,
             C.Name AS Customer,  
             WOPN.WorkScope AS Workspace,  
             ISNULL(NULLIF(MSD.Level4Name, ''), MSD.Level3Name) AS Station,  
@@ -74,13 +89,18 @@ BEGIN
             -- Actual TAT (same as usprpt_GetWorkOrderTATReport 'tat'):
             -- sum of time in stages flagged IncludeInTAT; < 1 day => 0; whole days only (app stores it as INT)
             CASE WHEN ISNULL(SD.TatDays, 0) >= 1 THEN FLOOR(SD.TatDays) ELSE 0 END AS ActualTat,
-              
+
+            ISNULL(SD.TatClosedDays, 0) AS TatClosedDays,
+            SD.TatOpenStageStartUtc,
+            ISNULL(SD.QuoteClosedDays, 0) AS QuoteClosedDays,
+            SD.QuoteOpenStageStartUtc,
+
             WOPN.ReceivedDate,  
             WOS.ShipDate,  
             CASE WHEN WOPN.IsClosed = 1 THEN ISNULL(WOPN.closeddate, ISNULL(WOBI.InvoiceDate, WOS.ShipDate)) ELSE NULL END AS CompletedDate,  
             WOPN.EstimatedShipDate,  
             WOPN.IsClosed,  
-            CN.Description AS Condition,  
+            CASE WHEN ISNULL(RCN.Description, '') = '' THEN CN.Description ELSE RCN.Description END AS Condition,
             CASE   
                 WHEN WOPN.WorkScope LIKE '%REWORK%' OR CN.Description LIKE '%REWORK%' THEN 1  
                 ELSE 0  
@@ -93,7 +113,8 @@ BEGIN
             INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WOPN.WorkOrderId = WO.WorkOrderId  
             INNER JOIN dbo.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
             INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-            LEFT JOIN dbo.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
+            LEFT JOIN dbo.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId
+            LEFT JOIN dbo.Condition RCN WITH (NOLOCK) ON WOPN.RevisedConditionId = RCN.ConditionId
             LEFT JOIN dbo.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND WOQ.IsVersionIncrease = 0  
             LEFT JOIN #StageDays SD ON WOPN.ID = SD.WorkOrderPartNoId  
               
@@ -128,8 +149,18 @@ BEGIN
             CAST(ActualTat AS DECIMAL(18,1)) AS ActualTAT,  
             CAST(TargetTat AS DECIMAL(18,1)) AS TargetTAT,  
             CAST(QuotedTat AS DECIMAL(18,1)) AS QuoteTAT,  
-            CAST(IsRework AS BIT) AS IsRework  
-        FROM #AllParts  
+            CAST(IsRework AS BIT) AS IsRework,
+            PartDescription,
+            Quantity,
+            Condition,
+            CASE WHEN ReceivedDate IS NOT NULL THEN CONVERT(VARCHAR(30), ReceivedDate, 126) ELSE NULL END AS ReceivedDate,
+            CASE WHEN OpenDate IS NOT NULL THEN CONVERT(VARCHAR(30), OpenDate, 126) ELSE NULL END AS OpenDate,
+            -- Live TAT inputs (UTC, no 'Z' so Power BI types them as plain Date/Time and compares with UTCNOW())
+            CAST(TatClosedDays AS DECIMAL(18,4)) AS TatClosedDays,
+            CASE WHEN TatOpenStageStartUtc IS NOT NULL THEN CONVERT(VARCHAR(30), TatOpenStageStartUtc, 126) ELSE NULL END AS TatOpenStageStartUtc,
+            CAST(QuoteClosedDays AS DECIMAL(18,4)) AS QuoteClosedDays,
+            CASE WHEN QuoteOpenStageStartUtc IS NOT NULL THEN CONVERT(VARCHAR(30), QuoteOpenStageStartUtc, 126) ELSE NULL END AS QuoteOpenStageStartUtc
+        FROM #AllParts
         ORDER BY ReceivedDate DESC;  
   
         DROP TABLE #StageDays;  

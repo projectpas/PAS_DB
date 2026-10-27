@@ -1,3 +1,4 @@
+﻿
 /*************************************************************           
  ** File:   [SearchStockLinePickTicketPop_WO]           
  ** Author:   
@@ -26,6 +27,7 @@
 	10	 18/06/2026	    Ayushi		        [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop_WO]
@@ -120,7 +122,7 @@ BEGIN
 									 ,Smf.Name as StkLineManufacturer
 									 ,0 AS IsKitType
 							FROM DBO.ItemMaster im WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 								LEFT JOIN DBO.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 								LEFT JOIN DBO.WorkOrderMaterials wom WITH (NOLOCK) on wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId
 								LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
@@ -190,7 +192,7 @@ BEGIN
 								,Smf.Name as StkLineManufacturer
 								,1 AS IsKitType
 							FROM DBO.ItemMaster im WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 								LEFT JOIN DBO.WorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 								LEFT JOIN DBO.WorkOrderMaterialsKit wom WITH (NOLOCK) on wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId
 								LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
@@ -258,7 +260,7 @@ BEGIN
 									 ,wop.ID AS WorkOrderMaterialsId
 									 ,wop.Quantity - ISNULL(Pick.QtyToShip, 0) as QtyToPick
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
 								INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkOrderPartNoId
 								INNER JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
@@ -331,7 +333,7 @@ BEGIN
 									 ,Smf.Name as StkLineManufacturer
 									 ,0 AS IsKitType
 							FROM DBO.ItemMaster im WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 									--						THEN @ConditionId ELSE sl.ConditionId 
 									--						END
@@ -405,7 +407,7 @@ BEGIN
 								,Smf.Name as StkLineManufacturer
 								,1 AS IsKitType
 							FROM DBO.ItemMaster im WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 									--						THEN @ConditionId ELSE sl.ConditionId 
 									--						END
@@ -475,7 +477,7 @@ BEGIN
 									 ,CONVERT(BIT,0) AS PMA
 									 ,Smf.Name as StkLineManufacturer
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
-								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
+								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 									AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 															THEN @ConditionId ELSE sl.ConditionId 
 															END

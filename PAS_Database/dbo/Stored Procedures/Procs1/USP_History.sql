@@ -25,6 +25,7 @@
 	10   03/09/2025  Moin Bloch		    Updated Added TemplateText
 	11   14-Oct-2026 Divyesh Kathiriya   Allow tendered material stockline creation history [PN-18307].
 	12   21-Oct-2026 Divyesh Kathiriya   Added new status code for WOQ [PN-18341].
+	13   23-Oct-2026 Divyesh Kathiriya    Added selected MPN quote method and material part-addition history [PN-18341].
 	
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
@@ -64,7 +65,7 @@ BEGIN
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
   @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution'
   OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction' OR @StatusCode = 'TravelerDelete' OR @StatusCode = 'DeleteWorkOrderMaterials' OR @StatusCode = 'DeleteWorkOrderMaterialStockline'
-  OR @StatusCode = 'TenderStocklineCreated' OR @StatusCode = 'WorkOrderQuoteCreated' OR @StatusCode = 'WorkOrderQuoteApprovalProcess' OR @StatusCode = 'WorkOrderQuoteAutoApproved' OR @StatusCode = 'WorkOrderQuoteAmountChange')
+  OR @StatusCode = 'TenderStocklineCreated' OR @StatusCode = 'WorkOrderQuoteCreated' OR @StatusCode = 'WorkOrderQuoteApprovalProcess' OR @StatusCode = 'WorkOrderQuoteAutoApproved' OR @StatusCode = 'WorkOrderQuoteAmountChange' OR @StatusCode = 'WorkOrderQuoteMethodChange' OR @StatusCode = 'WorkOrderQuoteMaterialAdded')
   BEGIN        
 	SELECT @TemplateText = [TemplateText] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode; 
 	

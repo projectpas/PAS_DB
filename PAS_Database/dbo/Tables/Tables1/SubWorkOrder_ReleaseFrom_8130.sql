@@ -44,6 +44,7 @@
     [FormTypeId]          INT             NULL,
     [IsLocked]            BIT             NULL,
     [Is813013aeOr14ae]    INT             DEFAULT ((1)) NULL,
+    [Notes]               NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_SubWorkOrder_ReleaseFrom_8130] PRIMARY KEY CLUSTERED ([SubReleaseFromId] ASC)
 );
 

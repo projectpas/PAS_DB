@@ -46,6 +46,7 @@
 	34	 24/06/2026	  Moin Bloch   		  Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	35   07/08/2026   Moin Bloch          Fix For Receiving Reconciliation Entry
 	36   13/Aug/2026			 RAJESH GAMI						[PN-17009] - Re-added 6 missing ISNULL(IsNonStock,0)=1 filters on NONSTOCK-branch Stockline SELECT/UPDATE/GLAccount-JOIN statements that were dropped when this proc was ported from BETA.
+	37   27/Oct/2026  Moin Bloch          Modify (VPI-DEPOSIT CreditAmount from SUM of VendorProformaInvoicePartDetails.ExtendedPrice instead of PO/RO DepositAmount)
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -2635,11 +2636,12 @@ BEGIN
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT TOP 1 MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
 								@GlAccountId, @GlAccountNumber, @GlAccountName, @JournalTypeId, [JournalTypeName], 
-								0, 0, MAX(ISNULL(PO.[DepositAmount], 0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								0, 0, MAX(ISNULL(VPA.[ProformaAmount], 0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD  WITH(NOLOCK)
 						JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON PO.VendorProformaInvoiceId = VPIPD.VendorProformaInvoiceId
-						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
+						CROSS APPLY (SELECT SUM(ISNULL(VPD.ExtendedPrice,0)) AS ProformaAmount FROM dbo.VendorProformaInvoicePartDetails VPD WITH(NOLOCK) WHERE VPD.VendorProformaInvoiceId = PO.VendorProformaInvoiceId) VPA
+						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId
 						JOIN GLAccount GL WITH(NOLOCK) ON VPIPD.GlAccountId = GL.GLAccountId
 						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId AND [Type] = 1
 					GROUP BY JournalTypeNumber, CurrentNumber, [JournalTypeName], VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], [JournalTypeName],VPIPD.[ManagementStructureId], 
@@ -2694,11 +2696,12 @@ BEGIN
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT TOP 1 MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
 								@GlAccountId, @GlAccountNumber, @GlAccountName, MAX([JournalTypeId]), [JournalTypeName], 
-								0, 0, MAX(ISNULL(RO.[DepositAmount],0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								0, 0, MAX(ISNULL(VPA.[ProformaAmount],0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD  WITH(NOLOCK)
 						JOIN dbo.RepairOrder RO WITH(NOLOCK) ON RO.VendorProformaInvoiceId = VPIPD.VendorProformaInvoiceId
-						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
+						CROSS APPLY (SELECT SUM(ISNULL(VPD.ExtendedPrice,0)) AS ProformaAmount FROM dbo.VendorProformaInvoicePartDetails VPD WITH(NOLOCK) WHERE VPD.VendorProformaInvoiceId = RO.VendorProformaInvoiceId) VPA
+						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId
 						JOIN GLAccount GL  WITH(NOLOCK) ON VPIPD.GlAccountId = GL.GLAccountId
 						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
 					GROUP BY JournalTypeNumber, CurrentNumber, [JournalTypeName], VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], [JournalTypeName],VPIPD.[ManagementStructureId], 

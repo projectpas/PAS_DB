@@ -69,6 +69,8 @@
 
 
 
+
+
 GO
 
 
@@ -91,3 +93,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_ExchangeSOBillingInvoicing_MC_InvoiceDate]
+    ON [dbo].[ExchangeSalesOrderBillingInvoicing]([MasterCompanyId] ASC, [InvoiceDate] ASC)
+    INCLUDE([ExchangeSalesOrderId], [CustomerId], [IsActive], [IsDeleted], [GrandTotal]);
+

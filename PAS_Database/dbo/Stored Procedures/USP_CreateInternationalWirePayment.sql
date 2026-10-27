@@ -9,6 +9,7 @@
 ** PR     Date         Author         Change Description
 ** --     ----------   ------------   -----------------------------------------------------
 ** 1      17-07-2025   Ayushi Patel   Created
+** 2      21-10-2026   Nakul          Bank Address and Bank Account Type are optional; Address row is created only when CountryId is passed (PN-18294)
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateInternationalWirePayment]
     @MasterCompanyId BIGINT,
@@ -17,14 +18,14 @@ CREATE   PROCEDURE [dbo].[USP_CreateInternationalWirePayment]
     @BeneficiaryBank NVARCHAR(200),
     @BeneficiaryCustomerId BIGINT,
 	@BeneficiaryCustomer  NVARCHAR(100),
-    @VendorBankAccountTypeId BIGINT,
-    @Address1 NVARCHAR(100),
+    @VendorBankAccountTypeId BIGINT = NULL,
+    @Address1 NVARCHAR(100) = NULL,
     @Address2 NVARCHAR(100)=NULL,
     @Address3 NVARCHAR(100)=NULL,
-    @PostalCode NVARCHAR(50),
-    @StateOrProvince NVARCHAR(100),
-    @City NVARCHAR(100),
-    @CountryId BIGINT,
+    @PostalCode NVARCHAR(50) = NULL,
+    @StateOrProvince NVARCHAR(100) = NULL,
+    @City NVARCHAR(100) = NULL,
+    @CountryId BIGINT = NULL,
     @IntermediaryBank NVARCHAR(200) = NULL,
     @ABA NVARCHAR(100) = NULL,
     @BankName NVARCHAR(200) = NULL,
@@ -44,18 +45,21 @@ BEGIN
         DECLARE @InternationalWirePaymentId BIGINT;
 
         
-        INSERT INTO [dbo].[Address] (
-            Line1, Line2, Line3, PostalCode, StateOrProvince,
-            City, CountryId, MasterCompanyId,
-            CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive
-        )
-        VALUES (
-            ISNULL(@Address1, ''), @Address2, @Address3, @PostalCode, @StateOrProvince,
-            @City, @CountryId, @MasterCompanyId,
-            @CreatedBy, @UpdatedBy, @CurrentDate, @CurrentDate, ISNULL(@IsActive, 1)
-        );
+        IF NULLIF(@CountryId, 0) IS NOT NULL
+        BEGIN
+            INSERT INTO [dbo].[Address] (
+                Line1, Line2, Line3, PostalCode, StateOrProvince,
+                City, CountryId, MasterCompanyId,
+                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive
+            )
+            VALUES (
+                ISNULL(@Address1, ''), @Address2, @Address3, ISNULL(@PostalCode, ''), ISNULL(@StateOrProvince, ''),
+                ISNULL(@City, ''), @CountryId, @MasterCompanyId,
+                @CreatedBy, @UpdatedBy, @CurrentDate, @CurrentDate, ISNULL(@IsActive, 1)
+            );
 
-        SET @AddressId = SCOPE_IDENTITY();
+            SET @AddressId = SCOPE_IDENTITY();
+        END
 
         
         INSERT INTO [dbo].[InternationalwirePayment] (
@@ -70,7 +74,7 @@ BEGIN
             @SwiftCode, @BeneficiaryBankAccount, @BeneficiaryBank,
             @IntermediaryBank, @ABA, @BankName,
             @BankLocation1, @BankLocation2,
-            @BeneficiaryCustomerId, @VendorBankAccountTypeId, @GLAccountId,
+            @BeneficiaryCustomerId, NULLIF(@VendorBankAccountTypeId, 0), @GLAccountId,
             @AddressId,@BeneficiaryCustomer, @MasterCompanyId,
             @CreatedBy, @UpdatedBy, @CurrentDate, @CurrentDate, 1
         );

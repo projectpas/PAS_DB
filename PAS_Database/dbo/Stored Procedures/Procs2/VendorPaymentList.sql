@@ -57,6 +57,7 @@
 	41   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
 	42   19/03/2026   Amit Ghediya		Updated for get Vendor performa invoice number
 	43   22/05/2026   Sahdev Saliya     Added ReferenceNumber for PartiallyPaid & PaidinFull (PN-16205)
+	44   21/10/2026   Nakul             ACH Transfer Bank Acct Name/Num now come from the vendor ACH Transfer record (VendorACHPayment) (PN-18294)
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -2484,17 +2485,17 @@ BEGIN
 		,CASE WHEN VRTPD.PaymentMethodId = @Check THEN lebl.BankName 
 		      WHEN VRTPD.PaymentMethodId = @DomesticWire THEN DWPL.BankName 
 			  WHEN VRTPD.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBank 
-			  WHEN VRTPD.PaymentMethodId = @ACHTransfer THEN DWPL.BankName 
+			  WHEN VRTPD.PaymentMethodId = @ACHTransfer THEN VACH.BeneficiaryBankName
 			  WHEN VRTPD.PaymentMethodId = @CreditCard THEN lebl.BankName END AS BankName
 		,CASE WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @Check THEN lebl.BankAccountNumber + ' (V)' 
 			  WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @DomesticWire THEN DWPL.AccountNumber + ' (V)' 
 			  WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBankAccount + ' (V)' 
-			  WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @ACHTransfer THEN DWPL.AccountNumber + ' (V)' 
+			  WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @ACHTransfer THEN VACH.AccountNumber + ' (V)'
 			  WHEN VRTPD.IsVoidedCheck = 1 AND VRTPD.PaymentMethodId = @CreditCard THEN lebl.BankAccountNumber + ' (V)' 
 			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @Check THEN lebl.BankAccountNumber 
 			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @DomesticWire THEN DWPL.AccountNumber 
 			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @InternationalWire THEN IWPL.BeneficiaryBankAccount 
-			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @ACHTransfer THEN DWPL.AccountNumber
+			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @ACHTransfer THEN VACH.AccountNumber
 			  WHEN VRTPD.IsVoidedCheck = 0 AND VRTPD.PaymentMethodId = @CreditCard THEN lebl.BankAccountNumber END AS 'BankAccountNumber'
 		,VRTPDH.ReadyToPayId
 		,VRTPD.IsVoidedCheck
@@ -2513,6 +2514,7 @@ BEGIN
 		 LEFT JOIN [dbo].[DomesticWirePayment] DWPL WITH(NOLOCK) ON DWPL.DomesticWirePaymentId = VDWP.DomesticWirePaymentId
 		 LEFT JOIN [dbo].[VendorInternationlWirePayment] VIWP WITH(NOLOCK) ON VIWP.VendorId = VRTPD.VendorId
 		 LEFT JOIN [dbo].[InternationalWirePayment] IWPL WITH(NOLOCK) ON IWPL.InternationalWirePaymentId = VIWP.InternationalWirePaymentId
+		 LEFT JOIN [dbo].[VendorACHPayment] VACH WITH(NOLOCK) ON VACH.VendorId = VRTPD.VendorId AND VACH.IsDeleted = 0
 		 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
 		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = VRTPDH.LegalEntityId
 		 LEFT JOIN dbo.PaymentMethod pm WITH(NOLOCK) ON VRTPD.PaymentMethodId = pm.PaymentMethodId
@@ -2524,7 +2526,8 @@ BEGIN
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,
-				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[CompanyCode],RRH.[LastMSLevel],pm.Description,VRTPDH.ReferenceNumber
+				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[CompanyCode],RRH.[LastMSLevel],pm.Description,VRTPDH.ReferenceNumber,
+				  VACH.BeneficiaryBankName,VACH.AccountNumber
 
     ;WITH FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate,EntryDate,DiscountToken,  

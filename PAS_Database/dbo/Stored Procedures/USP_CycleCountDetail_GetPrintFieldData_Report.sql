@@ -16,6 +16,7 @@
  ** PR     Date            Author		    Change Description
     1    10/09/2026   SAHDEV SALIYA       [PN-18227] Created
 	2    10/14/2026   SAHDEV SALIYA       [PN-18227] Print fields of the count method checked in Cycle Count Settings (Online / Manual Count)
+	3    10/20/2026   SAHDEV SALIYA       [PN-18227] Show full text for all print fields (no truncation)
  ** -----------------------------------------------------------
 	exec [USP_CycleCountDetail_GetPrintFieldData_Report] 36,1
 ************************************************************************/
@@ -97,20 +98,20 @@ BEGIN
 
 		;WITH Lines AS (
 			SELECT ROW_NUMBER() OVER (ORDER BY CC.[CycleCountDetailId]) AS [LineNum]
-				  ,CASE WHEN LEN(UPPER(CC.[PartNumber])) > 13 then LEFT(UPPER(CC.[PartNumber]), 13) + '...' else UPPER(CC.[PartNumber]) end AS [PartNumber]
-				  ,CASE WHEN LEN(UPPER(CC.[PartDescription])) > 23 then LEFT(UPPER(CC.[PartDescription]), 23) + '...' else UPPER(CC.[PartDescription]) end AS [PartDescription]
-				  ,CASE WHEN LEN(UPPER(CC.[ManufacturerName])) > 19 then LEFT(UPPER(CC.[ManufacturerName]), 19) + '...' else UPPER(CC.[ManufacturerName]) end AS [ManufacturerName]
+				  ,UPPER(CC.[PartNumber]) AS [PartNumber]
+				  ,UPPER(CC.[PartDescription]) AS [PartDescription]
+				  ,UPPER(CC.[ManufacturerName]) AS [ManufacturerName]
 				  ,CC.[UnitOfMeasureName]
 				  ,CC.[ConditionName]
-				  ,CASE WHEN LEN(UPPER(CC.[SerialNumber])) > 15 then LEFT(UPPER(CC.[SerialNumber]), 15) + '...' else UPPER(CC.[SerialNumber]) end AS [SerialNumber]
+				  ,UPPER(CC.[SerialNumber]) AS [SerialNumber]
 				  ,CC.[StockLineNumber]
 				  ,CC.[ControlNumber]
 				  ,CC.[IdNumber]
-				  ,CASE WHEN LEN(UPPER(CC.[Site])) > 18 then LEFT(UPPER(CC.[Site]), 18) + '...' else UPPER(CC.[Site]) end AS [Site]
-				  ,CASE WHEN LEN(UPPER(CC.[Warehouse])) > 9 then LEFT(UPPER(CC.[Warehouse]), 9) + '...' else UPPER(CC.[Warehouse]) end AS [Warehouse]
-				  ,CASE WHEN LEN(UPPER(CC.[Location])) > 8 then LEFT(UPPER(CC.[Location]), 8) + '...' else UPPER(CC.[Location]) end AS [Location]
-				  ,CASE WHEN LEN(UPPER(CC.[Shelf])) > 8 then LEFT(UPPER(CC.[Shelf]), 8) + '...' else UPPER(CC.[Shelf]) end AS [Shelf]
-				  ,CASE WHEN LEN(UPPER(CC.[Bin])) > 7 then LEFT(UPPER(CC.[Bin]), 7) + '...' else UPPER(CC.[Bin]) end AS [Bin]
+				  ,UPPER(CC.[Site]) AS [Site]
+				  ,UPPER(CC.[Warehouse]) AS [Warehouse]
+				  ,UPPER(CC.[Location]) AS [Location]
+				  ,UPPER(CC.[Shelf]) AS [Shelf]
+				  ,UPPER(CC.[Bin]) AS [Bin]
 				  ,ISNULL(SL.[QuantityOnHand], 0) AS [QuantityOnHand]
 				  ,ISNULL(CC.[CountedQuantity], 0) AS [CountedQuantity]
 				  ,ISNULL(CC.[DifferenceQuantity], 0) AS [DifferenceQuantity]

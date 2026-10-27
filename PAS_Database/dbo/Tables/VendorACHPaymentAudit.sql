@@ -1,0 +1,22 @@
+CREATE TABLE [dbo].[VendorACHPaymentAudit] (
+    [AuditVendorACHPaymentId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [VendorACHPaymentId]      BIGINT        NOT NULL,
+    [VendorId]                BIGINT        NOT NULL,
+    [PayeeName]               VARCHAR (100) NOT NULL,
+    [IntermediateBankName]    VARCHAR (100) NULL,
+    [BeneficiaryBankName]     VARCHAR (100) NULL,
+    [AccountNumber]           VARCHAR (50)  NOT NULL,
+    [ABA]                     VARCHAR (50)  NOT NULL,
+    [SwiftCode]               VARCHAR (50)  NULL,
+    [GLAccountId]             BIGINT        NULL,
+    [VendorBankAccountTypeId] INT           NULL,
+    [MasterCompanyId]         INT           NOT NULL,
+    [CreatedBy]               VARCHAR (256) NOT NULL,
+    [UpdatedBy]               VARCHAR (256) NOT NULL,
+    [CreatedDate]             DATETIME2 (7) NOT NULL,
+    [UpdatedDate]             DATETIME2 (7) NOT NULL,
+    [IsActive]                BIT           NOT NULL,
+    [IsDeleted]               BIT           NOT NULL,
+    CONSTRAINT [PK_VendorACHPaymentAudit] PRIMARY KEY CLUSTERED ([AuditVendorACHPaymentId] ASC),
+    CONSTRAINT [FK_VendorACHPaymentAudit_VendorACHPayment] FOREIGN KEY ([VendorACHPaymentId]) REFERENCES [dbo].[VendorACHPayment] ([VendorACHPaymentId])
+);

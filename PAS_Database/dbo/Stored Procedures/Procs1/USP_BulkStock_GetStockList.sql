@@ -24,6 +24,7 @@
 	12   22/07/2026         Divyesh Kathiriya       Added UnitOfMeasure. [PN-15726]
 	13    12/10/2026         BHARGAV SALIYA          Allow Non-Stock Items in Bulk Stockline Adjustment (Qty, Unit Price, Inter/Intra Company) and return/filter ItemType PN-17481
 	14    12/10/2026         BHARGAV SALIYA          Exclude Non-Stock service parts (IsService = 1) from Bulk Stockline Adjustment PN-17481
+	15    21/10/2026         Nakul                   Quantity: exclude customer stock (IsCustomerStock = 0) to match Stockline List PN-18324
 *************************************************************************/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
 	@PageNumber INT = 1,
@@ -98,7 +99,7 @@ BEGIN
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND ((SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0) OR (ISNULL(SL.[QuantityOnHand],0) = 0 AND ISNULL(SL.[QuantityAvailable],0) = 0)) 
-					AND SL.[IsParent] = 1
+					AND SL.[IsCustomerStock] = 0 AND SL.[IsParent] = 1
 					AND NOT (ISNULL(SL.IsNonStock,0) = 1 AND (ISNULL(SL.IsService,0) = 1 OR ISNULL(IM.IsService,0) = 1))), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM  Result 

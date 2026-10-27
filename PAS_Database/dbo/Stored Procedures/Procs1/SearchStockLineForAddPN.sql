@@ -1,4 +1,4 @@
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -25,10 +25,11 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
+	11   22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
-CREATE   PROCEDURE [dbo].[SearchStockLineForAddPN]  
+CREATE     PROCEDURE [dbo].[SearchStockLineForAddPN]  
 @ItemMasterIdlist VARCHAR(max) = '0',   
 @ConditionId BIGINT = NULL,  
 @CustomerId BIGINT = NULL,  
@@ -203,7 +204,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,uomStock.ShortName AS StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
-				AND sl.isActive = 1 AND sl.IsDeleted = 0   
+				AND sl.isActive = 1 AND sl.IsDeleted = 0 
+				AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				--AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 				AND sl.ConditionId = CASE WHEN @ConditionId IS NOT NULL   
 					  THEN @ConditionId ELSE sl.ConditionId   
@@ -317,7 +319,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,uomStock.ShortName AS StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 		   JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
-			   AND sl.isActive = 1 AND sl.IsDeleted = 0   
+			   AND sl.isActive = 1 AND sl.IsDeleted = 0 
+			   AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 			   --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 			   AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL   
 					 THEN @ConditionId ELSE sl.ConditionId   

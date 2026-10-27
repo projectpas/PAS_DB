@@ -9,6 +9,8 @@
 ** PR     Date         Author         Change Description
 ** --     ----------   ------------   -----------------------------------------------------
 ** 1      17-07-2025   Ayushi Patel   Created
+** 2      21-10-2026   Nakul          Added Bank Location 1/2, Intermediate Bank, ABA and GL Account (Legal Entity banking fields) (PN-18294)
+**                                    Bank Address and Bank Account Type are optional; existing values are kept when not passed
 *******************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendorInternationalWirePayment]
     @InternationalWirePaymentId       BIGINT,
@@ -17,17 +19,22 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendorInternationalWirePayment]
     @BeneficiaryBank                 NVARCHAR(250),
     @BeneficiaryCustomer             NVARCHAR(250),
     @BeneficiaryCustomerId           BIGINT,
-    @VendorBankAccountTypeId         BIGINT,
+    @VendorBankAccountTypeId         BIGINT = NULL,
     @MasterCompanyId                 BIGINT,
     @CreatedBy                       NVARCHAR(100),
     @UpdatedBy                       NVARCHAR(100),
-    @Address1                        NVARCHAR(1000),
-    @Address2                        NVARCHAR(1000),
-    @Address3                        NVARCHAR(1000),
-    @City                            NVARCHAR(100),
-    @StateOrProvince                 NVARCHAR(100),
-    @PostalCode                      NVARCHAR(100),
-    @CountryId                       BIGINT
+    @Address1                        NVARCHAR(1000) = NULL,
+    @Address2                        NVARCHAR(1000) = NULL,
+    @Address3                        NVARCHAR(1000) = NULL,
+    @City                            NVARCHAR(100) = NULL,
+    @StateOrProvince                 NVARCHAR(100) = NULL,
+    @PostalCode                      NVARCHAR(100) = NULL,
+    @CountryId                       BIGINT = NULL,
+    @IntermediaryBank                NVARCHAR(100) = NULL,
+    @ABA                             NVARCHAR(256) = NULL,
+    @BankLocation1                   NVARCHAR(250) = NULL,
+    @BankLocation2                   NVARCHAR(250) = NULL,
+    @GLAccountId                     BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -40,10 +47,10 @@ BEGIN
         FROM InternationalWirePayment WITH (NOLOCK)
         WHERE InternationalWirePaymentId = @InternationalWirePaymentId;
 
-        IF @BankAddressId IS NOT NULL
+        IF @BankAddressId IS NOT NULL AND NULLIF(@CountryId, 0) IS NOT NULL
         BEGIN
             UPDATE Address
-            SET Line1 = @Address1,
+            SET Line1 = ISNULL(@Address1, ''),
                 Line2 = @Address2,
                 Line3 = @Address3,
                 City = ISNULL(@City, ''),
@@ -62,11 +69,16 @@ BEGIN
             BeneficiaryBank = @BeneficiaryBank,
             BeneficiaryCustomer = @BeneficiaryCustomer,
             BeneficiaryCustomerId = @BeneficiaryCustomerId,
-            VendorBankAccountTypeId = @VendorBankAccountTypeId,
+            VendorBankAccountTypeId = ISNULL(NULLIF(@VendorBankAccountTypeId, 0), VendorBankAccountTypeId),
             MasterCompanyId = @MasterCompanyId,
             UpdatedBy = @UpdatedBy,
             UpdatedDate = GETUTCDATE(),
-            IsActive = 1
+            IsActive = 1,
+            IntermediaryBank = @IntermediaryBank,
+            ABA = @ABA,
+            BankLocation1 = @BankLocation1,
+            BankLocation2 = @BankLocation2,
+            GLAccountId = @GLAccountId
         WHERE InternationalWirePaymentId = @InternationalWirePaymentId;
 
         SELECT 
@@ -91,7 +103,12 @@ BEGIN
             a.StateOrProvince,
             a.PostalCode,
             a.CountryId,
-            iwp.IsDeleted
+            iwp.IsDeleted,
+            iwp.IntermediaryBank,
+            iwp.ABA,
+            iwp.BankLocation1,
+            iwp.BankLocation2,
+            iwp.GLAccountId
         FROM InternationalWirePayment iwp WITH (NOLOCK)
         LEFT JOIN Address a WITH (NOLOCK) ON iwp.BankAddressId = a.AddressId
         WHERE iwp.InternationalWirePaymentId = @InternationalWirePaymentId;

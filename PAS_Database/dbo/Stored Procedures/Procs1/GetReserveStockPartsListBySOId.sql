@@ -32,9 +32,10 @@
 	16    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	17    30/July/2026			 MOIN BLOCH					        [PN-17485] - Added [IsService],[IsNonStock] 
 	18    08/Oct/2026			 Kishor Makwana		[PN-17760] - Returned QtyToBeReserved ignored already-shipped qty (Ordered 5, Shipped 2, Reserved 0 returned 5 instead of 3), so the Reserve popup offered more than was pending. It now subtracts the part's shipped qty, the same way the WHERE filter already did.
+	19    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=10851
 **************************************************************/
-CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
+CREATE   PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
 	@ItemMasterId BIGINT = NULL
 AS
@@ -142,7 +143,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		 INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON ((sl.StockLineId = Stk.StockLineId AND SOP.TotalQtyOrder = SOP.QtyRequested) OR (SOP.TotalQtyOrder < SOP.QtyRequested AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
+		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON (((sl.StockLineId = Stk.StockLineId AND SOP.TotalQtyOrder = SOP.QtyRequested) OR (SOP.TotalQtyOrder < SOP.QtyRequested AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 		LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderId = SO.SalesOrderId AND SOR.StockLineId = Stk.StockLineId
 		WHERE

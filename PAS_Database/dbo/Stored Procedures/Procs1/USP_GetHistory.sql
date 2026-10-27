@@ -15,10 +15,13 @@
 	2    20/03/2023   Amit Ghediya    Added DB Standards  
     3	 02/04/2025   Bhargav Saliya  UTC Date Changes 
 	4    01/09/2025   Moin Bloch	  Updated Added New Field [Activity]
-	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    01/July/2026 RAJESH GAMI	      [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    21-Oct-2026  Divyesh Kathiriya   Added Module WOQ [PN-18341].
+	7    23-Oct-2026  Divyesh Kathiriya   Display the selected quote MPN for added material parts [PN-18341].
+
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_GetHistory]  
+CREATE PROCEDURE [dbo].[USP_GetHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  
@@ -37,25 +40,30 @@ CREATE     PROCEDURE [dbo].[USP_GetHistory]
  @UpdatedDate  DATETIME=null,  
  @CreatedBy VARCHAR(50)=null,  
  @UpdatedBy VARCHAR(50)=null,
- @EmployeeId bigint=null
+ @EmployeeId bigint=null,
+ @ModuleId BIGINT = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
   BEGIN TRANSACTION  
-   BEGIN  
-   DECLARE @RecordFrom INT;  
-
+   BEGIN 
+   
+    DECLARE @RecordFrom INT;  
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		
+    DECLARE @WOQModule AS BIGINT;
+ 
+    SET @WOQModule = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote');   	
+
+    SET @RecordFrom = (@PageNumber-1) * @PageSize;
+
+
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
 		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-	WHERE E.EmployeeId = @EmployeeId; 
-
-    SET @RecordFrom = (@PageNumber-1) * @PageSize;  
+	WHERE E.EmployeeId = @EmployeeId;    
       
     IF @SortColumn IS NULL  
     BEGIN  
@@ -65,81 +73,168 @@ BEGIN
     BEGIN   
      SET @SortColumn=UPPER(@SortColumn)  
     END  
-  
-    ;With Result AS(  
-    SELECT HS.[HistoryId],  
-		 HS.[ModuleId],  
-		 --HS.[RefferenceId],  
-		 Wo.[WorkOrderNum],  
-		 IM.[partnumber],  
-		 HS.[OldValue],  
-		 HS.[NewValue],  
-		 HS.[HistoryText],  
-		 HS.[FieldsName],  
-		 HS.[CreatedBy],  
-		 HS.[CreatedDate],  
-		 HS.[UpdatedBy],  
-		 CASE WHEN CAST(HS.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate],
-         HS.[Activity]
-	FROM [dbo].[History] HS WITH (NOLOCK)  
-		INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
-		 LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
-		 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-     AND ISNULL(IM.IsNonStock,0) = 0
-    WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
-    ),  
-    FinalResult AS (  
-    SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName  
-      ,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result  
-    WHERE (  
-     (@GlobalFilter <>'' AND ((HistoryId LIKE '%' +@GlobalFilter+'%') OR   
-       (OldValue LIKE '%' +@GlobalFilter+'%') OR  
-       (NewValue LIKE '%' +@GlobalFilter+'%') OR  
-	   (Activity LIKE '%' +@GlobalFilter+'%') OR 
-       (HistoryText LIKE '%' +@GlobalFilter+'%')  
-       ))  
-       OR     
-       (@GlobalFilter='' AND   
-       (ISNULL(@OldValue,'') ='' OR OldValue LIKE  '%'+@OldValue+'%') AND  
-       (ISNULL(@NewValue,'') ='' OR NewValue LIKE  '%'+@NewValue+'%') AND  
-       (ISNULL(@PartNumber,'') ='' OR partnumber LIKE  '%'+@PartNumber+'%') AND  
-       (ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE  '%'+@WorkOrderNum+'%') AND  
-       (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE  '%'+@UpdatedBy+'%') AND  
-       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
-	   (ISNULL(@Activity,'') ='' OR Activity LIKE  '%'+@Activity+'%') AND 
-       (ISNULL(@HistoryText,'') ='' OR HistoryText LIKE '%'+@HistoryText+'%'))  
-       )),  
-      ResultCount AS (SELECT COUNT(HistoryId) AS NumberOfItems FROM FinalResult)  
-      SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue, Activity, HistoryText, FieldsName,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,  
-      NumberOfItems FROM FinalResult, ResultCount  
-  
-     ORDER BY    
-     CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='OldValue')  THEN OldValue END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='NewValue')  THEN NewValue END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='PartNumber')  THEN partnumber END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryText')  THEN HistoryText END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC, 
-	 CASE WHEN (@SortOrder=1 AND @SortColumn='ACTIVITY')  THEN Activity END ASC, 
-	   
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='OldValue')  THEN OldValue END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='NewValue')  THEN NewValue END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN partnumber END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryText')  THEN HistoryText END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC, 
-	 CASE WHEN (@SortOrder=-1 AND @SortColumn='ACTIVITY')  THEN Activity END DESC
 
-     OFFSET @RecordFrom ROWS   
-     FETCH NEXT @PageSize ROWS ONLY  
+
+    IF(@ModuleId = @WOQModule)
+    BEGIN
+        ;WITH Result AS (
+        SELECT HS.[HistoryId],
+             HS.[ModuleId],         
+             WOQ.[QuoteNumber] AS [WorkOrderNum],
+             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added') THEN WOPN.[PartNumber]
+                  WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' AND ISNULL(WOPN.[RevisedSerialNumber], '') <> ''
+                       THEN WOPN.[RevisedPartNumber] + '-' + WOPN.[RevisedSerialNumber]
+                  WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' THEN WOPN.[RevisedPartNumber] + '-' + SL.[ControlNumber]
+                  ELSE WOPN.[PartNumber] + '-' + SL.[ControlNumber] END AS [partnumber],
+             HS.[OldValue],
+             HS.[NewValue],
+             HS.[HistoryText],
+             HS.[FieldsName],
+             HS.[CreatedBy],
+             HS.[CreatedDate],
+             HS.[UpdatedBy],
+             CASE WHEN CAST(HS.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL
+                  ELSE CAST([DBO].[ConvertUTCtoLocal](HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME) END AS [UpdatedDate],
+             HS.[Activity]
+        FROM [DBO].[History] HS WITH(NOLOCK)        
+             INNER JOIN [DBO].[WorkOrderQuote] WOQ WITH(NOLOCK) ON HS.[RefferenceId] = WOQ.[WorkOrderQuoteId]
+                 AND WOQ.[MasterCompanyId] = HS.[MasterCompanyId]
+             LEFT JOIN [DBO].[WorkOrderPartNumber] WOPN WITH(NOLOCK) ON HS.[SubRefferenceId] = WOPN.[ID]
+             LEFT JOIN [DBO].[StockLine] SL WITH(NOLOCK) ON WOPN.[StockLineId] = SL.[StockLineId]
+                 AND SL.[MasterCompanyId] = WOPN.[MasterCompanyId] AND ISNULL(SL.[IsNonStock], 0) = 0   
+        WHERE HS.[RefferenceId] = @RefferenceId
+          AND HS.[ModuleId] = @WOQModule AND HS.[MasterCompanyId] = @MasterCompanyId
+        ),
+        FinalResult AS (
+        SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName
+          ,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result
+        WHERE (
+         (@GlobalFilter <>'' AND ((HistoryId LIKE '%' +@GlobalFilter+'%') OR
+           (OldValue LIKE '%' +@GlobalFilter+'%') OR
+           (NewValue LIKE '%' +@GlobalFilter+'%') OR
+	       (Activity LIKE '%' +@GlobalFilter+'%') OR
+           (HistoryText LIKE '%' +@GlobalFilter+'%')
+           ))
+           OR
+           (@GlobalFilter='' AND
+           (ISNULL(@OldValue,'') ='' OR OldValue LIKE  '%'+@OldValue+'%') AND
+           (ISNULL(@NewValue,'') ='' OR NewValue LIKE  '%'+@NewValue+'%') AND
+           (ISNULL(@PartNumber,'') ='' OR partnumber LIKE  '%'+@PartNumber+'%') AND
+           (ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE  '%'+@WorkOrderNum+'%') AND
+           (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE  '%'+@UpdatedBy+'%') AND
+           (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
+	       (ISNULL(@Activity,'') ='' OR Activity LIKE  '%'+@Activity+'%') AND
+           (ISNULL(@HistoryText,'') ='' OR HistoryText LIKE '%'+@HistoryText+'%'))
+           )),
+          ResultCount AS (SELECT COUNT(HistoryId) AS NumberOfItems FROM FinalResult)
+          SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue, Activity, HistoryText, FieldsName,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,
+          NumberOfItems FROM FinalResult, ResultCount
+
+         ORDER BY
+         CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='OldValue')  THEN OldValue END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='NewValue')  THEN NewValue END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PartNumber')  THEN partnumber END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryText')  THEN HistoryText END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+	     CASE WHEN (@SortOrder=1 AND @SortColumn='ACTIVITY')  THEN Activity END ASC,
+
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='OldValue')  THEN OldValue END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='NewValue')  THEN NewValue END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN partnumber END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryText')  THEN HistoryText END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+	     CASE WHEN (@SortOrder=-1 AND @SortColumn='ACTIVITY')  THEN Activity END DESC
+
+         OFFSET @RecordFrom ROWS
+         FETCH NEXT @PageSize ROWS ONLY
+    END
+    ELSE
+    BEGIN
+        ;With Result AS(  
+        SELECT HS.[HistoryId],  
+		     HS.[ModuleId],  
+		     --HS.[RefferenceId],  
+		     Wo.[WorkOrderNum],
+		     IM.[partnumber],
+		     HS.[OldValue],  
+		     HS.[NewValue],  
+		     HS.[HistoryText],  
+		     HS.[FieldsName],  
+		     HS.[CreatedBy],  
+		     HS.[CreatedDate],  
+		     HS.[UpdatedBy],  
+		     CASE WHEN CAST(HS.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate],
+             HS.[Activity]
+	    FROM [dbo].[History] HS WITH (NOLOCK)
+		    INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId
+		     LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
+		     LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+         AND ISNULL(IM.IsNonStock,0) = 0
+        WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
+        ),  
+        FinalResult AS (  
+        SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName  
+          ,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result  
+        WHERE (  
+         (@GlobalFilter <>'' AND ((HistoryId LIKE '%' +@GlobalFilter+'%') OR   
+           (OldValue LIKE '%' +@GlobalFilter+'%') OR  
+           (NewValue LIKE '%' +@GlobalFilter+'%') OR  
+	       (Activity LIKE '%' +@GlobalFilter+'%') OR 
+           (HistoryText LIKE '%' +@GlobalFilter+'%')  
+           ))  
+           OR     
+           (@GlobalFilter='' AND   
+           (ISNULL(@OldValue,'') ='' OR OldValue LIKE  '%'+@OldValue+'%') AND  
+           (ISNULL(@NewValue,'') ='' OR NewValue LIKE  '%'+@NewValue+'%') AND  
+           (ISNULL(@PartNumber,'') ='' OR partnumber LIKE  '%'+@PartNumber+'%') AND  
+           (ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE  '%'+@WorkOrderNum+'%') AND  
+           (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE  '%'+@UpdatedBy+'%') AND  
+           (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
+	       (ISNULL(@Activity,'') ='' OR Activity LIKE  '%'+@Activity+'%') AND 
+           (ISNULL(@HistoryText,'') ='' OR HistoryText LIKE '%'+@HistoryText+'%'))  
+           )),  
+          ResultCount AS (SELECT COUNT(HistoryId) AS NumberOfItems FROM FinalResult)  
+          SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue, Activity, HistoryText, FieldsName,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,  
+          NumberOfItems FROM FinalResult, ResultCount  
+  
+         ORDER BY    
+         CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='OldValue')  THEN OldValue END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='NewValue')  THEN NewValue END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PartNumber')  THEN partnumber END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='HistoryText')  THEN HistoryText END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC, 
+	     CASE WHEN (@SortOrder=1 AND @SortColumn='ACTIVITY')  THEN Activity END ASC, 
+	   
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryId')  THEN HistoryId END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='OldValue')  THEN OldValue END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='NewValue')  THEN NewValue END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN partnumber END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='HistoryText')  THEN HistoryText END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC, 
+	     CASE WHEN (@SortOrder=-1 AND @SortColumn='ACTIVITY')  THEN Activity END DESC
+
+         OFFSET @RecordFrom ROWS   
+         FETCH NEXT @PageSize ROWS ONLY  
+        END
     END  
     COMMIT  TRANSACTION  
     END TRY      

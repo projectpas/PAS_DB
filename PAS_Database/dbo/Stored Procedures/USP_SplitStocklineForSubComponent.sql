@@ -5,7 +5,8 @@
                    - new stockline : copy of the source (all columns), new Stockline / Control / Id number,
                                      Qty = OH = Available = @Qty, Reserved = 0 (same as Lot split),
                                      SubComponentParentStocklineId = @ParentStocklineId, SubComponentQty = @Qty
-                   - source        : Quantity, QuantityOnHand and QuantityAvailable reduced by @Qty
+                   - source        : Quantity, QuantityOnHand and QuantityAvailable reduced by @Qty,
+                                     a Memo line is added ("Split n Qty to STK: new stockline as Sub Component of STK: parent") so the user can review it
                  Number generation follows USP_CreateStockLine. Time life and management structure are copied.
                  Caller owns the transaction (called from USP_SaveStocklineSubComponent).
  ** Date:   10/15/2026
@@ -18,6 +19,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana     [PN-18321] Created
+    2    10/26/2026  Kishor Makwana     [PN-18321] Memo is added on the source stockline too (split to new stockline)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SplitStocklineForSubComponent]
 	@StocklineId BIGINT,
@@ -31,6 +33,7 @@ BEGIN
 
 	DECLARE @MasterCompanyId INT, @ItemMasterId BIGINT, @ManufacturerId BIGINT, @ManagementStructureId BIGINT,
 			@isSerialized BIT, @SourceStkNumber VARCHAR(100), @ParentStkNumber VARCHAR(100),
+			@SourceLabel NVARCHAR(500), @ParentLabel NVARCHAR(500), @NewLabel NVARCHAR(500), -- stockline number + part number + control number (stockline number alone is repeated across part numbers)
 			@StockLineNumber VARCHAR(100), @ControlNumber VARCHAR(100), @IdNumber VARCHAR(100),
 			@StocklineCodeType INT = 0, @ControlNumberCodeType INT = 0, @IdNumberCodeType INT = 0,
 			@StlCodePrefixId BIGINT = 0, @StlCodePrefix VARCHAR(50), @StlCodeSufix VARCHAR(50),
@@ -44,6 +47,8 @@ BEGIN
 	FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StocklineId;
 
 	SELECT @ParentStkNumber = [StockLineNumber] FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId;
+	SELECT @SourceLabel = ISNULL([StockLineNumber], '') + N' (PN: ' + ISNULL([PartNumber], '') + N', CN: ' + ISNULL([ControlNumber], '') + N')' FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StocklineId;
+	SELECT @ParentLabel = ISNULL([StockLineNumber], '') + N' (PN: ' + ISNULL([PartNumber], '') + N', CN: ' + ISNULL([ControlNumber], '') + N')' FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId;
 	SELECT @StockLineModuleID = [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'StockLine';
 
 	/* ---------- Stockline / Control / Id number (same rules as USP_CreateStockLine) ---------- */
@@ -82,6 +87,8 @@ BEGIN
 	SET @ControlNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@cncurrentNo, @StlCNCodePrefix, @StlCNCodeSufix));
 
 	SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(1, @StlIdCodePrefix, @StlIdCodeSufix));
+
+	SET @NewLabel = ISNULL(@StockLineNumber, '') + N' (PN: ' + ISNULL((SELECT [PartNumber] FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StocklineId), '') + N', CN: ' + ISNULL(@ControlNumber, '') + N')';
 
 	UPDATE [dbo].[ItemMaster] SET [CurrentStlNo] = @currentNo, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 	WHERE [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId;
@@ -179,18 +186,21 @@ BEGIN
 		[QuickBooksReferenceId] = NULL,
 		[IsUpdated] = NULL,
 		[LastSyncDate] = NULL,
-		[Memo] = 'Split ' + CONVERT(VARCHAR(50), CAST(@Qty AS DECIMAL(18, 2))) + ' Qty from STK: ' + ISNULL(@SourceStkNumber, '') + ' as Sub Component of STK: ' + ISNULL(@ParentStkNumber, '') + ' Date: ' + FORMAT(GETUTCDATE(), 'dd/MM/yyyy'),
+		[Memo] = 'Split ' + CONVERT(VARCHAR(50), CAST(@Qty AS DECIMAL(18, 2))) + ' Qty from STK: ' + ISNULL(@SourceLabel, '') + ' as Sub Component of STK: ' + ISNULL(@ParentLabel, '') + ' Date: ' + FORMAT(GETUTCDATE(), 'dd/MM/yyyy'),
 		[CreatedBy] = @UpdatedBy,
 		[UpdatedBy] = @UpdatedBy,
 		[CreatedDate] = GETUTCDATE(),
 		[UpdatedDate] = GETUTCDATE()
 	WHERE [StockLineId] = @NewStocklineId;
 
-	/* ---------- source: move the qty out ---------- */
+	/* ---------- source: move the qty out + memo (existing memo is kept, the new line is added below it) ---------- */
+	DECLARE @SourceMemo NVARCHAR(MAX) = N'Split ' + CONVERT(VARCHAR(50), CAST(@Qty AS DECIMAL(18, 2))) + N' Qty to STK: ' + ISNULL(@NewLabel, '')
+										+ N' as Sub Component of STK: ' + ISNULL(@ParentLabel, '') + N' Date: ' + FORMAT(GETUTCDATE(), 'dd/MM/yyyy');
 	UPDATE [dbo].[Stockline]
 	SET [Quantity] = ISNULL([Quantity], 0) - @Qty,
 		[QuantityOnHand] = ISNULL([QuantityOnHand], 0) - @Qty,
 		[QuantityAvailable] = ISNULL([QuantityAvailable], 0) - @Qty,
+		[Memo] = CASE WHEN NULLIF(LTRIM(RTRIM(ISNULL([Memo], N''))), N'') IS NULL THEN @SourceMemo ELSE [Memo] + CHAR(13) + CHAR(10) + @SourceMemo END,
 		[UpdatedBy] = @UpdatedBy,
 		[UpdatedDate] = GETUTCDATE()
 	WHERE [StockLineId] = @StocklineId;

@@ -22,6 +22,7 @@
 	6    31/10/2023   Devendra Shekh	added union for nonpo details
 	7    02/11/2023   Devendra Shekh	added condtion for NonPOInvoiceId
 	8    29/03/2024   AMIT GHEDIYA		Update to get LE
+	9    21/10/2026   Nakul			IsACHTransferPayment now checks the vendor ACH Transfer record (VendorACHPayment) (PN-18294)
      
 -- EXEC GetVendorReadyToPayDetailsById 7,0
 **************************************************************/
@@ -59,7 +60,7 @@ BEGIN
 		  ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId = vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted=0)
 	      ,IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 	      ,IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
-          ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+          ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorACHPaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorACHPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND VP.IsDeleted = 0 AND VP.IsActive = 1)
 	      ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 		  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
 		  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',
@@ -150,7 +151,7 @@ BEGIN
 		  ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId = vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted=0)
 	      ,IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 	      ,IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
-          ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+          ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorACHPaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorACHPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND VP.IsDeleted = 0 AND VP.IsActive = 1)
 	      ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 		  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
 		  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',

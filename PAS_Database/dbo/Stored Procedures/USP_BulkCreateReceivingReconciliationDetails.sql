@@ -13,6 +13,7 @@
  ** --   --------      -------			--------------------------------          
     1    30/06/2026    Priyansh Patel	Created - converted from EF AddRange/SaveChanges
     2    02/10/2026    Ayushi Patel		[PN-18219] POExtCost / AdjExtCost are UOM independent - store as it is, do not convert to Stock UOM
+    3    22/10/2026    Moin Bloch		[PN-17835] Save MiscAdjustment / MiscAdjustmentPerUnit
 
 --   EXEC [USP_BulkCreateReceivingReconciliationDetails] 
 **************************************************************/
@@ -62,7 +63,9 @@ BEGIN
 			[QtyVariance]                DECIMAL(18,6),
 			[PriceVariance]              DECIMAL(18,6),
 			[VendorProformaAmount]       DECIMAL(18,6),
-			[VendorProformaInvoiceId]    BIGINT
+			[VendorProformaInvoiceId]    BIGINT,
+			[MiscAdjustment]             DECIMAL(18,6),
+			[MiscAdjustmentPerUnit]      DECIMAL(18,6)
 		);
 
 	            INSERT INTO [dbo].[ReceivingReconciliationDetails]
@@ -71,7 +74,7 @@ BEGIN
                 [InvoicedExtCost],[AdjQty],[AdjUnitCost],[AdjExtCost],[APNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],
                 [IsManual],[PackagingId],[Description],[GlAccountId],[Type],[StockType],[RemainingRRQty],[FreightAdjustment],
                 [TaxAdjustment],[FreightAdjustmentPerUnit],[TaxAdjustmentPerUnit],[QtyVariance],[PriceVariance],
-                [VendorProformaAmount],[VendorProformaInvoiceId])
+                [VendorProformaAmount],[VendorProformaInvoiceId],[MiscAdjustment],[MiscAdjustmentPerUnit])
             OUTPUT INSERTED.[ReceivingReconciliationDetailId],INSERTED.[ReceivingReconciliationId],INSERTED.[StocklineId],
                 INSERTED.[StocklineNumber],INSERTED.[ItemMasterId],INSERTED.[PartNumber],INSERTED.[PartDescription],
                 INSERTED.[SerialNumber],INSERTED.[POReference],INSERTED.[POQtyOrder],INSERTED.[ReceivedQty],INSERTED.[POUnitCost],
@@ -80,7 +83,7 @@ BEGIN
                 INSERTED.[IsManual],INSERTED.[PackagingId],INSERTED.[Description],INSERTED.[GlAccountId],INSERTED.[Type],INSERTED.[StockType],
                 INSERTED.[RemainingRRQty],INSERTED.[FreightAdjustment],INSERTED.[TaxAdjustment],INSERTED.[FreightAdjustmentPerUnit],
                 INSERTED.[TaxAdjustmentPerUnit],INSERTED.[QtyVariance],INSERTED.[PriceVariance],INSERTED.[VendorProformaAmount],
-                INSERTED.[VendorProformaInvoiceId]
+                INSERTED.[VendorProformaInvoiceId],INSERTED.[MiscAdjustment],INSERTED.[MiscAdjustmentPerUnit]
             INTO @InsertedRows
             SELECT
                 RRD.[ReceivingReconciliationId],
@@ -185,7 +188,9 @@ BEGIN
                 ISNULL(RRD.[QtyVariance],0),
                 ISNULL(RRD.[PriceVariance],0),
                 RRD.[VendorProformaAmount],
-                RRD.[VendorProformaInvoiceId]
+                RRD.[VendorProformaInvoiceId],
+                ISNULL(RRD.[MiscAdjustment],0),
+                ISNULL(RRD.[MiscAdjustmentPerUnit],0)
             FROM @tbl_ReceivingReconciliationDetails RRD
             LEFT JOIN ItemMaster IM
             ON IM.ItemMasterId = RRD.ItemMasterId;

@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [USP_SaveStocklineSubComponent]
  ** Description: Saves the sub-components of a parent stockline (Add Sub Component popup).
                  @tbl_SubComponents is the COMPLETE list the user sees in the popup.
@@ -25,6 +26,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana    [PN-18321] Created
+    2    23/OCT/2026  Kishor Makwana    [PN-18118] Aircraft / Engine stockline (or a stockline installed on an aircraft / engine) can not be used here - components of an aircraft / engine are managed in Installed Components
 
 -- DECLARE @tbl StocklineSubComponentType; INSERT INTO @tbl VALUES (2, 3);
 -- EXEC [dbo].[USP_SaveStocklineSubComponent] @ParentStocklineId = 1, @tbl_SubComponents = @tbl, @MasterCompanyId = 1, @UpdatedBy = 'admin'
@@ -69,6 +71,15 @@ BEGIN
 			RETURN;
 		END
 
+		-- aircraft / engine stockline : its components are managed in Installed Components (USP_SetAircraftSubComponentLink)
+		IF (EXISTS (SELECT 1 FROM [dbo].[AircraftRegistryHeader] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId AND ISNULL([IsDeleted], 0) = 0)
+			OR EXISTS (SELECT 1 FROM [dbo].[EngineRegistryHeader] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId AND ISNULL([IsDeleted], 0) = 0))
+		BEGIN
+			ROLLBACK TRANSACTION;
+			SELECT 0 AS [Status], 'This is an aircraft / engine stockline. Its components are managed in Installed Components.' AS [Message];
+			RETURN;
+		END
+
 		SELECT @ParentSubComponentOf = [SubComponentParentStocklineId]
 		FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId;
 
@@ -103,6 +114,7 @@ BEGIN
 						THEN 'Qty of a saved sub component can not be changed. Remove it and add again.'
 				   WHEN s.[SubComponentParentStocklineId] = @ParentStocklineId THEN NULL
 				   WHEN s.[StockLineId] = @ParentStocklineId THEN 'A stockline can not be its own sub-component.'
+				   WHEN ISNULL(s.[AircraftInstalledPartDetailsId], 0) > 0 THEN 'Stockline is installed on an aircraft / engine.'
 				   WHEN ISNULL(s.[isDeleted], 0) = 1 OR ISNULL(s.[IsNonStock], 0) = 1 OR ISNULL(s.[IsParent], 1) = 0 THEN 'Stockline can not be used as a sub-component.'
 				   WHEN s.[SubComponentParentStocklineId] IS NOT NULL THEN 'Stockline is already a sub-component of another stockline.'
 				   WHEN EXISTS (SELECT 1 FROM [dbo].[Stockline] c WITH (NOLOCK) WHERE c.[SubComponentParentStocklineId] = s.[StockLineId]) THEN 'Stockline has its own sub-components.'

@@ -12,6 +12,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4	 07/13/2026   Abhishek Jirawla  Added checking for Approval (PN-17234)
+	5    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 EXEC [dbo].[SearchStockLinePickTicketPopForRO] 20751, 1, 2547, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPopForRO]
@@ -81,7 +82,7 @@ BEGIN
 						 ) - 
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
 				LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
@@ -161,7 +162,7 @@ BEGIN
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId))
 						 AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				--LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
 				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId

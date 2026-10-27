@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SearchItemMasterByCustomerRestrictionFromWO]           
  ** Author		:   HEMANT SALIYA
  ** Description	:	Get Item Master Details By Customer Restriction for WO   
@@ -19,9 +20,10 @@
     3    11-Mar-2026		RAJESH GAMI			Get Stock Unit Od Measure [PN-14832]
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
  EXECUTE [SearchItemMasterByCustomerRestrictionFromWO] 3, 12, 2461,1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
+CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 @ConditionIds VARCHAR(100) = NULL,
 @CustomerId BIGINT = NULL,
@@ -106,7 +108,7 @@ BEGIN
 					,imps.PP_FXRatePerc AS FixRate
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
-				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
+				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId in (SELECT ConditionId FROM #ConditionGroup) AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId

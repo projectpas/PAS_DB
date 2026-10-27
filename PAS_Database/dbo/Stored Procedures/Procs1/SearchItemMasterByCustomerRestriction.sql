@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -26,9 +26,10 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (ItemMaster, joined Stockline, alternate-part mapping) so Non-Stock parts are included.
+	13    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
+CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
 	@ItemMasterIdlist VARCHAR(max) = '0', 
 	@ConditionIds VARCHAR(100) = NULL,
 	@CustomerId BIGINT = NULL,
@@ -83,7 +84,7 @@ BEGIN
 					,ime.ExportSizeHeight AS SizeHeight
 				FROM [dbo].[ItemMaster] im WITH (NOLOCK)
 				LEFT JOIN [dbo].[Condition] c WITH (NOLOCK) ON c.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
-				LEFT JOIN [dbo].[StockLine] sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
+				LEFT JOIN [dbo].[StockLine] sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 
 					AND (
 							(sl.IsRepairManagement = 1) OR 

@@ -18,6 +18,7 @@
 	3    24/04/2026  Moin Bloch     Tender Stockline GLAccount Fix
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5	 23/06/2026	 Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	6    28/10/2026  Vishal Suthar  [PN-18422] Clear error when JE code prefix is missing; rollback only when a transaction is open
 
    EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
@@ -196,7 +197,7 @@ BEGIN
 			END
 			ELSE 
 			BEGIN
-				ROLLBACK TRAN;
+				RAISERROR('Journal Type code prefix (CodeTypeId 74) is not set up for this company.', 16, 1);
 			END
 
 			IF(UPPER(@DistributionCode) = UPPER('CREATETEARDOWNWO'))
@@ -618,8 +619,10 @@ BEGIN
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
+		BEGIN
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
+		END
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_TearDownWOBatchTriggerBasedonDistribution' 

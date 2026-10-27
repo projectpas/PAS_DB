@@ -73,6 +73,8 @@
 
 
 
+
+
 GO
 
 
@@ -90,3 +92,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_CreditMemo_MC_CreatedDate]
+    ON [dbo].[CreditMemo]([MasterCompanyId] ASC, [CreatedDate] ASC)
+    INCLUDE([CustomerId], [IsActive], [IsDeleted]);
+

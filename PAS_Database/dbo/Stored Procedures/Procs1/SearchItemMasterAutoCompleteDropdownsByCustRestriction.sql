@@ -1,3 +1,4 @@
+﻿
 /*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Hemant Saliya
@@ -19,9 +20,10 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 	5   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	6    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
- CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
+ CREATE   PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
   @CustomerId INT,
   @CustRestrictedDer BIT,
   @CustRestrictedPMA BIT,
@@ -112,7 +114,7 @@
 					  --QuantityAvailable = (select top 1 s.QuantityAvailable from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND s.ManufacturerId = im.ManufacturerId)
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 					JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-					JOIN Stockline sl WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
+					JOIN Stockline sl WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 					LEFT JOIN ItemMasterPurchaseSale imps WITH (NOLOCK) ON im.ItemMasterId = imps.ItemMasterId AND sl.ConditionId = imps.ConditionId
 					LEFT JOIN [dbo].[RestrictedParts] rpDER WITH (NOLOCK) ON im.ItemMasterId = rpDER.ItemMasterId
 							AND rpDER.PartType = 'DER' AND rpDER.ReferenceId  = @CustomerId 
@@ -169,7 +171,7 @@
 						  --QuantityAvailable = (select top 1 s.QuantityAvailable from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND s.ManufacturerId = im.ManufacturerId)
 				 FROM DBO.ItemMaster im WITH (NOLOCK)
 					 JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-					 JOIN Stockline sl WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
+					 JOIN Stockline sl WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 					 LEFT JOIN ItemMasterPurchaseSale imps WITH (NOLOCK) ON im.ItemMasterId = imps.ItemMasterId AND sl.ConditionId = imps.ConditionId
 					 LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				 WHERE im.ItemMasterId  IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))

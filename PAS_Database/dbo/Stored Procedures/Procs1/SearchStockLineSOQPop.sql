@@ -1,3 +1,4 @@
+﻿
 /*************************************************************           
  ** File:   [SearchStockLineSOQPop]           
  ** Author		:   Vishal Suthar
@@ -25,9 +26,10 @@
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (both UNION branches) so Non-Stock stocklines are included.
+	12    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]
+CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
 	@ItemMasterIdlist VARCHAR(max) = '0', 
 	@ConditionId BIGINT = NULL,
 	@CustomerId BIGINT = NULL,
@@ -104,7 +106,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,ISNULL(ime.ExportSizeWidth,0) AS SizeWidth
 					,ISNULL(ime.ExportSizeHeight,0) AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
-			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
+			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 										THEN @ConditionId ELSE sl.ConditionId 
@@ -219,7 +221,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,ISNULL(ime.ExportSizeWidth,0) AS SizeWidth
 					,ISNULL(ime.ExportSizeHeight,0) AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
-			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
+			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 										THEN @ConditionId ELSE sl.ConditionId 

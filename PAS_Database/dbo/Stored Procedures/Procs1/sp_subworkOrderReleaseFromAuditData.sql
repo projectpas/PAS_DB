@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    03/16/2021   Hemant Saliya Created
     2    07/Mar/2025  Bhargav Saliya UTC Date Changes
+	3    24/10/2026   Vishal Suthar   [PN-18371] Added Notes
 
      
  EXECUTE [sp_workOrderReleaseFromAuditData] 198
@@ -78,6 +79,7 @@ BEGIN
 				  ,wro.[trackingNo]
 				  ,wro.[OrganizationAddress]
 				  ,wro.[is8130from]
+				  ,wro.[Notes]
 			FROM [dbo].[SubWorkOrder_ReleaseFrom_8130Audit] wro WITH(NOLOCK)
 			WHERE wro.SubReleaseFromId=@ReleaseFromId
 

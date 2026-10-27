@@ -18,6 +18,7 @@ Exec [USP_SaveEngineCycleTimeMappings]
 ** PR   Date        Author              Change Description
 ** --   --------    -------             --------------------------------
    1    30/09/2026  Moin Bloch          Created (ModuleId = 2 for Engine Registry; sets EngineRegistryHeader.LastFlownDate)
+   2    26/10/2026  Kishor Makwana      [StocklineTimeCycleHistory] write the Usage / Correction rows of the engine stockline.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveEngineCycleTimeMappings]
     @CycleData  NVARCHAR(MAX),
@@ -211,6 +212,16 @@ BEGIN
             CreatedBy                       VARCHAR(256),
             UpdatedBy                       VARCHAR(256)
         );
+
+        -------------------------------------------------------
+        -- [StocklineTimeCycleHistory] engine values saved last time (before this save)
+        -------------------------------------------------------
+        DECLARE @TcEngOld TABLE (AircraftEngineStartsMappingsId BIGINT, CumulativeHours DECIMAL(18,6), CumulativeMinutes DECIMAL(18,6), CumulativeStarts INT);
+        INSERT INTO @TcEngOld (AircraftEngineStartsMappingsId, CumulativeHours, CumulativeMinutes, CumulativeStarts)
+        SELECT E.AircraftEngineStartsMappingsId, ISNULL(E.CumulativeHours, 0), ISNULL(E.CumulativeMinutes, 0), ISNULL(E.CumulativeStarts, 0)
+        FROM dbo.AircraftEngineStartsMappings E WITH(NOLOCK)
+        INNER JOIN @EngineTable ET ON E.AircraftEngineStartsMappingsId = ET.AircraftEngineStartsMappingsId AND E.EngineName = ET.EngineName
+        WHERE ISNULL(ET.AircraftEngineStartsMappingsId, 0) > 0;
 
         -------------------------------------------------------
         -- UPSERT AircraftEngineStartsMappings
@@ -432,6 +443,47 @@ BEGIN
         INNER JOIN @EngineTable ET ON ERH.EngineRegistryId = ET.EngineRegistryId
         WHERE ISNULL(ET.[Hours], 0) > 0 OR ISNULL(ET.[Minutes], 0) > 0 OR ISNULL(ET.Starts, 0) > 0;
         ----------------------End LastFlownDate----------------------
+
+        -------------------------------------------------------
+        -- [StocklineTimeCycleHistory] one ledger row per ADD (Usage) and per edited Current value (Correction)
+        -- Ledger problems never stop the cycle save (USP_AddStocklineTimeCycleFromCycleEntry catches and logs them).
+        -------------------------------------------------------
+        DECLARE @TcAcModuleId BIGINT, @TcEngModuleId BIGINT, @TcDate DATETIME2, @TcMemo NVARCHAR(MAX), @TcMc INT, @TcBy VARCHAR(256),
+                @TcAddH DECIMAL(18,6), @TcAddM DECIMAL(18,6), @TcAddC DECIMAL(18,6), @TcCurH DECIMAL(18,6), @TcCurM DECIMAL(18,6), @TcCurC DECIMAL(18,6);
+        SELECT TOP 1 @TcAcModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftRegistry';
+        SELECT TOP 1 @TcEngModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleName] IN ('EngineRegistry', 'Engine Registry');
+        SELECT TOP 1 @TcDate = ISNULL(C.CycleDate, GETUTCDATE()), @TcMemo = C.Memo, @TcMc = C.MasterCompanyId, @TcBy = ISNULL(C.UpdatedBy, C.CreatedBy),
+                     @TcAddH = ISNULL(C.[Hours], 0), @TcAddM = ISNULL(C.[Minutes], 0), @TcAddC = ISNULL(C.Cycles, 0),
+                     @TcCurH = ISNULL(C.CurruntHours, 0), @TcCurM = ISNULL(C.CurruntMinutes, 0), @TcCurC = ISNULL(C.CurruntCycles, 0)
+        FROM @CycleTable C;
+
+        -- the engine : its own hours, Starts are the cycles of an engine (a cycle entered on the cycle row wins when there is one)
+        DECLARE @TcEngStocklineId BIGINT, @TcEngRegId BIGINT, @TcEngName VARCHAR(100), @TcEngAddH DECIMAL(18,6), @TcEngAddM DECIMAL(18,6), @TcEngAddC DECIMAL(18,6),
+                @TcEngHasOld BIT, @TcEngOldH DECIMAL(18,6), @TcEngOldM DECIMAL(18,6), @TcEngOldC DECIMAL(18,6),
+                @TcEngCurH DECIMAL(18,6), @TcEngCurM DECIMAL(18,6), @TcEngCurC DECIMAL(18,6);
+        DECLARE cTcEng CURSOR LOCAL FAST_FORWARD FOR
+            SELECT ERH.[StockLineId], ET.EngineRegistryId, LEFT(ERH.[EngineName], 100), ISNULL(ET.[Hours], 0), ISNULL(ET.[Minutes], 0),
+                   CASE WHEN @TcAddC > 0 THEN @TcAddC ELSE ISNULL(ET.Starts, 0) END,
+                   CASE WHEN O.AircraftEngineStartsMappingsId IS NULL THEN 0 ELSE 1 END, ISNULL(O.CumulativeHours, 0), ISNULL(O.CumulativeMinutes, 0), ISNULL(O.CumulativeStarts, 0),
+                   ISNULL(ET.CurruntHours, 0), ISNULL(ET.CurruntMinutes, 0), ISNULL(ET.CurruntStarts, 0)
+            FROM @EngineTable ET
+            INNER JOIN dbo.EngineRegistryHeader ERH WITH(NOLOCK) ON ERH.EngineRegistryId = ET.EngineRegistryId
+            LEFT JOIN @TcEngOld O ON O.AircraftEngineStartsMappingsId = ET.AircraftEngineStartsMappingsId
+            WHERE ET.EngineRegistryId IS NOT NULL AND ERH.[StockLineId] IS NOT NULL;
+        OPEN cTcEng;
+        FETCH NEXT FROM cTcEng INTO @TcEngStocklineId, @TcEngRegId, @TcEngName, @TcEngAddH, @TcEngAddM, @TcEngAddC, @TcEngHasOld, @TcEngOldH, @TcEngOldM, @TcEngOldC, @TcEngCurH, @TcEngCurM, @TcEngCurC;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC [dbo].[USP_AddStocklineTimeCycleFromCycleEntry]
+                 @StocklineId = @TcEngStocklineId, @ModuleId = @TcEngModuleId, @ReferenceId = @TcEngRegId, @ReferenceNumber = @TcEngName,
+                 @SubReferenceId = @CycleId, @EntryDate = @TcDate,
+                 @AddHours = @TcEngAddH, @AddMinutes = @TcEngAddM, @AddCycles = @TcEngAddC,
+                 @HasStored = @TcEngHasOld, @OldCumHours = @TcEngOldH, @OldCumMinutes = @TcEngOldM, @OldCumCycles = @TcEngOldC,
+                 @CurHours = @TcEngCurH, @CurMinutes = @TcEngCurM, @CurCycles = @TcEngCurC,
+                 @Memo = @TcMemo, @MasterCompanyId = @TcMc, @CreatedBy = @TcBy;
+            FETCH NEXT FROM cTcEng INTO @TcEngStocklineId, @TcEngRegId, @TcEngName, @TcEngAddH, @TcEngAddM, @TcEngAddC, @TcEngHasOld, @TcEngOldH, @TcEngOldM, @TcEngOldC, @TcEngCurH, @TcEngCurM, @TcEngCurC;
+        END
+        CLOSE cTcEng; DEALLOCATE cTcEng;
 
         -------------------------------------------------------
         -- RETURN the saved cycle ID to the caller

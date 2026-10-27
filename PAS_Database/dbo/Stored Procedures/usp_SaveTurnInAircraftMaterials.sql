@@ -1,4 +1,5 @@
-﻿/*************************************************************     
+﻿
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <08/04/2026>    
 ** Description: <This Proc Is used to Same Turn In Aircraft Materials Stockline>    
@@ -18,9 +19,10 @@ Exec [usp_SaveTurnInAircraftMaterials]
    7	30/06/2026  Amit Ghediya	    Update for Engine data [PN-17075]
    8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PurchaseUOMId/@PartNumber ItemMaster lookup
+   10   23/OCT/2026   Kishor Makwana  [PN-18118] Aircraft / Engine received: installed components already added are linked as Sub Components of the new aircraft / engine stockline (USP_LinkAircraftInstalledSubComponents)
 
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
+CREATE   PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
 	@IsCustomerstockType BIT,  
 	@ItemMasterId BIGINT,  
@@ -275,6 +277,10 @@ SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPM
 		 END
 	 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+
+		 -- [PN-18118] installed components of this aircraft / engine -> Sub Components of the new aircraft / engine stockline
+		 DECLARE @LinkedSubComponents INT = 0;
+		 EXEC [dbo].[USP_LinkAircraftInstalledSubComponents] @RegistryId = @AircraftRegistryId, @IsFromAircraft = @IsFromAircraft, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy, @Linked = @LinkedSubComponents OUTPUT;
 	 
 		 SELECT @ActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type] = 'Tendered'
 		 

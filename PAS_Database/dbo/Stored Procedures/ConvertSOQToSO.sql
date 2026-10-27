@@ -39,6 +39,7 @@
 	23   24/Aug/2026   Kishor Makwana   [PN-17439] - Added Sequence Number with Part Number
 	24   27/Aug/2026   Kishor Makwana   [PN-17439] - Update Total Reserve Qty
 	25   02/OCT/2026   Kishor Makwana   [PN-18215] - In Transfer Freight Part addded ShipViaName column
+	26   27/10/2026   Vishal Suthar    [PN-18414] Auto reserve by SO stockline QtyOrder instead of part QtyOrder
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -389,8 +390,8 @@ BEGIN
 					[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
 					[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
 					SELECT @SalesOrderId, SOPSTK.StockLineId, SOP.[ItemMasterId], 1, 0, NULL, 0,
-					NULL, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
-					GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
+					NULL, CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
+					GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
@@ -402,8 +403,8 @@ BEGIN
 					SELECT @StocklineId = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 					UPDATE SOPSTK
-					SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END,
-					SOPSTK.ToTalReservedQty = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
+					SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END,
+					SOPSTK.ToTalReservedQty = CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
@@ -537,8 +538,8 @@ BEGIN
 						[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
 						[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
 						SELECT @SalesOrderId, SOPSTK.StockLineId, SOP.[ItemMasterId], 1, 0, NULL, 0,
-						NULL, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
-						GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
+						NULL, CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
+						GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
 						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
@@ -550,8 +551,8 @@ BEGIN
 						SELECT @StocklineId2 = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 						UPDATE SOPSTK
-						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END,
-						SOPSTK.ToTalReservedQty = (CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END)
+						SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END,
+						SOPSTK.ToTalReservedQty = (CASE WHEN Stk.QuantityAvailable >= SOPSTK.QtyOrder THEN SOPSTK.QtyOrder ELSE Stk.QuantityAvailable END)
 						FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 						INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 						INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId

@@ -4890,6 +4890,9 @@
     <Build Include="dbo\Stored Procedures\USP_LinkAircraftInstalledSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleFromCycleEntry.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

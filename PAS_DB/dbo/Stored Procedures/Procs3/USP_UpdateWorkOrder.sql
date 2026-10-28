@@ -24,6 +24,7 @@
 	12    01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	13    18/08/2026	Moin Bloch		Added [IsInternalKitAssembly] PN-17372
 	14    18/08/2026	Moin Bloch		Added [KitsToPrepare] on WorkOrderPartNumber PN-17372
+	15    28/10/2026	Moin Bloch		Keep existing Outgoing MPN (RevisedItemmasterid) on WO save, stale page was reverting it to Incoming MPN
 --   EXEC [USP_UpdateWorkOrder]
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -473,9 +474,13 @@ BEGIN
 				  ,WOP.[AssignDate] = WOPT.[AssignDate]
 				  ,WOP.[ReceivingCustomerWorkId] = WOPT.[ReceivingCustomerWorkId]
 				  ,WOP.[ExpertiseId] = WOPT.[ExpertiseId]
-				  ,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
-				  ,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
-				  ,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END
+				  --,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
+				  --,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
+				  --,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END				  
+				  -- Outgoing MPN is owned by Settlement / Change MPN; keep the saved value so a stale WO page does not revert it
+				  ,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedItemmasterid] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
+				  ,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedPartNumber] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
+				  ,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedPartDescription] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END				  				  
 				  ,WOP.[IsTraveler] = WOPT.[IsTraveler]
 				  ,WOP.[AllowInvoiceBeforeShipping] = WOPT.[AllowInvoiceBeforeShipping]
 				  ,WOP.[WOFPrintDate] = WOPT.[WOFPrintDate]

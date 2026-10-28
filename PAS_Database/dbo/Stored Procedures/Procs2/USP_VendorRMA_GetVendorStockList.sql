@@ -24,6 +24,7 @@
 	12    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters.
 	13   17-09-2026         Ayushi Patel        Removed Round from QuantityAvailable [PN-17938]
 	14   02-10-2026         Bhargav Saliya      Performance: vendor Id/Name/Code via joins instead of 6 correlated subqueries per stockline; dropped redundant DISTINCT (all joins are 1:1 on PKs)
+	15   28-10-2026         Kishor Makwana      [PN-18433] Exclude Sub Component stockline (IsSubComponent / SubComponentParentStocklineId) from Vendor RMA and Vendor Credit Memo stockline list
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -131,7 +132,8 @@ BEGIN
 		  LEFT JOIN [dbo].[Vendor] PV WITH (NOLOCK) ON PO.[VendorId] = PV.[VendorId]
 		  LEFT JOIN [dbo].[Vendor] RV WITH (NOLOCK) ON RO.[VendorId] = RV.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0)
+			AND ISNULL(SL.[IsSubComponent],0) = 0 AND ISNULL(SL.[SubComponentParentStocklineId],0) = 0 /* [PN-18433] exclude Sub Component stockline */ ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempResult FROM Result 
 		      WHERE
@@ -235,7 +237,8 @@ BEGIN
 		  LEFT JOIN [dbo].[Vendor] PV WITH (NOLOCK) ON PO.[VendorId] = PV.[VendorId]
 		  LEFT JOIN [dbo].[Vendor] RV WITH (NOLOCK) ON RO.[VendorId] = RV.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) 
+			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0)
+			AND ISNULL(SL.[IsSubComponent],0) = 0 AND ISNULL(SL.[SubComponentParentStocklineId],0) = 0 /* [PN-18433] exclude Sub Component stockline */ 
 			AND SL.StockLineId NOT IN 
 			(SELECT ISNULL(StockLineId,0) FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
 			LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) ON vcmd.VendorCreditMemoId = vcm.VendorCreditMemoId 

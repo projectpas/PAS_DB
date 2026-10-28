@@ -52,6 +52,8 @@
 										filter param (NULL=All, 0=Stock, 1=Non-Stock) and IsNonStock column;
 										added computed ItemType column (Stock/Non-Stock text) plus @ItemType
 										filter param so the grid's Inventory-Type search matches by IsNonStock.
+	34   27-Oct-2026  Rajesh Gami       [PN-18407] Asset in Stockline: added @IsAsset filter param (NULL=All, 0=not Asset,
+										1=Asset), IsAsset column and 'Asset' text in the computed ItemType column.
 	34   13/08/2026   Sahdev Saliya     Added EngineSerialNumber [PN-17607]
 	35   17-Sep-2026   Rajesh Gami       Performance fix (carried over from the PAS_DB branch fix, adapted to this
 	                                     branch's version of the SP - see below for the differences that made this
@@ -107,6 +109,7 @@ CREATE    PROCEDURE [dbo].[ProcStockList]
 	@GlobalFilter varchar(50) = NULL,        
 	@stockTypeId int = NULL,
 	@IsNonStock bit = NULL,
+	@IsAsset bit = NULL, -- [PN-18407]
 	@StocklineNumber varchar(50) = NULL,
 	@MainPartNumber varchar(50) = NULL,       
 	@PartNumber varchar(50) = NULL,        
@@ -294,7 +297,8 @@ BEGIN
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,
 		ISNULL(stl.IsNonStock,0) AS IsNonStock,
-		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		CAST(ISNULL(stl.IsAsset,0) AS BIT) AS IsAsset, -- [PN-18407]
+		CASE WHEN ISNULL(stl.IsAsset,0) = 1 THEN 'Asset' WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -357,7 +361,7 @@ BEGIN
 		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE EXISTS (SELECT 1 FROM dbo.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
-		 AND stl.MasterCompanyId=@MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
+		 AND stl.MasterCompanyId=@MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@IsAsset IS NULL OR ISNULL(stl.IsAsset,0) = @IsAsset) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND ISNULL(stl.IsParent, 0) = 1 
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
@@ -624,7 +628,8 @@ BEGIN
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
 		stl.ItemTypeId,
 		ISNULL(stl.IsNonStock,0) AS IsNonStock,
-		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		CAST(ISNULL(stl.IsAsset,0) AS BIT) AS IsAsset, -- [PN-18407]
+		CASE WHEN ISNULL(stl.IsAsset,0) = 1 THEN 'Asset' WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -686,7 +691,7 @@ BEGIN
 		 --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		 --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE EXISTS (SELECT 1 FROM dbo.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
-		 AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1 AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,
+		 AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1 AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@IsAsset IS NULL OR ISNULL(stl.IsAsset,0) = @IsAsset) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
@@ -960,7 +965,8 @@ BEGIN
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,
 		ISNULL(stl.IsNonStock,0) AS IsNonStock,
-		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		CAST(ISNULL(stl.IsAsset,0) AS BIT) AS IsAsset, -- [PN-18407]
+		CASE WHEN ISNULL(stl.IsAsset,0) = 1 THEN 'Asset' WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -1020,7 +1026,7 @@ BEGIN
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE EXISTS (SELECT 1 FROM DBO.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
-		 AND ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
+		 AND ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@IsAsset IS NULL OR ISNULL(stl.IsAsset,0) = @IsAsset) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
@@ -1286,7 +1292,8 @@ BEGIN
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		stl.ItemTypeId,
 		ISNULL(stl.IsNonStock,0) AS IsNonStock,
-		CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
+		CAST(ISNULL(stl.IsAsset,0) AS BIT) AS IsAsset, -- [PN-18407]
+		CASE WHEN ISNULL(stl.IsAsset,0) = 1 THEN 'Asset' WHEN ISNULL(stl.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS ItemType,
 		stl.IsActive,
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -1347,7 +1354,7 @@ BEGIN
 	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 	 WHERE EXISTS (SELECT 1 FROM DBO.RoleManagementStructure RMS WITH (NOLOCK) INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId WHERE RMS.EntityStructureId = stl.ManagementStructureId)
-	  AND ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1 AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@StockLineIds IS NULL OR stl
+	  AND ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsActive, 1) = 1 AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@IsNonStock IS NULL OR ISNULL(stl.IsNonStock,0) = @IsNonStock) AND (@IsAsset IS NULL OR ISNULL(stl.IsAsset,0) = @IsAsset) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                

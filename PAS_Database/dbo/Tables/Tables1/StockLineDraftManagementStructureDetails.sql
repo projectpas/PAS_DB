@@ -49,3 +49,8 @@ BEGIN
 
 	SET NOCOUNT ON;
 END
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_StockLineDraftMSD_Module_Reference]
+    ON [dbo].[StockLineDraftManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

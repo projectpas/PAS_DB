@@ -4881,6 +4881,19 @@
     <Build Include="dbo\Stored Procedures\USP_SyncWorksheetStatusByWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseUsageInfoReminderData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseSummaryByLeaseHeaderId.sql" />
+    <Build Include="dbo\Views\vw_DocumentModuleName.sql" />
+    <Build Include="dbo\Views\vw_DocumentExpirationModule.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetDocumentExpirationReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDocumentExpirationFilterOptions.sql" />
+    <Build Include="dbo\Tables\StocklineTimeCycleHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SetAircraftSubComponentLink.sql" />
+    <Build Include="dbo\Stored Procedures\USP_MoveAircraftInstalledSubComponentLink.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LinkAircraftInstalledSubComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleFromCycleEntry.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

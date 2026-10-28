@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [USP_SearchStocklineForSubComponent]
  ** Description: Lists the stocklines that can be added as a sub-component of @ParentStocklineId.
                  A stockline is eligible when it is an active, non-deleted, stock (not non-stock)
@@ -17,6 +18,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana     [PN-18321] Created
+    2    23/OCT/2026  Kishor Makwana    [PN-18118] Stockline installed on an aircraft / engine is not listed
 
 -- EXEC USP_SearchStocklineForSubComponent
 ************************************************************************/
@@ -80,6 +82,7 @@ BEGIN
 				AND ISNULL(s.[IsNonStock], 0) = 0
 				AND ROUND(ISNULL(s.[QuantityAvailable], 0), 2) > 0
 				AND s.[SubComponentParentStocklineId] IS NULL
+				AND ISNULL(s.[AircraftInstalledPartDetailsId], 0) = 0
 				AND s.[StockLineId] <> @ParentStocklineId
 				AND NOT EXISTS (SELECT 1 FROM [dbo].[Stockline] c WITH (NOLOCK) WHERE c.[SubComponentParentStocklineId] = s.[StockLineId])
 				AND NOT EXISTS (SELECT 1 FROM @tbl_ExcludeIds ex WHERE ex.[Value] = s.[StockLineId])

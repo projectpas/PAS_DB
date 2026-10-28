@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockListFromItemMasterId]               
  ** Author:  Amit Ghediya    
  ** Description:     
@@ -21,12 +21,13 @@
 	8    07/20/2026   Ayushi Patel    [PN-17343]Revert UOM conversion (fn_ConvertUOM) from Qty & UnitCost columns when @IsFromSOSOQ = 0
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
 	10   29/July/2026  MOIN BLOCH						PN-17465 - Removed ItemTypeId due to that we not able to get Non-Stock List
+	11   26/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(stl.IsSubComponent,0) =0 AND ISNULL(stl.SubComponentParentStocklineId,0) =0) : sub components are not listed in the Create SO / SOQ stockline popup (@IsFromSOSOQ = 1); On Hand Stock list is not restricted
 
 -- exec ProcStockListFromItemMasterId @PageNumber=1,@PageSize=5,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvai
 lable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@PurchaseOrderNumber=NULL,@RepairOrderNumber=NULL,@Vendor=NULL,@EmployeeId=2,@MasterCompanyId=1,@ItemMasterId=514,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@TaggedByName=NULL,@TraceableToName=NULL
 ,@TraceableToName=NULL,@TagDate=NULL,@IsALTStock=0,@Warehouse=NULL,@Location=NULL  
 ************************************************************************/    
-CREATE    PROCEDURE [dbo].[ProcStockListFromItemMasterId]  
+CREATE   PROCEDURE [dbo].[ProcStockListFromItemMasterId]  
 @PageNumber int = NULL,      
 @PageSize int = NULL,      
 @SortColumn varchar(50)=NULL,      
@@ -124,7 +125,7 @@ BEGIN
 			   ,ISNULL((SELECT TOP 1 ISNULL(SP_CalSPByPP_UnitSalePrice,0) FROM dbo.ItemMasterPurchaseSale imp WITH(NOLOCK) WHERE im.ItemMasterId =imp.ItemmasterId AND imp.ConditionId = c.ConditionId),0) AS BaseSalePrice
 				FROM  [dbo].[ItemMaster] im WITH (NOLOCK) 					
 					LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionId,','))
-					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId  AND stl.ConditionId = c.ConditionId AND stl.IsParent = 1  AND stl.IsCustomerStock = 0 AND stl.QuantityOnHand > 0 AND stl.QuantityAvailable > 0     
+					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON im.ItemMasterId = stl.ItemMasterId  AND stl.ConditionId = c.ConditionId AND stl.IsParent = 1  AND stl.IsCustomerStock = 0 AND stl.QuantityOnHand > 0 AND stl.QuantityAvailable > 0 AND ISNULL(stl.IsSubComponent,0) = 0 AND ISNULL(stl.SubComponentParentStocklineId,0) = 0     
 				    LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId      
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId      
 					LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId      

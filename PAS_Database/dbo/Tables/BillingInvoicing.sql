@@ -55,15 +55,11 @@
     [IsStandardInvoicePosted]     BIT             NULL,
     [CreditMemoHeaderId]          BIGINT          NULL,
     [IntegrationTypeId]           INT             NULL,
-    -- Set to 1 by USP_ReOpenSalesOrderInvoice when a posted invoice is re-opened. Unlike IsInvoicePosted/
-    -- PostedDate (which get cleared on re-open so the invoice looks editable again), this flag is never
-    -- cleared - it's the only reliable "this invoice was posted at least once" signal once InvoiceStatus/
-    -- IsInvoicePosted have been reset back to Reviewed. Used by the UI to keep "Print Invoice" enabled
-    -- for a re-opened invoice even though its current status alone would otherwise suggest it's a brand
-    -- new, never-posted draft with nothing to print.
     [IsReOpened]                  BIT             CONSTRAINT [DF_BillingInvoicing_IsReOpened] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 GO
 CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_ReferenceId_ModuleId]
     ON [dbo].[BillingInvoicing]([ReferenceId] ASC, [ModuleId] ASC)
@@ -71,4 +67,10 @@ CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_ReferenceId_ModuleId]
 -- Added 2026-08-11: supports USP_Lot_GetAllLotViewsByLotId_Filter's LEFT JOIN
 -- "so.SalesOrderId = sobi.ReferenceId ... AND sobi.ModuleId = @SOModuleId" (see
 -- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_MC_Module_InvoiceDate]
+    ON [dbo].[BillingInvoicing]([MasterCompanyId] ASC, [ModuleId] ASC, [InvoiceDate] ASC)
+    INCLUDE([ReferenceId], [IsVersionIncrease], [IsActive], [IsDeleted], [IsPerformaInvoice], [IsStandardInvoicePosted]);
 

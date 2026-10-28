@@ -47,12 +47,13 @@
     7    17/09/2026     Kishor Makwana		   [PN-17967] Captured a single @Now = SYSUTCDATETIME() once per call and reused it for every CreatedDate/UpdatedDate this proc writes (previously each INSERT called GETUTCDATE() separately). This makes the Time-row and Cycle-row that a single combined Save writes to LeaseStocklineUsageHistory share an EXACT, identical CreatedDate - the Usage History popup now uses that exact match to merge them back onto one display line instead of showing them as two unrelated rows.
     8    23/09/2026     Kishor Makwana          [PN-18062] Added @TotalTimeHours/@TotalTimeMinutes/@TotalCycles - manually-entered, informational-only running totals (never derived from/validated against @TSNHours/@TSNMinutes/@CSN or history, do not drive billing). They persist independently of @SaveTime/@SaveCycle (a value is written whenever passed, kept unchanged when NULL - same pattern already used for @Notes), so Total Time/Total Cycles can be saved on their own without also submitting a new Record Time/Record Cycle reading in the same call. Loosened the top guard clause accordingly, and re-verified that CurrentTSNHours/CurrentTSNMinutes/CurrentCSN below are already a plain overwrite (never summed) so "Last Time/Cycle Reported" already shows only the latest reading, not a cumulative total, as PN-18062 requires - no change needed there.
     9    23/09/2026     Kishor Makwana          [PN-18062 follow-up] Removed the "new reading must be greater than the last reported reading" guard for both Time and Cycle - a Record Time/Record Cycle entry can now be saved at any non-negative value, including lower than the last reported reading (matching client-side validation removal in lease-usage-info-entry.component.ts).
+    10   23/10/2026     Kishor Makwana         Time / Cycle entry (period usage TSN / CSN) is also written to StocklineTimeCycleHistory (USP_AddStocklineTimeCycleHistory, EntryType 'Usage', Module 'Leasing') and adds to the Total Time / Total Cycles of the stockline. The manual Total Time / Total Cycles stays informational. A zero entry is not written.
     
 
 exec USP_SaveLeaseStocklineUsage @LeaseStocklineId=1,@SaveTime=1, @TimeEntryDate='2026-09-15', @TimeFromDate='2026-09-01', @TimeToDate='2026-09-15',@TSNHours=2, @TSNMinutes=45, @TotalTimeHours=125, @TotalTimeMinutes=15, @SaveCycle=1, @CycleEntryDate='2026-09-15', @CycleFromDate='2026-09-01', @CycleToDate='2026-09-15',	@CSN=50, @TotalCycles=500, @Notes=N'test',@MasterCompanyId=1, @UpdatedBy='test'
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SaveLeaseStocklineUsage]
+CREATE   PROCEDURE [dbo].[USP_SaveLeaseStocklineUsage]
 	@LeaseStocklineId BIGINT,
 	@SaveTime BIT = 0,
 	@TimeEntryDate DATETIME2(7) = NULL,
@@ -158,6 +159,14 @@ BEGIN
 
 		DECLARE @Now DATETIME2(7) = SYSUTCDATETIME();
 
+		-- Time / Cycle ledger (StocklineTimeCycleHistory) : stockline + lease of this lease component
+		DECLARE @TcStocklineId BIGINT, @TcLeaseHeaderId BIGINT, @TcLeaseNumber VARCHAR(50), @TcModuleId BIGINT, @TcHistoryId BIGINT, @TcRowId BIGINT;
+		SELECT @TcStocklineId = ls.[StockLineId], @TcLeaseHeaderId = ls.[LeaseHeaderId], @TcLeaseNumber = lh.[LeaseNumber]
+		FROM [dbo].[LeaseStockline] ls WITH (NOLOCK)
+			LEFT JOIN [dbo].[LeaseHeader] lh WITH (NOLOCK) ON lh.[LeaseHeaderId] = ls.[LeaseHeaderId]
+		WHERE ls.[LeaseStocklineId] = @LeaseStocklineId;
+		SELECT TOP 1 @TcModuleId = [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'Leasing';
+
 		DECLARE @HasSnapshotRow BIT = 0;
 		DECLARE @CurrentTSNHours DECIMAL(18,6) = NULL;
 		DECLARE @CurrentTSNMinutes DECIMAL(18,6) = NULL;
@@ -234,6 +243,14 @@ BEGIN
 			VALUES
 				(@LeaseStocklineId, 'T', @TimeEntryDate, @TimeFromDate, @TimeToDate, @TSNHours, @TSNMinutes, NULL, @Notes,
 				 @MasterCompanyId, @UpdatedBy, @UpdatedBy, @Now, @Now, 1, 0);
+
+			SET @TcHistoryId = SCOPE_IDENTITY();
+
+			-- stockline Total Time (TSN) : the period usage is added
+			IF (@TcStocklineId IS NOT NULL AND ISNULL(@TSNHours, 0) + ISNULL(@TSNMinutes, 0) > 0)
+				EXEC [dbo].[USP_AddStocklineTimeCycleHistory] @StocklineId = @TcStocklineId, @ModuleId = @TcModuleId, @ReferenceId = @TcLeaseHeaderId, @ReferenceNumber = @TcLeaseNumber,
+					 @SubReferenceId = @TcHistoryId, @EntryType = 'Usage', @EntryDate = @TimeEntryDate, @Hours = @TSNHours, @Minutes = @TSNMinutes, @Memo = @Notes,
+					 @MasterCompanyId = @MasterCompanyId, @CreatedBy = @UpdatedBy, @StocklineTimeCycleHistoryId = @TcRowId OUTPUT;
 		END
 
 		IF (@SaveCycle = 1)
@@ -244,6 +261,14 @@ BEGIN
 			VALUES
 				(@LeaseStocklineId, 'C', @CycleEntryDate, @CycleFromDate, @CycleToDate, NULL, NULL, @CSN, @Notes,
 				 @MasterCompanyId, @UpdatedBy, @UpdatedBy, @Now, @Now, 1, 0);
+
+			SET @TcHistoryId = SCOPE_IDENTITY();
+
+			-- stockline Total Cycles (CSN) : the period usage is added
+			IF (@TcStocklineId IS NOT NULL AND ISNULL(@CSN, 0) > 0)
+				EXEC [dbo].[USP_AddStocklineTimeCycleHistory] @StocklineId = @TcStocklineId, @ModuleId = @TcModuleId, @ReferenceId = @TcLeaseHeaderId, @ReferenceNumber = @TcLeaseNumber,
+					 @SubReferenceId = @TcHistoryId, @EntryType = 'Usage', @EntryDate = @CycleEntryDate, @Cycles = @CSN, @Memo = @Notes,
+					 @MasterCompanyId = @MasterCompanyId, @CreatedBy = @UpdatedBy, @StocklineTimeCycleHistoryId = @TcRowId OUTPUT;
 		END
 
 		SELECT LeaseStocklineId,

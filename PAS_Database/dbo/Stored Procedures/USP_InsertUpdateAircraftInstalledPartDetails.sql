@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:        [USP_InsertUpdateAircraftInstalledPartDetails]           
  ** Author:      Amit Ghediya
  ** Description: This stored procedure is used to Add and Update AircraftInstalledPartDetails
@@ -23,8 +24,10 @@
  ** 11   09/10/2026	  Amit Ghediya		History module ModuleName now 'Engine Installed Components' when
 								@IsFromAircraft = 0 (was always 'Installed Components', which made
 								an engine's component history indistinguishable from an aircraft's)
+ ** 12   23/OCT/2026	  Kishor Makwana	[PN-18118] Installed component = Sub Component of the aircraft / engine stockline (IsSubComponent, SubComponentParentStocklineId,
+								SubComponentQty) via USP_SetAircraftSubComponentLink; stockline replaced on the row is unlinked (and its AircraftInstalledPartDetailsId / AircraftTailNumber cleared)
  ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
+CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
 	@AircraftInstalledPartDetailsId BIGINT,
     @AircraftRegistryId BIGINT,
@@ -153,6 +156,9 @@ BEGIN
 
 		
 
+		-- [PN-18118] aircraft (1) / engine (0) of this row, used for the Sub Component link
+		DECLARE @LinkIsFromAircraft BIT = ISNULL(@IsFromAircraft, 0);
+
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
 			SELECT 1 
@@ -206,6 +212,16 @@ BEGIN
 				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = 0, [AircraftTailNumber] = NULL WHERE [StockLineId] = @OldStockLineId;
 			END
 
+			-- [PN-18118] Sub Component link of the aircraft / engine stockline (parent) and the stockline of this row
+			SELECT @LinkIsFromAircraft = ISNULL([IsFromAircraft], 0) FROM DBO.AircraftInstalledPartDetails WITH(NOLOCK) WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
+
+			IF (ISNULL(@Old_StockLineId_Hist, 0) > 0 AND @Old_StockLineId_Hist <> ISNULL(@StockLineId, 0))
+				UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = 0, [AircraftTailNumber] = NULL
+				WHERE [StockLineId] = @Old_StockLineId_Hist AND [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+
+			EXEC [dbo].[USP_SetAircraftSubComponentLink] @StockLineId = @StockLineId OUTPUT, @OldStockLineId = @Old_StockLineId_Hist, @RegistryId = @AircraftRegistryId,
+				 @IsFromAircraft = @LinkIsFromAircraft, @Quantity = @Quantity, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy;
+
 			-- UPDATE
 			UPDATE DBO.AircraftInstalledPartDetails
 			SET
@@ -252,6 +268,10 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			-- [PN-18118] Sub Component link (@StockLineId can change when part of the stockline is split)
+			EXEC [dbo].[USP_SetAircraftSubComponentLink] @StockLineId = @StockLineId OUTPUT, @OldStockLineId = 0, @RegistryId = @AircraftRegistryId,
+				 @IsFromAircraft = @LinkIsFromAircraft, @Quantity = @Quantity, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy;
+
 			-- INSERT
 			INSERT INTO AircraftInstalledPartDetails
 			(

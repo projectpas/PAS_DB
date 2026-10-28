@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [searchstocklineFromWOPopUp]             
  ** Author:  Hemnat Saliya
  ** Description: This stored procedure is used to Get Stockline Data
@@ -17,6 +18,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 5 leftover IsNonStock=0 exclusion filters.
+	8    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 ************************************************************************
 EXEC [searchstocklineFromWOPopUp] '12',8,108,1,'0'
 ************************************************************************/
@@ -128,7 +130,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						,mf.Name as StkLineManufacturer
 						,imps.PP_FXRatePerc AS FixRate
 			FROM DBO.ItemMaster im WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.isActive = 1 AND sl.IsDeleted = 0 
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.isActive = 1 AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 								AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 					---AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN (SELECT ConditionId FROM #ConditionGroup) ELSE sl.ConditionId END
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -234,7 +236,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						,mf.Name as StkLineManufacturer
 						,imps.PP_FXRatePerc AS FixRate
 			FROM DBO.ItemMaster im WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.isActive = 1 AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.isActive = 1 AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 														--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN @ConditionId ELSE sl.ConditionId END
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0

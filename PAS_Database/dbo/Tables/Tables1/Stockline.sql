@@ -725,3 +725,9 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_SubComponentParentStocklineId]
     ON [dbo].[Stockline]([SubComponentParentStocklineId] ASC)
     INCLUDE([SubComponentQty], [MasterCompanyId], [isDeleted]) WHERE ([SubComponentParentStocklineId] IS NOT NULL);
 
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_Stockline_POId_Perf]
+    ON [dbo].[Stockline]([PurchaseOrderId] ASC)
+    INCLUDE([StockLineId], [IsDeleted], [IsNonStock], [IsFinishGood]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

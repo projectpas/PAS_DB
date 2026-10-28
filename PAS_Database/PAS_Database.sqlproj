@@ -3887,6 +3887,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\Procs1\AutoCompleteForCustomerVendorCompanyDropdownsTopN.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
     <Build Include="dbo\Tables\WorkType.sql" />
     <Build Include="dbo\Tables\ReleaseNotesTitleDetails.sql" />

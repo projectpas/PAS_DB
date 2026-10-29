@@ -426,7 +426,7 @@ BEGIN
 					[BillingRate], [HeaderMarkupId], [BillingMethodId], [TaskId], 0
 			FROM #workOrderQuoteMaterialKitMappingList;
 
-			EXEC [dbo].[usp_SavePostKitforWOQ] @WOQMaterialKitMappingType;
+			EXEC [DBO].[usp_SavePostKitforWOQ] @WOQMaterialKitMappingType, @IsTransferredFromWO = 1;
 		END
 		BEGIN TRAN;
 		;WITH MatTotals AS (

@@ -74,7 +74,8 @@ BEGIN
   OR @StatusCode = 'WorkOrderQuoteChargesAdded' OR @StatusCode = 'WorkOrderQuoteChargesTransferredFromWO'
   OR @StatusCode = 'WorkOrderQuoteLaborUpdated' OR @StatusCode = 'WorkOrderQuoteLaborRemoved'
   OR @StatusCode = 'WorkOrderQuoteFreightUpdated' OR @StatusCode = 'WorkOrderQuoteFreightRemoved'
-  OR @StatusCode = 'WorkOrderQuoteChargesUpdated' OR @StatusCode = 'WorkOrderQuoteChargesRemoved')
+  OR @StatusCode = 'WorkOrderQuoteChargesUpdated' OR @StatusCode = 'WorkOrderQuoteChargesRemoved'
+  OR @StatusCode = 'WorkOrderQuoteKitAdded' OR @StatusCode = 'WorkOrderQuoteKitTransferredFromWO')
   BEGIN        
 	SELECT @TemplateText = [TemplateText] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode; 
 	

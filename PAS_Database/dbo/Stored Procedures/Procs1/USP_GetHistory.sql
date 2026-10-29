@@ -82,7 +82,7 @@ BEGIN
         SELECT HS.[HistoryId],
              HS.[ModuleId],         
              WOQ.[QuoteNumber] AS [WorkOrderNum],
-             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added', 'Material Added - New Entry', 'Material Added - Transferred from WO', 'Material Updated', 'Material Remove', 'Labor Added - New Entry', 'Labor Added - Transferred from WO', 'Freight Added - New Entry', 'Freight Added - Transferred from WO', 'Charges Added - New Entry', 'Charges Added - Transferred from WO', 'Labor Updated', 'Labor Remove', 'Freight Updated', 'Freight Remove', 'Charges Updated', 'Charges Remove') THEN WOPN.[PartNumber]
+             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added', 'Material Added - New Entry', 'Material Added - Transferred from WO', 'Material Updated', 'Material Remove', 'Labor Added - New Entry', 'Labor Added - Transferred from WO', 'Freight Added - New Entry', 'Freight Added - Transferred from WO', 'Charges Added - New Entry', 'Charges Added - Transferred from WO', 'Labor Updated', 'Labor Remove', 'Freight Updated', 'Freight Remove', 'Charges Updated', 'Charges Remove', 'Kit Added - New Entry', 'Kit Added - Transferred from WO') THEN WOPN.[PartNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' AND ISNULL(WOPN.[RevisedSerialNumber], '') <> ''
                        THEN WOPN.[RevisedPartNumber] + '-' + WOPN.[RevisedSerialNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' THEN WOPN.[RevisedPartNumber] + '-' + SL.[ControlNumber]

@@ -25,11 +25,14 @@
 	5	 01 Jul 2025	Moin Bloch			Modified (Fixed For Billing Amount in WOQ Kit)
 	6	 12 Jan 2026	Rajesh Gami			Modified: UOM Conversion related change
 	7	 02 OCT 2026	AYUSHI PATEL		[PN-14788]Modified: Fixed CreatedDate and UpdatedDate to GETUTCDATE() on new kit mapping insert
+	8    29-Oct-2026	Divyesh Kathiriya   Record each newly added or transferred quote material kit [PN-18341].
+
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[usp_SavePostKitforWOQ]
-	@tbl_KITPartType WOQMaterialKitMappingType READONLY
+	@tbl_KITPartType WOQMaterialKitMappingType READONLY,
+	@IsTransferredFromWO BIT = 0
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -37,6 +40,13 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
+			DECLARE @AddedKitHistory TABLE
+			(
+				[RowId] INT IDENTITY(1,1), [WorkOrderQuoteId] BIGINT, [WorkflowWorkOrderId] BIGINT,
+				[KitNumber] VARCHAR(256), [Quantity] DECIMAL(18,6), [MasterCompanyId] INT,
+				[CreatedBy] VARCHAR(256), [UpdatedBy] VARCHAR(256), [IsDeleted] BIT
+			);
+
 			IF OBJECT_ID(N'tempdb..#KITPartType') IS NOT NULL
 			BEGIN
 				DROP TABLE #KITPartType 
@@ -87,6 +97,9 @@ BEGIN
 			INSERT INTO [dbo].[WorkOrderQuoteMaterialKitMapping]
 		    (WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],[Quantity],[UnitCost],[ExtendedCost],
 		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[BillingRate],[BillingAmount],[TaskId])
+			OUTPUT INSERTED.[WorkOrderQuoteId], INSERTED.[WorkflowWorkOrderId], INSERTED.[KitNumber],
+				INSERTED.[Quantity], INSERTED.[MasterCompanyId], INSERTED.[CreatedBy], INSERTED.[UpdatedBy], INSERTED.[IsDeleted]
+			INTO @AddedKitHistory ([WorkOrderQuoteId], [WorkflowWorkOrderId], [KitNumber], [Quantity], [MasterCompanyId], [CreatedBy], [UpdatedBy], [IsDeleted])
 		    SELECT WorkOrderQuoteId,WorkflowWorkOrderId,tmp.KitId,KM.KitNumber,tmp.[ItemMasterId],[Quantity],[UnitCost],(UnitCost),
 		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],GETUTCDATE(),GETUTCDATE(),tmp.[IsActive],tmp.[IsDeleted],[UnitCost],tmp.[BillingAmount],tmp.[TaskId]   --(UnitCost),
 		    FROM #KITPartType tmp
@@ -149,7 +162,43 @@ BEGIN
 				
 					UPDATE  dbo.WorkOrderQuoteDetails SET MaterialFlatBillingAmount=@TotalBilling, MaterialCost = @TotalAmount ,MaterialBilling=@TotalBilling,MaterialRevenue=@TotalBilling WHERE  WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
 			END
-			
+
+			DECLARE @KitHistoryModuleId BIGINT, @KitHistoryRowId INT = 1, @KitHistoryRowCount INT;
+			DECLARE @KitHistoryQuoteId BIGINT, @KitHistoryPartId BIGINT, @KitHistoryCompanyId INT;
+			DECLARE @KitHistoryText VARCHAR(MAX), @KitHistoryNewValue VARCHAR(60), @KitHistoryActor VARCHAR(256);
+			DECLARE @KitHistoryStatusCode VARCHAR(256) = CASE WHEN ISNULL(@IsTransferredFromWO, 0) = 1
+				THEN 'WorkOrderQuoteKitTransferredFromWO' ELSE 'WorkOrderQuoteKitAdded' END;
+
+			SELECT @KitHistoryModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
+			SELECT @KitHistoryRowCount = COUNT(*) FROM @AddedKitHistory;
+
+			WHILE @KitHistoryRowId <= @KitHistoryRowCount
+			BEGIN
+				SET @KitHistoryText = NULL;
+				SELECT @KitHistoryQuoteId = H.[WorkOrderQuoteId], @KitHistoryPartId = D.[WOPartNoId],
+					@KitHistoryCompanyId = H.[MasterCompanyId],
+					@KitHistoryText = REPLACE(HT.[TemplateBody], '##PNNUM##', H.[KitNumber]),
+					@KitHistoryNewValue = CONVERT(VARCHAR(60), H.[Quantity]),
+					@KitHistoryActor = COALESCE(NULLIF(H.[UpdatedBy], ''), H.[CreatedBy])
+				FROM @AddedKitHistory H
+				INNER JOIN [DBO].[WorkOrderQuoteDetails] D WITH(NOLOCK)
+					ON H.[WorkOrderQuoteId] = D.[WorkOrderQuoteId] AND H.[WorkflowWorkOrderId] = D.[WorkflowWorkOrderId]
+					AND H.[MasterCompanyId] = D.[MasterCompanyId] AND ISNULL(D.[IsVersionIncrease], 0) = 0
+				INNER JOIN [DBO].[WorkOrderQuote] Q WITH(NOLOCK)
+					ON D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND D.[MasterCompanyId] = Q.[MasterCompanyId]
+				INNER JOIN [DBO].[HistoryTemplate] HT WITH(NOLOCK) ON HT.[TemplateCode] = @KitHistoryStatusCode
+				WHERE H.[RowId] = @KitHistoryRowId AND ISNULL(H.[IsDeleted], 0) = 0;
+
+				IF @KitHistoryText IS NOT NULL
+				BEGIN
+					EXEC [DBO].[USP_History] @ModuleId = @KitHistoryModuleId, @RefferenceId = @KitHistoryQuoteId,
+						@SubModuleId = 0, @SubRefferenceId = @KitHistoryPartId, @OldValue = '0', @NewValue = @KitHistoryNewValue,
+						@HistoryText = @KitHistoryText, @StatusCode = @KitHistoryStatusCode, @MasterCompanyId = @KitHistoryCompanyId,
+						@CreatedBy = @KitHistoryActor, @UpdatedBy = @KitHistoryActor;
+				END
+				SET @KitHistoryRowId += 1;
+			END
+
 			END
 			COMMIT TRANSACTION
 		END TRY    

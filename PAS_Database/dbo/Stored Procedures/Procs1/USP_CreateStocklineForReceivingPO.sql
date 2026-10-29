@@ -56,6 +56,7 @@
     40   29-SEP-2026  Ayushi Patel      [PN-18138]Re-enabled IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0) (Stock / Non-Stock) to allow receiving the remaining qty after partial receiving(as discussed with hemant sir)
     41   01-OCT-2026  RAJESH GAMI       [PN-18183] Stock: StocklineDraft StockLineId update (@QtyAdded > @maxQtyLimit) now only for the draft being received (@SelectedStockLineDraftId) and skipped when @NewStocklineId is NULL (partial receipt). Earlier it updated ALL IsParent = 1 drafts of the PO part, so the last receipt overwrote the earlier receipts' drafts
 	30   02-OCT-2026  Rajesh Gami       Modified the IS NULL condition to use the proper ISNULL condition. (stocklinedraft.Stockline IS NULL to ISNULL(stocklinedraft.Stockline,0) = 0)
+	42   29-OCT-2026  Vishal Suthar     [PN-18444] Quote the received stocklines on the SOQ part the PO was created from
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -3113,6 +3114,13 @@ DELETE FROM #tmpCodePrefixes_NS;
             EXEC DBO.UpdateStocklineDraftDetail @PurchaseOrderId;
             EXEC DBO.UpdateAssetInventoryDraftPoDetails @PurchaseOrderId;
             EXEC DBO.UpdateNonStockDraftDetail @PurchaseOrderId;
+
+            -- [PN-18444] Received stocklines of a PO created from an SOQ part are quoted on that SOQ part
+            DECLARE @ReceivedStockLineIds VARCHAR(MAX) = STUFF((SELECT ',' + CAST([StockLineId] AS VARCHAR(20)) FROM #InsertedStkForLot WHERE [StockLineId] IS NOT NULL FOR XML PATH('')), 1, 1, '');
+            IF (ISNULL(@ReceivedStockLineIds, '') <> '')
+            BEGIN
+                EXEC DBO.USP_LinkReceivedStocklineToSOQ @StockLineIds = @ReceivedStockLineIds, @UpdatedBy = @UpdatedBy, @MasterCompanyId = @MasterCompanyId;
+            END
 
             DECLARE @POPartLoopID AS INT;
 

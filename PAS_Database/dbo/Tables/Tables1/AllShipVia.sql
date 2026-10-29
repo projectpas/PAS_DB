@@ -52,3 +52,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_AllShipVia_Module_Reference]
+    ON [dbo].[AllShipVia]([ModuleId] ASC, [ReferenceId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

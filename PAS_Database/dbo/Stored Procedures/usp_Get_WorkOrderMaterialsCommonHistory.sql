@@ -19,6 +19,7 @@
  ** --     --------      -------------      --------------------------------
     1      31-AUG-2026   Ayushi Patel       Created (PN-14788) 
     2      14-Oct-2026   Divyesh Kathriya   Remove Active and Include tendered material stockline,PO and RO creation creation Actions [PN-18307].
+    3      27-Oct-2026   Sahdev Saliya      Material rows: UOM column shows Consume UOM (was Purchase UOM); fall back to ItemMaster UOMs when no stockline [PN-18423].
 
 exec usp_Get_WorkOrderMaterialsCommonHistory @WorkOrderId=10662, @EmployeeId=2
 **********************/
@@ -74,7 +75,7 @@ BEGIN
                      ELSE dbo.fn_ConvertUOM(ISNULL(WOM.QuantityIssued, 0), uomStock.ShortName, uomConsume.ShortName, 0, WOM.MasterCompanyId) END AS QtyIssued,
                 CASE WHEN ISNULL(uomStock.ShortName, '') = ISNULL(uomConsume.ShortName, '') THEN ISNULL(WOM.Quantity, 0) - ISNULL(WOM.QuantityIssued, 0)
                      ELSE dbo.fn_ConvertUOM(ISNULL(WOM.Quantity, 0) - ISNULL(WOM.QuantityIssued, 0), uomStock.ShortName, uomConsume.ShortName, 0, WOM.MasterCompanyId) END AS QtyRemaining,
-                WOM.UOM AS UOM,
+                ISNULL(uomConsume.ShortName, WOM.UOM) AS UOM,
                 SLF.Name AS Shelf,
                 B.Name AS Bin,
                 WOM.IsActive AS IsActive,
@@ -92,8 +93,8 @@ BEGIN
                 WHERE MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
                 ORDER BY MSTL.WOMStockLineId
             ) MatUOM
-            LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = MatUOM.StockUnitOfMeasureId
-            LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = MatUOM.ConsumeUnitOfMeasureId
+            LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = COALESCE(MatUOM.StockUnitOfMeasureId, IM.StockUnitOfMeasureId)
+            LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = COALESCE(MatUOM.ConsumeUnitOfMeasureId, IM.ConsumeUnitOfMeasureId)
             WHERE WOM.WorkOrderId = @WorkOrderId
         ),
         MaterialLagged AS

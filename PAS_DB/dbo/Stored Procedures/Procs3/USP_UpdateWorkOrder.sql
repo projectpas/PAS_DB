@@ -474,10 +474,7 @@ BEGIN
 				  ,WOP.[AssignDate] = WOPT.[AssignDate]
 				  ,WOP.[ReceivingCustomerWorkId] = WOPT.[ReceivingCustomerWorkId]
 				  ,WOP.[ExpertiseId] = WOPT.[ExpertiseId]
-				  --,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
-				  --,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
-				  --,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END				  
-				  -- Outgoing MPN is owned by Settlement / Change MPN; keep the saved value so a stale WO page does not revert it
+			       -- Outgoing MPN is owned by Settlement / Change MPN; keep the saved value so a stale WO page does not revert it
 				  ,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedItemmasterid] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
 				  ,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedPartNumber] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
 				  ,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOP.[RevisedItemmasterid],0) > 0 THEN WOP.[RevisedPartDescription] WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END				  				  

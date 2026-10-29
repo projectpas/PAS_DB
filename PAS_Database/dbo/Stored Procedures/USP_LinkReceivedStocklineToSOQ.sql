@@ -29,7 +29,6 @@ BEGIN
 
 		DECLARE @SOQPartStatusOrder INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Order');
 		DECLARE @SOQPartStatusFulfilled INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Fulfilled');
-		DECLARE @SOQPartStatusOpen INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open');
 
 		IF OBJECT_ID(N'tempdb..#SOQReceivedStk') IS NOT NULL
 			DROP TABLE #SOQReceivedStk
@@ -46,12 +45,6 @@ BEGIN
 		-- Received stockline -> PO part (or its split parent) created from an SOQ -> open, not converted SOQ part with the same PN + condition
 		INSERT INTO #SOQReceivedStk ([StockLineId], [SalesOrderQuoteId], [SalesOrderQuotePartId], [PurchaseOrderPartRecordId])
 		SELECT STK.[StockLineId], SQP.[SalesOrderQuoteId], SQP.[SalesOrderQuotePartId], STK.[PurchaseOrderPartRecordId]
-			[SalesOrderQuotePartId] BIGINT NULL
-		)
-
-		-- Received stockline -> PO part (or its split parent) created from an SOQ -> open, not converted SOQ part with the same PN + condition
-		INSERT INTO #SOQReceivedStk ([StockLineId], [SalesOrderQuoteId], [SalesOrderQuotePartId])
-		SELECT STK.[StockLineId], SQP.[SalesOrderQuoteId], SQP.[SalesOrderQuotePartId]
 		FROM [dbo].[SplitString](@StockLineIds, ',') S
 		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = TRY_CAST(S.[Item] AS BIGINT)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.[PurchaseOrderPartRecordId] = STK.[PurchaseOrderPartRecordId]
@@ -87,14 +80,6 @@ BEGIN
 			SELECT @ReceivedStatusId = CASE WHEN ISNULL(POP.[QuantityReceived], 0) >= ISNULL(POP.[QuantityOrdered], 0) THEN @SOQPartStatusFulfilled ELSE @SOQPartStatusOrder END
 			FROM [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) WHERE POP.[PurchaseOrderPartRecordId] = @POPartRecordId;
 
-			        @DiscountPercentage DECIMAL(18, 6), @DiscountPerUnit DECIMAL(18, 6), @SOQStocklineId BIGINT;
-
-			SELECT @StockLineId = NULL, @SalesOrderQuoteId = NULL, @SalesOrderQuotePartId = NULL, @QtyToQuote = 0, @PartQtyQuoted = 0,
-			       @UnitSalesPrice = 0, @MarkUpPercentage = 0, @MarkUpPerUnit = 0, @DiscountPercentage = 0, @DiscountPerUnit = 0, @SOQStocklineId = NULL;
-
-			SELECT @StockLineId = [StockLineId], @SalesOrderQuoteId = [SalesOrderQuoteId], @SalesOrderQuotePartId = [SalesOrderQuotePartId]
-			FROM #SOQReceivedStk WHERE [ID] = @LoopID;
-
 			-- Only what the SOQ part still needs, capped at the received (available) qty
 			SELECT @QtyToQuote = ISNULL(P.[QtyRequested], 0)
 			                   - ISNULL((SELECT SUM(ISNULL(S.[QtyQuoted], 0)) FROM [dbo].[SalesOrderQuoteStocklineV1] S WITH (NOLOCK)
@@ -119,7 +104,6 @@ BEGIN
 
 				INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				SELECT P.[SalesOrderQuotePartId], STK.[StockLineId], STK.[ConditionId], @QtyToQuote, STK.[QuantityAvailable], STK.[QuantityOnHand], P.[CustomerRequestDate], P.[PromisedDate], P.[EstimatedShipDate], @ReceivedStatusId, @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
-				SELECT P.[SalesOrderQuotePartId], STK.[StockLineId], STK.[ConditionId], @QtyToQuote, STK.[QuantityAvailable], STK.[QuantityOnHand], P.[CustomerRequestDate], P.[PromisedDate], P.[EstimatedShipDate], @SOQPartStatusOpen, @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
 				FROM [dbo].[SalesOrderQuotePartV1] P WITH (NOLOCK)
 				INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = @StockLineId
 				WHERE P.[SalesOrderQuotePartId] = @SalesOrderQuotePartId;

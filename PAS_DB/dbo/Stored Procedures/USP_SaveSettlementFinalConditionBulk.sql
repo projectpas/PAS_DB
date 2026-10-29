@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    14/07/2026   Moin Bloch 	    Created
+    2    29/10/2026   Moin Bloch 	    Clear CMMIds when effective Outgoing MPN is changed
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveSettlementFinalConditionBulk]
 (
@@ -236,6 +237,10 @@ BEGIN
 						   [UpdatedDate]         = @UpdatedDate,
 						   [UpdatedBy]           = @UpdatedBy,
 						   [RevisedItemmasterid] = @RevisedPartId,
+						   -- CMMs are mapped per MPN: clear them when the effective outgoing MPN (outgoing, else incoming) changes
+						   [CMMIds]              = CASE WHEN (CASE WHEN ISNULL([RevisedItemmasterid], 0) > 0 THEN [RevisedItemmasterid] ELSE [ItemMasterId] END)
+						                                  <> (CASE WHEN ISNULL(@RevisedPartId, 0) > 0 THEN @RevisedPartId ELSE [ItemMasterId] END)
+						                             THEN NULL ELSE [CMMIds] END,
 					  	   [isLocked]            = @WOIsLocked
 					 WHERE [ID] = @WorkOrderPartNoId;
 

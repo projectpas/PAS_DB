@@ -17,7 +17,8 @@
 	4    16/03/2026   Moin Bloch         Rename Activity and Description for Incoming and Outgoing MPN updates PN-15736
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
-   
+	7    29/10/2026   MOIN BLOCH         Clear CMMIds when effective Outgoing MPN is changed
+
 exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
 *************************************************************/   
@@ -369,7 +370,10 @@ BEGIN
 			  UPDATE WorkOrderPartNumber 
 			SET [RevisedItemmasterid] = @RevisedItemmasterid, 
 			    [RevisedPartNumber] = IM.[PartNumber], 
-				[RevisedPartDescription] = IM.[PartDescription], 								
+				[RevisedPartDescription] = IM.[PartDescription],
+				-- CMMs are mapped per MPN: clear them when the effective outgoing MPN (outgoing, else incoming) changes
+				[CMMIds] = CASE WHEN (CASE WHEN ISNULL(WOP.[RevisedItemmasterid], 0) > 0 THEN WOP.[RevisedItemmasterid] ELSE WOP.[ItemMasterId] END) <> @RevisedItemmasterid
+				                THEN NULL ELSE WOP.[CMMIds] END,
 				[IsFinishGood] = CASE WHEN ISNULL([IsFinishGood], 0) > 0 THEN 0 ELSE [IsFinishGood] END,
 				[IsClosed] = CASE WHEN ISNULL([IsClosed], 0) > 0 THEN 0 ELSE [IsClosed] END,
 				[ClosedDate] = NULL,

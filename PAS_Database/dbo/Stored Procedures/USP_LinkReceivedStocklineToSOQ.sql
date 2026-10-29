@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    29/10/2026   Vishal Suthar		Created [PN-18444]
+    2    29/10/2026   Vishal Suthar		SOQ part / stockline status Order (partial) or Fulfilled (fully received) [PN-18445]
 
  EXEC [dbo].[USP_LinkReceivedStocklineToSOQ] '214514', 'ADMIN User', 1
 **************************************************************/
@@ -26,6 +27,8 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 
+		DECLARE @SOQPartStatusOrder INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Order');
+		DECLARE @SOQPartStatusFulfilled INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Fulfilled');
 		DECLARE @SOQPartStatusOpen INT = (SELECT TOP 1 [SOPartStatusId] FROM [dbo].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open');
 
 		IF OBJECT_ID(N'tempdb..#SOQReceivedStk') IS NOT NULL
@@ -36,6 +39,13 @@ BEGIN
 			[ID] INT NOT NULL IDENTITY,
 			[StockLineId] BIGINT NULL,
 			[SalesOrderQuoteId] BIGINT NULL,
+			[SalesOrderQuotePartId] BIGINT NULL,
+			[PurchaseOrderPartRecordId] BIGINT NULL
+		)
+
+		-- Received stockline -> PO part (or its split parent) created from an SOQ -> open, not converted SOQ part with the same PN + condition
+		INSERT INTO #SOQReceivedStk ([StockLineId], [SalesOrderQuoteId], [SalesOrderQuotePartId], [PurchaseOrderPartRecordId])
+		SELECT STK.[StockLineId], SQP.[SalesOrderQuoteId], SQP.[SalesOrderQuotePartId], STK.[PurchaseOrderPartRecordId]
 			[SalesOrderQuotePartId] BIGINT NULL
 		)
 
@@ -63,6 +73,20 @@ BEGIN
 			DECLARE @StockLineId BIGINT, @SalesOrderQuoteId BIGINT, @SalesOrderQuotePartId BIGINT,
 			        @QtyToQuote DECIMAL(18, 6), @PartQtyQuoted DECIMAL(18, 6),
 			        @UnitSalesPrice DECIMAL(18, 6), @MarkUpPercentage DECIMAL(18, 6), @MarkUpPerUnit DECIMAL(18, 6),
+			        @DiscountPercentage DECIMAL(18, 6), @DiscountPerUnit DECIMAL(18, 6), @SOQStocklineId BIGINT,
+			        @POPartRecordId BIGINT, @ReceivedStatusId INT;
+
+			SELECT @StockLineId = NULL, @SalesOrderQuoteId = NULL, @SalesOrderQuotePartId = NULL, @QtyToQuote = 0, @PartQtyQuoted = 0,
+			       @UnitSalesPrice = 0, @MarkUpPercentage = 0, @MarkUpPerUnit = 0, @DiscountPercentage = 0, @DiscountPerUnit = 0, @SOQStocklineId = NULL,
+			       @POPartRecordId = NULL, @ReceivedStatusId = NULL;
+
+			SELECT @StockLineId = [StockLineId], @SalesOrderQuoteId = [SalesOrderQuoteId], @SalesOrderQuotePartId = [SalesOrderQuotePartId], @POPartRecordId = [PurchaseOrderPartRecordId]
+			FROM #SOQReceivedStk WHERE [ID] = @LoopID;
+
+			-- Same as SO: Fulfilled once the PO part is fully received, otherwise (partial) Order
+			SELECT @ReceivedStatusId = CASE WHEN ISNULL(POP.[QuantityReceived], 0) >= ISNULL(POP.[QuantityOrdered], 0) THEN @SOQPartStatusFulfilled ELSE @SOQPartStatusOrder END
+			FROM [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) WHERE POP.[PurchaseOrderPartRecordId] = @POPartRecordId;
+
 			        @DiscountPercentage DECIMAL(18, 6), @DiscountPerUnit DECIMAL(18, 6), @SOQStocklineId BIGINT;
 
 			SELECT @StockLineId = NULL, @SalesOrderQuoteId = NULL, @SalesOrderQuotePartId = NULL, @QtyToQuote = 0, @PartQtyQuoted = 0,
@@ -94,6 +118,7 @@ BEGIN
 				FROM [dbo].[SalesOrderQuotePartCost] PC WITH (NOLOCK) WHERE PC.[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
 
 				INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				SELECT P.[SalesOrderQuotePartId], STK.[StockLineId], STK.[ConditionId], @QtyToQuote, STK.[QuantityAvailable], STK.[QuantityOnHand], P.[CustomerRequestDate], P.[PromisedDate], P.[EstimatedShipDate], @ReceivedStatusId, @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
 				SELECT P.[SalesOrderQuotePartId], STK.[StockLineId], STK.[ConditionId], @QtyToQuote, STK.[QuantityAvailable], STK.[QuantityOnHand], P.[CustomerRequestDate], P.[PromisedDate], P.[EstimatedShipDate], @SOQPartStatusOpen, @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
 				FROM [dbo].[SalesOrderQuotePartV1] P WITH (NOLOCK)
 				INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = @StockLineId
@@ -112,6 +137,8 @@ BEGIN
 				EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId, @MasterCompanyId;
 				EXEC [dbo].[USP_UpdateSOQPartCostDetails] @SalesOrderQuoteId, @SalesOrderQuotePartId, @UpdatedBy, @MasterCompanyId;
 			END
+
+			EXEC [dbo].[USP_SaveSOQPartStatusByPartId] @SalesOrderQuotePartId, @ReceivedStatusId, @POPartRecordId;
 
 			SET @LoopID = @LoopID + 1;
 		END

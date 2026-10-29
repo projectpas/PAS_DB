@@ -20,6 +20,7 @@
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana     [PN-18321] Created
     2    10/26/2026  Kishor Makwana     [PN-18321] Memo is added on the source stockline too (split to new stockline)
+    3    10/28/2026  Kishor Makwana     [PN-18435] Per-unit child rows are moved from the source (like Lot) instead of creating new ones (duplicate child rows)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SplitStocklineForSubComponent]
 	@StocklineId BIGINT,
@@ -223,16 +224,34 @@ BEGIN
 
 	EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId;
 
-	-- child (per unit) stocklines, same calls as TrasnferStocklineAndCreateBatch
-	IF (@isSerialized = 0 AND @Qty > 1)
+	-- child (per unit, IsParent = 0) stocklines: MOVE @Qty existing child rows of the source to the new stockline
+	-- (same as Lot Trans In / Out). New child rows are NOT created, otherwise the units would be counted twice
+	-- (source keeps all its children + new children for the split qty).
+	IF (@isSerialized = 0)
 	BEGIN
-		EXEC [dbo].[USP_CreateChildStockline] @NewStocklineId, @MasterCompanyId, @StockLineModuleID, @ParentStocklineId, 1, 1, 0, 0, 0, 0, 0;
+		DECLARE @ChildCount INT = FLOOR(@Qty);
+		;WITH ChildToMove AS (
+			SELECT TOP (@ChildCount) c.[StockLineId],
+				   ROW_NUMBER() OVER (ORDER BY c.[StockLineId] DESC) AS [RowNo]
+			FROM [dbo].[Stockline] c WITH (UPDLOCK, ROWLOCK)
+			WHERE c.[ParentId] = @StocklineId
+			  AND ISNULL(c.[IsParent], 0) = 0
+			  AND ISNULL(c.[isDeleted], 0) = 0
+			  AND ISNULL(c.[QuantityOnHand], 0) > 0
+			  AND ISNULL(c.[QuantityAvailable], 0) > 0
+			ORDER BY c.[StockLineId] DESC
+		)
+		UPDATE c
+		SET c.[ParentId] = @NewStocklineId,
+			c.[StockLineNumber] = @StockLineNumber,
+			c.[ControlNumber] = @ControlNumber,
+			c.[IdNumber] = idn.[StocklineNumber],
+			c.[UpdatedBy] = @UpdatedBy,
+			c.[UpdatedDate] = GETUTCDATE()
+		FROM [dbo].[Stockline] c
+		INNER JOIN ChildToMove m ON m.[StockLineId] = c.[StockLineId]
+		CROSS APPLY dbo.udfGenerateCodeNumberWithOutDash(m.[RowNo], @StlIdCodePrefix, @StlIdCodeSufix) idn;
 	END
-	ELSE
-	BEGIN
-		EXEC [dbo].[USP_CreateChildStockline] @NewStocklineId, @MasterCompanyId, @StockLineModuleID, @ParentStocklineId, 0, 0, 0, 0, 1, 0, 0;
-	END
-	EXEC [dbo].[USP_CreateChildStockline] @StocklineId, @MasterCompanyId, @StockLineModuleID, @ParentStocklineId, 0, 0, 0, 0, 0, 0, 0;
 
 	-- 1 = Create (same as USP_CreateStockLine)
 	EXEC [dbo].[USP_AddUpdateStocklineHistory] @NewStocklineId, @StockLineModuleID, @NewStocklineId, NULL, NULL, 1, @Qty, @UpdatedBy;

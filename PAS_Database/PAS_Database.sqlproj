@@ -3269,6 +3269,8 @@
     <Build Include="dbo\Tables\SalesOrderPartCost.sql" />
     <Build Include="dbo\Tables\SalesOrderCost.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSOQPartCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LinkReceivedStocklineToSOQ.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveSOQPartStatusByPartId.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSOQCostDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSOPartCostDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSOCostDetails.sql" />
@@ -3465,6 +3467,19 @@
     <Build Include="dbo\Stored Procedures\GetTravelerTaskList.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForTravelerTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterDetailById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterAssetLookup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterAssetDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveItemMasterAssetDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostManualStocklineAssetBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineAssetInventoryStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetAdjustment.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetAdjustmentHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetPrintLabelData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RemoveStocklineAsset.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineAssetLease.sql" />
+    <Build Include="dbo\Tables\Tables1\StocklineAssetAdjustment.sql" />
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewGLAccountSyncPendingListForCreate.sql" />
@@ -3887,6 +3902,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\Procs1\AutoCompleteForCustomerVendorCompanyDropdownsTopN.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
     <Build Include="dbo\Tables\WorkType.sql" />
     <Build Include="dbo\Tables\ReleaseNotesTitleDetails.sql" />
@@ -4894,6 +4910,9 @@
     <Build Include="dbo\Stored Procedures\USP_LinkAircraftInstalledSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleFromCycleEntry.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseReportByLeaseHeaderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

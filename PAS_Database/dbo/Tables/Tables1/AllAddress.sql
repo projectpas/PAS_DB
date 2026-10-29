@@ -66,3 +66,9 @@ BEGIN
 
 
 END
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_AllAddress_Module_Reference]
+    ON [dbo].[AllAddress]([ModuleId] ASC, [ReffranceId] ASC)
+    INCLUDE([IsShippingAdd]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

@@ -32,6 +32,7 @@
 									dropdown can request either type with a decorated label.
 	14   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 	15   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	16    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] 'Gal',1,50,'',1  
 **************************************************************/
@@ -176,7 +177,7 @@ BEGIN
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))      
      
-	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock
+	  AND ISNULL(Im.IsNonStock,0) = @IsNonStock AND ISNULL(Im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 	 UNION   
 	 
      SELECT DISTINCT Im.ItemMasterId,  
@@ -311,7 +312,7 @@ BEGIN
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR dbo.fn_NormalizePartNumber(Im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%')  
     
-	 AND ISNULL(Im.IsNonStock,0) = @IsNonStock
+	 AND ISNULL(Im.IsNonStock,0) = @IsNonStock AND ISNULL(Im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 	UNION   
 
     SELECT DISTINCT TOP 50   

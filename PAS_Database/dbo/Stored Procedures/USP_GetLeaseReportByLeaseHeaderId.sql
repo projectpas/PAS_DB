@@ -2,24 +2,28 @@
  ** File:   [USP_GetLeaseReportByLeaseHeaderId]
  ** Description: Lease -> Reports tab: revenue and cost report of one lease for an invoice date range.
  **
- **              @ViewType = 'Summary' : one row per leased stockline (PN) that has invoice lines in the range, all amounts totaled:
+ **              @ViewType = 'Summary' : one row per leased stockline (PN) of the lease (same parts as the Lease Summary tab; a part without invoice lines in the range shows 0.00 revenue), all amounts totaled:
  **                          PN, PN Description, Serial Num, Status, Revenue, Expenses, Margin, Margin %, Capitalized Cost, Start Date, End Date,
  **                          SL Num, Lease Type, TSN, CSN, TSO, CSO
  **              @ViewType = 'PN'      : one row per invoice for each PN:
- **                          PN, PN Description, Invoice Date, Inv Num, Base Amount, Time Overage, Cycle Overage, Maintenance, Insurance, Taxes,
+ **                          PN, PN Description, Invoice Date, Inv Num, Base Amount, Time Overage, Cycle Overage, Maintenance, Insurance, Taxes, Other Cost, Charges,
  **                          Total Revenue, Depreciation, Overhaul Cost
  **
  **              Invoice lines  = LeaseBillingInvoicingItemDetails of the lease invoices (generated draft + posted, voided excluded, version-increase rows ignored)
  **                               whose invoice date is between @FromDate and @ToDate.
- **              Base Amount    = LineType 'Flat Rate' (flat rate + billed time / cycle usage), 'Charges' and 'Others'
+ **              Base Amount    = LineType 'Flat Rate' (flat rate + billed time / cycle usage)
+ **              Charges / Others invoice lines are expenses, not revenue: Charges are added to the Expenses of the Summary view,
+ **                               Others is already covered by the Others service component cost
  **              Time Overage   = LineType 'Overrun' TimeBillingAmount;  Cycle Overage = LineType 'Overrun' CycleBillingAmount
  **              Maintenance / Insurance / Taxes = lines of that LineType
- **              Total Revenue  = Base + Time Overage + Cycle Overage + Maintenance + Insurance + Taxes (Depreciation / Overhaul are cost columns, not in Total Revenue)
- **              Depreciation / Overhaul Cost / Capitalized Cost = 0.00 for now (source not defined yet)
- **              Expenses       = PO Cost + RO Cost + Other Cost of the stockline (same rules as Lease Summary tab):
+ **              Total Revenue  = Base + Time Overage + Cycle Overage + Maintenance + Insurance + Taxes + Other Cost + Charges (PN view, = the invoice total of the Billing tab)
+ **                               Summary view Revenue = Flat Rate + Overrun only, its Expenses carry the Maintenance / Insurance / Taxes / Other / Charges costs
+ **              Depreciation / Overhaul Cost = 0.00 for now (source not defined yet)
+ **              Capitalized Cost = PO Cost + RO Cost of the stockline (Stockline.PurchaseOrderUnitCost + RepairOrderUnitCost, each x lease qty); it is the cost basis of the leased asset,
+ **                               so it does not depend on the selected date range
+ **              Expenses       = PO Cost + RO Cost + Other Cost of the stockline:
  **                               PO Cost = Stockline.PurchaseOrderUnitCost x lease qty, RO Cost = Stockline.RepairOrderUnitCost x lease qty,
- **                               Other Cost = Maintenance / Insurance / Taxes / Others service components (LeaseStocklineServiceComponent) split over calendar months,
- **                               only the months inside the selected date range (components without dates are counted once in full)
+ **                               Other Cost = billed Maintenance + Insurance + Taxes + Others + Charges invoice lines of the date range (same lines as the Billing tab)
  **              Margin = Revenue - Expenses ; Margin % = Margin / Revenue x 100 (0 when Revenue is 0)
  **              TSN / CSN = Stockline.TotalTSN : TotalTSNMM / TotalCSN ; TSO / CSO = latest StocklineTimeCycleHistory row of the stockline
  ** PARAMETERS: @LeaseHeaderId BIGINT, @FromDate DATE (NULL = first lease part start date), @ToDate DATE (NULL = today),
@@ -29,7 +33,13 @@
  **************************************************************
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
-    1    27/10/2026     Kishor Makwana          [Lease Reports] Created
+    1    27/10/2026     Kishor Makwana          [PN-18360] Created
+    2    28/10/2026     Kishor Makwana          [PN-18360] Capitalized Cost = PO Cost + RO Cost of the leased stockline
+    3    28/10/2026     Kishor Makwana          [PN-18360] Charges / Others invoice lines are not revenue (Charges are added to Expenses)
+    4    28/10/2026     Kishor Makwana          [PN-18360] Revenue = Flat Rate + Overrun only (Maintenance / Insurance / Taxes are costs), same as the Billing and Lease Summary tabs
+    5    28/10/2026     Kishor Makwana          [PN-18360] PN view: Other Cost (Others lines) and Charges columns added, Total Revenue = Base + Time + Cycle + Maintenance + Insurance + Taxes + Other Cost + Charges
+    6    28/10/2026     Kishor Makwana          [PN-18360] Summary view lists every part of the lease (not only the parts with invoices in the range) so the totals match the Lease Summary tab
+    7    28/10/2026     Kishor Makwana          [PN-18360] Expenses: Other Cost = billed Maintenance / Insurance / Taxes / Others / Charges invoice lines of the date range (same lines as the Billing tab)
 
 EXEC USP_GetLeaseReportByLeaseHeaderId @LeaseHeaderId = 22, @ViewType = 'Summary'
 EXEC USP_GetLeaseReportByLeaseHeaderId @LeaseHeaderId = 22, @ViewType = 'PN', @FromDate = '2026-01-01', @ToDate = '2026-10-27', @PartNumber = NULL
@@ -64,17 +74,20 @@ BEGIN
 			[LeaseStocklineId] BIGINT, [PartNumber] NVARCHAR(100), [PartDescription] NVARCHAR(500),
 			[BillingInvoicingId] BIGINT, [InvoiceNo] VARCHAR(256), [InvoiceDate] DATE,
 			[BaseAmount] DECIMAL(18, 6), [TimeOverage] DECIMAL(18, 6), [CycleOverage] DECIMAL(18, 6),
-			[Maintenance] DECIMAL(18, 6), [Insurance] DECIMAL(18, 6), [Taxes] DECIMAL(18, 6)
+			[Maintenance] DECIMAL(18, 6), [Insurance] DECIMAL(18, 6), [Taxes] DECIMAL(18, 6),
+			[Charges] DECIMAL(18, 6), [Others] DECIMAL(18, 6)
 		);
 
 		INSERT INTO #InvLines
 		SELECT LSL.[LeaseStocklineId], LSL.[PN], LSL.[PNDescription], BI.[BillingInvoicingId], BI.[InvoiceNo], CAST(BI.[InvoiceDate] AS DATE),
-			CASE WHEN D.[LineType] IN ('Flat Rate', 'Charges', 'Others') THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
+			CASE WHEN D.[LineType] = 'Flat Rate' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Overrun' THEN ISNULL(D.[TimeBillingAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Overrun' THEN ISNULL(D.[CycleBillingAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Maintenance' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Insurance' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
-			CASE WHEN D.[LineType] = 'Taxes' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END
+			CASE WHEN D.[LineType] = 'Taxes' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
+			CASE WHEN D.[LineType] = 'Charges' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
+			CASE WHEN D.[LineType] = 'Others' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END
 		FROM [dbo].[LeaseBillingInvoicingItemDetails] D WITH (NOLOCK)
 		INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK)
 			ON BX.[BillingInvoicingItemId] = D.[BillingInvoicingItemId] AND BX.[IsDeleted] = 0 AND ISNULL(BX.[IsVersionIncrease], 0) = 0
@@ -98,7 +111,9 @@ BEGIN
 				   CAST(SUM(L.[Maintenance]) AS DECIMAL(18, 2)) AS Maintenance,
 				   CAST(SUM(L.[Insurance]) AS DECIMAL(18, 2)) AS Insurance,
 				   CAST(SUM(L.[Taxes]) AS DECIMAL(18, 2)) AS Taxes,
-				   CAST(SUM(L.[BaseAmount] + L.[TimeOverage] + L.[CycleOverage] + L.[Maintenance] + L.[Insurance] + L.[Taxes]) AS DECIMAL(18, 2)) AS TotalRevenue,
+				   CAST(SUM(L.[Others]) AS DECIMAL(18, 2)) AS OtherCost,
+				   CAST(SUM(L.[Charges]) AS DECIMAL(18, 2)) AS Charges,
+				   CAST(SUM(L.[BaseAmount] + L.[TimeOverage] + L.[CycleOverage] + L.[Maintenance] + L.[Insurance] + L.[Taxes] + L.[Others] + L.[Charges]) AS DECIMAL(18, 2)) AS TotalRevenue,
 				   CAST(0 AS DECIMAL(18, 2)) AS Depreciation,
 				   CAST(0 AS DECIMAL(18, 2)) AS OverhaulCost
 			FROM #InvLines L
@@ -107,54 +122,11 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			-- Other Cost of the stockline for the months inside the date range (same month split as the Lease Summary tab)
-			DECLARE @FromMonth DATE = DATEFROMPARTS(YEAR(@FromDate), MONTH(@FromDate), 1);
-
 			;WITH LeasedLines AS (
-				SELECT DISTINCT [LeaseStocklineId] FROM #InvLines
-			),
-			Nums AS (
-				SELECT TOP (1200) CAST(ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS INT) AS n FROM sys.all_columns
-			),
-			ComponentSlicesBase AS (
-				SELECT SC.[LeaseStocklineServiceComponentId] AS ComponentId, SC.[LeaseStocklineId], M.MonthStart, ISNULL(SC.[Amount], 0) AS Amount,
-					CASE WHEN SL.SliceFrom = M.MonthStart AND SL.SliceTo = EOMONTH(M.MonthStart) THEN CAST(1 AS DECIMAL(18,6))
-						ELSE CAST(DATEDIFF(DAY, SL.SliceFrom, SL.SliceTo) + 1 AS DECIMAL(18,6)) / 30.0 END AS Weight
-				FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
-				INNER JOIN LeasedLines LS ON LS.[LeaseStocklineId] = SC.[LeaseStocklineId]
-				INNER JOIN Nums N ON N.n <= DATEDIFF(MONTH, SC.[StartDate], SC.[EndDate])
-				CROSS APPLY (SELECT DATEADD(MONTH, N.n, DATEFROMPARTS(YEAR(SC.[StartDate]), MONTH(SC.[StartDate]), 1)) AS MonthStart) M
-				CROSS APPLY (SELECT
-						CASE WHEN CAST(SC.[StartDate] AS DATE) > M.MonthStart THEN CAST(SC.[StartDate] AS DATE) ELSE M.MonthStart END AS SliceFrom,
-						CASE WHEN CAST(SC.[EndDate] AS DATE) < EOMONTH(M.MonthStart) THEN CAST(SC.[EndDate] AS DATE) ELSE EOMONTH(M.MonthStart) END AS SliceTo) SL
-				WHERE SC.[IsDeleted] = 0 AND SC.[StartDate] IS NOT NULL AND SC.[EndDate] IS NOT NULL AND SC.[EndDate] >= SC.[StartDate] AND ISNULL(SC.[Amount], 0) <> 0
-			),
-			ComponentSlicesRounded AS (
-				SELECT ComponentId, LeaseStocklineId, MonthStart, Amount,
-					ROUND(Amount * Weight / NULLIF(SUM(Weight) OVER (PARTITION BY ComponentId), 0), 2) AS ShareRounded
-				FROM ComponentSlicesBase
-			),
-			ComponentSlices AS (
-				SELECT ComponentId, LeaseStocklineId, MonthStart,
-					CASE WHEN MonthStart = MAX(MonthStart) OVER (PARTITION BY ComponentId)
-						THEN Amount - (SUM(ShareRounded) OVER (PARTITION BY ComponentId) - ShareRounded)
-						ELSE ShareRounded END AS SliceAmount
-				FROM ComponentSlicesRounded
-			),
-			OtherCostByLine AS (
-				SELECT CS.[LeaseStocklineId], SUM(CS.SliceAmount) AS Amt
-				FROM ComponentSlices CS
-				WHERE CS.MonthStart >= @FromMonth AND CS.MonthStart <= @ToDate
-				GROUP BY CS.[LeaseStocklineId]
-				UNION ALL
-				SELECT SC.[LeaseStocklineId], SUM(ISNULL(SC.[Amount], 0))
-				FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
-				INNER JOIN LeasedLines LS ON LS.[LeaseStocklineId] = SC.[LeaseStocklineId]
-				WHERE SC.[IsDeleted] = 0 AND (SC.[StartDate] IS NULL OR SC.[EndDate] IS NULL OR SC.[EndDate] < SC.[StartDate])
-				GROUP BY SC.[LeaseStocklineId]
-			),
-			OtherCost AS (
-				SELECT [LeaseStocklineId], SUM(Amt) AS Amt FROM OtherCostByLine GROUP BY [LeaseStocklineId]
+				SELECT LSL.[LeaseStocklineId] FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
+				WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0 AND (@PartNumber IS NULL OR LSL.[PN] = @PartNumber)
+				UNION
+				SELECT [LeaseStocklineId] FROM #InvLines
 			)
 			SELECT LSL.[LeaseStocklineId] AS LeaseStocklineId, LSL.[PN] AS PartNumber, LSL.[PNDescription] AS PartDescription, STK.[SerialNumber] AS SerialNumber,
 				   ISNULL(LST.[Name], HST.[Name]) AS [Status],
@@ -162,7 +134,7 @@ BEGIN
 				   CAST(X.Expenses AS DECIMAL(18, 2)) AS Expenses,
 				   CAST(R.Revenue - X.Expenses AS DECIMAL(18, 2)) AS Margin,
 				   CAST(CASE WHEN R.Revenue = 0 THEN 0 ELSE (R.Revenue - X.Expenses) * 100.0 / R.Revenue END AS DECIMAL(18, 2)) AS MarginPercent,
-				   CAST(0 AS DECIMAL(18, 2)) AS CapitalizedCost,
+				   CAST(X.CapitalizedCost AS DECIMAL(18, 2)) AS CapitalizedCost,
 				   LSL.[StartDate] AS StartDate, LSL.[EndDate] AS EndDate,
 				   ISNULL(LSL.[StocklineNumber], STK.[StockLineNumber]) AS StocklineNumber,
 				   LT.[LeaseType] AS LeaseType,
@@ -171,8 +143,11 @@ BEGIN
 				   CONCAT(CAST(ISNULL(TC.[TotalTSO], 0) AS BIGINT), ':', RIGHT('0' + CAST(CAST(ISNULL(TC.[TotalTSOMM], 0) AS INT) AS VARCHAR(10)), 2)) AS Tso,
 				   CAST(ISNULL(TC.[TotalCSO], 0) AS DECIMAL(18, 2)) AS Cso
 			FROM (
-				SELECT [LeaseStocklineId], SUM([BaseAmount] + [TimeOverage] + [CycleOverage] + [Maintenance] + [Insurance] + [Taxes]) AS Revenue
-				FROM #InvLines GROUP BY [LeaseStocklineId]
+				SELECT LL.[LeaseStocklineId], ISNULL(SUM(L.[BaseAmount] + L.[TimeOverage] + L.[CycleOverage]), 0) AS Revenue,
+					   ISNULL(SUM(L.[Maintenance] + L.[Insurance] + L.[Taxes] + L.[Others] + L.[Charges]), 0) AS CostLines
+				FROM LeasedLines LL
+				LEFT JOIN #InvLines L ON L.[LeaseStocklineId] = LL.[LeaseStocklineId]
+				GROUP BY LL.[LeaseStocklineId]
 			) R
 			INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.[LeaseStocklineId] = R.[LeaseStocklineId]
 			INNER JOIN [dbo].[LeaseHeader] LH WITH (NOLOCK) ON LH.[LeaseHeaderId] = LSL.[LeaseHeaderId]
@@ -180,7 +155,6 @@ BEGIN
 			LEFT JOIN [dbo].[LeaseStatus] LST WITH (NOLOCK) ON LST.[LeaseStatusId] = LSL.[LeaseStatusId]
 			LEFT JOIN [dbo].[LeaseStatus] HST WITH (NOLOCK) ON HST.[LeaseStatusId] = LH.[LeaseStatusId]
 			LEFT JOIN [dbo].[LeaseType] LT WITH (NOLOCK) ON LT.[LeaseTypeId] = LH.[LeaseTypeId]
-			LEFT JOIN OtherCost OC ON OC.[LeaseStocklineId] = LSL.[LeaseStocklineId]
 			OUTER APPLY (
 				SELECT TOP (1) H.[TotalTSO], H.[TotalTSOMM], H.[TotalCSO]
 				FROM [dbo].[StocklineTimeCycleHistory] H WITH (NOLOCK)
@@ -188,7 +162,8 @@ BEGIN
 				ORDER BY H.[StocklineTimeCycleHistoryId] DESC
 			) TC
 			CROSS APPLY (
-				SELECT (ISNULL(STK.[PurchaseOrderUnitCost], 0) * LSL.[QtyOrder]) + (ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder]) + ISNULL(OC.Amt, 0) AS Expenses
+				SELECT (ISNULL(STK.[PurchaseOrderUnitCost], 0) * LSL.[QtyOrder]) + (ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder]) + R.CostLines AS Expenses,
+					   (ISNULL(STK.[PurchaseOrderUnitCost], 0) * LSL.[QtyOrder]) + (ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder]) AS CapitalizedCost
 			) X
 			ORDER BY LSL.[PN], STK.[SerialNumber], LSL.[LeaseStocklineId];
 		END

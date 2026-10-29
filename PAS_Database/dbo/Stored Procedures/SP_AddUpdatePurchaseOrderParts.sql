@@ -25,6 +25,7 @@
 	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number [PN-16231]
 	13   10/06/2026   Divyesh Kathiriya     Update PurchaseOrderNumber on AircraftInstalledPartDetails Table [PN-16780]
 	14   27/10/2026   Vishal Suthar         Split part keeps its own NeedByDate [PN-18410]
+	15   29/10/2026   Vishal Suthar         SOQ part / stocklines status Order when PO created from SOQ [PN-18445]
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -417,6 +418,18 @@ BEGIN
 								EXEC dbo.[SP_SaveSOPartStatusByPartId] @SalesOrderPartId, @OrderPartStatusId
 							END
 						END --END: IF SalesOrderPart
+
+						-- [PN-18445] PO created from an SOQ part: SOQ part / stocklines status = Order (same as SO)
+						DECLARE @SOQPartIdForStatus BIGINT = NULL;
+						SELECT TOP 1 @SOQPartIdForStatus = SQP.SalesOrderQuotePartId
+						FROM DBO.PurchaseOrderPart POPQ WITH(NOLOCK)
+						INNER JOIN DBO.SalesOrderQuotePartV1 SQP WITH(NOLOCK) ON SQP.SalesOrderQuoteId = POPQ.SalesOrderQuoteId AND SQP.ItemMasterId = POPQ.ItemMasterId AND SQP.ConditionId = POPQ.ConditionId AND SQP.IsDeleted = 0
+						WHERE POPQ.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(POPQ.SalesOrderQuoteId, 0) > 0
+						ORDER BY SQP.SalesOrderQuotePartId;
+						IF (ISNULL(@SOQPartIdForStatus, 0) > 0)
+						BEGIN
+							EXEC DBO.USP_SaveSOQPartStatusByPartId @SOQPartIdForStatus, @OrderPartStatusId
+						END
 
 						--Update VendorRFQ
 						DECLARE @RFQModuleId BIGINT = 0;

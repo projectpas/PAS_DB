@@ -31,6 +31,7 @@
 	14   08-03-2026    Rajesh Gami      Performance pass: removed per-row scalar UDF call
 	15   03-Aug-2026    Sahdev Saliya        Added IsKitAssy [PN-17371]
 	16   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	17   26-Oct-2026   Rajesh Gami       [PN-18406] Asset item type: ItemType = 'Asset' when IsAsset = 1, IsAsset column, Item Type filter 11 = Asset
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -169,7 +170,7 @@ BEGIN
 					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[Assemply] AP WITH (NOLOCK) WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1) THEN 'Yes' ELSE 'No' END AS HasSubAssy,
 					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK) WHERE RAP.ItemMasterId = im.ItemMasterId) THEN 'Yes' ELSE 'No' END AS RoSubAssy,
 					   im.IsActive,
-					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,
+					   ItemType = CASE WHEN ISNULL(im.IsAsset,0) = 1 THEN 'Asset' WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
 					   StockType = (CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
 										 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
@@ -189,6 +190,7 @@ BEGIN
 					   itp.Ranking as RankingsName,
 					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
 					    ISNULL(IM.IsNonStock,0)IsNonStock,
+						CAST(ISNULL(im.IsAsset,0) AS BIT) AS IsAsset,
 						im.ItemTypeId,
 						im.Model,
 						CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
@@ -196,7 +198,10 @@ BEGIN
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
 					AND im.MasterCompanyId=@MasterCompanyId
-					AND (@ItemTypeStatusId IS NULL OR im.ItemTypeId = CAST(@ItemTypeStatusId AS INT))
+					AND (@ItemTypeStatusId IS NULL
+					     -- [PN-18406] 11 = ItemTypeEnum.Asset in the UI filter -> Item Master rows with IsAsset = 1
+					     OR (CAST(@ItemTypeStatusId AS INT) = 11 AND ISNULL(im.IsAsset,0) = 1)
+					     OR (CAST(@ItemTypeStatusId AS INT) <> 11 AND im.ItemTypeId = CAST(@ItemTypeStatusId AS INT) AND ISNULL(im.IsAsset,0) = 0))
 					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))
 					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
 			),

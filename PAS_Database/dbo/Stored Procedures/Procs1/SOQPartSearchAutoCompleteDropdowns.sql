@@ -28,6 +28,7 @@
 										 parts can surface through all search paths, not just the dedicated Non-Stock branch.
 	10  08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 	11   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	12    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -91,7 +92,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
@@ -115,7 +116,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)		
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
@@ -140,7 +141,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
@@ -164,7 +165,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
@@ -188,7 +189,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN 'Non-Stock' ELSE 'Stock' END) AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')
@@ -218,7 +219,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 							AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
 							AND rpDER.IsActive = 1
 							AND rpDER.IsDeleted = 0
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@partSarchText) +'%')
@@ -246,7 +247,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 							AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
 							AND rpDER.IsActive = 1
 							AND rpDER.IsDeleted = 0
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%'+ dbo.fn_NormalizePartNumber(@partSarchText) +'%')
@@ -273,7 +274,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			'Non-Stock' AS ItemType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%' OR dbo.fn_NormalizePartNumber(im.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@partSarchText) + '%')

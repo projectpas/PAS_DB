@@ -26,6 +26,7 @@
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 4 leftover IsNonStock=0 exclusion filters.
 	11   22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
+	14    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -203,7 +204,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,uomConsume.ShortName AS ConsumeUnitOfMeasure
 			,uomStock.ShortName AS StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
-			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
+			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND ISNULL(sl.IsAsset, 0) = 0 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset stocklines are not allowed here
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				--AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)

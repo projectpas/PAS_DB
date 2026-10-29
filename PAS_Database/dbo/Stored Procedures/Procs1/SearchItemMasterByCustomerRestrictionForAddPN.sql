@@ -26,6 +26,7 @@
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11   22/OCT/2026       Kishor Makwana   [PN-18321]- Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
+	12    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
@@ -90,7 +91,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 				GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId

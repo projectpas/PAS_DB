@@ -9,6 +9,7 @@
 	3    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
+    5   26/OCT/2026			 RAJESH GAMI						 MasterCompanyId compare dynamically with @MstCompanyId instead of hard-coded 1 in the CodePrefixes update statement.
 ****************************************************************************************************************************************/ 
 CREATE      PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
@@ -33,7 +34,7 @@ BEGIN
    DECLARE @NewPurchaseOrderRFQId BIGINT,@NewPurchaseOrderPartId BIGINT;    
    DECLARE @totalPartCount int     
    DECLARE @newPartLoopId int     
-   SELECT @PriorityId = PriorityId, @IsResale = IsResale, @IsDeferredReceiver = IsDeferredReceiver FROM DBO.PurchaseOrderSettingMaster WITH (NOLOCK) WHERE MasterCompanyId = 1;    
+   SELECT @PriorityId = PriorityId, @IsResale = IsResale, @IsDeferredReceiver = IsDeferredReceiver FROM DBO.PurchaseOrderSettingMaster WITH (NOLOCK) WHERE MasterCompanyId = @MstCompanyId;    
    SELECT @OpenStatusId = POStatusId FROM DBO.POStatus WITH (NOLOCK) WHERE [Status] = 'Open';    
    DECLARE @PORFQPartId bigint    
    DECLARE @IdCodeTypeId BIGINT;    

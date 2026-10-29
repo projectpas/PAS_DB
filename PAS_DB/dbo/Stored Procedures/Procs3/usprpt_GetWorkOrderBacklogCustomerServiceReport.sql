@@ -21,6 +21,7 @@
  4	26-Jun-2025			Devendra Shekh		Added WOPartdId (ID) to Group by
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    16-Oct-2026			 Divyesh Kathriya				    [PN-18207] - Filter Customer Service Backlog report by selected work orders. 
           
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
@@ -51,6 +52,7 @@ BEGIN
     @Level10 VARCHAR(MAX) = NULL,    
     @IsDownload BIT = NULL    
     DECLARE @customerid varchar(40) = NULL  
+    DECLARE @WorkOrderIds VARCHAR(MAX) = NULL;
   
      DECLARE @ModuleID INT = 12; -- MS Module ID    
      SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    
@@ -61,8 +63,11 @@ BEGIN
      @Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date'     
      THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,    
     
-      @customerid = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)'         
-   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @customerid END,   
+     @customerid = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)'
+     THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @customerid END,
+
+     @WorkOrderIds = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'WO Num'
+     THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(MAX)') ELSE @WorkOrderIds END,
      
      @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
@@ -95,6 +100,12 @@ BEGIN
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end    
     
      FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)    
+
+     DECLARE @SelectedWorkOrderIds TABLE ([WorkOrderId] BIGINT PRIMARY KEY);
+     INSERT INTO @SelectedWorkOrderIds ([WorkOrderId])
+     SELECT DISTINCT TRY_CONVERT(BIGINT, [Item])
+     FROM [DBO].[SPLITSTRING](@WorkOrderIds, ',')
+     WHERE TRY_CONVERT(BIGINT, [Item]) IS NOT NULL;
   
      IF ISNULL(@PageSize,0)=0    
      BEGIN     
@@ -113,6 +124,7 @@ BEGIN
       LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
       LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
        WHERE  WO.CustomerId=ISNULL(@customerid,WO.CustomerId) AND CAST(WO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
+      AND (ISNULL(@WorkOrderIds, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds))
       AND  ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1 AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
       AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 --MPN Not Closed  
       AND WO.WorkOrderId NOT IN(ISNULL(woshi.WorkOrderId,0))  
@@ -189,6 +201,7 @@ BEGIN
     LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
    WHERE    
     WO.CustomerId=ISNULL(@customerid,WO.CustomerId) AND   
+    (ISNULL(@WorkOrderIds, '') = '' OR WO.[WorkOrderId] IN (SELECT [WorkOrderId] FROM @SelectedWorkOrderIds)) AND
     CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  AND  
      ISNULL(WO.IsDeleted, 0) = 0  AND  ISNULL(WO.IsActive, 1) = 1 AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
     AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed  

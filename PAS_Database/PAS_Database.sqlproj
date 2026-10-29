@@ -3942,6 +3942,7 @@
     <Build Include="dbo\Stored Procedures\USP_ChangeWOQStatusAfterApproval.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
+    <Build Include="dbo\User Defined Types\MaterialHistoryType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateCommonBillingInvoicingStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionNew.sql" />
@@ -3949,6 +3950,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Labor.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteLabor.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborType.sql" />
+    <Build Include="dbo\User Defined Types\LaborHistoryType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborHeaderType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMANumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityContact.sql" />
@@ -3963,7 +3965,9 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteFreight.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteCharges.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteFreightType.sql" />
+    <Build Include="dbo\User Defined Types\FreightHistoryType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteChargesType.sql" />
+    <Build Include="dbo\User Defined Types\ChargesHistoryType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxAudit.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />

@@ -20,6 +20,7 @@
 	3	 11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	4	 12/30/2025	  Devendra Shekh	Modified WOM Kit Update Logic to WOM Update
 	5    11/09/2026   Sahdev Saliya     Fixed SO Part PO Num/Est Dlvry Date not updating when PO is placed against an Alt/Equ mapped part (mirrors existing WOM Alt/Equ fix) - [PN-17885]
+	6    29/10/2026   Vishal Suthar     [PN-18447] Keep PO part SalesOrderQuoteId / Number in sync with its Sales Order Quote mapping (ModuleId 7)
 
  EXEC sp_UpdatePOPartReferenceDetail 214  
 **************************************************************/
@@ -83,6 +84,16 @@ BEGIN
 	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 4   AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
   
+	-- [PN-18447] SOQ mapping (ModuleId 7) -> PO part SalesOrderQuoteId / SalesOrderQuoteNumber (latest mapping)
+	UPDATE POP
+	SET POP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId, POP.SalesOrderQuoteNumber = SOQ.SalesOrderQuoteNumber
+	FROM dbo.PurchaseOrderPart POP
+	CROSS APPLY (SELECT TOP 1 PP.ReferenceId FROM dbo.PurchaseOrderPartReference PP WITH (NOLOCK)
+	             WHERE PP.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId AND PP.ModuleId = 7 AND ISNULL(PP.IsDeleted, 0) = 0
+	             ORDER BY PP.PurchaseOrderPartReferenceId DESC) REF
+	INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = REF.ReferenceId
+	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+
 	SELECT  
 	PurchaseOrderNumber as value  
 	FROM dbo.PurchaseOrderPart PP WITH (NOLOCK)

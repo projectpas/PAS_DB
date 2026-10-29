@@ -19,6 +19,7 @@
    7	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock branch of the PartNumber CASE (both parent-row and child-row selects) now reads DBO.ItemMaster (IsNonStock=1) instead of the legacy DBO.ItemMasterNonStock table
+	10   29/10/2026   Vishal Suthar		[PN-18447] SOQ number(s) from the Sales Order Quote mappings (ModuleId 7)
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
@@ -41,7 +42,7 @@ BEGIN
 				DECLARE @GlAccountId BIGINT =0, @UOMId BIGINT,@IsPartApproved bit =0, @ActionId INT =0, @ApprovedActionId INT = (SELECT ApprovalProcessId FROM DBO.ApprovalProcess WITH(NOLOCK) WHERE Name ='Approved');
 				DECLARE @AssetAltEquiPartNumber VARCHAR(50),@Manufacturer VARCHAR(100), @GlAccount VARCHAR(200),@UnitOfMeasure VARCHAR(100),@PurchaseOrderPartRecordId BIGINT =0;
 				DECLARE @PoPartMGMTModuleId BIGINT = (SELECT ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName ='POPart'); 
-				DECLARE @wonum VARCHAR(MAX)='', @ronum VARCHAR(MAX)='', @sonum VARCHAR(MAX)='', @lotnum VARCHAR(MAX)='', @swonum VARCHAR(MAX)='',@esonum VARCHAR(MAX)='';
+				DECLARE @wonum VARCHAR(MAX)='', @ronum VARCHAR(MAX)='', @sonum VARCHAR(MAX)='', @lotnum VARCHAR(MAX)='', @swonum VARCHAR(MAX)='',@esonum VARCHAR(MAX)='', @soqnum VARCHAR(MAX)='';
                 IF OBJECT_ID(N'tempdb..#tmpPoPartList') IS NOT NULL    
 				BEGIN    
 					DROP TABLE #tmpPoPartList
@@ -455,6 +456,9 @@ BEGIN
 							SET @swonum = (SELECT STRING_AGG(SubWorkOrderNo, ',') FROM DBO.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId IN (SELECT ReferenceId
 																					FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
 																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 5)); /* ModuleId = 6 for the Sub WO */
+							SET @soqnum = (SELECT STRING_AGG(SalesOrderQuoteNumber, ',') FROM DBO.SalesOrderQuote WITH(NOLOCK) WHERE SalesOrderQuoteId IN (SELECT ReferenceId
+																				FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
+																				WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 7 AND IsDeleted = 0)); /* [PN-18447] ModuleId = 7 for the SOQ */
 							--SET @StockLineCount = (SELECT SUM(ISNULL(Quantity,0)) FROM Dbo.Stockline WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1)
 							--SET @DraftedStockLineCount = (SELECT SUM(ISNULL(Quantity,0)) FROM  Dbo.StockLineDraft WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1 AND ISNULL(StockLineId,0) = 0)
 							INSERT INTO #mainReturnTable (
@@ -576,7 +580,7 @@ BEGIN
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderCharges C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POChargesCount,
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,[Priority],
 									 LT.SalesOrderQuoteId,
-									 LT.SalesOrderQuoteNumber,
+									 ISNULL(NULLIF(@soqnum, ''), LT.SalesOrderQuoteNumber),
 									 LT.AircraftRegistryNumber,
 									 LT.ACTailNum
 

@@ -178,3 +178,15 @@ BEGIN
 
  SELECT * FROM INSERTED  
 END
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_AssetInventoryDraft_POId_Perf]
+    ON [dbo].[AssetInventoryDraft]([PurchaseOrderId] ASC)
+    INCLUDE([PurchaseOrderPartRecordId], [AssetInventoryId], [AssetAcquisitionTypeId], [IsParent], [isSerialized]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_AssetInventoryDraft_POPartRecId_Perf]
+    ON [dbo].[AssetInventoryDraft]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([PurchaseOrderId], [AssetInventoryId], [Qty], [IsParent], [isSerialized]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

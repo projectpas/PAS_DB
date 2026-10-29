@@ -27,6 +27,7 @@
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana    [PN-18321] Created
     2    23/OCT/2026  Kishor Makwana    [PN-18118] Aircraft / Engine stockline (or a stockline installed on an aircraft / engine) can not be used here - components of an aircraft / engine are managed in Installed Components
+    3    28/OCT/2026  Kishor Makwana    [PN-18435] Memo of the sub component stockline is updated when it is added to / removed from a parent
 
 -- DECLARE @tbl StocklineSubComponentType; INSERT INTO @tbl VALUES (2, 3);
 -- EXEC [dbo].[USP_SaveStocklineSubComponent] @ParentStocklineId = 1, @tbl_SubComponents = @tbl, @MasterCompanyId = 1, @UpdatedBy = 'admin'
@@ -90,6 +91,14 @@ BEGIN
 			RETURN;
 		END
 
+		/* ---------- memo text for the sub component stockline (added / removed) ---------- */
+		DECLARE @ParentPN VARCHAR(250), @ParentStkNumber VARCHAR(100), @AddedMemo NVARCHAR(500), @RemovedMemo NVARCHAR(500);
+		SELECT @ParentPN = [PartNumber], @ParentStkNumber = [StockLineNumber]
+		FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @ParentStocklineId;
+		-- e.g. 'Sub Component Stockline added under Parent [PN] [STL-000001] with Qty 2.00.' (Qty of each row is added when the memo is written)
+		SET @AddedMemo = N'Sub Component Stockline added under Parent [' + ISNULL(@ParentPN, '') + N'] [' + ISNULL(@ParentStkNumber, '') + N'] with Qty ';
+		SET @RemovedMemo = N'Sub Component Stockline removed from Parent [' + ISNULL(@ParentPN, '') + N'] [' + ISNULL(@ParentStkNumber, '') + N'] with Qty ';
+
 		/* ---------- build work list (lock the rows we will change) ---------- */
 		-- Mode: 'KEEP' = already linked, 'LINK' = link whole stockline, 'SPLIT' = split qty to a new stockline, 'UNLINK'
 		DECLARE @Work TABLE (
@@ -149,6 +158,7 @@ BEGIN
 		SET s.[SubComponentParentStocklineId] = NULL,
 			s.[SubComponentQty] = NULL,
 			s.[IsSubComponent] = 0,
+			s.[Memo] = CASE WHEN NULLIF(LTRIM(RTRIM(ISNULL(s.[Memo], N''))), N'') IS NULL THEN @RemovedMemo + CONVERT(NVARCHAR(50), CAST(w.[Qty] AS DECIMAL(18, 2))) + N'.' ELSE s.[Memo] + CHAR(13) + CHAR(10) + @RemovedMemo + CONVERT(NVARCHAR(50), CAST(w.[Qty] AS DECIMAL(18, 2))) + N'.' END,
 			s.[UpdatedBy] = @UpdatedBy,
 			s.[UpdatedDate] = GETUTCDATE()
 		FROM [dbo].[Stockline] s
@@ -160,6 +170,7 @@ BEGIN
 		SET s.[SubComponentParentStocklineId] = @ParentStocklineId,
 			s.[SubComponentQty] = w.[Qty],
 			s.[IsSubComponent] = 1,
+			s.[Memo] = CASE WHEN NULLIF(LTRIM(RTRIM(ISNULL(s.[Memo], N''))), N'') IS NULL THEN @AddedMemo + CONVERT(NVARCHAR(50), CAST(w.[Qty] AS DECIMAL(18, 2))) + N'.' ELSE s.[Memo] + CHAR(13) + CHAR(10) + @AddedMemo + CONVERT(NVARCHAR(50), CAST(w.[Qty] AS DECIMAL(18, 2))) + N'.' END,
 			s.[UpdatedBy] = @UpdatedBy,
 			s.[UpdatedDate] = GETUTCDATE()
 		FROM [dbo].[Stockline] s
@@ -182,6 +193,10 @@ BEGIN
 				EXEC [dbo].[USP_SplitStocklineForSubComponent] @StocklineId = @CurStocklineId, @Qty = @CurQty,
 					 @ParentStocklineId = @ParentStocklineId, @UpdatedBy = @UpdatedBy, @NewStocklineId = @NewStocklineId OUTPUT;
 				SET @NewCount = @NewCount + 1;
+
+				-- new split stockline is the sub component: add the 'added under Parent' line below its split memo
+				UPDATE s SET s.[Memo] = CASE WHEN NULLIF(LTRIM(RTRIM(ISNULL(s.[Memo], N''))), N'') IS NULL THEN @AddedMemo + CONVERT(NVARCHAR(50), CAST(@CurQty AS DECIMAL(18, 2))) + N'.' ELSE s.[Memo] + CHAR(13) + CHAR(10) + @AddedMemo + CONVERT(NVARCHAR(50), CAST(@CurQty AS DECIMAL(18, 2))) + N'.' END
+				FROM [dbo].[Stockline] s WHERE s.[StockLineId] = @NewStocklineId;
 
 				-- source: qty moved out ; new stockline: linked to parent
 				IF (@SplitActionId IS NOT NULL)

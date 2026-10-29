@@ -90,3 +90,9 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_GetItemMasterPurchaseSale (Item Master > Purchase and Sales) reads the latest Vendor RFQ cost by Item Master + Condition
+CREATE NONCLUSTERED INDEX [IX_VendorRFQPOPart_ItemMaster_Perf]
+    ON [dbo].[VendorRFQPurchaseOrderPart]([ItemMasterId] ASC, [ConditionId] ASC)
+    INCLUDE([VendorRFQPurchaseOrderId], [UnitCost], [UpdatedDate], [IsNoQuote]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

@@ -30,6 +30,7 @@
 	17    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from QtyAvailable/QuantityOnHand rollup subqueries, StockLine join, and main WHERE clause.
     18   26/Aug/2026			 KISHOR MAKWANA						[PN-17439] Return persisted part.SequenceNumber as ItemNo instead of hardcoded 0
     19   02/Oct/2026			 Bhargav Saliya						[PN-15173] UOM: convert QtyAvailable/QuantityOnHand (+ Stk variants) stock -> consume, matching GetSalesOrderQuoteParts and the SO-side GetSalesOrderPartView.
+    20   29/Oct/2026			 VISHAL SUTHAR						[PN-18443] Added PO Num / PO Est. Rec'd Date of the PO linked to the SOQ part
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -155,6 +156,9 @@ BEGIN
         ISNULL(UPPER(itemMaster.ConsumeUnitOfMeasure), '') AS UomName,
         ISNULL(po.PurchaseOrderNumber, '') AS PoNumber,
         ISNULL(ro.RepairOrderNumber, '') AS RoNumber,
+        soqpo.PurchaseOrderId AS PartPOId,
+        soqpo.PurchaseOrderNumber AS PartPONumber,
+        soqpo.NeedByDate AS PartPONextDlvrDate,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.CustomerRequestDate ELSE part.CustomerRequestDate END CustomerRequestDate,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.PromisedDate ELSE part.PromisedDate END AS PromisedDate,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.EstimatedShipDate ELSE part.EstimatedShipDate END AS EstimatedShipDate,
@@ -282,6 +286,12 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
+    OUTER APPLY (SELECT TOP 1 P.PurchaseOrderId, P.PurchaseOrderNumber, POP.NeedByDate
+                 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+                 INNER JOIN DBO.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+                 WHERE POP.SalesOrderQuoteId = part.SalesOrderQuoteId AND POP.ItemMasterId = part.ItemMasterId AND POP.ConditionId = part.ConditionId
+                   AND ISNULL(POP.isParent, 1) = 1 AND POP.IsDeleted = 0 AND P.IsDeleted = 0
+                 ORDER BY POP.PurchaseOrderPartRecordId DESC) soqpo
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
     ORDER BY part.SalesOrderQuotePartId;
 

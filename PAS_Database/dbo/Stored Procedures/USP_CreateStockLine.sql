@@ -37,6 +37,9 @@
 									 Insert column list and the Update SET clause, matching BETA.
 	11   22-Sep-2026   Bhargav Saliya   [PN-17506] Duplicate PN/SN check now only blocks when the existing Stockline still has Quantity On Hand > 0. A depleted stockline (Qty OH = 0) no longer raises 'Record already Exist
 									   with these details, so the same Serial Number can be taken back into stock. 
+	12   27-Oct-2026   Rajesh Gami      [PN-18407] Asset in Stockline: the normal Manual Stockline accounting batch is skipped
+									 when the Item Master is an Asset (IsAsset = 1). Asset stocklines post the Asset Acquisition
+									 entry (USP_PostManualStocklineAssetBatchDetails) from the API, same as Create Asset Inventory.
 --   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -312,6 +315,10 @@ BEGIN
 	  DECLARE @ItemMasterExportInfoId BIGINT=NULL,@MSLegalEntityId BIGINT=NULL
 	  DECLARE @StocklineCodeType INT=0,@ControlNumberCodeType INT=0,@IdNumberCodeType INT=0,@StockLineModuleID INT=0
 
+	  -- [PN-18407] Asset stockline: accounting is posted by USP_PostManualStocklineAssetBatchDetails (Asset Acquisition)
+	  DECLARE @IsAssetStockline BIT = 0;
+	  SELECT @IsAssetStockline = ISNULL(AssetItem.IsAsset, 0) FROM [dbo].[ItemMaster] AssetItem WITH(NOLOCK) WHERE AssetItem.ItemMasterId = @ItemMasterId;
+
 	---- Code Types Of CodePrefix	
 	  SELECT @StocklineCodeType = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Stock Line';	
 	  SELECT @ControlNumberCodeType = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Control Number';
@@ -571,7 +578,10 @@ BEGIN
 
 				EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId;
 
-				EXEC [dbo].[USP_PostManualStockLineBatchDetails] @StockLineId,@AccountPayableglAccountId
+				IF(@IsAssetStockline = 0) -- [PN-18407]
+				BEGIN
+					EXEC [dbo].[USP_PostManualStockLineBatchDetails] @StockLineId,@AccountPayableglAccountId
+				END
 
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@StockLineModuleID,@StockLineId,NULL,NULL,1,@QuantityOnHand,@UpdatedBy;
 
@@ -868,7 +878,10 @@ BEGIN
         END
 		EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId;
 
-		EXEC [dbo].[USP_PostManualStockLine_NewBatchDetails] @StockLineId,@UpdatedBy,@OldUnitCost;
+		IF(@IsAssetStockline = 0) -- [PN-18407]
+		BEGIN
+			EXEC [dbo].[USP_PostManualStockLine_NewBatchDetails] @StockLineId,@UpdatedBy,@OldUnitCost;
+		END
 
 	  END
 

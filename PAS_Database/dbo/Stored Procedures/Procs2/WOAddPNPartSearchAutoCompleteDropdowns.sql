@@ -21,6 +21,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 	6   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	7    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
      
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
@@ -82,7 +83,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			ELSE 'OEM'
 			END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
@@ -105,7 +106,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			ELSE 'OEM'
 			END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
@@ -130,7 +131,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			ELSE 'OEM'
 			END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)			
-			WHERE im.IsActive = 1
+			WHERE im.IsActive = 1 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId

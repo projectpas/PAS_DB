@@ -38,6 +38,8 @@
 	2   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 	3   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 	4   14-Sep-2026   Bhargav Saliya       [PN-17849] Part Number search (Item Master dropdown): use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback now matches anywhere (contains, '%'+..+'%') so mid/tail searches like '996' in '21-23996' are found (normalize dashes(-)/slashes("\","/")/underscore(_))
+	5   29-Oct-2026   Rajesh Gami          [PN-18406] No item-type restriction in the search WHERE clauses (the header's "ItemTypeId IN (1,2) only" was never coded). Asset item-master
+										parts (IsAsset = 1) therefore come back in the PO Setup "Add PN" dropdown on purpose; ItemTypeId is returned and the Angular side keeps an Asset part as a Stock line.
 
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '725',1,20,'',18
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturerAllTypes] '100',1,50,'',18

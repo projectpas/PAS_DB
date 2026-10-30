@@ -3479,6 +3479,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetPrintLabelData.sql" />
     <Build Include="dbo\Stored Procedures\USP_RemoveStocklineAsset.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateStocklineAssetLease.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyStocklineAssetDetailsFromRO.sql" />
     <Build Include="dbo\Tables\Tables1\StocklineAssetAdjustment.sql" />
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />

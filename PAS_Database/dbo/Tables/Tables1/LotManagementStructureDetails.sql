@@ -35,3 +35,9 @@
     CONSTRAINT [PK_LotManagementStructureDetails] PRIMARY KEY CLUSTERED ([MSDetailsId] ASC)
 );
 
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetAllLotViewsByLotId_Filter (ViewAllPN) reads the management structure of the lot by (ModuleID, ReferenceID)
+CREATE NONCLUSTERED INDEX [IX_LotManagementStructureDetails_Ref_Module_Perf]
+    ON [dbo].[LotManagementStructureDetails]([ReferenceID] ASC, [ModuleID] ASC)
+    INCLUDE([LastMSLevel]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

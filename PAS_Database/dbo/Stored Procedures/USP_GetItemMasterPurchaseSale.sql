@@ -12,6 +12,7 @@
 ** 1     27-Oct-2025   Bhargav Saliya      Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    28/08/2026    Ayushi Patel      [PN-16987] added effective date 
+	4    29/10/2026    RAJESH GAMI       [PN-18450] Performance: SOQ / SO / Vendor-Quote history aggregated once per Condition (was 3 table scans per Condition inside the loop)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
@@ -86,6 +87,57 @@ BEGIN
 		FROM dbo.Condition WITH (NOLOCK)
 		WHERE MasterCompanyId = @MasterCompanyId;
 
+	/* [PN-18450] Perf: the SOQ / SO / Vendor-Quote history used to be queried once PER CONDITION inside the loop below
+	   (each query scanned the whole SalesOrderQuotePartV1 / SalesOrderPartV1 / VendorRFQPurchaseOrderPart table).
+	   They are now aggregated ONCE per Condition here and the loop only looks the values up. Same filters, same results. */
+	DECLARE @AggSOQDays INT, @AggSODays INT, @AggVQDays INT;
+	SELECT @AggSOQDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOQCode AND [MasterCompanyId] = @MasterCompanyId;
+	SELECT @AggSODays  = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOCode  AND [MasterCompanyId] = @MasterCompanyId;
+	SELECT @AggVQDays  = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode      AND [MasterCompanyId] = @MasterCompanyId;
+
+	DROP TABLE IF EXISTS #ExclStatus, #AggSOQ, #AggSO, #AggPO;
+	SELECT item INTO #ExclStatus FROM SplitString(@Status_Code,',');
+
+	SELECT SQP.[ConditionId], COUNT(SOPC.SalesOrderQuotePartId) AS RecCnt, ISNULL(SUM(SOPC.UnitSalesPrice),0) AS Tot
+	INTO #AggSOQ
+	FROM [dbo].[SalesOrderQuotePartV1] SQP WITH(NOLOCK)
+	INNER JOIN [dbo].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SQP.[SalesOrderQuotePartId] = SOPC.[SalesOrderQuotePartId]
+	INNER JOIN [dbo].[SalesOrderQuote] SQ WITH(NOLOCK) ON SQP.[SalesOrderQuoteId] = SQ.[SalesOrderQuoteId]
+	INNER JOIN [dbo].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.[StatusId] = SQS.[Id]
+	WHERE SQP.[ItemMasterId] = @ItemMasterId
+	  AND CAST(SQ.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@AggSOQDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
+	  AND SQS.[Name] NOT IN (SELECT item FROM #ExclStatus)
+	  AND SQP.[MasterCompanyId] = @MasterCompanyId
+	GROUP BY SQP.[ConditionId];
+
+	SELECT SP.[ConditionId], COUNT(SOPC.SalesOrderPartId) AS RecCnt, ISNULL(SUM(SOPC.UnitSalesPrice),0) AS Tot
+	INTO #AggSO
+	FROM [dbo].[SalesOrderPartV1] SP WITH(NOLOCK)
+	INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SP.[SalesOrderPartId] = SOPC.[SalesOrderPartId]
+	INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SP.[SalesOrderId] = SO.[SalesOrderId]
+	INNER JOIN [dbo].[MasterSalesOrderStatus] SOS WITH(NOLOCK) ON SO.[StatusId] = SOS.[Id]
+	WHERE SP.[ItemMasterId] = @ItemMasterId
+	  AND CAST(SO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@AggSODays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
+	  AND SOS.[Name] NOT IN (SELECT item FROM #ExclStatus)
+	  AND SP.[MasterCompanyId] = @MasterCompanyId
+	GROUP BY SP.[ConditionId];
+
+	-- latest Vendor RFQ unit cost per Condition (same as the former TOP 1 ... ORDER BY UpdatedDate DESC)
+	SELECT ConditionId, UnitCost
+	INTO #AggPO
+	FROM (
+		SELECT POP.[ConditionId], POP.[UnitCost],
+			   ROW_NUMBER() OVER (PARTITION BY POP.[ConditionId] ORDER BY POP.[UpdatedDate] DESC) AS rn
+		FROM [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK)
+		INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) ON POP.[VendorRFQPurchaseOrderId] = PO.[VendorRFQPurchaseOrderId]
+		WHERE POP.[ItemMasterId] = @ItemMasterId
+			AND CAST(PO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@AggVQDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
+			AND PO.[Status] NOT IN (SELECT item FROM #ExclStatus)
+			AND PO.[MasterCompanyId] = @MasterCompanyId
+			AND ISNULL(POP.IsNoQuote, 0) = 0
+	) X
+	WHERE rn = 1 AND ConditionId IS NOT NULL;
+
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmpRFQConditionResult 
 
 	WHILE @MinId <= @TotalRecord
@@ -102,17 +154,10 @@ BEGIN
 
 		SELECT @SOQSettingYearId = ISNULL([YearId], 0), @SOQSettingMonthId = ISNULL([MonthId], 0), @SOQSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOQCode AND [MasterCompanyId] = @MasterCompanyId;
 
-		SELECT	@RecordsTotalSOQ = COUNT(SOPC.SalesOrderQuotePartId), 
-				@UnitSalesPriceTotalSOQ = ISNULL(SUM(SOPC.UnitSalesPrice),0)
-		FROM [dbo].[SalesOrderQuotePartV1] SQP WITH(NOLOCK)
-		INNER JOIN [dbo].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SQP.[SalesOrderQuotePartId] = SOPC.[SalesOrderQuotePartId]
-		INNER JOIN [dbo].[SalesOrderQuote] SQ WITH(NOLOCK) ON SQP.[SalesOrderQuoteId] = SQ.[SalesOrderQuoteId]
-		INNER JOIN [dbo].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.[StatusId] = SQS.[Id]
-		WHERE SQP.[ItemMasterId] = @ItemMasterId
-		  AND SQP.[ConditionId] = @NewConditionId   
-		  AND CAST(SQ.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@SOQSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
-		  AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-		  AND SQP.[MasterCompanyId] = @MasterCompanyId;				
+		SELECT	@RecordsTotalSOQ = ISNULL(A.RecCnt, 0),
+				@UnitSalesPriceTotalSOQ = ISNULL(A.Tot, 0)
+		FROM (SELECT @NewConditionId AS ConditionId) D
+		LEFT JOIN #AggSOQ A ON A.ConditionId = D.ConditionId;				
 		  IF(@RecordsTotalSOQ > 0)
 		  BEGIN
 	  		SET @PerUnitPriceSOQ  = ISNULL((@UnitSalesPriceTotalSOQ / @RecordsTotalSOQ),0);
@@ -131,17 +176,10 @@ BEGIN
 
 		SELECT @SOSettingYearId = [YearId], @SOSettingMonthId = [MonthId], @SOSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOCode AND [MasterCompanyId] = @MasterCompanyId;
 
-		SELECT	@RecordsTotalSO = COUNT(SOPC.SalesOrderPartId), 
-				@UnitSalesPriceTotalSO = ISNULL(SUM(SOPC.UnitSalesPrice),0)
-		FROM [dbo].[SalesOrderPartV1] SP WITH(NOLOCK)
-		INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SP.[SalesOrderPartId] = SOPC.[SalesOrderPartId]
-		INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SP.[SalesOrderId] = SO.[SalesOrderId]
-		INNER JOIN [dbo].[MasterSalesOrderStatus] SOS WITH(NOLOCK) ON SO.[StatusId] = SOS.[Id]
-		WHERE SP.[ItemMasterId] = @ItemMasterId
-		  AND SP.[ConditionId] = @NewConditionId   
-		  AND CAST(SO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@SOSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
-		  AND SOS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-		  AND SP.[MasterCompanyId] = @MasterCompanyId;	
+		SELECT	@RecordsTotalSO = ISNULL(A.RecCnt, 0),
+				@UnitSalesPriceTotalSO = ISNULL(A.Tot, 0)
+		FROM (SELECT @NewConditionId AS ConditionId) D
+		LEFT JOIN #AggSO A ON A.ConditionId = D.ConditionId;	
 		  
 		  IF(@RecordsTotalSO > 0)
 		  BEGIN
@@ -187,17 +225,9 @@ BEGIN
 
 		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue], @VQSettingDays = ISNULL([Days], 0), @POQuotePercentId = [PercentId] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
 
-		SELECT	TOP 1
-				@UnitSalesPriceTotalPO = ISNULL(POP.UnitCost,0)
-		FROM [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK)
-		INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) ON POP.[VendorRFQPurchaseOrderId] = PO.[VendorRFQPurchaseOrderId]
-		WHERE POP.[ItemMasterId] = @ItemMasterId
-			AND POP.[ConditionId] = @NewConditionId   
-			AND CAST(PO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@VQSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
-			AND PO.[Status] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-			AND PO.[MasterCompanyId] = @MasterCompanyId
-			AND ISNULL(POP.IsNoQuote, 0) = 0
-			ORDER BY POP.UpdatedDate DESC;	
+		SELECT	@UnitSalesPriceTotalPO = ISNULL(A.UnitCost, 0)
+		FROM (SELECT @NewConditionId AS ConditionId) D
+		LEFT JOIN #AggPO A ON A.ConditionId = D.ConditionId;	
 		  
 		IF(ISNULL(@UnitSalesPriceTotalPO, 0) > 0)
 		BEGIN

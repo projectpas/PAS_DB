@@ -23,6 +23,9 @@ EXEC [RPT_GetSalesOrderPartsView]
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    22/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters from the PN-17008/17009 transitional phase so Non-Stock parts print/display correctly now that Non-Stock is fully merged
 	14    11/August/2026		Priyansh Patel                      [PN-17573]  Added IsNonStock/IsService so SO Print (SalesOrder.rdl) can hide Stockline Number / Serial Number for Non-Stock Service Items
+	15    29/Oct/2026			 RAJESH GAMI						[PN-18464] SO print showed every stockline twice (same Qty / Amount, Line # 1,2,3,...): since entry 9 (04/03/2026) ItemNo is a ROW_NUMBER() inside the SELECT DISTINCT,
+															so every row was unique and DISTINCT could no longer remove the rows multiplied by the LEFT JOINs. Now: unused SOPickTicket join removed, DISTINCT first, one row per
+															Sales Order stockline, ItemNo numbered AFTER that (1..n, ordered by part / stockline) and the result returned in that order. Columns unchanged.
 EXEC RPT_GetSalesOrderPartsView 1472
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -38,6 +41,8 @@ BEGIN
 		DECLARE @moduleId BIGINT;
 
 		SET @moduleId = (SELECT ModuleId FROM dbo.module WHERE CodePrefix = 'SO');
+
+		IF OBJECT_ID('tempdb..#SOParts') IS NOT NULL DROP TABLE #SOParts;
 
 		SELECT DISTINCT
 			sp.SalesOrderId,
@@ -192,7 +197,7 @@ BEGIN
 				WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 				ELSE 'OEM'
 			END AS StockType,
-			ROW_NUMBER() OVER (ORDER BY sp.SalesOrderPartId) AS ItemNo,
+			0 AS ItemNo, -- [PN-18464] numbered after DISTINCT / duplicate removal (a ROW_NUMBER here makes every row unique, so DISTINCT removed nothing)
 			ISNULL(sp.POId, 0) AS POId,
 			ISNULL(sp.PONumber, '') AS PONumber,
 			ISNULL(sp.PONextDlvrDate, NULL) AS PONextDlvrDate,
@@ -318,6 +323,8 @@ BEGIN
 			--				  WHERE stli.StockLineId = sp.StockLineId),
 			--IdNumber = (SELECT stli.IdNumber FROM dbo.StockLine stli
 			--				  WHERE stli.StockLineId = sp.StockLineId)
+			,stk.SalesOrderStocklineId AS _SOStkId -- hidden helper (grain of the print), dropped before the result is returned
+		INTO #SOParts
 		FROM
 			dbo.SalesOrderPartV1 sp WITH(NOLOCK)
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sp.SalesOrderPartId
@@ -345,11 +352,30 @@ BEGIN
 			LEFT JOIN dbo.CustomerFinancial custfc WITH(NOLOCK) ON cust.CustomerId = custfc.CustomerId
 			LEFT JOIN dbo.Currency cur WITH(NOLOCK) ON so.FunctionalCurrencyId = cur.CurrencyId
 			LEFT JOIN dbo.AllAddress posadd WITH(NOLOCK) ON so.SalesOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @moduleId
-			LEFT JOIN dbo.SOPickTicket pt ON sp.SalesOrderPartId = pt.SalesOrderPartId
+			-- [PN-18464] removed: LEFT JOIN dbo.SOPickTicket pt ON sp.SalesOrderPartId = pt.SalesOrderPartId (no column was used; one row per pick ticket multiplied every part / stockline row)
 		WHERE
 			sp.SalesOrderId = @salesOrderId
 			AND sp.IsDeleted = 0
 			--AND rop.isAsset = 0
+
+		-- [PN-18464] one row per Sales Order stockline (the grain of the print). The joins above (reserve parts, part / stockline cost, addresses ...) can return
+		-- several rows for the same stockline; SELECT DISTINCT removes them only when ALL columns are equal, so keep exactly one row per part + stockline.
+		;WITH d AS (
+			SELECT ROW_NUMBER() OVER (PARTITION BY SalesOrderPartId, ISNULL(_SOStkId, 0) ORDER BY (SELECT NULL)) AS rn
+			FROM #SOParts
+		)
+		DELETE FROM d WHERE rn > 1;
+
+		-- Line # / ItemNo: 1..n in part / stockline order (was a ROW_NUMBER over the multiplied rows)
+		;WITH n AS (
+			SELECT ItemNo, ROW_NUMBER() OVER (ORDER BY SalesOrderPartId, ISNULL(_SOStkId, 0)) AS rn
+			FROM #SOParts
+		)
+		UPDATE n SET ItemNo = rn;
+
+		ALTER TABLE #SOParts DROP COLUMN _SOStkId;
+
+		SELECT * FROM #SOParts ORDER BY ItemNo;
 
    END              
              

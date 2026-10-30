@@ -32,6 +32,7 @@
 	15   03-Aug-2026    Sahdev Saliya        Added IsKitAssy [PN-17371]
 	16   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	17   26-Oct-2026   Rajesh Gami       [PN-18406] Asset item type: ItemType = 'Asset' when IsAsset = 1, IsAsset column, Item Type filter 11 = Asset
+	18   29-Oct-2026   Rajesh Gami       [PN-18450] Performance: light rows from covering index; PartDescription / HasSubAssy / RoSubAssy / Ranking only for the page rows (unless filtered / sorted)
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -135,83 +136,108 @@ BEGIN
 		BEGIN
 			SET @IsHazardousMaterial=NULL;
 		END
-		;WITH CTE_IntegrationPortal AS (
-			SELECT
-				iM.ItemMasterId,
-				STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking,
-				STRING_AGG(mp.RankingId, ',') AS RankingIds
-			FROM dbo.ItemMaster iM WITH(NOLOCK)
-			INNER JOIN dbo.ItemMasterRanking mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
-			INNER JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
-			WHERE mp.RankingId IS NOT NULL GROUP BY iM.ItemMasterId
-		),
-		
-		 Result AS(
-				-- PERF FIX: removed SELECT DISTINCT - CTE_IntegrationPortal is already
-				-- GROUP BY ItemMasterId (one row per key) and is LEFT JOINed 1:1 on that same
-				-- key; nothing else in this SELECT can fan a row out, since HasSubAssy/RoSubAssy
-				-- are scalar subqueries, not joins. im.ItemMasterId (the driving PK) already
-				-- guarantees uniqueness, so DISTINCT was just an extra sort/hash over every
-				-- computed column for no benefit.
-				SELECT im.ItemMasterId,
-				       im.PartNumber,
-					   im.PartDescription,
-					   (ISNULL(im.ManufacturerName,'')) 'Manufacturerdesc',
-					   im.ItemClassificationName 'Classificationdesc',
-					   (ISNULL(im.ItemGroup,'')) 'ItemGroup',
-					   im.NationalStockNumber,
-					   CASE WHEN im.IsSerialized = 1 THEN 'Yes' ELSE 'No' END AS IsSerialized,
-					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
-					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',
-					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
-					   -- PERF FIX: COUNT(...) > 0 -> EXISTS(...). Same result, but SQL Server can
-					   -- stop at the first matching row instead of counting every match, and this
-					   -- now has a supporting index on (ItemMasterId, PopulateWoMaterialList).
-					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[Assemply] AP WITH (NOLOCK) WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1) THEN 'Yes' ELSE 'No' END AS HasSubAssy,
-					   CASE WHEN EXISTS (SELECT 1 FROM [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK) WHERE RAP.ItemMasterId = im.ItemMasterId) THEN 'Yes' ELSE 'No' END AS RoSubAssy,
-					   im.IsActive,
-					   ItemType = CASE WHEN ISNULL(im.IsAsset,0) = 1 THEN 'Asset' WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,
-					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
-					   StockType = (CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
-										 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
-					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER'
-										 WHEN im.IsOEM = 1 THEN 'OEM'
-										 ELSE ''
-									END),
-					   im.CreatedDate CreatedDates,
-                       --im.UpdatedDate,
-					   -- PERF FIX: inline DATEADD using the offset resolved once above, instead of
-					   -- calling DBO.ConvertUTCtoLocal(...) per row (see note near @BaseUtcOffsetSec).
-					   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.CreatedDate) AS Date) AS CreatedDate,
-					   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.UpdatedDate) AS Date) AS UpdatedDate,
-					   im.CreatedBy,
-                       im.UpdatedBy,
-					   im.IsDeleted,
-					   itp.Ranking as RankingsName,
-					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
-					    ISNULL(IM.IsNonStock,0)IsNonStock,
-						CAST(ISNULL(im.IsAsset,0) AS BIT) AS IsAsset,
-						im.ItemTypeId,
-						im.Model,
-						CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
-			   FROM dbo.ItemMaster im WITH (NOLOCK)
-			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
-		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
-					AND im.MasterCompanyId=@MasterCompanyId
-					AND (@ItemTypeStatusId IS NULL
-					     -- [PN-18406] 11 = ItemTypeEnum.Asset in the UI filter -> Item Master rows with IsAsset = 1
-					     OR (CAST(@ItemTypeStatusId AS INT) = 11 AND ISNULL(im.IsAsset,0) = 1)
-					     OR (CAST(@ItemTypeStatusId AS INT) <> 11 AND im.ItemTypeId = CAST(@ItemTypeStatusId AS INT) AND ISNULL(im.IsAsset,0) = 0))
-					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))
-					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
-			),
-			-- PERF FIX: filters now run directly against Result (no #TempResult heap table), and
-			-- COUNT(*) OVER() supplies NumberOfItems in the same pass that gets sorted/paged below
-			-- - this replaces the old #TempResult + separate "SELECT @Count = COUNT(...)" scan
-			-- with a single pass.
-			FilteredResult AS (
-			SELECT *, COUNT(*) OVER() AS NumberOfItems
-			FROM Result
+		/* [PN-18450] Performance (list took ~7 sec):
+		   - the wide ItemMaster row (NVARCHAR(MAX) PartDescription, IsAsset, IsKitAssy ...) is no longer read for every row;
+		     the light rows come from the covering index IX_ItemMaster_MasterCompanyId_IsDeleted_IsActive_Perf
+		   - PartDescription, HasSubAssy, RoSubAssy and Ranking are computed ONLY for the returned page rows,
+		     unless a filter / global filter / sort needs them (then for all rows, as before)
+		   Same parameters, same output columns, same filters and sort. */
+		DECLARE @NeedAll BIT = CASE WHEN ISNULL(@GlobalFilter,'') <> '' OR ISNULL(@PartDescription,'') <> ''
+		                              OR ISNULL(@HasSubAssy,'') <> '' OR ISNULL(@RoSubAssy,'') <> '' OR ISNULL(@RankingsName,'') <> ''
+		                              OR @SortColumn IN ('PARTDESCRIPTION','HASSUBASSY','ROSUBASSY','RANKINGSNAME')
+		                            THEN 1 ELSE 0 END;
+
+		DROP TABLE IF EXISTS #Base, #Target, #Extra, #Page;
+
+		CREATE TABLE #Page  (Seq INT IDENTITY(1,1) PRIMARY KEY, ItemMasterId BIGINT NOT NULL, NumberOfItems INT NOT NULL);
+		CREATE TABLE #Extra (ItemMasterId BIGINT NOT NULL PRIMARY KEY, PartDescription NVARCHAR(MAX) NULL, HasSubAssy VARCHAR(3) NULL, RoSubAssy VARCHAR(3) NULL, RankingsName NVARCHAR(MAX) NULL);
+
+		/* light rows (no PartDescription / HasSubAssy / RoSubAssy / Ranking) */
+		SELECT im.ItemMasterId,
+		       im.PartNumber,
+			   (ISNULL(im.ManufacturerName,'')) 'Manufacturerdesc',
+			   im.ItemClassificationName 'Classificationdesc',
+			   (ISNULL(im.ItemGroup,'')) 'ItemGroup',
+			   im.NationalStockNumber,
+			   CASE WHEN im.IsSerialized = 1 THEN 'Yes' ELSE 'No' END AS IsSerialized,
+			   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
+			   im.IsActive,
+			   ItemType = CASE WHEN ISNULL(im.IsAsset,0) = 1 THEN 'Asset' WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,
+			   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
+			   StockType = (CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
+								 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
+			                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER'
+								 WHEN im.IsOEM = 1 THEN 'OEM'
+								 ELSE ''
+							END),
+			   im.CreatedDate CreatedDates,
+			   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.CreatedDate) AS Date) AS CreatedDate,
+			   CAST(DATEADD(SECOND, @BaseUtcOffsetSec, im.UpdatedDate) AS Date) AS UpdatedDate,
+			   im.CreatedBy,
+               im.UpdatedBy,
+			   im.IsDeleted,
+			   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
+			   ISNULL(IM.IsNonStock,0)IsNonStock,
+			   CAST(ISNULL(im.IsAsset,0) AS BIT) AS IsAsset,
+			   im.ItemTypeId,
+			   im.Model,
+			   CASE WHEN im.IsKitAssy = 1 THEN 'Yes' ELSE 'No' END AS IsKitAssy
+		INTO #Base
+		FROM dbo.ItemMaster im WITH (NOLOCK)
+		WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))
+			AND im.MasterCompanyId=@MasterCompanyId
+			AND (@ItemTypeStatusId IS NULL
+			     -- [PN-18406] 11 = ItemTypeEnum.Asset in the UI filter -> Item Master rows with IsAsset = 1
+			     OR (CAST(@ItemTypeStatusId AS INT) = 11 AND ISNULL(im.IsAsset,0) = 1)
+			     OR (CAST(@ItemTypeStatusId AS INT) <> 11 AND im.ItemTypeId = CAST(@ItemTypeStatusId AS INT) AND ISNULL(im.IsAsset,0) = 0))
+			AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))
+			AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
+		OPTION (RECOMPILE);
+
+		CREATE UNIQUE CLUSTERED INDEX IX_Base_ItemMasterId ON #Base (ItemMasterId);
+
+		DECLARE @Step INT = 1;
+		WHILE @Step <= 2
+		BEGIN
+			IF ((@NeedAll = 1 AND @Step = 1) OR (@NeedAll = 0 AND @Step = 2))
+			BEGIN
+				/* HEAVY step: all light rows when a filter / sort needs the heavy columns, otherwise only the page rows */
+				TRUNCATE TABLE #Extra;
+				SELECT ItemMasterId INTO #Target FROM #Base WHERE @NeedAll = 1
+				UNION ALL
+				SELECT ItemMasterId FROM #Page WHERE @NeedAll = 0
+				OPTION (RECOMPILE);
+
+				INSERT INTO #Extra (ItemMasterId, PartDescription, HasSubAssy, RoSubAssy, RankingsName)
+				SELECT T.ItemMasterId,
+				       im.PartDescription,
+				       CASE WHEN EXISTS (SELECT 1 FROM [DBO].[Assemply] AP WITH (NOLOCK) WHERE AP.ItemMasterId = T.ItemMasterId AND AP.PopulateWoMaterialList = 1) THEN 'Yes' ELSE 'No' END,
+				       CASE WHEN EXISTS (SELECT 1 FROM [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK) WHERE RAP.ItemMasterId = T.ItemMasterId) THEN 'Yes' ELSE 'No' END,
+				       RK.Ranking
+				FROM #Target T
+				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = T.ItemMasterId
+				LEFT JOIN (
+					SELECT mp.ItemMasterId, STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking
+					FROM dbo.ItemMasterRanking mp WITH(NOLOCK)
+					INNER JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
+					WHERE mp.RankingId IS NOT NULL AND mp.ItemMasterId IN (SELECT ItemMasterId FROM #Target)
+					GROUP BY mp.ItemMasterId
+				) RK ON RK.ItemMasterId = T.ItemMasterId
+				OPTION (RECOMPILE);
+
+				DROP TABLE #Target;
+			END
+			ELSE
+			BEGIN
+				/* PAGE step: filter + sort + page on the light rows (heavy columns come from #Extra when it is filled) */
+				;WITH Src AS (
+					SELECT B.*, X.PartDescription, X.HasSubAssy, X.RoSubAssy, X.RankingsName
+					FROM #Base B
+					LEFT JOIN #Extra X ON X.ItemMasterId = B.ItemMasterId
+				),
+				FilteredResult AS (
+				SELECT *, COUNT(*) OVER() AS NumberOfItems
+				FROM Src
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(Manufacturerdesc LIKE '%' +@GlobalFilter+'%') OR					
@@ -255,9 +281,9 @@ BEGIN
 					(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
 					(ISNULL(@IsKitAssy,'') ='' OR IsKitAssy LIKE '%' + @IsKitAssy + '%'))
 	)
-			)
-
-			SELECT * FROM FilteredResult ORDER BY
+				)
+				INSERT INTO #Page (ItemMasterId, NumberOfItems)
+				SELECT ItemMasterId, NumberOfItems FROM FilteredResult ORDER BY
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
@@ -300,8 +326,46 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsKitAssy')  THEN IsKitAssy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsKitAssy')  THEN IsKitAssy END DESC
-			OFFSET @RecordFrom ROWS 
-			FETCH NEXT @PageSize ROWS ONLY
+				OFFSET @RecordFrom ROWS
+				FETCH NEXT @PageSize ROWS ONLY
+				OPTION (RECOMPILE);
+			END
+			SET @Step = @Step + 1;
+		END
+
+		SELECT B.ItemMasterId,
+		       B.PartNumber,
+		       X.PartDescription,
+		       B.Manufacturerdesc,
+		       B.Classificationdesc,
+		       B.ItemGroup,
+		       B.NationalStockNumber,
+		       B.IsSerialized,
+		       B.IsTimeLife,
+		       X.HasSubAssy,
+		       X.RoSubAssy,
+		       B.IsActive,
+		       B.ItemType,
+		       B.IsHazardousMaterial,
+		       B.StockType,
+		       B.CreatedDates,
+		       B.CreatedDate,
+		       B.UpdatedDate,
+		       B.CreatedBy,
+		       B.UpdatedBy,
+		       B.IsDeleted,
+		       X.RankingsName,
+		       B.workOrderType,
+		       B.IsNonStock,
+		       B.IsAsset,
+		       B.ItemTypeId,
+		       B.Model,
+		       B.IsKitAssy,
+		       P.NumberOfItems
+		FROM #Page P
+		INNER JOIN #Base B ON B.ItemMasterId = P.ItemMasterId
+		LEFT JOIN #Extra X ON X.ItemMasterId = P.ItemMasterId
+		ORDER BY P.Seq;
 		END TRY
 
 	BEGIN CATCH	

@@ -24,6 +24,10 @@
     7    11-May-2026  Priyansh Patel    Added and Modified the  Ac tail number (PN-16231)
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    16/July/2026			 RAJESH GAMI						[PN-17271] - NonStockCTE now reads StocklineDraft (IsNonStock=1) instead of NonStockInventoryDraft; StockCTE excludes IsNonStock=1 rows.
+	10   21-Oct-2026  Vishal Suthar     [PN-18342] - Traceable To of a fully received non-serialized part (no pending draft left) is taken from its latest
+                                         received draft, instead of being empty (the screen then showed the PO Vendor)
+	11   22-Oct-2026  RAJESH GAMI       [PN-18395] - Part-level values (Condition/UOM/GL/Unit cost...) are read from ONE draft row (OUTER APPLY TOP 1); a split part
+                                         falls back to its parent's draft row (also StkD_NonSer_Rcvd), and a multi-row join no longer duplicates the part line
 
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2386
 **************************************************************/        
@@ -79,7 +83,7 @@ BEGIN
   WHEN part.ItemTypeId = 2 THEN   
 	CASE WHEN nsi.isSerialized = 1 THEN StkD_Ser_NonStk.ShippingAccount ELSE StkD_NonSer_NonStk.ShippingAccount END  
   ELSE '' END AS ShippingAccount,      
-  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableToName ELSE StkD_NonSer.TraceableToName END AS TraceableToName,          
+  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableToName WHEN StkD_NonSer.StockLineDraftId IS NULL THEN StkD_NonSer_Rcvd.TraceableToName ELSE StkD_NonSer.TraceableToName END AS TraceableToName,          
   --CASE WHEN part.ItemTypeId = 1 THEN     
   --(SELECT SUM(STK.Quantity) FROM DBO.Stockline STK WITH (NOLOCK) WHERE STK.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STK.IsParent = 1 AND STK.StockLineId IN       
   --(SELECT StockLineId FROM DBO.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.PurchaseOrderId = @PurchaseOrderId))    
@@ -172,8 +176,8 @@ BEGIN
   CASE WHEN part.ItemTypeId = 1 THEN itm.isSerialized WHEN part.ItemTypeId = 2 THEN nsi.IsSerialized ELSE asi.IsSerialized END AS IsSerialized,      
   CASE WHEN part.ItemTypeId = 1 THEN itm.IsTimeLife ELSE 0 END AS IsTimeLife,      
   --itm.PurchaseUnitOfMeasureId AS UnitOfMeasureId,      
-  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableToType ELSE StkD_NonSer.TraceableToType END AS TraceableToType,      
-  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableTo ELSE StkD_NonSer.TraceableTo END AS TraceableTo,      
+  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableToType WHEN StkD_NonSer.StockLineDraftId IS NULL THEN StkD_NonSer_Rcvd.TraceableToType ELSE StkD_NonSer.TraceableToType END AS TraceableToType,
+  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TraceableTo WHEN StkD_NonSer.StockLineDraftId IS NULL THEN StkD_NonSer_Rcvd.TraceableTo ELSE StkD_NonSer.TraceableTo END AS TraceableTo,      
   (SELECT ShipViaId FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13) AS ShippingViaId,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.OwnerType ELSE StkD_NonSer.OwnerType END AS OwnerType,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.ObtainFromType ELSE StkD_NonSer.ObtainFromType END AS ObtainFromType,      
@@ -366,8 +370,32 @@ BEGIN
    AND ISNULL(itm.IsNonStock,0) = 0
    LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId
   LEFT JOIN DBO.ItemMaster nsi WITH (NOLOCK) ON part.ItemMasterId = nsi.ItemMasterId AND ISNULL(nsi.IsNonStock,0) = 1
-  LEFT JOIN DBO.StocklineDraft StkD_Ser WITH (NOLOCK) ON StkD_Ser.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser.isSerialized = 1 AND StkD_Ser.IsParent = 0 AND ISNULL(StkD_Ser.IsNonStock,0) = 0
-  LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND ( StkD_NonSer.IsParent = 1 OR ISNULL(StkD_NonSer.StockLineId,0) = 0 OR StkD_NonSer.Quantity > @maxQtyLimit) AND ISNULL(StkD_NonSer.IsNonStock,0) = 0
+  -- [PN-18395] one draft row only; a split part falls back to its parent's draft row (ParentId)
+  OUTER APPLY (
+      SELECT TOP 1 SLD.*
+      FROM DBO.StocklineDraft SLD WITH (NOLOCK)
+      WHERE SLD.PurchaseOrderPartRecordId IN (part.PurchaseOrderPartRecordId, ISNULL(part.ParentId, 0))
+        AND SLD.isSerialized = 1 AND SLD.IsParent = 0
+        AND ISNULL(SLD.IsNonStock,0) = 0 AND ISNULL(SLD.isDeleted,0) = 0
+      ORDER BY CASE WHEN SLD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId THEN 0 ELSE 1 END, SLD.StockLineDraftId ASC
+  ) StkD_Ser
+  -- [PN-18395] one draft row only; a split part falls back to its parent's draft row (ParentId)
+  OUTER APPLY (
+      SELECT TOP 1 SLD.*
+      FROM DBO.StocklineDraft SLD WITH (NOLOCK)
+      WHERE SLD.PurchaseOrderPartRecordId IN (part.PurchaseOrderPartRecordId, ISNULL(part.ParentId, 0))
+        AND SLD.isSerialized = 0 AND (SLD.IsParent = 1 OR ISNULL(SLD.StockLineId,0) = 0 OR SLD.Quantity > @maxQtyLimit)
+        AND ISNULL(SLD.IsNonStock,0) = 0 AND ISNULL(SLD.isDeleted,0) = 0
+      ORDER BY CASE WHEN SLD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId THEN 0 ELSE 1 END, SLD.IsParent DESC, SLD.StockLineDraftId ASC
+  ) StkD_NonSer
+  -- Fully received non-serialized part: no pending draft is left, so use the latest received one (Traceable To shown on the part line)
+  OUTER APPLY (
+      SELECT TOP 1 RD.TraceableTo, RD.TraceableToType, RD.TraceableToName
+      FROM DBO.StocklineDraft RD WITH (NOLOCK)
+      WHERE RD.PurchaseOrderPartRecordId IN (part.PurchaseOrderPartRecordId, ISNULL(part.ParentId, 0)) -- [PN-18395] split part falls back to its parent's received draft
+        AND RD.isSerialized = 0 AND ISNULL(RD.IsNonStock,0) = 0 AND ISNULL(RD.StockLineId,0) > 0
+      ORDER BY CASE WHEN RD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId THEN 0 ELSE 1 END, RD.StockLineDraftId DESC
+  ) StkD_NonSer_Rcvd
   LEFT JOIN DBO.AssetInventoryDraft StkD_Ser_Asset WITH (NOLOCK) ON StkD_Ser_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_Asset.isSerialized = 1 AND StkD_Ser_Asset.IsParent = 0
   OUTER APPLY (
       SELECT TOP 1 AID.*
@@ -377,8 +405,24 @@ BEGIN
         AND (AID.IsParent = 1 OR ISNULL(AID.AssetInventoryId,0) = 0 OR AID.Qty > @maxQtyLimit)
       ORDER BY AID.IsParent DESC, AID.AssetInventoryDraftId ASC
   ) StkD_NonSer_Asset
-  LEFT JOIN DBO.StocklineDraft StkD_Ser_NonStk WITH (NOLOCK) ON StkD_Ser_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_NonStk.isSerialized = 1 AND StkD_Ser_NonStk.IsParent = 0 AND ISNULL(StkD_Ser_NonStk.IsNonStock,0) = 1
-  LEFT JOIN DBO.StocklineDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND (StkD_NonSer_NonStk.IsParent = 1  OR ISNULL(StkD_NonSer_NonStk.StockLineId,0) = 0 OR StkD_NonSer_NonStk.Quantity > @maxQtyLimit ) AND ISNULL(StkD_NonSer_NonStk.IsNonStock,0) = 1
+  -- [PN-18395] one draft row only; a split part falls back to its parent's draft row (ParentId)
+  OUTER APPLY (
+      SELECT TOP 1 SLD.*
+      FROM DBO.StocklineDraft SLD WITH (NOLOCK)
+      WHERE SLD.PurchaseOrderPartRecordId IN (part.PurchaseOrderPartRecordId, ISNULL(part.ParentId, 0))
+        AND SLD.isSerialized = 1 AND SLD.IsParent = 0
+        AND ISNULL(SLD.IsNonStock,0) = 1 AND ISNULL(SLD.isDeleted,0) = 0
+      ORDER BY CASE WHEN SLD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId THEN 0 ELSE 1 END, SLD.StockLineDraftId ASC
+  ) StkD_Ser_NonStk
+  -- [PN-18395] one draft row only; a split part falls back to its parent's draft row (ParentId)
+  OUTER APPLY (
+      SELECT TOP 1 SLD.*
+      FROM DBO.StocklineDraft SLD WITH (NOLOCK)
+      WHERE SLD.PurchaseOrderPartRecordId IN (part.PurchaseOrderPartRecordId, ISNULL(part.ParentId, 0))
+        AND SLD.isSerialized = 0 AND (SLD.IsParent = 1 OR ISNULL(SLD.StockLineId,0) = 0 OR SLD.Quantity > @maxQtyLimit)
+        AND ISNULL(SLD.IsNonStock,0) = 1 AND ISNULL(SLD.isDeleted,0) = 0
+      ORDER BY CASE WHEN SLD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId THEN 0 ELSE 1 END, SLD.IsParent DESC, SLD.StockLineDraftId ASC
+  ) StkD_NonSer_NonStk
   WHERE part.PurchaseOrderId = @PurchaseOrderId
   AND (part.PurchaseOrderPartRecordId NOT IN (SELECT ParentId FROM PurchaseOrderPart WHERE PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL));      
       

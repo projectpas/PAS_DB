@@ -13,6 +13,7 @@
 	2    06/11/2023   Moin Bloch    Modified(added FreightAdjustmentPerUnit And TaxAdjustmentPerUnit) 
 	3    28/01/2025   Moin Bloch    Modified(Removed POUnitCost & RoUnitCost update in stockline)
 	4    01/09/2026   Moin Bloch    Modified(added [COGSUnitCost],[MiscAdjustment] calculation) PN-17835
+	5    20/10/2026   Moin Bloch    Modified(added Freight, Charges, and Tax are not included in Non-Stock and Asset unit cost calculation) PN-17582
 	       
 EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 217
 
@@ -30,16 +31,12 @@ BEGIN
 		    DECLARE @MinId BIGINT = 1;  			
 			DECLARE @StocklineId BIGINT;  
 			DECLARE @IsManual BIT;	
-			DECLARE @Type INT;
-			-- DECLARE @InvoicedQty INT;  comment Due to not in use
+			DECLARE @Type INT;			
 			DECLARE @InvoicedUnitCost DECIMAL(18,2) = 0
 			DECLARE @AdjUnitCost DECIMAL(18,2) = 0
 			DECLARE @Freight INT  = 1
 			DECLARE @MISC INT  = 2
-			DECLARE @Tax INT  = 3
-			--DECLARE @TotalFreight DECIMAL(18,2) = 0  comment Due to not in use
-			--DECLARE @TotalMisc DECIMAL(18,2) = 0     comment Due to not in use
-			--DECLARE @TotalTax DECIMAL(18,2) = 0      comment Due to not in use 
+			DECLARE @Tax INT  = 3			
 			DECLARE @FreightAdjustment DECIMAL(18,2) = 0
 			DECLARE @MiscAdjustment DECIMAL(18,2) = 0
 			DECLARE @TaxAdjustment DECIMAL(18,2) = 0
@@ -79,33 +76,18 @@ BEGIN
 				FROM #RRStockAdjustment
 				WHERE [IsManual] = 0
 			)
-
 			UPDATE t SET t.[RowNum] = c.[RN] FROM #RRStockAdjustment t JOIN CTE c ON c.[ID] = t.[ID];
-
-            -- Total Invoice Qty
-			-- SELECT @InvoicedQty = SUM(ISNULL([InvoicedQty],0)) FROM #RRStockAdjustment WHERE [IsManual] = 0; 
-			
-			-- Total Freight
-			--SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] = @Freight;
-
-			-- Total Freight
-			--SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] = @MISC;
-			
-			-- Total Tax
-			--SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRStockAdjustment WHERE [IsManual] = 1 AND [PackagingId] =  @Tax;
-					   				
+			            					   				
 			SELECT @TotalRecord = COUNT(*), @MinId = MIN([RowNum]) FROM #RRStockAdjustment WHERE [IsManual] = 0;
 					
 			WHILE @MinId <= @TotalRecord
 			BEGIN					
 				DECLARE @PurchaseOrderUnitCost DECIMAL(18,2) = 0;
-				DECLARE @RepairOrderUnitCost DECIMAL(18,2) = 0;
-				--DECLARE @UnitCost DECIMAL(18,2) = 0;
+				DECLARE @RepairOrderUnitCost DECIMAL(18,2) = 0;				
 				DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) = 0;
 				DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) = 0;
 				DECLARE @MiscAdjustmentPerUnit DECIMAL(18,2) = 0;
-				--DECLARE @COGSUnitCost DECIMAL(18,2) = 0;
-
+				
 				SELECT @StocklineId = [StocklineId],
 				       @IsManual = [IsManual],
 				       @Type = [Type],					   
@@ -122,12 +104,10 @@ BEGIN
 
 				SET @TaxAdjustment = @TaxAdjustmentPerUnit;
 				
-				IF(UPPER(@StockType) = 'STOCK')
+				IF(UPPER(@StockType) = 'STOCK' OR UPPER(@StockType) = 'NONSTOCK')
 				BEGIN					
 					SELECT @PurchaseOrderUnitCost = [PurchaseOrderUnitCost],
-					       @RepairOrderUnitCost = [RepairOrderUnitCost]
-						   --@UnitCost = [UnitCost],
-						   --@COGSUnitCost = ISNULL([COGSUnitCost],0)
+					       @RepairOrderUnitCost = [RepairOrderUnitCost]						   
 					  FROM [dbo].[Stockline] WHERE [StockLineId] = @StocklineId;	
 					  
 					UPDATE SL
@@ -140,11 +120,7 @@ BEGIN
 					  FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;	
 
 					  EXEC [dbo].[USP_Lot_UpdateCOGSByStocklineId] @StocklineId,@FreightAdjustment,@MiscAdjustment,@TaxAdjustment
-				END
-				IF(UPPER(@StockType) = 'NONSTOCK')
-				BEGIN
-					PRINT  @StockType
-				END
+				END				
 				IF(UPPER(@StockType) = 'ASSET')
 				BEGIN
 					PRINT  @StockType

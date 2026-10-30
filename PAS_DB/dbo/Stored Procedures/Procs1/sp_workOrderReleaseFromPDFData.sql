@@ -30,6 +30,7 @@
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	15   17/09/2026   Moin Bloch      Added [FormTypeId] [PN-17942]
+	16   22/10/2026   Moin Bloch      Added Missing LogBook Changes [PN-18400]
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
@@ -48,6 +49,11 @@ BEGIN
 				DECLARE @MasterCompanyCode VARCHAR(100)='', @PARMasterCompanyCode VARCHAR(100)='';
 				DECLARE @VersionNo VARCHAR(50) = NULL;
 				DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT;
+
+				DECLARE @AircraftLogBook INT= 0,@EngineLogBook INT = 0
+
+				SELECT @AircraftLogBook = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WHERE [FormName] = 'AircraftLogBook'
+				SELECT @EngineLogBook = [WOReleaseFormId] FROM [dbo].[WOReleaseForm] WHERE [FormName] = 'EngineLogBook'
 				
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
@@ -196,6 +202,7 @@ BEGIN
 					  ,CAST(0 AS BIT) AS IsVersionIncrease
 					  ,lcf.[EmployeeId]
 					  ,lcf.IsAircraftLogBook
+					  ,CASE WHEN [IsAircraftLogBook] = 1 THEN @AircraftLogBook ELSE @EngineLogBook END [FormTypeId]
 					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
 						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0

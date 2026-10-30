@@ -25,6 +25,7 @@
 	13   02/06/2026   Nakul Chandigra       Merge UAT Changes
 	14   10/06/2026   Divyesh Kathiriya     Update PurchaseOrderNumber on AircraftInstalledPartDetails Table [PN-16780]
 	15   18/08/2026   Amit Ghediya          Added LeasePartId write-back to LeasePart.POId/PONumber for Lease-sourced PO parts
+	16   27/10/2026   Vishal Suthar         Split part keeps its own NeedByDate [PN-18410]
 
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
@@ -570,7 +571,7 @@ BEGIN
 								   ,tmp.Manufacturer
 								   ,tmp.PriorityId
 								   ,tmp.Priority
-								   ,tmp.NeedByDate
+								   ,ISNULL(split.NeedByDate, tmp.NeedByDate)
 								   ,tmp.ConditionId
 								   ,tmp.Condition
 								   ,split.QuantityOrdered
@@ -674,7 +675,7 @@ BEGIN
 										PART.AltEquiPartNumber = TMP.AltEquiPartNumber, PART.AltEquiPartDescription = TMP.AltEquiPartDescription, 
 										PART.StockType = TMP.StockType,PART.ManufacturerId = TMP.ManufacturerId,
 										PART.Manufacturer = TMP.Manufacturer,PART.PriorityId = TMP.PriorityId,
-										PART.[Priority] = TMP.[Priority], PART.NeedByDate = TMP.NeedByDate, 
+										PART.[Priority] = TMP.[Priority], PART.NeedByDate = ISNULL(split.NeedByDate, TMP.NeedByDate), 
 										PART.ConditionId = TMP.ConditionId,PART.Condition = TMP.Condition,
 										PART.QuantityOrdered = split.QuantityOrdered,PART.QuantityBackOrdered = split.QuantityBackOrdered,
 										PART.QuantityRejected = TMP.QuantityRejected,PART.VendorListPrice = TMP.VendorListPrice,

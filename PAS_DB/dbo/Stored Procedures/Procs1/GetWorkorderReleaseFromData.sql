@@ -37,6 +37,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 26   07/08/2026  Abhishek Jirawala Added Fleet field in Section 12 Remarks [PN-17260]
 ** 28   15/09/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName  [PN-17935])
 ** 29   02/10/2026  Hemant Saliya    Updated for Make fleet Conditional in Print 
+** 30   20/10/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName, CorrectiveAction, PN-17935)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
@@ -83,39 +84,41 @@ BEGIN
 
 		SELECT @CompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
-		IF(@MasterCompanyCode = (SELECT [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId))
+		IF(@MasterCompanyCode = @CompanyCode OR @MasterCompanyCodeSAR = @CompanyCode)
 		BEGIN
 			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';
 			
 			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
 			SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId		
-			PRINT @CorrectiveAction
-				
-			DECLARE @Start INT, @End INT;
+			
+			IF(@MasterCompanyCode = @CompanyCode)
+			BEGIN
+				DECLARE @Start INT, @End INT;
 
-			WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
-			BEGIN
-				SET @Start = PATINDEX('%<ul%', @CorrectiveAction);
-				SET @End = CHARINDEX('</ul>', @CorrectiveAction, @Start);
-				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
-			END
-			WHILE PATINDEX('%<ol%', @CorrectiveAction) > 0
-			BEGIN
-				SET @Start = PATINDEX('%<ol%', @CorrectiveAction);
-				SET @End = CHARINDEX('</ol>', @CorrectiveAction, @Start);
-				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
-			END			
-			DECLARE @FinalResult NVARCHAR(MAX) = '';
-			SELECT @FinalResult = @FinalResult + '<p>' + LTRIM(SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))) + '</p>'
-			FROM (				
-				SELECT value as RawItem,					  
-					   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) as CleanedItem
-				FROM STRING_SPLIT(REPLACE(@CorrectiveAction, '</p>', '|'), '|')
-			) AS T
-			WHERE CleanedItem LIKE '%*%';
+				WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
+				BEGIN
+					SET @Start = PATINDEX('%<ul%', @CorrectiveAction);
+					SET @End = CHARINDEX('</ul>', @CorrectiveAction, @Start);
+					SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+				END
+				WHILE PATINDEX('%<ol%', @CorrectiveAction) > 0
+				BEGIN
+					SET @Start = PATINDEX('%<ol%', @CorrectiveAction);
+					SET @End = CHARINDEX('</ol>', @CorrectiveAction, @Start);
+					SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+				END			
+				DECLARE @FinalResult NVARCHAR(MAX) = '';
+				SELECT @FinalResult = @FinalResult + '<p>' + LTRIM(SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))) + '</p>'
+				FROM (				
+					SELECT value as RawItem,					  
+						   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) as CleanedItem
+					FROM STRING_SPLIT(REPLACE(@CorrectiveAction, '</p>', '|'), '|')
+				) AS T
+				WHERE CleanedItem LIKE '%*%';
 									
-			SET	@CorrectiveAction = @FinalResult
-		END
+				SET	@CorrectiveAction = @FinalResult
+			END
+		END		
 		/********* For the ATI company: Release Form *********/
 		IF(@MasterCompanyCodeATI = (SELECT [MasterCompanyCode]FROM [dbo].[MasterCompany] WITH(NOLOCK)WHERE [MasterCompanyId] = @MasterCompanyId	))
 			BEGIN
@@ -642,13 +645,13 @@ BEGIN
 					  le.CompanyName AS OrganizationName,  
 					  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
 					  wo.WorkOrderNum AS InvoiceNo,  					  
-					  CASE WHEN @CompanyCode = @MasterCompanyCodeSAR THEN 'N/A' ELSE '1' END AS [ItemName], 
+					  '1' AS [ItemName],
 					  wop.RevisedPartDescription AS [Description],
 					  wop.RevisedPartNumber AS PartNumber,  
 					  wop.CustomerReference AS Reference,  
 					  wop.Quantity AS Quantity,  
-					  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
-								ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
+					  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber, '') = '' THEN CASE WHEN @CompanyCode = @MasterCompanyCodeSAR THEN 'N/A' ELSE '' END ELSE sl.SerialNumber END)
+					  ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,
 					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 					  '' as Certifies,   
 					  0 AS approved ,  

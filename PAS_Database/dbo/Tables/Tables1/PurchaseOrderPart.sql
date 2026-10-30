@@ -171,3 +171,8 @@ CREATE NONCLUSTERED INDEX [IX_PurchaseOrderPart_POId_Perf]
     ON [dbo].[PurchaseOrderPart]([PurchaseOrderId] ASC)
     INCLUDE([PurchaseOrderPartRecordId], [StockType], [QuantityOrdered], [QuantityReceived], [UnitCost], [FunctionalCurrency]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.GetBulkPOProcessingList joins PurchaseOrderPart by Item Master + Condition (+ Work Order / Sales Order / WO Material) for every WO material / SO part
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrderPart_ItemCond_Perf]
+    ON [dbo].[PurchaseOrderPart]([ItemMasterId] ASC, [ConditionId] ASC)
+    INCLUDE([PurchaseOrderId], [WorkOrderId], [SalesOrderId], [WorkOrderMaterialsId], [QuantityOrdered], [UnitCost], [NeedByDate], [EstDeliveryDate]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

@@ -868,9 +868,15 @@ CREATE NONCLUSTERED INDEX [IX_Stockline_SubComponentParentStocklineId]
     ON [dbo].[Stockline]([SubComponentParentStocklineId] ASC)
     INCLUDE([SubComponentQty], [MasterCompanyId], [isDeleted]) WHERE ([SubComponentParentStocklineId] IS NOT NULL);
 
-
 GO
 -- [PN-18450] Edit PO (Receiving PO) page load performance
 CREATE NONCLUSTERED INDEX [IX_Stockline_POId_Perf]
     ON [dbo].[Stockline]([PurchaseOrderId] ASC)
     INCLUDE([StockLineId], [IsDeleted], [IsNonStock], [IsFinishGood]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.GetBulkPOProcessingList (Bulk PO Processing list took 40-50 sec). Stockline had NO index on Item Master + Condition, so every
+-- available-qty lookup / last purchase lookup by Item Master + Condition was a scan of Stockline.
+CREATE NONCLUSTERED INDEX [IX_Stockline_ItemCond_Perf]
+    ON [dbo].[Stockline]([ItemMasterId] ASC, [ConditionId] ASC)
+    INCLUDE([QuantityAvailable], [IsParent], [IsCustomerStock], [isDeleted], [isActive], [PurchaseOrderId], [CreatedDate], [PoPartUnitCost], [EntryDate], [SerialNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

@@ -426,7 +426,8 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
 GO
 CREATE NONCLUSTERED INDEX [IX_ItemMaster_MasterCompanyId_IsDeleted_IsActive_Perf]
     ON [dbo].[ItemMaster]([MasterCompanyId] ASC, [IsDeleted] ASC, [IsActive] ASC)
-    INCLUDE([ItemTypeId], [IsHazardousMaterial], [IsUpdated], [partnumber], [ManufacturerName], [ItemClassificationName], [ItemGroup], [NationalStockNumber], [isSerialized], [isTimeLife], [IsPma], [IsDER], [IsOEM], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [WorkOrderFormTypeId], [Model]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+    INCLUDE([ItemTypeId], [IsHazardousMaterial], [IsUpdated], [partnumber], [ManufacturerName], [ItemClassificationName], [ItemGroup], [NationalStockNumber], [isSerialized], [isTimeLife], [IsPma], [IsDER], [IsOEM], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [WorkOrderFormTypeId], [Model], [IsAsset], [IsNonStock], [IsKitAssy], [IntegrationTypeId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+-- [PN-18450] 29-Oct-2026: added IsAsset, IsNonStock, IsKitAssy, IntegrationTypeId to the INCLUDE list so dbo.ProcItemMasterStockList no longer needs a key lookup into the wide ItemMaster row for every row.
 -- Added 2026-08-03: supports ProcItemMasterStockList's tenant/soft-delete/active/hazmat filter
 -- (see UOM_ProcItemMasterStockList_Deploy.sql for the full review).
 GO

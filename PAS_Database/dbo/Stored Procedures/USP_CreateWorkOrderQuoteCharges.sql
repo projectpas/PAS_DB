@@ -10,12 +10,14 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    09-June-2025   Devendra Shekh		Created
+    2    28-Oct-2026   Divyesh Kathiriya    Added charges quantity history for new entries and transfers from WO for each selected MPN [PN-18341].
 	 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteCharges]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteChargesType [WorkOrderQuoteChargesType] READONLY,
-@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
+@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY,
+@tbl_ChargesHistoryType [ChargesHistoryType] READONLY
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -70,6 +72,16 @@ BEGIN
 		SET @ItemMasterId = (SELECT TOP 1 [ItemMasterId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @WorkOrderQuoteDetailsId = (SELECT TOP 1 [WorkOrderQuoteDetailsId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @workorderId = (SELECT TOP 1 [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId);
+
+		DECLARE @PreviousChargesHistory TABLE ([WorkOrderQuoteChargesId] BIGINT PRIMARY KEY, [TaskId] BIGINT, [Quantity] DECIMAL(18,6));
+
+		INSERT INTO @PreviousChargesHistory ([WorkOrderQuoteChargesId], [TaskId], [Quantity])
+		SELECT WOQC.[WorkOrderQuoteChargesId], WOQC.[TaskId], WOQC.[Quantity]
+		FROM [DBO].[WorkOrderQuoteCharges] WOQC WITH(NOLOCK)
+		INNER JOIN @tbl_WorkOrderQuoteChargesType TMPC ON WOQC.[WorkOrderQuoteChargesId] = TMPC.[WorkOrderQuoteChargesId]
+			AND WOQC.[MasterCompanyId] = TMPC.[MasterCompanyId]
+		WHERE WOQC.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND WOQC.[MasterCompanyId] = @MasterCompanyId
+			AND ISNULL(WOQC.[IsDeleted], 0) = 0;
 
 		IF(ISNULL(@WorkOrderQuoteDetailsId, 0) > 0)
 		BEGIN
@@ -348,6 +360,80 @@ BEGIN
 
 					SET @CurrentRowId += 1;
 				END
+			END
+		END
+
+		DECLARE @ChangedChargesHistory TABLE ([TaskId] BIGINT, [OldValue] VARCHAR(60), [NewValue] VARCHAR(60), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256));
+
+		INSERT INTO @ChangedChargesHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+		SELECT CASE WHEN ISNULL(WOQC.[IsDeleted], 0) = 1 THEN P.[TaskId] ELSE WOQC.[TaskId] END,
+			CASE WHEN ISNULL(WOQC.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), P.[Quantity]) END,
+			CASE WHEN ISNULL(WOQC.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), WOQC.[Quantity]) END,
+			COALESCE(NULLIF(WOQC.[UpdatedBy], ''), @UpdatedBy),
+			CASE WHEN ISNULL(WOQC.[IsDeleted], 0) = 1 THEN 'WorkOrderQuoteChargesRemoved' ELSE 'WorkOrderQuoteChargesUpdated' END
+		FROM @PreviousChargesHistory P
+		INNER JOIN [DBO].[WorkOrderQuoteCharges] WOQC WITH(NOLOCK) ON P.[WorkOrderQuoteChargesId] = WOQC.[WorkOrderQuoteChargesId]
+			AND WOQC.[MasterCompanyId] = @MasterCompanyId
+		WHERE ISNULL(WOQC.[IsDeleted], 0) = 1 OR ISNULL(P.[Quantity], 0) <> ISNULL(WOQC.[Quantity], 0);
+
+		IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteChargesType WHERE ISNULL([WorkOrderQuoteChargesId], 0) = 0 AND ISNULL([IsDeleted], 0) = 0)
+			OR EXISTS(SELECT 1 FROM @ChangedChargesHistory)
+		BEGIN
+			DECLARE @ChargesHistoryModuleId BIGINT, @ChargesHistoryQuoteId BIGINT, @ChargesHistoryPartId BIGINT, @ChargesHistoryFormTypeId BIT;
+			DECLARE @ChargesHistoryRowId INT = 1, @ChargesHistoryRowCount INT;
+			DECLARE @ChargesHistoryStatusCode VARCHAR(256), @ChargesHistoryText VARCHAR(MAX), @ChargesHistoryOldValue VARCHAR(60), @ChargesHistoryNewValue VARCHAR(60), @ChargesHistoryActor VARCHAR(256);
+			DECLARE @AddedChargesHistory TABLE ([RowId] INT IDENTITY(1,1), [TaskId] BIGINT, [Quantity] DECIMAL(18,6), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256), [OldValue] VARCHAR(60), [NewValue] VARCHAR(60));
+
+			SELECT @ChargesHistoryModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
+			SELECT @ChargesHistoryQuoteId = Q.[WorkOrderQuoteId], @ChargesHistoryPartId = D.[WOPartNoId], @ChargesHistoryFormTypeId = WO.[WorkOrderFormTypeId]
+			FROM [DBO].[WorkOrderQuoteDetails] D WITH(NOLOCK)
+			INNER JOIN [DBO].[WorkOrderQuote] Q WITH(NOLOCK) ON D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND D.[MasterCompanyId] = Q.[MasterCompanyId]
+			INNER JOIN [DBO].[WorkOrder] WO WITH(NOLOCK) ON Q.[WorkOrderId] = WO.[WorkOrderId] AND Q.[MasterCompanyId] = WO.[MasterCompanyId]
+			WHERE D.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND D.[MasterCompanyId] = @MasterCompanyId;
+
+			IF NOT EXISTS (SELECT 1 FROM @tbl_ChargesHistoryType)
+			BEGIN
+				INSERT INTO @AddedChargesHistory ([TaskId], [Quantity], [UpdatedBy], [StatusCode])
+				SELECT F.[TaskId], F.[Quantity], COALESCE(NULLIF(F.[UpdatedBy], ''), @UpdatedBy), 'WorkOrderQuoteChargesAdded'
+				FROM @tbl_WorkOrderQuoteChargesType F
+				WHERE ISNULL(F.[WorkOrderQuoteChargesId], 0) = 0 AND ISNULL(F.[IsDeleted], 0) = 0 AND F.[MasterCompanyId] = @MasterCompanyId;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO @AddedChargesHistory ([TaskId], [Quantity], [UpdatedBy], [StatusCode])
+				SELECT F.[TaskId], F.[Quantity], COALESCE(NULLIF(F.[UpdatedBy], ''), @UpdatedBy),
+					CASE WHEN ISNULL(F.[IsTransferredFromWO], 0) = 1 THEN 'WorkOrderQuoteChargesTransferredFromWO' ELSE 'WorkOrderQuoteChargesAdded' END
+				FROM @tbl_ChargesHistoryType F
+				WHERE F.[MasterCompanyId] = @MasterCompanyId
+					AND EXISTS (SELECT 1 FROM @tbl_WorkOrderQuoteChargesType T
+						WHERE T.[TaskId] = F.[TaskId] AND T.[Quantity] = F.[Quantity] AND T.[MasterCompanyId] = F.[MasterCompanyId]
+							AND ISNULL(T.[WorkOrderQuoteChargesId], 0) = 0 AND ISNULL(T.[IsDeleted], 0) = 0);
+			END
+			INSERT INTO @AddedChargesHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+			SELECT [TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode] FROM @ChangedChargesHistory;
+
+			SELECT @ChargesHistoryRowCount = COUNT(*) FROM @AddedChargesHistory;
+
+			WHILE @ChargesHistoryRowId <= @ChargesHistoryRowCount
+			BEGIN
+				SET @ChargesHistoryText = NULL;
+				SELECT @ChargesHistoryText = REPLACE(HT.[TemplateBody], '##TASKNAME##',
+					COALESCE(NULLIF(CASE WHEN ISNULL(@ChargesHistoryFormTypeId, 0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END, ''),
+						NULLIF(T.[Description], ''), CONVERT(VARCHAR(60), H.[TaskId]))),
+					@ChargesHistoryOldValue = COALESCE(H.[OldValue], '0'), @ChargesHistoryNewValue = COALESCE(H.[NewValue], CONVERT(VARCHAR(60), H.[Quantity])),
+					@ChargesHistoryActor = H.[UpdatedBy], @ChargesHistoryStatusCode = H.[StatusCode]
+				FROM @AddedChargesHistory H
+				INNER JOIN [DBO].[HistoryTemplate] HT WITH(NOLOCK) ON H.[StatusCode] = HT.[TemplateCode]
+				LEFT JOIN [DBO].[WorkOrderTask] WOT WITH(NOLOCK) ON H.[TaskId] = WOT.[WorkOrderTaskId]
+					AND WOT.[WorkOrderId] = @workorderId AND WOT.[WorkOrderPartNumberId] = @ChargesHistoryPartId AND WOT.[MasterCompanyId] = @MasterCompanyId
+				LEFT JOIN [DBO].[Task] T WITH(NOLOCK) ON H.[TaskId] = T.[TaskId] AND T.[MasterCompanyId] = @MasterCompanyId
+				WHERE H.[RowId] = @ChargesHistoryRowId;
+
+				EXEC [DBO].[USP_History] @ModuleId = @ChargesHistoryModuleId, @RefferenceId = @ChargesHistoryQuoteId,
+					@SubModuleId = 0, @SubRefferenceId = @ChargesHistoryPartId, @OldValue = @ChargesHistoryOldValue, @NewValue = @ChargesHistoryNewValue,
+					@HistoryText = @ChargesHistoryText, @StatusCode = @ChargesHistoryStatusCode, @MasterCompanyId = @MasterCompanyId,
+					@CreatedBy = @ChargesHistoryActor, @UpdatedBy = @ChargesHistoryActor;
+				SET @ChargesHistoryRowId += 1;
 			END
 		END
 

@@ -33,6 +33,7 @@
 	16   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
 	17   26-Oct-2026   Rajesh Gami       [PN-18406] Asset item type: ItemType = 'Asset' when IsAsset = 1, IsAsset column, Item Type filter 11 = Asset
 	18   29-Oct-2026   Rajesh Gami       [PN-18450] Performance: light rows from covering index; PartDescription / HasSubAssy / RoSubAssy / Ranking only for the page rows (unless filtered / sorted)
+	19   30-Oct-2026   Hemant            [PN-18379] Added ServiceType (Service / Non-Service for Non-Stock items) column, filter and sort
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -69,7 +70,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @Model varchar(200) = NULL,
 @IntegrationTypeId BIGINT = NULL,
 @ItemTypeStatusId varchar(50) = NULL,
-@IsKitAssy varchar(5) = NULL
+@IsKitAssy varchar(5) = NULL,
+@ServiceType varchar(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -144,13 +146,14 @@ BEGIN
 		   Same parameters, same output columns, same filters and sort. */
 		DECLARE @NeedAll BIT = CASE WHEN ISNULL(@GlobalFilter,'') <> '' OR ISNULL(@PartDescription,'') <> ''
 		                              OR ISNULL(@HasSubAssy,'') <> '' OR ISNULL(@RoSubAssy,'') <> '' OR ISNULL(@RankingsName,'') <> ''
-		                              OR @SortColumn IN ('PARTDESCRIPTION','HASSUBASSY','ROSUBASSY','RANKINGSNAME')
+		                              OR ISNULL(@ServiceType,'') <> ''
+		                              OR @SortColumn IN ('PARTDESCRIPTION','HASSUBASSY','ROSUBASSY','RANKINGSNAME','SERVICETYPE')
 		                            THEN 1 ELSE 0 END;
 
 		DROP TABLE IF EXISTS #Base, #Target, #Extra, #Page;
 
 		CREATE TABLE #Page  (Seq INT IDENTITY(1,1) PRIMARY KEY, ItemMasterId BIGINT NOT NULL, NumberOfItems INT NOT NULL);
-		CREATE TABLE #Extra (ItemMasterId BIGINT NOT NULL PRIMARY KEY, PartDescription NVARCHAR(MAX) NULL, HasSubAssy VARCHAR(3) NULL, RoSubAssy VARCHAR(3) NULL, RankingsName NVARCHAR(MAX) NULL);
+		CREATE TABLE #Extra (ItemMasterId BIGINT NOT NULL PRIMARY KEY, PartDescription NVARCHAR(MAX) NULL, HasSubAssy VARCHAR(3) NULL, RoSubAssy VARCHAR(3) NULL, RankingsName NVARCHAR(MAX) NULL, ServiceType VARCHAR(20) NULL);
 
 		/* light rows (no PartDescription / HasSubAssy / RoSubAssy / Ranking) */
 		SELECT im.ItemMasterId,
@@ -208,12 +211,16 @@ BEGIN
 				SELECT ItemMasterId FROM #Page WHERE @NeedAll = 0
 				OPTION (RECOMPILE);
 
-				INSERT INTO #Extra (ItemMasterId, PartDescription, HasSubAssy, RoSubAssy, RankingsName)
+				INSERT INTO #Extra (ItemMasterId, PartDescription, HasSubAssy, RoSubAssy, RankingsName, ServiceType)
 				SELECT T.ItemMasterId,
 				       im.PartDescription,
 				       CASE WHEN EXISTS (SELECT 1 FROM [DBO].[Assemply] AP WITH (NOLOCK) WHERE AP.ItemMasterId = T.ItemMasterId AND AP.PopulateWoMaterialList = 1) THEN 'Yes' ELSE 'No' END,
 				       CASE WHEN EXISTS (SELECT 1 FROM [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK) WHERE RAP.ItemMasterId = T.ItemMasterId) THEN 'Yes' ELSE 'No' END,
-				       RK.Ranking
+				       RK.Ranking,
+				       -- [PN-18379] Service / Non-Service applies to Non-Stock items only (IsService is not in the covering index, so it is read here)
+				       CASE WHEN ISNULL(im.IsAsset,0) = 0 AND (im.ItemTypeId = 2 OR ISNULL(im.IsNonStock,0) = 1)
+				            THEN CASE WHEN ISNULL(im.IsService,0) = 1 THEN 'Service' ELSE 'Non-Service' END
+				            ELSE '' END
 				FROM #Target T
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = T.ItemMasterId
 				LEFT JOIN (
@@ -231,7 +238,7 @@ BEGIN
 			BEGIN
 				/* PAGE step: filter + sort + page on the light rows (heavy columns come from #Extra when it is filled) */
 				;WITH Src AS (
-					SELECT B.*, X.PartDescription, X.HasSubAssy, X.RoSubAssy, X.RankingsName
+					SELECT B.*, X.PartDescription, X.HasSubAssy, X.RoSubAssy, X.RankingsName, X.ServiceType
 					FROM #Base B
 					LEFT JOIN #Extra X ON X.ItemMasterId = B.ItemMasterId
 				),
@@ -256,7 +263,8 @@ BEGIN
 					(workOrderType LIKE '%' +@GlobalFilter+'%') OR
 					(RoSubAssy LIKE '%' +@GlobalFilter+'%') OR
 					(Model LIKE '%' +@GlobalFilter+'%') OR
-					(IsKitAssy LIKE '%' +@GlobalFilter+'%')))
+					(IsKitAssy LIKE '%' +@GlobalFilter+'%') OR
+					(ServiceType LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%' OR dbo.fn_NormalizePartNumber(PartNumber) LIKE '%' + dbo.fn_NormalizePartNumber(@PartNumber) + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -279,7 +287,9 @@ BEGIN
 					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%') AND
 					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%') AND
 					(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%') AND
-					(ISNULL(@IsKitAssy,'') ='' OR IsKitAssy LIKE '%' + @IsKitAssy + '%'))
+					(ISNULL(@IsKitAssy,'') ='' OR IsKitAssy LIKE '%' + @IsKitAssy + '%') AND
+					-- [PN-18379] starts-with, so typing "Service" does not also return "Non-Service"
+					(ISNULL(@ServiceType,'') ='' OR ServiceType LIKE @ServiceType + '%'))
 	)
 				)
 				INSERT INTO #Page (ItemMasterId, NumberOfItems)
@@ -325,7 +335,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsKitAssy')  THEN IsKitAssy END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsKitAssy')  THEN IsKitAssy END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsKitAssy')  THEN IsKitAssy END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ServiceType')  THEN ServiceType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ServiceType')  THEN ServiceType END DESC
 				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 				OPTION (RECOMPILE);
@@ -361,6 +373,7 @@ BEGIN
 		       B.ItemTypeId,
 		       B.Model,
 		       B.IsKitAssy,
+		       X.ServiceType,
 		       P.NumberOfItems
 		FROM #Page P
 		INNER JOIN #Base B ON B.ItemMasterId = P.ItemMasterId

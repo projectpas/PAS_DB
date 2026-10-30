@@ -34,6 +34,10 @@
     [AllMSlevels]     VARCHAR (MAX) NULL,
     CONSTRAINT [PK_WorkOrderManagmentStructureDetails] PRIMARY KEY CLUSTERED ([MSDetailsId] ASC)
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_WOMSD_Module_Reference_Perf]
+    ON [dbo].[WorkOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC) INCLUDE([EntityMSID], [LastMSLevel]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 GO

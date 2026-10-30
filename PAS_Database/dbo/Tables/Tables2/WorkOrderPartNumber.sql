@@ -107,6 +107,10 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_WorkOrderPartNumber_WorkOrderId_Perf]
+    ON [dbo].[WorkOrderPartNumber]([WorkOrderId] ASC) INCLUDE([StockLineId], [ManagementStructureId], [CustomerReference], [RevisedSerialNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 

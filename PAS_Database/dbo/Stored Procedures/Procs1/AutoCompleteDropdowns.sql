@@ -50,6 +50,7 @@
 	32   08-Sep-2026   Rajesh Gami          [PN-17271] Ported BETA's Stock/Non-Stock label disambiguation for the autocomplete dropdown, but per requirement only append '(Non Stock)' for non-stock parts -- stock parts keep their existing unsuffixed label (no '(Stock)' appended).
 	33   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
 	34   17-Sep-2026   Ayushi Patel      [PN-17906] Added dedicated @TableName='UnitOfMeasure' branch returning UOMFamilyTypeId + resolved family Name, used by UOM Conversion (Parameter4=1) and Item Master (Parameter4=0) autocomplete dropdowns.
+	35   30-Oct-2026   Rajesh Gami          [PN-18469] Generic (dynamic SQL) branches: @Idlist is now quote-escaped (REPLACE(@Idlist,'''','''''')) where it is concatenated into the SPLITSTRING literal (4 places). A value with an apostrophe (e.g. Juvenal O'Reilly) closed the literal and failed with "Incorrect syntax near 'Reilly'". @Parameter3 is already escaped by the caller (CommonController.bindautocompletedropdowns), so it is not escaped again here.
 --select * from dbo.Employee
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -588,7 +589,7 @@ AS BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
                    CAST ( '+      @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+REPLACE(@Idlist,'''','''''')+''','',''))      
               
             INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -621,7 +622,7 @@ AS BEGIN
                          SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
                           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
         CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+REPLACE(@Idlist,'''','''''')+''','',''))      
                
    INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -988,7 +989,7 @@ AS BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
                CAST ( '+          @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+REPLACE(@Idlist,'''','''''')+''','',''))      
               
     INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
         SELECT DISTINCT TOP '+    @Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -1000,7 +1001,7 @@ AS BEGIN
                          SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
                           SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
         CAST ( '+        @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+REPLACE(@Idlist,'''','''''')+''','',''))      
                
           INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  

@@ -9,14 +9,16 @@
  **************************************************************           
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
-    1    27-May-2025   Devendra Shekh		Created
+    1    27-May-2025   Devendra Shekh		Created.
+	2    28-Oct-2026   Divyesh Kathiriya    Record labor entries, hours updates and removals for each selected MPN [PN-18341].
 	 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteLabor]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteLaborHeaderType [WorkOrderQuoteLaborHeaderType] READONLY,
 @tbl_WorkOrderQuoteLaborType [WorkOrderQuoteLaborType] READONLY,
-@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
+@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY,
+@tbl_LaborHistoryType [LaborHistoryType] READONLY
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -51,6 +53,18 @@ BEGIN
 		SET @ItemMasterId = (SELECT TOP 1 [ItemMasterId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @WorkOrderQuoteDetailsId = (SELECT TOP 1 [WorkOrderQuoteDetailsId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @workorderId = (SELECT TOP 1 [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId);
+
+		DECLARE @PreviousLaborHistory TABLE ([WorkOrderQuoteLaborId] BIGINT PRIMARY KEY, [TaskId] BIGINT, [Hours] DECIMAL(10,2), [UpdatedBy] VARCHAR(256));
+
+		INSERT INTO @PreviousLaborHistory ([WorkOrderQuoteLaborId], [TaskId], [Hours], [UpdatedBy])
+		SELECT WQL.[WorkOrderQuoteLaborId], WQL.[TaskId], WQL.[Hours], COALESCE(NULLIF(TMPLH.[UpdatedBy], ''), @UpdatedBy)
+		FROM [DBO].[WorkOrderQuoteLabor] WQL WITH(NOLOCK)
+		INNER JOIN [DBO].[WorkOrderQuoteLaborHeader] WQLH WITH(NOLOCK) ON WQL.[WorkOrderQuoteLaborHeaderId] = WQLH.[WorkOrderQuoteLaborHeaderId]
+			AND WQL.[MasterCompanyId] = WQLH.[MasterCompanyId]
+		INNER JOIN @tbl_WorkOrderQuoteLaborHeaderType TMPLH ON WQLH.[WorkOrderQuoteLaborHeaderId] = TMPLH.[WorkOrderQuoteLaborHeaderId]
+			AND WQLH.[MasterCompanyId] = TMPLH.[MasterCompanyId]
+		WHERE WQLH.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND WQLH.[MasterCompanyId] = @MasterCompanyId
+			AND ISNULL(WQLH.[IsDeleted], 0) = 0 AND ISNULL(WQL.[IsDeleted], 0) = 0;
 
 		IF(ISNULL(@WorkOrderQuoteDetailsId, 0) > 0)
 		BEGIN
@@ -386,6 +400,80 @@ BEGIN
 
 					SET @CurrentRowId += 1;
 				END
+			END
+		END
+
+		DECLARE @ChangedLaborHistory TABLE ([TaskId] BIGINT, [OldValue] VARCHAR(60), [NewValue] VARCHAR(60), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256));
+
+		INSERT INTO @ChangedLaborHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+		SELECT CASE WHEN ISNULL(WQL.[IsDeleted], 0) = 1 THEN P.[TaskId] ELSE WQL.[TaskId] END,
+			CASE WHEN ISNULL(WQL.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), P.[Hours]) END,
+			CASE WHEN ISNULL(WQL.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), WQL.[Hours]) END,
+			CASE WHEN ISNULL(WQL.[IsDeleted], 0) = 1 THEN P.[UpdatedBy] ELSE COALESCE(NULLIF(WQL.[UpdatedBy], ''), @UpdatedBy) END,
+			CASE WHEN ISNULL(WQL.[IsDeleted], 0) = 1 THEN 'WorkOrderQuoteLaborRemoved' ELSE 'WorkOrderQuoteLaborUpdated' END
+		FROM @PreviousLaborHistory P
+		INNER JOIN [DBO].[WorkOrderQuoteLabor] WQL WITH(NOLOCK) ON P.[WorkOrderQuoteLaborId] = WQL.[WorkOrderQuoteLaborId]
+			AND WQL.[MasterCompanyId] = @MasterCompanyId
+		WHERE ISNULL(WQL.[IsDeleted], 0) = 1 OR ISNULL(P.[Hours], 0) <> ISNULL(WQL.[Hours], 0);
+
+		IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL([WorkOrderQuoteLaborId], 0) = 0 AND ISNULL([IsDeleted], 0) = 0)
+			OR EXISTS(SELECT 1 FROM @ChangedLaborHistory)
+		BEGIN
+			DECLARE @LaborHistoryModuleId BIGINT, @LaborHistoryQuoteId BIGINT, @LaborHistoryPartId BIGINT, @LaborHistoryFormTypeId BIT;
+			DECLARE @LaborHistoryRowId INT = 1, @LaborHistoryRowCount INT;
+			DECLARE @LaborHistoryStatusCode VARCHAR(256), @LaborHistoryText VARCHAR(MAX), @LaborHistoryOldValue VARCHAR(60), @LaborHistoryNewValue VARCHAR(60), @LaborHistoryActor VARCHAR(256);
+			DECLARE @AddedLaborHistory TABLE ([RowId] INT IDENTITY(1,1), [TaskId] BIGINT, [Hours] DECIMAL(10,2), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256), [OldValue] VARCHAR(60), [NewValue] VARCHAR(60));
+
+			SELECT @LaborHistoryModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
+			SELECT @LaborHistoryQuoteId = Q.[WorkOrderQuoteId], @LaborHistoryPartId = D.[WOPartNoId], @LaborHistoryFormTypeId = WO.[WorkOrderFormTypeId]
+			FROM [DBO].[WorkOrderQuoteDetails] D WITH(NOLOCK)
+			INNER JOIN [DBO].[WorkOrderQuote] Q WITH(NOLOCK) ON D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND D.[MasterCompanyId] = Q.[MasterCompanyId]
+			INNER JOIN [DBO].[WorkOrder] WO WITH(NOLOCK) ON Q.[WorkOrderId] = WO.[WorkOrderId] AND Q.[MasterCompanyId] = WO.[MasterCompanyId]
+			WHERE D.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND D.[MasterCompanyId] = @MasterCompanyId;
+
+			IF NOT EXISTS (SELECT 1 FROM @tbl_LaborHistoryType)
+			BEGIN
+				INSERT INTO @AddedLaborHistory ([TaskId], [Hours], [UpdatedBy], [StatusCode])
+				SELECT L.[TaskId], L.[Hours], COALESCE(NULLIF(L.[UpdatedBy], ''), @UpdatedBy), 'WorkOrderQuoteLaborAdded'
+				FROM @tbl_WorkOrderQuoteLaborType L
+				WHERE ISNULL(L.[WorkOrderQuoteLaborId], 0) = 0 AND ISNULL(L.[IsDeleted], 0) = 0 AND L.[MasterCompanyId] = @MasterCompanyId;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO @AddedLaborHistory ([TaskId], [Hours], [UpdatedBy], [StatusCode])
+				SELECT L.[TaskId], L.[Hours], COALESCE(NULLIF(L.[UpdatedBy], ''), @UpdatedBy),
+					CASE WHEN ISNULL(L.[IsTransferredFromWO], 0) = 1 THEN 'WorkOrderQuoteLaborTransferredFromWO' ELSE 'WorkOrderQuoteLaborAdded' END
+				FROM @tbl_LaborHistoryType L
+				WHERE L.[MasterCompanyId] = @MasterCompanyId
+					AND EXISTS (SELECT 1 FROM @tbl_WorkOrderQuoteLaborType T
+						WHERE T.[TaskId] = L.[TaskId] AND T.[Hours] = L.[Hours] AND T.[MasterCompanyId] = L.[MasterCompanyId]
+							AND ISNULL(T.[WorkOrderQuoteLaborId], 0) = 0 AND ISNULL(T.[IsDeleted], 0) = 0);
+			END
+			INSERT INTO @AddedLaborHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+			SELECT [TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode] FROM @ChangedLaborHistory;
+
+			SELECT @LaborHistoryRowCount = COUNT(*) FROM @AddedLaborHistory;
+
+			WHILE @LaborHistoryRowId <= @LaborHistoryRowCount
+			BEGIN
+				SET @LaborHistoryText = NULL;
+				SELECT @LaborHistoryText = REPLACE(HT.[TemplateBody], '##TASKNAME##',
+					COALESCE(NULLIF(CASE WHEN ISNULL(@LaborHistoryFormTypeId, 0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END, ''),
+						NULLIF(T.[Description], ''), CONVERT(VARCHAR(60), H.[TaskId]))),
+					@LaborHistoryOldValue = COALESCE(H.[OldValue], '0'), @LaborHistoryNewValue = COALESCE(H.[NewValue], CONVERT(VARCHAR(60), H.[Hours])),
+					@LaborHistoryActor = H.[UpdatedBy], @LaborHistoryStatusCode = H.[StatusCode]
+				FROM @AddedLaborHistory H
+				INNER JOIN [DBO].[HistoryTemplate] HT WITH(NOLOCK) ON H.[StatusCode] = HT.[TemplateCode]
+				LEFT JOIN [DBO].[WorkOrderTask] WOT WITH(NOLOCK) ON H.[TaskId] = WOT.[WorkOrderTaskId]
+					AND WOT.[WorkOrderId] = @workorderId AND WOT.[WorkOrderPartNumberId] = @LaborHistoryPartId AND WOT.[MasterCompanyId] = @MasterCompanyId
+				LEFT JOIN [DBO].[Task] T WITH(NOLOCK) ON H.[TaskId] = T.[TaskId] AND T.[MasterCompanyId] = @MasterCompanyId
+				WHERE H.[RowId] = @LaborHistoryRowId;
+
+				EXEC [DBO].[USP_History] @ModuleId = @LaborHistoryModuleId, @RefferenceId = @LaborHistoryQuoteId,
+					@SubModuleId = 0, @SubRefferenceId = @LaborHistoryPartId, @OldValue = @LaborHistoryOldValue, @NewValue = @LaborHistoryNewValue,
+					@HistoryText = @LaborHistoryText, @StatusCode = @LaborHistoryStatusCode, @MasterCompanyId = @MasterCompanyId,
+					@CreatedBy = @LaborHistoryActor, @UpdatedBy = @LaborHistoryActor;
+				SET @LaborHistoryRowId += 1;
 			END
 		END
 

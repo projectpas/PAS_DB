@@ -18,6 +18,7 @@
 	5    01/July/2026 RAJESH GAMI	      [PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    21-Oct-2026  Divyesh Kathiriya   Added Module WOQ [PN-18341].
 	7    23-Oct-2026  Divyesh Kathiriya   Display the selected quote MPN for added material parts [PN-18341].
+	8    29-Oct-2026  Divyesh Kathiriya   Allow WOQ material, labor, freight and charges history [PN-18341].
 
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
@@ -32,8 +33,8 @@ CREATE PROCEDURE [dbo].[USP_GetHistory]
  @WorkOrderNum VARCHAR(MAX) = null,  
  @PartNumber VARCHAR(MAX) = null,  
  @OldValue VARCHAR(MAX) = null,  
- @NewValue VARCHAR(MAX) = null,  
- @Activity VARCHAR(30) = null,   
+ @NewValue VARCHAR(MAX) = null, 
+ @Activity VARCHAR(50) = null,
  @HistoryText VARCHAR(MAX) = null,  
  @MasterCompanyId INT,  
  @CreatedDate DATETIME=null,  
@@ -81,7 +82,7 @@ BEGIN
         SELECT HS.[HistoryId],
              HS.[ModuleId],         
              WOQ.[QuoteNumber] AS [WorkOrderNum],
-             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added') THEN WOPN.[PartNumber]
+             CASE WHEN HS.[Activity] IN ('Approval Process', 'Quote Amount Change', 'Quote Method Change', 'Part Added', 'Material Added - New Entry', 'Material Added - Transferred from WO', 'Material Updated', 'Material Remove', 'Labor Added - New Entry', 'Labor Added - Transferred from WO', 'Freight Added - New Entry', 'Freight Added - Transferred from WO', 'Charges Added - New Entry', 'Charges Added - Transferred from WO', 'Labor Updated', 'Labor Remove', 'Freight Updated', 'Freight Remove', 'Charges Updated', 'Charges Remove', 'Kit Added - New Entry', 'Kit Added - Transferred from WO') THEN WOPN.[PartNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' AND ISNULL(WOPN.[RevisedSerialNumber], '') <> ''
                        THEN WOPN.[RevisedPartNumber] + '-' + WOPN.[RevisedSerialNumber]
                   WHEN ISNULL(WOPN.[RevisedPartNumber], '') <> '' THEN WOPN.[RevisedPartNumber] + '-' + SL.[ControlNumber]

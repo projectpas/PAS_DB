@@ -13,6 +13,7 @@
  ** PR   Date         Author   Change Description                
  ** --   --------     -------   --------------------------------              
     1    04/05/2023   Vishal Suthar  Created    
+    2    29/10/2026   Vishal Suthar  [PN-18447] Sales Order Quote mappings (ModuleId 7) are not reserved, not listed here
          
  EXECUTE USP_GetDataFromPurchaseOrder 1863  
 **************************************************************/     
@@ -71,7 +72,7 @@ BEGIN
     LEFT JOIN [DBO].[Lot] l WITH (NOLOCK) ON l.LotId = POR.ReferenceId  
     LEFT JOIN [DBO].[SubWorkOrder] sw WITH (NOLOCK) ON sw.SubWorkOrderId = POR.ReferenceId  
     WHERE POR.PurchaseOrderId = @PurchaseOrderId  AND ISNULL(so.SalesOrderId,0) = (CASE WHEN POR.ModuleId = 3 AND ISNULL(so.SalesOrderId,0) = 0 THEN 1 ELSE ISNULL(so.SalesOrderId,0) END)
-    AND ISNULL(POR.IssuedQty, 0) = 0)  
+    AND ISNULL(POR.IssuedQty, 0) = 0 AND POR.ModuleId <> 7)  
    SELECT *, (SELECT SUM(QTY) FROM Result) AS TotalQty INTO #TempTblPOPart FROM  Result   
      
    SELECT RefId, PurchaseOrderPartReferenceId, ModuleId, Qty, QtyReserved, QtyReceived, CASE WHEN QtyReceived > Qty THEN (Qty - QtyReserved) ELSE (QtyReceived - QtyReserved) END AS QtyToBeReserved, PartNumber, PurchaseOrderId, PurchaseOrderPartId,   

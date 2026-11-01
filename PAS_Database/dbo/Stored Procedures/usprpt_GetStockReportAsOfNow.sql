@@ -31,6 +31,7 @@
 	15   10-07-2026     Ayushi Patel		Return stockUnitOfMeasure [PN-17191]
 	16   03-08-2026     PERFORMANCE			[PN-17534] - Performance only. No change to output columns, calculations, business	   
 	17   24/July/2026	RAJESH GAMI			[PN-17350] - Removed obsolete Stockline.IsNonStock=0 filters (3) to allow Non-Stock items in Stock Report (As Of Now)
+	18   29-Oct-2026     RAJESH GAMI			[PN-18450] Performance only (output unchanged): both SELECT DISTINCTs over 76 wide columns removed (exact duplicates removed only for stocklines that have any), GL Posted/Open totals in one pass, Ranking built once per Item Master, excluded-locations filter via #Split, OPTION (RECOMPILE) on the main query.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -140,6 +141,15 @@ BEGIN
 	IF ISNULL(@id2,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'id2', value FROM STRING_SPLIT(@id2, ',')
 	IF ISNULL(@id8,'') <> '' INSERT INTO #Split (Kind, Item) SELECT 'id8', LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''
 	CREATE CLUSTERED INDEX IX_Split ON #Split (Kind, Item)
+	-- [PN-18450] Ranking text per Item Master built ONCE (was a STRING_AGG subquery executed for every Stockline row)
+	IF OBJECT_ID(N'tempdb..#Rank') IS NOT NULL DROP TABLE #Rank
+	SELECT mp.ItemMasterId, STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking
+	INTO #Rank
+	FROM dbo.ItemMasterRanking mp WITH(NOLOCK)
+	LEFT JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
+	WHERE mp.RankingId IS NOT NULL
+	GROUP BY mp.ItemMasterId
+	CREATE UNIQUE CLUSTERED INDEX IX_Rank ON #Rank (ItemMasterId)
 	IF OBJECT_ID(N'tempdb..#TEMPOriginalStocklineRecords') IS NOT NULL
 	BEGIN
 		DROP TABLE #TEMPOriginalStocklineRecords
@@ -224,7 +234,8 @@ BEGIN
 	[CostAdjustment], [ExtCostAdjustment], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [Site], [Warehouse], [Location], [Shelf], [Bin], [GlAccount],
 	[PO_Num], [RO_Num], [WO_Num], [SWO_Num], [RO_Cost], [Inventory_Cost], [PORcvdDate], [RORcvdDate], [POReceiverNum], [ROReceiverNum], [MasterCompanyId], [StockLineId], [IsCustomerStock], [CustomerId], [CustomerName],[ReceiverNum],
 	[Ranking],[Classification],[Currency],[PO_Qty],[ReceivedDate],[ReceivedDays],[TagType],[TaggedBy],[TagDate],[ReconciliationNum])
-	SELECT DISTINCT COUNT(1) OVER () AS [TotalRecordsCount],
+	-- [PN-18450] DISTINCT removed here (it sorted / hashed 76 wide columns incl. VARCHAR(MAX)); exact duplicates are removed below, only for the stocklines that have any
+	SELECT COUNT(1) OVER () AS [TotalRecordsCount],
         UPPER(im.[partnumber]) AS 'PN',
         UPPER(im.[PartDescription]) AS 'PN_Description',
         UPPER(stl.[SerialNumber]) 'Serial_Num',
@@ -291,10 +302,7 @@ BEGIN
 		stl.[CustomerId],
 		CUST.[Name] AS [CustomerName],
 		stl.[ReceiverNumber] AS [ReceiverNum],
-		(SELECT STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking
-				FROM dbo.ItemMasterRanking mp WITH(NOLOCK)
-				LEFT JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
-				WHERE mp.ItemMasterId = im.ItemMasterId AND  mp.RankingId IS NOT NULL) 'Ranking',
+		RK.[Ranking] 'Ranking',
 		ITC.[Description] 'Classification',
 		CRR.[Code] 'Currency',
 		0 AS [PO_Qty],
@@ -320,6 +328,7 @@ BEGIN
 	  LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.[TagTypeId] = stl.[TagTypeId]
 	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.[StocklineId] = stl.[StocklineId]
 	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]
+	  LEFT JOIN #Rank RK ON RK.[ItemMasterId] = im.[ItemMasterId]
      WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
 	 AND stl.[IsParent] = 1 AND ISNULL(stl.[IsNonStock], 0) = 0
 	 AND stl.[IsDeleted] = 0
@@ -342,34 +351,46 @@ BEGIN
 	 AND (ISNULL(@shelfId,'') ='' OR stl.[ShelfId] IN (SELECT Item FROM #Split WHERE Kind = 'shelf'))
 	 AND (ISNULL(@binId,'') ='' OR stl.[BinId] IN (SELECT Item FROM #Split WHERE Kind = 'bin'))
 	 AND (@id6 IS NULL OR im.[ItemMasterId]=@id6)
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM #Split WHERE Kind = 'id8'))
+	 OPTION (RECOMPILE)
+
+	-- [PN-18450] same result as the old SELECT DISTINCT: rows that are exact duplicates can only share a StockLineId (e.g. several Receiving Reconciliation rows /
+	-- several Management Structure rows of one stockline), so only the stocklines that appear more than once are de-duplicated.
+	IF EXISTS (SELECT 1 FROM #TEMPOriginalStocklineRecords GROUP BY [StockLineId] HAVING COUNT(1) > 1)
+	BEGIN
+		IF OBJECT_ID(N'tempdb..#DupRows') IS NOT NULL DROP TABLE #DupRows
+		SELECT [TotalRecordsCount], [PN], [PN_Description], [Serial_Num], [SL_Num], [ControlNumber],[Cond], [Item_Group], [Is_Customer_Stock], [UOM], [Item_Type], [stocktype], [Vendor_Name], [Qty], [QTY_on_Hand], [Qty_Reserved], [Qty_Available],[Qty_Adjusted], [PO_UnitCost], [POExtCost], [ROExtCost], [ObtainedFrom], [Owner], [Traceableto], [Mfg], [UnitCost], [UnitPrice], [ExtPrice], [CostAdjustment], [ExtCostAdjustment], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [Site], [Warehouse], [Location], [Shelf], [Bin], [GlAccount], [PO_Num], [RO_Num], [WO_Num], [SWO_Num], [RO_Cost], [Inventory_Cost], [PORcvdDate], [RORcvdDate], [POReceiverNum], [ROReceiverNum], [MasterCompanyId], [StockLineId], [IsCustomerStock], [CustomerId], [CustomerName],[ReceiverNum], [Ranking],[Classification],[Currency],[PO_Qty],[ReceivedDate],[ReceivedDays],[TagType],[TaggedBy],[TagDate],[ReconciliationNum]
+		INTO #DupRows
+		FROM #TEMPOriginalStocklineRecords
+		WHERE [StockLineId] IN (SELECT [StockLineId] FROM #TEMPOriginalStocklineRecords GROUP BY [StockLineId] HAVING COUNT(1) > 1)
+		DELETE FROM #TEMPOriginalStocklineRecords WHERE [StockLineId] IN (SELECT [StockLineId] FROM #DupRows)
+		INSERT INTO #TEMPOriginalStocklineRecords ([TotalRecordsCount], [PN], [PN_Description], [Serial_Num], [SL_Num], [ControlNumber],[Cond], [Item_Group], [Is_Customer_Stock], [UOM], [Item_Type], [stocktype], [Vendor_Name], [Qty], [QTY_on_Hand], [Qty_Reserved], [Qty_Available],[Qty_Adjusted], [PO_UnitCost], [POExtCost], [ROExtCost], [ObtainedFrom], [Owner], [Traceableto], [Mfg], [UnitCost], [UnitPrice], [ExtPrice], [CostAdjustment], [ExtCostAdjustment], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [Site], [Warehouse], [Location], [Shelf], [Bin], [GlAccount], [PO_Num], [RO_Num], [WO_Num], [SWO_Num], [RO_Cost], [Inventory_Cost], [PORcvdDate], [RORcvdDate], [POReceiverNum], [ROReceiverNum], [MasterCompanyId], [StockLineId], [IsCustomerStock], [CustomerId], [CustomerName],[ReceiverNum], [Ranking],[Classification],[Currency],[PO_Qty],[ReceivedDate],[ReceivedDays],[TagType],[TaggedBy],[TagDate],[ReconciliationNum])
+		SELECT DISTINCT [TotalRecordsCount], [PN], [PN_Description], [Serial_Num], [SL_Num], [ControlNumber],[Cond], [Item_Group], [Is_Customer_Stock], [UOM], [Item_Type], [stocktype], [Vendor_Name], [Qty], [QTY_on_Hand], [Qty_Reserved], [Qty_Available],[Qty_Adjusted], [PO_UnitCost], [POExtCost], [ROExtCost], [ObtainedFrom], [Owner], [Traceableto], [Mfg], [UnitCost], [UnitPrice], [ExtPrice], [CostAdjustment], [ExtCostAdjustment], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [Site], [Warehouse], [Location], [Shelf], [Bin], [GlAccount], [PO_Num], [RO_Num], [WO_Num], [SWO_Num], [RO_Cost], [Inventory_Cost], [PORcvdDate], [RORcvdDate], [POReceiverNum], [ROReceiverNum], [MasterCompanyId], [StockLineId], [IsCustomerStock], [CustomerId], [CustomerName],[ReceiverNum], [Ranking],[Classification],[Currency],[PO_Qty],[ReceivedDate],[ReceivedDays],[TagType],[TaggedBy],[TagDate],[ReconciliationNum] FROM #DupRows
+	END
 
 	DECLARE @PostedStatusId INT, @OpenStatusId INT;
 	SELECT TOP (1) @PostedStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'POSTED' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
     SELECT TOP (1) @OpenStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'OPEN' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
 	DECLARE @TotalPostedGL DECIMAL(18,6) = 0
 	DECLARE @TotalUnPostedGL DECIMAL(18,6) = 0
-	SELECT @TotalPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
-	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
-	LEFT JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
-	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId
-		AND stl.[MasterCompanyId] = @mastercompanyid
+	-- [PN-18450] GL accounts used by the report's stocklines (same conditions as the old EXISTS) found ONCE, and Posted + Open totals in ONE pass over CommonBatchDetails
+	-- (was two passes, each with a correlated EXISTS on Stockline and a non-sargable CAST(CreatedDate AS DATE)). Result values are identical (NULL when there are no rows, as before).
+	IF OBJECT_ID(N'tempdb..#GLAccounts') IS NOT NULL DROP TABLE #GLAccounts
+	SELECT DISTINCT stl.[GLAccountId]
+	INTO #GLAccounts
+	FROM [dbo].[Stockline] stl WITH (NOLOCK)
+	WHERE stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1
 		AND stl.GLAccountId <> @NonStockGLAccountId
 		AND ISNULL(stl.[IsNonStock], 0) = 0
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	) AND BD.StatusId = @PostedStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
-	OPTION (RECOMPILE);
-	SELECT @TotalUnPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
+		AND stl.[IsDeleted] = 0 AND stl.[CreatedDate] < @AsOfDateEnd
+	SELECT @TotalPostedGL = SUM(CASE WHEN BD.StatusId = @PostedStatusId THEN ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0) END),
+	       @TotalUnPostedGL = SUM(CASE WHEN BD.StatusId = @OpenStatusId THEN ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0) END)
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
-		JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
-	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId
-		AND stl.[MasterCompanyId] = @mastercompanyid
-		AND stl.[IsParent] = 1
-		AND stl.GLAccountId <> @NonStockGLAccountId
-		AND ISNULL(stl.[IsNonStock], 0) = 0
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	) AND BD.StatusId = @OpenStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
+	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+	WHERE CBD.GLAccountId IN (SELECT [GLAccountId] FROM #GLAccounts)
+		AND BD.StatusId IN (@PostedStatusId, @OpenStatusId)
+		AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 	OPTION (RECOMPILE);
 	DECLARE @TotalInventory DECIMAL(18,6) = 0
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
@@ -379,7 +400,8 @@ BEGIN
 	 FROM [dbo].[MasterCompany] WITH (NOLOCK)
 	 WHERE MasterCompanyId = @mastercompanyid AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
 	/* Final Result Set */
-	SELECT DISTINCT TotalRecordsCount,
+	-- [PN-18450] DISTINCT removed: the rows are already unique (StockLineId is returned and the temp table is de-duplicated above), the DISTINCT only cost a sort of all wide columns
+	SELECT TotalRecordsCount,
 			PN,
 			PN_Description,
 			Serial_Num,

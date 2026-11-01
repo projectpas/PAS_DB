@@ -54,6 +54,7 @@
  ** S NO   Date          Author          Change Description
  ** --     --------      -------------   --------------------------------
     1      10-SEP-2026   Ayushi Patel    Created (PN-14788)
+    2      30-OCT-2026   Vishal Suthar   [PN-18427] Confirmed Date converted to employee timezone like Updated Date
 
 exec usp_Get_WorkorderPickTicketCommonHistory @WorkOrderId=10688, @WorkFlowWorkOrderId=1074, @EmployeeId=2
 **********************/
@@ -101,7 +102,8 @@ BEGIN
                 WPA.QtyToShip,
                 CONCAT(EMP.FirstName, ' ', EMP.LastName) AS PickedBy,
                 CONCAT(EMPC.FirstName, ' ', EMPC.LastName) AS ConfirmedBy,
-                WPA.ConfirmedDate,
+                CASE WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0 THEN WPA.ConfirmedDate
+                     ELSE CAST(dbo.ConvertUTCtoLocal(WPA.ConfirmedDate, @CurrntEmpTimeZoneDesc) AS DATETIME2(3)) END AS ConfirmedDate,
                 WPA.IsConfirmed,
                 WPA.IsDeleted
             FROM [dbo].[WorkorderPickTicketAudit] WPA WITH (NOLOCK)

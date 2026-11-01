@@ -57,6 +57,8 @@
     41   01-OCT-2026  RAJESH GAMI       [PN-18183] Stock: StocklineDraft StockLineId update (@QtyAdded > @maxQtyLimit) now only for the draft being received (@SelectedStockLineDraftId) and skipped when @NewStocklineId is NULL (partial receipt). Earlier it updated ALL IsParent = 1 drafts of the PO part, so the last receipt overwrote the earlier receipts' drafts
 	30   02-OCT-2026  Rajesh Gami       Modified the IS NULL condition to use the proper ISNULL condition. (stocklinedraft.Stockline IS NULL to ISNULL(stocklinedraft.Stockline,0) = 0)
 	42   29-OCT-2026  Vishal Suthar     [PN-18444] Quote the received stocklines on the SOQ part the PO was created from
+	43   29-OCT-2026  RAJESH GAMI       [PN-18407] Stock branch: an Item Master Asset part (IsAsset = 1) received through a PO Stock line now becomes an Asset stockline (USP_SaveStocklineAssetDetails with the Item Master asset defaults). Stock / Non-Stock parts unchanged.
+	44   29-OCT-2026  RAJESH GAMI       [PN-18407] Asset stockline received from PO: also default Acquisition Type (Item Master Asset Acquisition Type, if none chosen) and Curr (PO line functional currency, fallback Item Master currency) - both are required on the Asset stockline form.
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -649,6 +651,69 @@ BEGIN
 
                         INSERT INTO #InsertedStkForLot (StockLineId)
                         SELECT @NewStocklineId  
+
+                        /* [PN-18407] Item Master Asset part (IsAsset = 1) received through a PO Stock line -> the new stockline becomes an ASSET stockline
+                           (IsAsset = 1, ItemTypeId = Asset, asset fields / class GLs / depreciation). Same defaults as Create Stockline (Type = Asset) uses:
+                           asset fields from the Item Master Asset, Inventory Status = Active, Available Status = Available, Depreciation Start Date = today.
+                           Only runs for IsAsset = 1 parts, so Stock / Non-Stock receiving is unchanged. */
+                        IF EXISTS (SELECT 1 FROM dbo.Stockline stkAsset WITH (NOLOCK)
+                                   INNER JOIN dbo.ItemMaster imAsset WITH (NOLOCK) ON imAsset.ItemMasterId = stkAsset.ItemMasterId
+                                   WHERE stkAsset.StockLineId = @NewStocklineId AND ISNULL(imAsset.IsAsset, 0) = 1)
+                        BEGIN
+                            DECLARE @AssetInvStatusId BIGINT, @AssetAvailStatusId BIGINT, @AssetDeprStartDate DATETIME2(7);
+                            DECLARE @AssetName VARCHAR(50), @AssetManufacturerPN NVARCHAR(80);
+                            DECLARE @AssetIsTangible BIT, @AssetIsIntangible BIT, @AssetIsDepreciable BIT, @AssetIsNonDepreciable BIT, @AssetIsAmortizable BIT, @AssetIsNonAmortizable BIT;
+                            DECLARE @AssetTangibleClassId BIGINT, @AssetDeprNonDeprTangibleAssetsId BIGINT, @AssetAttributeTypeId BIGINT, @AssetIntangibleTypeId BIGINT, @AssetAlternateItemMasterId BIGINT, @AssetParentItemMasterId BIGINT;
+                            DECLARE @AssetSaveResult TABLE (StockLineId BIGINT);   -- swallows the SELECT the called SP returns, so the caller's result sets do not change
+
+                            SET @AssetInvStatusId = NULL; SET @AssetAvailStatusId = NULL;
+                            SET @AssetDeprStartDate = CAST(CAST(GETDATE() AS DATE) AS DATETIME2(7));
+
+                            SELECT TOP 1 @AssetInvStatusId = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK)
+                            WHERE UPPER([Status]) = 'ACTIVE' AND MasterCompanyId = @MasterCompanyId ORDER BY AssetInventoryStatusId;
+                            SELECT TOP 1 @AssetAvailStatusId = AssetAvailableStatusId FROM dbo.AssetAvailableStatus WITH (NOLOCK)
+                            WHERE UPPER([Status]) = 'AVAILABLE' AND MasterCompanyId IN (@MasterCompanyId, 0) ORDER BY AssetAvailableStatusId;
+
+                            SELECT @AssetName = imAsset.AssetName, @AssetManufacturerPN = imAsset.AssetManufacturerPN,
+                                   @AssetIsTangible = CASE WHEN ISNULL(imAsset.AssetIsIntangible, 0) = 1 THEN 0 ELSE 1 END,
+                                   @AssetIsIntangible = ISNULL(imAsset.AssetIsIntangible, 0),
+                                   @AssetIsDepreciable = imAsset.AssetIsDepreciable, @AssetIsNonDepreciable = imAsset.AssetIsNonDepreciable,
+                                   @AssetIsAmortizable = imAsset.AssetIsAmortizable, @AssetIsNonAmortizable = imAsset.AssetIsNonAmortizable,
+                                   @AssetTangibleClassId = imAsset.AssetTangibleClassId, @AssetDeprNonDeprTangibleAssetsId = imAsset.AssetDeprNonDeprTangibleAssetsId,
+                                   @AssetAttributeTypeId = imAsset.AssetAttributeTypeId, @AssetIntangibleTypeId = imAsset.AssetIntangibleTypeId,
+                                   @AssetAlternateItemMasterId = imAsset.AssetAlternateItemMasterId, @AssetParentItemMasterId = imAsset.AssetParentItemMasterId
+                            FROM dbo.Stockline stkAsset WITH (NOLOCK)
+                            INNER JOIN dbo.ItemMaster imAsset WITH (NOLOCK) ON imAsset.ItemMasterId = stkAsset.ItemMasterId
+                            WHERE stkAsset.StockLineId = @NewStocklineId;
+
+                            /* Fields the Asset stockline form requires that are plain Stockline columns (not part of USP_SaveStocklineAssetDetails):
+                               - Acquisition Type: Item Master Asset Acquisition Type (same default as Create Stockline), only when none was chosen while receiving
+                               - Curr: currency of the PO line (the unit cost on the stockline is the PO line unit cost); falls back to the Item Master currency */
+                            UPDATE stkAsset SET
+                                   stkAsset.AcquistionTypeId = CASE WHEN ISNULL(stkAsset.AcquistionTypeId, 0) > 0 THEN stkAsset.AcquistionTypeId ELSE NULLIF(imAsset.ItemMasterAssetTypeId, 0) END,
+                                   stkAsset.CurrencyId = ISNULL(stkAsset.CurrencyId, COALESCE(NULLIF(popAsset.FunctionalCurrencyId, 0), imAsset.CurrencyId, NULLIF(imAsset.PurchaseCurrencyId, 0))),
+                                   stkAsset.Currency = CASE WHEN stkAsset.CurrencyId IS NOT NULL AND ISNULL(stkAsset.Currency, '') <> '' THEN stkAsset.Currency
+                                                            ELSE (SELECT TOP 1 cur.Code FROM dbo.Currency cur WITH (NOLOCK)
+                                                                  WHERE cur.CurrencyId = COALESCE(stkAsset.CurrencyId, NULLIF(popAsset.FunctionalCurrencyId, 0), imAsset.CurrencyId, NULLIF(imAsset.PurchaseCurrencyId, 0))) END
+                            FROM dbo.Stockline stkAsset
+                            INNER JOIN dbo.ItemMaster imAsset WITH (NOLOCK) ON imAsset.ItemMasterId = stkAsset.ItemMasterId
+                            LEFT JOIN dbo.PurchaseOrderPart popAsset WITH (NOLOCK) ON popAsset.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
+                            WHERE stkAsset.StockLineId = @NewStocklineId;
+
+                            INSERT INTO @AssetSaveResult (StockLineId)
+                            EXEC dbo.USP_SaveStocklineAssetDetails
+                                 @StockLineId = @NewStocklineId, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy, @IsLease = 0,
+                                 @AssetName = @AssetName, @AssetManufacturerPN = @AssetManufacturerPN,
+                                 @AssetInventoryStatusId = @AssetInvStatusId, @AssetAvailableStatusId = @AssetAvailStatusId, @AssetAvailStatus = 'Available',
+                                 @AssetIsTangible = @AssetIsTangible, @AssetIsIntangible = @AssetIsIntangible,
+                                 @AssetIsDepreciable = @AssetIsDepreciable, @AssetIsNonDepreciable = @AssetIsNonDepreciable,
+                                 @AssetIsAmortizable = @AssetIsAmortizable, @AssetIsNonAmortizable = @AssetIsNonAmortizable,
+                                 @AssetTangibleClassId = @AssetTangibleClassId, @AssetDeprNonDeprTangibleAssetsId = @AssetDeprNonDeprTangibleAssetsId,
+                                 @AssetAttributeTypeId = @AssetAttributeTypeId, @AssetIntangibleTypeId = @AssetIntangibleTypeId,
+                                 @AssetAlternateItemMasterId = @AssetAlternateItemMasterId, @AssetParentItemMasterId = @AssetParentItemMasterId,
+                                 @AssetDepreciationStartDate = @AssetDeprStartDate,
+                                 @AssetFreight = 0, @AssetInsurance = 0, @AssetTaxes = 0, @AssetInstallationCost = 0;
+                        END
 
                         -- For Aircraftinstalled Parts
                         SET @AircraftInstalledPartDetailsId = NULL;

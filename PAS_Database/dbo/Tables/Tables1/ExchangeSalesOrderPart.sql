@@ -75,6 +75,10 @@
     CONSTRAINT [FK_ExchangeSalesOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ExchangeSalesOrderPart_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_ExchangeSalesOrderPart_ExchangeSalesOrderId_Perf]
+    ON [dbo].[ExchangeSalesOrderPart]([ExchangeSalesOrderId] ASC) INCLUDE([StockLineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 

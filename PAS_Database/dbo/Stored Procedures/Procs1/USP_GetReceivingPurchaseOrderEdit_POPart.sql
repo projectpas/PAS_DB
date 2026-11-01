@@ -32,6 +32,7 @@
     16   21-Oct-2026  Vishal Suthar     [PN-18342] - Traceable To of a fully received non-serialized part (no pending draft left) is taken from its latest received draft, instead of being empty (the screen then showed the PO Vendor)
 	17   22-Oct-2026  RAJESH GAMI       [PN-18395] - Part-level values (Condition/UOM/GL/Unit cost...) are read from ONE draft row (OUTER APPLY TOP 1); a split part
                                          falls back to its parent's draft row (incl. StkD_NonSer_Rcvd), and a multi-row join no longer duplicates the part line
+	18   29-Oct-2026  RAJESH GAMI       [PN-18407] ItemType column: an Item Master Asset part (IsAsset = 1, PO line saved as Stock) is returned as 'Asset'. ItemTypeId is unchanged (1), so all receiving logic is unchanged - display only.
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8233
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
@@ -175,7 +176,7 @@ BEGIN
   part.AltEquiPartNumberId,      
         part.AltEquiPartNumber,      
         part.AltEquiPartDescription,      
-        part.ItemType,      
+        CASE WHEN part.ItemTypeId = 1 AND ISNULL(itm.IsAsset, 0) = 1 THEN 'Asset' ELSE part.ItemType END AS ItemType, -- [PN-18407] Item Master Asset part is a Stock PO line; show it as Asset (ItemTypeId stays 1)
   (CASE WHEN part.ItemTypeId = 11 THEN asi.IsIntangible ELSE 0 END) AS IsIntangible,      
   part.StockType,      
         part.ManufacturerPN,      

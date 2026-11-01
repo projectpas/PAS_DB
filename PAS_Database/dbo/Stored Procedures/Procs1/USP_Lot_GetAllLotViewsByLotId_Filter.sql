@@ -55,6 +55,7 @@
    32   16-Sep-2026   RAJESH GAMI      [PN-17881] Commission tab (ELSE IF(UPPER(@Type) = UPPER('Commission')) section): CommissionExpenseNew CROSS APPLY now reads ltCal.IsFixedAmount/FixedAmount/IsRevenue/RevenuePercentId/IsMargin/MarginPercentId (this row's own LotCalculationDetails 'Trans Out (SO)' snapshot) instead of the LotConsignment lc join, since ltCal is already uniquely joined per LotTransInOutId (no duplication) and already scoped to this LotId and Type='Trans Out (SO)'. The lc join itself is kept only for the pre-existing HowCalculate fallback CASE (IsRevenueSplit has no LotCalculationDetails equivalent).
    33   13-OCT-2026   RAJESH GAMI      Added  ISDELETED where condition in the STOCKLINE table. 
    34   13-OCT-2026   RAJESH GAMI      [PN-18267] RepairedView (LOT Repair Activity tab): added ReceivedDate (Stockline.ReceivedDate = the date the RO was received) to the result set, plus @ReceivedDate column filter, global filter and sort support.
+   35   29-Oct-2026   RAJESH GAMI      [PN-18450] Performance only (output unchanged, ViewAllPN took 13+ sec): #commonTemp built with a semi join instead of a 100-column SELECT DISTINCT (and not built for ViewAllPN); ViewAllPN: no wide DISTINCT / table copies, PO / RO / WO / acquired ref / traceable to / tagged by calculated for the page rows only (all rows when filter / sort needs them), Type normalized once per row, SPLITSTRING replaced by #MSD, unused SalesOrderPartV1 / BillingInvoicingItems joins removed.
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -224,7 +225,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			SELECT @AppModuleOthersId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Others';
 
 
-			SELECT DISTINCT SL.StockLineId,SL.[PartNumber],SL.[StockLineNumber],SL.[StocklineMatchKey],SL.[ControlNumber],SL.[ItemMasterId] ,SL.[Quantity],SL.[ConditionId],SL.[SerialNumber],SL.[ShelfLife],SL.[ShelfLifeExpirationDate],SL.[WarehouseId] ,SL.[LocationId],SL.[ObtainFrom],SL.[Owner],SL.[TraceableTo],SL.[ManufacturerId],SL.[Manufacturer],SL.[ManufacturerLotNumber],SL.[ManufacturingDate],SL.[ManufacturingBatchNumber],SL.[PartCertificationNumber]
+			-- [PN-18450] #commonTemp: wide SELECT DISTINCT (100+ columns) replaced by a semi join (StockLineId is unique, so the result is the same);
+			-- not needed for ViewAllPN any more (it reads dbo.Stockline directly).
+			IF UPPER(@Type) <> UPPER('ViewAllPN')
+			BEGIN
+			SELECT SL.StockLineId,SL.[PartNumber],SL.[StockLineNumber],SL.[StocklineMatchKey],SL.[ControlNumber],SL.[ItemMasterId] ,SL.[Quantity],SL.[ConditionId],SL.[SerialNumber],SL.[ShelfLife],SL.[ShelfLifeExpirationDate],SL.[WarehouseId] ,SL.[LocationId],SL.[ObtainFrom],SL.[Owner],SL.[TraceableTo],SL.[ManufacturerId],SL.[Manufacturer],SL.[ManufacturerLotNumber],SL.[ManufacturingDate],SL.[ManufacturingBatchNumber],SL.[PartCertificationNumber]
            ,SL.[CertifiedBy],SL.[CertifiedDate],SL.[TagDate],SL.[TagType],SL.[CertifiedDueDate],SL.[CalibrationMemo],SL.[OrderDate] ,SL.[PurchaseOrderId],SL.[PurchaseOrderUnitCost],SL.[InventoryUnitCost],SL.[RepairOrderId] ,SL.[RepairOrderUnitCost],SL.[ReceivedDate],SL.[ReceiverNumber],SL.[ReconciliationNumber],SL.[UnitSalesPrice],SL.[CoreUnitCost] ,SL.[GLAccountId],SL.[AssetId],SL.[IsHazardousMaterial],SL.[IsPMA],SL.[IsDER],SL.[OEM]
            ,SL.[Memo],SL.[ManagementStructureId],SL.[LegalEntityId],SL.[MasterCompanyId],SL.[CreatedBy] ,SL.[UpdatedBy],SL.[CreatedDate],SL.[UpdatedDate],SL.[isSerialized],SL.[ShelfId],SL.[BinId],SL.[SiteId],SL.[ObtainFromType] ,SL.[OwnerType],SL.[TraceableToType],SL.[UnitCostAdjustmentReasonTypeId] ,SL.[UnitSalePriceAdjustmentReasonTypeId] ,SL.[IdNumber],SL.[QuantityToReceive] ,SL.[PurchaseOrderExtendedCost] ,SL.[ManufacturingTrace]
            ,SL.[ExpirationDate] ,SL.[AircraftTailNumber] ,SL.[ShippingViaId] ,SL.[EngineSerialNumber] ,SL.[QuantityRejected] ,SL.[PurchaseOrderPartRecordId] ,SL.[ShippingAccount],SL.[ShippingReference],SL.[TimeLifeCyclesId] ,SL.[TimeLifeDetailsNotProvided],SL.[WorkOrderId],SL.[WorkOrderMaterialsId] ,SL.[QuantityReserved] ,SL.[QuantityTurnIn] ,SL.[QuantityIssued] ,SL.[QuantityOnHand],SL.[QuantityAvailable] ,SL.[QuantityOnOrder],SL.[QtyReserved]
@@ -233,23 +238,44 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
            ,SL.[WorkOrderNumber],SL.[itemGroup] ,SL.[TLAPartNumber] ,SL.[NHAPartNumber] ,SL.[TLAPartDescription],SL.[NHAPartDescription] ,SL.[itemType],SL.[CustomerId],SL.[CustomerName],SL.[isCustomerstockType],SL.[PNDescription],SL.[RevicedPNId],SL.[RevicedPNNumber],SL.[OEMPNNumber],SL.[TaggedBy],SL.[TaggedByName],SL.[UnitCost],SL.[TaggedByType],SL.[TaggedByTypeName],SL.[CertifiedById] ,SL.[CertifiedTypeId],SL.[CertifiedType],SL.[CertTypeId]
            ,SL.[CertType],SL.[TagTypeId],SL.[IsFinishGood],SL.[IsTurnIn],SL.[IsCustomerRMA],SL.[RMADeatilsId],SL.[DaysReceived],SL.[ManufacturingDays],SL.[TagDays],SL.[OpenDays],SL.[ExchangeSalesOrderId],SL.[RRQty],SL.[SubWorkOrderNumber] ,SL.[IsManualEntry],SL.[WorkOrderMaterialsKitId],SL.[LotId],SL.[IsLotAssigned],SL.[LOTQty],SL.[LOTQtyReserve],SL.[OriginalCost],SL.[POOriginalCost],SL.[ROOriginalCost] ,SL.[VendorRMAId]
            ,SL.[VendorRMADetailId] ,SL.[LotMainStocklineId],SL.[IsFromInitialPO],SL.[LotSourceId],SL.[Adjustment]
-				INTO #commonTemp FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK) 
-				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId AND ISNULL(sl.IsDeleted,0) = 0 AND ISNULL(sl.isActive,0) = 1
+								INTO #commonTemp FROM DBO.Stockline sl WITH(NOLOCK)
+				WHERE ISNULL(sl.IsDeleted,0) = 0 AND ISNULL(sl.isActive,0) = 1
+				  AND EXISTS (SELECT 1 FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK) WHERE ltin.StockLineId = sl.StockLineId AND ltin.LotId = @LotId)
+			END
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN
-				-- PERF FIX: Result used to be a CTE referenced twice below (once for t, once for the
-				-- MAX(CreatedDate) dedup subquery). SQL Server does not cache/share a CTE's result
-				-- across multiple references in the same statement - especially here, since the
-				-- LotManagementStructureDetails join calls the multi-statement SplitString() function,
-				-- which blocks the optimizer from spooling/reusing it. That meant the entire ~10-way
-				-- join below was actually running TWICE per call. Materializing it into #Result once
-				-- (with a supporting clustered index) and reading that twice instead cuts this
-				-- branch's work roughly in half. See
-				-- UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full before/after review.
+				-- [PN-18450] Performance (was 13+ sec): (1) no wide SELECT DISTINCT / temp table copies of 90+ columns, (2) the correlated subqueries (PO / RO / WO number, acquired ref,
+				-- traceable to / tagged by name) are calculated ONLY for the rows of the page - or for all rows when the filter / sort uses them (@NeedAllPN = 1), then set based,
+				-- (3) ltCal.Type (VARCHAR(MAX)) is normalized once per row, (4) the SPLITSTRING() call of the Management Structure join is replaced by one tiny #MSD table,
+				-- (5) SalesOrderPartV1 / BillingInvoicingItems LEFT JOINs removed (no column was used from them; they only multiplied rows that SELECT DISTINCT then removed again).
+				-- The rows that SELECT DISTINCT used to remove are removed by the key (LotCalculationId, InvoiceNum, InvoiceDate, MsKey), which determines the whole row.
 				IF OBJECT_ID('tempdb..#Result') IS NOT NULL DROP TABLE #Result
-				SELECT DISTINCT
-				 lot.LotId
+				IF OBJECT_ID('tempdb..#MSD') IS NOT NULL DROP TABLE #MSD
+				IF OBJECT_ID('tempdb..#Target') IS NOT NULL DROP TABLE #Target
+				IF OBJECT_ID('tempdb..#Page') IS NOT NULL DROP TABLE #Page
+
+				DECLARE @k_TransIn_LOT VARCHAR(100) = REPLACE(@LOT_TransIn_LOT,' ',''), @k_TransOut_LOT VARCHAR(100) = REPLACE(@LOT_TransOut_LOT,' ',''), @k_TurnIn VARCHAR(100) = REPLACE(@LOT_TurnIn,' ','')
+				      , @k_TransIn_PO VARCHAR(100) = REPLACE(@LOT_TransIn_PO,' ',''), @k_TransIn_RO VARCHAR(100) = REPLACE(@LOT_TransIn_RO,' ',''), @k_TransOut_RO VARCHAR(100) = REPLACE(@LOT_TransOut_RO,' ','')
+				      , @k_TransOut_SO VARCHAR(100) = REPLACE(@LOT_TransOut_SO,' ',''), @k_SO_Shipped VARCHAR(100) = REPLACE(@LOT_SO_Shipped,' ',''), @k_TransIn_WO VARCHAR(100) = REPLACE(@LOT_TransIn_WO,' ','')
+				DECLARE @u_TransOut_SO VARCHAR(100) = UPPER(@k_TransOut_SO), @u_TransOut_RO VARCHAR(100) = UPPER(@k_TransOut_RO), @u_TransIn_RO VARCHAR(100) = UPPER(@k_TransIn_RO), @u_SO_Shipped VARCHAR(100) = UPPER(@k_SO_Shipped)
+
+				-- heavy columns needed by the filter / sort => calculate them for all rows first
+				DECLARE @NeedAllPN BIT = CASE WHEN ISNULL(@GlobalFilter, '') <> ''
+				                                OR ISNULL(@AcquiredRef, '') <> '' OR ISNULL(@PoNum, '') <> '' OR ISNULL(@RoNum, '') <> '' OR ISNULL(@WoNum, '') <> ''
+				                                OR ISNULL(@TraceableToName, '') <> '' OR ISNULL(@TaggedByName, '') <> ''
+				                                OR @SortColumn IN ('ACQUIREDREF','PONUM','RONUM','WONUM','TRACEABLETONAME','TAGGEDBYNAME')
+				                              THEN 1 ELSE 0 END
+
+				-- Management Structure of the lot (was LEFT JOIN LotManagementStructureDetails + SPLITSTRING per row): distinct rows, usually exactly one
+				SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS MsKey, X.LastMSLevel, X.AllMSlevels
+				INTO #MSD
+				FROM (SELECT DISTINCT UPPER(MSD.LastMSLevel) AS LastMSLevel, UPPER(MSD.AllMSlevels) AS AllMSlevels
+				      FROM dbo.LotManagementStructureDetails MSD WITH (NOLOCK)
+				      WHERE MSD.ModuleID = @AppModuleId AND MSD.ReferenceID = @LotId) X
+
+				SELECT IDENTITY(INT,1,1) AS RowId
+				,lot.LotId
 				,lot.LotNumber
 				,lot.LotName
 				,ISNULL(SL.PurchaseOrderId,0) PurchaseOrderId
@@ -270,16 +296,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,UPPER(sl.StockUnitOfMeasure) AS Uom
 				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
 				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
-				,(CASE WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) THEN 'INVOICED'
-					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_RO,' ','')) THEN 'RO Created'
-					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')) THEN 'RO Completed'
+				,(CASE WHEN T1.TNU = @u_TransOut_SO THEN 'INVOICED'
+					   WHEN T1.TNU = @u_TransOut_RO THEN 'RO Created'
+					   WHEN T1.TNU = @u_TransIn_RO THEN 'RO Completed'
 					ELSE UPPER(ltCal.Type) END) Status
 				,ltCal.Qty AS Qty
 				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-				,(CASE  WHEN REPLACE(ltCal.Type,' ','') =REPLACE(@LOT_TransOut_SO,' ','') OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','') OR  REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_RO,' ','') THEN ltCal.TransferredOutCost ELSE ltCal.TransferredInCost END) TransUnitCost
+				,(CASE  WHEN T0.TN = @k_TransOut_SO OR T0.TN = @k_TransOut_LOT OR T0.TN = @k_TransOut_RO THEN ltCal.TransferredOutCost ELSE ltCal.TransferredInCost END) TransUnitCost
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) UnitCost
 				--,(ISNULL(sl.PurchaseOrderUnitCost,0) * ltCal.Qty) ExtCost
 				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) ExtCost
@@ -289,23 +315,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.ExtSalesUnitPrice ExtPrice
 				,ltCal.MarginAmount MarginAmt
 				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
-				,(CASE WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_LOT,' ','')  THEN @LotTransIn
-					    WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','')  THEN @LotTransOut
-						WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TurnIn,' ','')  THEN @LotTransIn
-						WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_PO,' ','')  THEN @LotPO
-					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_RO,' ','')  OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_RO,' ','') THEN @LotRO
-					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransOut_SO,' ','') OR REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_SO_Shipped,' ','')  THEN @LotSO
-					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_WO,' ','')  THEN @LotWO
+				,(CASE WHEN T0.TN = @k_TransIn_LOT THEN @LotTransIn
+					   WHEN T0.TN = @k_TransOut_LOT THEN @LotTransOut
+					   WHEN T0.TN = @k_TurnIn THEN @LotTransIn
+					   WHEN T0.TN = @k_TransIn_PO THEN @LotPO
+					   WHEN T0.TN = @k_TransIn_RO OR T0.TN = @k_TransOut_RO THEN @LotRO
+					   WHEN T0.TN = @k_TransOut_SO OR T0.TN = @k_SO_Shipped THEN @LotSO
+					   WHEN T0.TN = @k_TransIn_WO THEN @LotWO
 				ELSE '' END) HowAcquired
-				,(CASE WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransIn_LOT,' ','') OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','') OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TurnIn,' ','') THEN sl.StockLineNumber
-					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransIn_PO,' ','')  THEN (CASE WHEN ISNULL(SL.PurchaseOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 pod.PurchaseOrderNumber FROM dbo.PurchaseOrder pod WITH(NOLOCK) WHERE pod.PurchaseOrderId = sl.PurchaseOrderId) END)
-					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransIn_RO,' ','')  OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_RO,' ','') THEN (CASE WHEN ISNULL(SL.RepairOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 rod.RepairOrderNumber FROM dbo.RepairOrder rod WITH(NOLOCK) WHERE rod.RepairOrderId = sl.RepairOrderId) END) 
-					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_SO,' ','') OR REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_SO_Shipped,' ','')  THEN so.SalesOrderNumber 
-					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransIn_WO,' ','')  THEN (CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END)
-				ELSE '' END) AS AcquiredRef
-				,(CASE WHEN ISNULL(SL.PurchaseOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 pod.PurchaseOrderNumber FROM dbo.PurchaseOrder pod WITH(NOLOCK) WHERE pod.PurchaseOrderId = sl.PurchaseOrderId) END) PoNum
-				,(CASE WHEN ISNULL(SL.RepairOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 rod.RepairOrderNumber FROM dbo.RepairOrder rod WITH(NOLOCK) WHERE rod.RepairOrderId = sl.RepairOrderId) END) RoNum
-				,(CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END) WoNum
+				-- heavy columns (set for the page rows only, or for all rows when the filter / sort needs them): same data types as before
+				,CAST(NULL AS VARCHAR(50)) AS AcquiredRef
+				,CAST(NULL AS VARCHAR(50)) AS PoNum
+				,CAST(NULL AS VARCHAR(50)) AS RoNum
+				,CAST(NULL AS VARCHAR(30)) AS WoNum
 				,''  QuoteNum
 				,So.SalesOrderNumber SoNum
 				,sobi.InvoiceNo InvoiceNum 
@@ -319,8 +341,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,'' Div
 				,'' Dept
 				,sl.Memo
-				,UPPER(MSD.LastMSLevel)	LastMSLevel
-				,UPPER(MSD.AllMSlevels) AllMSlevels
+				,M.LastMSLevel	LastMSLevel
+				,M.MsKey AS MsKey
 				,ISNULL(so.CustomerId,0) SoCustomerId
 				,ltCal.CreatedDate
 				,sl.ConditionId
@@ -328,16 +350,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.CustomerId
 				,sl.ControlNumber
 				,sl.IdNumber
-					,(CASE WHEN SL.TraceableToType = @AppModuleCustomerId THEN (SELECT CUT.[Name] FROM [dbo].[Customer] CUT WHERE CUT.CustomerId = SL.[TraceableTo] )
-						    WHEN SL.TraceableToType = @AppModuleVendorId THEN (SELECT VET.[VendorName] FROM [dbo].[Vendor] VET WHERE VET.[VendorId] = SL.[TraceableTo])
-						    WHEN SL.TraceableToType = @AppModuleCompanyId THEN (SELECT CTT.[Name] FROM [dbo].[LegalEntity] CTT WHERE CTT.[LegalEntityId] = SL.[TraceableTo])
-						    WHEN SL.TraceableToType = @AppModuleOthersId THEN SL.[TraceableToName]
-					   END) AS [TraceableToName],
-				(CASE WHEN SL.TaggedByType = @AppModuleCustomerId THEN (SELECT CUT.[Name] FROM [dbo].[Customer] CUT WHERE CUT.CustomerId = SL.TaggedBy )
-						    WHEN SL.TaggedByType = @AppModuleVendorId THEN (SELECT VET.[VendorName] FROM [dbo].[Vendor] VET WHERE VET.[VendorId] = SL.TaggedBy)
-						    WHEN SL.TaggedByType = @AppModuleCompanyId THEN (SELECT CTT.[Name] FROM [dbo].[LegalEntity] CTT WHERE CTT.[LegalEntityId] = SL.TaggedBy)
-						    WHEN SL.TaggedByType = @AppModuleOthersId THEN SL.[TaggedByName]
-					   END) [TaggedByName] 
+				,CAST(NULL AS VARCHAR(250)) AS [TraceableToName]
+				,CAST(NULL AS NVARCHAR(200)) AS [TaggedByName]
 				,sl.TagDate
 				,sl.TraceableTo
 				,sl.TraceableToType
@@ -356,29 +370,93 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,CAST(sobi.InvoiceDate AS DATE) InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
+				,T0.TN AS _TN
 				INTO #Result
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
-					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
+					 INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId AND ISNULL(sl.IsDeleted,0) = 0 AND ISNULL(sl.isActive,0) = 1
 					 INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on sl.ItemMasterId = im.ItemMasterId
 					 Inner JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
-					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND (UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) OR UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_SO_Shipped,' ','')))
-					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
+					 -- Type (VARCHAR(MAX)) normalized ONCE per row instead of ~30 REPLACE / UPPER calls per row
+					 CROSS APPLY (SELECT CAST(REPLACE(ltCal.Type,' ','') AS VARCHAR(400)) AS TN) T0
+					 CROSS APPLY (SELECT UPPER(T0.TN) AS TNU) T1
+					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND (T1.TNU = @u_TransOut_SO OR T1.TNU = @u_SO_Shipped)
 					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
-					 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
-					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId
+					 LEFT JOIN #MSD M ON 1 = 1
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
+				OPTION (RECOMPILE)
 
-				-- PERF FIX: see comment above the #Result build for why this is materialized instead
-				-- of a doubly-referenced CTE.
-				CREATE CLUSTERED INDEX IX_Result_StockLineId_CreatedDate ON #Result(StockLineId, CreatedDate)
+				CREATE UNIQUE CLUSTERED INDEX IX_Result_RowId ON #Result(RowId)
 
-				SELECT t.*
-						INTO #TempResult
+				-- rows that SELECT DISTINCT used to remove (identical rows): the whole row is determined by this key
+				IF EXISTS (SELECT 1 FROM #Result GROUP BY LotCalculationId, InvoiceNum, InvoiceDate, MsKey HAVING COUNT(*) > 1)
+				BEGIN
+					;WITH d AS (SELECT RowId, ROW_NUMBER() OVER (PARTITION BY LotCalculationId, InvoiceNum, InvoiceDate, MsKey ORDER BY RowId) AS rn FROM #Result)
+					DELETE R FROM #Result R INNER JOIN d ON d.RowId = R.RowId WHERE d.rn > 1
+				END
+
+				-- latest row per stockline (PN-14039): supported by this index
+				CREATE NONCLUSTERED INDEX IX_Result_StockLineId_CreatedDate ON #Result(StockLineId, CreatedDate)
+
+				CREATE TABLE #Target (RowId INT NOT NULL PRIMARY KEY)
+				CREATE TABLE #Page (Seq INT IDENTITY(1,1) NOT NULL PRIMARY KEY, RowId INT NOT NULL, TotalCnt INT NOT NULL)
+
+				-- the heavy step and the page step run in a different order depending on @NeedAllPN (so the filter / ORDER BY below exist only once)
+				DECLARE @StepPN INT = 1
+				WHILE @StepPN <= 2
+				BEGIN
+					IF (@NeedAllPN = 1 AND @StepPN = 1) OR (@NeedAllPN = 0 AND @StepPN = 2)
+					BEGIN
+						-- HEAVY columns: all rows (@NeedAllPN = 1) or only the rows of the page
+						TRUNCATE TABLE #Target
+						IF @NeedAllPN = 1
+							INSERT INTO #Target (RowId) SELECT RowId FROM #Result
+						ELSE
+							INSERT INTO #Target (RowId) SELECT RowId FROM #Page
+
+						UPDATE R
+						SET R.PoNum = (CASE WHEN ISNULL(R.PurchaseOrderId,0) = 0 THEN '' ELSE PO.PurchaseOrderNumber END),
+						    R.RoNum = (CASE WHEN ISNULL(R.RepairOrderId,0) = 0 THEN '' ELSE RO.RepairOrderNumber END),
+						    R.WoNum = (CASE WHEN ISNULL(R.WorkOrderId,0) = 0 THEN '' ELSE WO.WorkOrderNum END),
+						    R.AcquiredRef = (CASE WHEN R._TN = @k_TransIn_LOT OR R._TN = @k_TransOut_LOT OR R._TN = @k_TurnIn THEN R.StkLineNum
+						                          WHEN R._TN = @k_TransIn_PO THEN (CASE WHEN ISNULL(R.PurchaseOrderId,0) = 0 THEN '' ELSE PO.PurchaseOrderNumber END)
+						                          WHEN R._TN = @k_TransIn_RO OR R._TN = @k_TransOut_RO THEN (CASE WHEN ISNULL(R.RepairOrderId,0) = 0 THEN '' ELSE RO.RepairOrderNumber END)
+						                          WHEN R._TN = @k_TransOut_SO OR R._TN = @k_SO_Shipped THEN R.SoNum
+						                          WHEN R._TN = @k_TransIn_WO THEN (CASE WHEN ISNULL(R.WorkOrderId,0) = 0 THEN '' ELSE WO.WorkOrderNum END)
+						                     ELSE '' END),
+						    R.TraceableToName = (CASE WHEN R.TraceableToType = @AppModuleCustomerId THEN CUT.[Name]
+						                              WHEN R.TraceableToType = @AppModuleVendorId THEN VET.[VendorName]
+						                              WHEN R.TraceableToType = @AppModuleCompanyId THEN CTT.[Name]
+						                              WHEN R.TraceableToType = @AppModuleOthersId THEN SLX.[TraceableToName]
+						                         END),
+						    R.TaggedByName = (CASE WHEN R.TaggedByType = @AppModuleCustomerId THEN CUG.[Name]
+						                           WHEN R.TaggedByType = @AppModuleVendorId THEN VEG.[VendorName]
+						                           WHEN R.TaggedByType = @AppModuleCompanyId THEN CTG.[Name]
+						                           WHEN R.TaggedByType = @AppModuleOthersId THEN SLX.[TaggedByName]
+						                      END)
+						FROM #Result R
+						INNER JOIN #Target T ON T.RowId = R.RowId
+						LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = R.PurchaseOrderId
+						LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON RO.RepairOrderId = R.RepairOrderId
+						LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = R.WorkOrderId
+						LEFT JOIN dbo.Stockline SLX WITH(NOLOCK) ON SLX.StockLineId = R.StockLineId
+						LEFT JOIN dbo.Customer CUT WITH(NOLOCK) ON R.TraceableToType = @AppModuleCustomerId AND CUT.CustomerId = R.TraceableTo
+						LEFT JOIN dbo.Vendor VET WITH(NOLOCK) ON R.TraceableToType = @AppModuleVendorId AND VET.VendorId = R.TraceableTo
+						LEFT JOIN dbo.LegalEntity CTT WITH(NOLOCK) ON R.TraceableToType = @AppModuleCompanyId AND CTT.LegalEntityId = R.TraceableTo
+						LEFT JOIN dbo.Customer CUG WITH(NOLOCK) ON R.TaggedByType = @AppModuleCustomerId AND CUG.CustomerId = R.TaggedBy
+						LEFT JOIN dbo.Vendor VEG WITH(NOLOCK) ON R.TaggedByType = @AppModuleVendorId AND VEG.VendorId = R.TaggedBy
+						LEFT JOIN dbo.LegalEntity CTG WITH(NOLOCK) ON R.TaggedByType = @AppModuleCompanyId AND CTG.LegalEntityId = R.TaggedBy
+					END
+
+					IF (@NeedAllPN = 1 AND @StepPN = 2) OR (@NeedAllPN = 0 AND @StepPN = 1)
+					BEGIN
+						-- PAGE step: latest row per stockline (PN-14039) + filter + sort + page (the filter and ORDER BY are the original ones)
+						INSERT INTO #Page (RowId, TotalCnt)
+						SELECT t.RowId, COUNT(*) OVER()
 						FROM #Result t
 						JOIN (
 							SELECT StockLineId, MAX(CreatedDate) AS MaxDate
@@ -505,132 +583,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
 					)
 				  )
-
-
-				--SELECT * INTO #TempResult FROM  Result
-				--WHERE
-				-- (
-				--	(@GlobalFilter <>'' AND (
-				--	(LotNumber LIKE '%' + @GlobalFilter + '%') OR
-				--	(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
-				--	(LotName LIKE '%' + @GlobalFilter + '%') OR
-				--	(Partnumber LIKE '%' + @GlobalFilter + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR
-				--	([Description] LIKE '%' + @GlobalFilter + '%') OR
-				--	(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
-				--	(SerialNum LIKE '%' + @GlobalFilter + '%') OR
-				--	(ItemClassfication like '%' + @GlobalFilter + '%') OR
-				--	(ItemGroup like '%' + @GlobalFilter + '%') OR
-				--	(Condition LIKE '%' + @GlobalFilter + '%') OR
-				--	(Uom LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(Qty AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(TransUnitCost LIKE '%' + @GlobalFilter + '%') OR
-				--	(UnitCost LIKE '%' + @GlobalFilter + '%') OR
-				--	(ExtCost like '%' + @GlobalFilter + '%') OR
-				--	(RepairCost like '%' + @GlobalFilter + '%') OR
-				--	(TotalCost like '%' + @GlobalFilter + '%') OR
-				--	(UnitSalesPrice like '%' + @GlobalFilter + '%') OR
-				--	(WONum like '%' + @GlobalFilter + '%') OR
-				--	(ExtPrice like '%' + @GlobalFilter + '%') OR
-				--	(MarginAmt like '%' + @GlobalFilter + '%') OR
-				--	(Margin like '%' + @GlobalFilter + '%') OR
-				--	(HowAcquired like '%' + @GlobalFilter + '%') OR
-				--	(AcquiredRef like '%' + @GlobalFilter + '%') OR
-				--	(PoNum like '%' + @GlobalFilter + '%') OR
-				--	(RoNum like '%' + @GlobalFilter + '%') OR
-				--	(WoNum like '%' + @GlobalFilter + '%') OR
-				--	(QuoteNum like '%' + @GlobalFilter + '%') OR
-				--	(SoNum like '%' + @GlobalFilter + '%') OR
-				--	(Vendor like '%' + @GlobalFilter + '%') OR
-				--	(CustomerName like '%' + @GlobalFilter + '%') OR
-				--	(InvoiceNum like '%' + @GlobalFilter + '%') OR
-				--	(LastMSLevel like '%' + @GlobalFilter + '%') OR			
-				--	(Memo like '%' + @GlobalFilter + '%') OR	
-				--	(VendorCode like '%' + @GlobalFilter + '%') OR
-				--	(ReferenceNum like '%' + @GlobalFilter + '%') OR
-				--	(ControlNumber like '%' + @GlobalFilter + '%') OR
-				--	(IdNumber like '%' + @GlobalFilter + '%') OR
-				--	(TraceableToName like '%' + @GlobalFilter + '%') OR
-				--	(TaggedByName like '%' + @GlobalFilter + '%') OR
-				--	(TagDate like '%' + @GlobalFilter + '%') OR
-				--	(InvoiceDate like '%' + @GlobalFilter + '%') OR
-				--	(InitialPOCost like '%' + @GlobalFilter + '%') OR
-				--	(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
-				--	(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
-				--	(Adjustment like '%' + @GlobalFilter + '%') OR
-				--		(ManufacturerName like '%' + @GlobalFilter + '%') OR	
-				--	([Status] like '%' + @GlobalFilter + '%')
-				--	))
-				--	OR
-				--	(@GlobalFilter = '' AND 
-	
-				--	(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%' OR dbo.fn_NormalizePartNumber(Partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@Partnumber) + '%') AND
-				--	(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
-				--	(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
-				--	(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
-				--	(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
-				--	(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-				--	(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
-				--	(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
-				--	(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
-				--	(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
-
-				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) LIKE @TransUnitCost) AND
-				--	(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(50)) LIKE @UnitCost) AND
-				--	(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
-				--	(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
-				--	(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(50)) = @TotalCost) AND
-				--	(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
-				--	--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
-				--	(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(50)) LIKE @ExtPrice) AND
-				--	(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(50)) LIKE @MarginAmt) AND
-				--	(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(50)) LIKE @Margin) AND
-
-				--	(ISNULL(@HowAcquired,'') ='' OR HowAcquired LIKE '%' + @HowAcquired + '%') AND
-				--	(ISNULL(@AcquiredRef,'') ='' OR AcquiredRef LIKE '%' + @AcquiredRef + '%') AND
-				--	(ISNULL(@PoNum,'') ='' OR PoNum LIKE '%' + @PoNum + '%') AND
-				--	(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
-				--	(ISNULL(@WoNum,'') ='' OR WoNum LIKE '%' + @WoNum + '%') AND
-				--	(ISNULL(@QuoteNum,'') ='' OR QuoteNum LIKE '%' + @QuoteNum + '%') AND
-				--	(ISNULL(@SoNum,'') ='' OR SoNum LIKE '%' + @SoNum + '%') AND
-				--	(ISNULL(@Vendor,'') ='' OR Vendor LIKE '%' + @Vendor + '%') AND
-				--	(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
-				--	(ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE '%' + @InvoiceNum + '%') AND
-				--	(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
-				--	(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
-				--	(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
-				--	(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
-				--	(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
-				--	(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
-					
-				--	(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
-				--	(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
-				--	(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
-				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) = @TransUnitCost) AND
-				--	(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
-				--	(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
-				--	(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
-				--	(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
-				--	(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
-				--	(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-				--	(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
-				--	(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
-				--	(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
-				--	(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
-				--	(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
-				--	(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date)) AND
-				--	(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(50)) LIKE @UnitSalePrice) 
-				--	AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
-				--	)
-				--  )
-
-				SELECT @Count = COUNT(*) FROM #TempResult
-			
-				SELECT *, @Count AS NumberOfItems FROM #TempResult
-				ORDER BY 	
+ORDER BY 	
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Description')  THEN [Description] END ASC,
@@ -736,8 +689,101 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=1 and @SortColumn='Status')  THEN Status END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='Status')  THEN Status END DESC
 				,CreatedDate  DESC
-				OFFSET @RecordFrom ROWS 
-				FETCH NEXT @PageSize ROWS ONLY
+						OFFSET @RecordFrom ROWS 
+						FETCH NEXT @PageSize ROWS ONLY
+						OPTION (RECOMPILE)
+					END
+
+					SET @StepPN = @StepPN + 1
+				END
+
+				SELECT R.[LotId],
+				       R.[LotNumber],
+				       R.[LotName],
+				       R.[PurchaseOrderId],
+				       R.[RepairOrderId],
+				       R.[WorkOrderId],
+				       R.[QuoteId],
+				       R.[SalesOrderId],
+				       R.[LotTransInOutId],
+				       R.[LotCalculationId],
+				       R.[PartNumber],
+				       R.[Description],
+				       R.[StockLineId],
+				       R.[SerialNum],
+				       R.[StkLineNum],
+				       R.[ItemClassfication],
+				       R.[ItemGroup],
+				       R.[Condition],
+				       R.[Uom],
+				       R.[StockUnitOfMeasure],
+				       R.[ConsumeUnitOfMeasure],
+				       R.[Status],
+				       R.[Qty],
+				       R.[QtyOnHand],
+				       R.[QtyRes],
+				       R.[QtyIss],
+				       R.[QtyAvailable],
+				       R.[TransUnitCost],
+				       R.[UnitCost],
+				       R.[ExtCost],
+				       R.[RepairCost],
+				       R.[TotalCost],
+				       R.[UnitSalesPrice],
+				       R.[ExtPrice],
+				       R.[MarginAmt],
+				       R.[Margin],
+				       R.[HowAcquired],
+				       R.[AcquiredRef],
+				       R.[PoNum],
+				       R.[RoNum],
+				       R.[WoNum],
+				       R.[QuoteNum],
+				       R.[SoNum],
+				       R.[InvoiceNum],
+				       R.[Vendor],
+				       R.[VendorCode],
+				       R.[VendorId],
+				       R.[ReferenceNum],
+				       R.[CustomerName],
+				       R.[Co],
+				       R.[Bu],
+				       R.[Div],
+				       R.[Dept],
+				       R.[Memo],
+				       R.[LastMSLevel],
+				       M.AllMSlevels,
+				       R.[SoCustomerId],
+				       R.[CreatedDate],
+				       R.[ConditionId],
+				       R.[ItemMasterId],
+				       R.[CustomerId],
+				       R.[ControlNumber],
+				       R.[IdNumber],
+				       R.[TraceableToName],
+				       R.[TaggedByName],
+				       R.[TagDate],
+				       R.[TraceableTo],
+				       R.[TraceableToType],
+				       R.[TaggedBy],
+				       R.[TaggedByType],
+				       R.[InitialPOCost],
+				       R.[StocklineTotalCost],
+				       R.[RemainStocklineCost],
+				       R.[LotSourceId],
+				       R.[IsFromInitialPO],
+				       R.[IsCustomerStock],
+				       R.[LotMainStocklineId],
+				       R.[Adjustment],
+				       R.[ManufacturerName],
+				       R.[InvoiceDate],
+				       R.[IsInitialPO],
+				       R.[ReferenceNumber],
+				       P.TotalCnt AS NumberOfItems
+				FROM #Page P
+				INNER JOIN #Result R ON R.RowId = P.RowId
+				LEFT JOIN #MSD M ON M.MsKey = R.MsKey
+				ORDER BY P.Seq
 
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNInStockView'))

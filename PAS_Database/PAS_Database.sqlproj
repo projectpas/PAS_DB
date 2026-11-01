@@ -4914,6 +4914,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CleanUpAsOfNowReportsHistoryData_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

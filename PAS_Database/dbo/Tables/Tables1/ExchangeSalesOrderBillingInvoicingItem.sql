@@ -29,6 +29,10 @@
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_ExchSOBillingInvItem_SOBillingInvoicingId_Perf]
+    ON [dbo].[ExchangeSalesOrderBillingInvoicingItem]([SOBillingInvoicingId] ASC) INCLUDE([ItemMasterId], [IsDeleted], [GrandTotal]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 

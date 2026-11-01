@@ -48,6 +48,10 @@
     [InvoiceTypeId]          INT             NULL,
     CONSTRAINT [PK_CreditMemoDetails] PRIMARY KEY CLUSTERED ([CreditMemoDetailId] ASC)
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_CreditMemoDetails_CreditMemoHeaderId_Perf]
+    ON [dbo].[CreditMemoDetails]([CreditMemoHeaderId] ASC) INCLUDE([ItemMasterId], [Amount], [StocklineId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 

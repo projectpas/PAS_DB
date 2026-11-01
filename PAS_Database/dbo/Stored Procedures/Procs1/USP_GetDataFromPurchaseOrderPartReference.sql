@@ -13,6 +13,7 @@
  ** PR   Date         Author   Change Description              
  ** --   --------     -------   --------------------------------            
     1    04/05/2023   Vishal Suthar  Created  
+    2    29/10/2026   Vishal Suthar  [PN-18447] Added Sales Order Quote (ModuleId 7)
        
  EXECUTE USP_GetDataFromPurchaseOrderPartReference 1953,3574
 **************************************************************/   
@@ -35,13 +36,15 @@ BEGIN
 									WHEN POR.ModuleId = 3 THEN 'Sales Order'
 									WHEN POR.ModuleId = 4 THEN 'Exchange'
 									WHEN POR.ModuleId = 5 THEN 'Sub Work Order'
-									WHEN POR.ModuleId = 6 THEN 'Lot' ELSE NULL END AS ModuleName,
+									WHEN POR.ModuleId = 6 THEN 'Lot'
+									WHEN POR.ModuleId = 7 THEN 'Sales Order Quote' ELSE NULL END AS ModuleName,
 							   CASE WHEN POR.ModuleId = 1 THEN wo.WorkOrderNum 
 								    WHEN POR.ModuleId = 2 THEN ro.RepairOrderNumber
 									WHEN POR.ModuleId = 3 THEN so.SalesOrderNumber
 									WHEN POR.ModuleId = 4 THEN eso.ExchangeSalesOrderNumber 
 									WHEN POR.ModuleId = 5 THEN sw.SubWorkOrderNo 
-									WHEN POR.ModuleId = 6 THEN l.LotNumber ELSE  NULL END AS ReferenceId ,
+									WHEN POR.ModuleId = 6 THEN l.LotNumber
+									WHEN POR.ModuleId = 7 THEN soq.SalesOrderQuoteNumber ELSE NULL END AS ReferenceId ,
 							  CASE WHEN POR.ModuleId = 5 THEN sw.WorkOrderId ELSE 0 END AS WorkOrderId  
 									
 				 
@@ -53,6 +56,7 @@ BEGIN
 				LEFT JOIN [DBO].[ExchangeSalesOrder] eso WITH (NOLOCK) ON eso.ExchangeSalesOrderId = POR.ReferenceId
 				LEFT JOIN [DBO].[Lot] l WITH (NOLOCK) ON l.LotId = POR.ReferenceId
 				LEFT JOIN [DBO].[SubWorkOrder] sw WITH (NOLOCK) ON sw.SubWorkOrderId = POR.ReferenceId
+				LEFT JOIN [DBO].[SalesOrderQuote] soq WITH (NOLOCK) ON soq.SalesOrderQuoteId = POR.ReferenceId AND POR.ModuleId = 7
 				WHERE POR.PurchaseOrderId = @PurchaseOrderId AND POR.PurchaseOrderPartId = @PurchaseOrderPartRecordId)
 			SELECT *, (SELECT SUM(QTY) FROM Result) AS TotalQty INTO #TempTblLot FROM  Result 
 			   SELECT * FROM #TempTblLot

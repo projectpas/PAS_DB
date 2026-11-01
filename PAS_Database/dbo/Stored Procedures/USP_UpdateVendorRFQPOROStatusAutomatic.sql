@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    15-04-2025		Shrey Chandegara		Created
     2    23-10-2026		Vishal Suthar			[PN-18334] Expired status when the vendor has quoted
+    3    30-10-2026		Vishal Suthar			[PN-18334] Expire from Open Date (not Updated Date); RO uses RO setting days
 		
 	exec dbo.USP_UpdateVendorRFQPOROStatusAutomatic
 **************************************************************/
@@ -52,14 +53,14 @@ AS BEGIN
 				STRING_AGG(CAST(VendorRFQPurchaseOrderId AS VARCHAR), ',') 
 				FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK)
 			WHERE IsDeleted = 0 AND IsActive = 1 AND  StatusId NOT IN (@ClosedStatus,@CanceledStatus,@NoQuoteStatus,ISNULL(@ExpiredStatus,0))
-				  AND (SELECT DATEDIFF(DAY, UpdatedDate, GETDATE())) > ISNULL(@RFQPODays,0) AND MasterCompanyId = @MasterCompanyId);
+				  AND (SELECT DATEDIFF(DAY, OpenDate, GETDATE())) > ISNULL(@RFQPODays,0) AND MasterCompanyId = @MasterCompanyId);
 
 			SET @VendorRFQROIDs = (
 			SELECT 
 				STRING_AGG(CAST(VendorRFQRepairOrderId AS VARCHAR), ',') 
 				FROM [dbo].[VendorRFQRepairOrder] WITH(NOLOCK)
 			WHERE IsDeleted = 0 AND IsActive = 1 AND  StatusId NOT IN (@ClosedStatus,@CanceledStatus,@NoQuoteStatus,ISNULL(@ExpiredStatus,0))
-				  AND (SELECT DATEDIFF(DAY, UpdatedDate, GETDATE())) > ISNULL(@RFQPODays,0) AND MasterCompanyId = @MasterCompanyId);
+				  AND (SELECT DATEDIFF(DAY, OpenDate, GETDATE())) > ISNULL(@RFQRODays,0) AND MasterCompanyId = @MasterCompanyId);
 
 			-- Vendor quoted (a part with a price, not No Quote) -> Expired, else No Quote
 			UPDATE PO

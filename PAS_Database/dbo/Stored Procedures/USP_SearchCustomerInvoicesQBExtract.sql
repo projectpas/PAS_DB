@@ -28,6 +28,7 @@
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter(s) from SO and Exchange-SO branches so Non-Stock parts appear in QuickBooks invoice extract (WorkOrder branch untouched).
 	4   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	5    30-Oct-2026   Rajesh Gami       [PN-18450] Performance: time zone offset read once (no dbo.ConvertUTCtoLocal per row), part number filter normalized inline (no scalar function per row), OPTION (RECOMPILE) on the filter / page statements. Parameters, columns and rows unchanged.
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -104,6 +105,15 @@ BEGIN
 			ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE 
 			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+	  -- [PN-18450] time zone offset read ONCE (was dbo.ConvertUTCtoLocal = one dbo.TimeZone read per row); same value as the function returned
+	  DECLARE @CurrentTzOffsetSec INT = NULL;
+	  IF (ISNULL(@CurrntEmpTimeZoneDesc, '') != '')
+	  BEGIN
+		SELECT TOP 1 @CurrentTzOffsetSec = [BaseUtcOffsetSec] FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
+	  END
+	  -- [PN-18450] part number filter values normalized ONCE (the column side is normalized inline, no scalar function call per row)
+	  DECLARE @PNNormalized VARCHAR(100) = dbo.fn_NormalizePartNumber(@PN);
+	  DECLARE @GlobalFilterNormalized VARCHAR(100) = dbo.fn_NormalizePartNumber(@GlobalFilter);
 
 	  SELECT @WOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='WorkOrder';
       SELECT @SOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='SalesOrder';
@@ -129,7 +139,7 @@ BEGIN
 				   WOBI.InvoiceNo [InvoiceNo],
 				   WOBI.InvoiceStatus [InvoiceStatus],
 				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(WOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 			       ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   WO.WorkOrderNum [OrderNumber],
 				   C.Name [CustomerName],
@@ -217,7 +227,7 @@ BEGIN
 				       SOBI.InvoiceNo [InvoiceNo],
 					   SOBI.InvoiceStatus [InvoiceStatus],
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(SOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.SalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
@@ -293,7 +303,7 @@ BEGIN
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   --SOBI.InvoiceDate [InvoiceDate],
 				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(SOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.ExchangeSalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
@@ -408,7 +418,7 @@ BEGIN
       (OrderNumber like '%' +@GlobalFilter+'%') OR    
       (CustomerName like '%' +@GlobalFilter+'%') OR  
       (CustomerType like '%' +@GlobalFilter+'%') OR
-      (PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+      (PN like '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(CAST(PN AS VARCHAR(100)),'-',''),'/',''),'_',''),'\','') LIKE '%' + @GlobalFilterNormalized + '%') OR  
       (PNDescription like '%' +@GlobalFilter+'%') OR  
       (VersionNo like '%' +@GlobalFilter+'%') OR  
 	  (QuoteNumber like '%' +@GlobalFilter+'%') OR  
@@ -425,7 +435,7 @@ BEGIN
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
       (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
       (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
-      (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND  
+      (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(CAST(PN AS VARCHAR(100)),'-',''),'/',''),'_',''),'\','') LIKE '%' + @PNNormalized + '%') AND  
       (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
       (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND 
 	  (IsNull(@QuoteNumber,'') ='' OR QuoteNumber like '%' + @QuoteNumber+'%') AND
@@ -437,6 +447,7 @@ BEGIN
 	  (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 	  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%') 
       ))
+				   OPTION (RECOMPILE); -- [PN-18450] catch-all filter: plan built for the real parameter values (filters can be pushed down)
 				   SELECT @Count = COUNT(InvoicingId),@InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt,0)) from #TempResult
   
 				   SELECT *, @Count As NumberOfItems ,ISNULL(@InvoiceTotalAmount,0) as InvoiceTotalAmount FROM #TempResult  
@@ -474,7 +485,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
   
 				   OFFSET @RecordFrom ROWS   
-				   FETCH NEXT @PageSize ROWS ONLY; 
+				   FETCH NEXT @PageSize ROWS ONLY OPTION (RECOMPILE); 
 				   
 				   DROP TABLE #TempResult;
    END
@@ -486,7 +497,7 @@ BEGIN
 				WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],
 				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-					 CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					 CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(WOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 				ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
@@ -540,7 +551,7 @@ BEGIN
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(SOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.SalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
@@ -594,7 +605,7 @@ BEGIN
 					   SOBI.InvoiceNo [InvoiceNo],
 					   SOBI.InvoiceStatus [InvoiceStatus],
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @CurrentTzOffsetSec, CAST(SOBI.InvoiceDate AS DATETIME)) AS DATETIME)) END 
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.ExchangeSalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
@@ -646,7 +657,7 @@ BEGIN
 				  (OrderNumber like '%' +@GlobalFilter+'%') OR    
 				  (CustomerName like '%' +@GlobalFilter+'%') OR  
 				  (CustomerType like '%' +@GlobalFilter+'%') OR 
-				  (PN like '%' +@GlobalFilter+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@GlobalFilter) + '%') OR  
+				  (PN like '%' +@GlobalFilter+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(CAST(PN AS VARCHAR(100)),'-',''),'/',''),'_',''),'\','') LIKE '%' + @GlobalFilterNormalized + '%') OR  
 				  (PNDescription like '%' +@GlobalFilter+'%') OR  
 				  (VersionNo like '%' +@GlobalFilter+'%') OR 
 				  (QuoteNumber like '%' +@GlobalFilter+'%') OR 
@@ -662,7 +673,7 @@ BEGIN
 				  (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
 				  (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
 				  (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
-				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR dbo.fn_NormalizePartNumber(PN) LIKE '%' + dbo.fn_NormalizePartNumber(@PN) + '%') AND  
+				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%' OR REPLACE(REPLACE(REPLACE(REPLACE(CAST(PN AS VARCHAR(100)),'-',''),'/',''),'_',''),'\','') LIKE '%' + @PNNormalized + '%') AND  
 				  (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
 				  (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND   
 				  (IsNull(@QuoteNumber,'') ='' OR QuoteNumber like '%' + @QuoteNumber+'%') AND   
@@ -674,6 +685,7 @@ BEGIN
 				 (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 				  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
 				  ))
+				   OPTION (RECOMPILE); -- [PN-18450] catch-all filter: plan built for the real parameter values (filters can be pushed down)
 				   SELECT @Count = COUNT(InvoicingId),@InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt,0)) FROM #TempResults     
 				   SELECT *, @Count As NumberOfItems ,ISNULL(@InvoiceTotalAmount,0) as InvoiceTotalAmount FROM #TempResults  
 				   ORDER BY       
@@ -710,7 +722,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
   
 				   OFFSET @RecordFrom ROWS   
-				   FETCH NEXT @PageSize ROWS ONLY;
+				   FETCH NEXT @PageSize ROWS ONLY OPTION (RECOMPILE);
 
 				   DROP TABLE #TempResults;
 		END

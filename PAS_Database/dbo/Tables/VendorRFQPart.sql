@@ -45,3 +45,9 @@ GO
 CREATE NONCLUSTERED INDEX [IX_VendorRFQPart_IntegrationEmailID]
     ON [dbo].[VendorRFQPart]([IntegrationEmailID] ASC);
 
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_VendorRFQPart_Module_Reference]
+    ON [dbo].[VendorRFQPart]([ModuleId] ASC, [ReferenceId] ASC)
+    INCLUDE([ILSRFQDetailId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

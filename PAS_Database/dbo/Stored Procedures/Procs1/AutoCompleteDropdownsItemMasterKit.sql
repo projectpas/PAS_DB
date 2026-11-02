@@ -21,6 +21,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 	6   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	7    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
      
 -- EXEC AutoCompleteDropdownsItemMasterKit 'ItemMaster','ItemMasterId','PartNumber','',1,'20','0',1
 **************************************************************/
@@ -57,7 +58,7 @@ BEGIN
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId,im.ManufacturerName As ManufacturerName 
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND (Im.PartNumber like '%'+ @Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.PartNumber) like '%'+ dbo.fn_NormalizePartNumber(@Parameter3)+'%')
-		   AND ISNULL(IM.IsNonStock,0) = 0
+		   AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 		  END		  	 
      END    
      ELSE    
@@ -86,7 +87,7 @@ BEGIN
 			IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND (Im.PartNumber like '%'+ @Parameter3+'%' OR dbo.fn_NormalizePartNumber(Im.PartNumber) like '%'+ dbo.fn_NormalizePartNumber(@Parameter3)+'%')
 		  
-		 AND ISNULL(IM.IsNonStock,0) = 0
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 		END		 		  
    END    
    ELSE    

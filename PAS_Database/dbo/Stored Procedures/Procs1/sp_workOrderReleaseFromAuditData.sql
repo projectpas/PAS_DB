@@ -18,6 +18,7 @@
     1    03/16/2021   Hemant Saliya Created
     2    02/14/2025   Bhargav Saliya  UTC Date Changes
 	3    08/25/2025   Moin Bloch      Updated For Get [FormStatus]
+	4    24/10/2026   Vishal Suthar   [PN-18371] Added Notes
 
      
  EXECUTE [sp_workOrderReleaseFromAuditData] 198
@@ -82,6 +83,7 @@ BEGIN
 				  ,wro.[OrganizationAddress]
 				  ,wro.[is8130from]
 				  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
+				  ,wro.[Notes]
 			FROM [dbo].[Work_ReleaseFrom_8130Audit] wro WITH(NOLOCK)
 			WHERE wro.ReleaseFromId=@ReleaseFromId
 

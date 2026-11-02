@@ -26,6 +26,7 @@
 	11   14-Oct-2026 Divyesh Kathiriya   Allow tendered material stockline creation history [PN-18307].
 	12   21-Oct-2026 Divyesh Kathiriya   Added new status code for WOQ [PN-18341].
 	13   23-Oct-2026 Divyesh Kathiriya    Added selected MPN quote method and material part-addition history [PN-18341].
+	14   29-Oct-2026 Divyesh Kathiriya    Allow WOQ material, labor, freight and charges history [PN-18341].
 	
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
@@ -65,7 +66,16 @@ BEGIN
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
   @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution'
   OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction' OR @StatusCode = 'TravelerDelete' OR @StatusCode = 'DeleteWorkOrderMaterials' OR @StatusCode = 'DeleteWorkOrderMaterialStockline'
-  OR @StatusCode = 'TenderStocklineCreated' OR @StatusCode = 'WorkOrderQuoteCreated' OR @StatusCode = 'WorkOrderQuoteApprovalProcess' OR @StatusCode = 'WorkOrderQuoteAutoApproved' OR @StatusCode = 'WorkOrderQuoteAmountChange' OR @StatusCode = 'WorkOrderQuoteMethodChange' OR @StatusCode = 'WorkOrderQuoteMaterialAdded')
+  OR @StatusCode = 'TenderStocklineCreated' OR @StatusCode = 'WorkOrderQuoteCreated' OR @StatusCode = 'WorkOrderQuoteApprovalProcess' OR @StatusCode = 'WorkOrderQuoteAutoApproved' OR @StatusCode = 'WorkOrderQuoteAmountChange' OR @StatusCode = 'WorkOrderQuoteMethodChange' 
+  OR @StatusCode = 'WorkOrderQuoteMaterialAdded' OR @StatusCode = 'WorkOrderQuoteMaterialTransferredFromWO'
+  OR @StatusCode = 'WorkOrderQuoteMaterialUpdated' OR @StatusCode = 'WorkOrderQuoteMaterialRemoved'
+  OR @StatusCode = 'WorkOrderQuoteLaborAdded' OR @StatusCode = 'WorkOrderQuoteLaborTransferredFromWO'
+  OR @StatusCode = 'WorkOrderQuoteFreightAdded' OR @StatusCode = 'WorkOrderQuoteFreightTransferredFromWO'
+  OR @StatusCode = 'WorkOrderQuoteChargesAdded' OR @StatusCode = 'WorkOrderQuoteChargesTransferredFromWO'
+  OR @StatusCode = 'WorkOrderQuoteLaborUpdated' OR @StatusCode = 'WorkOrderQuoteLaborRemoved'
+  OR @StatusCode = 'WorkOrderQuoteFreightUpdated' OR @StatusCode = 'WorkOrderQuoteFreightRemoved'
+  OR @StatusCode = 'WorkOrderQuoteChargesUpdated' OR @StatusCode = 'WorkOrderQuoteChargesRemoved'
+  OR @StatusCode = 'WorkOrderQuoteKitAdded' OR @StatusCode = 'WorkOrderQuoteKitTransferredFromWO')
   BEGIN        
 	SELECT @TemplateText = [TemplateText] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode; 
 	

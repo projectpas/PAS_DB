@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetWOMStocklineListForIssue]           
  ** Author:   Devendra Shekh
  ** Description: This SP is Used to get Stockline list to Issue Stockline    
@@ -15,6 +16,7 @@
 	3	 19/06/2026			 Ayushi						[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	6    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
  exec dbo.USP_GetWOMStocklineListForIssue @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkFlowWorkOrderId=8694,@ItemMasterId=0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetWOMStocklineListForIssue]
@@ -195,7 +197,7 @@ SET NOCOUNT ON
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 				LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 				 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 0
 				JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MPTKT.IsKit = 0						
 				LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
@@ -219,7 +221,7 @@ SET NOCOUNT ON
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 				LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 				 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 1
 				JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND MPTKT.IsKit = 1
 				LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
@@ -239,7 +241,7 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 				JOIN dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 				LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
@@ -260,7 +262,7 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 				JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 				LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
@@ -371,7 +373,7 @@ SET NOCOUNT ON
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 				LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 				 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 0
 				JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MPTKT.IsKit = 0						
 				LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
@@ -473,7 +475,7 @@ SET NOCOUNT ON
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
 				LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 				 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND PTKT.StockLineId = WOMS.StockLineId AND PTKT.IsKit = 1
 				JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND MPTKT.IsKit = 1
 				LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
@@ -571,7 +573,7 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 				JOIN dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 				LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
@@ -671,7 +673,7 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 				JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 				JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
-				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+				JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 				LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 				LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 				 AND ISNULL(IM_AltMain.IsNonStock,0) = 0

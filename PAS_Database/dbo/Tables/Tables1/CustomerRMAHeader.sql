@@ -41,6 +41,10 @@
     CONSTRAINT [FK_CustomerRMAHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_CustomerRMAHeader_RMAStatusId] FOREIGN KEY ([RMAStatusId]) REFERENCES [dbo].[RMAStatus] ([RMAStatusId])
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_CustomerRMAHeader_InvoiceId_isWorkOrder_Perf]
+    ON [dbo].[CustomerRMAHeader]([InvoiceId] ASC, [isWorkOrder] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 GO

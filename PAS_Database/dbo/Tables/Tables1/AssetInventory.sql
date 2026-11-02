@@ -265,3 +265,9 @@ GO
 CREATE NONCLUSTERED INDEX [IX_AssetInventory_Created_POPartRec_Perf]
     ON [dbo].[AssetInventory]([CreatedDate] ASC, [PurchaseOrderPartRecordId] ASC) WITH (FILLFACTOR = 90);
 
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_AssetInventory_POId_Perf]
+    ON [dbo].[AssetInventory]([PurchaseOrderId] ASC)
+    INCLUDE([AssetInventoryId], [IsActive], [IsDeleted]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

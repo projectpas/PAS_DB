@@ -1,3 +1,4 @@
+﻿
 /*********************           
  ** File:   [USP_GetItemMasterForExchangeQuote_ById]           
  ** Author:   Bhargav Saliya
@@ -23,9 +24,10 @@
 	1    22-Jan-2024   Bhargav Saliya		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 EXECUTE [USP_GetItemMasterForExchangeQuote_ById] 397, 1, NULL, -1, 0
 **********************/ 
-CREATE PROCEDURE [dbo].[USP_GetItemMasterForExchangeQuote_ById]
+CREATE   PROCEDURE [dbo].[USP_GetItemMasterForExchangeQuote_ById]
 @ItemMasterId BIGINT = NULL, 
 @ConditionId BIGINT = NULL,
 @CustomerId BIGINT = NULL,
@@ -87,7 +89,7 @@ BEGIN
 				,imel.EFcogs as cogs
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = @ConditionId
-			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
+			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1)) AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId

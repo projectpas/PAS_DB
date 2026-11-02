@@ -1,3 +1,4 @@
+﻿
 /*************************************************************           
  ** File:   [SearchStockLineExchangeQuotePop]           
  ** Author:  Unknown
@@ -18,6 +19,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
+	8    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
@@ -96,7 +98,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 ,imel.ExchangeOverhaulCost
 						 ,imel.EFcogs as cogs
 				FROM DBO.ItemMaster im WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK)ON im.ItemMasterId = sl.ItemMasterId 
+				JOIN DBO.StockLine sl WITH(NOLOCK)ON im.ItemMasterId = sl.ItemMasterId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 					AND sl.isActive = 1 AND sl.IsDeleted = 0 
 					--AND sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 					AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 

@@ -25,6 +25,8 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    22-Oct-2026	BHARGAV SALIYA	Fixed stage re-entry double-count: quote/approved/ship/TAT days now read stage flags from WorkOrderStage
 									instead of joining back to #tmpTop10TATData (one row per stage visit multiplied the stage total)
+	13    27-Oct-2026	BHARGAV SALIYA	Pro-forma invoice lines no longer add a duplicate (blank invoice) row per WO part: BillingInvoicingItems is
+									joined together with its non-pro-forma BillingInvoicing (PN-18259)
  ** S NO   Date         Author   Change Description              
  ** --   --------     -------  --------------------------------            
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
@@ -195,8 +197,9 @@ BEGIN
 		   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 		   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
-		   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+		   LEFT JOIN (DBO.BillingInvoicingItems WBII WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID)
+				ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 		   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
 		   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 		   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
@@ -266,8 +269,9 @@ BEGIN
 	   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
 	   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 	   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-	   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
-	   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+	   LEFT JOIN (DBO.BillingInvoicingItems WBII WITH (NOLOCK)
+			INNER JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID)
+			ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 	   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 	   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 	   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  

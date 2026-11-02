@@ -184,3 +184,8 @@ CREATE NONCLUSTERED INDEX [IX_RepairOrderPart_ROId_PiecePart_Perf]
     ON [dbo].[RepairOrderPart]([RepairOrderId] ASC, [IsPiecePart] ASC)
     INCLUDE([RepairOrderPartRecordId], [StockType], [QuantityOrdered], [QuantityReceived], [UnitCost], [FunctionalCurrency]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetLotList (30+ sec) RO freight / charges per lot
+CREATE NONCLUSTERED INDEX [IX_RepairOrderPart_LotId_Perf]
+    ON [dbo].[RepairOrderPart]([LotId] ASC) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

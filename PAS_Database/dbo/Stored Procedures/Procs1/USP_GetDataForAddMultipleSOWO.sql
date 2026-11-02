@@ -25,6 +25,7 @@
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filters added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filters no longer needed).
+	14   29/10/2026   Vishal Suthar         [PN-18447] Added loadsoq (Sales Order Quote) for PO part-level mapping
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
 CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
@@ -228,6 +229,32 @@ BEGIN
 			OR (SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId)) AND  (@SearchText is null or SWO.SubWorkOrderNo LIKE '%'+@SearchText+'%')
 			GROUP BY SWO.SubWorkOrderNo, IM.partnumber,C.code,SWO.SubWorkOrderId,IM.ItemMasterId
 			ORDER BY SWO.SubWorkOrderId DESC;
+		END
+		ELSE IF(@viewType = 'loadsoq') -- [PN-18447] SOQ part-level mapping
+		BEGIN
+			SELECT DISTINCT
+                IM.partnumber AS 'PartNumber',
+				C.Code AS 'Condition',
+                SOQ.SalesOrderQuoteNumber AS 'ReferenceNum',
+				SOQ.SalesOrderQuoteId As 'ReferenceId',
+                ISNULL(SQP.QtyRequested, 0) AS RequestedQty,
+                SQP.PromisedDate AS 'PromisedDate',
+                SQP.CustomerRequestDate AS 'EstimatedCompletionDate',
+                SQP.EstimatedShipDate 'EstimatedShipDate',
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
+			FROM [DBO].[SalesOrderQuotePartV1] SQP WITH(NOLOCK)
+            INNER JOIN [DBO].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SQP.SalesOrderQuoteId AND ISNULL(SOQ.IsDeleted, 0) = 0
+            INNER JOIN [DBO].[MasterSalesOrderQuoteStatus] SOQS WITH (NOLOCK) ON SOQS.Id = SOQ.StatusId AND SOQS.[Name] NOT IN ('Closed', 'Cancelled', 'Expired', 'Rejected')
+			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId
+            LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId
+			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
+			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
+			WHERE (SQP.ItemMasterId = @ItemMasterId AND SQP.ConditionId = @ConditionId OR
+			((SQP.ItemMasterId = Nha.MappingItemMasterId OR SQP.ItemMasterId = MainNha.ItemMasterId) AND SQP.ConditionId = @ConditionId))
+			AND SQP.IsDeleted = 0 AND ISNULL(SQP.IsConvertedToSalesOrder, 0) = 0
+			AND (@SearchText is null or SOQ.SalesOrderQuoteNumber LIKE '%'+@SearchText+'%')
+			ORDER BY SOQ.SalesOrderQuoteId DESC;
 		END
 		ELSE       
 		BEGIN      

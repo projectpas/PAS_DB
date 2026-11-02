@@ -27,6 +27,7 @@
 	10	 07/Mar/2025  Bhargav Saliya	 UTC Date Changes 
 	11   18/Sep/2025  Devendra Shekh    Updated For Get [FormStatus]
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13   24/10/2026   Vishal Suthar	 [PN-18371] Added Notes
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -116,6 +117,7 @@ BEGIN
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
+					  ,wro.[Notes]
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId   

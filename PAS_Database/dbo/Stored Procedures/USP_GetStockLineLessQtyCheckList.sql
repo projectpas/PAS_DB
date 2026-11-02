@@ -15,9 +15,10 @@
 	2		06/05/2024		HEMANT SALIYA			Updated for Add Provision Condition
 	3		12/Jan/2026		Rajesh Gami			    UOM Conversion Changes 
 	4		09/July/2026		RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5       22/OCT/2026		Kishor Makwana          [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 	EXEC [USP_GetStockLineLessQtyCheckList] 3993, 3510, 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetStockLineLessQtyCheckList]
+CREATE     PROCEDURE [dbo].[USP_GetStockLineLessQtyCheckList]
 @WorkOrderId BIGINT,
 @WorkFlowWorkOrderId BIGINT,
 @MasterCompanyId INT
@@ -73,6 +74,7 @@ BEGIN
 						AND WOM.WorkOrderId = @WorkOrderId 
 						AND WOM.MasterCompanyId = @MasterCompanyId
 						AND (ISNULL(WOMS.Quantity,0 ) - (ISNULL(WOMS.QtyIssued, 0) + ISNULL(WOMS.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
+						AND (ISNULL(STK.IsSubComponent,0) =0 AND ISNULL(STK.SubComponentParentStocklineId,0) =0)
 
 				--Inserting Materials StockLineKit Data 
 				INSERT INTO #TempStkLineList(PartNumber, PartDescription, StockLineId, StockLineNumber, ControlNumber, SerialNumber,
@@ -96,7 +98,7 @@ BEGIN
 						AND WOMK.WorkOrderId = @WorkOrderId 
 						AND WOMK.MasterCompanyId = @MasterCompanyId
 						AND (ISNULL(WOMSK.Quantity,0) - (ISNULL(WOMSK.QtyIssued, 0) + ISNULL(WOMSK.QtyReserved, 0))) > ISNULL(STK.QuantityAvailable, 0) AND ISNULL(STK.IsNonStock,0) = 0
-
+						AND (ISNULL(STK.IsSubComponent,0) =0 AND ISNULL(STK.SubComponentParentStocklineId,0) =0)
 				SELECT * FROM #TempStkLineList;
 				
 			END

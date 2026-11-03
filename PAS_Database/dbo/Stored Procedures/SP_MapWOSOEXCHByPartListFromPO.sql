@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    03/Oct/2024   RAJESH GAMI			Created
 	2    05/Oct/2026   MOIN BLOCH			PN-18217 - SO reference Qty = SalesOrderPartV1.QtyRequested (capped by QuantityOrdered)
+	3    29/10/2026   VISHAL SUTHAR		PN-18447 - Map PO part to its Sales Order Quote (ModuleId 7) from PurchaseOrderPart.SalesOrderQuoteId
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[SP_MapWOSOEXCHByPartListFromPO]
@@ -248,6 +249,32 @@ BEGIN
 					END
 				END
 ------------------------ END: LOT Mapping ----------------------------------
+
+------------------------ START: SalesOrderQuote Mapping [PN-18447] ----------------------------------
+				DECLARE @SOQModuleId INT = 7, @SalesOrderQuoteId BIGINT = NULL, @SOQQtyRequested [decimal](18,6) = 0;
+				SELECT @SalesOrderQuoteId = NULLIF([SalesOrderQuoteId], 0) FROM [dbo].[PurchaseOrderPart] WITH (NOLOCK) WHERE [PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId;
+
+				IF(ISNULL(@SalesOrderQuoteId,0) >0 AND @POPartRecordCount > 0)
+				BEGIN
+					SELECT @SOQQtyRequested = SUM(ISNULL(SQP.QtyRequested,0))
+					FROM [dbo].[SalesOrderQuotePartV1] SQP WITH (NOLOCK)
+					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.[ItemMasterId] = SQP.[ItemMasterId] AND POP.ConditionId = SQP.ConditionId
+					WHERE SQP.[SalesOrderQuoteId] = @SalesOrderQuoteId AND POP.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SQP.[IsDeleted] = 0;
+
+					SET @SOQQtyRequested = CASE WHEN ISNULL(@SOQQtyRequested,0) > 0 AND @SOQQtyRequested < @QuantityOrdered THEN @SOQQtyRequested ELSE @QuantityOrdered END;
+
+					IF EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPartReference] WITH (NOLOCK) WHERE [PurchaseOrderPartId] = @PurchaseOrderPartRecordId AND [ReferenceId] = @SalesOrderQuoteId AND [ModuleId] = @SOQModuleId AND [IsDeleted] = 0)
+					BEGIN
+						UPDATE [dbo].[PurchaseOrderPartReference] SET [Qty] = @SOQQtyRequested, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @userName
+						WHERE [PurchaseOrderPartId] = @PurchaseOrderPartRecordId AND [ReferenceId] = @SalesOrderQuoteId AND [ModuleId] = @SOQModuleId
+					END
+					ELSE
+					BEGIN
+						INSERT INTO [dbo].[PurchaseOrderPartReference] ([PurchaseOrderId], [PurchaseOrderPartId], [ModuleId], [ReferenceId], [Qty], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+						VALUES (@PurchaseOrderId, @PurchaseOrderPartRecordId, @SOQModuleId, @SalesOrderQuoteId, @SOQQtyRequested, @masterCompanyId, @userName, @userName, GETUTCDATE(), GETUTCDATE(), 1, 0)
+					END
+				END
+------------------------ END: SalesOrderQuote Mapping ----------------------------------
 				SET @PartLoopId +=1
 			END -->>>>> End: While Loop Main
 

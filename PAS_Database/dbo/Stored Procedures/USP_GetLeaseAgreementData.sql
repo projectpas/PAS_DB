@@ -16,7 +16,10 @@
  ** --   --------       -------                 --------------------------------
     1    02/11/2026     Rajesh Gami             [PN-18468] Created - database values of the Lease Agreement
     2    02/11/2026     Rajesh Gami             [PN-18468] Engine details from the lease stockline / stockline, TSN / CSN from the last StocklineTimeCycleHistory record, customer address falls back to the customer main address
-    3    02/11/2026     Rajesh Gami             [PN-18468] Insured value (QtyOrder x Stockline Quantity), aircraft type / serial number (Stockline AircraftTailNumber / AircraftSN)
+    3    02/11/2026     Rajesh Gami             [PN-18468] Insured value (QtyOrder x Stockline UnitCost), aircraft type / serial number (Stockline AircraftTailNumber / AircraftSN)
+    4    03/11/2026     Rajesh Gami             [PN-18468] Aircraft manufacturer / type / registration from the new Stockline columns AC_Manufacturer / AC_Type / AC_Registration
+    5    03/11/2026     Rajesh Gami             [PN-18468] TSN / CSN formatted with 2 decimals
+    6    03/11/2026     Rajesh Gami             [PN-18468] Security deposit from the new LeaseStockline column SecurityDeposit
 
 exec USP_GetLeaseAgreementData @LeaseHeaderId=1, @LeaseStocklineId=1, @MasterCompanyId=1
 ************************************************************************/
@@ -92,12 +95,16 @@ BEGIN
 			ISNULL(NULLIF(LSL.[PN], ''), ISNULL(SLIVE.[PartNumber], ''))                 AS ENGINE_MODEL_NUMBER,
 			ISNULL(NULLIF(LSL.[SN], ''), ISNULL(SLIVE.[SerialNumber], ''))              AS ENGINE_SERIAL_NUMBER,
 			ISNULL(NULLIF(SLIVE.[Manufacturer], ''), ISNULL(IM.[ManufacturerName], '')) AS ENGINE_MANUFACTURER,
-			CASE WHEN ISNULL(TCH.[TotalTSN], SLIVE.[TotalTSN]) IS NULL THEN '' ELSE FORMAT(ISNULL(TCH.[TotalTSN], SLIVE.[TotalTSN]), 'N1') END AS ENGINE_TSN,
-			CASE WHEN ISNULL(TCH.[TotalCSN], SLIVE.[TotalCSN]) IS NULL THEN '' ELSE FORMAT(ISNULL(TCH.[TotalCSN], SLIVE.[TotalCSN]), 'N0') END AS ENGINE_CSN,
-			-- ---- insured value = lease stockline quantity ordered x stockline quantity; aircraft = tail number / serial number of the stockline ----
-			CASE WHEN NULLIF(CAST(LSL.[QtyOrder] AS DECIMAL(18, 6)) * ISNULL(SLIVE.[Quantity], 0), 0) IS NULL THEN ''
-				 ELSE FORMAT(CAST(LSL.[QtyOrder] AS DECIMAL(18, 6)) * SLIVE.[Quantity], 'N2') END AS INSURED_VALUE,
-			ISNULL(SLIVE.[AircraftTailNumber], '')                 AS AIRCRAFT_TYPE_MODEL,
+			CASE WHEN ISNULL(TCH.[TotalTSN], SLIVE.[TotalTSN]) IS NULL THEN '' ELSE FORMAT(ISNULL(TCH.[TotalTSN], SLIVE.[TotalTSN]), 'N2') END AS ENGINE_TSN,
+			CASE WHEN ISNULL(TCH.[TotalCSN], SLIVE.[TotalCSN]) IS NULL THEN '' ELSE FORMAT(ISNULL(TCH.[TotalCSN], SLIVE.[TotalCSN]), 'N2') END AS ENGINE_CSN,
+			-- ---- security deposit of the lease stockline (2 decimals) ----
+			CASE WHEN LSL.[SecurityDeposit] IS NULL THEN '' ELSE FORMAT(LSL.[SecurityDeposit], 'N2') END AS SECURITY_DEPOSIT_AMOUNT,
+			-- ---- insured value = lease stockline quantity ordered x stockline unit cost; aircraft = AC_Manufacturer / AC_Type / AC_Registration / AircraftSN of the stockline ----
+			CASE WHEN NULLIF(CAST(LSL.[QtyOrder] AS DECIMAL(18, 6)) * ISNULL(SLIVE.[UnitCost], 0), 0) IS NULL THEN ''
+				 ELSE FORMAT(CAST(LSL.[QtyOrder] AS DECIMAL(18, 6)) * SLIVE.[UnitCost], 'N2') END AS INSURED_VALUE,
+			ISNULL(SLIVE.[AC_Manufacturer], '')                    AS AIRCRAFT_MANUFACTURER,
+			ISNULL(SLIVE.[AC_Type], '')                            AS AIRCRAFT_TYPE_MODEL,
+			ISNULL(SLIVE.[AC_Registration], '')                    AS AIRCRAFT_REGISTRATION,
 			ISNULL(SLIVE.[AircraftSN], '')                         AS AIRCRAFT_SERIAL_NUMBER,
 			-- ---- rent / currency ----
 			ISNULL(CUR.[Code], '')                                 AS CURRENCY,

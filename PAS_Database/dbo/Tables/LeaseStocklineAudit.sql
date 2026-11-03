@@ -50,6 +50,7 @@
     [UpdatedDate]           DATETIME        NULL,
     [LeaseStatusId]         INT             NULL,
     [IsInvoicePost]         BIT             NULL,
+    [SecurityDeposit]       DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseStocklineAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineAuditId] ASC)
 );
 

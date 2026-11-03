@@ -26,6 +26,7 @@
 									NULL, which silently collapsed TemplateBody to NULL (skipping the
 									"Created" history save) whenever a field wasn't captured by the
 									calling screen, e.g. "Receive Engine" has no Tail Num/Make-Type inputs.
+ ** 4    02/11/2026   Kishor Makwana		[PN-18419] Engine Model and Serial Num of the stockline linked to the engine (Stockline.EngineModel, Stockline.EngineSerialNumber) are updated when the engine registry is saved.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateEngineRegistryHeader]
@@ -304,6 +305,13 @@ BEGIN
 			SET @EngineRegistryId = SCOPE_IDENTITY();
 			SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[EngineRegistryHeader] WITH(NOLOCK) WHERE EngineRegistryId = @EngineRegistryId
 	    END   
+
+		-- Stockline.EngineModel / Stockline.EngineSerialNumber follow the Engine Registry. A new engine has no stockline yet : it is linked (and its flags / Engine Model set) when the engine is received, usp_SaveTurnInAircraftMaterials
+		UPDATE STK SET STK.[EngineModel] = ERH.[EngineModel], STK.[EngineSerialNumber] = ERH.[SerialNum]
+		FROM [dbo].[Stockline] STK
+		INNER JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ERH.[StockLineId] = STK.[StockLineId]
+		WHERE ERH.[EngineRegistryId] = @EngineRegistryId
+			AND (ISNULL(STK.[EngineModel], '') <> ISNULL(ERH.[EngineModel], '') OR ISNULL(STK.[EngineSerialNumber], '') <> ISNULL(ERH.[SerialNum], ''));
 
 		-- =====================================================
         -- HISTORY BLOCK 

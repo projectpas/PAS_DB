@@ -408,6 +408,7 @@
     [WarrantyEndDate]                     DATETIME2 (7)    NULL,
     [WarrantyStatusId]                    BIGINT           NULL,
     [WarrantyMemo]                        NVARCHAR (MAX)   NULL,
+    [ExcludeInGRNI]                       BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),

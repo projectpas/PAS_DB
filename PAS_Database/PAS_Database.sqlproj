@@ -4777,6 +4777,14 @@
     <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
+    <Build Include="dbo\Tables\LeaseAgreementAudit.sql" />
+    <Build Include="dbo\Tables\LeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseAgreementPDF.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementPDFData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTerms.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineServiceComponents.sql" />

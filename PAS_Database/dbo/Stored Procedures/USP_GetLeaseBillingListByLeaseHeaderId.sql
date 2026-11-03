@@ -57,8 +57,11 @@
 	9    07/10/2026   Kishor Makwana          [PN-17949 service component by date] Maintenance/Insurance/Taxes/Other service components that have a Start Date and End Date are no longer billed once: for every calendar month inside [Start Date, End Date] a Pending line appears for the CURRENT month only (UTC date), once the month's slice has started - earlier and later months of the range are not listed. Amount = the component's TOTAL for [Start Date, End Date], split across the months of the range in proportion to each month's weight (full calendar month = 1, part month = days in the overlap / 30), the last month taking the rounding remainder. Several rows of one type in the same month are summed; From/To = the overlap of that month. Months already on a posted invoice or an open draft are not shown again. Rows without both dates keep the old one-time billing (billed once while LeaseStockline.IsInvoicePost = 0).
 	
 exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
+    10   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing calculation follows the new Lease Properties fields (rows saved from the redesigned popup have LeaseStockline.IsOveruseApplicable set; older rows keep the previous behaviour). StocklineBase now converts every Per to the monthly engine through dbo.FN_LeasePerHours: Base Rate = monthly equivalent (Day/Qtr./Year converted to Month), Usage/Overuse time rate = amount / hours in the Per (billed on actual usage), Maximum Usage = monthly limit (Per converted to Month), Base Rate + Usage can now be billed together, and Overuse is applied only when Overuse Applicable is ticked.
+    11   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing follows the redesigned Lease Properties: Base Rate is a FIXED charge billed for every Billing Interval (Month / Qtr. / Year) from the stockline Start Date to its End Date, in advance, whether or not there is usage (Base Rate Per converted to a monthly amount x months in the interval); Usage = Usage Amount x recorded Time / Cycles based on the selected Per (Time Per converted to hours, Cycles = Amount x cycles); Overuse = Overuse Rate x usage over the Maximum (Maximum Per converted to a monthly limit), only when Overuse Applicable is ticked. Older rows keep the previous behaviour.
+    12   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Minimum Usage is no longer used in the billing calculation for rows saved from the redesigned Lease Properties (TimeMinimum / CycleMinimum are NULL there); older rows keep the previous Minimum behaviour.
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
+CREATE   PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
 AS
 BEGIN
@@ -76,29 +79,29 @@ BEGIN
 				LSL.PNDescription AS PartDescription,
 				SLIVE.SerialNumber,
 				LSL.QtyReserved AS Qty,
-				LSL.BillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND (ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0) THEN 'UsageBased' ELSE LSL.BillingMethod END AS BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
-				LSL.FlatRate,
-				LSL.RateUnit,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN LSL.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSL.RateUnit)) ELSE LSL.FlatRate END AS FlatRate,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN 'MONTH' ELSE LSL.RateUnit END AS RateUnit,
 				COALESCE(SC_SUM.MaintenanceAmount, LSL.Maintenance) AS Maintenance,
 				COALESCE(SC_SUM.InsuranceAmount, LSL.Insurance) AS Insurance,
 				COALESCE(SC_SUM.TaxesAmount, LSL.Taxes) AS Taxes,
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
 				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
 				ISNULL(ChargesAgg.Charges, 0) AS Charges,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
-				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
-				LSL.UsagePerUnitTimes,
-				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
-				LSL.MinimumCycles AS CycleMinimum,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumTimes * 60 * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumTimesPer), 0), 720)) ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL AND LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.UsageTimesPer) IS NOT NULL THEN CAST(LSL.UsagePerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.UsageTimesPer) ELSE LSL.UsagePerUnitTimes END AS UsagePerUnitTimes,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.OverrunTimesPer) IS NOT NULL THEN CAST(LSL.OverrunPerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.OverrunTimesPer) ELSE LSL.OverrunPerUnitTimes END AS OverrunPerUnitTimes,
+				CASE WHEN LSL.MaximumCycles > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumCycles * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumCyclesPer), 0), 720)) ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL THEN LSL.MinimumCycles ELSE NULL END AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
 				LSL.IsActive,
 				LSL.LeaseStatusId,
-				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
-				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN LSL.IsOveruseApplicable = 1 OR ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0 THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN ISNULL(LSL.IsFlatRate, 0) = 1 AND NOT (LSL.StartDate IS NOT NULL AND ISNULL(dbo.FN_LeasePerHours(LSL.RateUnit), 0) >= 24) THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod,
 				CASE WHEN EXISTS (
 					SELECT 1 FROM [dbo].[LeaseStocklineUsageHistory] H WITH (NOLOCK)
 					WHERE H.LeaseStocklineId = LSL.LeaseStocklineId AND H.IsActive = 1 AND H.IsDeleted = 0
@@ -590,6 +593,39 @@ BEGIN
 			WHERE ISNULL(LBX.IsDeleted, 0) = 0 AND ISNULL(LBX.IsVersionIncrease, 0) = 0 AND LBX.FromDate IS NOT NULL
 			  AND LBX.LineType IN ('Maintenance', 'Insurance', 'Taxes', 'Others')
 		),
+		BaseRateIntervalsAll AS (
+			-- Base Rate is a FIXED charge for every Billing Interval (Month / Qtr. / Year) counted from the stockline Start Date (to its End Date), billed in advance whether or not
+			-- there is usage. One interval = the Base Rate converted to a monthly amount (Per = Day / Month / Qtr. / Year) x the months in the interval. (Redesigned Lease Properties rows only)
+			SELECT
+				LSB.LeaseStocklineId,
+				DATEADD(MONTH, N.n * M.IntervalMonths, CAST(LSB.StartDate AS DATE)) AS IntervalFrom,
+				CASE WHEN LSB.EndDate IS NOT NULL AND CAST(LSB.EndDate AS DATE) < DATEADD(DAY, -1, DATEADD(MONTH, (N.n + 1) * M.IntervalMonths, CAST(LSB.StartDate AS DATE)))
+					THEN CAST(LSB.EndDate AS DATE) ELSE DATEADD(DAY, -1, DATEADD(MONTH, (N.n + 1) * M.IntervalMonths, CAST(LSB.StartDate AS DATE))) END AS IntervalTo,
+				CAST(LSB.EndDate AS DATE) AS BaseEndDate,
+				CAST(ROUND(LSB.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSB.RateUnit)) * M.IntervalMonths, 2) AS DECIMAL(18,6)) AS IntervalAmount
+			FROM [dbo].[LeaseStockline] LSB WITH (NOLOCK)
+			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBZ ON SBZ.LeaseStocklineId = LSB.LeaseStocklineId
+			CROSS APPLY (SELECT CASE WHEN dbo.FN_LeasePerHours(LSB.BillingInterval) = 2160 THEN 3 WHEN dbo.FN_LeasePerHours(LSB.BillingInterval) = 8640 THEN 12 ELSE 1 END AS IntervalMonths) M
+			INNER JOIN Nums N ON N.n <= DATEDIFF(MONTH, LSB.StartDate, @BillingAsOfDate)
+			WHERE LSB.IsOveruseApplicable IS NOT NULL AND ISNULL(LSB.IsFlatRate, 0) = 1 AND ISNULL(LSB.FlatRate, 0) > 0 AND LSB.StartDate IS NOT NULL
+			  AND ISNULL(dbo.FN_LeasePerHours(LSB.RateUnit), 0) >= 24
+		),
+		BaseRateIntervals AS (
+			-- Intervals that have started (in advance) and are not past the End Date
+			SELECT LeaseStocklineId, IntervalFrom, IntervalTo, IntervalAmount
+			FROM BaseRateIntervalsAll
+			WHERE IntervalFrom <= @BillingAsOfDate AND (BaseEndDate IS NULL OR IntervalFrom <= BaseEndDate)
+		),
+		BaseRateBilledIntervals AS (
+			-- Base Rate intervals already on a posted invoice or on an open (not voided) draft
+			SELECT DISTINCT LBX.LeaseStocklineId, DATEFROMPARTS(YEAR(LBX.FromDate), MONTH(LBX.FromDate), 1) AS MonthKey
+			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBX WITH (NOLOCK)
+			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBW ON SBW.LeaseStocklineId = LBX.LeaseStocklineId
+			INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK) ON BX.BillingInvoicingItemId = LBX.BillingInvoicingItemId AND BX.IsDeleted = 0 AND ISNULL(BX.IsVersionIncrease, 0) = 0
+			INNER JOIN [dbo].[BillingInvoicing] BIX WITH (NOLOCK) ON BIX.BillingInvoicingId = BX.BillingInvoicingId AND ISNULL(BIX.InvoiceStatus, '') <> 'Voided'
+			WHERE ISNULL(LBX.IsDeleted, 0) = 0 AND ISNULL(LBX.IsVersionIncrease, 0) = 0 AND LBX.FromDate IS NOT NULL
+			  AND LBX.LineType = 'Flat Rate' AND ISNULL(LBX.FlatRateAmount, 0) > 0
+		),
 		OneTimeLines AS (
 			SELECT LeaseStocklineId, PartNumber, PartDescription, SerialNumber, Qty, BillingMethod, BillingFrequency,
 				CAST(NULL AS DECIMAL(18,6)) AS FlatRate,
@@ -657,6 +693,23 @@ BEGIN
 			FROM ComponentMonthLines CML
 			INNER JOIN StocklineBase SB ON SB.LeaseStocklineId = CML.LeaseStocklineId
 			WHERE NOT EXISTS (SELECT 1 FROM ComponentBilledMonths CB WHERE CB.LeaseStocklineId = CML.LeaseStocklineId AND CB.LineType = CML.LineType AND CB.MonthKey = CML.MonthStart)
+
+			UNION ALL
+
+			-- Base Rate: one fixed line per Billing Interval from the stockline Start Date (billed in advance, with or without usage)
+			SELECT SB.LeaseStocklineId, SB.PartNumber, SB.PartDescription, SB.SerialNumber, SB.Qty, SB.BillingMethod, SB.BillingFrequency,
+				BR.IntervalAmount AS FlatRate,
+				'Flat Rate' AS LineType,
+				CAST(BR.IntervalFrom AS DATETIME2(7)) AS FromDate, CAST(BR.IntervalTo AS DATETIME2(7)) AS ToDate,
+				BR.IntervalAmount * SB.Qty AS LineAmount,
+				CAST(NULL AS DECIMAL(18,6)) AS TimeRecorded, CAST(NULL AS DECIMAL(18,6)) AS TimeLimit, CAST(NULL AS DECIMAL(18,6)) AS TimeOver, CAST(NULL AS DECIMAL(18,6)) AS TimeOverageRate, CAST(NULL AS DECIMAL(18,6)) AS TimeBillingAmount,
+				CAST(NULL AS DECIMAL(18,6)) AS CycleRecorded, CAST(NULL AS DECIMAL(18,6)) AS CycleLimit, CAST(NULL AS DECIMAL(18,6)) AS CycleOver, CAST(NULL AS DECIMAL(18,6)) AS CycleOverageRate, CAST(NULL AS DECIMAL(18,6)) AS CycleBillingAmount,
+				SB.BillingInvoicingId, 'N' AS BillingStatus, SB.InvoiceNo AS InvoiceNumber, SB.InvoiceDate, SB.HasUsageInfo, SB.IsActive, SB.LeaseStatusId,
+				CAST(DATEDIFF(MONTH, '20000101', BR.IntervalFrom) AS BIGINT) AS PeriodSeq,
+				5 AS LineSortOrder
+			FROM BaseRateIntervals BR
+			INNER JOIN StocklineBase SB ON SB.LeaseStocklineId = BR.LeaseStocklineId
+			WHERE NOT EXISTS (SELECT 1 FROM BaseRateBilledIntervals BB WHERE BB.LeaseStocklineId = BR.LeaseStocklineId AND BB.MonthKey = DATEFROMPARTS(YEAR(BR.IntervalFrom), MONTH(BR.IntervalFrom), 1))
 		),
 		ChargesByPeriod AS (
 			SELECT

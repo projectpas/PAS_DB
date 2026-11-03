@@ -50,6 +50,13 @@
     [UpdatedDate]           DATETIME        NULL,
     [LeaseStatusId]         INT             NULL,
     [IsInvoicePost]         BIT             NULL,
+    [UsageTimesPer]         NVARCHAR (50)   NULL,
+    [UsageCyclesPer]        NVARCHAR (50)   NULL,
+    [MaximumTimesPer]       NVARCHAR (50)   NULL,
+    [MaximumCyclesPer]      NVARCHAR (50)   NULL,
+    [OverrunTimesPer]       NVARCHAR (50)   NULL,
+    [OverrunCyclesPer]      NVARCHAR (50)   NULL,
+    [IsOveruseApplicable]   BIT             NULL,
     CONSTRAINT [PK_LeaseStocklineAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineAuditId] ASC)
 );
 

@@ -42,7 +42,7 @@
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
+CREATE   PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT = 0
 AS
@@ -88,6 +88,13 @@ BEGIN
 			LSL.UsagePerUnitTimes,
 			LSL.OverrunPerUnitCycles,
 			LSL.OverrunPerUnitTimes,
+			LSL.UsageTimesPer,
+			LSL.UsageCyclesPer,
+			LSL.MaximumTimesPer,
+			LSL.MaximumCyclesPer,
+			LSL.OverrunTimesPer,
+			LSL.OverrunCyclesPer,
+			LSL.IsOveruseApplicable,
 			COALESCE(SC_SUM.MaintenanceAmount, LSL.Maintenance) AS Maintenance,
 			LSL.MaintenancePer,
 			COALESCE(SC_SUM.InsuranceAmount, LSL.Insurance) AS Insurance,

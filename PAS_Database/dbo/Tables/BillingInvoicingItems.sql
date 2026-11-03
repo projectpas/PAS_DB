@@ -61,6 +61,10 @@
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
 GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicingItems_BillingInvoicingId_Cover_Perf]
+    ON [dbo].[BillingInvoicingItems]([BillingInvoicingId] ASC) INCLUDE([SubReferenceId], [ItemMasterId], [StocklineId], [GrandTotal], [RemainingAmount], [IsVersionIncrease], [IsDeleted]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+GO
 CREATE NONCLUSTERED INDEX [IX_BillingInvoicingItems_BillingInvoicingId_SubReferenceId]
     ON [dbo].[BillingInvoicingItems]([BillingInvoicingId] ASC, [SubReferenceId] ASC)
     INCLUDE([ModuleId], [IsPerformaInvoice]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

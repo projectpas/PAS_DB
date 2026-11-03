@@ -407,6 +407,7 @@
     [WarrantyEndDate]                     DATETIME2 (7)    NULL,
     [WarrantyStatusId]                    BIGINT           NULL,
     [WarrantyMemo]                        NVARCHAR (MAX)   NULL,
+    [ExcludeInGRNI]                       BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

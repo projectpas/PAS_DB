@@ -12,6 +12,7 @@
  ** 1    16-Mar-2025			Rajesh Gami					UOM Changes [PN-15714]       
  ** 2    28-April-2025			Devendra Shekh				Created
  3    09/July/2026			RAJESH GAMI				[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/  
   
 CREATE     PROCEDURE [dbo].[USP_UpdateSubWorkOrderMaterials]  
@@ -153,7 +154,7 @@ BEGIN
 						FROM [dbo].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpSubWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0;
+						WHERE TMP.RowId = @CurrentRowId;
 					END
 				END
 

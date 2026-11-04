@@ -25,6 +25,7 @@
 	8    23/06/2026			Priyansh Patel	Changed the ItemGroup to ItemGroupCode instead of  Description [PN-16920]    
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	11    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	11   22/OCT/2026       Kishor Makwana   [PN-18321]- Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 	12    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
@@ -52,8 +53,8 @@ BEGIN
 					,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyAvailable
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyOnHand
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END), (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),0,im.MasterCompanyId), 0)) AS QtyAvailable
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END), (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),0,im.MasterCompanyId), 0)) AS QtyOnHand
 					,ig.ItemGroupCode AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -64,7 +65,7 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1 AND M.IsActive = 1 AND M.IsDeleted = 0
-					AND ISNULL(I.IsNonStock,0) = 0
+					AND ISNULL(I.IsService,0) = 0
 					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
@@ -74,15 +75,15 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),1,im.MasterCompanyId), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),1,im.MasterCompanyId), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
-					,im.ConsumeUnitOfMeasure
-					,im.StockUnitOfMeasure
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END)
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END)
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsNonStock,0) = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 AND ISNULL(sl.IsService,0) = 0
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -91,7 +92,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
+				 AND ISNULL(im.IsService,0) = 0 AND ISNULL(im.IsAsset, 0) = 0 -- [PN-18407] Asset parts are not allowed here
 				GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
@@ -113,8 +114,8 @@ BEGIN
 					,imps.PP_UnitPurchasePrice
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
-					,im.ConsumeUnitOfMeasure
-					,im.StockUnitOfMeasure,im.MasterCompanyId
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END)
+					,(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),im.MasterCompanyId
 				ORDER BY 7 DESC
 			END
 		COMMIT  TRANSACTION

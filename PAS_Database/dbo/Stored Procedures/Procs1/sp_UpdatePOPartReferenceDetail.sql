@@ -21,6 +21,7 @@
 	4	 12/30/2025	  Devendra Shekh	Modified WOM Kit Update Logic to WOM Update
 	5    11/09/2026   Sahdev Saliya     Fixed SO Part PO Num/Est Dlvry Date not updating when PO is placed against an Alt/Equ mapped part (mirrors existing WOM Alt/Equ fix) - [PN-17885]
 	6    29/10/2026   Vishal Suthar     [PN-18447] Keep PO part SalesOrderQuoteId / Number in sync with its Sales Order Quote mapping (ModuleId 7)
+	7    03/11/2026   Vishal Suthar     [PN-18447] Manual SOQ mapping sets SOQ part / stocklines status to Order
 
  EXEC sp_UpdatePOPartReferenceDetail 214  
 **************************************************************/
@@ -94,6 +95,34 @@ BEGIN
 	INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = REF.ReferenceId
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 
+	-- [PN-18447] Mapped SOQ part / stocklines still Open -> Order (same as PO created from SOQ)
+	DECLARE @SOQPartStatusOpen INT = (SELECT TOP 1 SOPartStatusId FROM dbo.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Open');
+	DECLARE @SOQPartStatusOrder INT = (SELECT TOP 1 SOPartStatusId FROM dbo.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Order');
+	DECLARE @SOQPartStatusOrderName VARCHAR(100) = (SELECT TOP 1 PartStatus FROM dbo.SOPartStatus WITH (NOLOCK) WHERE SOPartStatusId = @SOQPartStatusOrder);
+
+	SELECT DISTINCT SQP.SalesOrderQuotePartId
+	INTO #MappedSOQParts
+	FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
+	INNER JOIN dbo.PurchaseOrderPartReference PP WITH (NOLOCK) ON PP.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId AND PP.ModuleId = 7 AND ISNULL(PP.IsDeleted, 0) = 0
+	LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
+	INNER JOIN dbo.SalesOrderQuotePartV1 SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = PP.ReferenceId AND SQP.ConditionId = POP.ConditionId AND (SQP.ItemMasterId = POP.ItemMasterId OR SQP.ItemMasterId = MainNha.ItemMasterId) AND SQP.IsDeleted = 0
+	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId AND POP.isParent = 1;
+
+	IF (ISNULL(@SOQPartStatusOrder, 0) > 0)
+	BEGIN
+		UPDATE SQP
+		SET SQP.StatusId = @SOQPartStatusOrder, SQP.StatusName = @SOQPartStatusOrderName
+		FROM dbo.SalesOrderQuotePartV1 SQP
+		INNER JOIN #MappedSOQParts M ON M.SalesOrderQuotePartId = SQP.SalesOrderQuotePartId
+		WHERE ISNULL(SQP.StatusId, @SOQPartStatusOpen) = @SOQPartStatusOpen;
+
+		UPDATE SQS
+		SET SQS.StatusId = @SOQPartStatusOrder, SQS.StatusName = @SOQPartStatusOrderName
+		FROM dbo.SalesOrderQuoteStocklineV1 SQS
+		INNER JOIN #MappedSOQParts M ON M.SalesOrderQuotePartId = SQS.SalesOrderQuotePartId
+		WHERE SQS.IsDeleted = 0 AND ISNULL(SQS.StatusId, @SOQPartStatusOpen) = @SOQPartStatusOpen;
+	END
+  
 	SELECT  
 	PurchaseOrderNumber as value  
 	FROM dbo.PurchaseOrderPart PP WITH (NOLOCK)

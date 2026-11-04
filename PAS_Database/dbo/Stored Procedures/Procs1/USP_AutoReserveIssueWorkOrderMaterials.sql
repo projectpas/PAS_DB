@@ -26,6 +26,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 14   09/JAN/2026  Rajesh Gami	 UOM decimal places changes
 ** 15   03/16/2026	 AMIT GHEDIYA	 Allow AR condition to reserve (PN-15562)
 	16    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	17    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	17    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
@@ -80,22 +81,25 @@ BEGIN
 					SELECT @RestrictPMA = ISNULL([IsPMA], 0), @RestrictDER = ISNULL([IsDER], 0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNOId;
 				
 					--- FOR OEM
-					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0 ;
 
 					--FOR PMA
 					IF(ISNULL(@RestrictPMA, 0) <> 1)
 					BEGIN
-						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0 ;
 					END
 
 					--FOR DER
 					IF(ISNULL(@RestrictDER, 0) <> 1)
 					BEGIN
-						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 AND ISNULL(IM.IsNonStock,0) = 0 ;
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 ;
 					END
+					-- [PN-17782] Non-Stock parts: no OEM / PMA / DER check - always allowed
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock, 0) = 1 AND ISNULL(IM.IsService, 0) = 0 ;
 
 					--Except Parts
 					--INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[RestrictedParts] RS WITH(NOLOCK) WHERE RS.IsActive = 1 AND RS.IsDeleted = 0 AND RS.ModuleId = @RestrictPartModuleId AND RS.ReferenceId = @CustomerID;
@@ -169,7 +173,6 @@ BEGIN
 						
 						--PRINT '--Auto Reserve & Issue Stockline'
 						--Auto Reserve & Issue Stockline
-						 AND ISNULL(IM.IsNonStock,0) = 0
 						IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 						BEGIN
 							--CASE 1 UPDATE WORK ORDER MATERILS

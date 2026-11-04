@@ -20,6 +20,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4   10-Aug-2026   Bhargav Saliya       [PN-17562] Part Number search (Item Master dropdown): normalize dashes(-)/slashes("\","/")/underscore(_)
 	5   14-Sep-2026   Bhargav Saliya    [PN-17849] Part Number search: use dbo.fn_NormalizePartNumber(...) instead of inline REPLACE quads; normalized fallback matches anywhere (contains) so mid/tail searches work (normalize dashes(-)/slashes("\","/")/underscore(_))
+	6    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 --EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'108,109,11',1
 EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'',335
 **************************************************************/
@@ -47,7 +48,6 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 				WHERE (IM.IsActive=1 AND ISNULL(IM.IsDeleted,0) = 0  AND WOM.SubWOPartNoId = @SubWOPartNoId AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%' OR dbo.fn_NormalizePartNumber(IM.partnumber) LIKE '%' + dbo.fn_NormalizePartNumber(@StartWith) + '%'))
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				UNION
 				SELECT DISTINCT TOP 20 
 					IM.ItemMasterId AS Value,
@@ -66,7 +66,6 @@ AS
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 				WHERE IM.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				ORDER BY Label			
 		END TRY    
 		BEGIN CATCH      

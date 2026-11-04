@@ -236,3 +236,15 @@ BEGIN
 
 
 END
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_StocklineDraft_POId_Perf]
+    ON [dbo].[StocklineDraft]([PurchaseOrderId] ASC)
+    INCLUDE([PurchaseOrderPartRecordId], [StockLineId], [StockLineNumber], [IsNonStock], [IsParent], [ShippingViaId], [SiteId], [ManufacturerId], [ConditionId], [ObtainFrom], [ObtainFromType], [Owner], [OwnerType], [TraceableTo], [TraceableToType]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+GO
+-- [PN-18450] Edit PO (Receiving PO) page load performance
+CREATE NONCLUSTERED INDEX [IX_StocklineDraft_POPartRecId_Perf]
+    ON [dbo].[StocklineDraft]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([PurchaseOrderId], [StockLineId], [Quantity], [IsParent], [isSerialized]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

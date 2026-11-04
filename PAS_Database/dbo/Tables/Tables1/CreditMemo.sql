@@ -65,6 +65,12 @@
     CONSTRAINT [FK_CREDITMEMO_RequestedById] FOREIGN KEY ([RequestedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CreditMemo_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[CreditMemoStatus] ([Id])
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_CreditMemo_StatusId_InvoiceTypeId_Perf]
+    ON [dbo].[CreditMemo]([StatusId] ASC, [InvoiceTypeId] ASC) INCLUDE([InvoiceId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+
+
 
 
 
@@ -90,3 +96,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_CreditMemo_MC_CreatedDate]
+    ON [dbo].[CreditMemo]([MasterCompanyId] ASC, [CreatedDate] ASC)
+    INCLUDE([CustomerId], [IsActive], [IsDeleted]);
+

@@ -40,6 +40,10 @@
     [WorkOrderPartNoId]         BIGINT          DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkFlowWorkOrder] PRIMARY KEY CLUSTERED ([WorkFlowWorkOrderId] ASC)
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_WorkOrderWorkFlow_WorkOrderPartNoId_Perf]
+    ON [dbo].[WorkOrderWorkFlow]([WorkOrderPartNoId] ASC) INCLUDE([WorkFlowWorkOrderId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 

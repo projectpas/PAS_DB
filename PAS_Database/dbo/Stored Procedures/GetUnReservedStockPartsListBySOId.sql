@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetUnReservedStockPartsListBySOId]          
  ** Author:   AMIT GHEDIYA
  ** Description: This stored procedure is used to get SO for UnReserve Part Details.
@@ -28,9 +29,10 @@
 	12    12/Aug/2026    Moin Bloch                                 [PN-17485] - Changed IsService/IsNonStock filter from AND to OR
 	13    17/Aug/2026     Kishor Makwana		[PN-17685] - UnResered Row not Comming
 	14    21/Aug/2026     Kishor Makwana		[PN-17734] - Manage With New Column ToTalReservedQty - UnResered Row not Comming
+	15    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(stl.IsSubComponent,0) =0 AND ISNULL(stl.SubComponentParentStocklineId,0) =0)
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  10851,0,0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
+CREATE   PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
     @SalesOrderId BIGINT,
 	@ItemMasterId BIGINT = NULL,
 	@isFromShipping BIT = 0
@@ -104,7 +106,7 @@ BEGIN
 		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId AND (ISNULL(im.[IsService],0) <> 1 OR ISNULL(im.[IsNonStock],0) <> 1)
 		JOIN [DBO].[Customer] cu WITH(NOLOCK) ON so.CustomerId = cu.CustomerId
 		JOIN [DBO].[SalesOrderReserveParts] sopi WITH(NOLOCK) ON sop.SalesOrderPartId = sopi.SalesOrderPartId and sop.SalesOrderId = sopi.SalesOrderId
-		JOIN [DBO].[StockLine] stl WITH(NOLOCK) ON sopi.StockLineId = stl.StockLineId
+		JOIN [DBO].[StockLine] stl WITH(NOLOCK) ON sopi.StockLineId = stl.StockLineId AND ISNULL(stl.IsSubComponent,0) =0 AND ISNULL(stl.SubComponentParentStocklineId,0) =0
 		LEFT JOIN [DBO].[Condition] condi WITH(NOLOCK) ON sop.ConditionId = condi.ConditionId
 		WHERE so.IsDeleted = 0 
 		AND sop.IsDeleted = 0

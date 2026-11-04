@@ -22,9 +22,10 @@ EXEC [GetSubWorkorderReleaseFromData]
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	13    18/Aug/2026			 Ayushi Patel						[PN-17689]Added Incoming PN / Outgoing PN : IncomingPN now sourced from WorkOrderPartNumber.IncomingPartNumber and RevisedPN from WorkOrderPartNumber.RevisedPartNumber (falls back to prior logic when blank)kept IncomingPN as it is
+	14   22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 EXEC GetWorkOrderPrintPdfData 10248,10466
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
+CREATE      PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
 @WorkorderId bigint,              
 @workOrderPartNoId bigint              
 AS              
@@ -140,7 +141,7 @@ BEGIN
 		LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid            
 		 AND ISNULL(imtr.IsNonStock,0) = 0
 		LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId              
-		LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0             
+		LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0   AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0           
 		LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = wop.TechnicianId              
 		LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = wop.WorkOrderStageId              
 		LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            

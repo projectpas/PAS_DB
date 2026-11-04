@@ -1,4 +1,4 @@
-
+﻿
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
@@ -19,9 +19,10 @@
 	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	5    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsMaterialsItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsMaterialsItemMaster]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -69,7 +70,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 					WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 			    AND ISNULL(Im.IsNonStock,0) = 0
 					 UNION     
@@ -104,7 +105,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 					WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				 AND ISNULL(Im.IsNonStock,0) = 0
 					 ORDER BY Label				
@@ -143,7 +144,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 				) UNION 
 				SELECT DISTINCT TOP 50 
@@ -178,7 +179,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
 				 AND ISNULL(Im.IsNonStock,0) = 0
 				 ORDER BY Label	

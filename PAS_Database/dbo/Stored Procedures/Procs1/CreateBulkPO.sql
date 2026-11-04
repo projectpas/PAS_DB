@@ -13,6 +13,7 @@
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	8    09/07/2026				 Ayushi Patel						Chnaged Qty type from INT to DECIMAL(18,6) [PN-17152]
 	9    11/Sep/2026			 Ayushi Patel						[PN-17879] - PurchaseOrderPart.ItemTypeId/ItemType were hard-coded to Stock(1)/'STOCK' for every Bulk PO line. Now derived from IM.ItemTypeId/IM.IsNonStock so Non-Stock (Non-Service) parts are correctly flagged.
+	10   26/OCT/2026			 RAJESH GAMI						 MasterCompanyId compare dynamically with @MstCompanyId instead of hard-coded 1 in the CodePrefixes update statement.
 ****************************************************************************************************************************************/
 CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -37,7 +38,7 @@ BEGIN
 			DECLARE @NewPurchaseOrderId BIGINT,@NewPurchaseOrderPartId BIGINT;
 			DECLARE @totalPartCount int; 
 			DECLARE @newPartLoopId int; 
-			SELECT @PriorityId = PriorityId, @IsResale = IsResale, @IsDeferredReceiver = IsDeferredReceiver, @IsEnforceApproval = IsEnforceApproval FROM DBO.PurchaseOrderSettingMaster WITH (NOLOCK) WHERE MasterCompanyId = 1;
+			SELECT @PriorityId = PriorityId, @IsResale = IsResale, @IsDeferredReceiver = IsDeferredReceiver, @IsEnforceApproval = IsEnforceApproval FROM DBO.PurchaseOrderSettingMaster WITH (NOLOCK) WHERE MasterCompanyId = @MstCompanyId;
 			SELECT TOP 1 @FullfillStatusId = POStatusId FROM DBO.POStatus WITH (NOLOCK) WHERE [Status] like '%Fulfilling%';
 			DECLARE @POPartId bigint
 			DECLARE @IdCodeTypeId BIGINT;

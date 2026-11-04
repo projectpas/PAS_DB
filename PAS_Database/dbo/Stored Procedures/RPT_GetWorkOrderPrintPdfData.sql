@@ -31,9 +31,10 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 20   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 21   29-09-2026   Moin Bloch			Added for 'SAR' MasterCompany
 ** 22   13-10-2026   Moin Bloch			PN-18310 Added for 'SAR DER,SAR DER Rev Date, Cust DER' for SAR MasterCompany
+** 23   22/OCT/2026	 Kishor Makwana     [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 **************************************************************/
-CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
+CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
 	@workOrderPartNoId BIGINT              
 AS              
@@ -256,7 +257,7 @@ BEGIN
 			 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = wop.RevisedItemmasterid            
 			 AND ISNULL(imtr.IsNonStock,0) = 0
 			  LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = wop.WorkOrderPriorityId              
-			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0             
+			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 AND (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)           
 			LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = wop.TechnicianId              
 			LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId              
 			LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            

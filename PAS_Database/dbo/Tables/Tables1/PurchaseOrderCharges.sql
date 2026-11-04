@@ -55,3 +55,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetLotList (30+ sec) PO charges sum per lot
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrderCharges_PartRecordId_Perf]
+    ON [dbo].[PurchaseOrderCharges]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([ExtendedCost], [IsDeleted]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

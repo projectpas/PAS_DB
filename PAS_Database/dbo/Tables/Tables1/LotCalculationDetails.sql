@@ -73,3 +73,9 @@ CREATE NONCLUSTERED INDEX [IX_LotCalculationDetails_LotTransInOutId]
 -- supports "INNER JOIN ... ltCal ON ltin.LotTransInOutId = ltCal.LotTransInOutId" used in every
 -- @Type branch (see UOM_USP_Lot_GetAllLotViewsByLotId_Filter_Deploy.sql for the full review).
 
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetLotList (30+ sec) one pass per lot for repair / trans in / trans out / revenue / margin / sold cost
+CREATE NONCLUSTERED INDEX [IX_LotCalculationDetails_LotId_Perf]
+    ON [dbo].[LotCalculationDetails]([LotId] ASC)
+    INCLUDE([Type], [IsFromPreCostStk], [RepairCost], [TransferredInCost], [TransferredOutCost], [Qty], [ReferenceId], [ChildId], [ExtSalesUnitPrice], [MarginAmount]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

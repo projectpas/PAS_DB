@@ -73,3 +73,8 @@ CREATE NONCLUSTERED INDEX [IX_SOQPartV1_QuoteId]
     ON [dbo].[SalesOrderQuotePartV1]([SalesOrderQuoteId] ASC, [IsDeleted] ASC)
     INCLUDE([SalesOrderQuotePartId], [ItemMasterId], [ConditionId], [PriorityName], [QtyQuoted], [QtyRequested], [UnitSalesPrice]);
 
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_GetItemMasterPurchaseSale (Item Master > Purchase and Sales) reads SOQ history by Item Master + Condition (was a scan per Condition)
+CREATE NONCLUSTERED INDEX [IX_SOQPartV1_ItemMaster_Perf]
+    ON [dbo].[SalesOrderQuotePartV1]([ItemMasterId] ASC, [ConditionId] ASC)
+    INCLUDE([SalesOrderQuoteId], [SalesOrderQuotePartId], [MasterCompanyId]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

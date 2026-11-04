@@ -124,3 +124,9 @@ CREATE NONCLUSTERED INDEX [IX_PurchaseOrder_MC_IsDeleted_Perf]
     ON [dbo].[PurchaseOrder]([MasterCompanyId] ASC, [IsDeleted] ASC)
     INCLUDE([PurchaseOrderId], [VendorId], [VendorName], [VendorCode], [PurchaseOrderNumber], [Status]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
+
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetLotList (30+ sec) vendor / reference no and PO freight / charges per lot
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrder_LotId_Perf]
+    ON [dbo].[PurchaseOrder]([LotId] ASC)
+    INCLUDE([VendorId], [PurchaseOrderNumber], [IsDeleted]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

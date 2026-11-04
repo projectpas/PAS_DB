@@ -23,6 +23,10 @@
  9 11-Dec-2025  Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
  10 23-Dec-2025  Ayushi Patel	 Get The Newly versioned invoice 
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    22-Oct-2026	BHARGAV SALIYA	Fixed stage re-entry double-count: quote/approved/ship/TAT days now read stage flags from WorkOrderStage
+									instead of joining back to #tmpTop10TATData (one row per stage visit multiplied the stage total)
+	13    27-Oct-2026	BHARGAV SALIYA	Pro-forma invoice lines no longer add a duplicate (blank invoice) row per WO part: BillingInvoicingItems is
+									joined together with its non-pro-forma BillingInvoicing (PN-18259)
  ** S NO   Date         Author   Change Description              
  ** --   --------     -------  --------------------------------            
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
@@ -193,8 +197,9 @@ BEGIN
 		   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 		   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
-		   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+		   LEFT JOIN (DBO.BillingInvoicingItems WBII WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID)
+				ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 		   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
 		   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 		   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
@@ -264,8 +269,9 @@ BEGIN
 	   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
 	   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 	   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-	   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
-	   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+	   LEFT JOIN (DBO.BillingInvoicingItems WBII WITH (NOLOCK)
+			INNER JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID)
+			ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 	   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 	   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 	   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
@@ -304,8 +310,8 @@ BEGIN
 		OUTER APPLY (
 		SELECT SUM(tm1.totaldays) AS totaldays FROM
 		#finalSumData tm1
-		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
-		WHERE ISNULL(ApprovedDays,0) = 1 AND TP.ID = tm1.ID
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = tm1.CurrentStageId
+		WHERE ISNULL(WS.ApprovedDays,0) = 1 AND TP.ID = tm1.ID
 		) daysResult
 
 		UPDATE TP 
@@ -314,8 +320,8 @@ BEGIN
 		OUTER APPLY (
 		SELECT SUM(tm1.totaldays) AS totaldays FROM
 		#finalSumData tm1
-		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
-		WHERE ISNULL(quotedays,0) = 1 AND TP.ID = tm1.ID
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = tm1.CurrentStageId
+		WHERE ISNULL(WS.QuoteDays,0) = 1 AND TP.ID = tm1.ID
 		) daysResult
 
 		UPDATE TP 
@@ -324,8 +330,8 @@ BEGIN
 		OUTER APPLY (
 		SELECT SUM(tm1.totaldays) AS totaldays FROM
 		#finalSumData tm1
-		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
-		WHERE ISNULL(ShippedDays,0) = 1 AND TP.ID = tm1.ID
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = tm1.CurrentStageId
+		WHERE ISNULL(WS.ShippedDays,0) = 1 AND TP.ID = tm1.ID
 		) daysResult
 
 		UPDATE TP 
@@ -334,8 +340,8 @@ BEGIN
 		OUTER APPLY (
 		SELECT SUM(tm1.totaldays) AS totaldays FROM
 		#finalSumData tm1
-		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
-		WHERE ISNULL(IncludeInTAT,0) = 1 AND TP.ID = tm1.ID
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = tm1.CurrentStageId
+		WHERE ISNULL(WS.IncludeInTAT,0) = 1 AND TP.ID = tm1.ID
 		) daysResult
 
 	 ;with AvgDaysTotal as (

@@ -16,9 +16,10 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 1 leftover IsNonStock=0 exclusion filter.
 	5    29/09/2026              Ayushi Patel						[PN-18147] - Return Stock unit of measure
+	6    26/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(stl.IsSubComponent,0) =0 AND ISNULL(stl.SubComponentParentStocklineId,0) =0) : sub components are not listed in Trans-In Activity
 -- EXEC USP_Lot_ProcStockListFromItemMasterId
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
+CREATE   PROCEDURE [dbo].[USP_Lot_ProcStockListFromItemMasterId]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -112,6 +113,7 @@ BEGIN
 					 AND stl.ItemMasterId = @ItemMasterId					
 					 AND stl.IsParent = 1 
 					 AND ISNULL(stl.IsCustomerStock,0) = 0 
+					 AND ISNULL(stl.IsSubComponent,0) = 0 AND ISNULL(stl.SubComponentParentStocklineId,0) = 0
 					 AND im.ItemTypeId  = 1
 					 AND ISNULL(stl.QuantityAvailable,0) >0
 					 AND ISNULL(stl.LotId,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)

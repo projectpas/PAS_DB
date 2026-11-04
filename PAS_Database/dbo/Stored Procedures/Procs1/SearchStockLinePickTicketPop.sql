@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [dbo].[SearchStockLinePickTicketPop]          
  ** Author:   Vishal Suthar
  ** Description: Get pick ticket stockline data to pick
@@ -24,6 +25,7 @@
 	14    31/July/2026			 MOIN BLOCH	  					    [PN-17513] - Added IsNonStock=1 filters so Non-Stock parts not appear on the pick ticket.
 	15    03/Aug/2026			 MOIN BLOCH	  					    [PN-17542] - Fix For Non-Stock Non-Service data need to come
 	16	 05/Aug/2026			 Kishor Makwana                     [PN-17439] - Added optional @SalesOrderPartId parameter and restored the missing sop.ConditionId = @ConditionId filter in the single-line popup WHERE clause, so duplicate Part+Condition lines (different SalesOrderPartId) are disambiguated correctly instead of showing each other's stockline data.
+	17    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
@@ -105,7 +107,7 @@ BEGIN
 										 FROM [dbo].[SOPickTicket] s WITH(NOLOCK)
 										WHERE s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) AS QtyToReserve
 				FROM [dbo].[ItemMaster] im  WITH(NOLOCK)
-				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				 LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 				 LEFT JOIN [dbo].[SalesOrderPartV1] sop ON sop.SalesOrderPartId = stk.SalesOrderPartId
 				 LEFT JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -189,7 +191,7 @@ BEGIN
 						 FROM [dbo].[SOPickTicket] s WITH(NOLOCK) WHERE s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId))
 						 AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0
 				LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
 				LEFT JOIN DBO.SalesOrderPartV1 sop on sop.SalesOrderPartId = stk.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId

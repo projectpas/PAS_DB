@@ -57,3 +57,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+-- [PN-18450] 29-Oct-2026 - Performance: dbo.USP_Lot_GetLotList (30+ sec) PO freight sum per lot
+CREATE NONCLUSTERED INDEX [IX_PurchaseOrderFreight_PartRecordId_Perf]
+    ON [dbo].[PurchaseOrderFreight]([PurchaseOrderPartRecordId] ASC)
+    INCLUDE([Amount], [IsDeleted]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);

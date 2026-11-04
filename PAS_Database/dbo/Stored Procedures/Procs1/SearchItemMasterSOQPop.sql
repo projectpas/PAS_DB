@@ -1,3 +1,4 @@
+﻿
 /*************************************************************
 ** Change History
 **************************************************************
@@ -6,8 +7,9 @@
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	3    20/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters from alt-part subquery, StockLine join, and main WHERE clause.
 	4    01/Oct/2026			 Bhargav Saliya					[PN-15173] - UOM: convert QtyAvailable/QtyOnHand (stock -> consume), matching SearchStockLineSOQPop; SO Add PN / Adjust Qty popup was showing stock UOM.
+	5    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 **************************************************************/
-CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
+CREATE   PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 --@ConditionId BIGINT = NULL,
 @ConditionIds VARCHAR(100) = NULL,
@@ -47,7 +49,7 @@ BEGIN
 		,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
 	FROM DBO.ItemMaster im 
 	LEFT JOIN DBO.Condition c ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
-	LEFT JOIN DBO.StockLine sl ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
+	LEFT JOIN DBO.StockLine sl ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId AND ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0 
 		AND sl.IsDeleted = 0
 		--AND ((sl.ConditionId = CASE WHEN @ConditionIds = '' THEN @ConditionIds ELSE sl.ConditionId END)
 		--	OR sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))

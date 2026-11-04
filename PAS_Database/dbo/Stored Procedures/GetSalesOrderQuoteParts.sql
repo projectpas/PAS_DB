@@ -28,6 +28,7 @@
 	12    20/Aug/2026  Ayushi Patel      [PN-17573]return two field for soq print (IsNonStock,IsService)
 	13    21/Aug/2026  Ayushi Patel		 [PN-17573] Handle isNull (IsNonStock,IsService)
 	14    02/Oct/2026  Bhargav Saliya	 [PN-15173] UOM: convert QtyAvailable (stk) & QuantityOnHand (qs) stock -> consume; SOQ grid + margin popup were showing/validating stock UOM qty.
+	15    30/Oct/2026  Vishal Suthar	 [PN-18443] Added PO Num / PO Est. Rec'd Date of the PO linked to the SOQ part (SOQ View)
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -142,6 +143,9 @@ BEGIN
 			COALESCE(um.ShortName, '') AS UomName,
 			COALESCE(po.PurchaseOrderNumber, '') AS PoNumber,
 			COALESCE(ro.RepairOrderNumber, '') AS RoNumber,
+			soqpo.PurchaseOrderId AS PartPOId,
+			soqpo.PurchaseOrderNumber AS PartPONumber,
+			soqpo.NeedByDate AS PartPONextDlvrDate,
 			part.CustomerRequestDate,
 			part.PromisedDate,
 			part.EstimatedShipDate,
@@ -228,6 +232,12 @@ BEGIN
 		LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
 		LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId
+		OUTER APPLY (SELECT TOP 1 P.PurchaseOrderId, P.PurchaseOrderNumber, POP.NeedByDate
+					 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+					 INNER JOIN DBO.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId
+					 WHERE POP.SalesOrderQuoteId = part.SalesOrderQuoteId AND POP.ItemMasterId = part.ItemMasterId AND POP.ConditionId = part.ConditionId
+					   AND ISNULL(POP.isParent, 1) = 1 AND POP.IsDeleted = 0 AND P.IsDeleted = 0
+					 ORDER BY POP.PurchaseOrderPartRecordId DESC) soqpo
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
 		ORDER BY part.SalesOrderQuotePartId;
 

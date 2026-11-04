@@ -10,12 +10,14 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    27-May-2025   Devendra Shekh		Created
+    2    28-Oct-2026   Divyesh Kathiriya    Added freight history for new entries and transfers from WO for each selected MPN [PN-18341].
 	 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteFreight]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteFreightType [WorkOrderQuoteFreightType] READONLY,
-@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
+@tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY,
+@tbl_FreightHistoryType [FreightHistoryType] READONLY
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -70,6 +72,16 @@ BEGIN
 		SET @ItemMasterId = (SELECT TOP 1 [ItemMasterId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @WorkOrderQuoteDetailsId = (SELECT TOP 1 [WorkOrderQuoteDetailsId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @workorderId = (SELECT TOP 1 [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId);
+
+		DECLARE @PreviousFreightHistory TABLE ([WorkOrderQuoteFreightId] BIGINT PRIMARY KEY, [TaskId] BIGINT, [Amount] DECIMAL(20,3));
+
+		INSERT INTO @PreviousFreightHistory ([WorkOrderQuoteFreightId], [TaskId], [Amount])
+		SELECT WOQF.[WorkOrderQuoteFreightId], WOQF.[TaskId], WOQF.[Amount]
+		FROM [DBO].[WorkOrderQuoteFreight] WOQF WITH(NOLOCK)
+		INNER JOIN @tbl_WorkOrderQuoteFreightType TMPF ON WOQF.[WorkOrderQuoteFreightId] = TMPF.[WorkOrderQuoteFreightId]
+			AND WOQF.[MasterCompanyId] = TMPF.[MasterCompanyId]
+		WHERE WOQF.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND WOQF.[MasterCompanyId] = @MasterCompanyId
+			AND ISNULL(WOQF.[IsDeleted], 0) = 0;
 
 		IF(ISNULL(@WorkOrderQuoteDetailsId, 0) > 0)
 		BEGIN
@@ -352,6 +364,80 @@ BEGIN
 
 					SET @CurrentRowId += 1;
 				END
+			END
+		END
+
+		DECLARE @ChangedFreightHistory TABLE ([TaskId] BIGINT, [OldValue] VARCHAR(60), [NewValue] VARCHAR(60), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256));
+
+		INSERT INTO @ChangedFreightHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+		SELECT CASE WHEN ISNULL(WOQF.[IsDeleted], 0) = 1 THEN P.[TaskId] ELSE WOQF.[TaskId] END,
+			CASE WHEN ISNULL(WOQF.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), P.[Amount]) END,
+			CASE WHEN ISNULL(WOQF.[IsDeleted], 0) = 1 THEN '' ELSE CONVERT(VARCHAR(60), WOQF.[Amount]) END,
+			COALESCE(NULLIF(WOQF.[UpdatedBy], ''), @UpdatedBy),
+			CASE WHEN ISNULL(WOQF.[IsDeleted], 0) = 1 THEN 'WorkOrderQuoteFreightRemoved' ELSE 'WorkOrderQuoteFreightUpdated' END
+		FROM @PreviousFreightHistory P
+		INNER JOIN [DBO].[WorkOrderQuoteFreight] WOQF WITH(NOLOCK) ON P.[WorkOrderQuoteFreightId] = WOQF.[WorkOrderQuoteFreightId]
+			AND WOQF.[MasterCompanyId] = @MasterCompanyId
+		WHERE ISNULL(WOQF.[IsDeleted], 0) = 1 OR ISNULL(P.[Amount], 0) <> ISNULL(WOQF.[Amount], 0);
+
+		IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteFreightType WHERE ISNULL([WorkOrderQuoteFreightId], 0) = 0 AND ISNULL([IsDeleted], 0) = 0)
+			OR EXISTS(SELECT 1 FROM @ChangedFreightHistory)
+		BEGIN
+			DECLARE @FreightHistoryModuleId BIGINT, @FreightHistoryQuoteId BIGINT, @FreightHistoryPartId BIGINT, @FreightHistoryFormTypeId BIT;
+			DECLARE @FreightHistoryRowId INT = 1, @FreightHistoryRowCount INT;
+			DECLARE @FreightHistoryStatusCode VARCHAR(256), @FreightHistoryText VARCHAR(MAX), @FreightHistoryOldValue VARCHAR(60), @FreightHistoryNewValue VARCHAR(60), @FreightHistoryActor VARCHAR(256);
+			DECLARE @AddedFreightHistory TABLE ([RowId] INT IDENTITY(1,1), [TaskId] BIGINT, [Amount] DECIMAL(20,3), [UpdatedBy] VARCHAR(256), [StatusCode] VARCHAR(256), [OldValue] VARCHAR(60), [NewValue] VARCHAR(60));
+
+			SELECT @FreightHistoryModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
+			SELECT @FreightHistoryQuoteId = Q.[WorkOrderQuoteId], @FreightHistoryPartId = D.[WOPartNoId], @FreightHistoryFormTypeId = WO.[WorkOrderFormTypeId]
+			FROM [DBO].[WorkOrderQuoteDetails] D WITH(NOLOCK)
+			INNER JOIN [DBO].[WorkOrderQuote] Q WITH(NOLOCK) ON D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND D.[MasterCompanyId] = Q.[MasterCompanyId]
+			INNER JOIN [DBO].[WorkOrder] WO WITH(NOLOCK) ON Q.[WorkOrderId] = WO.[WorkOrderId] AND Q.[MasterCompanyId] = WO.[MasterCompanyId]
+			WHERE D.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId AND D.[MasterCompanyId] = @MasterCompanyId;
+
+			IF NOT EXISTS (SELECT 1 FROM @tbl_FreightHistoryType)
+			BEGIN
+				INSERT INTO @AddedFreightHistory ([TaskId], [Amount], [UpdatedBy], [StatusCode])
+				SELECT F.[TaskId], F.[Amount], COALESCE(NULLIF(F.[UpdatedBy], ''), @UpdatedBy), 'WorkOrderQuoteFreightAdded'
+				FROM @tbl_WorkOrderQuoteFreightType F
+				WHERE ISNULL(F.[WorkOrderQuoteFreightId], 0) = 0 AND ISNULL(F.[IsDeleted], 0) = 0 AND F.[MasterCompanyId] = @MasterCompanyId;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO @AddedFreightHistory ([TaskId], [Amount], [UpdatedBy], [StatusCode])
+				SELECT F.[TaskId], F.[Amount], COALESCE(NULLIF(F.[UpdatedBy], ''), @UpdatedBy),
+					CASE WHEN ISNULL(F.[IsTransferredFromWO], 0) = 1 THEN 'WorkOrderQuoteFreightTransferredFromWO' ELSE 'WorkOrderQuoteFreightAdded' END
+				FROM @tbl_FreightHistoryType F
+				WHERE F.[MasterCompanyId] = @MasterCompanyId
+					AND EXISTS (SELECT 1 FROM @tbl_WorkOrderQuoteFreightType T
+						WHERE T.[TaskId] = F.[TaskId] AND T.[Amount] = F.[Amount] AND T.[MasterCompanyId] = F.[MasterCompanyId]
+							AND ISNULL(T.[WorkOrderQuoteFreightId], 0) = 0 AND ISNULL(T.[IsDeleted], 0) = 0);
+			END
+			INSERT INTO @AddedFreightHistory ([TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode])
+			SELECT [TaskId], [OldValue], [NewValue], [UpdatedBy], [StatusCode] FROM @ChangedFreightHistory;
+
+			SELECT @FreightHistoryRowCount = COUNT(*) FROM @AddedFreightHistory;
+
+			WHILE @FreightHistoryRowId <= @FreightHistoryRowCount
+			BEGIN
+				SET @FreightHistoryText = NULL;
+				SELECT @FreightHistoryText = REPLACE(HT.[TemplateBody], '##TASKNAME##',
+					COALESCE(NULLIF(CASE WHEN ISNULL(@FreightHistoryFormTypeId, 0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END, ''),
+						NULLIF(T.[Description], ''), CONVERT(VARCHAR(60), H.[TaskId]))),
+					@FreightHistoryOldValue = COALESCE(H.[OldValue], '0'), @FreightHistoryNewValue = COALESCE(H.[NewValue], CONVERT(VARCHAR(60), H.[Amount])),
+					@FreightHistoryActor = H.[UpdatedBy], @FreightHistoryStatusCode = H.[StatusCode]
+				FROM @AddedFreightHistory H
+				INNER JOIN [DBO].[HistoryTemplate] HT WITH(NOLOCK) ON H.[StatusCode] = HT.[TemplateCode]
+				LEFT JOIN [DBO].[WorkOrderTask] WOT WITH(NOLOCK) ON H.[TaskId] = WOT.[WorkOrderTaskId]
+					AND WOT.[WorkOrderId] = @workorderId AND WOT.[WorkOrderPartNumberId] = @FreightHistoryPartId AND WOT.[MasterCompanyId] = @MasterCompanyId
+				LEFT JOIN [DBO].[Task] T WITH(NOLOCK) ON H.[TaskId] = T.[TaskId] AND T.[MasterCompanyId] = @MasterCompanyId
+				WHERE H.[RowId] = @FreightHistoryRowId;
+
+				EXEC [DBO].[USP_History] @ModuleId = @FreightHistoryModuleId, @RefferenceId = @FreightHistoryQuoteId,
+					@SubModuleId = 0, @SubRefferenceId = @FreightHistoryPartId, @OldValue = @FreightHistoryOldValue, @NewValue = @FreightHistoryNewValue,
+					@HistoryText = @FreightHistoryText, @StatusCode = @FreightHistoryStatusCode, @MasterCompanyId = @MasterCompanyId,
+					@CreatedBy = @FreightHistoryActor, @UpdatedBy = @FreightHistoryActor;
+				SET @FreightHistoryRowId += 1;
 			END
 		END
 

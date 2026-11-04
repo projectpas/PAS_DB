@@ -12,6 +12,9 @@
  **************************************************************
  ** S NO   Date         Author           Change Description
  ** 1      12-OCT-2026  SUMIT KUMAR      Created
+ ** 2      27-OCT-2026  BHARGAV SALIYA   Work Scope / WO Status names from the masters by Id; IsWorkScopeActive
+ **                                      added so the slicer can hide inactive/deleted scopes; lines with no
+ **                                      quote return Quote Method 'No Quote' instead of 'T&M'
  **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetPowerBIWorkOrderQuoteActual]
     @masterCompanyId INT
@@ -45,8 +48,12 @@ BEGIN
             wo.[OpenDate],
             wo.[MasterCompanyId],
             wop.[PartNumber],
-            wop.[WorkScope],
-            wop.[WorkOrderStatus],
+            -- Names come from the masters by Id: the text copies on
+            -- WorkOrderPartNumber go stale when a scope/status is renamed or changed.
+            ISNULL(ws.[WorkScopeCode], wop.[WorkScope])              AS [WorkScope],
+            CAST(CASE WHEN ISNULL(ws.[IsActive], 0) = 1 AND ISNULL(ws.[IsDeleted], 0) = 0
+                      THEN 1 ELSE 0 END AS BIT)                        AS [IsWorkScopeActive],
+            ISNULL(wos.[Description], wop.[WorkOrderStatus])         AS [WorkOrderStatus],
             wop.[EmployeeStation],
             wop.[Level1],
             wop.[ItemMasterId],
@@ -59,6 +66,10 @@ BEGIN
         LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK)
             ON wwf.[WorkOrderPartNoId] = wop.[ID]
            AND wop.[MasterCompanyId] = wo.[MasterCompanyId]
+        LEFT JOIN [dbo].[WorkScope] ws WITH (NOLOCK)
+            ON ws.[WorkScopeId] = wop.[WorkOrderScopeId]
+        LEFT JOIN [dbo].[WorkOrderStatus] wos WITH (NOLOCK)
+            ON wos.[Id] = wop.[WorkOrderStatusId]
         WHERE wo.[MasterCompanyId] = @masterCompanyId
           AND ISNULL(wo.[IsDeleted], 0) = 0
           AND ISNULL(wo.[IsActive], 1) = 1;
@@ -145,6 +156,7 @@ BEGIN
 
         SELECT
             l.[WorkFlowWorkOrderId],
+            ISNULL(q.[HasQuote], 0) AS [HasQuote],
             q.[QuoteMethod],
             q.[QuoteVersion],
             q.[MaterialCost],
@@ -159,6 +171,7 @@ BEGIN
         FROM #Lines l
         OUTER APPLY (
             SELECT TOP 1
+                CAST(1 AS BIT)                                                AS [HasQuote],
                 ISNULL(qd.[QuoteMethod], 0)                                   AS [QuoteMethod],
                 TRY_CAST(woq.[VersionNo] AS INT)                              AS [QuoteVersion],
                 ISNULL(qd.[MaterialCost], 0)                                  AS [MaterialCost],
@@ -232,6 +245,7 @@ BEGIN
                 l.[CustomerName],
                 l.[OpenDate],
                 l.[WorkScope],
+                l.[IsWorkScopeActive],
                 l.[WorkOrderStatus],
                 l.[EmployeeStation],
                 l.[Level1],
@@ -239,6 +253,7 @@ BEGIN
                 l.[ConditionId],
                 l.[RepairOrderId],
 
+                ISNULL(q.[HasQuote], 0)      AS [HasQuote],
                 ISNULL(q.[QuoteMethod], 0)   AS [QuoteMethodBit],
                 ISNULL(q.[QuoteVersion], 1)  AS [QuoteVersion],
 
@@ -297,7 +312,11 @@ BEGIN
             CAST(b.[CustomerName] AS VARCHAR(150))                  AS [Customer],
             CONVERT(VARCHAR(10), b.[OpenDate], 23)                  AS [OpenDate],
             CAST(b.[WorkScope] AS VARCHAR(100))                     AS [WorkScope],
-            CAST(CASE WHEN b.[QuoteMethodBit] = 1 THEN 'Flat Rate'
+            CAST(b.[IsWorkScopeActive] AS INT)                      AS [IsWorkScopeActive],
+            -- Same labels as Work Order > Analysis > Actual vs. Quote, which shows
+            -- no method when the line has no quote.
+            CAST(CASE WHEN b.[HasQuote] = 0 THEN 'No Quote'
+                      WHEN b.[QuoteMethodBit] = 1 THEN 'Flat Rate'
                       ELSE 'T&M' END AS VARCHAR(50))                AS [QuoteMethod],
             CAST(b.[WorkOrderStatus] AS VARCHAR(50))                AS [WorkOrderStatus],
             CAST(b.[QuoteVersion] AS INT)                           AS [QuoteVersion],

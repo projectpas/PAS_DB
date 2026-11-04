@@ -33,6 +33,7 @@
 	18   13/08/2026   Rajesh Gami    [PN-17008] - Merge Non Stock Item Master to ItemMaster : Added missing ISNULL(ims.IsNonStock,0) = 0 filter on ItemMaster (RevisedItemmasterid) join in the @ReleaseFromId branch to match the @ReleaseFromId=0 branch
 	19   17/09/2026   Moin Bloch      Added [FormTypeId] [PN-17942]
 	20   23/09/2026   Ayushi Patel	 [PN-17998] migrated logbook changes
+	21   24/10/2026   Vishal Suthar	 [PN-18371] Added Notes
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
 
@@ -132,6 +133,7 @@ BEGIN
 							  ,wro.[VersionNo]
 							  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 							  ,0 AS [IsFromLogBook]
+							  ,wro.[Notes]
 						FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 							  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 							  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
@@ -201,6 +203,7 @@ BEGIN
 						  ,NULL AS [VersionNo]
 						  ,NULL AS [IsVersionIncrease]
 						  ,1 AS [IsFromLogBook]
+						  ,NULL AS [Notes]
 						FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 							  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
 							  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
@@ -266,6 +269,7 @@ BEGIN
 						  ,wro.[VersionNo]
 						  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 						  ,0 AS [IsFromLogBook]
+						  ,wro.[Notes]
 					FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 						  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
@@ -336,6 +340,7 @@ BEGIN
 						  ,NULL AS [VersionNo]
 						  ,NULL AS [IsVersionIncrease]
 						  ,1 AS [IsFromLogBook]
+						  ,NULL AS [Notes]
 					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
 						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
@@ -409,6 +414,7 @@ BEGIN
 							  ,wro.[VersionNo]
 							  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 							  ,0 AS [IsFromLogBook]
+							  ,wro.[Notes]
 							FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 								  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 								  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
@@ -478,6 +484,7 @@ BEGIN
 								  ,NULL AS [VersionNo]
 								  ,NULL AS [IsVersionIncrease]
 								  ,1 AS [IsFromLogBook]
+								  ,NULL AS [Notes]
 								FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 									  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
 									  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
@@ -545,6 +552,7 @@ BEGIN
 								  ,wro.[VersionNo]
 								  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 								  ,0 AS [IsFromLogBook]
+								  ,wro.[Notes]
 							FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 								  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 								  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
@@ -616,6 +624,7 @@ BEGIN
 								  ,NULL AS [VersionNo]
 								  ,NULL AS [IsVersionIncrease]
 								  ,1 AS [IsFromLogBook]
+								  ,NULL AS [Notes]
 							FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 								  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
 								  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0

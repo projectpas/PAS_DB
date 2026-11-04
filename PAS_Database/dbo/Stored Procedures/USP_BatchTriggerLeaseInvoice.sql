@@ -20,7 +20,7 @@
  **              Amounts are taken from the current invoice rows only (IsVersionIncrease = 0). Journal lines follow the DisplayNumber (Seq) of the distribution setup.
  **              Every credit/debit line is linked to the lease through LeaseBatchDetails (Lease -> Accounting tab).
  **
- **              Safe no-op (nothing is written, posting is NOT blocked) when: accounting is bypassed for the company, the lease type is neither Finance nor Operating,
+ **              Safe no-op (nothing is written, posting is NOT blocked) when: accounting is bypassed for the company (MasterCompany.IsAccountByPass), every distribution row of the journal has IsBypassAccounting = 1, the lease type is neither Finance nor Operating,
  **              the distribution / journal type / journal-number prefix is not set up, any needed distribution has no GL account yet, the invoice has no billable amount,
  **              or a journal already exists for the invoice (idempotent). Any unexpected error is raised so the post rolls back.
  **
@@ -36,10 +36,11 @@
     1    08/10/2026     Kishor Makwana          [Lease Accounting] Created
     2    08/10/2026     Kishor Makwana          LastMSLevel / AllMSlevels (udfGetAllEntityMSLevelString) stored on BatchDetails and CommonBatchDetails
     3    14/10/2026     Kishor Makwana          [PN-18302] Journal by lease type: Finance -> FLI, Operating -> OLI. Replaces the LEASEINVOICE distribution.
+    4    22/10/2026     Kishor Makwana          [PN-18396] Accounting By Pass: a distribution row with IsBypassAccounting = 1 writes no journal line (same as Sales Order); when every needed row is bypassed no journal is created. AR debit excludes bypassed lines so the journal stays balanced.
 
 EXEC USP_BatchTriggerLeaseInvoice @BillingInvoicingId = 1, @MasterCompanyId = 1, @UpdateBy = 'ADMIN User'
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerLeaseInvoice]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerLeaseInvoice]
 	@BillingInvoicingId BIGINT,
 	@MasterCompanyId INT,
 	@UpdateBy VARCHAR(200)
@@ -192,6 +193,18 @@ BEGIN
 									   AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = C.SetupCode))
 		BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
 
+		-- Accounting By Pass (distribution level, same as Sales Order): when every distribution row this journal needs is bypassed there is nothing to journal
+		IF NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT SetupCode FROM #LeaseJournalLines UNION SELECT @ARCode) C
+					   INNER JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.DistributionMasterId = @DistributionMasterId AND DS.MasterCompanyId = @MasterCompanyId
+							AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = C.SetupCode
+					   WHERE ISNULL(DS.IsBypassAccounting, 0) = 0)
+		BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
+
+		-- Debit must always equal credit: if the AR row is bypassed the revenue credits would have no debit, so nothing is journalled
+		IF EXISTS (SELECT 1 FROM [dbo].[DistributionSetup] DS WITH (NOLOCK) WHERE DS.DistributionMasterId = @DistributionMasterId AND DS.MasterCompanyId = @MasterCompanyId
+				   AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = @ARCode AND ISNULL(DS.IsBypassAccounting, 0) = 1)
+		BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
+
 		-- ---- lease / customer / period ----
 		DECLARE @LocalCurrencyId INT, @ForeignCurrencyId INT, @ForeignExchangeRate DECIMAL(18,6);
 		SELECT @LeaseNumber = LH.LeaseNumber, @CustomerId = LH.CustomerId, @CustomerRef = LH.CustomerRef,
@@ -275,11 +288,16 @@ BEGIN
 		SET @JournalBatchDetailId = SCOPE_IDENTITY();
 
 		-- ---- journal lines: AR first (Seq 0), then the revenue lines ----
-		DECLARE @Total DECIMAL(18,6) = (SELECT SUM(Amount) FROM #LeaseJournalLines);
+		-- AR debit = only the lines that are really journalled. A bypassed distribution row (e.g. Tax Payable) writes no credit line,
+		-- so its amount must not stay in the AR debit either, otherwise the journal is out of balance.
+		DECLARE @Total DECIMAL(18,6) = (SELECT SUM(L.Amount) FROM #LeaseJournalLines L
+										WHERE NOT EXISTS (SELECT 1 FROM [dbo].[DistributionSetup] DS WITH (NOLOCK)
+														  WHERE DS.DistributionMasterId = @DistributionMasterId AND DS.MasterCompanyId = @MasterCompanyId
+															AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = L.SetupCode AND ISNULL(DS.IsBypassAccounting, 0) = 1));
 		DECLARE @Seq INT = 0, @MaxSeq INT = (SELECT MAX(Seq) FROM #LeaseJournalLines);
 		DECLARE @SetupCode VARCHAR(100), @Amount DECIMAL(18,6), @DistributionSetupId INT, @DistributionName VARCHAR(200), @GlAccountId BIGINT, @GlAccountNumber VARCHAR(200), @GlAccountName VARCHAR(200), @CrDrType INT;
 		DECLARE @LeaseStocklineId BIGINT, @StocklineId BIGINT, @StocklineNumber VARCHAR(100), @ItemMasterId BIGINT, @PartNumber NVARCHAR(100), @LineType VARCHAR(50);
-		DECLARE @CommonJournalBatchDetailId BIGINT, @IsAutoPost INT = 0;
+		DECLARE @CommonJournalBatchDetailId BIGINT, @IsAutoPost INT = 0, @IsBypassAccounting BIT = 0;
 
 		WHILE (@Seq <= @MaxSeq)
 		BEGIN
@@ -296,34 +314,39 @@ BEGIN
 			END
 
 			SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = [Name], @GlAccountId = GlAccountId, @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName, @CrDrType = CRDRType,
-						 @IsAutoPost = CASE WHEN @Seq = 0 THEN ISNULL(IsAutoPost, 0) ELSE @IsAutoPost END
+						 @IsAutoPost = CASE WHEN @Seq = 0 THEN ISNULL(IsAutoPost, 0) ELSE @IsAutoPost END,
+						 @IsBypassAccounting = ISNULL(IsBypassAccounting, 0)
 			FROM [dbo].[DistributionSetup] WITH (NOLOCK)
 			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND UPPER(DistributionSetupCode) = @SetupCode;
 
-			SET @LineNo = @LineNo + 1;
-			INSERT INTO [dbo].[CommonBatchDetails]
-				([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],
-				 [TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],
-				 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
-			VALUES
-				(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,@LineNo,@GlAccountId,@GlAccountNumber,@GlAccountName,
-				 @InvoiceDate,GETUTCDATE(),@JournalTypeId,@JournalTypeName,
-				 CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-				 CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
-				 CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-				 @ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,
-				 @MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LeaseNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@LeaseHeaderId,@ReferenceModule);
-			SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
+			-- Accounting By Pass on this distribution row: no journal line / lease link is written (Sales Order does the same)
+			IF (@IsBypassAccounting = 0)
+			BEGIN
+				SET @LineNo = @LineNo + 1;
+				INSERT INTO [dbo].[CommonBatchDetails]
+					([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],
+					 [TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],
+					 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+				VALUES
+					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,@LineNo,@GlAccountId,@GlAccountNumber,@GlAccountName,
+					 @InvoiceDate,GETUTCDATE(),@JournalTypeId,@JournalTypeName,
+					 CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+					 CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
+					 CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
+					 @ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,
+					 @MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LeaseNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@LeaseHeaderId,@ReferenceModule);
+				SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
-			-- management-structure levels of the journal line (same as every other module)
-			EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId, @ManagementStructureId, @MasterCompanyId, @UpdateBy, @AccountMSModuleId, 1;
+				-- management-structure levels of the journal line (same as every other module)
+				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId, @ManagementStructureId, @MasterCompanyId, @UpdateBy, @AccountMSModuleId, 1;
 
-			INSERT INTO [dbo].[LeaseBatchDetails]
-				([JournalBatchDetailId],[JournalBatchHeaderId],[CommonJournalBatchDetailId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],
-				 [LeaseHeaderId],[LeaseNumber],[LeaseStocklineId],[StocklineId],[StocklineNumber],[DocumentId],[DocumentNumber],[LineType],[ARControlNumber],[CustomerRef],[MasterCompanyId],[CreatedBy])
-			VALUES
-				(@JournalBatchDetailId,@JournalBatchHeaderId,@CommonJournalBatchDetailId,@CustomerTypeId,@CustomerTypeName,@CustomerId,@CustomerName,@ItemMasterId,@ItemMasterId,@PartNumber,
-				 @LeaseHeaderId,@LeaseNumber,@LeaseStocklineId,@StocklineId,@StocklineNumber,@BillingInvoicingId,@InvoiceNo,@LineType,NULL,@CustomerRef,@MasterCompanyId,@UpdateBy);
+				INSERT INTO [dbo].[LeaseBatchDetails]
+					([JournalBatchDetailId],[JournalBatchHeaderId],[CommonJournalBatchDetailId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ItemMasterId],[PartId],[PartNumber],
+					 [LeaseHeaderId],[LeaseNumber],[LeaseStocklineId],[StocklineId],[StocklineNumber],[DocumentId],[DocumentNumber],[LineType],[ARControlNumber],[CustomerRef],[MasterCompanyId],[CreatedBy])
+				VALUES
+					(@JournalBatchDetailId,@JournalBatchHeaderId,@CommonJournalBatchDetailId,@CustomerTypeId,@CustomerTypeName,@CustomerId,@CustomerName,@ItemMasterId,@ItemMasterId,@PartNumber,
+					 @LeaseHeaderId,@LeaseNumber,@LeaseStocklineId,@StocklineId,@StocklineNumber,@BillingInvoicingId,@InvoiceNo,@LineType,NULL,@CustomerRef,@MasterCompanyId,@UpdateBy);
+			END
 
 			SET @Seq = @Seq + 1;
 		END

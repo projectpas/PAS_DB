@@ -34,5 +34,7 @@
     [QtyVariance]               DECIMAL (18, 6) NULL,
     [PriceVariance]             DECIMAL (18, 6) NULL,
     [VendorProformaAmount]      DECIMAL (18, 6) NULL,
-    [VendorProformaInvoiceId]   BIGINT          NULL);
+    [VendorProformaInvoiceId]   BIGINT          NULL,
+    [MiscAdjustment]            DECIMAL (18, 6) NULL,
+    [MiscAdjustmentPerUnit]     DECIMAL (18, 6) NULL);
 

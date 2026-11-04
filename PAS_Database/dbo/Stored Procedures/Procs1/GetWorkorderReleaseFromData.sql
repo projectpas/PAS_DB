@@ -39,6 +39,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 28   15/09/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName  [PN-17935])
 ** 29   02/10/2026  Hemant Saliya    Updated for Make fleet Conditional in Print 
 ** 30   20/10/2026  Moin Bloch       Updated (Added SAR  [MasterCompanyCode] For ItemName, CorrectiveAction, PN-17935)
+** 31   02/11/2026  Moin Bloch       Updated (Added RAA  [MasterCompanyCode] For ItemName, CorrectiveAction, PN-18474)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
 **************************************************************/ 
@@ -74,6 +75,7 @@ BEGIN
 		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
 		DECLARE @MasterCompanyCodeATI VARCHAR(20) = 'ATI'
 		DECLARE @MasterCompanyCodeSAR VARCHAR(20) = 'SAR'
+		DECLARE @MasterCompanyCodeRAA VARCHAR(20) = 'RAA'
 		DECLARE @CompanyCode  VARCHAR(20) = ''
 		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
 		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
@@ -83,7 +85,7 @@ BEGIN
 		
 		SELECT @CompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
-		IF(@MasterCompanyCode = @CompanyCode OR @MasterCompanyCodeSAR = @CompanyCode)
+		IF(@MasterCompanyCode = @CompanyCode OR @MasterCompanyCodeSAR = @CompanyCode OR @MasterCompanyCodeRAA = @CompanyCode)
 		BEGIN
 			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';
 			

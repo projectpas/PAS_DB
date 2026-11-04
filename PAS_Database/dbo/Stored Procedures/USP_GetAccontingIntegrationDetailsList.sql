@@ -25,6 +25,7 @@
 	9	 05/03/2025	  Abhishek Jirawla   Modified to add the calculation columns in the table to optimize the SP
 	10	 31/03/2025	  Devendra Shekh	 Modified (changes for select [IntigrationStatus])
 	11	 08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
+	12	 02/11/2026	  Moin Bloch		 Added sorting for IntegrationWith, SyncRecords, PendingSyncRecords, TotalCount grid columns
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -159,6 +160,10 @@ BEGIN
 		CASE WHEN (@SortOrder=1 AND @SortColumn='INTERVAL')  THEN Interval END ASC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END ASC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYCDATE')  THEN LastSycDate END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='INTEGRATIONWITH')  THEN IntegrationWith END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='SYNCRECORDS')  THEN SyncRecords END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='PENDINGSYNCRECORDS')  THEN PendingSyncRecords END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='TOTALCOUNT')  THEN TotalCount END ASC,
 
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
@@ -169,7 +174,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END DESC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='INTERVAL')  THEN Interval END DESC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END DESC,
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYCDATE')  THEN LastSycDate END DESC
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYCDATE')  THEN LastSycDate END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='INTEGRATIONWITH')  THEN IntegrationWith END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='SYNCRECORDS')  THEN SyncRecords END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='PENDINGSYNCRECORDS')  THEN PendingSyncRecords END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='TOTALCOUNT')  THEN TotalCount END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

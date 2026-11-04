@@ -122,7 +122,7 @@ BEGIN
 		INNER JOIN #MappedSOQParts M ON M.SalesOrderQuotePartId = SQS.SalesOrderQuotePartId
 		WHERE SQS.IsDeleted = 0 AND ISNULL(SQS.StatusId, @SOQPartStatusOpen) = @SOQPartStatusOpen;
 	END
-
+  
 	SELECT  
 	PurchaseOrderNumber as value  
 	FROM dbo.PurchaseOrderPart PP WITH (NOLOCK)

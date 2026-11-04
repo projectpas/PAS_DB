@@ -58,6 +58,10 @@
     [IsReOpened]                  BIT             CONSTRAINT [DF_BillingInvoicing_IsReOpened] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+GO
+-- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
+CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_MC_Module_Cover_Perf]
+    ON [dbo].[BillingInvoicing]([MasterCompanyId] ASC, [ModuleId] ASC) INCLUDE([ReferenceId], [InvoiceNo], [InvoiceStatus], [InvoiceDate], [GrandTotal], [RemainingAmount], [IsVersionIncrease], [IsActive], [IsDeleted], [IsPerformaInvoice], [IsStandardInvoicePosted], [IsUpdated]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
 
 
 GO

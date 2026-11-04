@@ -19,6 +19,7 @@ EXEC [USP_AutoReserveWorkOrderMaterials]
 ** 7    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 8    04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	10    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 
 EXEC USP_AutoReserveWorkOrderMaterials 638
@@ -110,7 +111,6 @@ BEGIN
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 						
 						--Auto Reserve Stockline
-						 AND ISNULL(IM.IsNonStock,0) = 0
 						IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 						BEGIN
 							--CASE 1 UPDATE WORK ORDER MATERILS

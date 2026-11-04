@@ -31,6 +31,7 @@
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14	 19/Aug/2026  SUMIT KUMAR       [PN-17716] - Append sequence number to task name if duplicate task exists for the WO
 	15   21/Aug/2026  Moin Bloch        [PN-17716] - Append sequence number to task name
+	16    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -86,7 +87,7 @@ BEGIN
 						1 as Partqty,
                         --wom.UnitOfMeasureId,
                         --uom.ShortName as UOM,
-						im.ConsumeUnitOfMeasureId AS UnitOfMeasureId,
+						(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END) AS UnitOfMeasureId,
                         uomConsume.ShortName as UOM,
                         wom.ConditionCodeId,
                         c.Description as Condition,
@@ -138,8 +139,8 @@ BEGIN
 					 LEFT JOIN [dbo].[Provision] p WITH(NOLOCK) ON p.ProvisionId = wom.ProvisionId
 					 LEFT JOIN [dbo].[Condition] c WITH(NOLOCK) ON c.ConditionId = wom.ConditionCodeId
 					 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = wom.UnitOfMeasureId
-					 LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
-					 LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = im.ConsumeUnitOfMeasureId
+					 LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.StockUnitOfMeasureId END)
+					 LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END)
 					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = wom.ItemClassificationId
 					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
 					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
@@ -150,7 +151,6 @@ BEGIN
 					LEFT JOIN dbo.[Percent] per WITH(NOLOCK) ON per.PercentId = wom.MarkupPercentageId
 				WHERE wom.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) --order by wom.CreatedDate desc
 
-				 AND ISNULL(im.IsNonStock,0) = 0
 				UNION ALL
 				 
 				 SELECT 
@@ -161,7 +161,7 @@ BEGIN
 						case when wq.BuildMethodId = 1 then 'WF' when wq.BuildMethodId = 2  then 'WO'  when wq.BuildMethodId = 3  then 'WF' else 'Third Party' end Source,
 						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,wom.MasterCompanyId) END AS Quantity,
 						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,wom.MasterCompanyId) END AS Partqty,
-						im.ConsumeUnitOfMeasureId as UnitOfMeasureId,
+						(CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END) as UnitOfMeasureId,
 						'' as UOM,
 						0 as ConditionCodeId,
 						'' as Condition,
@@ -208,9 +208,9 @@ BEGIN
 					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId
 					 LEFT JOIN [dbo].[Provision] p WITH(NOLOCK) ON p.ProvisionId = im.ProvisionId
 					 LEFT JOIN [dbo].[KitMaster] KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-					 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.StockUnitOfMeasureId
-					 LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
-					 LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = im.ConsumeUnitOfMeasureId
+					 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.StockUnitOfMeasureId END)
+					 LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.StockUnitOfMeasureId END)
+					 LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END)
 					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = im.ItemClassificationId
 					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
 					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wom.TaskId
@@ -218,7 +218,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID
 					LEFT JOIN dbo.[Percent] per WITH(NOLOCK) ON per.PercentId = wom.MarkupPercentageId
 					 LEFT JOIN @DupTasks Dup ON WOT.TaskId = Dup.TaskId -- Join to get active task counts to detect duplicates
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )  AND ISNULL(im.IsNonStock,0) = 0
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )
 				) t;
 
 				UPDATE #tmpWorkOrderQuoteMat 

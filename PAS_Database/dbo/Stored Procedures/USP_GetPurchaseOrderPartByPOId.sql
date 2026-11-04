@@ -21,6 +21,7 @@
    9	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	11    20/July/2026			 RAJESH GAMI						[PN-17350] - Non-Stock branch of the PartNumber CASE (both parent-row and child-row INSERTs) now reads DBO.ItemMaster (IsNonStock=1) instead of the legacy DBO.ItemMasterNonStock table, which stopped receiving new rows after the PN-17008 merge. Fixes: after saving a Non-Stock PN on a PO part line, the PN dropdown showed blank/empty on reload (Stock PN lines were unaffected).
+	12    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 8225 ,NULL,NULL
 **************************************************************/ 
 
@@ -778,7 +779,6 @@ BEGIN
 						0 DiscountPerUnit,
 						IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId					
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				END
 	--------------- END : Work Order Materials ----------------
 
@@ -849,7 +849,6 @@ BEGIN
 							IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId		
 					
-				 AND ISNULL(IM.IsNonStock,0) = 0
 				END
 	--------------- END : Sub Work Order Materials ----------------
 				

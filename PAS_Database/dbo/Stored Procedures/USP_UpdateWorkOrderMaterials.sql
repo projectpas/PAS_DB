@@ -14,6 +14,7 @@
 	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	5	 17/AUG/2026			 Sumit Kumar			[PN-17684] Provide Ability to Add/Edit Notes for WO Materials at Part/Stockline Level
 	6    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @partnumber ItemMaster lookup used for the history template
+	7    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderMaterials]  
@@ -83,7 +84,7 @@ BEGIN
 			
 						SELECT @WOMQuantity = [Quantity] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
 						SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
-						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
+						SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId ;
 
 						SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 						SELECT @historyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
@@ -189,7 +190,7 @@ BEGIN
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
 						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
-						WHERE TMP.RowId = @CurrentRowId AND ISNULL(STK.IsNonStock,0) = 0 ;
+						WHERE TMP.RowId = @CurrentRowId;
 					END
 				END
 

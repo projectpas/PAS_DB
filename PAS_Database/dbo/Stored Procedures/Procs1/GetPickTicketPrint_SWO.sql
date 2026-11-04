@@ -27,6 +27,7 @@
 	7	 18/06/2026   Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	10    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXEC GetPickTicketPrint_SWO 3797,90,97,58
 **************************************************************/ 
 
@@ -130,13 +131,12 @@ BEGIN
 						INNER JOIN dbo.SubWorkOrderPartNumber wop WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END)
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.SubWorkOrderPriorityId
 						LEFT JOIN totakWMSTK on totakWMSTK.WorkOrderId = wopt.WorkOrderId AND totakWMSTK.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 					WHERE  wopt.SubWorkorderId=@SubWorkOrderId 
@@ -171,13 +171,12 @@ BEGIN
 						INNER JOIN dbo.SubWorkOrderPartNumber wop WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsKitId = wom.SubWorkOrderMaterialsKitId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) on uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.StockUnitOfMeasureId END)
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) on uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(sl.IsNonStock,0) = 1 THEN sl.PurchaseUnitOfMeasureId ELSE sl.ConsumeUnitOfMeasureId END)
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.SubWorkOrderPriorityId
 						LEFT JOIN totakWMSTKit on totakWMSTKit.WorkOrderId = wopt.WorkOrderId AND totakWMSTKit.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 					WHERE  wopt.SubWorkorderId=@SubWorkOrderId 

@@ -3,6 +3,7 @@
 **************************************************************
 ** PR   Date         Author			Change Description
 	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	2    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSubWOMultiplePickTicket_ById]
 @WorkOrderId bigint,
@@ -56,7 +57,7 @@ BEGIN
 				FROM [DBO].[WorkOrder] wo WITH (NOLOCK) 
 				LEFT JOIN [DBO].[SubWorkOrder] swo ON wo.WorkOrderId = swo.WorkOrderId
 				LEFT JOIN [DBO].[SubWorkOrderPartNumber] swopn ON swo.SubWorkOrderId  = swopn.SubWorkOrderId
-				LEFT JOIN [DBO].[StockLine] stk on swopn.StockLineId  = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0
+				LEFT JOIN [DBO].[StockLine] stk on swopn.StockLineId  = stk.StockLineId
 				LEFT JOIN [DBO].[SubWorkorderPickTicket] swop ON swopn.SubWOPartNoId = swop.SubWorkorderPartNoId
 				LEFT JOIN [DBO].[CustomerDomensticShipping] cds ON wo.CustomerId = cds.CustomerId and cds.IsPrimary = 1 
 				LEFT JOIN [DBO].[Address] a ON cds.AddressId = a.AddressId

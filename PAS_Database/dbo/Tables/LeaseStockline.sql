@@ -49,10 +49,19 @@
     [UpdatedDate]          DATETIME        CONSTRAINT [DF_LeaseStockline_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [LeaseStatusId]        INT             NULL,
     [IsInvoicePost]        BIT             CONSTRAINT [DF_LeaseStockline_IsInvoicePost] DEFAULT ((0)) NOT NULL,
+    [UsageTimesPer]        NVARCHAR (50)   NULL,
+    [UsageCyclesPer]       NVARCHAR (50)   NULL,
+    [MaximumTimesPer]      NVARCHAR (50)   NULL,
+    [MaximumCyclesPer]     NVARCHAR (50)   NULL,
+    [OverrunTimesPer]      NVARCHAR (50)   NULL,
+    [OverrunCyclesPer]     NVARCHAR (50)   NULL,
+    [IsOveruseApplicable]  BIT             NULL,
     [SecurityDeposit]      DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseStockline] PRIMARY KEY CLUSTERED ([LeaseStocklineId] ASC),
     CONSTRAINT [FK_LeaseStockline_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

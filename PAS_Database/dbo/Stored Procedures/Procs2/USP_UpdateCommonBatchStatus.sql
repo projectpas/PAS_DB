@@ -16,7 +16,8 @@
     1    07/13/2023		Satish Gohil		Created   
 	2	 18/10/2023		Nainshi Joshi		Update PostedBy in BatchDetails
 	3	 11/06/2024		HEMANT SALIYA		Added AP Posted Date
-	4	 09/01/2025		Moin Bloch		    POST ONLY MATCHED CREDITAMOUNT AND DEBITAMOUNT  
+	4	 09/01/2025		Moin Bloch		    POST ONLY MATCHED CREDITAMOUNT AND DEBITAMOUNT
+	5	 03/11/2026		Moin Bloch		    Check CommonBatchDetails Debit/Credit, exclude deleted Details from Header count
   
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_UpdateCommonBatchStatus]  
@@ -60,9 +61,12 @@ BEGIN
 		   AccountingPeriodId = @AccountingPeriodId,  
 		   AccountingPeriod = @AccountingPeriod  
 	 WHERE JournalBatchDetailId = @journalBatchDetailId AND ISNULL([DebitAmount],0) = ISNULL([CreditAmount],0)
-  
-  SELECT @BatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId  
-  SELECT @PostBatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND StatusId = @StatusId  
+	   AND ISNULL((SELECT SUM(ISNULL(CBD.DebitAmount,0)) - SUM(ISNULL(CBD.CreditAmount,0))
+				   FROM dbo.CommonBatchDetails CBD WITH(NOLOCK)
+				   WHERE CBD.JournalBatchDetailId = @journalBatchDetailId AND CBD.IsDeleted = 0), 0) = 0
+
+  SELECT @BatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND IsDeleted = 0
+  SELECT @PostBatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND IsDeleted = 0 AND StatusId = @StatusId
   
   IF(@BatchCount = @PostBatchCount)  
   BEGIN  

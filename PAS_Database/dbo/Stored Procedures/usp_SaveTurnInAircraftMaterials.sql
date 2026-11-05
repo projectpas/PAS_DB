@@ -20,6 +20,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
    8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @PurchaseUOMId/@PartNumber ItemMaster lookup
    10   23/OCT/2026   Kishor Makwana  [PN-18118] Aircraft / Engine received: installed components already added are linked as Sub Components of the new aircraft / engine stockline (USP_LinkAircraftInstalledSubComponents)
+   11   02/11/2026   Kishor Makwana  [PN-18419] Stockline flags : IsAircraft / IsEngine are set on the new aircraft / engine stockline, EngineModel and EngineSerialNumber are copied from the Engine Registry
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
@@ -270,10 +271,15 @@ SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPM
 		 IF(ISNULL(@IsFromAircraft,0) = 1)
 		 BEGIN
 			  UPDATE [dbo].[AircraftRegistryHeader] SET [StockLineId] = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+			  UPDATE [dbo].[Stockline] SET [IsAircraft] = 1, [IsEngine] = 0 WHERE [StockLineId] = @StockLineId;
 		 END
 		 ELSE
 		 BEGIN
 			  UPDATE [dbo].[EngineRegistryHeader] SET [StockLineId] = @StockLineId,[EngineName] = @PartNumber WHERE [EngineRegistryId] = @AircraftRegistryId;
+			  UPDATE STK SET STK.[IsEngine] = 1, STK.[IsAircraft] = 0, STK.[EngineModel] = ERH.[EngineModel], STK.[EngineSerialNumber] = ERH.[SerialNum]
+			  FROM [dbo].[Stockline] STK
+			  INNER JOIN [dbo].[EngineRegistryHeader] ERH ON ERH.[EngineRegistryId] = @AircraftRegistryId
+			  WHERE STK.[StockLineId] = @StockLineId;
 		 END
 	 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;

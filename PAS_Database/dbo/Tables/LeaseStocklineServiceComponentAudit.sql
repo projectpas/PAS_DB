@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[LeaseStocklineServiceComponentAudit] (
+﻿CREATE TABLE [dbo].[LeaseStocklineServiceComponentAudit] (
     [LeaseStocklineServiceComponentAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [LeaseStocklineServiceComponentId]      BIGINT          NULL,
     [LeaseStocklineId]                      BIGINT          NULL,
@@ -15,6 +15,7 @@ CREATE TABLE [dbo].[LeaseStocklineServiceComponentAudit] (
     [GLAccountId]                           BIGINT          NULL,
     [StartDate]                             DATETIME        NULL,
     [EndDate]                               DATETIME        NULL,
+    [UOMId]                                 BIGINT          NULL,
     CONSTRAINT [PK_LeaseStocklineServiceComponentAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineServiceComponentAuditId] ASC)
 );
 

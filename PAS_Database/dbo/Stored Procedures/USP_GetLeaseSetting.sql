@@ -14,6 +14,7 @@
    3    12/10/2026   Kishor Makwana      [PN-18284] Return IsPendingInvoiceReminderEnabled and PendingInvoiceReminderEmails (pending invoice reminder e-mail job)
    4    13/10/2026   Kishor Makwana      [PN-18284] Return PendingInvoiceReminderDaysBeforeMonthEnd (reminder starts N days before month end)
    5    21/10/2026   Kishor Makwana      [PN-18359] Return IsUsageInfoReminderEnabled (usage information reminder e-mail on/off)
+   6    05/11/2026   Kishor Makwana      [PN-18500] Return COIExpirationDays (days used by the COI Expiration colour of the reports)
 
 **********************/
 --EXEC USP_GetLeaseSetting 10
@@ -36,6 +37,7 @@ BEGIN
         ls.PendingInvoiceReminderEmails,
         ISNULL(ls.PendingInvoiceReminderDaysBeforeMonthEnd, 2) AS PendingInvoiceReminderDaysBeforeMonthEnd,
         ISNULL(ls.IsUsageInfoReminderEnabled, 0) AS IsUsageInfoReminderEnabled,
+        ls.COIExpirationDays,
         ls.CreatedBy,
         ls.CreatedDate,
         ls.UpdatedBy,

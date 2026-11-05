@@ -411,6 +411,7 @@
     [AC_Manufacturer]                     VARCHAR (100)    NULL,
     [AC_Type]                             VARCHAR (100)    NULL,
     [AC_Registration]                     VARCHAR (100)    NULL,
+    [EngineType]                          VARCHAR (100)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

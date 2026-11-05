@@ -10,6 +10,7 @@
  ** -----------------------------------------------------------
     1    30/10/2026		Kishor Makwana		[PN-18419] - Created
     2    02/11/2026		Kishor Makwana		[PN-18419] - Server side search : @PageNumber/@PageSize (0 = all rows), @SortColumn/@SortOrder, @Filters (JSON column filters); returns TotalRecords
+    3    04/11/2026		Kishor Makwana		[PN-17949] - Status column (the part's Lease Status : Draft / Active / Closed); Disposition shows the same status value
     
 -- @IsActive : 1 = Active lease (Lease Status Active), 0 = Inactive (Lease Status Draft or Closed). LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolMaintenanceReport] @MasterCompanyId = 1, @IsActive = 1
@@ -35,7 +36,8 @@ BEGIN
 			LH.[LeaseNumber] AS [LeaseNumber],
 			STK.[EngineSerialNumber] AS [EngineSn],
 			LOC.[Name] AS [Location],
-			CAST(NULL AS VARCHAR(200)) AS [Disposition],
+			CAST(CASE ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END AS VARCHAR(20)) AS [Status],
+			CAST(CASE ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' END AS VARCHAR(20)) AS [Disposition],
 			LCUS.[Name] AS [Lessee],
 			CAST(NULL AS VARCHAR(200)) AS [Program],
 			HTE.[HoursToNextEvent] AS [HoursToNextEvent],
@@ -53,7 +55,7 @@ BEGIN
 			LSL.[LeaseHeaderId]								AS [LeaseHeaderId]
 		INTO #EnginePoolRows
 		FROM (
-				SELECT LS.[StockLineId], LS.[LeaseHeaderId], LS.[StartDate], LS.[EndDate], LS.[UpdatedDate],
+				SELECT LS.[StockLineId], LS.[LeaseHeaderId], LS.[LeaseStatusId], LS.[QtyOrder], LS.[StartDate], LS.[EndDate], LS.[UpdatedDate],
 					LS.[LeaseStocklineId],
 					ROW_NUMBER() OVER (PARTITION BY LS.[StockLineId] ORDER BY ISNULL(LS.[StartDate], '1900-01-01') DESC, LS.[LeaseStocklineId] DESC) AS [RN]
 				FROM [dbo].[LeaseStockline] LS WITH (NOLOCK)
@@ -100,6 +102,7 @@ BEGIN
 			R.[EngineSn],
 			R.[Location],
 			R.[Disposition],
+			R.[Status],
 			R.[Lessee],
 			R.[Program],
 			R.[HoursToNextEvent],
@@ -124,6 +127,7 @@ BEGIN
 		DECLARE @f_EngineSn NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.engineSn'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_Location NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.location'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_Disposition NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.disposition'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
+		DECLARE @f_Status NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.status'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_Lessee NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.lessee'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_Program NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.program'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_HoursToNextEvent NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.hoursToNextEvent'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
@@ -144,6 +148,7 @@ BEGIN
 			R.[EngineSn],
 			R.[Location],
 			R.[Disposition],
+			R.[Status],
 			R.[Lessee],
 			R.[Program],
 			R.[HoursToNextEvent],
@@ -165,6 +170,7 @@ BEGIN
 			AND (@f_EngineSn IS NULL OR R.[EngineSn] LIKE '%' + @f_EngineSn + '%')
 			AND (@f_Location IS NULL OR R.[Location] LIKE '%' + @f_Location + '%')
 			AND (@f_Disposition IS NULL OR R.[Disposition] LIKE '%' + @f_Disposition + '%')
+			AND (@f_Status IS NULL OR R.[Status] LIKE '%' + @f_Status + '%')
 			AND (@f_Lessee IS NULL OR R.[Lessee] LIKE '%' + @f_Lessee + '%')
 			AND (@f_Program IS NULL OR R.[Program] LIKE '%' + @f_Program + '%')
 			AND (@f_HoursToNextEvent IS NULL OR CAST(R.[HoursToNextEvent] AS VARCHAR(50)) LIKE '%' + REPLACE(REPLACE(@f_HoursToNextEvent, ',', ''), '$', '') + '%')
@@ -188,6 +194,8 @@ BEGIN
 			CASE WHEN @SortColumn = 'location' AND @SortOrder = 'DESC' THEN R.[Location] END DESC,
 			CASE WHEN @SortColumn = 'disposition' AND @SortOrder = 'ASC' THEN R.[Disposition] END ASC,
 			CASE WHEN @SortColumn = 'disposition' AND @SortOrder = 'DESC' THEN R.[Disposition] END DESC,
+			CASE WHEN @SortColumn = 'status' AND @SortOrder = 'ASC' THEN R.[Status] END ASC,
+			CASE WHEN @SortColumn = 'status' AND @SortOrder = 'DESC' THEN R.[Status] END DESC,
 			CASE WHEN @SortColumn = 'lessee' AND @SortOrder = 'ASC' THEN R.[Lessee] END ASC,
 			CASE WHEN @SortColumn = 'lessee' AND @SortOrder = 'DESC' THEN R.[Lessee] END DESC,
 			CASE WHEN @SortColumn = 'program' AND @SortOrder = 'ASC' THEN R.[Program] END ASC,

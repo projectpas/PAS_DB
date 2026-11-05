@@ -22,10 +22,11 @@
                                      selected stocklines. They were returned blank before.
                                      New @SoldToCustomerId parameter (Bill To customer picked in the popup) drives CreditTerms (Customer > Financial);
                                      falls back to the lease's customer when not supplied.
+    5    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
-CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
+CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
 @LeaseHeaderId BIGINT = NULL,
 @LeaseStocklineIds VARCHAR(MAX) = NULL,
 @MasterCompanyId INT = NULL,
@@ -123,7 +124,7 @@ BEGIN
 
 	-- ================= Live SubTotal/GrandTotal from the selected stocklines =================
 	CREATE TABLE #G (
-		LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
+		LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), EngineType NVARCHAR(100), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
 		BillingMethod NVARCHAR(100), BillingFrequency NVARCHAR(100), FlatRate DECIMAL(28,6), LineType NVARCHAR(100), FromDate DATETIME2(7), ToDate DATETIME2(7),
 		LineAmount DECIMAL(28,6), TimeRecorded DECIMAL(28,6), TimeLimit DECIMAL(28,6), TimeOver DECIMAL(28,6), TimeOverageRate DECIMAL(28,6), TimeBillingAmount DECIMAL(28,6),
 		CycleRecorded DECIMAL(28,6), CycleLimit DECIMAL(28,6), CycleOver DECIMAL(28,6), CycleOverageRate DECIMAL(28,6), CycleBillingAmount DECIMAL(28,6),

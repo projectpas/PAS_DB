@@ -493,6 +493,10 @@ BEGIN
 					WHEN TimePending = 0 THEN NULL
 					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN TimeEffectiveCurrAbs - TimePriorAbs
 					WHEN IsOverageBillingMethod = 0 THEN NULL
+					-- Maximum Usage is a MONTHLY limit on the month's TOTAL usage: usage of this month that is already on a draft / posted invoice counts against it
+					-- (the rest is billed on the Overuse line at the Overuse Rate). Rows with a Minimum keep the original rule below.
+					WHEN TimeLimit IS NOT NULL AND TimeMinimum IS NULL AND ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) + TimePriorAbs >= TimeLimit THEN 0
+					WHEN TimeLimit IS NOT NULL AND TimeMinimum IS NULL AND TimeEffectiveCurrAbs + ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) > TimeLimit THEN TimeLimit - ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) - TimePriorAbs
 					WHEN TimeLimit IS NOT NULL AND TimePriorAbs >= TimeLimit THEN 0
 					WHEN TimeLimit IS NOT NULL AND TimeEffectiveCurrAbs > TimeLimit THEN TimeLimit - TimePriorAbs
 					ELSE TimeEffectiveCurrAbs - TimePriorAbs END AS TimeUsageQty,
@@ -500,6 +504,8 @@ BEGIN
 					WHEN CyclePending = 0 THEN NULL
 					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN CycleEffectiveCurrAbs - CyclePriorAbs
 					WHEN IsOverageBillingMethod = 0 THEN NULL
+					WHEN CycleLimit IS NOT NULL AND CycleMinimum IS NULL AND ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) + CyclePriorAbs >= CycleLimit THEN 0
+					WHEN CycleLimit IS NOT NULL AND CycleMinimum IS NULL AND CycleEffectiveCurrAbs + ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) > CycleLimit THEN CycleLimit - ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) - CyclePriorAbs
 					WHEN CycleLimit IS NOT NULL AND CyclePriorAbs >= CycleLimit THEN 0
 					WHEN CycleLimit IS NOT NULL AND CycleEffectiveCurrAbs > CycleLimit THEN CycleLimit - CyclePriorAbs
 					ELSE CycleEffectiveCurrAbs - CyclePriorAbs END AS CycleUsageQty

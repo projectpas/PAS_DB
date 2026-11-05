@@ -4934,6 +4934,7 @@
     <Build Include="dbo\Functions\FN_LeasePerHours.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStockLineNoteHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Tables\LeaseStockLineNoteHistoryAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

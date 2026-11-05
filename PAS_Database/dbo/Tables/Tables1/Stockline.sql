@@ -415,6 +415,7 @@
     [EngineModel]                         VARCHAR (100)   NULL,
     [IsEngine]                            BIT             NULL,
     [IsAircraft]                          BIT             NULL,
+    [EngineType]                          VARCHAR (100)   NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),

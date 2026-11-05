@@ -12,6 +12,7 @@
  ** 2      13-OCT-2026  SUMIT KUMAR      Resolved ManagementStructure via StocklineManagementStructureDetails (ModuleID=2) as ItemMaster.ManagementStructureId is unpopulated
                                          Added explicit StockType (Stock/Non-Stock) column and Exposed ItemMasterId in result set for correct DISTINCTCOUNT KPI in Power BI (partNumber alone is not unique)
  ** 3      15-OCT-2026  SUMIT KUMAR      Fixed #OpenDemand: calculated remaining unfulfilled demand (Quantity - QuantityIssued) instead of UnIssuedQty (which is only for returns); resolved WorkOrderPartNumber JOIN to prevent fanout and NULLs; included WorkOrderMaterialsKit
+ ** 4      02-NOV-2026  BHARGAV          Added poQuantityOrdered / poQuantityReceived (per part, all non-deleted parent PO lines) for the Demand Fill Rate KPI (Received ÷ Ordered)
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIPartsAvailabilityAndStockout]   
     @masterCompanyId INT
@@ -155,6 +156,23 @@ BEGIN
         AND pop.QuantityOrdered > ISNULL(pop.QuantityReceived, 0)
         GROUP BY pop.ItemMasterId;
 
+        -- 4b. Temp Table for PO Fill Rate (Received vs Ordered across all PO lines, same scope as PO Fulfilling List with Status = All)
+        IF OBJECT_ID(N'tempdb..#POFill') IS NOT NULL
+            DROP TABLE #POFill;
+
+        SELECT
+            pop.ItemMasterId,
+            SUM(ISNULL(pop.QuantityOrdered, 0)) AS POQtyOrdered,
+            SUM(ISNULL(pop.QuantityReceived, 0)) AS POQtyReceived
+        INTO #POFill
+        FROM dbo.PurchaseOrderPart pop WITH (NOLOCK)
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
+        WHERE po.MasterCompanyId = @masterCompanyId
+          AND ISNULL(po.IsDeleted, 0) = 0
+          AND ISNULL(pop.IsDeleted, 0) = 0
+          AND pop.isParent = 1
+        GROUP BY pop.ItemMasterId;
+
         -- 5. Temp Table for Vendor Scorecard (Rolling 90-day OTD & Lead Time)
         IF OBJECT_ID(N'tempdb..#VendorScorecard') IS NOT NULL  
             DROP TABLE #VendorScorecard;
@@ -214,7 +232,9 @@ BEGIN
             CAST(ISNULL(im.LeadTimeDays, 14.0) AS FLOAT)               AS [expectedLeadTimeDays],
             CAST(ISNULL(vsc.ActualLeadTimeDays, ISNULL(im.LeadTimeDays, 14.0)) AS FLOAT) AS [actualLeadTimeDays],
             CAST(ISNULL(vsc.VendorOTD, 0.95) AS FLOAT)                 AS [vendorOTD],
-            CASE WHEN ISNULL(inv.IsNonStock, 0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [stockType]
+            CASE WHEN ISNULL(inv.IsNonStock, 0) = 1 THEN 'Non-Stock' ELSE 'Stock' END AS [stockType],
+            CAST(ISNULL(pof.POQtyOrdered, 0) AS FLOAT)                 AS [poQuantityOrdered],
+            CAST(ISNULL(pof.POQtyReceived, 0) AS FLOAT)                AS [poQuantityReceived]
         FROM dbo.ItemMaster im WITH (NOLOCK)
         LEFT JOIN dbo.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
         LEFT JOIN dbo.Site s WITH (NOLOCK) ON im.SiteId = s.SiteId
@@ -226,6 +246,7 @@ BEGIN
         LEFT JOIN #DailyBurn burn ON im.ItemMasterId = burn.ItemMasterId
         LEFT JOIN #OpenDemand dem ON im.ItemMasterId = dem.ItemMasterId
         LEFT JOIN #OpenPO po ON im.ItemMasterId = po.ItemMasterId
+        LEFT JOIN #POFill pof ON im.ItemMasterId = pof.ItemMasterId
         LEFT JOIN #VendorScorecard vsc ON inv.VendorId = vsc.VendorId
         WHERE im.MasterCompanyId = @masterCompanyId
           AND ISNULL(im.IsDeleted, 0) = 0
@@ -237,6 +258,7 @@ BEGIN
         IF OBJECT_ID(N'tempdb..#DailyBurn') IS NOT NULL DROP TABLE #DailyBurn;
         IF OBJECT_ID(N'tempdb..#OpenDemand') IS NOT NULL DROP TABLE #OpenDemand;
         IF OBJECT_ID(N'tempdb..#OpenPO') IS NOT NULL DROP TABLE #OpenPO;
+        IF OBJECT_ID(N'tempdb..#POFill') IS NOT NULL DROP TABLE #POFill;
         IF OBJECT_ID(N'tempdb..#VendorScorecard') IS NOT NULL DROP TABLE #VendorScorecard;
 
     END TRY    

@@ -4935,6 +4935,12 @@
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStockLineNoteHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStockLineNoteHistory.sql" />
     <Build Include="dbo\Tables\LeaseStockLineNoteHistoryAudit.sql" />
+    <Build Include="dbo\Tables\SubComponentAudit.sql" />
+    <Build Include="dbo\Tables\SubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentDetailsByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentAuditDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubComponent.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

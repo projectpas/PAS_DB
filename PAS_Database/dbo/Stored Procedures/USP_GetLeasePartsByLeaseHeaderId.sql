@@ -39,6 +39,7 @@
     15   25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] PricingMethod replaced with
                                                  IsOutrightSale/IsFlatRate (see USP_CreateUpdateLeaseStockLine).
     16   06/10/2026     Kishor Makwana          [PN-17949 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
+    17   04/11/2026     Kishor Makwana          Added Memo - the latest note (LeaseStockLineNoteHistory) of the line, shown in the Add Item grid Memo column (eye icon opens the Add/Edit Note popup)
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -109,6 +110,7 @@ BEGIN
 			LSL.WorkOrderNo,
 			WO.WorkOrderStatusId,
 			LSL.Notes,
+			LN.[Description] AS Memo,
 			LSL.ReservedBy,
 			LSL.UnReservedBy,
 			LSL.LeaseStatusId,
@@ -129,6 +131,12 @@ BEGIN
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = LSL.RepairOrderId
 		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
+		OUTER APPLY (
+			SELECT TOP 1 N.[Description]
+			FROM [dbo].[LeaseStockLineNoteHistory] N WITH (NOLOCK)
+			WHERE N.LeaseStocklineId = LSL.LeaseStocklineId AND N.IsDeleted = 0
+			ORDER BY N.LeaseStockLineNoteHistoryId DESC
+		) LN
 		LEFT JOIN (
 			SELECT LeaseStocklineId,
 			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,

@@ -13,6 +13,7 @@
  ** --   --------     -------		---------------------------     
     1   04 Apr 2025  Rajesh Gami     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************
 EXEC USP_GetPartsEmailContentByWoQuoteId 6610
 **************************************************************/
@@ -49,7 +50,7 @@ BEGIN
 		INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 		INNER JOIN dbo.Customer cust WITH (NOLOCK) ON woq.CustomerId = cust.CustomerId
 		WHERE ISNULL(woq.IsDeleted, 0) = 0
-		  AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId  AND ISNULL(im.IsNonStock,0) = 0 ;
+		  AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId ;
 
 		-- Quote Materials
 		SELECT 
@@ -69,7 +70,7 @@ BEGIN
 		INNER JOIN dbo.WorkOrderQuoteMaterial wqm WITH (NOLOCK) ON wqd.WorkOrderQuoteDetailsId = wqm.WorkOrderQuoteDetailsId
 		INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wqm.ItemMasterId = im.ItemMasterId
 		WHERE ISNULL(wqm.IsDeleted, 0) = 0
-		AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(im.IsNonStock,0) = 0 ;
+		AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId ;
 
 	END
 	COMMIT  TRANSACTION

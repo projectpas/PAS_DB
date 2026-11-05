@@ -27,6 +27,7 @@
 	10	 18/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
@@ -68,9 +69,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN  [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0
 				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
-				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId AND ISNULL(STK.IsNonStock,0) = 0
+				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn,STK.[StockUnitOfMeasure],STk.[ConsumeUnitOfMeasure],STk.[MasterCompanyId]
 
@@ -101,9 +101,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0
 				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
-				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND ISNULL(STK.IsNonStock,0) = 0
+				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn,STK.[StockUnitOfMeasure],STk.[ConsumeUnitOfMeasure],STk.[MasterCompanyId]
 			END
@@ -112,13 +111,15 @@ BEGIN
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
+			END
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderPrintMateriallist' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '''
-													   @Parameter2 = ' + ISNULL(@workOrderPartNoId ,'') +''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkOrderId), '') + '''
+													   @Parameter2 = ' + ISNULL(CONVERT(VARCHAR(20), @workOrderPartNoId), '') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 ------------------------------------PLEASE DO NOT EDIT BELOW--------------------------------------------------------------------
               exec spLogException 

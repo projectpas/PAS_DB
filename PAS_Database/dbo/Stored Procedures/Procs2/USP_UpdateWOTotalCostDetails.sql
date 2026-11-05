@@ -21,6 +21,7 @@
 	2    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
 	3    06/12/2025   Moin Bloch		Changed Old Billing Table To New one
     4    10/03/2026   Rajesh Gami	    UOM Conversion Changes [PN-14832]  
+	5    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXECUTE USP_UpdateWOTotalCostDetails 331, 358, 'admin', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateWOTotalCostDetails]    
@@ -448,13 +449,15 @@ SET NOCOUNT ON
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
+			BEGIN
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
+			END
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOTotalCostDetails' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderWorkflowId, '') + '' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkOrderWorkflowId), '') + '' 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

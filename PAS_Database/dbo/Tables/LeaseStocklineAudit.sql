@@ -57,6 +57,7 @@
     [OverrunTimesPer]       NVARCHAR (50)   NULL,
     [OverrunCyclesPer]      NVARCHAR (50)   NULL,
     [IsOveruseApplicable]   BIT             NULL,
+    [SecurityDeposit]       DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_LeaseStocklineAudit] PRIMARY KEY CLUSTERED ([LeaseStocklineAuditId] ASC)
 );
 

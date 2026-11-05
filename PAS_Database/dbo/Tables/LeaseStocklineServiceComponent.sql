@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[LeaseStocklineServiceComponent] (
+﻿CREATE TABLE [dbo].[LeaseStocklineServiceComponent] (
     [LeaseStocklineServiceComponentId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [LeaseStocklineId]                 BIGINT          NOT NULL,
     [ComponentName]                    NVARCHAR (200)  NOT NULL,
@@ -14,11 +14,15 @@ CREATE TABLE [dbo].[LeaseStocklineServiceComponent] (
     [GLAccountId]                      BIGINT          NULL,
     [StartDate]                        DATETIME        NULL,
     [EndDate]                          DATETIME        NULL,
+    [UOMId]                            BIGINT          NULL,
     CONSTRAINT [PK_LeaseStocklineServiceComponent] PRIMARY KEY CLUSTERED ([LeaseStocklineServiceComponentId] ASC),
     CONSTRAINT [FK_LeaseStocklineServiceComponent_GLAccount] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_LeaseStocklineServiceComponent_LeaseStockline] FOREIGN KEY ([LeaseStocklineId]) REFERENCES [dbo].[LeaseStockline] ([LeaseStocklineId]),
-    CONSTRAINT [FK_LeaseStocklineServiceComponent_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_LeaseStocklineServiceComponent_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_LeaseStocklineServiceComponent_UnitOfMeasure] FOREIGN KEY ([UOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 GO

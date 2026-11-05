@@ -11,8 +11,9 @@
     1    30/10/2026		Kishor Makwana		[PN-18419] - Created
     2    02/11/2026		Kishor Makwana		[PN-18419] - Server side search : @PageNumber/@PageSize (0 = all rows), @SortColumn/@SortOrder, @Filters (JSON column filters); returns TotalRecords
     3    04/11/2026		Kishor Makwana		[PN-17949] - Status column (the part's Lease Status : Draft / Active / Closed); Disposition shows the same status value
+    4    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
     
--- @IsActive : 1 = Active lease (Lease Status Active), 0 = Inactive (Lease Status Draft or Closed). LeaseStatusId : 1 Draft, 2 Active, 3 Closed
+-- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolMaintenanceReport] @MasterCompanyId = 1, @IsActive = 1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseEnginePoolMaintenanceReport]
@@ -51,7 +52,7 @@ BEGIN
 			CAST(NULL AS VARCHAR(200)) AS [LongTermPreserveExpDate],
 			CAST(NULL AS DECIMAL(18, 2)) AS [MtxExpAc6310],
 			CAST(NULL AS DATETIME2(7)) AS [LogbookScanDate],
-			CAST(CASE WHEN LH.[LeaseStatusId] = 2 THEN 1 ELSE 0 END AS BIT) AS [IsActive],
+			CAST(CASE WHEN ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) = 2 THEN 1 ELSE 0 END AS BIT) AS [IsActive],
 			LSL.[LeaseHeaderId]								AS [LeaseHeaderId]
 		INTO #EnginePoolRows
 		FROM (
@@ -91,7 +92,7 @@ BEGIN
 		WHERE LSL.[RN] = 1
 			AND STK.[MasterCompanyId] = @MasterCompanyId
 			AND ISNULL(STK.[isDeleted], 0) = 0
-			AND (CASE WHEN LH.[LeaseStatusId] = 2 THEN 1 ELSE 0 END) = @IsActive;
+			AND (CASE WHEN ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) = 2 THEN 1 ELSE 0 END) = @IsActive;
 
 		IF OBJECT_ID('tempdb..#EnginePoolResult') IS NOT NULL DROP TABLE #EnginePoolResult;
 

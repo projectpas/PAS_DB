@@ -67,8 +67,11 @@ INSERT INTO @Ids (Value) VALUES (1), (2);
 EXEC USP_CreateLeaseBillingInvoice @LeaseHeaderId = 1, @LeaseStocklineIds = @Ids,
     @SoldToCustomerId = 1, @SoldToSiteId = 1, @ShipToCustomerId = 1, @ShipToSiteId = 1,
     @MasterCompanyId = 1, @CreatedBy = 'test'
+    10   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing calculation follows the new Lease Properties fields (rows saved from the redesigned popup have LeaseStockline.IsOveruseApplicable set; older rows keep the previous behaviour). StocklineBase now converts every Per to the monthly engine through dbo.FN_LeasePerHours: Base Rate = monthly equivalent (Day/Qtr./Year converted to Month), Usage/Overuse time rate = amount / hours in the Per (billed on actual usage), Maximum Usage = monthly limit (Per converted to Month), Base Rate + Usage can now be billed together, and Overuse is applied only when Overuse Applicable is ticked.
+    11   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing follows the redesigned Lease Properties: Base Rate is a FIXED charge billed for every Billing Interval (Month / Qtr. / Year) from the stockline Start Date to its End Date, in advance, whether or not there is usage (Base Rate Per converted to a monthly amount x months in the interval); Usage = Usage Amount x recorded Time / Cycles based on the selected Per (Time Per converted to hours, Cycles = Amount x cycles); Overuse = Overuse Rate x usage over the Maximum (Maximum Per converted to a monthly limit), only when Overuse Applicable is ticked. Older rows keep the previous behaviour.
+    12   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Minimum Usage is no longer used in the billing calculation for rows saved from the redesigned Lease Properties (TimeMinimum / CycleMinimum are NULL there); older rows keep the previous Minimum behaviour.
 ************************************************************************/
-CREATE  PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
+CREATE   PROCEDURE [dbo].[USP_CreateLeaseBillingInvoice]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineIds [dbo].[TVP_BigInt] READONLY,
 	@InvoiceTypeId INT = NULL,
@@ -270,16 +273,16 @@ BEGIN
 				LSL.ConditionId,
 				SLIVE.SerialNumber,
 				LSL.QtyReserved AS Qty,
-				LSL.BillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND (ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0) THEN 'UsageBased' ELSE LSL.BillingMethod END AS BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
-				LSL.FlatRate,
-				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
-				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
-				LSL.UsagePerUnitTimes,
-				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
-				LSL.MinimumCycles AS CycleMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN LSL.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSL.RateUnit)) ELSE LSL.FlatRate END AS FlatRate,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN 'MONTH' ELSE LSL.RateUnit END AS RateUnit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumTimes * 60 * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumTimesPer), 0), 720)) ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL AND LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.UsageTimesPer) IS NOT NULL THEN CAST(LSL.UsagePerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.UsageTimesPer) ELSE LSL.UsagePerUnitTimes END AS UsagePerUnitTimes,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.OverrunTimesPer) IS NOT NULL THEN CAST(LSL.OverrunPerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.OverrunTimesPer) ELSE LSL.OverrunPerUnitTimes END AS OverrunPerUnitTimes,
+				CASE WHEN LSL.MaximumCycles > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumCycles * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumCyclesPer), 0), 720)) ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL THEN LSL.MinimumCycles ELSE NULL END AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
@@ -288,8 +291,8 @@ BEGIN
 				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
 				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
-				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
-				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN LSL.IsOveruseApplicable = 1 OR ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0 THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN ISNULL(LSL.IsFlatRate, 0) = 1 AND NOT (LSL.StartDate IS NOT NULL AND ISNULL(dbo.FN_LeasePerHours(LSL.RateUnit), 0) >= 24) THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
@@ -490,6 +493,10 @@ BEGIN
 					WHEN TimePending = 0 THEN NULL
 					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN TimeEffectiveCurrAbs - TimePriorAbs
 					WHEN IsOverageBillingMethod = 0 THEN NULL
+					-- Maximum Usage is a MONTHLY limit on the month's TOTAL usage: usage of this month that is already on a draft / posted invoice counts against it
+					-- (the rest is billed on the Overuse line at the Overuse Rate). Rows with a Minimum keep the original rule below.
+					WHEN TimeLimit IS NOT NULL AND TimeMinimum IS NULL AND ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) + TimePriorAbs >= TimeLimit THEN 0
+					WHEN TimeLimit IS NOT NULL AND TimeMinimum IS NULL AND TimeEffectiveCurrAbs + ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) > TimeLimit THEN TimeLimit - ISNULL(TimeMonthTotalAbs - TimeReadingAbs, 0) - TimePriorAbs
 					WHEN TimeLimit IS NOT NULL AND TimePriorAbs >= TimeLimit THEN 0
 					WHEN TimeLimit IS NOT NULL AND TimeEffectiveCurrAbs > TimeLimit THEN TimeLimit - TimePriorAbs
 					ELSE TimeEffectiveCurrAbs - TimePriorAbs END AS TimeUsageQty,
@@ -497,6 +504,8 @@ BEGIN
 					WHEN CyclePending = 0 THEN NULL
 					WHEN IsFlatRateBillingMethod = 1 AND IsOverageBillingMethod = 0 THEN CycleEffectiveCurrAbs - CyclePriorAbs
 					WHEN IsOverageBillingMethod = 0 THEN NULL
+					WHEN CycleLimit IS NOT NULL AND CycleMinimum IS NULL AND ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) + CyclePriorAbs >= CycleLimit THEN 0
+					WHEN CycleLimit IS NOT NULL AND CycleMinimum IS NULL AND CycleEffectiveCurrAbs + ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) > CycleLimit THEN CycleLimit - ISNULL(CycleMonthTotalAbs - CycleReadingAbs, 0) - CyclePriorAbs
 					WHEN CycleLimit IS NOT NULL AND CyclePriorAbs >= CycleLimit THEN 0
 					WHEN CycleLimit IS NOT NULL AND CycleEffectiveCurrAbs > CycleLimit THEN CycleLimit - CyclePriorAbs
 					ELSE CycleEffectiveCurrAbs - CyclePriorAbs END AS CycleUsageQty
@@ -512,16 +521,16 @@ BEGIN
 				LSL.ConditionId,
 				SLIVE.SerialNumber,
 				LSL.QtyReserved AS Qty,
-				LSL.BillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND (ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0) THEN 'UsageBased' ELSE LSL.BillingMethod END AS BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
-				LSL.FlatRate,
-				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
-				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
-				LSL.UsagePerUnitTimes,
-				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
-				LSL.MinimumCycles AS CycleMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN LSL.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSL.RateUnit)) ELSE LSL.FlatRate END AS FlatRate,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN 'MONTH' ELSE LSL.RateUnit END AS RateUnit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumTimes * 60 * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumTimesPer), 0), 720)) ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL AND LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.UsageTimesPer) IS NOT NULL THEN CAST(LSL.UsagePerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.UsageTimesPer) ELSE LSL.UsagePerUnitTimes END AS UsagePerUnitTimes,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.OverrunTimesPer) IS NOT NULL THEN CAST(LSL.OverrunPerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.OverrunTimesPer) ELSE LSL.OverrunPerUnitTimes END AS OverrunPerUnitTimes,
+				CASE WHEN LSL.MaximumCycles > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumCycles * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumCyclesPer), 0), 720)) ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL THEN LSL.MinimumCycles ELSE NULL END AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
@@ -530,8 +539,8 @@ BEGIN
 				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
 				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
-				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
-				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN LSL.IsOveruseApplicable = 1 OR ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0 THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN ISNULL(LSL.IsFlatRate, 0) = 1 AND NOT (LSL.StartDate IS NOT NULL AND ISNULL(dbo.FN_LeasePerHours(LSL.RateUnit), 0) >= 24) THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
@@ -594,16 +603,16 @@ BEGIN
 				LSL.ConditionId,
 				SLIVE.SerialNumber,
 				LSL.QtyReserved AS Qty,
-				LSL.BillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND (ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0) THEN 'UsageBased' ELSE LSL.BillingMethod END AS BillingMethod,
 				LSL.BillingInterval AS BillingFrequency,
-				LSL.FlatRate,
-				LSL.RateUnit,
-				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumTimes * 60 ELSE NULL END AS TimeLimit,
-				CASE WHEN LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
-				LSL.UsagePerUnitTimes,
-				LSL.OverrunPerUnitTimes,
-				CASE WHEN LSL.MaximumCycles > 0 AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased' THEN LSL.MaximumCycles ELSE NULL END AS CycleLimit,
-				LSL.MinimumCycles AS CycleMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN LSL.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSL.RateUnit)) ELSE LSL.FlatRate END AS FlatRate,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.RateUnit) >= 24 THEN 'MONTH' ELSE LSL.RateUnit END AS RateUnit,
+				CASE WHEN LSL.MaximumTimes IS NOT NULL AND LSL.MaximumTimes > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumTimes * 60 * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumTimesPer), 0), 720)) ELSE NULL END AS TimeLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL AND LSL.MinimumTimes IS NOT NULL THEN LSL.MinimumTimes * 60 ELSE NULL END AS TimeMinimum,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.UsageTimesPer) IS NOT NULL THEN CAST(LSL.UsagePerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.UsageTimesPer) ELSE LSL.UsagePerUnitTimes END AS UsagePerUnitTimes,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL AND dbo.FN_LeasePerHours(LSL.OverrunTimesPer) IS NOT NULL THEN CAST(LSL.OverrunPerUnitTimes AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.OverrunTimesPer) ELSE LSL.OverrunPerUnitTimes END AS OverrunPerUnitTimes,
+				CASE WHEN LSL.MaximumCycles > 0 AND (LSL.IsOveruseApplicable = 1 OR (LSL.IsOveruseApplicable IS NULL AND ISNULL(LSL.BillingMethod, '') <> 'UsageBased')) THEN LSL.MaximumCycles * (720.0 / ISNULL(NULLIF(dbo.FN_LeasePerHours(LSL.MaximumCyclesPer), 0), 720)) ELSE NULL END AS CycleLimit,
+				CASE WHEN LSL.IsOveruseApplicable IS NULL THEN LSL.MinimumCycles ELSE NULL END AS CycleMinimum,
 				LSL.UsagePerUnitCycles,
 				LSL.OverrunPerUnitCycles,
 				LSL.IsInvoicePost,
@@ -612,8 +621,8 @@ BEGIN
 				COALESCE(SC_SUM.TaxesAmount, LSL.[Taxes]) AS [Taxes],
 				ISNULL(SC_SUM.OtherComponentAmount, 0) AS OtherComponentAmount,
 				SC_SUM.MaintenanceFrom, SC_SUM.MaintenanceTo, SC_SUM.InsuranceFrom, SC_SUM.InsuranceTo, SC_SUM.TaxesFrom, SC_SUM.TaxesTo, SC_SUM.OtherFrom, SC_SUM.OtherTo,
-				CASE WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
-				CASE WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN LSL.IsOveruseApplicable = 1 OR ISNULL(LSL.UsagePerUnitTimes, 0) > 0 OR ISNULL(LSL.UsagePerUnitCycles, 0) > 0 THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRatePlusOverrun', 'UsageBased') THEN 1 ELSE 0 END AS IsOverageBillingMethod,
+				CASE WHEN LSL.IsOveruseApplicable IS NOT NULL THEN (CASE WHEN ISNULL(LSL.IsFlatRate, 0) = 1 AND NOT (LSL.StartDate IS NOT NULL AND ISNULL(dbo.FN_LeasePerHours(LSL.RateUnit), 0) >= 24) THEN 1 ELSE 0 END) WHEN LSL.BillingMethod IN ('FlatRateOnly', 'FlatRatePlusOverrun') THEN 1 ELSE 0 END AS IsFlatRateBillingMethod
 			FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			INNER JOIN @SelIds SEL ON SEL.Value = LSL.LeaseStocklineId
 			LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
@@ -727,6 +736,39 @@ BEGIN
 			WHERE ISNULL(LBX.IsDeleted, 0) = 0 AND ISNULL(LBX.IsVersionIncrease, 0) = 0 AND LBX.FromDate IS NOT NULL
 			  AND LBX.LineType IN ('Maintenance', 'Insurance', 'Taxes', 'Others')
 		),
+		BaseRateIntervalsAll AS (
+			-- Base Rate is a FIXED charge for every Billing Interval (Month / Qtr. / Year) counted from the stockline Start Date (to its End Date), billed in advance whether or not
+			-- there is usage. One interval = the Base Rate converted to a monthly amount (Per = Day / Month / Qtr. / Year) x the months in the interval. (Redesigned Lease Properties rows only)
+			SELECT
+				LSB.LeaseStocklineId,
+				DATEADD(MONTH, N.n * M.IntervalMonths, CAST(LSB.StartDate AS DATE)) AS IntervalFrom,
+				CASE WHEN LSB.EndDate IS NOT NULL AND CAST(LSB.EndDate AS DATE) < DATEADD(DAY, -1, DATEADD(MONTH, (N.n + 1) * M.IntervalMonths, CAST(LSB.StartDate AS DATE)))
+					THEN CAST(LSB.EndDate AS DATE) ELSE DATEADD(DAY, -1, DATEADD(MONTH, (N.n + 1) * M.IntervalMonths, CAST(LSB.StartDate AS DATE))) END AS IntervalTo,
+				CAST(LSB.EndDate AS DATE) AS BaseEndDate,
+				CAST(ROUND(LSB.FlatRate * (720.0 / dbo.FN_LeasePerHours(LSB.RateUnit)) * M.IntervalMonths, 2) AS DECIMAL(18,6)) AS IntervalAmount
+			FROM [dbo].[LeaseStockline] LSB WITH (NOLOCK)
+			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBZ ON SBZ.LeaseStocklineId = LSB.LeaseStocklineId
+			CROSS APPLY (SELECT CASE WHEN dbo.FN_LeasePerHours(LSB.BillingInterval) = 2160 THEN 3 WHEN dbo.FN_LeasePerHours(LSB.BillingInterval) = 8640 THEN 12 ELSE 1 END AS IntervalMonths) M
+			INNER JOIN Nums N ON N.n <= DATEDIFF(MONTH, LSB.StartDate, @BillingAsOfDate)
+			WHERE LSB.IsOveruseApplicable IS NOT NULL AND ISNULL(LSB.IsFlatRate, 0) = 1 AND ISNULL(LSB.FlatRate, 0) > 0 AND LSB.StartDate IS NOT NULL
+			  AND ISNULL(dbo.FN_LeasePerHours(LSB.RateUnit), 0) >= 24
+		),
+		BaseRateIntervals AS (
+			-- Intervals that have started (in advance) and are not past the End Date
+			SELECT LeaseStocklineId, IntervalFrom, IntervalTo, IntervalAmount
+			FROM BaseRateIntervalsAll
+			WHERE IntervalFrom <= @BillingAsOfDate AND (BaseEndDate IS NULL OR IntervalFrom <= BaseEndDate)
+		),
+		BaseRateBilledIntervals AS (
+			-- Base Rate intervals already on a posted invoice or on an open (not voided) draft
+			SELECT DISTINCT LBX.LeaseStocklineId, DATEFROMPARTS(YEAR(LBX.FromDate), MONTH(LBX.FromDate), 1) AS MonthKey
+			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBX WITH (NOLOCK)
+			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBW ON SBW.LeaseStocklineId = LBX.LeaseStocklineId
+			INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK) ON BX.BillingInvoicingItemId = LBX.BillingInvoicingItemId AND BX.IsDeleted = 0 AND ISNULL(BX.IsVersionIncrease, 0) = 0
+			INNER JOIN [dbo].[BillingInvoicing] BIX WITH (NOLOCK) ON BIX.BillingInvoicingId = BX.BillingInvoicingId AND ISNULL(BIX.InvoiceStatus, '') <> 'Voided'
+			WHERE ISNULL(LBX.IsDeleted, 0) = 0 AND ISNULL(LBX.IsVersionIncrease, 0) = 0 AND LBX.FromDate IS NOT NULL
+			  AND LBX.LineType = 'Flat Rate' AND ISNULL(LBX.FlatRateAmount, 0) > 0
+		),
 		InvoiceLines AS (
 			SELECT
 				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
@@ -759,9 +801,9 @@ BEGIN
 								AND NOT EXISTS (SELECT 1 FROM PostedFlatMonths PM WHERE PM.LeaseStocklineId = S.LeaseStocklineId AND PM.MonthKey = PA.PeriodKey)
 							THEN ISNULL(S.FlatRate, 0) * S.Qty ELSE NULL END,
 					TimeRate = CASE WHEN S.IsFlatRateBillingMethod = 1 AND UPPER(LTRIM(RTRIM(ISNULL(S.RateUnit, '')))) NOT IN ('CYCLE', 'MONTH') THEN ISNULL(S.FlatRate, 0)
-								WHEN S.IsOverageBillingMethod = 1 AND S.IsFlatRateBillingMethod = 0 THEN ISNULL(S.UsagePerUnitTimes, 0) ELSE NULL END,
+								WHEN S.IsOverageBillingMethod = 1 AND S.BillingMethod = 'UsageBased' THEN ISNULL(S.UsagePerUnitTimes, 0) ELSE NULL END,
 					CycleRate = CASE WHEN S.IsFlatRateBillingMethod = 1 AND UPPER(LTRIM(RTRIM(ISNULL(S.RateUnit, '')))) = 'CYCLE' THEN ISNULL(S.FlatRate, 0)
-								WHEN S.IsOverageBillingMethod = 1 AND S.IsFlatRateBillingMethod = 0 THEN ISNULL(S.UsagePerUnitCycles, 0) ELSE NULL END
+								WHEN S.IsOverageBillingMethod = 1 AND S.BillingMethod = 'UsageBased' THEN ISNULL(S.UsagePerUnitCycles, 0) ELSE NULL END
 				) X
 
 			UNION ALL
@@ -897,6 +939,27 @@ BEGIN
 			  AND (@DraftMonthsOnly = 0
 				   OR EXISTS (SELECT 1 FROM #DraftMonths DM WHERE DM.LeaseStocklineId = CML.LeaseStocklineId AND DM.PeriodKey = CML.MonthStart)
 				   OR EXISTS (SELECT 1 FROM #DraftComponentMonths DC WHERE DC.LeaseStocklineId = CML.LeaseStocklineId AND DC.PeriodKey = CML.MonthStart))
+
+			UNION ALL
+
+			-- Base Rate: one FIXED line per Billing Interval from the stockline Start Date (billed in advance, with or without usage)
+			SELECT
+				S.LeaseStocklineId, S.BillingMethod, S.BillingFrequency,
+				LineType = 'Flat Rate',
+				FromDate = CAST(BR.IntervalFrom AS DATETIME2(7)), ToDate = CAST(BR.IntervalTo AS DATETIME2(7)),
+				FlatRate = BR.IntervalAmount, FlatRateAmount = BR.IntervalAmount * S.Qty,
+				NULL, NULL, NULL,
+				NULL, NULL,
+				NULL, NULL, NULL,
+				NULL, NULL, NULL,
+				NULL, NULL,
+				NULL, NULL, NULL,
+				LineAmount = BR.IntervalAmount * S.Qty
+			FROM BaseRateIntervals BR
+			INNER JOIN StocklineBase S ON S.LeaseStocklineId = BR.LeaseStocklineId
+			WHERE NOT EXISTS (SELECT 1 FROM BaseRateBilledIntervals BB WHERE BB.LeaseStocklineId = BR.LeaseStocklineId AND BB.MonthKey = DATEFROMPARTS(YEAR(BR.IntervalFrom), MONTH(BR.IntervalFrom), 1))
+			  AND (@DraftMonthsOnly = 0
+				   OR EXISTS (SELECT 1 FROM #DraftMonths DM WHERE DM.LeaseStocklineId = BR.LeaseStocklineId AND DM.PeriodKey = DATEFROMPARTS(YEAR(BR.IntervalFrom), MONTH(BR.IntervalFrom), 1)))
 		)
 		SELECT * INTO #InvoiceLines FROM InvoiceLines;
 

@@ -3,10 +3,10 @@
  ** Description: Lease -> Reports tab: revenue and cost report of one lease for an invoice date range.
  **
  **              @ViewType = 'Summary' : one row per leased stockline (PN) of the lease (same parts as the Lease Summary tab; a part without invoice lines in the range shows 0.00 revenue), all amounts totaled:
- **                          PN, PN Description, Serial Num, Status, Revenue, Expenses, Margin, Margin %, Capitalized Cost, Start Date, End Date,
+ **                          PN, Engine Type, PN Description, Serial Num, Status, Revenue, Expenses, Margin, Margin %, Capitalized Cost, Start Date, End Date,
  **                          SL Num, Lease Type, TSN, CSN, TSO, CSO
  **              @ViewType = 'PN'      : one row per invoice for each PN:
- **                          PN, PN Description, Invoice Date, Inv Num, Base Amount, Time Overage, Cycle Overage, Maintenance, Insurance, Taxes, Other Cost, Charges,
+ **                          PN, Engine Type, PN Description, Invoice Date, Inv Num, Base Amount, Time Overage, Cycle Overage, Maintenance, Insurance, Taxes, Other Cost, Charges,
  **                          Total Revenue, Depreciation, Overhaul Cost
  **
  **              Invoice lines  = LeaseBillingInvoicingItemDetails of the lease invoices (generated draft + posted, voided excluded, version-increase rows ignored)
@@ -40,7 +40,9 @@
     5    28/10/2026     Kishor Makwana          [PN-18360] PN view: Other Cost (Others lines) and Charges columns added, Total Revenue = Base + Time + Cycle + Maintenance + Insurance + Taxes + Other Cost + Charges
     6    28/10/2026     Kishor Makwana          [PN-18360] Summary view lists every part of the lease (not only the parts with invoices in the range) so the totals match the Lease Summary tab
     7    28/10/2026     Kishor Makwana          [PN-18360] Expenses: Other Cost = billed Maintenance / Insurance / Taxes / Others / Charges invoice lines of the date range (same lines as the Billing tab)
-
+    8    04/11/2026     Kishor Makwana          [PN-17949] Engine Type (Stockline.EngineType) column added after PN in both views
+    9    04/11/2026     Kishor Makwana          [PN-17949] Summary view Status = the part's Lease Status (LeaseStatusId 1 Draft, 2 Active, 3 Closed, same labels as the Lease Header / Add Item screens), falling back to the Lease Header status; the LeaseStatus master Name is used only for an unknown id
+    
 EXEC USP_GetLeaseReportByLeaseHeaderId @LeaseHeaderId = 22, @ViewType = 'Summary'
 EXEC USP_GetLeaseReportByLeaseHeaderId @LeaseHeaderId = 22, @ViewType = 'PN', @FromDate = '2026-01-01', @ToDate = '2026-10-27', @PartNumber = NULL
 ************************************************************************/
@@ -71,7 +73,7 @@ BEGIN
 
 		-- invoice lines of the lease inside the date range (one row per invoice detail line)
 		CREATE TABLE #InvLines (
-			[LeaseStocklineId] BIGINT, [PartNumber] NVARCHAR(100), [PartDescription] NVARCHAR(500),
+			[LeaseStocklineId] BIGINT, [PartNumber] NVARCHAR(100), [PartDescription] NVARCHAR(500), [EngineType] VARCHAR(100),
 			[BillingInvoicingId] BIGINT, [InvoiceNo] VARCHAR(256), [InvoiceDate] DATE,
 			[BaseAmount] DECIMAL(18, 6), [TimeOverage] DECIMAL(18, 6), [CycleOverage] DECIMAL(18, 6),
 			[Maintenance] DECIMAL(18, 6), [Insurance] DECIMAL(18, 6), [Taxes] DECIMAL(18, 6),
@@ -79,7 +81,7 @@ BEGIN
 		);
 
 		INSERT INTO #InvLines
-		SELECT LSL.[LeaseStocklineId], LSL.[PN], LSL.[PNDescription], BI.[BillingInvoicingId], BI.[InvoiceNo], CAST(BI.[InvoiceDate] AS DATE),
+		SELECT LSL.[LeaseStocklineId], LSL.[PN], LSL.[PNDescription], STE.[EngineType], BI.[BillingInvoicingId], BI.[InvoiceNo], CAST(BI.[InvoiceDate] AS DATE),
 			CASE WHEN D.[LineType] = 'Flat Rate' THEN ISNULL(D.[LineAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Overrun' THEN ISNULL(D.[TimeBillingAmount], 0) ELSE 0 END,
 			CASE WHEN D.[LineType] = 'Overrun' THEN ISNULL(D.[CycleBillingAmount], 0) ELSE 0 END,
@@ -98,13 +100,14 @@ BEGIN
 			AND CAST(BI.[InvoiceDate] AS DATE) >= @FromDate AND CAST(BI.[InvoiceDate] AS DATE) <= @ToDate
 		INNER JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 			ON LSL.[LeaseStocklineId] = D.[LeaseStocklineId] AND LSL.[LeaseHeaderId] = @LeaseHeaderId
+		LEFT JOIN [dbo].[Stockline] STE WITH (NOLOCK) ON STE.[StockLineId] = LSL.[StockLineId]
 		WHERE ISNULL(D.[IsDeleted], 0) = 0 AND ISNULL(D.[IsVersionIncrease], 0) = 0
 		  AND (@PartNumber IS NULL OR LSL.[PN] = @PartNumber);
 
 		IF (@ViewType = 'PN')
 		BEGIN
 			-- PN view : one row per invoice for each PN
-			SELECT L.[PartNumber], L.[PartDescription], L.[InvoiceDate], L.[BillingInvoicingId], L.[InvoiceNo],
+			SELECT L.[PartNumber], L.[EngineType], L.[PartDescription], L.[InvoiceDate], L.[BillingInvoicingId], L.[InvoiceNo],
 				   CAST(SUM(L.[BaseAmount]) AS DECIMAL(18, 2)) AS BaseAmount,
 				   CAST(SUM(L.[TimeOverage]) AS DECIMAL(18, 2)) AS TimeOverage,
 				   CAST(SUM(L.[CycleOverage]) AS DECIMAL(18, 2)) AS CycleOverage,
@@ -117,7 +120,7 @@ BEGIN
 				   CAST(0 AS DECIMAL(18, 2)) AS Depreciation,
 				   CAST(0 AS DECIMAL(18, 2)) AS OverhaulCost
 			FROM #InvLines L
-			GROUP BY L.[PartNumber], L.[PartDescription], L.[BillingInvoicingId], L.[InvoiceNo], L.[InvoiceDate]
+			GROUP BY L.[PartNumber], L.[EngineType], L.[PartDescription], L.[BillingInvoicingId], L.[InvoiceNo], L.[InvoiceDate]
 			ORDER BY L.[PartNumber], L.[InvoiceDate], L.[InvoiceNo];
 		END
 		ELSE
@@ -128,8 +131,8 @@ BEGIN
 				UNION
 				SELECT [LeaseStocklineId] FROM #InvLines
 			)
-			SELECT LSL.[LeaseStocklineId] AS LeaseStocklineId, LSL.[PN] AS PartNumber, LSL.[PNDescription] AS PartDescription, STK.[SerialNumber] AS SerialNumber,
-				   ISNULL(LST.[Name], HST.[Name]) AS [Status],
+			SELECT LSL.[LeaseStocklineId] AS LeaseStocklineId, LSL.[PN] AS PartNumber, STK.[EngineType] AS EngineType, LSL.[PNDescription] AS PartDescription, STK.[SerialNumber] AS SerialNumber,
+				   CASE ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) WHEN 1 THEN 'Draft' WHEN 2 THEN 'Active' WHEN 3 THEN 'Closed' ELSE ISNULL(LST.[Name], HST.[Name]) END AS [Status],
 				   CAST(R.Revenue AS DECIMAL(18, 2)) AS Revenue,
 				   CAST(X.Expenses AS DECIMAL(18, 2)) AS Expenses,
 				   CAST(R.Revenue - X.Expenses AS DECIMAL(18, 2)) AS Margin,

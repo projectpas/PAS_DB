@@ -16,8 +16,9 @@
     4    04/11/2026		Kishor Makwana		[PN-17949] - Optimized : PN View only (Lease/Summary view and the #EnginePoolResult copy removed, the grid filters/sorts/pages #EnginePoolRows directly), IsActive taken from @IsActive, OPTION (RECOMPILE) on the filtered query
     5    04/11/2026		Kishor Makwana		[PN-17949] - Returns Stockline.PurchaseOrderId as PurchaseOrderId (the PO # column opens the PO in a new tab)
     6    04/11/2026		Kishor Makwana		[PN-17949] - Status column (the part's Lease Status : Draft / Active / Closed, falls back to the Lease Header status), Engine Type from Stockline.EngineType; Disposition shows the same status value
+    7    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
     
--- @IsActive : 1 = Active lease (Lease Status Active), 0 = Inactive (Lease Status Draft or Closed). LeaseStatusId : 1 Draft, 2 Active, 3 Closed
+-- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolGeneralInfoReport] @MasterCompanyId = 1, @IsActive = 1, @ViewType = 'PN'
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseEnginePoolGeneralInfoReport]
@@ -101,7 +102,7 @@ BEGIN
 		WHERE LSL.[RN] = 1
 			AND STK.[MasterCompanyId] = @MasterCompanyId
 			AND ISNULL(STK.[isDeleted], 0) = 0
-			AND (CASE WHEN LH.[LeaseStatusId] = 2 THEN 1 ELSE 0 END) = @IsActive;
+			AND (CASE WHEN ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) = 2 THEN 1 ELSE 0 END) = @IsActive;
 
 		DECLARE @Take INT = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 2147483647 ELSE @PageSize END;
 		DECLARE @Skip INT = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 0 ELSE (ISNULL(NULLIF(@PageNumber, 0), 1) - 1) * @PageSize END;

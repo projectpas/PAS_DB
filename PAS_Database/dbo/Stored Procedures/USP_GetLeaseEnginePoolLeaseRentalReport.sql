@@ -12,8 +12,9 @@
     2    02/11/2026		Kishor Makwana		[PN-18419] - Server side search : @PageNumber/@PageSize (0 = all rows), @SortColumn/@SortOrder, @Filters (JSON column filters); returns TotalRecords
     3    04/11/2026		Kishor Makwana		[PN-17949] - Optimized : PN View only (Lease/Summary view and the #EnginePoolResult copy removed, the grid filters/sorts/pages #EnginePoolRows directly), IsActive taken from @IsActive, OPTION (RECOMPILE) on the filtered query
     4    04/11/2026		Kishor Makwana		[PN-17949] - Status (Draft / Active / Closed), Engine Type (Stockline.EngineType), Owner and Capitalized Cost (PO Cost + RO Cost x lease qty, same as the Lease Summary) columns; Disposition shows the same status value
+    5    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
     
--- @IsActive : 1 = Active lease (Lease Status Active), 0 = Inactive (Lease Status Draft or Closed). LeaseStatusId : 1 Draft, 2 Active, 3 Closed
+-- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolLeaseRentalReport] @MasterCompanyId = 1, @IsActive = 1, @ViewType = 'PN'
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseEnginePoolLeaseRentalReport]
@@ -76,7 +77,7 @@ BEGIN
 		WHERE LSL.[RN] = 1
 			AND STK.[MasterCompanyId] = @MasterCompanyId
 			AND ISNULL(STK.[isDeleted], 0) = 0
-			AND (CASE WHEN LH.[LeaseStatusId] = 2 THEN 1 ELSE 0 END) = @IsActive;
+			AND (CASE WHEN ISNULL(LSL.[LeaseStatusId], LH.[LeaseStatusId]) = 2 THEN 1 ELSE 0 END) = @IsActive;
 
 		DECLARE @Take INT = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 2147483647 ELSE @PageSize END;
 		DECLARE @Skip INT = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 0 ELSE (ISNULL(NULLIF(@PageNumber, 0), 1) - 1) * @PageSize END;

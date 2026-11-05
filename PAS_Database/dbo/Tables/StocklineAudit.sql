@@ -407,6 +407,14 @@
     [WarrantyEndDate]                     DATETIME2 (7)    NULL,
     [WarrantyStatusId]                    BIGINT           NULL,
     [WarrantyMemo]                        NVARCHAR (MAX)   NULL,
+    [AC_ManufacturerId]                   BIGINT           NULL,
+    [AC_Manufacturer]                     VARCHAR (100)    NULL,
+    [AC_Type]                             VARCHAR (100)    NULL,
+    [AC_Registration]                     VARCHAR (100)    NULL,
+    [EngineType]                          VARCHAR (100)   NULL,
+    [EngineModel]                         VARCHAR (100)   NULL,
+    [IsEngine]                            BIT             NULL,
+    [IsAircraft]                          BIT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

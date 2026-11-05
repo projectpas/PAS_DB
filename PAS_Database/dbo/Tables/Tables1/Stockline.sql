@@ -408,6 +408,14 @@
     [WarrantyEndDate]                     DATETIME2 (7)    NULL,
     [WarrantyStatusId]                    BIGINT           NULL,
     [WarrantyMemo]                        NVARCHAR (MAX)   NULL,
+    [AC_ManufacturerId]                   BIGINT           NULL,
+    [AC_Manufacturer]                     VARCHAR (100)    NULL,
+    [AC_Type]                             VARCHAR (100)    NULL,
+    [AC_Registration]                     VARCHAR (100)    NULL,
+    [EngineModel]                         VARCHAR (100)   NULL,
+    [IsEngine]                            BIT             NULL,
+    [IsAircraft]                          BIT             NULL,
+    [EngineType]                          VARCHAR (100)   NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -424,6 +432,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

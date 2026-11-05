@@ -37,6 +37,8 @@
     2    08/10/2026     Kishor Makwana          LastMSLevel / AllMSlevels (udfGetAllEntityMSLevelString) stored on BatchDetails and CommonBatchDetails
     3    14/10/2026     Kishor Makwana          [PN-18302] Journal by lease type: Finance -> FLI, Operating -> OLI. Replaces the LEASEINVOICE distribution.
     4    22/10/2026     Kishor Makwana          [PN-18396] Accounting By Pass: a distribution row with IsBypassAccounting = 1 writes no journal line (same as Sales Order); when every needed row is bypassed no journal is created. AR debit excludes bypassed lines so the journal stays balanced.
+    5    03/11/2026     Kishor Makwana          Accounting Entry Date = Invoice Date and Accounting Period = period of the Invoice Date (was today / current period), so an invoice
+                                                 created with a back-dated Invoice Date posts into that date's batch and period
 
 EXEC USP_BatchTriggerLeaseInvoice @BillingInvoicingId = 1, @MasterCompanyId = 1, @UpdateBy = 'ADMIN User'
 ************************************************************************/
@@ -227,7 +229,7 @@ BEGIN
 		SELECT TOP 1 @AccountingPeriodId = AccountingCalendarId, @AccountingPeriod = PeriodName
 		FROM [dbo].[AccountingCalendar] WITH (NOLOCK)
 		WHERE IsDeleted = 0 AND LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId
-		  AND CAST(GETUTCDATE() AS DATE) >= CAST(FromDate AS DATE) AND CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE);
+		  AND CAST(@InvoiceDate AS DATE) >= CAST(FromDate AS DATE) AND CAST(@InvoiceDate AS DATE) <= CAST(ToDate AS DATE);
 
 		SELECT @StatusId = Id, @StatusName = [Name] FROM [dbo].[BatchStatus] WITH (NOLOCK) WHERE [Name] = 'Open';
 		SELECT @AccountMSModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE ModuleName = 'Accounting';
@@ -240,11 +242,11 @@ BEGIN
 		WHERE CodeTypeId = @JournalCodeTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 		IF (@JournalTypeNumber IS NULL) BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
 
-		-- ---- batch header: reuse today's open batch of this journal type / customer type, else create one ----
+		-- ---- batch header: reuse the open batch of the invoice date for this journal type / customer type, else create one ----
 		DECLARE @JournalBatchHeaderId BIGINT, @IsBatchGenerated BIT = 0, @CurrentPeriodId BIGINT = 0;
 		SELECT TOP 1 @JournalBatchHeaderId = JournalBatchHeaderId, @CurrentPeriodId = ISNULL(AccountingPeriodId, 0)
 		FROM [dbo].[BatchHeader] WITH (NOLOCK)
-		WHERE JournalTypeId = @JournalTypeId AND MasterCompanyId = @MasterCompanyId AND CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)
+		WHERE JournalTypeId = @JournalTypeId AND MasterCompanyId = @MasterCompanyId AND CAST(EntryDate AS DATE) = CAST(@InvoiceDate AS DATE)
 		  AND StatusId = @StatusId AND ISNULL(CustomerTypeId, 0) = ISNULL(@CustomerTypeId, 0) AND IsDeleted = 0
 		ORDER BY JournalBatchHeaderId DESC;
 
@@ -259,7 +261,7 @@ BEGIN
 				([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],[AccountingPeriodId],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],
 				 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
 			VALUES
-				(@BatchName,@BatchNo,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,
+				(@BatchName,@BatchNo,@InvoiceDate,@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,
 				 @MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode,@CustomerTypeId);
 			SET @JournalBatchHeaderId = SCOPE_IDENTITY();
 		END
@@ -282,7 +284,7 @@ BEGIN
 			 [JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],[ModuleName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
 			 [IsActive],[IsDeleted],[AccountingPeriodId],[AccountingPeriod],[LastMSLevel],[AllMSlevels])
 		VALUES
-			(@JournalTypeNumber,@currentNo,0,NULL,@JournalBatchHeaderId,1,0,NULL,NULL,@InvoiceDate,GETUTCDATE(),
+			(@JournalTypeNumber,@currentNo,0,NULL,@JournalBatchHeaderId,1,0,NULL,NULL,@InvoiceDate,@InvoiceDate,
 			 @JournalTypeId,@JournalTypeName,1,0,0,0,@ModuleName,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),
 			 1,0,@AccountingPeriodId,@AccountingPeriod,@LastMSLevel,@AllMSlevels);
 		SET @JournalBatchDetailId = SCOPE_IDENTITY();
@@ -329,7 +331,7 @@ BEGIN
 					 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,@LineNo,@GlAccountId,@GlAccountNumber,@GlAccountName,
-					 @InvoiceDate,GETUTCDATE(),@JournalTypeId,@JournalTypeName,
+					 @InvoiceDate,@InvoiceDate,@JournalTypeId,@JournalTypeName,
 					 CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					 CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 					 CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,

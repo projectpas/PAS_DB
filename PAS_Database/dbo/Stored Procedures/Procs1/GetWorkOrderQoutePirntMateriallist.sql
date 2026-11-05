@@ -21,6 +21,7 @@
     4	 18/06/2026	   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     6	 15/07/2026	   Ayushi			[PN-17273]Return Consume UOM
+	7    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 --EXEC [GetWorkOrderQoutePirntMateriallist] 10338,10476,8307
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
@@ -38,8 +39,8 @@ BEGIN
    BEGIN    
     SELECT  
         --mt.Quantity,  
-        ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
-        imt.ConsumeUnitOfMeasure as UomName,
+        ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') THEN ISNULL(mt.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0)) END),0) AS Quantity,
+        (CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END) as UomName,
         mt.PartNumber as partnumber,  
         mt.ConditionType AS Condition,  
         mt.PartDescription as PartDescription,  
@@ -48,26 +49,26 @@ BEGIN
             CASE 
                 WHEN ISNULL(mt.Quantity,0) = 0 THEN 0
                 ELSE mt.BillingAmount /
-                     ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+                     ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                                   THEN ISNULL(mt.Quantity,0)
-                                  ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                                  ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                              END),0)
             END
         ) AS UnitCost,
 	    --(mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
         (
-            ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+            ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                          THEN ISNULL(mt.Quantity,0)
-                         ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                         ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                     END),0)
             *
             (
                 CASE 
                     WHEN ISNULL(mt.Quantity,0) = 0 THEN 0
                     ELSE mt.BillingAmount /
-                         ISNULL((CASE WHEN ISNULL(ISNULL(imt.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(imt.ConsumeUnitOfMeasure,''),'') 
+                         ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),'') 
                                       THEN ISNULL(mt.Quantity,0)
-                                      ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL(imt.StockUnitOfMeasure,''),ISNULL(imt.ConsumeUnitOfMeasure,''),0,ISNULL(imt.MasterCompanyId,0))
+                                      ELSE dbo.fn_ConvertUOM(ISNULL(mt.Quantity,0),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(imt.IsNonStock,0) = 1 THEN imt.PurchaseUnitOfMeasure ELSE imt.ConsumeUnitOfMeasure END),''),0,ISNULL(imt.MasterCompanyId,0))
                                  END),0)
                 END
             )
@@ -75,13 +76,12 @@ BEGIN
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
         LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId 
-     AND ISNULL(imt.IsNonStock,0) = 0
     WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
 	UNION ALL
 	SELECT  --wom.Quantity, 
-    ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0)) END),0) AS Quantity,
+    ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0)) END),0) AS Quantity,
         '-' as UomName,  
         wom.KitNumber as partnumber,  
         '-' AS Condition,  
@@ -91,26 +91,26 @@ BEGIN
             CASE 
                 WHEN ISNULL(wom.Quantity,0) = 0 THEN 0
                 ELSE wom.BillingAmount /
-                     ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+                     ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                                   THEN ISNULL(wom.Quantity,0)
-                                  ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                                  ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                              END),0)
             END
         ) AS UnitCost,
 	    --(wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
          (
-            ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+            ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                          THEN ISNULL(wom.Quantity,0)
-                         ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                         ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                     END),0)
             *
             (
                 CASE 
                     WHEN ISNULL(wom.Quantity,0) = 0 THEN 0
                     ELSE wom.BillingAmount /
-                         ISNULL((CASE WHEN ISNULL(ISNULL(im.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(im.ConsumeUnitOfMeasure,''),'')
+                         ISNULL((CASE WHEN ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),'') = ISNULL(ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),'')
                                       THEN ISNULL(wom.Quantity,0)
-                                      ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL(im.StockUnitOfMeasure,''),ISNULL(im.ConsumeUnitOfMeasure,''),0,ISNULL(im.MasterCompanyId,0))
+                                      ELSE dbo.fn_ConvertUOM(ISNULL(wom.Quantity,0),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END),''),ISNULL((CASE WHEN ISNULL(im.IsNonStock,0) = 1 THEN im.PurchaseUnitOfMeasure ELSE im.ConsumeUnitOfMeasure END),''),0,ISNULL(im.MasterCompanyId,0))
                                  END),0)
                 END
             )
@@ -118,21 +118,23 @@ BEGIN
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
 	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
 	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1
 	   END  
   COMMIT  TRANSACTION  
   
   END TRY      
   BEGIN CATCH        
-   IF @@trancount > 0  
-    PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
+   IF @@trancount > 0
+   BEGIN
+   	PRINT 'ROLLBACK'
+   	ROLLBACK TRAN;
+   END  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderQoutePirntMateriallist'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkflowWorkOrderId, '') + '''  
-                @Parameter4 = ' + ISNULL(@workOrderPartNoId ,'') +''  
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @WorkflowWorkOrderId), '') + '''  
+                @Parameter4 = ' + ISNULL(CONVERT(VARCHAR(20), @workOrderPartNoId), '') +''  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

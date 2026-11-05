@@ -21,6 +21,7 @@
 	3    05/15/2021    Hemant  Saliya Update Join & Added Contect Mangment
 	4	 01/20/2024	   Moin Bloch	  Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 
      
 --EXEC [UpdateSubWorkOrderMaterialsColumnsWithId] subworkordermaterial,28
@@ -63,7 +64,6 @@ BEGIN
 						LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WT.WorkOrderTaskId = WOM.TaskId
 					WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
-			 AND ISNULL(IM.IsNonStock,0) = 0
 			END
 		COMMIT  TRANSACTION
 

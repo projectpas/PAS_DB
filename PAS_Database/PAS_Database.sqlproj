@@ -4691,6 +4691,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockSubWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\WOQAddPNPartSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPOFromEmail.sql" />
     <Build Include="dbo\User Defined Types\tbl_EmailVendorRFQPartType.sql" />
@@ -4777,6 +4780,14 @@
     <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
+    <Build Include="dbo\Tables\LeaseAgreementAudit.sql" />
+    <Build Include="dbo\Tables\LeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseAgreementPDF.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementPDFData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTerms.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineServiceComponents.sql" />
@@ -4919,6 +4930,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolMaintenanceReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolLeaseRentalReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolGeneralInfoReport.sql" />
+    <Build Include="dbo\Tables\LeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Functions\FN_LeasePerHours.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Tables\LeaseStockLineNoteHistoryAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

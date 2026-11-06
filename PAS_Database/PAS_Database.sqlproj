@@ -2498,6 +2498,8 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_SearchCreditMemoDataForRefund.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SearchCustomerInvoices.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SearchCustomerRMAData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetCustomerRMAReceivingData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_ReceiveCustomerRMAParts.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SetDefaultReportingStructure.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SingleScreen_AddUpdateData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_StandAloneCM_PostCheckBatchDetails.sql" />
@@ -2647,6 +2649,7 @@
     <Build Include="dbo\User Defined Types\WOQMaterialKitMappingType.sql" />
     <Build Include="dbo\User Defined Types\VoidedCheckListType.sql" />
     <Build Include="dbo\User Defined Types\VendorRMADetailType.sql" />
+    <Build Include="dbo\User Defined Types\CustomerRMAReceivePartsType.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQRepairOrderPartType.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQPurchaseOrderPartType.sql" />
     <Build Include="dbo\User Defined Types\VendorCreditMemoMappingType.sql" />

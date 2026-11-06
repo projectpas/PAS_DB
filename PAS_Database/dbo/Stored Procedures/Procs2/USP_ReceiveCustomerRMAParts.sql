@@ -6,7 +6,7 @@
  **                - copied from the original (sold) stockline of the RMA part, then the values entered on the
  **                  screen are applied (qty, condition, site / warehouse / location / shelf / bin, GL, serial,
  **                  unit cost, mfr lot / batch / dates, cert, tag, memo)
- **                - stock type (IsCustomerStock / customer) same as the original stockline, Obtain From = RMA customer, IsCustomerRMA = 1, RMADeatilsId link
+ **                - always CUSTOMER stock of the RMA customer (IsCustomerStock = 1, CustomerId / CustomerName), Obtain From = RMA customer, IsCustomerRMA = 1, RMADeatilsId link
  **                - new Stockline / Control / ID numbers, one Receiver Number per call (RecNo + sequence per RMA)
  **                - TimeLife, documents, MS details, stockline history and LOT trans-in as in CreateStocklineForCustomerRMADeatils
  **              CustomerRMADeatils.QtyReceived += qty; RMA -> Closed (5) when every part is fully received.
@@ -24,7 +24,8 @@
  ** --   --------     -------			--------------------------------
     1    04-Nov-2026  RAJESH GAMI		[PN-18254] Created
     2    05-Nov-2026  RAJESH GAMI		[PN-18254] GlAccountName from the GL Account chosen on the screen (UpdateStocklineColumnsWithId does not set it)
-    3    05-Nov-2026  RAJESH GAMI		[PN-18254] Customer / company stock copied from the original stockline (IsCustomerStock, CustomerId, CustomerName, isCustomerstockType)
+    3    06-Nov-2026  RAJESH GAMI		[PN-18254] Received stock is always customer stock of the RMA customer (IsCustomerStock = 1, isCustomerstockType = 1,
+                                        CustomerId / CustomerName = RMA customer), whatever the original stockline was
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReceiveCustomerRMAParts]
 	@tbl_ReceiveParts [dbo].[CustomerRMAReceivePartsType] READONLY,
@@ -148,7 +149,7 @@ BEGIN
 			DECLARE @RMADeatilsId BIGINT, @QtyToReceive DECIMAL(18,6), @OriginalStocklineId BIGINT, @NewStocklineId BIGINT,
 					@ItemMasterId BIGINT, @ManufacturerId BIGINT, @StockLineNumber VARCHAR(50), @ControlNumber VARCHAR(50), @IDNumber VARCHAR(100),
 					@StockLineCurrentNo BIGINT, @ControlCurrentNo BIGINT, @IDCurrentNo BIGINT, @SourceLotId BIGINT, @RowUnitCost DECIMAL(18,6),
-					@RowMemo NVARCHAR(MAX), @CertTypeIdList VARCHAR(100), @CertTypeNames VARCHAR(MAX), @OriginalIsCustomerStock BIT;
+					@RowMemo NVARCHAR(MAX), @CertTypeIdList VARCHAR(100), @CertTypeNames VARCHAR(MAX);
 
 			SELECT @RMADeatilsId = ReceiveRow.[RMADeatilsId], @QtyToReceive = ReceiveRow.[QtyToReceive], @RowUnitCost = ReceiveRow.[UnitCost],
 				   @RowMemo = ReceiveRow.[Memo], @CertTypeIdList = ReceiveRow.[CertTypeId]
@@ -163,8 +164,7 @@ BEGIN
 			END
 
 			SELECT @OriginalStocklineId = RMADetail.[StocklineId] FROM [dbo].[CustomerRMADeatils] RMADetail WITH (NOLOCK) WHERE RMADetail.[RMADeatilsId] = @RMADeatilsId;
-			SELECT @ItemMasterId = OriginalStockline.[ItemMasterId], @ManufacturerId = OriginalStockline.[ManufacturerId], @SourceLotId = ISNULL(OriginalStockline.[LotId], 0),
-				   @OriginalIsCustomerStock = ISNULL(OriginalStockline.[IsCustomerStock], 0)
+			SELECT @ItemMasterId = OriginalStockline.[ItemMasterId], @ManufacturerId = OriginalStockline.[ManufacturerId], @SourceLotId = ISNULL(OriginalStockline.[LotId], 0)
 			FROM [dbo].[Stockline] OriginalStockline WITH (NOLOCK) WHERE OriginalStockline.[StockLineId] = @OriginalStocklineId;
 
 			/* Stockline Number (per PN + Manufacturer, ItemMaster.CurrentStlNo, code type 30) */
@@ -229,12 +229,12 @@ BEGIN
 			   ,[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],NULL,NULL
 			   ,0,0,0,@QtyToReceive,@QtyToReceive,0,0
 			   ,0,[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],NULL
-			   ,1,0,0,0,ISNULL([IsCustomerStock],0),@ReceivedDate,[LotCost],[NHAItemMasterId]
+			   ,1,0,0,0,1,@ReceivedDate,[LotCost],[NHAItemMasterId]
 			   ,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate]
 			   ,[VendorId],1,NULL,[IsSameDetailsForAllParts],0,NULL,0,[IsOemPNId]
 			   ,[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition]
 			   ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],NULL,[itemGroup],[TLAPartNumber]
-			   ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]
+			   ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],@CustomerId,@CustomerName,1
 			   ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],0,[TaggedByType]
 			   ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId]
 			   ,[LotId],[IsLotAssigned],[LotMainStocklineId],[LotSourceId],[TransferredFromLotId],[TransferredFromLotNumber]
@@ -332,7 +332,7 @@ BEGIN
 			EXEC [dbo].[USP_SaveSLMSDetails] @StocklineMSModuleId, @NewStocklineId, @HeaderMSId, @MasterCompanyId, @UpdatedBy;
 
 			UPDATE [dbo].[Stockline]
-			SET [IsCustomerStock] = @OriginalIsCustomerStock, -- keep the original stock type (UpdateStocklineColumnsWithId recalculates it from the customer affiliation)
+			SET [IsCustomerStock] = 1, [isCustomerstockType] = 1, -- always customer stock (UpdateStocklineColumnsWithId recalculates IsCustomerStock from the customer affiliation)
 				[Memo] = ISNULL([Memo], '') + N'<p>Stockline Received from Customer RMA – ' + ISNULL(@RMANumber, '') + N' (' + ISNULL(@ReceiverNumber, '') + N')</p>'
 					   + CASE WHEN ISNULL(@RowMemo, '') <> '' THEN N'<p>' + @RowMemo + N'</p>' ELSE N'' END
 			WHERE [StockLineId] = @NewStocklineId;

@@ -60,6 +60,7 @@ exec USP_GetLeaseBillingListByLeaseHeaderId @LeaseHeaderId=1
     10   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing calculation follows the new Lease Properties fields (rows saved from the redesigned popup have LeaseStockline.IsOveruseApplicable set; older rows keep the previous behaviour). StocklineBase now converts every Per to the monthly engine through dbo.FN_LeasePerHours: Base Rate = monthly equivalent (Day/Qtr./Year converted to Month), Usage/Overuse time rate = amount / hours in the Per (billed on actual usage), Maximum Usage = monthly limit (Per converted to Month), Base Rate + Usage can now be billed together, and Overuse is applied only when Overuse Applicable is ticked.
     11   03/11/2026     Kishor Makwana          [PN-17949 Lease Properties redesign] Billing follows the redesigned Lease Properties: Base Rate is a FIXED charge billed for every Billing Interval (Month / Qtr. / Year) from the stockline Start Date to its End Date, in advance, whether or not there is usage (Base Rate Per converted to a monthly amount x months in the interval); Usage = Usage Amount x recorded Time / Cycles based on the selected Per (Time Per converted to hours, Cycles = Amount x cycles); Overuse = Overuse Rate x usage over the Maximum (Maximum Per converted to a monthly limit), only when Overuse Applicable is ticked. Older rows keep the previous behaviour.
     12   04/11/2026     Kishor Makwana          [PN-17949] Returns Stockline.EngineType as EngineType on every row (Billing/Invoicing grid Engine Type column).
+    13   05/11/2026     Kishor Makwana          [PN-18500] Service component (Maintenance / Insurance / Taxes / Others with a Start Date and End Date) Total Billing is no longer prorated by days. The Amount is the FULL amount of one Per period (Month = 1 month, Qtr. = 3 months, Year = 12 months, counted from the component Start Date); it is billed only while the billing date is inside [Start Date, End Date], ONCE per Per period (first bill; a later invoice in the same period does not bill it again, the next period bills it again). Same logic as USP_CreateLeaseBillingInvoice.
     ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLeaseBillingListByLeaseHeaderId]
 	@LeaseHeaderId BIGINT
@@ -68,7 +69,7 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-		DECLARE @BillingAsOfDate DATE = CAST(GETUTCDATE() AS DATE); -- billing date (UTC): only the CURRENT month's service component line is billable, and only once its slice has started
+		DECLARE @BillingAsOfDate DATE = CAST(GETUTCDATE() AS DATE); -- billing date (UTC): a service component is billable only while this date is inside its Start Date - End Date (its Per period is billed once) [PN-18500]
 		DECLARE @LeaseModuleId INT
 		SELECT @LeaseModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Leasing';
 
@@ -549,54 +550,47 @@ BEGIN
 		Nums AS (
 			SELECT TOP (1200) CAST(ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS INT) AS n FROM sys.all_columns
 		),
-		ComponentSlicesBase AS (
-			-- Service component Amount = the TOTAL for [StartDate, EndDate] (Per = Monthly only names the billing cadence). One row per component row per CALENDAR
-			-- month it overlaps. Weight: a fully covered calendar month = 1, a part month = (days in the overlap / 30). Component rows without both dates are
-			-- not here (they keep the old one-time billing through OneTimeLines).
+		ComponentPeriodBase AS (
+			-- [PN-18500] Service components WITH Start Date / End Date are billed by their Per (Month / Qtr. / Year), NOT prorated by days: the Amount is the FULL amount of ONE Per
+			-- period (Month = 1 month, Qtr. = 3 months, Year = 12 months). Periods are counted from the component Start Date (period n = [Start + n x Per, Start + (n + 1) x Per - 1 day]).
+			-- A component is billable only while the billing date (@BillingAsOfDate) is inside [Start Date, End Date]; the period of the billing date is billed ONCE (first bill) and
+			-- not again until the next period starts. Rows without both dates keep the old one-time line (OneTimeLines).
 			SELECT
 				SC.LeaseStocklineServiceComponentId AS ComponentId,
 				SC.LeaseStocklineId,
 				CASE UPPER(LTRIM(RTRIM(SC.ComponentName))) WHEN 'MAINTENANCE' THEN 'Maintenance' WHEN 'INSURANCE' THEN 'Insurance' WHEN 'TAXES' THEN 'Taxes' ELSE 'Others' END AS LineType,
-				M.MonthStart,
-				SL.SliceFrom,
-				SL.SliceTo,
 				ISNULL(SC.Amount, 0) AS Amount,
-				CASE WHEN SL.SliceFrom = M.MonthStart AND SL.SliceTo = EOMONTH(M.MonthStart) THEN CAST(1 AS DECIMAL(18,6))
-					ELSE CAST(DATEDIFF(DAY, SL.SliceFrom, SL.SliceTo) + 1 AS DECIMAL(18,6)) / 30.0 END AS Weight
+				CAST(SC.StartDate AS DATE) AS CompStart,
+				CAST(SC.EndDate AS DATE) AS CompEnd,
+				CASE WHEN UPPER(LTRIM(RTRIM(ISNULL(SC.Per, '')))) IN ('QTR', 'QTR.', 'QUARTER', 'QUARTERLY') THEN 3
+					WHEN UPPER(LTRIM(RTRIM(ISNULL(SC.Per, '')))) IN ('YEAR', 'YEARLY', 'ANNUAL', 'ANNUALLY') THEN 12
+					ELSE 1 END AS PerMonths
 			FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
 			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBX ON SBX.LeaseStocklineId = SC.LeaseStocklineId
-			INNER JOIN Nums N ON N.n <= DATEDIFF(MONTH, SC.StartDate, SC.EndDate)
-			CROSS APPLY (SELECT DATEADD(MONTH, N.n, DATEFROMPARTS(YEAR(SC.StartDate), MONTH(SC.StartDate), 1)) AS MonthStart) M
-			CROSS APPLY (SELECT
-					CASE WHEN CAST(SC.StartDate AS DATE) > M.MonthStart THEN CAST(SC.StartDate AS DATE) ELSE M.MonthStart END AS SliceFrom,
-					CASE WHEN CAST(SC.EndDate AS DATE) < EOMONTH(M.MonthStart) THEN CAST(SC.EndDate AS DATE) ELSE EOMONTH(M.MonthStart) END AS SliceTo) SL
 			WHERE SC.IsDeleted = 0 AND SC.StartDate IS NOT NULL AND SC.EndDate IS NOT NULL AND SC.EndDate >= SC.StartDate AND ISNULL(SC.Amount, 0) <> 0
+			  AND CAST(SC.StartDate AS DATE) <= @BillingAsOfDate AND CAST(SC.EndDate AS DATE) >= @BillingAsOfDate
 		),
-		ComponentSlicesRounded AS (
-			SELECT ComponentId, LeaseStocklineId, LineType, MonthStart, SliceFrom, SliceTo, Amount,
-				ROUND(Amount * Weight / NULLIF(SUM(Weight) OVER (PARTITION BY ComponentId), 0), 2) AS ShareRounded
-			FROM ComponentSlicesBase
-		),
-		ComponentSlices AS (
-			-- Each month's share of the total; the LAST month takes the rounding remainder so the months always add up to the entered Amount
-			SELECT ComponentId, LeaseStocklineId, LineType, MonthStart, SliceFrom, SliceTo,
-				CASE WHEN MonthStart = MAX(MonthStart) OVER (PARTITION BY ComponentId)
-					THEN Amount - (SUM(ShareRounded) OVER (PARTITION BY ComponentId) - ShareRounded)
-					ELSE ShareRounded END AS SliceAmount
-			FROM ComponentSlicesRounded
+		ComponentPeriodIndex AS (
+			-- Number of the Per period (0 based) that contains the billing date
+			SELECT B.ComponentId, B.LeaseStocklineId, B.LineType, B.Amount, B.CompStart, B.CompEnd, B.PerMonths,
+				(CASE WHEN DATEADD(MONTH, DATEDIFF(MONTH, B.CompStart, @BillingAsOfDate), B.CompStart) > @BillingAsOfDate
+					THEN DATEDIFF(MONTH, B.CompStart, @BillingAsOfDate) - 1 ELSE DATEDIFF(MONTH, B.CompStart, @BillingAsOfDate) END) / B.PerMonths AS PeriodNo
+			FROM ComponentPeriodBase B
 		),
 		ComponentMonthLines AS (
-			-- Billable now = ONLY the calendar month of the billing date (UTC today) - earlier / later months of the range are not listed - and only once the slice has started. Several rows of the same type in one month are summed.
-			SELECT LeaseStocklineId, LineType, MonthStart, MIN(SliceFrom) AS FromDate, MAX(SliceTo) AS ToDate, CAST(ROUND(SUM(SliceAmount), 2) AS DECIMAL(18,6)) AS LineAmount
-			FROM ComponentSlices
-			WHERE SliceFrom <= @BillingAsOfDate
-		  AND MonthStart = DATEFROMPARTS(YEAR(@BillingAsOfDate), MONTH(@BillingAsOfDate), 1)
-			GROUP BY LeaseStocklineId, LineType, MonthStart
-			HAVING ROUND(SUM(SliceAmount), 2) <> 0
+			-- One line per type per Per period : the full Amount (several components of the same type and period are summed). MonthStart = first day of the period, PeriodEnd = last day of the full period.
+			SELECT P.LeaseStocklineId, P.LineType, PS.PeriodStart AS MonthStart, PS.PeriodEnd AS PeriodEnd, PS.PeriodStart AS FromDate,
+				MAX(CASE WHEN PS.PeriodEnd < P.CompEnd THEN PS.PeriodEnd ELSE P.CompEnd END) AS ToDate,
+				CAST(ROUND(SUM(P.Amount), 2) AS DECIMAL(18,6)) AS LineAmount
+			FROM ComponentPeriodIndex P
+			CROSS APPLY (SELECT DATEADD(MONTH, P.PeriodNo * P.PerMonths, P.CompStart) AS PeriodStart,
+					DATEADD(DAY, -1, DATEADD(MONTH, (P.PeriodNo + 1) * P.PerMonths, P.CompStart)) AS PeriodEnd) PS
+			GROUP BY P.LeaseStocklineId, P.LineType, PS.PeriodStart, PS.PeriodEnd
+			HAVING ROUND(SUM(P.Amount), 2) <> 0
 		),
 		ComponentBilledMonths AS (
-			-- Component months already on a posted invoice or on an open (not voided) draft
-			SELECT DISTINCT LBX.LeaseStocklineId, LBX.LineType, DATEFROMPARTS(YEAR(LBX.FromDate), MONTH(LBX.FromDate), 1) AS MonthKey
+			-- [PN-18500] Component lines already on a posted invoice or on an open (not voided) draft : a Per period that already has a line is not billed again
+			SELECT DISTINCT LBX.LeaseStocklineId, LBX.LineType, CAST(LBX.FromDate AS DATE) AS BilledFrom
 			FROM [dbo].[LeaseBillingInvoicingItemDetails] LBX WITH (NOLOCK)
 			INNER JOIN (SELECT DISTINCT LeaseStocklineId FROM StocklineBase) SBY ON SBY.LeaseStocklineId = LBX.LeaseStocklineId
 			INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK) ON BX.BillingInvoicingItemId = LBX.BillingInvoicingItemId AND BX.IsDeleted = 0 AND ISNULL(BX.IsVersionIncrease, 0) = 0
@@ -703,7 +697,7 @@ BEGIN
 				CASE CML.LineType WHEN 'Maintenance' THEN 6 WHEN 'Insurance' THEN 7 WHEN 'Taxes' THEN 8 ELSE 9 END AS LineSortOrder
 			FROM ComponentMonthLines CML
 			INNER JOIN StocklineBase SB ON SB.LeaseStocklineId = CML.LeaseStocklineId
-			WHERE NOT EXISTS (SELECT 1 FROM ComponentBilledMonths CB WHERE CB.LeaseStocklineId = CML.LeaseStocklineId AND CB.LineType = CML.LineType AND CB.MonthKey = CML.MonthStart)
+			WHERE NOT EXISTS (SELECT 1 FROM ComponentBilledMonths CB WHERE CB.LeaseStocklineId = CML.LeaseStocklineId AND CB.LineType = CML.LineType AND CB.BilledFrom BETWEEN CML.MonthStart AND CML.PeriodEnd)
 
 			UNION ALL
 

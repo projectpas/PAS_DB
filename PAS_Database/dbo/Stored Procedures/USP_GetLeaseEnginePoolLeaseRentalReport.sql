@@ -13,6 +13,7 @@
     3    04/11/2026		Kishor Makwana		[PN-17949] - Optimized : PN View only (Lease/Summary view and the #EnginePoolResult copy removed, the grid filters/sorts/pages #EnginePoolRows directly), IsActive taken from @IsActive, OPTION (RECOMPILE) on the filtered query
     4    04/11/2026		Kishor Makwana		[PN-17949] - Status (Draft / Active / Closed), Engine Type (Stockline.EngineType), Owner and Capitalized Cost (PO Cost + RO Cost x lease qty, same as the Lease Summary) columns; Disposition shows the same status value
     5    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
+    6    05/11/2026		Kishor Makwana		[PN-18500] - COI Expiration = the End Date of the line's Insurance service component (latest End Date when there are several Insurance rows); new CoiExpirationStatus column (Red = already expired, Yellow = expires within LeaseSetting.COIExpirationDays days, Green = later; NULL when the line has no Insurance End Date) for the colour of the COI Expiration cell. Same for the Active and Inactive switch.
     
 -- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolLeaseRentalReport] @MasterCompanyId = 1, @IsActive = 1, @ViewType = 'PN'
@@ -51,7 +52,12 @@ BEGIN
 			LT.[LeaseType]									AS [LeaseType],
 			LSL.[StartDate]									AS [RentalDate],
 			LSL.[EndDate]									AS [RentalExpiration],
-			CAST(NULL AS DATETIME2(7))						AS [CoiExpiration],
+			CAST(INS.[InsuranceEndDate] AS DATETIME2(7))	AS [CoiExpiration],
+			-- [PN-18500] Red = expired, Yellow = expires within LeaseSetting.COIExpirationDays days (not set = 0 days), Green = later
+			CAST(CASE WHEN INS.[InsuranceEndDate] IS NULL THEN NULL
+				WHEN CAST(INS.[InsuranceEndDate] AS DATE) < CAST(GETUTCDATE() AS DATE) THEN 'Red'
+				WHEN CAST(INS.[InsuranceEndDate] AS DATE) <= DATEADD(DAY, ISNULL(CS.[COIExpirationDays], 0), CAST(GETUTCDATE() AS DATE)) THEN 'Yellow'
+				ELSE 'Green' END AS VARCHAR(10))			AS [CoiExpirationStatus],
 			LSL.[UpdatedDate]								AS [DateUpdated],
 			CAST(NULL AS DECIMAL(18, 2))					AS [RentalIncome],
 			CAST(NULL AS DECIMAL(18, 2))					AS [MtxExpAc6310],
@@ -74,6 +80,12 @@ BEGIN
 			LEFT JOIN [dbo].[Customer] CUS WITH (NOLOCK) ON STK.[OwnerType] = 1 AND CUS.[CustomerId] = STK.[Owner]
 			LEFT JOIN [dbo].[Vendor] VEN WITH (NOLOCK) ON STK.[OwnerType] = 2 AND VEN.[VendorId] = STK.[Owner]
 			LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON STK.[OwnerType] = 9 AND LE.[LegalEntityId] = STK.[Owner]
+			-- [PN-18500] COI Expiration = End Date of the Insurance service component of the lease line
+			OUTER APPLY (SELECT MAX(SC.[EndDate]) AS [InsuranceEndDate]
+				FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
+				WHERE SC.[LeaseStocklineId] = LSL.[LeaseStocklineId] AND ISNULL(SC.[IsDeleted], 0) = 0 AND UPPER(LTRIM(RTRIM(SC.[ComponentName]))) = 'INSURANCE') INS
+			-- [PN-18500] COI Expiration Days of the Lease Setting (Component Lease Setting page)
+			OUTER APPLY (SELECT TOP 1 S.[COIExpirationDays] FROM [dbo].[LeaseSetting] S WITH (NOLOCK) WHERE S.[MasterCompanyId] = @MasterCompanyId AND ISNULL(S.[IsDeleted], 0) = 0) CS
 		WHERE LSL.[RN] = 1
 			AND STK.[MasterCompanyId] = @MasterCompanyId
 			AND ISNULL(STK.[isDeleted], 0) = 0
@@ -116,6 +128,7 @@ BEGIN
 			R.[RentalDate],
 			R.[RentalExpiration],
 			R.[CoiExpiration],
+			R.[CoiExpirationStatus],
 			R.[DateUpdated],
 			R.[RentalIncome],
 			R.[MtxExpAc6310],

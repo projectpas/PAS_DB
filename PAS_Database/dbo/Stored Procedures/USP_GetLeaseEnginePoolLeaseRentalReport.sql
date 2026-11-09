@@ -14,6 +14,7 @@
     4    04/11/2026		Kishor Makwana		[PN-17949] - Status (Draft / Active / Closed), Engine Type (Stockline.EngineType), Owner and Capitalized Cost (PO Cost + RO Cost x lease qty, same as the Lease Summary) columns; Disposition shows the same status value
     5    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
     6    05/11/2026		Kishor Makwana		[PN-18500] - COI Expiration = the End Date of the line's Insurance service component (latest End Date when there are several Insurance rows); new CoiExpirationStatus column (Red = already expired, Yellow = expires within LeaseSetting.COIExpirationDays days, Green = later; NULL when the line has no Insurance End Date) for the colour of the COI Expiration cell. Same for the Active and Inactive switch.
+    7    09/11/2026		Kishor Makwana		[PN-18517] - Capitalized Cost = (PO Cost + RO Cost + Adjustment Cost (Stockline.Adjustment, negative = deduction)) x lease qty
     
 -- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolLeaseRentalReport] @MasterCompanyId = 1, @IsActive = 1, @ViewType = 'PN'
@@ -61,7 +62,7 @@ BEGIN
 			LSL.[UpdatedDate]								AS [DateUpdated],
 			CAST(NULL AS DECIMAL(18, 2))					AS [RentalIncome],
 			CAST(NULL AS DECIMAL(18, 2))					AS [MtxExpAc6310],
-			CAST((ISNULL(STK.[PurchaseOrderUnitCost], 0) + ISNULL(STK.[RepairOrderUnitCost], 0)) * ISNULL(LSL.[QtyOrder], 1) AS DECIMAL(18, 2))	AS [CapitalizedCost],
+			CAST((ISNULL(STK.[PurchaseOrderUnitCost], 0) + ISNULL(STK.[RepairOrderUnitCost], 0) + ISNULL(STK.[Adjustment], 0)) * ISNULL(LSL.[QtyOrder], 1) AS DECIMAL(18, 2))	AS [CapitalizedCost],
 			CAST(NULL AS DECIMAL(18, 2))					AS [Roi],
 			@IsActive										AS [IsActive]
 		INTO #EnginePoolRows

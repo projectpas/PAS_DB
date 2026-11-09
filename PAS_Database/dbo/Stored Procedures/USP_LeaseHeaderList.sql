@@ -29,6 +29,7 @@
                                         (e.g. "FLATRATEONLY") instead of getting "FLAT RATE ONLY" like the other columns. Added a CASE mapping to the same friendly text Angular's own
                                         billingMethodOptions use (lease-part-number.component.ts / lease-billing-info.component.ts / commonAlertMessages.json's lpn_billingMethod* keys) so this list matches them.
     9    23-Sep-2026   Kishor Makwana   CreatedDate/UpdatedDate were being shifted from UTC to the viewing employee's server-side TimeZone here (DBO.ConvertUTCtoLocal) AND then shifted again by the  Angular grid's transformToLongDateTime pipe, which also assumes it is given raw  UTC - the double conversion showed as "Invalid date" for some rows in the Lease  List grid.
+    10   06-NOV-2026  Kishor Makwana   [PN-18509] Billing Method text uses the Lease Properties "Base Rate" label: Flat Rate Only -> Base Rate Only, Flat Rate + Overrun -> Base Rate + Overrun
 
 exec USP_LeaseHeaderList
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LeaseNumber=NULL,@LeaseName=NULL,
@@ -189,8 +190,8 @@ BEGIN
 			   ,''
 			   ,ISNULL(LSL.StocklineNumber,'')
 			   ,CASE LSL.BillingMethod
-					WHEN 'FlatRateOnly' THEN 'Flat Rate Only'
-					WHEN 'FlatRatePlusOverrun' THEN 'Flat Rate + Overrun'
+					WHEN 'FlatRateOnly' THEN 'Base Rate Only'
+					WHEN 'FlatRatePlusOverrun' THEN 'Base Rate + Overrun'
 					WHEN 'UsageBased' THEN 'Usage Based'
 					ELSE ISNULL(LSL.BillingMethod,'') END
 			   ,ISNULL(LSL.BillingInterval,'')

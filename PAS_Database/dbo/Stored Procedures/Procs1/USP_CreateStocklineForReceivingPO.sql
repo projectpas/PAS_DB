@@ -59,6 +59,7 @@
 	42   29-OCT-2026  Vishal Suthar     [PN-18444] Quote the received stocklines on the SOQ part the PO was created from
 	43   29-OCT-2026  RAJESH GAMI       [PN-18407] Stock branch: an Item Master Asset part (IsAsset = 1) received through a PO Stock line now becomes an Asset stockline (USP_SaveStocklineAssetDetails with the Item Master asset defaults). Stock / Non-Stock parts unchanged.
 	44   29-OCT-2026  RAJESH GAMI       [PN-18407] Asset stockline received from PO: also default Acquisition Type (Item Master Asset Acquisition Type, if none chosen) and Curr (PO line functional currency, fallback Item Master currency) - both are required on the Asset stockline form.
+    45   06-NOV-2026  Kishor Makwana    [PN-18498] Sub Component stocklines (Item Master > Sub Assembly > Sub Component, Auto Create Stockline = Yes) are created and linked to the received main stocklines (USP_CreateSubComponentStocklinesForReceiving)
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -3185,6 +3186,13 @@ DELETE FROM #tmpCodePrefixes_NS;
             IF (ISNULL(@ReceivedStockLineIds, '') <> '')
             BEGIN
                 EXEC DBO.USP_LinkReceivedStocklineToSOQ @StockLineIds = @ReceivedStockLineIds, @UpdatedBy = @UpdatedBy, @MasterCompanyId = @MasterCompanyId;
+            END
+
+            -- [PN-18498] Sub Component stocklines of the received main stocklines are auto created and linked (same transaction).
+            -- Not added to #InsertedStkForLot, so lot / GL post processing of the API only sees the received main stocklines.
+            IF (ISNULL(@ReceivedStockLineIds, '') <> '')
+            BEGIN
+                EXEC DBO.USP_CreateSubComponentStocklinesForReceiving @StockLineIds = @ReceivedStockLineIds, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy;
             END
 
             DECLARE @POPartLoopID AS INT;

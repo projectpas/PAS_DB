@@ -4909,6 +4909,7 @@
     <Build Include="dbo\Stored Procedures\USP_SplitStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateSubComponentStocklinesForReceiving.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />

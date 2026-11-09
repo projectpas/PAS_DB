@@ -26,6 +26,8 @@
     2    05-Nov-2026  RAJESH GAMI		[PN-18254] GlAccountName from the GL Account chosen on the screen (UpdateStocklineColumnsWithId does not set it)
     3    06-Nov-2026  RAJESH GAMI		[PN-18254] Received stock is always customer stock of the RMA customer (IsCustomerStock = 1, isCustomerstockType = 1,
                                         CustomerId / CustomerName = RMA customer), whatever the original stockline was
+    4    06-Nov-2026  RAJESH GAMI		[PN-18254] Memo NOT copied from the original stockline (its history belongs to the old stockline and its
+                                        unbalanced <p> tags hid the text in the Stockline view); memo = screen Memo + 'Stockline Received from Customer RMA'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReceiveCustomerRMAParts]
 	@tbl_ReceiveParts [dbo].[CustomerRMAReceivePartsType] READONLY,
@@ -333,8 +335,8 @@ BEGIN
 
 			UPDATE [dbo].[Stockline]
 			SET [IsCustomerStock] = 1, [isCustomerstockType] = 1, -- always customer stock (UpdateStocklineColumnsWithId recalculates IsCustomerStock from the customer affiliation)
-				[Memo] = ISNULL([Memo], '') + N'<p>Stockline Received from Customer RMA – ' + ISNULL(@RMANumber, '') + N' (' + ISNULL(@ReceiverNumber, '') + N')</p>'
-					   + CASE WHEN ISNULL(@RowMemo, '') <> '' THEN N'<p>' + @RowMemo + N'</p>' ELSE N'' END
+				[Memo] = CASE WHEN LTRIM(RTRIM(ISNULL(@RowMemo, ''))) <> '' THEN N'<p>' + LTRIM(RTRIM(@RowMemo)) + N'</p>' ELSE N'' END
+					   + N'<p>Stockline Received from Customer RMA – ' + ISNULL(@RMANumber, '') + N' (' + ISNULL(@ReceiverNumber, '') + N')</p>'
 			WHERE [StockLineId] = @NewStocklineId;
 
 			EXEC [dbo].[USP_AddUpdateStocklineHistory]

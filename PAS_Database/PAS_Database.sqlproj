@@ -2674,6 +2674,7 @@
     <Build Include="dbo\User Defined Types\PostStocklineBatchType.sql" />
     <Build Include="dbo\User Defined Types\PostRRBatchType.sql" />
     <Build Include="dbo\User Defined Types\POPartsToReceive.sql" />
+    <Build Include="dbo\User Defined Types\POSubComponentTimeCycle.sql" />
     <Build Include="dbo\User Defined Types\PartRepairStationsDetailsType.sql" />
     <Build Include="dbo\User Defined Types\NonPOInvoicePartDetailsType.sql" />
     <Build Include="dbo\User Defined Types\ManualJournalBatchDetailsType.sql" />
@@ -4910,6 +4911,8 @@
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateSubComponentStocklinesForReceiving.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOPartsWithSubComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentsForReceivingPOPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />

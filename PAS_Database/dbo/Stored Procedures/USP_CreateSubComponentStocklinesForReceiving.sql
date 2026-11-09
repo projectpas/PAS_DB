@@ -6,10 +6,10 @@
                  are used. For every received main stockline (@StockLineIds) and every such sub component:
                    - one linked stockline of the Sub Component part number (SubComponentParentStocklineId = main stockline,
                      SubComponentQty = Qty, IsSubComponent = 1) is created
-                   - Qty        = sub component Qty x received qty of the main stockline
-                                  (Bearing Qty 2, main stockline Qty 2 -> Bearing stockline Qty 4)
+                   - Qty        = one stockline (Qty 1) per unit : sub component Qty x received qty of the main stockline
+                                  (Bearing Qty 2, main stockline Qty 2 -> 4 Bearing stocklines of Qty 1, Bolt Qty 4 -> 8 Bolt stocklines)
                    - Condition  = sub component Condition, blank -> Condition of the main stockline
-                   - serialized sub component part numbers get one stockline (Qty 1) per unit, serial number is entered later
+                   - serial numbers of serialized sub component part numbers are entered later
                    - site / warehouse / location / shelf / bin / management structure / vendor are taken from the main stockline,
                      part data (PN, description, manufacturer, GL, UOM, PMA / DER / OEM ...) from the sub component Item Master
                    - cost is 0 and no accounting batch is posted (the cost belongs to the main part), PO / RO / WO / Lot
@@ -17,6 +17,10 @@
                  Stockline / Control / Id number generation follows USP_SplitStocklineForSubComponent.
                  Only Stock stocklines are used (Non-Stock and Asset stocklines are skipped). A main stockline that already has a
                  linked stockline for the same sub component part number + condition is skipped (safe to call again).
+                 Time / Cycle entered on the Receiving PO Sub Component grid (@SubComponentTimeCycle, keyed by PO part + sub component part
+                 number + condition) is written for every created sub component stockline : one StocklineTimeCycleHistory row
+                 (Module = Receiving PO, EntryType 'Receiving', ParentStocklineId = main stockline, TotalTSN / TSO in hours + minutes,
+                 TotalCSN / CSO) and Stockline.TotalTSN / TotalTSNMM / TotalCSN are set to the same values.
                  Caller owns the transaction (called from USP_CreateStocklineForReceivingPO). No result set is returned.
  ** Date:   06-NOV-2026
  ** Author:  Kishor Makwana
@@ -28,13 +32,17 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    06-NOV-2026  Kishor Makwana    [PN-18498] Created
+    3    09-NOV-2026  Kishor Makwana    [PN-18498] One Qty 1 stockline per unit for every sub component (not only serialized ones), as in the story table
+    2    09-NOV-2026  Kishor Makwana    [PN-18498] New @SubComponentTimeCycle (Receiving PO Sub Component grid) : Time / Cycle of every created sub component
+                                        stockline is stored in StocklineTimeCycleHistory
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateSubComponentStocklinesForReceiving]
 	@StockLineIds VARCHAR(MAX),
 	@MasterCompanyId INT,
-	@UpdatedBy VARCHAR(256)
+	@UpdatedBy VARCHAR(256),
+	@SubComponentTimeCycle POSubComponentTimeCycle READONLY
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -47,7 +55,8 @@ BEGIN
 			@StlCNCodePrefixId BIGINT = 0, @StlCNCurrentNummber BIGINT = 0, @StlCNStartsFrom BIGINT = 0, @StlCNCodePrefix VARCHAR(50), @StlCNCodeSufix VARCHAR(50),
 			@StlIdCodePrefixId BIGINT = 0, @StlIdCodePrefix VARCHAR(50), @StlIdCodeSufix VARCHAR(50),
 			@MSModuleID INT = 2, -- 2 = Stockline (management structure module, same as USP_SplitStocklineForSubComponent)
-			@StockLineModuleId BIGINT = 0, @LinkActionId INT = NULL;
+			@StockLineModuleId BIGINT = 0, @LinkActionId INT = NULL,
+			@ReceivingPOModuleId BIGINT = 28; -- 28 = Receiving Purchase Order (same as USP_CreateStocklineForReceivingPO)
 
 	/* ---------- main stocklines x sub components (same sub component part + resolved condition is summed) ---------- */
 	IF OBJECT_ID(N'tempdb..#SubCompWork') IS NOT NULL DROP TABLE #SubCompWork;
@@ -122,7 +131,10 @@ BEGIN
 			@ManufacturerId BIGINT, @ItemMasterIsSerialized BIT, @UnitCount INT, @UnitNo INT, @RowQty DECIMAL(18, 6),
 			@MainManagementStructureId BIGINT, @MainLabel NVARCHAR(500),
 			@currentNo BIGINT, @cncurrentNo BIGINT, @StlCNCurrent BIGINT, @StlCNStarts BIGINT,
-			@StockLineNumber VARCHAR(100), @ControlNumber VARCHAR(100), @IdNumber VARCHAR(100), @NewStocklineId BIGINT;
+			@StockLineNumber VARCHAR(100), @ControlNumber VARCHAR(100), @IdNumber VARCHAR(100), @NewStocklineId BIGINT,
+			@MainPOPartRecordId BIGINT, @MainPOId BIGINT, @MainPONumber VARCHAR(100),
+			@HasTimeCycle BIT, @TcTsnMin DECIMAL(18, 6), @TcTsoMin DECIMAL(18, 6), @TcCsn DECIMAL(18, 6), @TcCso DECIMAL(18, 6),
+			@TcTsnH DECIMAL(18, 6), @TcTsnM DECIMAL(18, 6), @TcTsoH DECIMAL(18, 6), @TcTsoM DECIMAL(18, 6);
 
 	DECLARE WorkCursor CURSOR LOCAL FAST_FORWARD FOR
 		SELECT [ID], [MainStockLineId], [SubItemMasterId], [ConditionId], [Qty] FROM #SubCompWork ORDER BY [ID];
@@ -135,16 +147,33 @@ BEGIN
 		FROM [dbo].[ItemMaster] IM WITH (NOLOCK) WHERE IM.[ItemMasterId] = @SubItemMasterId;
 
 		SELECT @MainManagementStructureId = S.[ManagementStructureId],
-			   @MainLabel = ISNULL(S.[StockLineNumber], '') + N' (PN: ' + ISNULL(S.[PartNumber], '') + N', CN: ' + ISNULL(S.[ControlNumber], '') + N')'
+			   @MainLabel = ISNULL(S.[StockLineNumber], '') + N' (PN: ' + ISNULL(S.[PartNumber], '') + N', CN: ' + ISNULL(S.[ControlNumber], '') + N')',
+			   @MainPOPartRecordId = S.[PurchaseOrderPartRecordId], @MainPOId = S.[PurchaseOrderId], @MainPONumber = S.[PurchaseOrderNumber]
 		FROM [dbo].[Stockline] S WITH (NOLOCK) WHERE S.[StockLineId] = @MainStockLineId;
 
-		-- serialized part number : one stockline (Qty 1) per unit, otherwise one stockline for the whole qty
-		SET @UnitCount = CASE WHEN @ItemMasterIsSerialized = 1 THEN CAST(CEILING(@WorkQty) AS INT) ELSE 1 END;
+		-- Time / Cycle entered on the Receiving PO Sub Component grid for this PO part + sub component part + condition
+		SELECT @HasTimeCycle = 0, @TcTsnMin = 0, @TcTsoMin = 0, @TcCsn = 0, @TcCso = 0;
+		SELECT TOP 1 @HasTimeCycle = 1,
+					 @TcTsnMin = ISNULL(TC.[TSNHrs], 0) * 60 + ISNULL(TC.[TSNMin], 0),
+					 @TcTsoMin = ISNULL(TC.[TSOHrs], 0) * 60 + ISNULL(TC.[TSOMin], 0),
+					 @TcCsn = ISNULL(TC.[CSN], 0), @TcCso = ISNULL(TC.[CSO], 0)
+		FROM @SubComponentTimeCycle TC
+		WHERE TC.[PurchaseOrderPartRecordId] = @MainPOPartRecordId AND TC.[SubItemMasterId] = @SubItemMasterId
+		  AND (ISNULL(TC.[TSNHrs], 0) <> 0 OR ISNULL(TC.[TSNMin], 0) <> 0 OR ISNULL(TC.[CSN], 0) <> 0
+			   OR ISNULL(TC.[TSOHrs], 0) <> 0 OR ISNULL(TC.[TSOMin], 0) <> 0 OR ISNULL(TC.[CSO], 0) <> 0)
+		-- exact condition first : the grid shows the PO part condition for a blank sub component condition, the main stockline condition can be changed on the receiving screen
+		ORDER BY CASE WHEN ISNULL(TC.[ConditionId], 0) = ISNULL(@ConditionId, 0) THEN 0 ELSE 1 END;
+		SELECT @TcTsnH = FLOOR(@TcTsnMin / 60), @TcTsnM = @TcTsnMin - FLOOR(@TcTsnMin / 60) * 60,
+			   @TcTsoH = FLOOR(@TcTsoMin / 60), @TcTsoM = @TcTsoMin - FLOOR(@TcTsoMin / 60) * 60;
+
+		-- one stockline (Qty 1) per unit : Bearing Qty 2 x received main qty 2 = 4 Bearing stocklines (story PN-18498).
+		-- Only a fractional quantity (decimal UOM) is kept as one stockline for the whole qty.
+		SET @UnitCount = CASE WHEN @WorkQty = FLOOR(@WorkQty) THEN CAST(@WorkQty AS INT) ELSE 1 END;
 		SET @UnitNo = 1;
 
 		WHILE (@UnitNo <= @UnitCount)
 		BEGIN
-			SET @RowQty = CASE WHEN @ItemMasterIsSerialized = 1 THEN 1 ELSE @WorkQty END;
+			SET @RowQty = CASE WHEN @WorkQty = FLOOR(@WorkQty) THEN 1 ELSE @WorkQty END;
 			SET @NewStocklineId = NULL;
 
 			/* ----- Stockline number : PN + Manufacturer running number lives on ItemMaster.CurrentStlNo ----- */
@@ -311,6 +340,24 @@ BEGIN
 			IF (@LinkActionId IS NOT NULL)
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @StockLineModuleId, @ReferenceId = @MainStockLineId,
 					 @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @LinkActionId, @Qty = @RowQty, @UpdatedBy = @UpdatedBy;
+
+			-- Time / Cycle of the Receiving PO Sub Component grid -> StocklineTimeCycleHistory (+ current value on the stockline)
+			IF (@HasTimeCycle = 1)
+			BEGIN
+				INSERT INTO [dbo].[StocklineTimeCycleHistory]
+					([StocklineId], [ModuleId], [ReferenceId], [ReferenceNumber], [SubModuleId], [SubReferenceId], [SubReferenceNumber], [EntryType], [EntryDate],
+					 [Hours], [Minutes], [Cycles], [TotalTSN], [TotalTSNMM], [TotalCSN], [TotalTSO], [TotalTSOMM], [TotalCSO], [Memo],
+					 [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [ParentStocklineId])
+				VALUES
+					(@NewStocklineId, @ReceivingPOModuleId, @MainPOId, @MainPONumber, NULL, NULL, NULL, 'Receiving', GETUTCDATE(),
+					 @TcTsnH, @TcTsnM, @TcCsn, @TcTsnH, @TcTsnM, @TcCsn, @TcTsoH, @TcTsoM, @TcCso,
+					 N'Time / Cycle entered at PO Receiving (Sub Component of STK: ' + ISNULL(@MainLabel, N'') + N')',
+					 @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0, @MainStockLineId);
+
+				UPDATE [dbo].[Stockline]
+				SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+				WHERE [StockLineId] = @NewStocklineId;
+			END
 
 			SET @UnitNo = @UnitNo + 1;
 		END

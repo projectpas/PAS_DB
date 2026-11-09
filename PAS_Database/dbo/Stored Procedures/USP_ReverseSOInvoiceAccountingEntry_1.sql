@@ -78,6 +78,8 @@
 										re-resolves Accounting Period for TODAY (falling back to the original invoice's
 										period only if today's can't be resolved), since a reversal posted in a later
 										period should carry that period, not the original invoice's.
+    9    05-Nov-2026  Vishal Suthar		[PN-18475] Optional @JournalTypeCode limits the reversal to one journal type (e.g. 'SOS' to reverse
+										a canceled SO shipment, where @BillingInvoicingId is the SalesOrderShippingId).
 
     EXEC [dbo].[USP_ReverseSOInvoiceAccountingEntry] @BillingInvoicingId = 8998, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 
@@ -86,7 +88,8 @@ CREATE    PROCEDURE [dbo].[USP_ReverseSOInvoiceAccountingEntry]
 	@BillingInvoicingId BIGINT,
 	@MasterCompanyId INT,
 	@UpdatedBy VARCHAR(256),
-	@ReversalMessage VARCHAR(500) = NULL OUTPUT
+	@ReversalMessage VARCHAR(500) = NULL OUTPUT,
+	@JournalTypeCode VARCHAR(20) = NULL -- [PN-18475] NULL = all journal types (invoice Re-Open)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -161,6 +164,7 @@ BEGIN
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.[JournalBatchDetailId] = SOD.[JournalBatchDetailId]
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BH.[JournalBatchHeaderId] = SOD.[JournalBatchHeaderId]
 		WHERE SOD.[DocumentId] = @BillingInvoicingId
+		  AND (@JournalTypeCode IS NULL OR BD.[JournalTypeId] IN (SELECT [ID] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [JournalTypeCode] = @JournalTypeCode))
 		  AND ISNULL(CBD.[IsDeleted],0) = 0
 		  AND ISNULL(CBD.[IsActive],1) = 1
 		  AND ISNULL(BD.[IsReversedJE],0) = 0

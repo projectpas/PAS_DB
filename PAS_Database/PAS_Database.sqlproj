@@ -4913,6 +4913,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateSubComponentStocklinesForReceiving.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPOPartsWithSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubComponentsForReceivingPOPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />

@@ -1,10 +1,24 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.9 Part lines of the SOs on one page (@SalesOrderIds = comma separated ids, max one page).
--- QuantityShipped = shipped items; QuantityInvoiced = billed qty on standard (not proforma) invoices.
--- UOM: quantities and unit price / cost are converted from the stock UOM (as stored) to the consume
--- (sell) UOM with fn_PublicApi_ConvertUOM (4.4), like the PAS screens (also in 4.10 - 4.12). Totals are not converted.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetSalesOrderParts]
+ ** Author: Moin Bloch
+ ** Description: 4.9 Part lines of the SOs on one page (@SalesOrderIds = comma separated ids, max one page).
+ **              QuantityShipped = shipped items; QuantityInvoiced = billed qty on standard (not proforma) invoices.
+ **              UOM: quantities and unit price / cost are converted from the stock UOM (as stored) to the consume
+ **              (sell) UOM with fn_PublicApi_ConvertUOM (4.4), like the PAS screens (also in 4.10 - 4.12). Totals are not converted.
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/salesorders (parts)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetSalesOrderParts] @MasterCompanyId = 1, @SalesOrderIds = '679'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetSalesOrderParts]
     @MasterCompanyId INT,
     @SalesOrderIds   VARCHAR(MAX)

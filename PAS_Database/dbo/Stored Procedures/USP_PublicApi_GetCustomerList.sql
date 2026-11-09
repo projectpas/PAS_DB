@@ -3,11 +3,25 @@
   4. STORED PROCEDURES - DATA ENDPOINTS
 =========================================================================================*/
 
----------------------------------------------------------------------------------------------
--- 4.1 GET /api/v1/customers. TEMPLATE for data endpoints: always filter by the token's
---     @MasterCompanyId. Classification, City, State, ZipCode, Country and Contact follow the
---     same logic as dbo.GetCustomerList (PAS customer list).
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetCustomerList]
+ ** Author: Moin Bloch
+ ** Description: 4.1 GET /api/v1/customers. TEMPLATE for data endpoints: always filter by the token's
+ **                  @MasterCompanyId. Classification, City, State, ZipCode, Country and Contact follow the
+ **                  same logic as dbo.GetCustomerList (PAS customer list).
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/customers
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetCustomerList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetCustomerList]
     @MasterCompanyId INT,
     @PageNumber      INT,

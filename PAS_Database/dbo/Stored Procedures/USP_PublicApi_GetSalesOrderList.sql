@@ -1,8 +1,22 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.8 GET /api/v1/salesorders. SO headers the employee can see (same rules as the PAS Sales Order list). SalesOrderAmount = sum of the part lines' net sale amount
--- (the PAS list "SO Amount").
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetSalesOrderList]
+ ** Author: Moin Bloch
+ ** Description: 4.8 GET /api/v1/salesorders. SO headers the employee can see (same rules as the PAS Sales Order list). SalesOrderAmount = sum of the part lines' net sale amount
+ **              (the PAS list "SO Amount").
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/salesorders (headers)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetSalesOrderList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetSalesOrderList]
     @MasterCompanyId  INT,
     @EmployeeId       BIGINT,

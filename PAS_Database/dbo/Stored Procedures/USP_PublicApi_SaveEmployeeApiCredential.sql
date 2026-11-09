@@ -1,8 +1,22 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 5.2 Create or regenerate credentials. Bumping CredentialVersion revokes every token issued
---     before. Returns no row when the employee is not an active employee of @MasterCompanyId.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_SaveEmployeeApiCredential]
+ ** Author: Moin Bloch
+ ** Description: 5.2 Create or regenerate credentials. Bumping CredentialVersion revokes every token issued
+ **                  before. Returns no row when the employee is not an active employee of @MasterCompanyId.
+ ** Purpose: PAS Employee screen - Public API popup (Generate / Regenerate)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_SaveEmployeeApiCredential] @EmployeeId = 2, @MasterCompanyId = 1, @ClientId = 'pas_1_af6cc51954e814c2fc9426d6e667f913', @ClientSecretHash = 'PBKDF2-SHA256$100000$...', @UpdatedBy = 'ADMIN User'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_SaveEmployeeApiCredential]
     @EmployeeId       BIGINT,
     @MasterCompanyId  INT,

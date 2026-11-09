@@ -3,11 +3,25 @@
   3. STORED PROCEDURES - REQUEST LOG AND USAGE
 =========================================================================================*/
 
----------------------------------------------------------------------------------------------
--- 3.1 Request log insert + call count per API.
---     @ApiName is the route name sent by PAS_PUBLIC_API (token, customers, ...). When it is not
---     passed (PAS PublicAPIIntegrationController) it is taken from the request path.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_SaveRequestLog]
+ ** Author: Moin Bloch
+ ** Description: 3.1 Request log insert + call count per API.
+ **                  @ApiName is the route name sent by PAS_PUBLIC_API (token, customers, ...). When it is not
+ **                  passed (PAS PublicAPIIntegrationController) it is taken from the request path.
+ ** Purpose: PAS_PUBLIC_API - request log of every /api call
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_SaveRequestLog] @EmployeeId = 2, @MasterCompanyId = 1, @ClientId = 'pas_1_af6cc51954e814c2fc9426d6e667f913', @TokenId = '0b6c1d2e3f4a5b6c7d8e9f0a1b2c3d4e', @HttpMethod = 'GET', @RequestPath = '/api/v1/salesorders', @QueryString = '', @StatusCode = 200, @DurationMs = 120, @IpAddress = '', @UserAgent = ''
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_SaveRequestLog]
     @EmployeeId      BIGINT,
     @MasterCompanyId INT,

@@ -1,11 +1,25 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.5 GET /api/v1/receivingpurchaseorders (lines). Receivable lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
--- Like the PAS receiving screen: a line split into separate deliveries is received per delivery,
--- so the split lines are returned and their main line is not.
--- QuantityReceived follows PAS: stock / non-stock = PurchaseOrderPart.QuantityReceived,
--- asset = created asset inventory drafts, other types = created stockline drafts.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetReceivingPurchaseOrderParts]
+ ** Author: Moin Bloch
+ ** Description: 4.5 GET /api/v1/receivingpurchaseorders (lines). Receivable lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
+ **              Like the PAS receiving screen: a line split into separate deliveries is received per delivery,
+ **              so the split lines are returned and their main line is not.
+ **              QuantityReceived follows PAS: stock / non-stock = PurchaseOrderPart.QuantityReceived,
+ **              asset = created asset inventory drafts, other types = created stockline drafts.
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/receivingpurchaseorders (lines)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetReceivingPurchaseOrderParts] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetReceivingPurchaseOrderParts]
     @MasterCompanyId  INT,
     @PurchaseOrderIds VARCHAR(MAX)

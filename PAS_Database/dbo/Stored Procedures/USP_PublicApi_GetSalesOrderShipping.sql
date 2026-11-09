@@ -1,8 +1,22 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.11 Shipments of the SOs on one page: one row per shipped item (a shipment without items gives
--- one row with empty item columns). The API groups the rows per shipment.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetSalesOrderShipping]
+ ** Author: Moin Bloch
+ ** Description: 4.11 Shipments of the SOs on one page: one row per shipped item (a shipment without items gives
+ **              one row with empty item columns). The API groups the rows per shipment.
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/salesorders (shipping)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetSalesOrderShipping] @MasterCompanyId = 1, @SalesOrderIds = '679'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetSalesOrderShipping]
     @MasterCompanyId INT,
     @SalesOrderIds   VARCHAR(MAX)

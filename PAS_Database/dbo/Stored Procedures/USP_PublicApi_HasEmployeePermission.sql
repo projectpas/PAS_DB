@@ -1,9 +1,23 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 2.4 Endpoint permission check. Same role -> permission mapping as the PAS login
---     (EmployeeUserRole -> RolePermission -> ModuleHierarchyMaster.PermissionConstant + '.' + PermissionName).
---     @Permissions is ':' separated; allowed when the employee has ANY of them (e.g. 'Customer.View').
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_HasEmployeePermission]
+ ** Author: Moin Bloch
+ ** Description: 2.4 Endpoint permission check. Same role -> permission mapping as the PAS login
+ **                  (EmployeeUserRole -> RolePermission -> ModuleHierarchyMaster.PermissionConstant + '.' + PermissionName).
+ **                  @Permissions is ':' separated; allowed when the employee has ANY of them (e.g. 'Customer.View').
+ ** Purpose: PAS_PUBLIC_API - [RequirePermission] on the data endpoints
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_HasEmployeePermission] @EmployeeId = 2, @Permissions = 'SO_List.View'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_HasEmployeePermission]
     @EmployeeId  BIGINT,
     @Permissions VARCHAR(1000)

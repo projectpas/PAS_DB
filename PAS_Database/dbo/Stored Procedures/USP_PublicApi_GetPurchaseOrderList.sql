@@ -1,8 +1,22 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.2 GET /api/v1/purchaseorders (headers). Ship Via comes from AllShipVia (one row per PO).
--- PartsCount / TotalPartsCost count main lines only (split shipment lines repeat the quantity).
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetPurchaseOrderList]
+ ** Author: Moin Bloch
+ ** Description: 4.2 GET /api/v1/purchaseorders (headers). Ship Via comes from AllShipVia (one row per PO).
+ **              PartsCount / TotalPartsCost count main lines only (split shipment lines repeat the quantity).
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/purchaseorders and /api/v1/receivingpurchaseorders (headers)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetPurchaseOrderList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetPurchaseOrderList]
     @MasterCompanyId     INT,
     @PageNumber          INT,

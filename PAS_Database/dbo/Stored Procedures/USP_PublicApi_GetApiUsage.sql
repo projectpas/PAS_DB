@@ -1,8 +1,22 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 3.2 Call counts per API, for one employee (@EmployeeId) or the whole company (@EmployeeId NULL).
---     Example: EXEC dbo.USP_PublicApi_GetApiUsage @MasterCompanyId = 1, @EmployeeId = 2;
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetApiUsage]
+ ** Author: Moin Bloch
+ ** Description: 3.2 Call counts per API, for one employee (@EmployeeId) or the whole company (@EmployeeId NULL).
+ **                  Example: EXEC dbo.USP_PublicApi_GetApiUsage @MasterCompanyId = 1, @EmployeeId = 2;
+ ** Purpose: Reporting - Public API call counts
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetApiUsage] @MasterCompanyId = 1
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetApiUsage]
     @MasterCompanyId INT,
     @EmployeeId      BIGINT = NULL

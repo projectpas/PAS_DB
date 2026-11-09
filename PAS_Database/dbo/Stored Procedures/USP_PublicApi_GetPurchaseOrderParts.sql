@@ -1,9 +1,23 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.3 GET /api/v1/purchaseorders (part lines). Part lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
--- Main lines have isParent = 1; split shipment lines have ParentId set.
--- POs of another company are ignored.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetPurchaseOrderParts]
+ ** Author: Moin Bloch
+ ** Description: 4.3 GET /api/v1/purchaseorders (part lines). Part lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
+ **              Main lines have isParent = 1; split shipment lines have ParentId set.
+ **              POs of another company are ignored.
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/purchaseorders (part lines)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetPurchaseOrderParts] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetPurchaseOrderParts]
     @MasterCompanyId  INT,
     @PurchaseOrderIds VARCHAR(MAX)

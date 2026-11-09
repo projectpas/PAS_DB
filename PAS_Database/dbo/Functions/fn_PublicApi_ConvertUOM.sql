@@ -1,10 +1,24 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.4 UOM conversion used by the receiving and sales order procedures. Same rules as PAS dbo.fn_ConvertUOM:
--- the company's UOMConversion row FromUOM -> ToUOM, otherwise the reverse row, otherwise unchanged.
--- @IsCost = 0 converts a quantity, 1 a unit price / cost (the inverse). Returns DECIMAL(38,6)
--- so a wrong stored quantity cannot overflow, and ignores a zero factor.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [fn_PublicApi_ConvertUOM]
+ ** Author: Moin Bloch
+ ** Description: 4.4 UOM conversion used by the receiving and sales order procedures. Same rules as PAS dbo.fn_ConvertUOM:
+ **              the company's UOMConversion row FromUOM -> ToUOM, otherwise the reverse row, otherwise unchanged.
+ **              @IsCost = 0 converts a quantity, 1 a unit price / cost (the inverse). Returns DECIMAL(38,6)
+ **              so a wrong stored quantity cannot overflow, and ignores a zero factor.
+ ** Purpose: PAS_PUBLIC_API - UOM conversion for receiving and sales orders
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE: DECIMAL(38,6)
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  SELECT [dbo].[fn_PublicApi_ConvertUOM](0.021320, 'Ltr', 'ML', 0, 1);
+************************************************************************/
 CREATE   FUNCTION [dbo].[fn_PublicApi_ConvertUOM]
 (
     @Value           DECIMAL(38, 6),

@@ -1,7 +1,21 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.10 Stocklines selected for the part lines of the SOs on one page, with their sale price.
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetSalesOrderStocklines]
+ ** Author: Moin Bloch
+ ** Description: 4.10 Stocklines selected for the part lines of the SOs on one page, with their sale price.
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/salesorders (parts[].stocklines)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetSalesOrderStocklines] @MasterCompanyId = 1, @SalesOrderIds = '679'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetSalesOrderStocklines]
     @MasterCompanyId INT,
     @SalesOrderIds   VARCHAR(MAX)

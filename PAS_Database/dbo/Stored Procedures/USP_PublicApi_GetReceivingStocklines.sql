@@ -1,12 +1,26 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.6 GET /api/v1/receivingpurchaseorders (stocklines). Stocklines received against the POs on one page. Same rows as the PAS receiving screen
--- (GetStocklineIdsForReceivingPO): not deleted, not created from a work order (IsFinishGood);
--- only the received stockline itself (IsParent = 1), not its per-unit child rows.
--- Quantities and unit cost are in the stockline's stock UOM (StockUnitOfMeasureId; Stockline.UnitOfMeasure
--- can still hold the PO UOM). PoQuantity / PoUnitCost are the received quantity and unit cost converted
--- back to the PO line's UOM, as in PAS receiving reconciliation (GetReceivingReconciliationPoData).
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetReceivingStocklines]
+ ** Author: Moin Bloch
+ ** Description: 4.6 GET /api/v1/receivingpurchaseorders (stocklines). Stocklines received against the POs on one page. Same rows as the PAS receiving screen
+ **              (GetStocklineIdsForReceivingPO): not deleted, not created from a work order (IsFinishGood);
+ **              only the received stockline itself (IsParent = 1), not its per-unit child rows.
+ **              Quantities and unit cost are in the stockline's stock UOM (StockUnitOfMeasureId; Stockline.UnitOfMeasure
+ **              can still hold the PO UOM). PoQuantity / PoUnitCost are the received quantity and unit cost converted
+ **              back to the PO line's UOM, as in PAS receiving reconciliation (GetReceivingReconciliationPoData).
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/receivingpurchaseorders (stocklines)
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetReceivingStocklines] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetReceivingStocklines]
     @MasterCompanyId  INT,
     @PurchaseOrderIds VARCHAR(MAX)

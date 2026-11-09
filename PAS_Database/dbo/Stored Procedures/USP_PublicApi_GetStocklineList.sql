@@ -1,10 +1,24 @@
 ﻿
----------------------------------------------------------------------------------------------
--- 4.7 GET /api/v1/stocklines. Rows of the PAS Stockline List, limited to the credential employee's management structures.
--- @OnHandOnly = 1 is the PAS "Qty OH" view (QuantityOnHand > 0, the screen default), 0 is "All".
--- @PartNumber / @SerialNumber match anywhere in the value; @StockLineNumber / @Condition are exact;
--- @ItemType is Stock, Non-Stock or Asset (as shown in PAS).
----------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [USP_PublicApi_GetStocklineList]
+ ** Author: Moin Bloch
+ ** Description: 4.7 GET /api/v1/stocklines. Rows of the PAS Stockline List, limited to the credential employee's management structures.
+ **              @OnHandOnly = 1 is the PAS "Qty OH" view (QuantityOnHand > 0, the screen default), 0 is "All".
+ **              @PartNumber / @SerialNumber match anywhere in the value; @StockLineNumber / @Condition are exact;
+ **              @ItemType is Stock, Non-Stock or Asset (as shown in PAS).
+ ** Purpose: PAS_PUBLIC_API - GET /api/v1/stocklines
+ ** Date:   09/11/2026
+
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
+    1    09/11/2026   Moin Bloch    Created
+
+  EXEC [dbo].[USP_PublicApi_GetStocklineList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
+************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PublicApi_GetStocklineList]
     @MasterCompanyId INT,
     @EmployeeId      BIGINT,

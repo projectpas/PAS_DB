@@ -113,8 +113,7 @@
     [PowerBiClientSecret]             VARCHAR (250)   NULL,
     [ExternalUserTokenKey]            NVARCHAR (250)  NULL,
     [ExternalUserTokenValidMinutes]   NVARCHAR (100)  NULL,
+    [PublicApiSigningKey]             NVARCHAR (500)  NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
-
-
 

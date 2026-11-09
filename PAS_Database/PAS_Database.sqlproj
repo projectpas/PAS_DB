@@ -4944,6 +4944,33 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubComponentAuditDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateSubComponent.sql" />
+    <Build Include="dbo\Tables\EmployeeApiUsage.sql" />
+    <Build Include="dbo\Tables\EmployeeApiToken.sql" />
+    <Build Include="dbo\Tables\EmployeeApiRequestLog.sql" />
+    <Build Include="dbo\Tables\EmployeeApiCredential.sql" />
+    <Build Include="dbo\Functions\fn_PublicApi_ConvertUOM.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_ValidateEmployeeApiAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SetEmployeeApiAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveToken.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveEmployeeApiCredential.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_HasEmployeePermission.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetTenantConnections.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetStocklineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSigningKey.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetReceivingStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetReceivingPurchaseOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeApiCredential.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCredentialByClientId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetApiUsage.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

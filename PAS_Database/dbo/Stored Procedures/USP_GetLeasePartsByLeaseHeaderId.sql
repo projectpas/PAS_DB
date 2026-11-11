@@ -40,6 +40,7 @@
                                                  IsOutrightSale/IsFlatRate (see USP_CreateUpdateLeaseStockLine).
     16   06/10/2026     Kishor Makwana          [PN-17949 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
     17   04/11/2026     Kishor Makwana          Added Memo - the latest note (LeaseStockLineNoteHistory) of the line, shown in the Add Item grid Memo column (eye icon opens the Add/Edit Note popup)
+    18   09/11/2026     Kishor Makwana          [PN-18499] Added HasSubComponents - true when the main stockline of the lease item has linked Sub Component stocklines (shows Actions > View Sub Components)
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -118,6 +119,9 @@ BEGIN
 				OR EXISTS (SELECT 1 FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
 					WHERE SC.LeaseStocklineId = LSL.LeaseStocklineId AND SC.IsDeleted = 0)
 				THEN 1 ELSE 0 END AS HasServiceComponent,
+			CASE WHEN LSL.StockLineId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[Stockline] SUBSL WITH (NOLOCK)
+					WHERE SUBSL.SubComponentParentStocklineId = LSL.StockLineId AND ISNULL(SUBSL.IsSubComponent, 0) = 1 AND ISNULL(SUBSL.isDeleted, 0) = 0)
+				THEN 1 ELSE 0 END AS HasSubComponents,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,

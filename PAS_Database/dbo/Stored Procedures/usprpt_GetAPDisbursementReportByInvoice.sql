@@ -19,8 +19,9 @@
 	2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]  
 	3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
 	4    12-MAR-2026    Amit Ghediya         Updated for get isactive records (PN-15588)
+	5    09-NOV-2026    HEMANT SALIYA        Include closed migrated AP records (MigratedAPInvoice)
  EXEC dbo.usprpt_GetAPDisbursementReportByInvoice
-    @MasterCompanyId = 1 , @PageNumber =1 , @EmployeeId = 2 @PageSize = 50, , @SortColumn = "glAccountNum"
+    @MasterCompanyId = 1 , @PageNumber =1 , @EmployeeId = 2, @PageSize = 50, @SortColumn = 'glAccountNum'
 
 ***************************************************************************************************/   
 
@@ -65,6 +66,7 @@ BEGIN
   BEGIN TRY
 
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+    DECLARE @MigratedPaymentMethod NVARCHAR(100) = 'Migrated';   -- [MIGRATED AP] label shown in PaymentMethod column
 	
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], -- Prefer Employee's TimeZone description if available 
     LTZ.[Description] )  -- Fallback to LegalEntity's TimeZone description
@@ -268,6 +270,90 @@ BEGIN
 				WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN CAST(MJH.PostedDate AS DATE)
             END
             ,rtp.CheckNumber
+
+    /*======================================================================
+      [MIGRATED AP] Closed migrated AP records (MigratedAPInvoice)
+      - One row per migrated invoice
+      - Closed = BalanceAmount = 0
+      - No payment date on migrated records: InvoiceDate is used as the proxy
+        for the From/To Payment Date and @PaymentDate filters
+        (keep in sync with usprpt_GetAPDisbursementReportByPayee)
+    ======================================================================*/
+    INSERT INTO #tmprAPDisbursementReportInvoice
+    (
+        VendorId, Payee, VendorCode,
+        InvoiceNum, InvoiceDate, PaymentMethod, PaymentReference,
+        PaymentDate, InvoiceDueDate, TotalBaseCurrencyAmount,
+        BaseCurrency, BaseCurrencyAmount,
+        BankAccount, GLAccountNum,
+        CreditTermsName,
+        Level1Id, Level2Id, Level3Id, Level4Id, Level5Id,
+        Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
+    )
+    SELECT
+        MAI.VendorId,
+        CAST(COALESCE(VND.VendorName, MAI.VendorName) AS NVARCHAR(200))                                 AS Payee,
+        CAST(COALESCE(VND.VendorCode, MAI.VendorCode) AS NVARCHAR(50))                                  AS VendorCode,
+        CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAI.InvoiceNumber)), ''), MAI.PONumber, '') AS NVARCHAR(100))  AS InvoiceNum,
+        CAST(MAI.InvoiceDate AS DATE)                                                                   AS InvoiceDate,
+        @MigratedPaymentMethod                                                                          AS PaymentMethod,
+        MAI.PaymentReference                                                                            AS PaymentReference,
+        CAST(MAI.DueDate AS DATE)                                                                       AS PaymentDate,
+        CAST(MAI.DueDate AS DATE)                                                                       AS InvoiceDueDate,
+        NULL                                                                                            AS TotalBaseCurrencyAmount,
+        CAST(MAI.Currency AS NVARCHAR(50))                                                              AS BaseCurrency,
+        CAST(CASE WHEN ISNULL(MAI.PaidAmount, 0) <> 0 THEN MAI.PaidAmount
+                  ELSE ISNULL(MAI.InvoiceAmount, 0) - ISNULL(MAI.BalanceAmount, 0)
+             END AS DECIMAL(18,2))                                                                      AS BaseCurrencyAmount,
+        NULL                                                                                            AS BankAccount,
+        NULL                                                                                            AS GLAccountNum,
+        CAST(LEFT(COALESCE(CT.Name, MAI.Terms), 30) AS NVARCHAR(30))                                    AS CreditTermsName,
+        L1.Code, L2.Code, L3.Code, L4.Code, L5.Code,
+        L6.Code, L7.Code, L8.Code, L9.Code, L10.Code
+    FROM [dbo].[MigratedAPInvoice] MAI WITH (NOLOCK)
+    LEFT JOIN [dbo].[Vendor] VND WITH (NOLOCK) ON VND.VendorId = MAI.VendorId
+    LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = MAI.CreditTermsId AND CT.IsActive = 1
+    LEFT JOIN [dbo].[EntityStructureSetup] ess WITH (NOLOCK) ON ess.EntityStructureId = MAI.ManagementStructureId AND ess.MasterCompanyId = MAI.MasterCompanyId
+    LEFT JOIN [dbo].[ManagementStructureLevel] L1  WITH(NOLOCK) ON L1.ID  = ess.Level1Id  AND L1.IsActive  = 1 AND L1.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L2  WITH(NOLOCK) ON L2.ID  = ess.Level2Id  AND L2.IsActive  = 1 AND L2.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L3  WITH(NOLOCK) ON L3.ID  = ess.Level3Id  AND L3.IsActive  = 1 AND L3.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L4  WITH(NOLOCK) ON L4.ID  = ess.Level4Id  AND L4.IsActive  = 1 AND L4.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L5  WITH(NOLOCK) ON L5.ID  = ess.Level5Id  AND L5.IsActive  = 1 AND L5.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L6  WITH(NOLOCK) ON L6.ID  = ess.Level6Id  AND L6.IsActive  = 1 AND L6.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L7  WITH(NOLOCK) ON L7.ID  = ess.Level7Id  AND L7.IsActive  = 1 AND L7.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L8  WITH(NOLOCK) ON L8.ID  = ess.Level8Id  AND L8.IsActive  = 1 AND L8.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L9  WITH(NOLOCK) ON L9.ID  = ess.Level9Id  AND L9.IsActive  = 1 AND L9.IsDeleted  = 0
+    LEFT JOIN [dbo].[ManagementStructureLevel] L10 WITH(NOLOCK) ON L10.ID = ess.Level10Id AND L10.IsActive = 1 AND L10.IsDeleted = 0
+    WHERE MAI.MasterCompanyId = @MasterCompanyId
+      AND MAI.IsActive = 1 AND MAI.IsDeleted = 0
+      AND ISNULL(MAI.BalanceAmount, 0) = 0                                  -- closed records only
+      -- AND ISNULL(MAI.InvoiceAmount, 0) <> 0                              -- uncomment to hide zero-amount migrated rows
+      AND (@FromPaymentDate IS NULL OR CAST(MAI.InvoiceDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
+      AND (@ToPaymentDate   IS NULL OR CAST(MAI.InvoiceDate AS DATE) <= CAST(@ToPaymentDate AS DATE))
+      AND (@Payee IS NULL OR COALESCE(VND.VendorName, MAI.VendorName) LIKE '%' + @Payee + '%')
+      AND (@InvoiceNum IS NULL OR MAI.InvoiceNumber LIKE '%' + @InvoiceNum + '%' OR MAI.PONumber LIKE '%' + @InvoiceNum + '%')
+      -- Migrated records have no check #, bank account or GL account: exclude them when those filters are used
+      AND @PaymentRef   IS NULL
+      AND @BankAccount  IS NULL
+      AND @GlAccountNum IS NULL
+      AND (@PaymentMethod IS NULL OR @MigratedPaymentMethod LIKE '%' + @PaymentMethod + '%')
+      AND (@BaseCurrency IS NULL OR MAI.Currency LIKE '%' + @BaseCurrency + '%')
+      AND (@BaseCurrencyAmount IS NULL OR MAI.InvoiceAmount = @BaseCurrencyAmount)
+      AND (@InvoiceDate    IS NULL OR CAST(MAI.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+      AND (@InvoiceDueDate IS NULL OR CAST(MAI.DueDate AS DATE)     = CAST(@InvoiceDueDate AS DATE))
+      AND (@PaymentDate    IS NULL OR CAST(MAI.InvoiceDate AS DATE) = CAST(@PaymentDate AS DATE))
+      AND (@CreditTermsName IS NULL OR COALESCE(CT.Name, MAI.Terms) LIKE '%' + @CreditTermsName + '%')
+      AND (@Level1  IS NULL OR ess.Level1Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level1,  ',')))
+      AND (@Level2  IS NULL OR ess.Level2Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level2,  ',')))
+      AND (@Level3  IS NULL OR ess.Level3Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level3,  ',')))
+      AND (@Level4  IS NULL OR ess.Level4Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level4,  ',')))
+      AND (@Level5  IS NULL OR ess.Level5Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level5,  ',')))
+      AND (@Level6  IS NULL OR ess.Level6Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level6,  ',')))
+      AND (@Level7  IS NULL OR ess.Level7Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level7,  ',')))
+      AND (@Level8  IS NULL OR ess.Level8Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level8,  ',')))
+      AND (@Level9  IS NULL OR ess.Level9Id  IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level9,  ',')))
+      AND (@Level10 IS NULL OR ess.Level10Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level10, ',')));
+    /*==================== [MIGRATED AP] end ====================*/
 
     -- Pagination 
     Print @SortColumn

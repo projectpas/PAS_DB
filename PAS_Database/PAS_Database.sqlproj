@@ -4976,6 +4976,7 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCredentialByClientId.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetApiUsage.sql" />
+    <Build Include="dbo\Tables\MigratedAPInvoice.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

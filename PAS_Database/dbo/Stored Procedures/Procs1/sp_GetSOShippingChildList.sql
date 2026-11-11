@@ -31,6 +31,8 @@
     12   24/Aug/2026   Kishor Makwana    [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
     13   09-Sep-2026		Bhargav Saliya		[PN-17859] - Get IsNonStock and StocklineId
     14   05-Nov-2026		Vishal Suthar		[PN-18475] - Canceled shipping lines are returned with IsCanceled = 1 and the pick ticket shows ready again
+    15   11-Nov-2026		Vishal Suthar		[PN-18530] - Pick ticket released by Un-Reserve (0 qty) is not shown as ready again; stockline of a canceled line still shown
+    16   12-Nov-2026		Vishal Suthar		[PN-18532] - Ready to ship first, then latest shipment on top
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
@@ -46,6 +48,7 @@ BEGIN
 
         DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH (NOLOCK) WHERE  ModuleName = 'SalesOrder');
         DECLARE @masterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)
+        SELECT * FROM (
         SELECT DISTINCT
             sopt.SOPickTicketId,
             sos.SalesOrderShippingId,
@@ -97,13 +100,16 @@ BEGIN
             UNION ALL
             -- [PN-18475] Only canceled shipments for this pick ticket: also return it as ready to ship
             SELECT NULL, NULL, NULL, NULL, NULL, NULL
-            WHERE NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderShippingItem] A WITH (NOLOCK) WHERE A.SalesOrderPartId = sop.SalesOrderPartId AND A.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(A.QtyCanceled, 0) = 0)
+            WHERE ISNULL(sopt.QtyToShip, 0) > 0
+              AND NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderShippingItem] A WITH (NOLOCK) WHERE A.SalesOrderPartId = sop.SalesOrderPartId AND A.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(A.QtyCanceled, 0) = 0)
               AND EXISTS (SELECT 1 FROM [dbo].[SalesOrderShippingItem] C WITH (NOLOCK) WHERE C.SalesOrderPartId = sop.SalesOrderPartId AND C.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(C.QtyCanceled, 0) > 0)
         ) sosi
         LEFT JOIN [dbo].[SalesOrderShipping] sos  WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sos.SalesOrderId = sopt.SalesOrderId
 	    INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 	    LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-	    LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+	    OUTER APPLY (SELECT TOP 1 A.StockLineId FROM DBO.SalesOrderStocklineV1Audit A WITH (NOLOCK) -- SO stockline removed by Un-Reserve
+	                 WHERE stk.SalesOrderStocklineId IS NULL AND A.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId ORDER BY A.AuditSalesOrderStocklineId DESC) stka
+	    LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = ISNULL(stk.StockLineId, stka.StockLineId)
 	    LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) ON soc.SalesOrderShippingId = sos.SalesOrderShippingId  
 	    LEFT JOIN DBO.Customer cr WITH (NOLOCK)  on cr.CustomerId = so.CustomerId  
 	    LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.SalesOrderPartId = sop.SalesOrderPartId AND SPI.MasterCompanyId = @masterCompanyId AND ISNULL(SPI.IsDeleted,0) = 0
@@ -129,7 +135,10 @@ BEGIN
         WHERE  sopt.SalesOrderId  = @SalesOrderId
           AND  sop.SalesOrderPartId = @SalesOrderPartId
           AND  sop.ConditionId    = @ConditionId
-          AND  sopt.IsConfirmed   = 1 AND sopt.MasterCompanyId = @masterCompanyId;  -- Avoid ISNULL() to allow index seek
+          AND  sopt.IsConfirmed   = 1 AND sopt.MasterCompanyId = @masterCompanyId  -- Avoid ISNULL() to allow index seek
+        ) X
+        -- Ready to ship first, then the latest shipment on top
+        ORDER BY IIF(X.SalesOrderShippingId IS NULL, 0, 1), X.SalesOrderShippingId DESC, X.SOPickTicketId DESC;
 
     END TRY
     BEGIN CATCH

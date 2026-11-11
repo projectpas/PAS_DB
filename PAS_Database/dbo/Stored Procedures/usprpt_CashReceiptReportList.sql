@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data 
@@ -31,7 +31,7 @@ exec usprpt_CashReceiptReportList @PageNumber=1,@PageSize=2000,@SortColumn=N'Pos
 @LegalEntityName=NULL,@EmployeeId=262,@MasterCompanyId=25,@CreditTermName=NULL
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_CashReceiptReportList]
+CREATE PROCEDURE [dbo].[usprpt_CashReceiptReportList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -404,7 +404,6 @@ BEGIN
 				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
 				  ,CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment,CPD.IsMultiplePaymentMethod
 
-				  --SELECT * FROM #invoiceTmpTable
 			;WITH  Result AS (
 				SELECT DISTINCT
 					CP.ReceiptID,
@@ -617,18 +616,6 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-		PRINT 'ELse'
-
-		--SELECT
-		--			M.ReceiptID, M.ReceiptNo, M.BankAccount, M.PaymentMethod, M.PaymentReference,
-		--			M.PostedDate, M.CustomerName, M.OpenDate, M.baseCurrencyAmount, M.CreatedDate,
-		--			M.[Status], M.CurrencyId, M.GLAccountId, M.EmployeeId,
-		--			M.level1, M.level2, M.level3, M.level4, M.level5,
-		--			M.level6, M.level7, M.level8, M.level9, M.level10,
-		--			M.Level1Id, M.Level2Id, M.Level3Id, M.Level4Id, M.Level5Id,
-		--			M.Level6Id, M.Level7Id, M.Level8Id, M.Level9Id, M.Level10Id,
-		--			M.InvoiceNum, M.InvoiceDate, M.DueDate, M.CustomerId, M.CreditTermName, M.WoSoNum
-		--		FROM #MigratedARTmp M
 
 		INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
 			SELECT CPD.ReceiptId, CPD.CustomerPaymentDetailsId, 'Check', CPD.CustomerId, CU.Name, CU.CustomerCode, SUM(ISNULL(ICP.Amount, 0)), SUM(ISNULL(CPD.AppliedAmount, 0)), SUM(ISNULL(CPD.AmountRem, 0)), ICP.CheckDate, isnull(ICP.CheckNumber, '')
@@ -692,8 +679,6 @@ BEGIN
 			WHERE IVP.InvoiceType IN (3, 4, 5, 7) AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 AND Cp.MasterCompanyId =@MasterCompanyId
 			GROUP BY CP.ReceiptId, CPD.CustomerPaymentDetailsId
 
-			--Select * from #CustomerPaymentDetailsTmp
-
 			INSERT INTO #invoiceTmpTable([ReceiptId], InvoiceNum, InvoiceDate,Amount,InvoicePaymentId,[PaymentType],CreditTermName,WoSoNum)
 			SELECT DISTINCT
 				[IP].[ReceiptId],
@@ -736,8 +721,6 @@ BEGIN
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
 				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WOSONum
 				  		  ,CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment,CPD.IsMultiplePaymentMethod
-
-			--Select * from #invoiceTmpTable
 
 			;WITH Result AS (
 				SELECT DISTINCT

@@ -23,6 +23,7 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter so Non-Stock ItemMaster/Stockline fields populate correctly on the shipping list.
 	8    24/Aug/2026     Kishor Makwana      [PN-17439] - Stopped hardcoding ItemNo to 0 (now uses sop.SequenceNumber) so duplicate Part+Condition lines are distinguishable on the shipping list, matching the real per-line SalesOrderPartId (SOPartId) that this SP already groups by.
+	9    05/Nov/2026     Vishal Suthar       [PN-18475] - Canceled shipping lines are not counted (pick ticket can be shipped again)
  -- EXEC [dbo].[sp_GetSOShippingParentList] 10861
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
@@ -52,7 +53,7 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
-					AND sosi.SOPickTicketId = sopt.SOPickTicketId
+					AND sosi.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(sosi.QtyCanceled, 0) = 0
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
 					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1

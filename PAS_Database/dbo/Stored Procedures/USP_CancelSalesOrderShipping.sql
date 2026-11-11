@@ -13,6 +13,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    05-11-2026   Vishal Suthar		Created
+    2    12-11-2026   Vishal Suthar		Reserved qty is returned in stock UOM (was converted to consume UOM)
 
  EXEC [dbo].[USP_CancelSalesOrderShipping] @SalesOrderShippingId = 1, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 **************************************************************/
@@ -57,10 +58,11 @@ BEGIN
 		SELECT CAST(0 AS BIT) AS IsSuccess, 'Shipping cannot be canceled on a Closed Sales Order.' AS [Message]; RETURN;
 	END
 
-	-- Shipped lines with their stockline / UOM
+	-- Shipped lines with their stockline. QtyShipped and the reserved quantities are in stock UOM;
+	-- QtyConsume (consume UOM) is only for the stockline history, like the Reserve entry
 	SELECT SOSI.[SalesOrderShippingItemId], SOSI.[SalesOrderPartId], SOSI.[QtyShipped], SOPT.[SalesOrderPartStocklineId] AS SalesOrderStocklineId,
 		STK.[StockLineId], STK.[LotId],
-		QtyReserve = CASE WHEN ISNULL(STK.[StockUnitOfMeasure], '') = '' OR ISNULL(STK.[ConsumeUnitOfMeasure], '') = '' OR STK.[StockUnitOfMeasure] = STK.[ConsumeUnitOfMeasure]
+		QtyConsume = CASE WHEN ISNULL(STK.[StockUnitOfMeasure], '') = '' OR ISNULL(STK.[ConsumeUnitOfMeasure], '') = '' OR STK.[StockUnitOfMeasure] = STK.[ConsumeUnitOfMeasure]
 						THEN SOSI.[QtyShipped]
 						ELSE [dbo].[fn_ConvertUOM](SOSI.[QtyShipped], STK.[StockUnitOfMeasure], STK.[ConsumeUnitOfMeasure], 0, @MasterCompanyId) END
 	INTO #CancelItems
@@ -96,23 +98,23 @@ BEGIN
 			-- Back on hand and reserved for the SO (Available stays the same)
 			UPDATE STK SET STK.[Quantity] = ISNULL(STK.[Quantity], 0) + CI.[QtyShipped],
 				STK.[QuantityOnHand] = ISNULL(STK.[QuantityOnHand], 0) + CI.[QtyShipped],
-				STK.[QuantityReserved] = ISNULL(STK.[QuantityReserved], 0) + CI.[QtyReserve],
+				STK.[QuantityReserved] = ISNULL(STK.[QuantityReserved], 0) + CI.[QtyShipped],
 				STK.[UpdatedBy] = @UpdatedBy, STK.[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[Stockline] STK
-			INNER JOIN (SELECT [StockLineId], SUM([QtyShipped]) AS QtyShipped, SUM([QtyReserve]) AS QtyReserve FROM #CancelItems GROUP BY [StockLineId]) CI ON CI.[StockLineId] = STK.[StockLineId];
+			INNER JOIN (SELECT [StockLineId], SUM([QtyShipped]) AS QtyShipped FROM #CancelItems GROUP BY [StockLineId]) CI ON CI.[StockLineId] = STK.[StockLineId];
 
-			UPDATE SRP SET SRP.[QtyToReserve] = ISNULL(SRP.[QtyToReserve], 0) + CI.[QtyReserve],
-				SRP.[TotalReserved] = ISNULL(SRP.[TotalReserved], 0) + CI.[QtyReserve],
+			UPDATE SRP SET SRP.[QtyToReserve] = ISNULL(SRP.[QtyToReserve], 0) + CI.[QtyShipped],
+				SRP.[TotalReserved] = ISNULL(SRP.[TotalReserved], 0) + CI.[QtyShipped],
 				SRP.[PartStatusId] = @PartReserveStatusId, SRP.[UpdatedBy] = @UpdatedBy, SRP.[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[SalesOrderReserveParts] SRP
-			INNER JOIN (SELECT [SalesOrderPartId], [StockLineId], SUM([QtyReserve]) AS QtyReserve FROM #CancelItems GROUP BY [SalesOrderPartId], [StockLineId]) CI
+			INNER JOIN (SELECT [SalesOrderPartId], [StockLineId], SUM([QtyShipped]) AS QtyShipped FROM #CancelItems GROUP BY [SalesOrderPartId], [StockLineId]) CI
 				ON CI.[SalesOrderPartId] = SRP.[SalesOrderPartId] AND CI.[StockLineId] = SRP.[StockLineId]
 			WHERE SRP.[SalesOrderId] = @SalesOrderId;
 
-			UPDATE SOSL SET SOSL.[QtyReserved] = ISNULL(SOSL.[QtyReserved], 0) + CI.[QtyReserve],
+			UPDATE SOSL SET SOSL.[QtyReserved] = ISNULL(SOSL.[QtyReserved], 0) + CI.[QtyShipped],
 				SOSL.[UpdatedBy] = @UpdatedBy, SOSL.[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[SalesOrderStocklineV1] SOSL
-			INNER JOIN (SELECT [SalesOrderStocklineId], SUM([QtyReserve]) AS QtyReserve FROM #CancelItems GROUP BY [SalesOrderStocklineId]) CI ON CI.[SalesOrderStocklineId] = SOSL.[SalesOrderStocklineId];
+			INNER JOIN (SELECT [SalesOrderStocklineId], SUM([QtyShipped]) AS QtyShipped FROM #CancelItems GROUP BY [SalesOrderStocklineId]) CI ON CI.[SalesOrderStocklineId] = SOSL.[SalesOrderStocklineId];
 
 			-- Keep the shipping lines for audit, but no longer count them as shipped
 			UPDATE SOSI SET SOSI.[QtyCanceled] = SOSI.[QtyShipped], SOSI.[QtyShipped] = 0, SOSI.[UpdatedBy] = @UpdatedBy, SOSI.[UpdatedDate] = GETUTCDATE()
@@ -136,7 +138,7 @@ BEGIN
 
 			DECLARE @LoopId INT, @StockLineId BIGINT, @Qty DECIMAL(18, 6), @SalesOrderPartId BIGINT, @PartStatusId INT;
 
-			SELECT ROW_NUMBER() OVER (ORDER BY [SalesOrderShippingItemId]) AS RowId, [StockLineId], [QtyShipped] INTO #History FROM #CancelItems;
+			SELECT ROW_NUMBER() OVER (ORDER BY [SalesOrderShippingItemId]) AS RowId, [StockLineId], [QtyConsume] AS [QtyShipped] INTO #History FROM #CancelItems;
 			SELECT @LoopId = MAX(RowId) FROM #History;
 			WHILE (@LoopId > 0)
 			BEGIN

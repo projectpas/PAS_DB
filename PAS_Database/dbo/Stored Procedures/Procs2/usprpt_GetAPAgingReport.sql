@@ -31,10 +31,13 @@
     13   14-OCT-2026    RAJESH GAMI        [PN-17022] - Added 'Show PO Num' view (@Typeid = 3): one row per PO with poCost (PurchaseOrderPart.ExtendedCost) and poCost header filter; Summary (1) and Detail (2) unchanged
     14   15-OCT-2026    RAJESH GAMI        [PN-17022] - Global 'Invoice Num(Optional)' filter now applied to Detail / Show PO Num (matches Invoice Num or Doc Num)
     15   16-OCT-2026    RAJESH GAMI        [PN-16277] - Aging buckets / DaysPastDue / DueDate use the stored DueDate (RR, NonPO) and fall back to InvoiceDate + Credit Terms NetDays only when DueDate is NULL; Excel/CSV DueDate now matches the grid
+    16   03-NOV-2026    -                  Added migrated AP invoices (dbo.MigratedAPInvoice) to Summary / Detail / Show PO Num as reference rows,
+                                           with IsMigrated flag (1 = migrated, 0 = live), DocType 'MIGRATED-INV' and optional 'isMigrated' filter
+                                           ('' = all, '1' = migrated only, '0' = live only). Zero-balance migrated rows are still shown.
 
-  --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
+  -- [dbo].[usprpt_GetAPAgingReport] 1,500,25,null,null,1
 ***************************************************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
+CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
     @PageNumber   INT         = 1,      
     @PageSize     INT         = NULL,      
     @mastercompanyid INT,      
@@ -80,7 +83,8 @@ BEGIN
         @Terms                       VARCHAR(MAX) = NULL,
         @DueDate                     DATETIME     = NULL,
 		@POReference                 VARCHAR(MAX) = NULL,
-		@PoCost                      VARCHAR(MAX) = NULL;
+		@PoCost                      VARCHAR(MAX) = NULL,
+		@IsMigratedFilter            VARCHAR(10)  = NULL;   /* [16] '' = all, '1' = migrated only, '0' = live only */
 
     BEGIN TRY
 
@@ -94,6 +98,7 @@ BEGIN
             @MSModuleId      INT    = 0,
             @CMMSModuleID    BIGINT = 61,
             @invoiceNum      VARCHAR(100) = '';
+			--SET @IsMigratedFilter = '1';
 
         SELECT @PostStatusId    = ManualJournalStatusId FROM dbo.ManualJournalStatus  WHERE Name = 'Posted';
         SELECT @CMPostedStatusId = Id                   FROM dbo.CreditMemoStatus     WHERE Name = 'Posted';
@@ -137,8 +142,15 @@ BEGIN
             @DueDate     = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'dueDate'      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @DueDate     END,
 			@invoiceNum   = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'Invoice Num(Optional)' THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @invoiceNum   END,
 			@POReference  = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poReference'    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @POReference END,
-			@PoCost       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poCost'          THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @PoCost       END
+			@PoCost       = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'poCost'          THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @PoCost       END,
+			@IsMigratedFilter = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)') = 'isMigratedFilter'  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @IsMigratedFilter END
         FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
+
+        --SET @IsMigratedFilter = NULLIF(LTRIM(RTRIM(ISNULL(@IsMigratedFilter,''))), '');
+
+		--SELECT @IsMigratedFilter
+
+		--SET @IsMigratedFilter = '1';
 
         /* ════════════════════════════════════════════════════════
            SHARED HELPER MACRO (comment — inline per source below)
@@ -158,6 +170,78 @@ BEGIN
 
            DaysPastDue: MAX(0, DATEDIFF(DAY, DueDate, TODAY))
         ════════════════════════════════════════════════════════ */
+
+        /* ════════════════════════════════════════════════════════
+           [16] MIGRATED AP INVOICES (reference rows)
+           Built once and reused by the count, Summary and Detail branches.
+           Same Vendor / Tag Type / Level filters and same aging rule
+           (DueDate vs GETUTCDATE(), DueDate falls back to InvoiceDate).
+           Zero-balance rows are NOT excluded, so already-paid migrated
+           invoices still show for reference (they add 0 to balances/buckets).
+        ════════════════════════════════════════════════════════ */
+        IF OBJECT_ID(N'tempdb..#tempMigratedBase') IS NOT NULL DROP TABLE #tempMigratedBase;
+
+        SELECT m.MigratedAPInvoiceId,
+               m.VendorId,
+               m.VendorName,
+               m.VendorCode,
+               m.Currency,
+               m.PONumber,
+               m.InvoiceDate,
+               --m.InvoiceNumber,
+               m.InvoiceNumber,
+               m.Terms,
+               m.FXRate,
+               ISNULL(m.InvoiceAmount, 0) AS InvoiceAmount,
+               x.Bal,
+               x.DueDt,
+               x.DPD,
+               m.ManagementStructureId,
+               m.MasterCompanyId,
+               COALESCE(UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]), UPPER(m.LE))  AS level1,
+               COALESCE(UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]), UPPER(m.DIV)) AS level2,
+               UPPER(CAST(MSL3.Code  AS VARCHAR(250)) + ' - ' + MSL3.[Description])  AS level3,
+               UPPER(CAST(MSL4.Code  AS VARCHAR(250)) + ' - ' + MSL4.[Description])  AS level4,
+               UPPER(CAST(MSL5.Code  AS VARCHAR(250)) + ' - ' + MSL5.[Description])  AS level5,
+               UPPER(CAST(MSL6.Code  AS VARCHAR(250)) + ' - ' + MSL6.[Description])  AS level6,
+               UPPER(CAST(MSL7.Code  AS VARCHAR(250)) + ' - ' + MSL7.[Description])  AS level7,
+               UPPER(CAST(MSL8.Code  AS VARCHAR(250)) + ' - ' + MSL8.[Description])  AS level8,
+               UPPER(CAST(MSL9.Code  AS VARCHAR(250)) + ' - ' + MSL9.[Description])  AS level9,
+               UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS level10
+        INTO #tempMigratedBase
+        FROM dbo.MigratedAPInvoice m WITH (NOLOCK)
+        LEFT JOIN dbo.EntityStructureSetup     ES    WITH (NOLOCK) ON ES.EntityStructureId = m.ManagementStructureId
+        LEFT JOIN dbo.ManagementStructureLevel MSL1  WITH (NOLOCK) ON MSL1.ID  = ES.Level1Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL2  WITH (NOLOCK) ON MSL2.ID  = ES.Level2Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL3  WITH (NOLOCK) ON MSL3.ID  = ES.Level3Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL4  WITH (NOLOCK) ON MSL4.ID  = ES.Level4Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL5  WITH (NOLOCK) ON MSL5.ID  = ES.Level5Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL6  WITH (NOLOCK) ON MSL6.ID  = ES.Level6Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL7  WITH (NOLOCK) ON MSL7.ID  = ES.Level7Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL8  WITH (NOLOCK) ON MSL8.ID  = ES.Level8Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL9  WITH (NOLOCK) ON MSL9.ID  = ES.Level9Id
+        LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSL10.ID = ES.Level10Id
+        CROSS APPLY (
+            SELECT Bal   = ISNULL(m.BalanceAmount, 0) - ISNULL(m.PaidAmount, 0),
+                   DueDt = COALESCE(m.DueDate, m.InvoiceDate),
+                   DPD   = ISNULL(DATEDIFF(DAY, COALESCE(m.DueDate, m.InvoiceDate), GETUTCDATE()), 0)
+        ) x
+        WHERE m.MasterCompanyId = @mastercompanyid
+          AND m.IsDeleted = 0 AND m.IsActive = 1
+          AND ISNULL(@IsMigratedFilter, '') <> '0'
+          AND m.VendorId = ISNULL(@vendorId, m.VendorId)
+          AND (m.InvoiceDate IS NULL OR CAST(m.InvoiceDate AS DATE) <= CAST(@todate AS DATE))
+          AND (ISNULL(@tagtype,'') = '' OR ES.OrganizationTagTypeId IN (SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))
+          AND (ISNULL(@Level1,'')  = '' OR ES.Level1Id  IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+          AND (ISNULL(@Level2,'')  = '' OR ES.Level2Id  IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+          AND (ISNULL(@Level3,'')  = '' OR ES.Level3Id  IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+          AND (ISNULL(@Level4,'')  = '' OR ES.Level4Id  IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+          AND (ISNULL(@Level5,'')  = '' OR ES.Level5Id  IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+          AND (ISNULL(@Level6,'')  = '' OR ES.Level6Id  IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+          AND (ISNULL(@Level7,'')  = '' OR ES.Level7Id  IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+          AND (ISNULL(@Level8,'')  = '' OR ES.Level8Id  IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+          AND (ISNULL(@Level9,'')  = '' OR ES.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+          AND (ISNULL(@Level10,'') = '' OR ES.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,',')));
 
         /* ── Page-size count branch ─────────────────────────── */
         IF ISNULL(@PageSize, 0) = 0
@@ -278,6 +362,7 @@ BEGIN
                 UNION ALL SELECT VendorCreditMemoId  FROM #tempCreditMemoCount
                 UNION ALL SELECT BillingInvoicingId  FROM #tempManualJECount
                 UNION ALL SELECT NonPOInvoiceId      FROM #tempNonPODetailsCount
+                UNION ALL SELECT MigratedAPInvoiceId FROM #tempMigratedBase          /* [16] */
             ) TEMP;
         END
 
@@ -633,6 +718,53 @@ BEGIN
               AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
               AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,',')));
 
+            /* ── [16] Flag live sources (column appended at the end so SELECT * order is kept) ── */
+            ALTER TABLE #tempReceivingReconciliation ADD IsMigrated BIT NOT NULL DEFAULT 0;
+            ALTER TABLE #tempCreditMemo              ADD IsMigrated BIT NOT NULL DEFAULT 0;
+            ALTER TABLE #tempManualJE                ADD IsMigrated BIT NOT NULL DEFAULT 0;
+            ALTER TABLE #tempNonPODetails            ADD IsMigrated BIT NOT NULL DEFAULT 0;
+
+            /* ── [16] Migrated AP: same column order as #tempReceivingReconciliation ── */
+            SELECT
+                mb.VendorId,
+                ISNULL(mb.VendorName,'')            AS vendorName,
+                ISNULL(mb.VendorCode,'')            AS vendorCode,
+                mb.Currency                         AS currencyCode,
+                mb.InvoiceAmount                    AS BalanceAmount,
+                mb.Bal                              AS CurrentlAmount,
+                mb.InvoiceAmount - mb.Bal           AS PaymentAmount,
+                mb.InvoiceNumber                    AS InvoiceNo,
+                mb.InvoiceNumber                    AS invoiceNumber,
+                CAST(mb.InvoiceDate AS DATETIME)    AS InvoiceDate,
+                0                                   AS NetDays,
+                CASE WHEN mb.DPD <= 0               THEN mb.Bal ELSE 0 END AS Amountpaidbylessthen0days,
+                CASE WHEN mb.DPD BETWEEN 1  AND 30  THEN mb.Bal ELSE 0 END AS Amountpaidby30days,
+                CASE WHEN mb.DPD BETWEEN 31 AND 60  THEN mb.Bal ELSE 0 END AS Amountpaidby60days,
+                CASE WHEN mb.DPD BETWEEN 61 AND 90  THEN mb.Bal ELSE 0 END AS Amountpaidby90days,
+                CASE WHEN mb.DPD BETWEEN 91 AND 120 THEN mb.Bal ELSE 0 END AS Amountpaidby120days,
+                CASE WHEN mb.DPD > 120              THEN mb.Bal ELSE 0 END AS Amountpaidbymorethan120days,
+                mb.ManagementStructureId,
+                'MIGRATED-INV'                      AS DocType,
+                ''                                  AS vendorRef,
+                ''                                  AS Salesperson,
+                mb.Terms                            AS Terms,
+                CAST(CAST(ISNULL(mb.FXRate,1) AS DECIMAL(18,2)) AS VARCHAR(30)) AS FixRateAmount,
+                mb.InvoiceAmount                    AS InvoiceAmount,
+                0                                   AS cmAmount,
+                0                                   AS CreditMemoAmount,
+                CAST(mb.DueDt AS DATETIME)          AS DueDate,
+                mb.level1, mb.level2, mb.level3, mb.level4, mb.level5,
+                mb.level6, mb.level7, mb.level8, mb.level9, mb.level10,
+                mb.MasterCompanyId,
+                0                                   AS IsCreditMemo,
+                0                                   AS StatusId,
+                mb.InvoiceAmount - mb.Bal           AS InvoicePaidAmount,   /* so Balance = InvoiceAmount - Paid = Bal */
+                CASE WHEN mb.DPD > 0 THEN mb.DPD ELSE 0 END AS DaysPastDue,
+                ISNULL(mb.PONumber,'')              AS poReference,
+                CAST(1 AS BIT)                      AS IsMigrated
+            INTO #tempMigrated
+            FROM #tempMigratedBase mb;
+
 			;WITH CTE AS (   
                SELECT * FROM #tempReceivingReconciliation
 			   UNION ALL
@@ -640,10 +772,12 @@ BEGIN
 			   UNION ALL
 			   SELECT * FROM #tempManualJE
 			   UNION ALL
-			   SELECT * FROM #tempNonPODetails),    
+			   SELECT * FROM #tempNonPODetails
+			   UNION ALL
+			   SELECT * FROM #tempMigrated),          /* [16] */
 			Result AS(      
 			SELECT DISTINCT       
-				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY v.vendorId ASC) rNo,
+				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.IsMigrated,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY v.vendorId ASC) rNo,
 				(CTE.VendorId) AS VendorId ,      
 				UPPER((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
 				UPPER((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
@@ -659,6 +793,7 @@ BEGIN
 				UPPER(CTE.level6) AS level6,UPPER(CTE.level7) AS level7,  UPPER(CTE.level8) AS level8, UPPER(CTE.level9) AS level9,UPPER(CTE.level10) AS level10,CTE.MasterCompanyId,0 AS cmAmount,
 				DaysPastDue				
 			   ,'' poReference
+			   ,CTE.IsMigrated                                                 /* [16] */
 			  FROM CTE AS CTE WITH (NOLOCK)       
 			  INNER JOIN dbo.Vendor AS v WITH (NOLOCK) ON v.VendorId = CTE.VendorId    
 			  WHERE V.MasterCompanyId = @MasterCompanyId 
@@ -673,6 +808,7 @@ BEGIN
 				AND (ISNULL(@Amountpaidby120days,'') ='' OR Amountpaidby120days LIKE '%' + @Amountpaidby120days + '%')
 				AND (ISNULL(@Amountpaidbymorethan120days,'') ='' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
 				AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
+				AND (@IsMigratedFilter IS NULL OR CTE.IsMigrated = CAST(@IsMigratedFilter AS BIT))   /* [16] */
 
 	   ) , ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)   
 	   ,WithTotal (MastercompanyId, 
@@ -707,6 +843,7 @@ BEGIN
 			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount
 			,DaysPastDue
 			,UPPER(poReference)poReference 
+			,IsMigrated                                                        /* [16] */
 			
 	   INTO #TempResult1 FROM  Result FC
 	   INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
@@ -715,9 +852,10 @@ BEGIN
 				TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount
 				,DaysPastDue
 				,poReference
+				,IsMigrated                                                    /* [16] */
 		;WITH cteFinal AS (
 			  SELECT *,  
-				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY CTE.vendorId ASC) rNo
+				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.IsMigrated,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY CTE.vendorId ASC) rNo
 			  FROM #TempResult1 CTE
 			)
 		SELECT	
@@ -736,13 +874,15 @@ BEGIN
 				TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
 				TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,cmAmount
 				,CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/(MAX(ISNULL(FC.rNo,1))))) AS DaysPastDue,
-				poReference
+				poReference,
+				IsMigrated                                                     /* [16] */
 				--,DaysPastDue
 			
 	   INTO #TempResult1Final FROM  cteFinal FC
 	   GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
 				,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
 				TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount,poReference
+				,IsMigrated                                                    /* [16] */
 				--,DaysPastDue
 
 		SELECT @Count = COUNT(VendorId) FROM #TempResult1Final     
@@ -762,6 +902,7 @@ BEGIN
 		TotalBalanceAmount, TotalAmountpaidbylessthen0days, 
 		TotalAmountpaidby30days, TotalAmountpaidby60days, TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount,DaysPastDue
 		,poReference
+		,IsMigrated                                                            /* [16] */
 	
 		FROM #TempResult1Final 
 		ORDER BY  					 
@@ -786,7 +927,9 @@ BEGIN
 				CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='poReference') THEN poReference END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='poReference') THEN poReference END DESC
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='poReference') THEN poReference END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='isMigrated') THEN IsMigrated END ASC,        /* [16] */
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='isMigrated') THEN IsMigrated END DESC        /* [16] */
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
         END
         ELSE
@@ -1143,7 +1286,55 @@ BEGIN
 			  AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
 			  AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10,',')));
 
-			/* ── CTE + final output (unchanged from original) ── */
+			/* ── [16] Flag live sources (column appended at the end so SELECT * order is kept) ── */
+			ALTER TABLE #tempReceivingReconciliationElse ADD IsMigrated BIT NOT NULL DEFAULT 0;
+			ALTER TABLE #tempCreditMemoElse              ADD IsMigrated BIT NOT NULL DEFAULT 0;
+			ALTER TABLE #tempManualJEElse                ADD IsMigrated BIT NOT NULL DEFAULT 0;
+			ALTER TABLE #tempNonPODetailsElse            ADD IsMigrated BIT NOT NULL DEFAULT 0;
+
+			/* ── [16] Migrated AP: same column order as #tempReceivingReconciliationElse ── */
+			SELECT
+				mb.VendorId,
+				ISNULL(mb.VendorName,'')            AS vendorName,
+				ISNULL(mb.VendorCode,'')            AS vendorCode,
+				mb.Currency                         AS currencyCode,
+				mb.InvoiceAmount                    AS BalanceAmount,
+				mb.Bal                              AS CurrentlAmount,
+				mb.InvoiceAmount - mb.Bal           AS PaymentAmount,
+				mb.InvoiceNumber                    AS InvoiceNo,
+				mb.InvoiceNumber                    AS invoiceNumber,
+				CAST(mb.InvoiceDate AS DATETIME)    AS InvoiceDate,
+				0                                   AS NetDays,
+				CASE WHEN mb.DPD <= 0               THEN mb.Bal ELSE 0 END AS Amountpaidbylessthen0days,
+				CASE WHEN mb.DPD BETWEEN 1  AND 30  THEN mb.Bal ELSE 0 END AS Amountpaidby30days,
+				CASE WHEN mb.DPD BETWEEN 31 AND 60  THEN mb.Bal ELSE 0 END AS Amountpaidby60days,
+				CASE WHEN mb.DPD BETWEEN 61 AND 90  THEN mb.Bal ELSE 0 END AS Amountpaidby90days,
+				CASE WHEN mb.DPD BETWEEN 91 AND 120 THEN mb.Bal ELSE 0 END AS Amountpaidby120days,
+				CASE WHEN mb.DPD > 120              THEN mb.Bal ELSE 0 END AS Amountpaidbymorethan120days,
+				mb.ManagementStructureId,
+				'MIGRATED-INV'                      AS DocType,
+				''                                  AS vendorRef,
+				''                                  AS Salesperson,
+				mb.Terms                            AS Terms,
+				CAST(CAST(ISNULL(mb.FXRate,1) AS DECIMAL(18,2)) AS VARCHAR(30)) AS FixRateAmount,
+				mb.InvoiceAmount                    AS InvoiceAmount,
+				0                                   AS cmAmount,
+				0                                   AS CreditMemoAmount,
+				CAST(mb.DueDt AS DATETIME)          AS DueDate,
+				mb.level1, mb.level2, mb.level3, mb.level4, mb.level5,
+				mb.level6, mb.level7, mb.level8, mb.level9, mb.level10,
+				mb.MasterCompanyId,
+				0                                   AS IsCreditMemo,
+				0                                   AS StatusId,
+				mb.InvoiceAmount - mb.Bal           AS InvoicePaidAmount,   /* so Balance = InvoiceAmount - Paid = Bal */
+				CASE WHEN mb.DPD > 0 THEN mb.DPD ELSE 0 END AS DaysPastDue,
+				ISNULL(mb.PONumber,'')              AS poReference,
+				CAST(0 AS DECIMAL(18,6))            AS poCost,
+				CAST(1 AS BIT)                      AS IsMigrated
+			INTO #tempMigratedElse
+			FROM #tempMigratedBase mb;
+
+			/* ── CTE + final output ── */
 			;WITH CTE AS (
 				SELECT * FROM #tempReceivingReconciliationElse
 				UNION ALL
@@ -1152,6 +1343,8 @@ BEGIN
 				SELECT * FROM #tempManualJEElse
 				UNION ALL
 				SELECT * FROM #tempNonPODetailsElse
+				UNION ALL
+				SELECT * FROM #tempMigratedElse          /* [16] */
 			),
 			Result AS (
 				SELECT DISTINCT
@@ -1203,7 +1396,8 @@ BEGIN
 					CTE.MasterCompanyId,
 					CTE.DaysPastDue,
 					CTE.poReference,
-					CTE.poCost
+					CTE.poCost,
+					CTE.IsMigrated                                             /* [16] */
 				FROM CTE WITH (NOLOCK)
 				INNER JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = CTE.VendorId
 				WHERE V.MasterCompanyId = @MasterCompanyId
@@ -1224,6 +1418,7 @@ BEGIN
 				  AND (ISNULL(@POReference,'') ='' OR CTE.poReference LIKE '%' + @POReference + '%')
 				  AND (ISNULL(@PoCost,'') = '' OR CTE.poCost LIKE '%' + @PoCost + '%')
 				  AND (ISNULL(@invoiceNum,'') = '' OR CTE.invoiceNumber LIKE '%' + @invoiceNum + '%' OR CTE.InvoiceNo LIKE '%' + @invoiceNum + '%') -- [PN-17022] global 'Invoice Num(Optional)' filter (Detail / Show PO Num)
+				  AND (@IsMigratedFilter IS NULL OR CTE.IsMigrated = CAST(@IsMigratedFilter AS BIT))   /* [16] */
 			),
 			ResultCount AS (SELECT COUNT(VendorId) AS totalItems FROM Result),
 			/* [PN-17022] Show PO Num repeats an invoice once per PO, so totals count each invoice only once */
@@ -1288,6 +1483,7 @@ BEGIN
 				FC.DaysPastDue,
 				FC.poReference,
 				FORMAT(ISNULL(FC.poCost,0), 'N','en-us') AS poCost,
+				FC.IsMigrated,                                                 /* [16] */
 				(SELECT totalItems FROM ResultCount) AS TotalRecordsCount
 			FROM Result FC
 			INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
@@ -1328,7 +1524,9 @@ BEGIN
 				CASE WHEN @SortOrder=1  AND @SortColumn='poReference'                 THEN FC.poReference                 END ASC,
 				CASE WHEN @SortOrder=-1 AND @SortColumn='poReference'                 THEN FC.poReference                 END DESC,
 				CASE WHEN @SortOrder=1  AND @SortColumn='poCost'                      THEN FC.poCost                      END ASC,
-				CASE WHEN @SortOrder=-1 AND @SortColumn='poCost'                      THEN FC.poCost                      END DESC
+				CASE WHEN @SortOrder=-1 AND @SortColumn='poCost'                      THEN FC.poCost                      END DESC,
+				CASE WHEN @SortOrder=1  AND @SortColumn='isMigrated'                  THEN FC.IsMigrated                  END ASC,   /* [16] */
+				CASE WHEN @SortOrder=-1 AND @SortColumn='isMigrated'                  THEN FC.IsMigrated                  END DESC   /* [16] */
 			OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
 		END 

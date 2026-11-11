@@ -4978,6 +4978,10 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCredentialByClientId.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetApiUsage.sql" />
+    <Build Include="dbo\Tables\MigratedAPInvoice.sql" />
+    <Build Include="dbo\Tables\MigratedARInvoice.sql" />
+    <Build Include="dbo\Tables\BAG_AR_Upload.sql" />
+    <Build Include="dbo\Tables\BAG_AP_Uploads.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

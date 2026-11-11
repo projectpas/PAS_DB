@@ -36,3 +36,19 @@
     CONSTRAINT [PK_MigratedARInvoice] PRIMARY KEY CLUSTERED ([MigratedARInvoiceId] ASC)
 );
 
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_MigratedARInvoice_SourceKey]
+    ON [dbo].[MigratedARInvoice]([MasterCompanyId] ASC, [SourceKey] ASC) WHERE ([SourceKey] IS NOT NULL);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_MigratedARInvoice_CustomerId]
+    ON [dbo].[MigratedARInvoice]([CustomerId] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_MigratedARInvoice_MasterCompany_Report]
+    ON [dbo].[MigratedARInvoice]([MasterCompanyId] ASC, [IsActive] ASC, [IsDeleted] ASC, [BalanceAmount] ASC)
+    INCLUDE([CustomerId], [ManagementStructureId], [InvoiceDate], [PaymentDate], [PaidAmount], [InvoiceAmount], [CurrencyId]);
+

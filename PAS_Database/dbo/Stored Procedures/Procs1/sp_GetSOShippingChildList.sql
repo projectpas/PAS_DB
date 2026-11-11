@@ -30,6 +30,7 @@
 	11	20/July/2026 RAJESH GAMI     [PN-17350] - Removed IsNonStock=0 filter so Non-Stock stockline fields populate correctly on the shipping list.
     12   24/Aug/2026   Kishor Makwana    [PN-17439] - Fixed @SalesOrderPartId filter to match the real SalesOrderPartV1 PK (sop.SalesOrderPartId) instead of ItemMasterId, and stopped hardcoding ItemNo to 0, so duplicate Part+Condition lines (different SequenceNumber) no longer show each other's shipping/pick ticket rows.
     13   09-Sep-2026		Bhargav Saliya		[PN-17859] - Get IsNonStock and StocklineId
+    14   05-Nov-2026		Vishal Suthar		[PN-18475] - Canceled shipping lines are returned with IsCanceled = 1 and the pick ticket shows ready again
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7
 **********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
@@ -83,11 +84,22 @@ BEGIN
             Stk.SizeHeight,
             ISNULL(sosi.UPSPdfPath, '') AS UpsPdfPath,
             sl.StockLineId,
-            ISNULL(sl.IsNonStock, 0) AS IsNonStock 
+            ISNULL(sl.IsNonStock, 0) AS IsNonStock,
+            CAST(IIF(ISNULL(sosi.QtyCanceled, 0) > 0, 1, 0) AS BIT) AS IsCanceled
         FROM [dbo].[SOPickTicket] sopt WITH (NOLOCK)
         INNER JOIN [dbo].[SalesOrderPartV1] sop  WITH (NOLOCK) ON sop.SalesOrderId    = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
         LEFT JOIN [dbo].[SalesOrderStocklineV1] stk  WITH (NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-        LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId AND sosi.SOPickTicketId   = sopt.SOPickTicketId
+        OUTER APPLY
+        (
+            SELECT I.SalesOrderShippingId, I.SalesOrderPartId, I.QtyShipped, I.QtyCanceled, I.FedexPdfPath, I.UPSPdfPath
+            FROM [dbo].[SalesOrderShippingItem] I WITH (NOLOCK)
+            WHERE I.SalesOrderPartId = sop.SalesOrderPartId AND I.SOPickTicketId = sopt.SOPickTicketId
+            UNION ALL
+            -- [PN-18475] Only canceled shipments for this pick ticket: also return it as ready to ship
+            SELECT NULL, NULL, NULL, NULL, NULL, NULL
+            WHERE NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderShippingItem] A WITH (NOLOCK) WHERE A.SalesOrderPartId = sop.SalesOrderPartId AND A.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(A.QtyCanceled, 0) = 0)
+              AND EXISTS (SELECT 1 FROM [dbo].[SalesOrderShippingItem] C WITH (NOLOCK) WHERE C.SalesOrderPartId = sop.SalesOrderPartId AND C.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(C.QtyCanceled, 0) > 0)
+        ) sosi
         LEFT JOIN [dbo].[SalesOrderShipping] sos  WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sos.SalesOrderId = sopt.SalesOrderId
 	    INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 	    LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  

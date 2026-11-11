@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data 
@@ -21,15 +21,17 @@
 	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
 	6	 19 FEB 2026		RAJESH GAMI  		Resolve PaymentMethod issue
 	7	 11 NOV 2026		HEMANT SALIYA  		Include closed migrated AR records (MigratedARInvoice)
-exec usprpt_CashReceiptReportList @PageNumber=1,@PageSize=20,@SortColumn=N'PostedDate',@SortOrder=-1,
-@GlobalFilter=N'',@ViewType=N'Summary',@FromDate='2026-10-11 00:00:00',@ToDate='2026-11-11 00:00:00',
+
+exec usprpt_CashReceiptReportList @PageNumber=1,@PageSize=2000,@SortColumn=N'PostedDate',@SortOrder=-1,
+@GlobalFilter=N'',@ViewType=N'Summary',@FromDate='2020-10-11 00:00:00',@ToDate='2026-11-11 00:00:00',
 @CustomerId=NULL,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@PaymentMethod=NULL,@PaymentReference=N'',
 @PostedDate=NULL,@BaseCurrency=NULL,@BaseCurrencyAmount=NULL,@InvoiceNum=N'',@InvoiceDate=NULL,@DueDate=NULL,
 @BankAccount=NULL,@GlAccountNum=NULL,@Employee=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,
 @level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,
 @LegalEntityName=NULL,@EmployeeId=262,@MasterCompanyId=25,@CreditTermName=NULL
+
 **************************************************************/
-CREATE       PROCEDURE [dbo].[usprpt_CashReceiptReportList]
+CREATE PROCEDURE [dbo].[usprpt_CashReceiptReportList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -227,7 +229,7 @@ BEGIN
 			DROP TABLE #MigratedARTmp
 
 		SELECT
-			-CAST(MAR.MigratedARInvoiceId AS BIGINT)                                                    AS ReceiptID,
+			CAST(MAR.MigratedARInvoiceId AS BIGINT)                                                    AS ReceiptID,
 			CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAR.ReceiptNo)), ''), 'MIGRATED') AS VARCHAR(50))         AS ReceiptNo,
 			CAST(MAR.BankAccount AS VARCHAR(200))                                                       AS BankAccount,
 			CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAR.PaymentMethod)), ''), @MigratedPaymentMethod) AS VARCHAR(100)) AS PaymentMethod,
@@ -242,7 +244,7 @@ BEGIN
 			CAST('Posted' AS VARCHAR(50))                                                               AS [Status],
 			ISNULL(MAR.CurrencyId, 0)                                                                   AS CurrencyId,
 			MAR.GLAccountId                                                                             AS GLAccountId,
-			CAST(NULL AS BIGINT)                                                                        AS EmployeeId,
+			CAST(@EmployeeId AS BIGINT)                                                                        AS EmployeeId,
 			UPPER(MSL1.Code)  AS level1,
 			UPPER(MSL2.Code)  AS level2,
 			UPPER(MSL3.Code)  AS level3,
@@ -296,6 +298,7 @@ BEGIN
 
 		IF(ISNULL(@ViewType, '') = 'Details')
 		BEGIN
+			PRINT 'Details'
 			INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
 			SELECT CPD.ReceiptId, CPD.CustomerPaymentDetailsId, 'Check', CPD.CustomerId, CU.Name, CU.CustomerCode, SUM(ISNULL(ICP.Amount, 0)), SUM(ISNULL(CPD.AppliedAmount, 0)), SUM(ISNULL(CPD.AmountRem, 0)), ICP.CheckDate, isnull(ICP.CheckNumber, '')
 			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
@@ -401,7 +404,6 @@ BEGIN
 				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
 				  ,CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment,CPD.IsMultiplePaymentMethod
 
-				  --SELECT * FROM #invoiceTmpTable
 			;WITH  Result AS (
 				SELECT DISTINCT
 					CP.ReceiptID,
@@ -614,7 +616,6 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-
 
 		INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
 			SELECT CPD.ReceiptId, CPD.CustomerPaymentDetailsId, 'Check', CPD.CustomerId, CU.Name, CU.CustomerCode, SUM(ISNULL(ICP.Amount, 0)), SUM(ISNULL(CPD.AppliedAmount, 0)), SUM(ISNULL(CPD.AmountRem, 0)), ICP.CheckDate, isnull(ICP.CheckNumber, '')

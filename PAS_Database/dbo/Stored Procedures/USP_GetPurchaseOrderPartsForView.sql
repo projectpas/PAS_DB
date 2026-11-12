@@ -26,6 +26,7 @@
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
 	11   01/Oct/2026   RAJESH GAMI		[PN-18183] (Opr=2) Qty Received now from Stockline.Quantity (Stock UOM) instead of SUM(StocklineDraft.Quantity) (Purchase UOM). Fixes 0 / full qty shown on partial receipts and Ext. Cost mixing Purchase UOM qty with Stock UOM cost
 	12   01/Oct/2026   RAJESH GAMI		[PN-18183] (Opr=1) PO part list also taken from Stockline / AssetInventory (not only linked drafts), so a partially received part shows in the Receiving tab before the remaining qty is received
+	13   11/Nov/2026   Kishor Makwana	[PN-18527] (Opr=2) also returns the stockline's own PN / description / IsSubComponent - a Sub Component stockline created at receiving keeps the PO references of the main stockline and has its own PN; also returns its Time / Cycle entered at receiving (HasTimeCycle, TcCyclesSinceNew / OVH, TcTimeSinceNew / OVH) and lists main stocklines before Sub Component stocklines
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12855,0,3
@@ -188,6 +189,15 @@ BEGIN
 			MD.[LastMSLevel],
 			MD.[AllMSlevels],
 			SL.[StockLineNumber],
+			SL.[PartNumber] AS [StocklinePartNumber],
+			SL.[PNDescription] AS [StocklinePartDescription],
+			SL.[IsSubComponent],
+			-- [PN-18527] Time / Cycle entered at receiving for a Sub Component stockline (StocklineTimeCycleHistory 'Receiving' entry); SN -> Since New, SO -> Since OVH
+			CASE WHEN TC.[StocklineTimeCycleHistoryId] IS NULL THEN CAST(0 AS BIT) ELSE CAST(1 AS BIT) END AS [HasTimeCycle],
+			CAST(ISNULL(TC.[TotalCSN], 0) AS INT) AS [TcCyclesSinceNew],
+			CAST(ISNULL(TC.[TotalCSO], 0) AS INT) AS [TcCyclesSinceOVH],
+			CASE WHEN ISNULL(TC.[TotalTSN], 0) < 10 THEN '0' ELSE '' END + CAST(CAST(ISNULL(TC.[TotalTSN], 0) AS INT) AS VARCHAR(10)) + ':' + CASE WHEN ISNULL(TC.[TotalTSNMM], 0) < 10 THEN '0' ELSE '' END + CAST(CAST(ISNULL(TC.[TotalTSNMM], 0) AS INT) AS VARCHAR(10)) AS [TcTimeSinceNew],
+			CASE WHEN ISNULL(TC.[TotalTSO], 0) < 10 THEN '0' ELSE '' END + CAST(CAST(ISNULL(TC.[TotalTSO], 0) AS INT) AS VARCHAR(10)) + ':' + CASE WHEN ISNULL(TC.[TotalTSOMM], 0) < 10 THEN '0' ELSE '' END + CAST(CAST(ISNULL(TC.[TotalTSOMM], 0) AS INT) AS VARCHAR(10)) AS [TcTimeSinceOVH],
 			SL.[ControlNumber],
 			SL.[IdNumber],
             SL.[SerialNumber],		
@@ -276,7 +286,10 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
+		OUTER APPLY (SELECT TOP 1 H.* FROM [dbo].[StocklineTimeCycleHistory] H WITH(NOLOCK) WHERE H.[StocklineId] = SL.[StockLineId] AND H.[EntryType] = 'Receiving' AND ISNULL(H.[IsDeleted], 0) = 0 ORDER BY H.[StocklineTimeCycleHistoryId] DESC) TC
 		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0 AND ISNULL(SL.IsFinishGood, 0) = 0
+		-- main stocklines first (the Time / Cycle list of the main stocklines is read by row index), Sub Component stocklines after them
+		ORDER BY ISNULL(SL.[IsSubComponent], 0), SL.[StockLineId]
 		
 		END
 		IF(@Opr=3)

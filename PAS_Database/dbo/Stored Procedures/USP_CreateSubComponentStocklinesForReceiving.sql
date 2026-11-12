@@ -12,8 +12,9 @@
                    - serial numbers of serialized sub component part numbers are entered later
                    - site / warehouse / location / shelf / bin / management structure / vendor are taken from the main stockline,
                      part data (PN, description, manufacturer, GL, UOM, PMA / DER / OEM ...) from the sub component Item Master
-                   - cost is 0 and no accounting batch is posted (the cost belongs to the main part), PO / RO / WO / Lot
-                     references are not copied (same as USP_SplitStocklineForSubComponent)
+                   - cost is 0 and no accounting batch is posted (the cost belongs to the main part), RO / WO / Lot references are
+                     not copied (same as USP_SplitStocklineForSubComponent). The PO / PO part / PO number / Receiver Number of the main stockline ARE kept
+                     [PN-18527], so the stockline shows on the Receiving PO screen, Stockline List, Stock Report and PO View > Receiving tab
                  Stockline / Control / Id number generation follows USP_SplitStocklineForSubComponent.
                  Only Stock stocklines are used (Non-Stock and Asset stocklines are skipped). A main stockline that already has a
                  linked stockline for the same sub component part number + condition is skipped (safe to call again).
@@ -35,6 +36,8 @@
     3    09-NOV-2026  Kishor Makwana    [PN-18498] One Qty 1 stockline per unit for every sub component (not only serialized ones), as in the story table
     2    09-NOV-2026  Kishor Makwana    [PN-18498] New @SubComponentTimeCycle (Receiving PO Sub Component grid) : Time / Cycle of every created sub component
                                         stockline is stored in StocklineTimeCycleHistory
+    4    11-NOV-2026  Kishor Makwana    [PN-18527] Sub component stocklines keep the PO / PO part / PO number / Receiver Number of the main stockline so they show on the Receiving PO
+                                        screen, Stockline List, Stock Report and PO View > Receiving tab
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
@@ -132,7 +135,7 @@ BEGIN
 			@MainManagementStructureId BIGINT, @MainLabel NVARCHAR(500),
 			@currentNo BIGINT, @cncurrentNo BIGINT, @StlCNCurrent BIGINT, @StlCNStarts BIGINT,
 			@StockLineNumber VARCHAR(100), @ControlNumber VARCHAR(100), @IdNumber VARCHAR(100), @NewStocklineId BIGINT,
-			@MainPOPartRecordId BIGINT, @MainPOId BIGINT, @MainPONumber VARCHAR(100),
+			@MainPOPartRecordId BIGINT, @MainPOId BIGINT, @MainPONumber VARCHAR(100), @MainReceiverNumber VARCHAR(100),
 			@HasTimeCycle BIT, @TcTsnMin DECIMAL(18, 6), @TcTsoMin DECIMAL(18, 6), @TcCsn DECIMAL(18, 6), @TcCso DECIMAL(18, 6),
 			@TcTsnH DECIMAL(18, 6), @TcTsnM DECIMAL(18, 6), @TcTsoH DECIMAL(18, 6), @TcTsoM DECIMAL(18, 6);
 
@@ -148,7 +151,7 @@ BEGIN
 
 		SELECT @MainManagementStructureId = S.[ManagementStructureId],
 			   @MainLabel = ISNULL(S.[StockLineNumber], '') + N' (PN: ' + ISNULL(S.[PartNumber], '') + N', CN: ' + ISNULL(S.[ControlNumber], '') + N')',
-			   @MainPOPartRecordId = S.[PurchaseOrderPartRecordId], @MainPOId = S.[PurchaseOrderId], @MainPONumber = S.[PurchaseOrderNumber]
+			   @MainPOPartRecordId = S.[PurchaseOrderPartRecordId], @MainPOId = S.[PurchaseOrderId], @MainPONumber = S.[PurchaseOrderNumber], @MainReceiverNumber = S.[ReceiverNumber]
 		FROM [dbo].[Stockline] S WITH (NOLOCK) WHERE S.[StockLineId] = @MainStockLineId;
 
 		-- Time / Cycle entered on the Receiving PO Sub Component grid for this PO part + sub component part + condition
@@ -276,13 +279,14 @@ BEGIN
 				SL.[OriginalCost] = NULL,
 				SL.[LotCost] = 0,
 				SL.[PoPartUnitCost] = NULL,
-				-- source document references are not copied (otherwise the line shows twice on the PO / RO / WO / SO / Lot screens)
+				-- [PN-18527] the PO / PO part / PO number / Receiver Number of the main stockline are kept : the Receiving PO screen (Stockline created for this PO),
+				-- Stockline List, Stock Report and PO View > Receiving tab all find a stockline through them. The other source documents (RO / WO / SO / Lot) are not copied.
 				SL.[OrderDate] = NULL,
-				SL.[PurchaseOrderId] = NULL,
-				SL.[PurchaseOrderPartRecordId] = NULL,
-				SL.[PurchaseOrderNumber] = NULL,
+				SL.[PurchaseOrderId] = @MainPOId,
+				SL.[PurchaseOrderPartRecordId] = @MainPOPartRecordId,
+				SL.[PurchaseOrderNumber] = @MainPONumber,
 				SL.[QuantityToReceive] = NULL,
-				SL.[ReceiverNumber] = NULL,
+				SL.[ReceiverNumber] = @MainReceiverNumber,
 				SL.[ReconciliationNumber] = NULL,
 				SL.[IsFromInitialPO] = 0,
 				SL.[RepairOrderId] = NULL,

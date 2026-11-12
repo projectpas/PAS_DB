@@ -4738,6 +4738,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CancelSalesOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddSOShippingStatusAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
@@ -4976,6 +4978,10 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCredentialByClientId.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetApiUsage.sql" />
+    <Build Include="dbo\Tables\MigratedAPInvoice.sql" />
+    <Build Include="dbo\Tables\MigratedARInvoice.sql" />
+    <Build Include="dbo\Tables\BAG_AR_Upload.sql" />
+    <Build Include="dbo\Tables\BAG_AP_Uploads.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -17,6 +17,7 @@
     5    04/11/2026		Kishor Makwana		[PN-17949] - Returns Stockline.PurchaseOrderId as PurchaseOrderId (the PO # column opens the PO in a new tab)
     6    04/11/2026		Kishor Makwana		[PN-17949] - Status column (the part's Lease Status : Draft / Active / Closed, falls back to the Lease Header status), Engine Type from Stockline.EngineType; Disposition shows the same status value
     7    05/11/2026		Kishor Makwana		[PN-17949] - Active / Inactive switch now filters on the same Status that is displayed (stockline status, lease header status when the line has none) - Inactive showed Active lines of non-Active leases
+    8    11/11/2026		Kishor Makwana		[PN-18528] - Returns PurchaseOrderStatusId (PurchaseOrder.StatusId, 4 = Closed) and PurchaseOrderVendorId : a Closed PO # opens the PO details (view) instead of the Edit PO page
     
 -- @IsActive : 1 = Active (Status Active), 0 = Inactive (Status Draft or Closed). Status = the stockline's own status (latest LeaseStockline row), the lease header status when the line has none. LeaseStatusId : 1 Draft, 2 Active, 3 Closed
 -- EXEC [dbo].[USP_GetLeaseEnginePoolGeneralInfoReport] @MasterCompanyId = 1, @IsActive = 1, @ViewType = 'PN'
@@ -73,6 +74,8 @@ BEGIN
 			PO.[VendorName]									AS [Vendor],
 			STK.[PurchaseOrderNumber]									AS [PONumber],
 			STK.[PurchaseOrderId]										AS [PurchaseOrderId],
+			PO.[StatusId]											AS [PurchaseOrderStatusId],
+			PO.[VendorId]											AS [PurchaseOrderVendorId],
 			TCH.[TotalTSN]									AS [TsnAtPurchase],
 			TCH.[TotalCSN]									AS [CsnAtPurchase],
 			CAST(NULL AS DECIMAL(18, 6))					AS [TsoCamAtPurchase],
@@ -164,6 +167,8 @@ BEGIN
 			R.[Vendor],
 			R.[PONumber],
 			R.[PurchaseOrderId],
+			R.[PurchaseOrderStatusId],
+			R.[PurchaseOrderVendorId],
 			R.[TsnAtPurchase],
 			R.[CsnAtPurchase],
 			R.[TsoCamAtPurchase],

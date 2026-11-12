@@ -81,6 +81,9 @@
     [TSN]                            VARCHAR (50)    NULL,
     [CSO]                            VARCHAR (50)    NULL,
     [TSO]                            VARCHAR (50)    NULL,
+    [TSCAM]                          VARCHAR (50)    NULL,
+    [CSCAM]                          VARCHAR (50)    NULL,
+    [TSHSI]                          VARCHAR (50)    NULL,
     [IncomingPartNumber]             VARCHAR (50)    NULL,
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
     [IsFromAircraft]                 BIT             DEFAULT ((0)) NULL,
@@ -375,7 +378,10 @@ BEGIN
 	  
 	  ,[ShipDate]
 	  
-	  ,[IsSubWorkOrder])
+	  ,[IsSubWorkOrder]
+	  ,[TSCAM]
+	  ,[CSCAM]
+	  ,[TSHSI])
 
     SELECT [ID],
 
@@ -470,6 +476,9 @@ BEGIN
 	  ,[ShipDate]
 	  
 	  ,[IsSubWorkOrder]
+	  ,[TSCAM]
+	  ,[CSCAM]
+	  ,[TSHSI]
 
 	FROM INSERTED
 

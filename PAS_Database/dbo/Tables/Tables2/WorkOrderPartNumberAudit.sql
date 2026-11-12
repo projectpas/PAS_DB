@@ -98,6 +98,9 @@
     [IsFromLease]                    BIT             NULL,
     [LeaseStocklineId]               BIGINT          NULL,
     [KitsToPrepare]                  INT             NULL,
+    [TSCAM]                          VARCHAR (50)    NULL,
+    [CSCAM]                          VARCHAR (50)    NULL,
+    [TSHSI]                          VARCHAR (50)    NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
 

@@ -54,11 +54,11 @@
                                         Stockline TotalTSN / TotalTSNMM / TotalCSN / TotalCSNMM are always set from the entered Time / Cycle (0 when none entered)
     6    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : the sub component stockline took the Item Type of the main stockline (STOCK) - ItemTypeId / itemType are now set from the sub component Item Master
     7    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : PN label (GenerateStocklinePrintPDFContent) failed with SqlNullValueException - Stockline.ShelfLife / QuantityToReceive / RepairOrderExtendedCost / WorkOrderExtendedCost are non nullable in the API model, now saved as 0 instead of NULL
-	8    13-NOV-2026  Kishor Makwana    [PN-18527] IsAsset / IsNonStock of the sub component stockline are set from the sub component Item Master (ProcStockList shows Item Type from them)
+	  8    13-NOV-2026  Kishor Makwana    [PN-18527] IsAsset / IsNonStock of the sub component stockline are set from the sub component Item Master (ProcStockList shows Item Type from them)
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateSubComponentStocklinesForReceiving]
+CREATE PROCEDURE [dbo].[USP_CreateSubComponentStocklinesForReceiving]
 	@StockLineIds VARCHAR(MAX),
 	@MasterCompanyId INT,
 	@UpdatedBy VARCHAR(256),

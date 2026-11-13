@@ -28,6 +28,9 @@
                                         CustomerId / CustomerName = RMA customer), whatever the original stockline was
     4    06-Nov-2026  RAJESH GAMI		[PN-18254] Memo NOT copied from the original stockline (its history belongs to the old stockline and its
                                         unbalanced <p> tags hid the text in the Stockline view); memo = screen Memo + 'Stockline Received from Customer RMA'
+    5    12-Nov-2026  RAJESH GAMI		[PN-18552] Screen 'Memo' renamed to 'Notes': saved in Stockline.[Note] (Stockline Details > Notes); Stockline.[Memo] =
+                                        'Stockline Received from Customer RMA' only. Required checks as Receiving PO: Unit Cost, Exp / Mfr / Tag Date when
+                                        Item Master requires them, Tag / Certified Date not before Mfr Date
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReceiveCustomerRMAParts]
 	@tbl_ReceiveParts [dbo].[CustomerRMAReceivePartsType] READONLY,
@@ -72,6 +75,12 @@ BEGIN
 				WHEN ISNULL(ReceivePart.[ConditionId], 0) = 0 THEN 'Cond is required.'
 				WHEN ISNULL(ReceivePart.[SiteId], 0) = 0 THEN 'Site is required.'
 				WHEN ISNULL(ReceivePart.[GLAccountId], 0) = 0 THEN 'GL Account is required.'
+				WHEN ReceivePart.[UnitCost] IS NULL THEN 'Unit Cost is required.'
+				WHEN ISNULL(PartItemMaster.[IsExpirationDateAvailable], 0) = 1 AND ReceivePart.[ExpirationDate] IS NULL THEN 'Exp Date is required.'
+				WHEN ISNULL(PartItemMaster.[IsManufacturingDateAvailable], 0) = 1 AND ReceivePart.[ManufacturingDate] IS NULL THEN 'Mfr. Date is required.'
+				WHEN ISNULL(PartItemMaster.[IsTagDateAvailable], 0) = 1 AND ReceivePart.[TagDate] IS NULL THEN 'Tag Date is required.'
+				WHEN ReceivePart.[TagDate] < ReceivePart.[ManufacturingDate] THEN 'Tag Date must be greater than Mfr. Date.'
+				WHEN ReceivePart.[CertifiedDate] < ReceivePart.[ManufacturingDate] THEN 'Certified Date must be greater than Mfr. Date.'
 				WHEN RMADetail.[StocklineId] IS NULL OR OriginalStockline.[StockLineId] IS NULL THEN 'original stockline not found.'
 			END + '<br/>'
 		FROM @tbl_ReceiveParts ReceivePart
@@ -87,6 +96,12 @@ BEGIN
 		   OR ISNULL(ReceivePart.[ConditionId], 0) = 0
 		   OR ISNULL(ReceivePart.[SiteId], 0) = 0
 		   OR ISNULL(ReceivePart.[GLAccountId], 0) = 0
+		   OR ReceivePart.[UnitCost] IS NULL
+		   OR (ISNULL(PartItemMaster.[IsExpirationDateAvailable], 0) = 1 AND ReceivePart.[ExpirationDate] IS NULL)
+		   OR (ISNULL(PartItemMaster.[IsManufacturingDateAvailable], 0) = 1 AND ReceivePart.[ManufacturingDate] IS NULL)
+		   OR (ISNULL(PartItemMaster.[IsTagDateAvailable], 0) = 1 AND ReceivePart.[TagDate] IS NULL)
+		   OR ReceivePart.[TagDate] < ReceivePart.[ManufacturingDate]
+		   OR ReceivePart.[CertifiedDate] < ReceivePart.[ManufacturingDate]
 		   OR OriginalStockline.[StockLineId] IS NULL;
 	END
 
@@ -131,14 +146,14 @@ BEGIN
 			[LocationId] BIGINT, [ShelfId] BIGINT, [BinId] BIGINT, [GLAccountId] BIGINT, [SerialNumber] VARCHAR(30),
 			[UnitCost] DECIMAL(18,6), [ManufacturerLotNumber] VARCHAR(50), [ManufacturingBatchNumber] VARCHAR(50),
 			[ManufacturingDate] DATETIME2(7), [ExpirationDate] DATETIME2(7), [PartCertificationNumber] VARCHAR(50),
-			[CertifiedDate] DATETIME2(7), [CertTypeId] VARCHAR(100), [TagDate] DATETIME2(7), [TagTypeId] BIGINT, [Memo] NVARCHAR(MAX)
+			[CertifiedDate] DATETIME2(7), [CertTypeId] VARCHAR(100), [TagDate] DATETIME2(7), [TagTypeId] BIGINT, [Notes] NVARCHAR(MAX)
 		);
 		INSERT INTO #ReceiveRows ([RMADeatilsId],[QtyToReceive],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[GLAccountId],
 			[SerialNumber],[UnitCost],[ManufacturerLotNumber],[ManufacturingBatchNumber],[ManufacturingDate],[ExpirationDate],
-			[PartCertificationNumber],[CertifiedDate],[CertTypeId],[TagDate],[TagTypeId],[Memo])
+			[PartCertificationNumber],[CertifiedDate],[CertTypeId],[TagDate],[TagTypeId],[Notes])
 		SELECT [RMADeatilsId],[QtyToReceive],[ConditionId],[SiteId],NULLIF([WarehouseId],0),NULLIF([LocationId],0),NULLIF([ShelfId],0),NULLIF([BinId],0),[GLAccountId],
 			NULLIF(LTRIM(RTRIM([SerialNumber])),''),ISNULL([UnitCost],0),[ManufacturerLotNumber],[ManufacturingBatchNumber],[ManufacturingDate],[ExpirationDate],
-			[PartCertificationNumber],[CertifiedDate],NULLIF([CertTypeId],'0'),[TagDate],NULLIF([TagTypeId],0),[Memo]
+			[PartCertificationNumber],[CertifiedDate],NULLIF([CertTypeId],'0'),[TagDate],NULLIF([TagTypeId],0),[Notes]
 		FROM @tbl_ReceiveParts;
 
 		IF OBJECT_ID(N'tempdb..#CreatedStocklines') IS NOT NULL DROP TABLE #CreatedStocklines;
@@ -151,10 +166,10 @@ BEGIN
 			DECLARE @RMADeatilsId BIGINT, @QtyToReceive DECIMAL(18,6), @OriginalStocklineId BIGINT, @NewStocklineId BIGINT,
 					@ItemMasterId BIGINT, @ManufacturerId BIGINT, @StockLineNumber VARCHAR(50), @ControlNumber VARCHAR(50), @IDNumber VARCHAR(100),
 					@StockLineCurrentNo BIGINT, @ControlCurrentNo BIGINT, @IDCurrentNo BIGINT, @SourceLotId BIGINT, @RowUnitCost DECIMAL(18,6),
-					@RowMemo NVARCHAR(MAX), @CertTypeIdList VARCHAR(100), @CertTypeNames VARCHAR(MAX);
+					@RowNotes NVARCHAR(MAX), @CertTypeIdList VARCHAR(100), @CertTypeNames VARCHAR(MAX);
 
 			SELECT @RMADeatilsId = ReceiveRow.[RMADeatilsId], @QtyToReceive = ReceiveRow.[QtyToReceive], @RowUnitCost = ReceiveRow.[UnitCost],
-				   @RowMemo = ReceiveRow.[Memo], @CertTypeIdList = ReceiveRow.[CertTypeId]
+				   @RowNotes = ReceiveRow.[Notes], @CertTypeIdList = ReceiveRow.[CertTypeId]
 			FROM #ReceiveRows ReceiveRow WHERE ReceiveRow.[RowId] = @RowId;
 
 			/* re-check pending qty under lock (two users receiving at the same time) */
@@ -335,8 +350,8 @@ BEGIN
 
 			UPDATE [dbo].[Stockline]
 			SET [IsCustomerStock] = 1, [isCustomerstockType] = 1, -- always customer stock (UpdateStocklineColumnsWithId recalculates IsCustomerStock from the customer affiliation)
-				[Memo] = CASE WHEN LTRIM(RTRIM(ISNULL(@RowMemo, ''))) <> '' THEN N'<p>' + LTRIM(RTRIM(@RowMemo)) + N'</p>' ELSE N'' END
-					   + N'<p>Stockline Received from Customer RMA – ' + ISNULL(@RMANumber, '') + N' (' + ISNULL(@ReceiverNumber, '') + N')</p>'
+				[Memo] = N'<p>Stockline Received from Customer RMA – ' + ISNULL(@RMANumber, '') + N' (' + ISNULL(@ReceiverNumber, '') + N')</p>',
+				[Note] = NULLIF(LTRIM(RTRIM(ISNULL(@RowNotes, ''))), '') -- [PN-18552] screen Notes (HTML, one <p> per line) -> Stockline Details > Notes
 			WHERE [StockLineId] = @NewStocklineId;
 
 			EXEC [dbo].[USP_AddUpdateStocklineHistory]

@@ -22,6 +22,17 @@
                  number + condition) is written for every created sub component stockline : one StocklineTimeCycleHistory row
                  (Module = Receiving PO, EntryType 'Receiving', ParentStocklineId = main stockline, TotalTSN / TSO in hours + minutes,
                  TotalCSN / CSO) and Stockline.TotalTSN / TotalTSNMM / TotalCSN are set to the same values.
+                 [PN-18526] Condition / Qty Received / Unit Cost entered on the Receiving PO Sub Component grid (@SubComponentDetail, keyed by PO part +
+                 sub component part number + original condition) :
+                   - Condition  = selected condition (also used for the duplicate check)
+                   - Qty        = entered Qty Received for the PO part, shared over the received main stocklines of the PO part in proportion to their qty
+                                  (0 = no stockline for that sub component), one Qty 1 stockline per unit as before
+                   - Unit Cost  = entered unit cost, kept on the sub component stockline (UnitCost / PurchaseOrderUnitCost / InventoryUnitCost,
+                                  PurchaseOrderExtendedCost = Unit Cost x Qty) for inventory / reference only. NO accounting entry is posted for a sub component
+                                  stockline (the main part journal already carries the cost) and RRQty stays NULL so the stockline is never picked by the
+                                  Receiving Reconciliation, i.e. the cost is not counted twice.
+                   - validation : total sub component cost of a PO part (Qty Received x Unit Cost) must not exceed the Main Part Cost
+                                  (Unit Cost x Qty of the received main stocklines), otherwise 'Total Sub Component Cost cannot exceed the Main Part Cost.' is raised
                  Caller owns the transaction (called from USP_CreateStocklineForReceivingPO). No result set is returned.
  ** Date:   06-NOV-2026
  ** Author:  Kishor Makwana
@@ -38,14 +49,18 @@
                                         stockline is stored in StocklineTimeCycleHistory
     4    11-NOV-2026  Kishor Makwana    [PN-18527] Sub component stocklines keep the PO / PO part / PO number / Receiver Number of the main stockline so they show on the Receiving PO
                                         screen, Stockline List, Stock Report and PO View > Receiving tab
+    5    12-NOV-2026  Kishor Makwana    [PN-18526] New @SubComponentDetail (Condition / Qty Received / Unit Cost of the Sub Component grid) : entered values are saved on the
+                                        sub component stocklines, sub component cost <= main part cost validation, still no accounting entry for sub component stocklines
+                                        Stockline TotalTSN / TotalTSNMM / TotalCSN / TotalCSNMM are always set from the entered Time / Cycle (0 when none entered)
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateSubComponentStocklinesForReceiving]
+CREATE PROCEDURE [dbo].[USP_CreateSubComponentStocklinesForReceiving]
 	@StockLineIds VARCHAR(MAX),
 	@MasterCompanyId INT,
 	@UpdatedBy VARCHAR(256),
-	@SubComponentTimeCycle POSubComponentTimeCycle READONLY
+	@SubComponentTimeCycle POSubComponentTimeCycle READONLY,
+	@SubComponentDetail POSubComponentDetail READONLY -- [PN-18526] optional, empty when nothing was edited
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -61,6 +76,26 @@ BEGIN
 			@StockLineModuleId BIGINT = 0, @LinkActionId INT = NULL,
 			@ReceivingPOModuleId BIGINT = 28; -- 28 = Receiving Purchase Order (same as USP_CreateStocklineForReceivingPO)
 
+	/* ---------- [PN-18526] total sub component cost must not exceed the main part cost (per PO part of this receipt) ---------- */
+	IF EXISTS (SELECT 1 FROM @SubComponentDetail)
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM (SELECT D.[PurchaseOrderPartRecordId], SUM(ISNULL(D.[QtyReceived], 0) * ISNULL(D.[UnitCost], 0)) AS [SubCost]
+				  FROM @SubComponentDetail D GROUP BY D.[PurchaseOrderPartRecordId]) SD
+			INNER JOIN (SELECT S.[PurchaseOrderPartRecordId],
+							   SUM(ISNULL(NULLIF(S.[PurchaseOrderUnitCost], 0), ISNULL(S.[UnitCost], 0)) * ISNULL(S.[QuantityOnHand], ISNULL(S.[Quantity], 0))) AS [MainCost]
+						FROM [dbo].[Stockline] S WITH (NOLOCK)
+						WHERE S.[StockLineId] IN (SELECT TRY_CAST(LTRIM(RTRIM([value])) AS BIGINT) FROM STRING_SPLIT(@StockLineIds, ','))
+						  AND S.[MasterCompanyId] = @MasterCompanyId AND ISNULL(S.[isDeleted], 0) = 0 AND S.[SubComponentParentStocklineId] IS NULL
+						GROUP BY S.[PurchaseOrderPartRecordId]) MC ON MC.[PurchaseOrderPartRecordId] = SD.[PurchaseOrderPartRecordId]
+			WHERE ROUND(SD.[SubCost], 2) > ROUND(MC.[MainCost], 2))
+		BEGIN
+			RAISERROR ('Total Sub Component Cost cannot exceed the Main Part Cost.', 16, 1);
+			RETURN;
+		END
+	END
+
 	/* ---------- main stocklines x sub components (same sub component part + resolved condition is summed) ---------- */
 	IF OBJECT_ID(N'tempdb..#SubCompWork') IS NOT NULL DROP TABLE #SubCompWork;
 	CREATE TABLE #SubCompWork
@@ -69,7 +104,9 @@ BEGIN
 		[MainStockLineId] BIGINT NOT NULL,
 		[SubItemMasterId] BIGINT NOT NULL,
 		[ConditionId] BIGINT NOT NULL,
-		[Qty] DECIMAL(18, 6) NOT NULL
+		[Qty] DECIMAL(18, 6) NOT NULL,
+		[OrigConditionId] BIGINT NULL, -- [PN-18526] condition before the user changed it on the grid (key of the grid row)
+		[UnitCost] DECIMAL(18, 6) NULL -- [PN-18526] entered unit cost
 	);
 
 	INSERT INTO #SubCompWork ([MainStockLineId], [SubItemMasterId], [ConditionId], [Qty])
@@ -92,6 +129,51 @@ BEGIN
 	  AND S.[SubComponentParentStocklineId] IS NULL -- a sub component stockline never has its own sub components
 	  AND ISNULL(S.[QuantityOnHand], ISNULL(S.[Quantity], 0)) > 0
 	GROUP BY S.[StockLineId], SC.[MappingItemMasterId], ISNULL(SC.[ConditionId], S.[ConditionId]);
+
+	UPDATE #SubCompWork SET [OrigConditionId] = [ConditionId];
+
+	/* ---------- [PN-18526] Condition / Qty Received / Unit Cost entered on the grid ---------- */
+	IF EXISTS (SELECT 1 FROM @SubComponentDetail)
+	BEGIN
+		IF OBJECT_ID(N'tempdb..#SubCompAlloc') IS NOT NULL DROP TABLE #SubCompAlloc;
+
+		-- the entered Qty Received of a PO part + sub component + condition is shared over the received main stocklines of the PO part
+		-- in proportion to their qty (cumulative rounding, the parts always add up to the entered qty)
+		SELECT X.[ID], X.[NewConditionId], X.[UnitCost],
+			   ROUND(X.[QtyReceived] * X.[CumQty] / NULLIF(X.[TotQty], 0), X.[Digits])
+			 - ROUND(X.[QtyReceived] * (X.[CumQty] - X.[MainQty]) / NULLIF(X.[TotQty], 0), X.[Digits]) AS [AllocQty]
+		INTO #SubCompAlloc
+		FROM (
+			SELECT W.[ID], D.[QtyReceived], D.[ConditionId] AS [NewConditionId], D.[UnitCost], M.[MainQty],
+				   CASE WHEN D.[QtyReceived] = FLOOR(D.[QtyReceived]) THEN 0 ELSE 6 END AS [Digits],
+				   SUM(M.[MainQty]) OVER (PARTITION BY M.[PoPartId], W.[SubItemMasterId], W.[OrigConditionId] ORDER BY W.[ID] ROWS UNBOUNDED PRECEDING) AS [CumQty],
+				   SUM(M.[MainQty]) OVER (PARTITION BY M.[PoPartId], W.[SubItemMasterId], W.[OrigConditionId]) AS [TotQty]
+			FROM #SubCompWork W
+			CROSS APPLY (SELECT S.[PurchaseOrderPartRecordId] AS [PoPartId], ISNULL(S.[QuantityOnHand], ISNULL(S.[Quantity], 0)) AS [MainQty]
+						 FROM [dbo].[Stockline] S WITH (NOLOCK) WHERE S.[StockLineId] = W.[MainStockLineId]) M
+			INNER JOIN (SELECT DD.[PurchaseOrderPartRecordId], DD.[SubItemMasterId], DD.[OriginalConditionId],
+							   MAX(DD.[ConditionId]) AS [ConditionId],
+							   SUM(ISNULL(DD.[QtyReceived], 0)) AS [QtyReceived],
+							   CASE WHEN SUM(ISNULL(DD.[QtyReceived], 0)) > 0
+									THEN SUM(ISNULL(DD.[QtyReceived], 0) * ISNULL(DD.[UnitCost], 0)) / SUM(ISNULL(DD.[QtyReceived], 0)) ELSE 0 END AS [UnitCost]
+						FROM @SubComponentDetail DD
+						GROUP BY DD.[PurchaseOrderPartRecordId], DD.[SubItemMasterId], DD.[OriginalConditionId]) D
+				ON D.[PurchaseOrderPartRecordId] = M.[PoPartId] AND D.[SubItemMasterId] = W.[SubItemMasterId]
+				AND ISNULL(D.[OriginalConditionId], W.[OrigConditionId]) = W.[OrigConditionId]
+		) X;
+
+		UPDATE W
+		SET W.[ConditionId] = ISNULL(NULLIF(A.[NewConditionId], 0), W.[ConditionId]),
+			W.[Qty] = A.[AllocQty],
+			W.[UnitCost] = ISNULL(A.[UnitCost], 0)
+		FROM #SubCompWork W
+		INNER JOIN #SubCompAlloc A ON A.[ID] = W.[ID];
+
+		DROP TABLE #SubCompAlloc;
+
+		-- Qty Received 0 : no stockline for this sub component
+		DELETE FROM #SubCompWork WHERE [Qty] <= 0;
+	END
 
 	-- already created / linked for this main stockline (re-run safe)
 	DELETE W FROM #SubCompWork W
@@ -136,14 +218,15 @@ BEGIN
 			@currentNo BIGINT, @cncurrentNo BIGINT, @StlCNCurrent BIGINT, @StlCNStarts BIGINT,
 			@StockLineNumber VARCHAR(100), @ControlNumber VARCHAR(100), @IdNumber VARCHAR(100), @NewStocklineId BIGINT,
 			@MainPOPartRecordId BIGINT, @MainPOId BIGINT, @MainPONumber VARCHAR(100), @MainReceiverNumber VARCHAR(100),
+			@OrigConditionId BIGINT, @SubUnitCost DECIMAL(18, 6),
 			@HasTimeCycle BIT, @TcTsnMin DECIMAL(18, 6), @TcTsoMin DECIMAL(18, 6), @TcCsn DECIMAL(18, 6), @TcCso DECIMAL(18, 6),
 			@TcTsnH DECIMAL(18, 6), @TcTsnM DECIMAL(18, 6), @TcTsoH DECIMAL(18, 6), @TcTsoM DECIMAL(18, 6);
 
 	DECLARE WorkCursor CURSOR LOCAL FAST_FORWARD FOR
-		SELECT [ID], [MainStockLineId], [SubItemMasterId], [ConditionId], [Qty] FROM #SubCompWork ORDER BY [ID];
+		SELECT [ID], [MainStockLineId], [SubItemMasterId], [ConditionId], [Qty], [OrigConditionId], ISNULL([UnitCost], 0) FROM #SubCompWork ORDER BY [ID];
 
 	OPEN WorkCursor;
-	FETCH NEXT FROM WorkCursor INTO @WorkId, @MainStockLineId, @SubItemMasterId, @ConditionId, @WorkQty;
+	FETCH NEXT FROM WorkCursor INTO @WorkId, @MainStockLineId, @SubItemMasterId, @ConditionId, @WorkQty, @OrigConditionId, @SubUnitCost;
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
 		SELECT @ManufacturerId = IM.[ManufacturerId], @ItemMasterIsSerialized = ISNULL(IM.[isSerialized], 0)
@@ -165,7 +248,7 @@ BEGIN
 		  AND (ISNULL(TC.[TSNHrs], 0) <> 0 OR ISNULL(TC.[TSNMin], 0) <> 0 OR ISNULL(TC.[CSN], 0) <> 0
 			   OR ISNULL(TC.[TSOHrs], 0) <> 0 OR ISNULL(TC.[TSOMin], 0) <> 0 OR ISNULL(TC.[CSO], 0) <> 0)
 		-- exact condition first : the grid shows the PO part condition for a blank sub component condition, the main stockline condition can be changed on the receiving screen
-		ORDER BY CASE WHEN ISNULL(TC.[ConditionId], 0) = ISNULL(@ConditionId, 0) THEN 0 ELSE 1 END;
+		ORDER BY CASE WHEN ISNULL(TC.[ConditionId], 0) = ISNULL(@OrigConditionId, 0) THEN 0 ELSE 1 END;
 		SELECT @TcTsnH = FLOOR(@TcTsnMin / 60), @TcTsnM = @TcTsnMin - FLOOR(@TcTsnMin / 60) * 60,
 			   @TcTsoH = FLOOR(@TcTsoMin / 60), @TcTsoM = @TcTsoMin - FLOOR(@TcTsoMin / 60) * 60;
 
@@ -264,11 +347,12 @@ BEGIN
 				SL.[SubComponentParentStocklineId] = @MainStockLineId,
 				SL.[SubComponentQty] = @RowQty,
 				SL.[IsSubComponent] = 1,
-				-- cost belongs to the main part, no accounting entry for the sub component stockline
-				SL.[UnitCost] = 0,
-				SL.[PurchaseOrderUnitCost] = 0,
-				SL.[PurchaseOrderExtendedCost] = 0,
-				SL.[InventoryUnitCost] = 0,
+				-- [PN-18526] entered Unit Cost / total cost are kept on the stockline for inventory / reference only : no accounting entry is posted for a
+				-- sub component stockline (the main part journal carries the cost) and RRQty stays NULL (not picked by Receiving Reconciliation)
+				SL.[UnitCost] = @SubUnitCost,
+				SL.[PurchaseOrderUnitCost] = @SubUnitCost,
+				SL.[PurchaseOrderExtendedCost] = @SubUnitCost * @RowQty,
+				SL.[InventoryUnitCost] = @SubUnitCost,
 				SL.[UnitSalesPrice] = 0,
 				SL.[CoreUnitCost] = 0,
 				SL.[RepairOrderUnitCost] = 0,
@@ -357,16 +441,19 @@ BEGIN
 					 @TcTsnH, @TcTsnM, @TcCsn, @TcTsnH, @TcTsnM, @TcCsn, @TcTsoH, @TcTsoM, @TcCso,
 					 N'Time / Cycle entered at PO Receiving (Sub Component of STK: ' + ISNULL(@MainLabel, N'') + N')',
 					 @MasterCompanyId, @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0, @MainStockLineId);
-
-				UPDATE [dbo].[Stockline]
-				SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
-				WHERE [StockLineId] = @NewStocklineId;
 			END
+
+			-- [PN-18526] Stockline time / cycle fields : TotalTSN (hours), TotalTSNMM (minutes), TotalCSN (cycles), TotalCSNMM (cycles have no minute part, 0).
+			-- Always set (0 when nothing was entered) so the sub component stockline never keeps the Time / Cycle copied from the main stockline row.
+			-- TSO / CSO have no Stockline column, they are kept in StocklineTimeCycleHistory only.
+			UPDATE [dbo].[Stockline]
+			SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [TotalCSNMM] = 0, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+			WHERE [StockLineId] = @NewStocklineId;
 
 			SET @UnitNo = @UnitNo + 1;
 		END
 
-		FETCH NEXT FROM WorkCursor INTO @WorkId, @MainStockLineId, @SubItemMasterId, @ConditionId, @WorkQty;
+		FETCH NEXT FROM WorkCursor INTO @WorkId, @MainStockLineId, @SubItemMasterId, @ConditionId, @WorkQty, @OrigConditionId, @SubUnitCost;
 	END
 	CLOSE WorkCursor;
 	DEALLOCATE WorkCursor;

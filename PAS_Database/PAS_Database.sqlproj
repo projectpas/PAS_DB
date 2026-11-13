@@ -2675,6 +2675,7 @@
     <Build Include="dbo\User Defined Types\PostRRBatchType.sql" />
     <Build Include="dbo\User Defined Types\POPartsToReceive.sql" />
     <Build Include="dbo\User Defined Types\POSubComponentTimeCycle.sql" />
+    <Build Include="dbo\User Defined Types\POSubComponentDetail.sql" />
     <Build Include="dbo\User Defined Types\PartRepairStationsDetailsType.sql" />
     <Build Include="dbo\User Defined Types\NonPOInvoicePartDetailsType.sql" />
     <Build Include="dbo\User Defined Types\ManualJournalBatchDetailsType.sql" />
@@ -4781,6 +4782,11 @@
     <Build Include="dbo\Tables\LeaseStocklineUsage.sql" />
     <Build Include="dbo\Tables\LeaseStocklineUsageHistoryAudit.sql" />
     <Build Include="dbo\Tables\LeaseStocklineUsageHistory.sql" />
+    <Build Include="dbo\Tables\StocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertStocklineAssetToInventory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetConversionPreview.sql" />
+    <Build Include="dbo\Tables\StocklineAssetConversion.sql" />
     <Build Include="dbo\Tables\LeaseChargesAudit.sql" />
     <Build Include="dbo\Tables\LeaseCharges.sql" />
     <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
@@ -4937,6 +4943,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CleanUpAsOfNowReportsHistoryData_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolOtherReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciableList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetDepreciation.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolMaintenanceReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolLeaseRentalReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolGeneralInfoReport.sql" />

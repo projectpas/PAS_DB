@@ -18,6 +18,7 @@
  ** PR   Date            Author          Change Description
  ** --   --------        -------         --------------------------------
     1    26/October/2026 RAJESH GAMI     Created [PN-18406]
+    2    12/November/2026 Kishor Makwana  [PN-18535] Added @AssetInventoryItemMasterId (Inventory PN the asset converts to)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveItemMasterAssetDetails]
 	@ItemMasterId                     BIGINT,
@@ -40,7 +41,8 @@ CREATE   PROCEDURE [dbo].[USP_SaveItemMasterAssetDetails]
 	@AssetAlternateItemMasterId       BIGINT = NULL,
 	@AssetParentItemMasterId          BIGINT = NULL,
 	@AssetControlNumber               VARCHAR(20) = NULL,
-	@AssetManagementStructureId       BIGINT = NULL
+	@AssetManagementStructureId       BIGINT = NULL,
+	@AssetInventoryItemMasterId       BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -119,6 +121,7 @@ BEGIN
 			AssetItem.AssetParentItemMasterId          = CASE WHEN @AssetIsTangible = 1 THEN NULLIF(@AssetParentItemMasterId, 0) END,
 			AssetItem.AssetControlNumber               = CASE WHEN ISNULL(@AssetControlNumber,'') <> '' THEN @AssetControlNumber ELSE AssetItem.AssetControlNumber END,
 			AssetItem.AssetManagementStructureId       = ISNULL(NULLIF(@AssetManagementStructureId, 0), AssetItem.AssetManagementStructureId),
+			AssetItem.AssetInventoryItemMasterId       = ISNULL(NULLIF(@AssetInventoryItemMasterId, 0), AssetItem.AssetInventoryItemMasterId),
 
 			AssetItem.AcquiredGLAccountId              = @AcquiredGLAccountId,
 			AssetItem.AcquiredGLAccountName            = (SELECT ISNULL(GL.AccountCode,'') + '-' + ISNULL(GL.AccountName,'') FROM dbo.GLAccount GL WITH (NOLOCK) WHERE GL.GLAccountId = @AcquiredGLAccountId),

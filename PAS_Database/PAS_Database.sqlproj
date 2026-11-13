@@ -4982,6 +4982,14 @@
     <Build Include="dbo\Tables\MigratedARInvoice.sql" />
     <Build Include="dbo\Tables\BAG_AR_Upload.sql" />
     <Build Include="dbo\Tables\BAG_AP_Uploads.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderMaterialStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderLabor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

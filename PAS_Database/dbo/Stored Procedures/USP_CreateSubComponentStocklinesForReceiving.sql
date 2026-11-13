@@ -52,6 +52,9 @@
     5    12-NOV-2026  Kishor Makwana    [PN-18526] New @SubComponentDetail (Condition / Qty Received / Unit Cost of the Sub Component grid) : entered values are saved on the
                                         sub component stocklines, sub component cost <= main part cost validation, still no accounting entry for sub component stocklines
                                         Stockline TotalTSN / TotalTSNMM / TotalCSN / TotalCSNMM are always set from the entered Time / Cycle (0 when none entered)
+    6    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : the sub component stockline took the Item Type of the main stockline (STOCK) - ItemTypeId / itemType are now set from the sub component Item Master
+    7    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : PN label (GenerateStocklinePrintPDFContent) failed with SqlNullValueException - Stockline.ShelfLife / QuantityToReceive / RepairOrderExtendedCost / WorkOrderExtendedCost are non nullable in the API model, now saved as 0 instead of NULL
+	  8    13-NOV-2026  Kishor Makwana    [PN-18527] IsAsset / IsNonStock of the sub component stockline are set from the sub component Item Master (ProcStockList shows Item Type from them)
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
@@ -313,7 +316,7 @@ BEGIN
 				SL.[ConsumeUnitOfMeasureId] = IM.[ConsumeUnitOfMeasureId],
 				SL.[IsStkTimeLife] = ISNULL(IM.[isTimeLife], 0),
 				-- main part details that do not belong to the sub component part
-				SL.[ShelfLife] = NULL,
+				SL.[ShelfLife] = 0,
 				SL.[ShelfLifeExpirationDate] = NULL,
 				SL.[ExpirationDate] = NULL,
 				SL.[ManufacturerLotNumber] = NULL,
@@ -327,8 +330,11 @@ BEGIN
 				SL.[NHAItemMasterId] = NULL,
 				SL.[TLAItemMasterId] = NULL,
 				SL.[AssetId] = NULL,
-				SL.[IsAsset] = 0,
-				SL.[IsNonStock] = 0,
+				SL.[IsAsset] = ISNULL(IM.[IsAsset], 0),
+				SL.[IsNonStock] = ISNULL(IM.[IsNonStock], 0),
+				-- [PN-18527] Item Type of the sub component stockline comes from its own Item Master (the copy of the main stockline carried the main part's Item Type)
+				SL.[ItemTypeId] = IM.[ItemTypeId],
+				SL.[itemType] = IT.[Description],
 				SL.[IntegrationPortal] = NULL,
 				-- quantity (same as USP_SplitStocklineForSubComponent)
 				SL.[Quantity] = @RowQty,
@@ -356,8 +362,8 @@ BEGIN
 				SL.[UnitSalesPrice] = 0,
 				SL.[CoreUnitCost] = 0,
 				SL.[RepairOrderUnitCost] = 0,
-				SL.[RepairOrderExtendedCost] = NULL,
-				SL.[WorkOrderExtendedCost] = NULL,
+				SL.[RepairOrderExtendedCost] = 0,
+				SL.[WorkOrderExtendedCost] = 0,
 				SL.[POOriginalCost] = NULL,
 				SL.[ROOriginalCost] = NULL,
 				SL.[OriginalCost] = NULL,
@@ -369,7 +375,7 @@ BEGIN
 				SL.[PurchaseOrderId] = @MainPOId,
 				SL.[PurchaseOrderPartRecordId] = @MainPOPartRecordId,
 				SL.[PurchaseOrderNumber] = @MainPONumber,
-				SL.[QuantityToReceive] = NULL,
+				SL.[QuantityToReceive] = 0,
 				SL.[ReceiverNumber] = @MainReceiverNumber,
 				SL.[ReconciliationNumber] = NULL,
 				SL.[IsFromInitialPO] = 0,
@@ -419,6 +425,7 @@ BEGIN
 				SL.[EntryDate] = GETUTCDATE()
 			FROM [dbo].[Stockline] SL
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = @SubItemMasterId
+			LEFT JOIN [dbo].[ItemType] IT WITH (NOLOCK) ON IT.[ItemTypeId] = IM.[ItemTypeId]
 			WHERE SL.[StockLineId] = @NewStocklineId;
 
 			-- management structure, denormalized names (condition, manufacturer, UOM, site, warehouse ...) and history

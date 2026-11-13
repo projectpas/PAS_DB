@@ -61,6 +61,7 @@
 	44   29-OCT-2026  RAJESH GAMI       [PN-18407] Asset stockline received from PO: also default Acquisition Type (Item Master Asset Acquisition Type, if none chosen) and Curr (PO line functional currency, fallback Item Master currency) - both are required on the Asset stockline form.
     45   06-NOV-2026  Kishor Makwana    [PN-18498] Sub Component stocklines (Item Master > Sub Assembly > Sub Component, Auto Create Stockline = Yes) are created and linked to the received main stocklines (USP_CreateSubComponentStocklinesForReceiving)
     46   09-NOV-2026  Kishor Makwana    [PN-18498] New optional @tbl_SubComponentTimeCycle (POSubComponentTimeCycle) : Time / Cycle entered on the Receiving PO Sub Component grid is stored in StocklineTimeCycleHistory for the created sub component stocklines
+    47   12-NOV-2026  RAJESH GAMI       [PN-18525] Stock branch, Item Master Asset part (IsAsset = 1, not serialized): receiving Qty N now creates N stocklines of Qty 1 each (before: one stockline of Qty N) and every one gets its own Asset Inventory Number (CodePrefixes CodeTypeId 37, same generator the legacy Asset branch uses).
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -389,6 +390,44 @@ BEGIN
                         END
                     END
 
+                    /* [PN-18525] Item Master Asset part (IsAsset = 1, not serialized) received with the same details for all parts:
+                       one stockline per unit (Qty 1 each) instead of one stockline of Qty N. The single #tmpStocklineDraft row is copied to one row per unit
+                       (Quantity 1, IsSameDetailsForAllParts = 0 -> the existing 'one draft row = one stockline' path is used). Stock / Non-Stock / serialized
+                       parts are not touched (@IsAssetSplit stays 0). */
+                    DECLARE @IsAssetSplit BIT = 0;
+                    SET @IsAssetSplit = 0;
+                    IF (ISNULL(@IsSerializedPart, 0) = 0 AND ISNULL(@QtyToReceive, 0) > 1
+                        AND EXISTS (SELECT 1 FROM dbo.ItemMaster imSplit WITH (NOLOCK) WHERE imSplit.ItemMasterId = @ItemMasterId_Part AND ISNULL(imSplit.IsAsset, 0) = 1)
+                        AND EXISTS (SELECT 1 FROM #tmpStocklineDraft WHERE ISNULL(IsSameDetailsForAllParts, 0) = 1))
+                    BEGIN
+                        SET @IsAssetSplit = 1;
+
+                        DECLARE @AssetSplitRows INT = CAST(CEILING(@QtyToReceive) AS INT);
+                        DECLARE @AssetSplitDecimal DECIMAL(18,6) = @QtyToReceive - FLOOR(@QtyToReceive);
+                        DECLARE @AssetSplitCols NVARCHAR(MAX), @AssetSplitSql NVARCHAR(MAX), @AssetSplitCopies INT;
+
+                        SELECT @AssetSplitCols = STUFF((SELECT ',' + QUOTENAME(c.name) FROM tempdb.sys.columns c
+                                                        WHERE c.object_id = OBJECT_ID('tempdb..#tmpStocklineDraft') AND c.name <> 'ID'
+                                                        ORDER BY c.column_id FOR XML PATH('')), 1, 1, '');
+
+                        -- keep only the first (parent) row, then add (rows - 1) copies of it
+                        DELETE FROM #tmpStocklineDraft WHERE ID <> (SELECT MIN(ID) FROM #tmpStocklineDraft);
+
+                        SET @AssetSplitSql = N'INSERT INTO #tmpStocklineDraft (' + @AssetSplitCols + N') '
+                            + N'SELECT ' + @AssetSplitCols + N' FROM #tmpStocklineDraft CROSS JOIN (SELECT TOP (@cnt) 1 AS n FROM sys.all_objects a CROSS JOIN sys.all_objects b) nums';
+                        SET @AssetSplitCopies = @AssetSplitRows - 1;
+                        EXEC sp_executesql @AssetSplitSql, N'@cnt INT', @cnt = @AssetSplitCopies;
+
+                        UPDATE #tmpStocklineDraft SET Quantity = 1, IsSameDetailsForAllParts = 0;
+
+                        IF (@AssetSplitDecimal > 0)
+                        BEGIN
+                            UPDATE #tmpStocklineDraft SET Quantity = @AssetSplitDecimal WHERE ID = (SELECT MAX(ID) FROM #tmpStocklineDraft);
+                        END
+
+                        SELECT @LoopID = MAX(ID) FROM #tmpStocklineDraft;
+                    END
+
                     WHILE (@LoopID > 0)
                     BEGIN
                         DECLARE @SelectedStockLineDraftId BIGINT;
@@ -583,7 +622,7 @@ BEGIN
                          SELECT @DraftQty = Quantity,
                                @DraftUnitCost = PurchaseOrderUnitCost
                         FROM #tmpStocklineDraft
-                        WHERE StockLineDraftId = @SelectedStockLineDraftId;
+                        WHERE StockLineDraftId = @SelectedStockLineDraftId AND ID = @LoopID; -- [PN-18525] unique per row (asset per-unit split shares one draft id)
 
 
                         SET @QtyAfterConversion = ISNULL(@DraftQty,0);
@@ -635,7 +674,7 @@ BEGIN
 						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife], ISNULL(@IntegrationPortal, ''),@DraftUnitCost,
 						@StockUnitOfMeasureId,@StockUnitOfMeasure,@ConsumeUnitOfMeasureId,@ConsumeUnitOfMeasure
                         FROM #tmpStocklineDraft
-                        WHERE StockLineDraftId = @SelectedStockLineDraftId;
+                        WHERE StockLineDraftId = @SelectedStockLineDraftId AND ID = @LoopID; -- [PN-18525] unique per row (asset per-unit split shares one draft id)
 
                         DECLARE @QtyAdded DECIMAL(18,6) = 0,@QtyOnAction DECIMAL(18,6) = 0;
                         DECLARE @PurchaseOrderUnitCostAdded DECIMAL(18,6) = 0;
@@ -647,7 +686,7 @@ BEGIN
                                @SelectedIsSameDetailsForAllParts = IsSameDetailsForAllParts,
                                @PurchaseOrderUnitCostAdded = PurchaseOrderUnitCost,
                                @IsTimeLIfe = [IsStkTimeLife]
-                        FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId;
+                        FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId AND ID = @LoopID; -- [PN-18525]
 
                         SELECT @NewStocklineId = SCOPE_IDENTITY();
 
@@ -703,9 +742,30 @@ BEGIN
                             LEFT JOIN dbo.PurchaseOrderPart popAsset WITH (NOLOCK) ON popAsset.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
                             WHERE stkAsset.StockLineId = @NewStocklineId;
 
+                            /* [PN-18525] Asset Inventory Number for every asset stockline (same generator as the legacy Asset branch: CodePrefixes CodeTypeId 37) */
+                            DECLARE @AssetInvNumber VARCHAR(100), @AssetInvNumberNo BIGINT, @AssetInvNumberPrefix VARCHAR(50), @AssetInvNumberSufix VARCHAR(50);
+                            SET @AssetInvNumber = NULL; SET @AssetInvNumberNo = NULL;
+
+                            IF (ISNULL((SELECT TOP 1 stkInv.AssetInventoryNumber FROM dbo.Stockline stkInv WITH (NOLOCK) WHERE stkInv.StockLineId = @NewStocklineId), '') = '')
+                            BEGIN
+                                SELECT TOP 1 @AssetInvNumberNo = CASE WHEN ISNULL(cpInv.CurrentNummber, 0) > 0 THEN CAST(cpInv.CurrentNummber AS BIGINT) + 1 ELSE CAST(cpInv.StartsFrom AS BIGINT) + 1 END,
+                                             @AssetInvNumberPrefix = cpInv.CodePrefix, @AssetInvNumberSufix = cpInv.CodeSufix
+                                FROM dbo.CodePrefixes cpInv WITH (NOLOCK)
+                                WHERE cpInv.CodeTypeId = 37 AND cpInv.MasterCompanyId = @MasterCompanyId AND cpInv.IsActive = 1 AND cpInv.IsDeleted = 0;
+
+                                IF (@AssetInvNumberNo IS NOT NULL)
+                                BEGIN
+                                    SET @AssetInvNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@AssetInvNumberNo, @AssetInvNumberPrefix, @AssetInvNumberSufix));
+
+                                    UPDATE dbo.CodePrefixes SET CurrentNummber = @AssetInvNumberNo
+                                    WHERE CodeTypeId = 37 AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+                                END
+                            END
+
                             INSERT INTO @AssetSaveResult (StockLineId)
                             EXEC dbo.USP_SaveStocklineAssetDetails
                                  @StockLineId = @NewStocklineId, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy, @IsLease = 0,
+                                 @AssetInventoryNumber = @AssetInvNumber,
                                  @AssetName = @AssetName, @AssetManufacturerPN = @AssetManufacturerPN,
                                  @AssetInventoryStatusId = @AssetInvStatusId, @AssetAvailableStatusId = @AssetAvailStatusId, @AssetAvailStatus = 'Available',
                                  @AssetIsTangible = @AssetIsTangible, @AssetIsIntangible = @AssetIsIntangible,
@@ -893,11 +953,13 @@ BEGIN
                         END
 						ELSE IF(@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts = 0)
 						BEGIN
+							/* [PN-18525] Asset per-unit split: all units share the one parent draft. Same result as the same-details path: ForStockQty = total received qty,
+							   and while qty is still back-ordered the parent stays open (no stockline no.) so the remaining qty can be received later. */
 							UPDATE dstl
-                            SET dstl.StockLineId = @NewStocklineId,
-                                dstl.StockLineNumber = @StockLineNumber,
+                            SET dstl.StockLineId = CASE WHEN @IsAssetSplit = 1 AND (@MainPOPartBackOrderQty - @QtyToReceive) > 0 THEN 0 ELSE @NewStocklineId END,
+                                dstl.StockLineNumber = CASE WHEN @IsAssetSplit = 1 AND (@MainPOPartBackOrderQty - @QtyToReceive) > 0 THEN NULL ELSE @StockLineNumber END,
                                 dstl.ControlNumber = @ControlNumber,
-                                dstl.ReceiverNumber = @ReceiverNumber, ForStockQty = @QtyAdded 
+                                dstl.ReceiverNumber = @ReceiverNumber, ForStockQty = CASE WHEN @IsAssetSplit = 1 THEN @QtyToReceive ELSE @QtyAdded END 
                             FROM DBO.StocklineDraft dstl
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
 						END
@@ -1131,7 +1193,7 @@ BEGIN
                         END
 						
 						/*******Due to not showing PO Part while receive reconciliation (When QTY is more than 500)********/
-						IF(@QtyAdded > @maxQtyLimit AND @NewStocklineId IS NOT NULL)
+						IF(@QtyAdded > @maxQtyLimit AND @NewStocklineId IS NOT NULL AND NOT (@IsAssetSplit = 1 AND (@MainPOPartBackOrderQty - @QtyToReceive) > 0)) -- [PN-18525]
 						BEGIN
 							  UPDATE dbo.StocklineDraft SET StockLineId = @NewStocklineId, StockLineNumber = @StockLineNumber,	ControlNumber =@ControlNumber 
 									WHERE PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND isSerialized = 0

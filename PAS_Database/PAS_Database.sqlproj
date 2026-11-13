@@ -4998,6 +4998,7 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderCharges.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolValuationReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

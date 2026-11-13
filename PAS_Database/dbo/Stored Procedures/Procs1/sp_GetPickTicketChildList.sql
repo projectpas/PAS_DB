@@ -21,7 +21,6 @@
 	5    09/July/2026   Rajesh Gami       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	6    20/July/2026   RAJESH GAMI    [PN-17350] - Removed IsNonStock=0 filters so Non-Stock parts appear on the pick ticket.
 	7    24/Aug/2026   Kishor Makwana [PN-17439] - Added @SalesOrderPartId in Parameter
-	8    11/Nov/2026   Vishal Suthar  [PN-18530] Show the stockline of a canceled shipment after it is un-reserved; added IsCanceled
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
 CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
@@ -66,17 +65,11 @@ BEGIN
 		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber,
 		--CAST(sopt.ConfirmedDate AS DATE) AS ConfirmedDate, 
 		case when CAST(sopt.ConfirmedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sopt.ConfirmedDate, @CurrntEmpTimeZoneDesc) as Date))end ConfirmedDate,
-		sl.StockLineId, sopt.IsConfirmed,
-		-- Released by Un-Reserve after its shipment was canceled
-		CAST(IIF(ISNULL(sopt.QtyToShip, 0) = 0
-			AND EXISTS (SELECT 1 FROM DBO.SalesOrderShippingItem C WITH(NOLOCK) WHERE C.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(C.QtyCanceled, 0) > 0)
-			AND NOT EXISTS (SELECT 1 FROM DBO.SalesOrderShippingItem I WITH(NOLOCK) WHERE I.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(I.QtyCanceled, 0) = 0), 1, 0) AS BIT) AS IsCanceled
+		sl.StockLineId, sopt.IsConfirmed 
 		FROM DBO.SOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-		OUTER APPLY (SELECT TOP 1 A.StockLineId FROM DBO.SalesOrderStocklineV1Audit A WITH(NOLOCK) -- SO stockline removed by Un-Reserve
-					 WHERE stk.SalesOrderStocklineId IS NULL AND A.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId ORDER BY A.AuditSalesOrderStocklineId DESC) stka
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = ISNULL(stk.StockLineId, stka.StockLineId)
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SalesOrderPartId

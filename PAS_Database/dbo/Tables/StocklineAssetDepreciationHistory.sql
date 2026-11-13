@@ -37,9 +37,6 @@ CREATE TABLE [dbo].[StocklineAssetDepreciationHistory] (
     [LegalEntityId]                       BIGINT          NULL,
     [ManagementStructureId]               BIGINT          NULL,
     [JournalBatchHeaderId]                BIGINT          NULL,
-    [LeaseDurationHrs]                    DECIMAL (18, 2) NULL,
-    [DepreciationPerHour]                 DECIMAL (18, 6) NULL,
-    [UsageHours]                          DECIMAL (18, 6) NULL,
     [MasterCompanyId]                     INT             NOT NULL,
     [CreatedBy]                           VARCHAR (256)   NOT NULL,
     [UpdatedBy]                           VARCHAR (256)   NOT NULL,
@@ -47,10 +44,15 @@ CREATE TABLE [dbo].[StocklineAssetDepreciationHistory] (
     [UpdatedDate]                         DATETIME2 (7)   CONSTRAINT [DF_StocklineAssetDepreciationHistory_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                            BIT             CONSTRAINT [DF_StocklineAssetDepreciationHistory_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                           BIT             CONSTRAINT [DF_StocklineAssetDepreciationHistory_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [LeaseDurationHrs]                    DECIMAL (18, 2) NULL,
+    [DepreciationPerHour]                 DECIMAL (18, 6) NULL,
+    [UsageHours]                          DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_StocklineAssetDepreciationHistory] PRIMARY KEY CLUSTERED ([StocklineAssetDepreciationHistoryId] ASC),
-    CONSTRAINT [FK_StocklineAssetDepreciationHistory_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
-    CONSTRAINT [FK_StocklineAssetDepreciationHistory_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_StocklineAssetDepreciationHistory_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_StocklineAssetDepreciationHistory_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

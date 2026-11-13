@@ -11,6 +11,7 @@
     1    15-04-2025		Shrey Chandegara		Created
     2    23-10-2026		Vishal Suthar			[PN-18334] Expired status when the vendor has quoted
     3    30-10-2026		Vishal Suthar			[PN-18334] Expire from Open Date (not Updated Date); RO uses RO setting days
+    4    14-11-2026		Vishal Suthar			[PN-18334] Always Expired after the configured days; never auto No Quote
 		
 	exec dbo.USP_UpdateVendorRFQPOROStatusAutomatic
 **************************************************************/
@@ -29,12 +30,10 @@ AS BEGIN
 		DECLARE @ClosedStatus BIGINT;
 		DECLARE @NoQuoteStatus BIGINT;
 		DECLARE @ExpiredStatus BIGINT;
-		DECLARE @Status VARCHAR(100);
 		DECLARE @ExpiredStatusName VARCHAR(100);
 		SET @ClosedStatus = (SELECT VendorRFQStatusId FROM [dbo].[VendorRFQStatus] WITH(NOLOCK) WHERE Description = 'Closed');
 		SET @CanceledStatus = (SELECT VendorRFQStatusId FROM [dbo].[VendorRFQStatus] WITH(NOLOCK) WHERE Description = 'Canceled');
 		SET @NoQuoteStatus = (SELECT VendorRFQStatusId FROM [dbo].[VendorRFQStatus] WITH(NOLOCK) WHERE Description = 'No Quote');
-		SET @Status = (SELECT Description FROM [dbo].[VendorRFQStatus] WITH(NOLOCK) WHERE VendorRFQStatusId = @NoQuoteStatus)
 		SELECT @ExpiredStatus = VendorRFQStatusId, @ExpiredStatusName = Description FROM [dbo].[VendorRFQStatus] WITH(NOLOCK) WHERE Description = 'Expired';
 
 		DECLARE @MasterCompanyId INT;
@@ -62,26 +61,16 @@ AS BEGIN
 			WHERE IsDeleted = 0 AND IsActive = 1 AND  StatusId NOT IN (@ClosedStatus,@CanceledStatus,@NoQuoteStatus,ISNULL(@ExpiredStatus,0))
 				  AND (SELECT DATEDIFF(DAY, OpenDate, GETDATE())) > ISNULL(@RFQRODays,0) AND MasterCompanyId = @MasterCompanyId);
 
-			-- Vendor quoted (a part with a price, not No Quote) -> Expired, else No Quote
+			-- [PN-18334] Always Expired; No Quote is set only manually by the user
 			UPDATE PO
-			SET StatusId = CASE WHEN @ExpiredStatus IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[VendorRFQPurchaseOrderPart] P WITH(NOLOCK)
-								 WHERE P.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND ISNULL(P.IsDeleted,0) = 0
-								   AND ISNULL(P.IsNoQuote,0) = 0 AND ISNULL(P.UnitCost,0) > 0) THEN @ExpiredStatus ELSE @NoQuoteStatus END,
-				Status = CASE WHEN @ExpiredStatus IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[VendorRFQPurchaseOrderPart] P WITH(NOLOCK)
-								 WHERE P.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND ISNULL(P.IsDeleted,0) = 0
-								   AND ISNULL(P.IsNoQuote,0) = 0 AND ISNULL(P.UnitCost,0) > 0) THEN @ExpiredStatusName ELSE @Status END
+			SET StatusId = @ExpiredStatus, Status = @ExpiredStatusName
 			FROM [dbo].[VendorRFQPurchaseOrder] PO
-			WHERE PO.VendorRFQPurchaseOrderId IN (SELECT VALUE FROM STRING_SPLIT(@VendorRFQPOIDs, ',')) AND PO.MasterCompanyId = @MasterCompanyId;
+			WHERE @ExpiredStatus IS NOT NULL AND PO.VendorRFQPurchaseOrderId IN (SELECT VALUE FROM STRING_SPLIT(@VendorRFQPOIDs, ',')) AND PO.MasterCompanyId = @MasterCompanyId;
 
 			UPDATE RO
-			SET StatusId = CASE WHEN @ExpiredStatus IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[VendorRFQRepairOrderPart] P WITH(NOLOCK)
-								 WHERE P.VendorRFQRepairOrderId = RO.VendorRFQRepairOrderId AND ISNULL(P.IsDeleted,0) = 0
-								   AND ISNULL(P.IsNoQuote,0) = 0 AND ISNULL(P.UnitCost,0) > 0) THEN @ExpiredStatus ELSE @NoQuoteStatus END,
-				Status = CASE WHEN @ExpiredStatus IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[VendorRFQRepairOrderPart] P WITH(NOLOCK)
-								 WHERE P.VendorRFQRepairOrderId = RO.VendorRFQRepairOrderId AND ISNULL(P.IsDeleted,0) = 0
-								   AND ISNULL(P.IsNoQuote,0) = 0 AND ISNULL(P.UnitCost,0) > 0) THEN @ExpiredStatusName ELSE @Status END
+			SET StatusId = @ExpiredStatus, Status = @ExpiredStatusName
 			FROM [dbo].[VendorRFQRepairOrder] RO
-			WHERE RO.VendorRFQRepairOrderId IN (SELECT VALUE FROM STRING_SPLIT(@VendorRFQROIDs, ',')) AND RO.MasterCompanyId = @MasterCompanyId;
+			WHERE @ExpiredStatus IS NOT NULL AND RO.VendorRFQRepairOrderId IN (SELECT VALUE FROM STRING_SPLIT(@VendorRFQROIDs, ',')) AND RO.MasterCompanyId = @MasterCompanyId;
 
 		FETCH NEXT FROM db_cursorforRFQ INTO @MasterCompanyId 
 		END

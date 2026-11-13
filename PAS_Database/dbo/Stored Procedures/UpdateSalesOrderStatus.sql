@@ -18,7 +18,6 @@
 	5    21-07-2025   Rajesh Gami       Fixed: Get proper invoice count and based on that change the status
 	6    23-07-2025   Rajesh Gami       Remove Transaction
 	7    23-12-2024   AMIT GHEDIYA		Updated logic for one by one shipping so.
-	8    05-11-2026   Vishal Suthar		[PN-18475] Canceled shipments are not counted
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[UpdateSalesOrderStatus]
@@ -39,7 +38,6 @@ BEGIN
 
 			DECLARE @SOModuleId INT
 			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
-			DECLARE @CanceledShippingStatusId BIGINT = (SELECT TOP 1 [ShippingStatusId] FROM [dbo].[ShippingStatus] WITH(NOLOCK) WHERE [Status] = 'CANCELED'); -- [PN-18475]
 
 			SELECT @SoPartDataCount = ISNULL(SUM(QtyRequested), 0) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
@@ -59,7 +57,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN 
-						SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0 AND [SOShippingStatusId] <> ISNULL(@CanceledShippingStatusId, 0);
+						SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 						
 						IF(ISNULL(@SoShippingCount,0) > 0)
 						BEGIN 

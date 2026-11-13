@@ -4990,6 +4990,7 @@
     <Build Include="dbo\Tables\MigratedARInvoice.sql" />
     <Build Include="dbo\Tables\BAG_AR_Upload.sql" />
     <Build Include="dbo\Tables\BAG_AP_Uploads.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineSubComponents_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

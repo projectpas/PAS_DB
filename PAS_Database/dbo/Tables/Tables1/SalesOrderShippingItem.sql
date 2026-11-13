@@ -14,11 +14,12 @@
     [PDFPath]                  NVARCHAR (MAX)  NULL,
     [FedexPdfPath]             VARCHAR (MAX)   NULL,
     [UPSPdfPath]               VARCHAR (MAX)   NULL,
-    [QtyCanceled]              DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderShippingItem] PRIMARY KEY CLUSTERED ([SalesOrderShippingItemId] ASC),
     CONSTRAINT [FK_SalesOrderShippingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderShippingItem_SOPickTicket] FOREIGN KEY ([SOPickTicketId]) REFERENCES [dbo].[SOPickTicket] ([SOPickTicketId])
 );
+
+
 
 
 

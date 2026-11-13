@@ -1,4 +1,7 @@
-﻿/*************************************************************           
+﻿
+
+
+/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList_SSRS]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data fro the SSRS
@@ -21,9 +24,8 @@
 	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
 	6	 19 FEB 2026		RAJESH GAMI  		Resolve PaymentMethod issue
 	7	 20 FEB 2026		RAJESH GAMI  		Return UPPERCASE value
-	8	 12 NOV 2026		HEMANT SALIYA  		Include closed migrated AR records (MigratedARInvoice)
 **************************************************************/
-CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
+CREATE           PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,
@@ -79,7 +81,6 @@ BEGIN
 				@LegalEntityName VARCHAR(500) = NULL,
 				@EmployeeId BIGINT = NULL,
 				@CreditTermName VARCHAR(100) = NULL;
-		DECLARE @MigratedPaymentMethod VARCHAR(100) = 'ARCHIVED';   -- [MIGRATED AR] default PaymentMethod for migrated rows
 	
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -250,98 +251,6 @@ BEGIN
         BEGIN
             SET @SortColumn = UPPER(@SortColumn);
         END
-
-		/*======================================================================
-		  [MIGRATED AR] Closed migrated AR records (MigratedARInvoice)
-		  - Closed = BalanceAmount = 0
-		  - Same column order as the "Result" CTEs below; added there with
-		    UNION ALL so every downstream filter / grouping / sort applies.
-		  - Text columns UPPERCASE to match this SSRS SP (change #7).
-		  - ReceiptID is NEGATIVE (-MigratedARInvoiceId): never clashes with a
-		    real CustomerPayments.ReceiptId, and COUNT(ReceiptID) works.
-		  - PostedDate = PaymentDate, falling back to InvoiceDate.
-		    Legacy business dates: no UTC->local conversion.
-		    Dates outside the DATETIME range (before 1753) become NULL.
-		  - Same role security as live receipts (RoleManagementStructure).
-		  - Keep in sync with usprpt_CashReceiptReportList.
-		======================================================================*/
-		IF OBJECT_ID('tempdb..#MigratedARTmp') IS NOT NULL
-			DROP TABLE #MigratedARTmp
-
-		SELECT
-			-CAST(MAR.MigratedARInvoiceId AS BIGINT)                                                           AS ReceiptID,
-			CAST(UPPER(COALESCE(NULLIF(LTRIM(RTRIM(MAR.ReceiptNo)), ''), 'ARCHIVED')) AS VARCHAR(50))          AS ReceiptNo,
-			CAST(UPPER(MAR.BankAccount) AS VARCHAR(200))                                                       AS BankAccount,
-			CAST(UPPER(COALESCE(NULLIF(LTRIM(RTRIM(MAR.PaymentMethod)), ''), @MigratedPaymentMethod)) AS VARCHAR(100)) AS PaymentMethod,
-			CAST(UPPER(ISNULL(MAR.PaymentReference, '')) AS VARCHAR(100))                                      AS PaymentReference,
-			CAST(COALESCE(D.SafePaymentDate, D.SafeInvoiceDate) AS DATETIME)                                   AS PostedDate,
-			CAST(UPPER(COALESCE(CUST.[Name], MAR.CustomerName)) AS VARCHAR(100))                               AS CustomerName,
-			CAST(NULL AS DATETIME)                                                                             AS OpenDate,
-			CAST(CASE WHEN ISNULL(MAR.PaidAmount, 0) <> 0 THEN MAR.PaidAmount
-			          ELSE ISNULL(MAR.InvoiceAmount, 0) - ISNULL(MAR.BalanceAmount, 0)
-			     END AS DECIMAL(18,2))                                                                         AS baseCurrencyAmount,
-			MAR.CreatedDate                                                                                    AS CreatedDate,
-			CAST('POSTED' AS VARCHAR(50))                                                                      AS [Status],
-			ISNULL(MAR.CurrencyId, 0)                                                                          AS CurrencyId,
-			MAR.GLAccountId                                                                                    AS GLAccountId,
-			CAST(NULL AS BIGINT)                                                                               AS EmployeeId,
-			UPPER(MSL1.Code)  AS level1,
-			UPPER(MSL2.Code)  AS level2,
-			UPPER(MSL3.Code)  AS level3,
-			UPPER(MSL4.Code)  AS level4,
-			UPPER(MSL5.Code)  AS level5,
-			UPPER(MSL6.Code)  AS level6,
-			UPPER(MSL7.Code)  AS level7,
-			UPPER(MSL8.Code)  AS level8,
-			UPPER(MSL9.Code)  AS level9,
-			UPPER(MSL10.Code) AS level10,
-			ess.[Level1Id],
-			ess.[Level2Id],
-			ess.[Level3Id],
-			ess.[Level4Id],
-			ess.[Level5Id],
-			ess.[Level6Id],
-			ess.[Level7Id],
-			ess.[Level8Id],
-			ess.[Level9Id],
-			ess.[Level10Id],
-			CAST(UPPER(COALESCE(NULLIF(LTRIM(RTRIM(MAR.InvoiceNumber)), ''), MAR.WOSONumber)) AS VARCHAR(100)) AS InvoiceNum,
-			CAST(D.SafeInvoiceDate AS DATETIME)                                                                AS InvoiceDate,
-			CAST(COALESCE(D.SafeDueDate, DATEADD(DAY, CT.NetDays, D.SafeInvoiceDate)) AS DATETIME)             AS DueDate,
-			MAR.CustomerId                                                                                     AS CustomerId,
-			CAST(UPPER(COALESCE(CT.[Name], MAR.Terms)) AS VARCHAR(100))                                        AS CreditTermName,
-			CAST(UPPER(MAR.WOSONumber) AS VARCHAR(100))                                                        AS WoSoNum
-		INTO #MigratedARTmp
-		FROM [dbo].[MigratedARInvoice] MAR WITH(NOLOCK)
-		-- DATETIME only supports 1753-01-01..9999-12-31; out-of-range legacy dates become NULL
-		CROSS APPLY (
-			SELECT
-				SafeInvoiceDate = CASE WHEN MAR.InvoiceDate >= '17530101' AND MAR.InvoiceDate < '99991231' THEN MAR.InvoiceDate END,
-				SafePaymentDate = CASE WHEN MAR.PaymentDate >= '17530101' AND MAR.PaymentDate < '99991231' THEN MAR.PaymentDate END,
-				SafeDueDate     = CASE WHEN MAR.DueDate     >= '17530101' AND MAR.DueDate     < '99991231' THEN MAR.DueDate     END
-		) D
-		LEFT JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON CUST.CustomerId = MAR.CustomerId
-		LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = MAR.CreditTermsId
-		LEFT JOIN [dbo].[EntityStructureSetup] ess WITH(NOLOCK) ON ess.EntityStructureId = MAR.ManagementStructureId AND ess.MasterCompanyId = MAR.MasterCompanyId
-		LEFT JOIN [dbo].ManagementStructureLevel MSL1  WITH(NOLOCK) ON ess.[Level1Id]  = MSL1.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL2  WITH(NOLOCK) ON ess.[Level2Id]  = MSL2.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL3  WITH(NOLOCK) ON ess.[Level3Id]  = MSL3.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL4  WITH(NOLOCK) ON ess.[Level4Id]  = MSL4.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL5  WITH(NOLOCK) ON ess.[Level5Id]  = MSL5.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL6  WITH(NOLOCK) ON ess.[Level6Id]  = MSL6.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL7  WITH(NOLOCK) ON ess.[Level7Id]  = MSL7.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL8  WITH(NOLOCK) ON ess.[Level8Id]  = MSL8.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL9  WITH(NOLOCK) ON ess.[Level9Id]  = MSL9.ID
-		LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON ess.[Level10Id] = MSL10.ID
-		WHERE MAR.MasterCompanyId = @mastercompanyid
-		  AND MAR.IsActive = 1 AND MAR.IsDeleted = 0
-		  AND ISNULL(MAR.BalanceAmount, 0) = 0                       -- closed records only
-		  -- AND ISNULL(MAR.InvoiceAmount, 0) <> 0                   -- uncomment to hide zero-amount migrated rows
-		  AND EXISTS (SELECT 1
-		              FROM [dbo].[RoleManagementStructure] RMS WITH(NOLOCK)
-		              INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		              WHERE RMS.EntityStructureId = MAR.ManagementStructureId);
-		/*==================== [MIGRATED AR] end ====================*/
 
 	
 	PRINT ISNULL(@ViewType, '')
@@ -554,20 +463,6 @@ BEGIN
 					GROUP BY ReceiptId  
 				) icd ON CP.ReceiptId = icd.ReceiptId  
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
-
-				/*==================== [MIGRATED AR] closed migrated AR records ====================*/
-				UNION ALL
-				SELECT
-					M.ReceiptID, M.ReceiptNo, M.BankAccount, M.PaymentMethod, M.PaymentReference,
-					M.PostedDate, M.CustomerName, M.OpenDate, M.baseCurrencyAmount, M.CreatedDate,
-					M.[Status], M.CurrencyId, M.GLAccountId, M.EmployeeId,
-					M.level1, M.level2, M.level3, M.level4, M.level5,
-					M.level6, M.level7, M.level8, M.level9, M.level10,
-					M.Level1Id, M.Level2Id, M.Level3Id, M.Level4Id, M.Level5Id,
-					M.Level6Id, M.Level7Id, M.Level8Id, M.Level9Id, M.Level10Id,
-					M.InvoiceNum, M.InvoiceDate, M.DueDate, M.CustomerId, M.CreditTermName, M.WoSoNum
-				FROM #MigratedARTmp M
-				/*==================== [MIGRATED AR] end ====================*/
 			),
 			FinalResult AS (
 				SELECT UPPER(C.Code) AS 'BaseCurrency',UPPER(G.AccountCode) AS 'GlAccountNum' ,
@@ -854,20 +749,6 @@ BEGIN
 					GROUP BY ReceiptId  
 				) icd ON CP.ReceiptId = icd.ReceiptId  
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
-
-				/*==================== [MIGRATED AR] closed migrated AR records ====================*/
-				UNION ALL
-				SELECT
-					M.ReceiptID, M.ReceiptNo, M.BankAccount, M.PaymentMethod, M.PaymentReference,
-					M.PostedDate, M.CustomerName, M.OpenDate, M.baseCurrencyAmount, M.CreatedDate,
-					M.[Status], M.CurrencyId, M.GLAccountId, M.EmployeeId,
-					M.level1, M.level2, M.level3, M.level4, M.level5,
-					M.level6, M.level7, M.level8, M.level9, M.level10,
-					M.Level1Id, M.Level2Id, M.Level3Id, M.Level4Id, M.Level5Id,
-					M.Level6Id, M.Level7Id, M.Level8Id, M.Level9Id, M.Level10Id,
-					M.InvoiceNum, M.InvoiceDate, M.DueDate, M.CustomerId, M.CreditTermName, M.WoSoNum
-				FROM #MigratedARTmp M
-				/*==================== [MIGRATED AR] end ====================*/
 			),
 			FinalResult AS (
 				SELECT UPPER(C.Code) AS 'BaseCurrency',UPPER(G.AccountCode) AS 'GlAccountNum' ,
@@ -1031,7 +912,7 @@ BEGIN
     ERROR_SEVERITY() AS ErrorSeverity,
     ERROR_PROCEDURE() AS ErrorProcedure,
     ERROR_LINE() AS ErrorLine,
-    ERROR_MESSAGE() AS ErrorMessage;
+    ERROR_MESSAGE() AS ErrorMessage;
     IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecordsDetailsView') IS NOT NULL
     BEGIN
       DROP TABLE #TEMPInvoiceRecordsDetailsView

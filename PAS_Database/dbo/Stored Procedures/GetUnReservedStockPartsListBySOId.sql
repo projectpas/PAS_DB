@@ -30,7 +30,6 @@
 	13    17/Aug/2026     Kishor Makwana		[PN-17685] - UnResered Row not Comming
 	14    21/Aug/2026     Kishor Makwana		[PN-17734] - Manage With New Column ToTalReservedQty - UnResered Row not Comming
 	15    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(stl.IsSubComponent,0) =0 AND ISNULL(stl.SubComponentParentStocklineId,0) =0)
-	16    12/Nov/2026     Vishal Suthar     [PN-18530] - Only posted invoices block unreserve (draft invoice stays after Cancel Shipping)
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  10851,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
@@ -99,7 +98,6 @@ BEGIN
 								 AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 								 AND sobi.ModuleId = @SOModuleId
 								 AND sobii.StockLineId = stl.StockLineId
-				 AND ISNULL(sobi.IsInvoicePosted,0) = 1 -- [PN-18530] draft invoices don't block unreserve
 				   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) 
 				ELSE 0 END AS NoofPieces,
 			   sop.ToTalReservedQty

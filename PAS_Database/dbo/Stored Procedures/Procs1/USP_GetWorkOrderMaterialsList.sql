@@ -46,6 +46,7 @@
 	28   19/Aug/2026  SUMIT KUMAR       [PN-17716] - Resolved error getting while copy WO materials from WO -> WOQ
 										And (Append sequence number to task name if duplicate task exists for the WO)
 	24   19/AUG/2026  SUMIT KUMAR						[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
+	25   12/NOV/2026  RAJESH GAMI						[PN-18508] Return IsCustomerSuppliedPart (Customer Supplied Part flag of the WO material line)
 	25    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
@@ -431,6 +432,7 @@ SET NOCOUNT ON
 						,0 AS IsKitType
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
+						,CAST(ISNULL(WOM.IsCustomerSuppliedPart, 0) AS BIT) AS IsCustomerSuppliedPart -- [PN-18508]
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
@@ -663,6 +665,7 @@ SET NOCOUNT ON
 						,1 AS IsKitType
 						,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId) AS KitQty
 						,'' AS ExpectedSerialNumber
+						,CAST(0 AS BIT) AS IsCustomerSuppliedPart -- [PN-18508]
 						,0  AS IsExchangeTender
 						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
@@ -902,6 +905,7 @@ SET NOCOUNT ON
 						,0 AS IsKitType
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
+						,CAST(ISNULL(WOM.IsCustomerSuppliedPart, 0) AS BIT) AS IsCustomerSuppliedPart -- [PN-18508]
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
@@ -1130,6 +1134,7 @@ SET NOCOUNT ON
 						,1 AS IsKitType
 						,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId) AS KitQty
 						,'' AS ExpectedSerialNumber
+						,CAST(0 AS BIT) AS IsCustomerSuppliedPart -- [PN-18508]
 						,0  AS IsExchangeTender
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId

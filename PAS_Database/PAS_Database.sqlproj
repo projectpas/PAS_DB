@@ -4696,6 +4696,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedPartsByWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SetWorkOrderMaterialsCustomerSupplied.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockSubWorkOrderMaterial.sql" />
     <Build Include="dbo\Stored Procedures\WOQAddPNPartSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />

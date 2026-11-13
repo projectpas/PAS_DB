@@ -270,6 +270,8 @@
     [AssetName]                           VARCHAR (50)     NULL,
     [AssetManufacturerPN]                 NVARCHAR (80)    NULL,
     [AssetInventoryNumber]                VARCHAR (100)    NULL,
+    [CustomerSuppliedWorkOrderId]         BIGINT           NULL, -- [PN-18508] Customer Supplied Part: stockline can be used only on this Work Order
+    [CustomerSuppliedWorkOrderMaterialsId] BIGINT          NULL, -- [PN-18508] WO material (CSP) line this stockline was received against
     [AssetStatusId]                       BIGINT           NULL,
     [AssetInventoryStatusId]              BIGINT           NULL,
     [AssetAvailableStatusId]              BIGINT           NULL,
@@ -890,3 +892,8 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_ItemCond_Perf]
     ON [dbo].[Stockline]([ItemMasterId] ASC, [ConditionId] ASC)
     INCLUDE([QuantityAvailable], [IsParent], [IsCustomerStock], [isDeleted], [isActive], [PurchaseOrderId], [CreatedDate], [PoPartUnitCost], [EntryDate], [SerialNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+GO
+
+-- [PN-18508] Customer Supplied Part restriction lookups (only rows that are linked to a WO)
+CREATE NONCLUSTERED INDEX [IX_Stockline_CustomerSuppliedWorkOrderId] ON [dbo].[Stockline] ([CustomerSuppliedWorkOrderId] ASC) WHERE [CustomerSuppliedWorkOrderId] IS NOT NULL;
+GO

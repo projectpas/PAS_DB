@@ -159,7 +159,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
-				AND sl.IsParent = 1
+				AND sl.IsParent = 1 AND sl.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508] Customer Supplied Part belongs to its own WO only
 			UNION
 
 			SELECT DISTINCT

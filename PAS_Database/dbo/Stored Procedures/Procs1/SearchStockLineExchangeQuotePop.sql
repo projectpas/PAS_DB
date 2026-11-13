@@ -130,6 +130,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				AND ISNULL(sl.QuantityAvailable, 0) > 0
 				--AND sl.IsCustomerStock = 0
+				AND sl.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508]
 				AND sl.IsParent = 1
 		END
 		COMMIT  TRANSACTION

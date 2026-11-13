@@ -19,13 +19,16 @@
 	7    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId and ConsumeUnitOfMeasureId [PN-17179]
 	8    13/Aug/2026   RAJESH GAMI    [PN-17008] - Re-added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter on the ItemMaster lookup that was dropped when this proc was ported from BETA.
 	9    25/09/2026   Ayushi Patel    [PN-18075] Set ConsumeUnitOfMeasureId from ItemMaster (was always 0) and refresh Stockline columns on update
+	10   12/11/2026   RAJESH GAMI    [PN-18508] Receive Customer Supplied Materials against a Work Order: new optional @CustomerSuppliedWorkOrderId / @CSPMapJson. When passed, each created stockline is flagged Customer Stock and linked to that WO (Stockline.CustomerSuppliedWorkOrderId / ...MaterialsId) and a 2nd result set returns the created stocklines. Without them nothing changes.
  ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
-@tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      
+@tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY,
+@CustomerSuppliedWorkOrderId BIGINT = NULL, -- [PN-18508]
+@CSPMapJson NVARCHAR(MAX) = NULL -- [PN-18508] [{"rowNo":1,"workOrderMaterialsId":123}] rowNo = 1-based position of the row in @tbl_ReceivingCustomerWorkType
 AS    
 BEGIN    
  SET NOCOUNT ON;    
@@ -34,6 +37,8 @@ BEGIN
   BEGIN TRY    
   BEGIN TRANSACTION    
   BEGIN       
+	   DECLARE @CSPCreated TABLE (RowNo BIGINT, StockLineId BIGINT, WorkOrderMaterialsId BIGINT); -- [PN-18508]
+	   DECLARE @CSPWorkOrderMaterialsId BIGINT; -- [PN-18508]
 	   DECLARE @CurrentStockLineNumber AS BIGINT;    
 	   DECLARE @TotalRecord int = 0;   
 	   DECLARE @MinId BIGINT = 1; 
@@ -486,6 +491,28 @@ BEGIN
 					
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @NewStocklineId;
 
+					/* [PN-18508] Customer Supplied Part received against a Work Order: flag as Customer Stock and bind to that WO (and CSP material line).
+					   Runs only when @CustomerSuppliedWorkOrderId is passed, so every existing flow is unchanged. */
+					IF (ISNULL(@CustomerSuppliedWorkOrderId, 0) > 0)
+					BEGIN
+						SET @CSPWorkOrderMaterialsId = NULL;
+
+						IF (ISJSON(@CSPMapJson) = 1)
+						BEGIN
+							SELECT TOP 1 @CSPWorkOrderMaterialsId = NULLIF(j.WorkOrderMaterialsId, 0)
+							FROM OPENJSON(@CSPMapJson) WITH (RowNo BIGINT '$.rowNo', WorkOrderMaterialsId BIGINT '$.workOrderMaterialsId') j
+							WHERE j.RowNo = @MinId;
+						END
+
+						UPDATE [dbo].[Stockline]
+						SET [CustomerSuppliedWorkOrderId] = @CustomerSuppliedWorkOrderId,
+							[CustomerSuppliedWorkOrderMaterialsId] = @CSPWorkOrderMaterialsId,
+							[IsCustomerStock] = 1
+						WHERE [StockLineId] = @NewStocklineId AND [MasterCompanyId] = @MasterCompanyId;
+
+						INSERT INTO @CSPCreated (RowNo, StockLineId, WorkOrderMaterialsId) VALUES (@MinId, @NewStocklineId, @CSPWorkOrderMaterialsId);
+					END
+
 				    IF (@IsTimeLIfe = 1 AND @TimeLifeDetailsNotProvided = 0)
                     BEGIN
 						INSERT INTO dbo.TimeLife([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
@@ -783,6 +810,14 @@ BEGIN
 		END	
 	
 		SELECT [ReceivingCustomerWorkId],[ReceivingNumber] FROM [dbo].[ReceivingCustomerWork] WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
+
+		-- [PN-18508] stocklines created for the Customer Supplied WO (2nd result set, only when a WO was passed)
+		IF (ISNULL(@CustomerSuppliedWorkOrderId, 0) > 0)
+		BEGIN
+			SELECT C.RowNo, C.StockLineId, S.StockLineNumber, S.ItemMasterId, S.ConditionId, S.Quantity, C.WorkOrderMaterialsId
+			FROM @CSPCreated C INNER JOIN [dbo].[Stockline] S WITH (NOLOCK) ON S.StockLineId = C.StockLineId
+			ORDER BY C.RowNo;
+		END
 
   
 	END    

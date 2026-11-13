@@ -82,7 +82,7 @@ BEGIN
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId
 				AND sl.isActive = 1 AND sl.IsDeleted = 0
 				AND sl.ConditionId = CASE WHEN @ConditionId IS NOT NULL THEN @ConditionId ELSE sl.ConditionId END
-				AND ISNULL(sl.IsCustomerStock,0) = 0
+				AND ISNULL(sl.IsCustomerStock,0) = 0 AND sl.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508]
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId

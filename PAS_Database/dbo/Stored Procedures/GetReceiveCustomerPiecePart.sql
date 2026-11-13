@@ -16,6 +16,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	5    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId [PN-17179]
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	7    13-Nov-2026  RAJESH GAMI   [PN-18508] Return Customer Supplied WO link (CustomerSuppliedWorkOrderId / WO label / IsCSPReserved)
  ** -----------------------------------------------------------          
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
@@ -72,12 +73,28 @@ BEGIN
 			   ,MS.[LastMSLevel],MS.[AllMSlevels]			  
 			   ,ISNULL(WI.WOInspectionId,0) WOInspectionId
 			   ,SL.[StockUnitOfMeasureId]
+			   ,SL.[CustomerSuppliedWorkOrderId]
+			   ,SL.[CustomerSuppliedWorkOrderMaterialsId]
+			   ,CSP.[CustomerSuppliedWorkFlowWorkOrderId]
+			   ,CSP.[CustomerSuppliedWorkOrderLabel]
+			   ,CAST(CASE WHEN CSPR.[StockLineId] IS NULL THEN 0 ELSE 1 END AS BIT) AS IsCSPReserved
           FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 		  INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON RC.[ItemMasterId] = IM.[ItemMasterId]
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  
 		  INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON RC.[StockLineId] = SL.[StockLineId] AND [IsParent] = 1
 		   LEFT JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
 		   LEFT JOIN [dbo].[WOInspectionChecklist] WI WITH(NOLOCK) ON RC.[ReceivingCustomerWorkId] = WI.[ReceivingCustomerWorkId]
+		   OUTER APPLY (SELECT TOP 1 WOWF.[WorkFlowWorkOrderId] AS CustomerSuppliedWorkFlowWorkOrderId,
+		                       CSPWO.[WorkOrderNum] + ' - ' + ISNULL(CSPIM.[partnumber], '') AS CustomerSuppliedWorkOrderLabel
+		                  FROM [dbo].[WorkOrder] CSPWO WITH(NOLOCK)
+		                  LEFT JOIN [dbo].[WorkOrderMaterials] CSPWOM WITH(NOLOCK) ON CSPWOM.[WorkOrderMaterialsId] = SL.[CustomerSuppliedWorkOrderMaterialsId]
+		                  LEFT JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = CSPWOM.[WorkFlowWorkOrderId]
+		                  LEFT JOIN [dbo].[WorkOrderPartNumber] CSPWOPN WITH(NOLOCK) ON CSPWOPN.[ID] = WOWF.[WorkOrderPartNoId]
+		                  LEFT JOIN [dbo].[ItemMaster] CSPIM WITH(NOLOCK) ON CSPIM.[ItemMasterId] = CSPWOPN.[ItemMasterId]
+		                 WHERE CSPWO.[WorkOrderId] = SL.[CustomerSuppliedWorkOrderId]) CSP
+		   OUTER APPLY (SELECT TOP 1 WOMS.[StockLineId] FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
+		                 WHERE SL.[CustomerSuppliedWorkOrderId] IS NOT NULL AND WOMS.[StockLineId] = SL.[StockLineId]
+		                   AND ISNULL(WOMS.[QtyReserved], 0) > 0 AND WOMS.[IsDeleted] = 0) CSPR
 		  WHERE RC.[MasterCompanyId] = @MasterCompanyId 
 		  AND RC.[CustomerId] = @CustomerId 
 		  AND RC.[ReceivingNumber] IN (@FinalReceivingNumber)

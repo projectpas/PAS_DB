@@ -27,6 +27,7 @@
 	11    09/July/2026   RAJESH GAMI		    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	12   23/July/2026   RAJESH GAMI		    [PN-17350] - Removed leftover IsNonStock=0 exclusion filter(s) added during PN-17008/PN-17009 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
 	13   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	14   13-Nov-2026   Moin Bloch		    Added From Date / To Date filter (TxnDate = reserved/issued date, fallback CreatedDate)
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/   
 CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
@@ -58,7 +59,9 @@ CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @level8Str VARCHAR(MAX) = NULL,
 @level9Str VARCHAR(MAX) = NULL,
 @level10Str VARCHAR(MAX) = NULL,
-@Mastercompanyid INT
+@Mastercompanyid INT,
+@FromDate DATE = NULL,
+@ToDate DATE = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -166,14 +169,15 @@ BEGIN
 	  level7 VARCHAR(MAX)  NULL,
 	  level8 VARCHAR(MAX)  NULL,
 	  level9 VARCHAR(MAX)  NULL,
-	  level10 VARCHAR(MAX) NULL
+	  level10 VARCHAR(MAX) NULL,
+	  TxnDate DATETIME2 NULL
      )    
 			
 		 IF(@ViewType = '1' OR @ViewType = '3')
 		 BEGIN
 				--* Start: WorkOrderPartNumber For ALL *--
 				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 						SELECT
 						SL.StockLineId,
 						SL.PartNumber,
@@ -195,7 +199,8 @@ BEGIN
 						UPPER(SLM.Level7Name) AS level7, 
 						UPPER(SLM.Level8Name) AS level8, 
 						UPPER(SLM.Level9Name) AS level9, 
-						UPPER(SLM.Level10Name) AS level10
+						UPPER(SLM.Level10Name) AS level10,
+					WOP.CreatedDate AS TxnDate
 					FROM [dbo].[WorkOrderPartNumber] WOP   WITH(NOLOCK)
 						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
@@ -226,7 +231,7 @@ BEGIN
 
 				--* START: RepairOrder For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -248,7 +253,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ROP.CreatedDate AS TxnDate
 				FROM [dbo].[RepairOrder] RO  WITH(NOLOCK)
 					INNER JOIN [RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
@@ -278,7 +284,7 @@ BEGIN
 
 				--* START: ExchangeSalesOrder For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -300,7 +306,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(ESR.ReservedDate, ESR.CreatedDate) AS TxnDate
 				FROM [dbo].[ExchangeSalesOrder] ESO  WITH(NOLOCK)
 					INNER JOIN [ExchangeSalesOrderReserveParts] ESR WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESR.ExchangeSalesOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ESR.StockLineId
@@ -331,7 +338,7 @@ BEGIN
 
 				--* START: RMA For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -353,7 +360,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					VRD.CreatedDate AS TxnDate
 				FROM [VendorRMADetail] VRD WITH(NOLOCK)
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND VRD.MasterCompanyId = SLM.MasterCompanyId
@@ -382,7 +390,7 @@ BEGIN
 
 				--* START: ExchangeSalesOrder For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -404,7 +412,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(SOR.ReservedDate, SSTL.CreatedDate) AS TxnDate
 				FROM [dbo].[SalesOrderStocklineV1] SSTL  WITH(NOLOCK)
 					INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SSTL.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrder] ESO WITH(NOLOCK) ON SOP.SalesOrderId = ESO.SalesOrderId					
@@ -437,7 +446,7 @@ BEGIN
 
 				--* START: Stockline Bulk Adjustment For Reserve *--		
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -459,7 +468,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					SSTL.CreatedDate AS TxnDate
 				FROM dbo.[BulkStockLineAdjustmentDetails] SSTL WITH(NOLOCK)
 					INNER JOIN [dbo].[BulkStockLineAdjustment] ESO WITH(NOLOCK) ON SSTL.BulkStkLineAdjId = ESO.BulkStkLineAdjId					
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
@@ -499,7 +509,7 @@ BEGIN
 		 BEGIN
 				--* Start: WorkOrderMaterialStockline For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					Sl.StockLineId,
 					SL.PartNumber,
@@ -521,7 +531,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(WMS.ReservedDate, WMS.CreatedDate) AS TxnDate
 				FROM [WorkOrderMaterialStockLine] WMS WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterials] WM WITH(NOLOCK) ON WM.WorkOrderMaterialsId = WMS.WorkOrderMaterialsId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -554,7 +565,7 @@ BEGIN
 
 				--* Start: WorkOrderMaterialStocklineKit For Reserve *--					
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					sl.StockLineId,
 					SL.PartNumber,
@@ -576,7 +587,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(WMS.ReservedDate, WMS.CreatedDate) AS TxnDate
 				FROM [WorkOrderMaterialStockLineKit] WMS  WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WM WITH(NOLOCK) ON WM.WorkOrderMaterialsKitId = WMS.WorkOrderMaterialsKitId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -609,7 +621,7 @@ BEGIN
 
 				--* START: SubWorkOrderMaterialStockline For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					sl.StockLineId,
 					SL.PartNumber,
@@ -631,7 +643,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(SWMS.ReservedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLine] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -663,7 +676,7 @@ BEGIN
 
 				--* START: SubWorkOrderMaterialStocklineKit For Reserve *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					sl.StockLineId,
 					SL.PartNumber,
@@ -685,7 +698,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(SWMS.ReservedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLineKit] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -720,7 +734,7 @@ BEGIN
 		 BEGIN
 				--* Start: WorkOrderMaterialStockline For Issued *--
 				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 						SELECT
 						SL.StockLineId,
 						SL.PartNumber,
@@ -742,7 +756,8 @@ BEGIN
 						UPPER(SLM.Level7Name) AS level7, 
 						UPPER(SLM.Level8Name) AS level8, 
 						UPPER(SLM.Level9Name) AS level9, 
-						UPPER(SLM.Level10Name) AS level10
+						UPPER(SLM.Level10Name) AS level10,
+					ISNULL(WMS.IssuedDate, WMS.CreatedDate) AS TxnDate
 					FROM [WorkOrderMaterialStockLine] WMS  WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterials] WM  WITH(NOLOCK) ON WM.WorkOrderMaterialsId = WMS.WorkOrderMaterialsId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -775,7 +790,7 @@ BEGIN
 
 				--* START: WorkOrderMaterialStocklineKit For Issued *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -797,7 +812,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(WMS.IssuedDate, WMS.CreatedDate) AS TxnDate
 				FROM [WorkOrderMaterialStockLineKit] WMS  WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WM  WITH(NOLOCK) ON WM.WorkOrderMaterialsKitId = WMS.WorkOrderMaterialsKitId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -830,7 +846,7 @@ BEGIN
 
 				--* START: SUBWorkOrderMaterialStockline For Issued *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -852,7 +868,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(SWMS.IssuedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLine] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -885,7 +902,7 @@ BEGIN
 
 				--* START: SUBWorkOrderMaterialStocklineKit For Issued *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -907,7 +924,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					ISNULL(SWMS.IssuedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLineKit] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -943,7 +961,7 @@ BEGIN
 		 BEGIN
 				 --* Start: WorkOrderMaterialStockline For ALL *--
 				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 						SELECT
 						SL.StockLineId,
 						SL.PartNumber,
@@ -965,7 +983,8 @@ BEGIN
 						UPPER(SLM.Level7Name) AS level7, 
 						UPPER(SLM.Level8Name) AS level8, 
 						UPPER(SLM.Level9Name) AS level9, 
-						UPPER(SLM.Level10Name) AS level10
+						UPPER(SLM.Level10Name) AS level10,
+					COALESCE(WMS.IssuedDate, WMS.ReservedDate, WMS.CreatedDate) AS TxnDate
 					FROM [WorkOrderMaterialStockLine] WMS  WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderMaterials] WM  WITH(NOLOCK) ON WM.WorkOrderMaterialsId = WMS.WorkOrderMaterialsId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -998,7 +1017,7 @@ BEGIN
 
 				--* Start: WorkOrderMaterialStocklineKit For ALL *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -1020,7 +1039,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					COALESCE(WMS.IssuedDate, WMS.ReservedDate, WMS.CreatedDate) AS TxnDate
 				FROM [WorkOrderMaterialStockLineKit] WMS  WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WM  WITH(NOLOCK) ON WM.WorkOrderMaterialsKitId = WMS.WorkOrderMaterialsKitId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
@@ -1053,7 +1073,7 @@ BEGIN
 
 				--* Start: SubWorkOrderMaterialStockline For ALL *--				
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -1075,7 +1095,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					COALESCE(SWMS.IssuedDate, SWMS.ReservedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLine] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -1107,7 +1128,7 @@ BEGIN
 
 				--* Start: SubWorkOrderMaterialStocklineKIT For ALL *--				
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,TxnDate)
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -1129,7 +1150,8 @@ BEGIN
 					UPPER(SLM.Level7Name) AS level7, 
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
+					UPPER(SLM.Level10Name) AS level10,
+					COALESCE(SWMS.IssuedDate, SWMS.ReservedDate, SWMS.CreatedDate) AS TxnDate
 				FROM [SubWorkOrderMaterialStockLineKit] SWMS WITH(NOLOCK)
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
@@ -1176,7 +1198,9 @@ BEGIN
 		 (ISNULL(@QuantityReserved,0) = 0 OR [QuantityReserved] = @QuantityReserved) AND
 		 (ISNULL(@QuantityIssued,0) = 0 OR [QuantityIssued] = @QuantityIssued) AND
 		 (ISNULL(@Module,'') ='' OR [Module] LIKE '%' + @Module+'%') AND
-		 (ISNULL(@ReferenceNumber,'') ='' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber+'%') 
+		 (ISNULL(@ReferenceNumber,'') ='' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber+'%') AND
+		 (@FromDate IS NULL OR CAST([TxnDate] AS DATE) >= @FromDate) AND
+		 (@ToDate IS NULL OR CAST([TxnDate] AS DATE) <= @ToDate) 
 		 )
 
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult); 

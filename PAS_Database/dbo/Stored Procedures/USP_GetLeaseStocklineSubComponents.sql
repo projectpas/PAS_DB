@@ -21,7 +21,7 @@
 
 -- EXEC [dbo].[USP_GetLeaseStocklineSubComponents] @LeaseStocklineId = 1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetLeaseStocklineSubComponents]
+CREATE PROCEDURE [dbo].[USP_GetLeaseStocklineSubComponents]
 	@LeaseStocklineId BIGINT
 AS
 BEGIN

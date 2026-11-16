@@ -66,7 +66,7 @@ BEGIN
   BEGIN TRY
 
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-    DECLARE @MigratedPaymentMethod NVARCHAR(100) = 'Migrated';   -- [MIGRATED AP] label shown in PaymentMethod column
+    DECLARE @MigratedPaymentMethod NVARCHAR(100) = 'Archived';   -- [MIGRATED AP] label shown in PaymentMethod column
 	
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], -- Prefer Employee's TimeZone description if available 
     LTZ.[Description] )  -- Fallback to LegalEntity's TimeZone description

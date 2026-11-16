@@ -68,7 +68,7 @@ BEGIN
 			@level9Ids VARCHAR(MAX) = NULL,    
 			@level10Ids VARCHAR(MAX) = NULL 
 
-  DECLARE @MigratedPaymentMethod NVARCHAR(100) = 'Migrated';   -- [MIGRATED AP] label shown in PaymentMethod column
+  DECLARE @MigratedPaymentMethod NVARCHAR(100) = 'Archived';   -- [MIGRATED AP] label shown in PaymentMethod column
 
             IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 	BEGIN    

@@ -3626,7 +3626,7 @@
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
@@ -4497,7 +4497,7 @@
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
@@ -4825,7 +4825,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetReservedLeaseStockPartsListByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePartsByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseNumberByLeaseStocklineId.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLeaseStockLine.sql" />
@@ -4882,7 +4882,7 @@
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingParentList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingLabel.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingForEdit.sql">
       <QuotedIdentifier>On</QuotedIdentifier>

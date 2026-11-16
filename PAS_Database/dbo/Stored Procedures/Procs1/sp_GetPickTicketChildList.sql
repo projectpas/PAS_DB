@@ -71,7 +71,9 @@ BEGIN
 		FROM DBO.SOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
+		OUTER APPLY (SELECT TOP 1 A.StockLineId FROM DBO.SalesOrderStocklineV1Audit A WITH(NOLOCK) -- SO stockline removed by Un-Reserve
+					 WHERE stk.SalesOrderStocklineId IS NULL AND A.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId ORDER BY A.AuditSalesOrderStocklineId DESC) stka
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = ISNULL(stk.StockLineId, stka.StockLineId)
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SalesOrderPartId

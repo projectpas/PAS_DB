@@ -48,6 +48,7 @@
 ** 20   21/07/2026   Kishor Makwana     [PN-17374] Update TimeLimit and TimeRemaining columd data with caption days or Mth 
 ** 21	24/07/2026	 Amit Ghediya	    Update tailnum to EngineName
 ** 22	27/07/2026	 Amit Ghediya	    Get Worksheet from mapping table [PN-17396]
+** 23	16/11/2026	 Bhargav Saliya	    Added @HeaderTailNumber/@HeaderSerialNumber exact-match header filters [PN-18505]
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -99,7 +100,9 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @ACSection               VARCHAR(256)    = NULL,
     @IsScheduled             BIT             = NULL,
 	@ApplicableSbAd          BIT             = NULL,
-	@WoStatus                VARCHAR(50)     = NULL
+	@WoStatus                VARCHAR(50)     = NULL,
+    @HeaderTailNumber        VARCHAR(100)    = NULL,
+    @HeaderSerialNumber      VARCHAR(100)    = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -332,6 +335,8 @@ BEGIN
                 AND (@IsScheduled IS NULL OR AMP.IsScheduled = @IsScheduled)
 				AND (@ApplicableSbAd IS NULL OR CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END = @ApplicableSbAd)
 				AND (ISNULL(@WoStatus, '') = '' OR LWO.WorkOrderStatus LIKE '%' + @WoStatus + '%')
+                AND (ISNULL(@HeaderTailNumber, '')   = '' OR (ISNULL(AMP.IsFromAircraft, 0) = 1 AND REG.TailNumber = @HeaderTailNumber))
+                AND (ISNULL(@HeaderSerialNumber, '') = '' OR REG.SerialNumber = @HeaderSerialNumber)
         )
 
         SELECT

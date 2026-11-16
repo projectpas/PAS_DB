@@ -4726,6 +4726,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceTailSerialList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />

@@ -6,6 +6,7 @@
  **              AssetInventoryItemMasterId / stockline value, else the same PN), the accounting period of the conversion date.
  **              IsConvertible = 0 + BlockReason when the conversion is not allowed :
  **                not a lease asset, already converted, no quantity on hand, still on a Draft / Active lease (lease status enum 1 = Draft, 2 = Active, 3 = Closed), accounting period (Asset / Inventory) closed or missing.
+ **                not a lease asset, already converted, no quantity on hand, still on a Draft / Active lease, accounting period (Asset / Inventory) closed or missing.
  **              The same rules are checked again by USP_ConvertStocklineAssetToInventory.
  **************************************************************
  ** Change History
@@ -15,7 +16,7 @@
     1    12/November/2026 Kishor Makwana  [PN-18535] Created
  -- EXEC [dbo].[USP_GetStocklineAssetConversionPreview] @StockLineId = 1, @MasterCompanyId = 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetStocklineAssetConversionPreview]
+CREATE PROCEDURE [dbo].[USP_GetStocklineAssetConversionPreview]
 	@StockLineId     BIGINT,
 	@MasterCompanyId INT,
 	@ConversionDate  DATETIME2(7) = NULL

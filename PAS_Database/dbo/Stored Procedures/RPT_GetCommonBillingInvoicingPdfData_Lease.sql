@@ -32,6 +32,7 @@
                                      Shipping Terms picked in the Billing Invoice popup (BillingInvoicingDetails); Awb is the AirwayBill of the latest
                                      Lease Shipping that carried the invoiced stocklines. They were returned blank before.
                                      CreditTerms now returns the Bill To customer's credit terms (Customer > Financial) instead of blank.
+    5    16/11/2026   Kishor Makwana [PN-18565] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the invoiced stocklines, comma separated when more than one) for LeaseBilling_New.rdl
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_Lease] 1,72,55
 **************************************************************/
@@ -87,6 +88,23 @@ BEGIN
 		   LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 		   LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId; 
+
+		-- [New invoice layout] Engine S/N and Engine Model of the invoiced stocklines (distinct, comma separated)
+		DECLARE @EngineSerialNumber NVARCHAR(MAX) = '', @EngineModel NVARCHAR(MAX) = '';
+		SELECT @EngineSerialNumber = ISNULL(STRING_AGG(E.[EngineSerialNumber], ', '), '')
+		FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineSerialNumber])) AS [EngineSerialNumber]
+			FROM [dbo].[BillingInvoicingItems] BIE WITH (NOLOCK)
+			INNER JOIN [dbo].[LeaseStockline] LSE WITH (NOLOCK) ON LSE.[LeaseStocklineId] = BIE.[SubReferenceId]
+			INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+			WHERE BIE.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BIE.[IsDeleted], 0) = 0 AND ISNULL(BIE.[IsVersionIncrease], 0) = 0
+				AND ISNULL(LTRIM(RTRIM(STK.[EngineSerialNumber])), '') <> '') E;
+		SELECT @EngineModel = ISNULL(STRING_AGG(E.[EngineModel], ', '), '')
+		FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineModel])) AS [EngineModel]
+			FROM [dbo].[BillingInvoicingItems] BIE WITH (NOLOCK)
+			INNER JOIN [dbo].[LeaseStockline] LSE WITH (NOLOCK) ON LSE.[LeaseStocklineId] = BIE.[SubReferenceId]
+			INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+			WHERE BIE.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BIE.[IsDeleted], 0) = 0 AND ISNULL(BIE.[IsVersionIncrease], 0) = 0
+				AND ISNULL(LTRIM(RTRIM(STK.[EngineModel])), '') <> '') E;
 
 		IF(@ModuleId = @LeaseModuleId) /********* START: LEASE ********/
 		BEGIN	
@@ -178,7 +196,9 @@ BEGIN
 					UPPER(inv.[Description]) InvoiceType,
 					NULL OriginCountry,
 					NULL DestinationCountry,
-					ISNULL(CUST.ResaleNumber,'') ResaleNumber
+					ISNULL(CUST.ResaleNumber,'') ResaleNumber,
+					@EngineSerialNumber [EngineSerialNumber],
+					@EngineModel [EngineModel]
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)
 				INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON BI.[ReferenceId] = LH.[LeaseHeaderId]
 				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON LH.[CustomerId] = CUST.[CustomerId]

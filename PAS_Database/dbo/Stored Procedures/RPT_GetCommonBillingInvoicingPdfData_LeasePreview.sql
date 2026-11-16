@@ -23,10 +23,11 @@
                                      New @SoldToCustomerId parameter (Bill To customer picked in the popup) drives CreditTerms (Customer > Financial);
                                      falls back to the lease's customer when not supplied.
     5    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
+    6    16/11/2026   Kishor Makwana [PN-18565] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the selected stocklines, comma separated when more than one) for LeaseBillingPreview_New.rdl
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
+CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview]
 @LeaseHeaderId BIGINT = NULL,
 @LeaseStocklineIds VARCHAR(MAX) = NULL,
 @MasterCompanyId INT = NULL,
@@ -133,6 +134,21 @@ BEGIN
 	-- The preview shows exactly what Create Invoice will save: the same lines the Billing grid computes (one source of truth).
 	INSERT INTO #G EXEC [dbo].[USP_GetLeaseBillingListByLeaseHeaderId] @LeaseHeaderId = @LeaseHeaderId;
 
+	-- [New invoice layout] Engine S/N and Engine Model of the selected stocklines (distinct, comma separated)
+	DECLARE @EngineSerialNumber NVARCHAR(MAX) = '', @EngineModel NVARCHAR(MAX) = '';
+	SELECT @EngineSerialNumber = ISNULL(STRING_AGG(E.[EngineSerialNumber], ', '), '')
+	FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineSerialNumber])) AS [EngineSerialNumber]
+		FROM [dbo].[LeaseStockline] LSE WITH (NOLOCK)
+		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+		WHERE LSE.[LeaseStocklineId] IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+			AND ISNULL(LTRIM(RTRIM(STK.[EngineSerialNumber])), '') <> '') E;
+	SELECT @EngineModel = ISNULL(STRING_AGG(E.[EngineModel], ', '), '')
+	FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineModel])) AS [EngineModel]
+		FROM [dbo].[LeaseStockline] LSE WITH (NOLOCK)
+		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+		WHERE LSE.[LeaseStocklineId] IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+			AND ISNULL(LTRIM(RTRIM(STK.[EngineModel])), '') <> '') E;
+
 	-- AWB of the latest shipment (Lease > Shipping) that carried the selected stocklines.
 	DECLARE @Awb VARCHAR(50) = '';
 	SELECT TOP 1 @Awb = ISNULL(LSH.[AirwayBill], '')
@@ -238,7 +254,9 @@ BEGIN
 			UPPER(inv.[Description]) InvoiceType,
 			NULL OriginCountry,
 			NULL DestinationCountry,
-			ISNULL(CUST.ResaleNumber,'') ResaleNumber
+			ISNULL(CUST.ResaleNumber,'') ResaleNumber,
+			@EngineSerialNumber [EngineSerialNumber],
+			@EngineModel [EngineModel]
 		FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 		INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON LH.[CustomerId] = CUST.[CustomerId]
 		INNER JOIN [dbo].[Address] CUSTADDRESS WITH(NOLOCK) ON CUST.[AddressId] = CUSTADDRESS.[AddressId]

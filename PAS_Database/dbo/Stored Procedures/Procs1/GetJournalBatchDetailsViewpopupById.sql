@@ -66,6 +66,7 @@
  51   13/08/2026   Moin Bloch		     Added GRNI PN-17411
  52	  12/10/2026   BHARGAV SALIYA	     Show Non-Stock stocklines in Bulk Stockline Adjustment batch details PN-17481
  53   22/10/2026  Kishor Makwana		 [PN-18262] - added Lease modules 'FLS','FLI','FLCR','OLI','OLCR','OPDR' (LeaseBatchDetails)
+ 54   12/11/2026  Kishor Makwana    [PN-18535] added module 'LEASEASSETCONVERSION' (Convert leased asset to inventory journal) to the stockline based branch
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5157,@IsDeleted=0,@Module=N'GRNI'
 ************************************************************************/  
@@ -264,7 +265,7 @@ BEGIN
 				WHERE JBD.JournalBatchDetailId =@JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 			END  
 			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST')
-				OR UPPER(@Module) = UPPER('ASSETAC') OR UPPER(@Module) = UPPER('ASSETSALE') OR UPPER(@Module) = UPPER('ASSETDEP'))        
+				OR UPPER(@Module) = UPPER('ASSETAC') OR UPPER(@Module) = UPPER('ASSETSALE') OR UPPER(@Module) = UPPER('ASSETDEP') OR UPPER(@Module) = UPPER('LEASEASSETCONVERSION'))        
 			BEGIN  
 				DECLARE @NONStockModuleID INT = 11;  
 				DECLARE @ModuleID INT = 2;  

@@ -9,6 +9,7 @@
  ** PR   Date           Author        Change Description
  ** --   --------       -------       --------------------------------
     1    12-Nov-2026    RAJESH GAMI   [PN-18508] Created
+    2    16-Nov-2026    RAJESH GAMI   [PN-18508] Return ItemMaster GL Account / Time Life / default site-location (same as Add PN)
  **************************************************************
 -- EXEC dbo.GetCustomerSuppliedPartsByWorkOrder @WorkFlowWorkOrderId = 100, @MasterCompanyId = 1
 ************************************************************************/
@@ -36,6 +37,12 @@ BEGIN
 			WOM.UnitOfMeasureId,
 			UOM.ShortName AS UnitOfMeasure,
 			ISNULL(IM.isSerialized, 0) AS IsSerialized,
+			IM.GLAccountId,
+			ISNULL(IM.isTimeLife, 0) AS IsTimeLife,
+			IM.ItemGroup,
+			IM.RevisedPart,
+			ISNULL(IM.IsExpirationDateAvailable, 0) AS IsExpirationDateAvailable,
+			IM.SiteId, IM.WarehouseId, IM.LocationId, IM.ShelfId, IM.BinId,
 			WOM.Quantity AS QtyRequired,
 			ISNULL(RCV.QtyReceived, 0) AS QtyReceived,
 			WOM.Quantity - ISNULL(RCV.QtyReceived, 0) AS QtyRemaining

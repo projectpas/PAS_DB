@@ -19,6 +19,7 @@
  ** PR   Date            Author          Change Description
  ** --   --------        -------         --------------------------------
     1    27/October/2026 RAJESH GAMI     Created [PN-18407]
+    2    12/November/2026 Kishor Makwana  [PN-18535] Added @AssetInventoryItemMasterId (Inventory PN of the Convert to Inventory)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveStocklineAssetDetails]
 	@StockLineId BIGINT,
@@ -49,6 +50,7 @@ CREATE   PROCEDURE [dbo].[USP_SaveStocklineAssetDetails]
 	@AssetInsurance                     DECIMAL(18,6) = NULL,
 	@AssetTaxes                         DECIMAL(18,6) = NULL,
 	@AssetInstallationCost              DECIMAL(18,6) = NULL,
+	@AssetInventoryItemMasterId         BIGINT = NULL,
 	@MaintenanceGLAccountId             BIGINT = NULL,
 	@WarrantyGLAccountId                BIGINT = NULL,
 	@CalibrationGlAccountId             BIGINT = NULL,
@@ -228,6 +230,7 @@ BEGIN
 			AssetStockline.AssetInsurance                     = @AssetInsurance,
 			AssetStockline.AssetTaxes                         = @AssetTaxes,
 			AssetStockline.AssetInstallationCost              = @AssetInstallationCost,
+			AssetStockline.AssetInventoryItemMasterId         = ISNULL(NULLIF(@AssetInventoryItemMasterId, 0), AssetStockline.AssetInventoryItemMasterId),
 			AssetStockline.AssetTotalCost                     = (ISNULL(AssetStockline.UnitCost,0) * ISNULL(AssetStockline.Quantity,0)) + ISNULL(@AssetFreight,0) + ISNULL(@AssetInsurance,0) + ISNULL(@AssetTaxes,0) + ISNULL(@AssetInstallationCost,0),
 
 			/* Depreciation */

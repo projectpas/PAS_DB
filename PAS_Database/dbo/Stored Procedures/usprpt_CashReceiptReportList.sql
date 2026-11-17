@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data 
@@ -31,7 +31,7 @@ exec usprpt_CashReceiptReportList @PageNumber=1,@PageSize=2000,@SortColumn=N'Pos
 @LegalEntityName=NULL,@EmployeeId=262,@MasterCompanyId=25,@CreditTermName=NULL
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usprpt_CashReceiptReportList]
+CREATE   PROCEDURE [dbo].[usprpt_CashReceiptReportList]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -87,7 +87,7 @@ BEGIN
 		DECLARE	@STANDALONECREDITMEMO INT = 4
 		DECLARE	@MANUALJOURNAL INT = 5
 		DECLARE	@ESOInvoiceType INT = 6
-		DECLARE @MigratedPaymentMethod VARCHAR(100) = 'Migrated';   -- [MIGRATED AR] default PaymentMethod for migrated rows
+		DECLARE @MigratedPaymentMethod VARCHAR(100) = 'ARCHIVED';   -- [MIGRATED AR] default PaymentMethod for migrated rows
 		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 		BEGIN    
 			DROP TABLE #TEMPMSFilter
@@ -230,7 +230,7 @@ BEGIN
 
 		SELECT
 			CAST(MAR.MigratedARInvoiceId AS BIGINT)                                                    AS ReceiptID,
-			CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAR.ReceiptNo)), ''), 'MIGRATED') AS VARCHAR(50))         AS ReceiptNo,
+			CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAR.ReceiptNo)), ''), 'ARCHIVED') AS VARCHAR(50))         AS ReceiptNo,
 			CAST(MAR.BankAccount AS VARCHAR(200))                                                       AS BankAccount,
 			CAST(COALESCE(NULLIF(LTRIM(RTRIM(MAR.PaymentMethod)), ''), @MigratedPaymentMethod) AS VARCHAR(100)) AS PaymentMethod,
 			CAST(ISNULL(MAR.PaymentReference, '') AS VARCHAR(100))                                      AS PaymentReference,

@@ -151,7 +151,7 @@ BEGIN
 		AND so.SalesOrderId = @SalesOrderId
 		AND SL.QuantityAvailable > 0
 		--AND SL.IsCustomerStock = 0
-		AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
+		AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)) AND sl.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508]
 		AND SL.IsParent = 1
 		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 		GROUP BY

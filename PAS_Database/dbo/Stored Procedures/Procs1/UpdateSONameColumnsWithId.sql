@@ -14,7 +14,8 @@
 	4    10/04/2025	   Vishal Suthar	Modified to update value columns in SalesOrderPartV1 table
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed leftover IsNonStock=0 exclusion filter added during PN-17008 transitional Non-Stock merge phase (Non-Stock is now merged; filter no longer needed).
-	EXEC [dbo].[UpdateSONameColumnsWithId] 255
+	7    12/Nov/2026			 RAJESH GAMI						NetDays added
+	EXEC [dbo].[UpdateSONameColumnsWithId] 255						
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
@@ -93,7 +94,9 @@ BEGIN
 		SO.Level2 = PMS.Level2,
 		SO.Level3 = PMS.Level3,
 		SO.Level4 = PMS.Level4,
-		VersionNumber = dbo.GenearteVersionNumber(SO.Version)
+		VersionNumber = dbo.GenearteVersionNumber(SO.Version),
+		Days = Cterm.Days,
+		NetDays = Cterm.NetDays
 		FROM [dbo].[SalesOrder] SO WITH (NOLOCK)
 		LEFT JOIN #SalesOrderPartMSDATA PMS ON PMS.MSID = SO.ManagementStructureId
 		LEFT JOIN DBO.MasterSalesOrderQuoteTypes MST WITH (NOLOCK) ON Id = SO.TypeId

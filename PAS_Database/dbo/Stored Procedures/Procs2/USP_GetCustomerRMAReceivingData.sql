@@ -20,6 +20,8 @@
                                         same part + serial shipped on a WO in the last 1 year, not proforma)
     3    05-Nov-2026  RAJESH GAMI		[PN-18254] Reason from RMAReason (RMAReasonId); Site / Warehouse / Location / Shelf / Bin default
                                         from the original stockline, else from Item Master (same parent chain); GL 0 = not set
+    4    12-Nov-2026  RAJESH GAMI		[PN-18552] Parts also return Item Master IsExpirationDateAvailable / IsManufacturingDateAvailable /
+                                        IsTagDateAvailable (Exp / Mfr / Tag Date required, same as Receiving PO)
 
  EXEC [dbo].[USP_GetCustomerRMAReceivingData] 10
 **************************************************************/
@@ -48,6 +50,9 @@ BEGIN
 			RMADetail.[CustPartNumber],
 			ISNULL(PartItemMaster.[isSerialized], 0) AS [IsSerialized],
 			ISNULL(PartItemMaster.[isTimeLife], 0) AS [IsTimeLife],
+			ISNULL(PartItemMaster.[IsExpirationDateAvailable], 0) AS [IsExpirationDateAvailable],
+			ISNULL(PartItemMaster.[IsManufacturingDateAvailable], 0) AS [IsManufacturingDateAvailable],
+			ISNULL(PartItemMaster.[IsTagDateAvailable], 0) AS [IsTagDateAvailable],
 			ISNULL(OriginalStockline.[ManufacturerId], PartItemMaster.[ManufacturerId]) AS [ManufacturerId],
 			ISNULL(OriginalStockline.[Manufacturer], PartItemMaster.[ManufacturerName]) AS [ManufacturerName],
 			RMADetail.[StocklineId] AS [OriginalStocklineId],

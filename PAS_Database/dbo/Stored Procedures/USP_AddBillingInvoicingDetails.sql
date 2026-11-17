@@ -40,6 +40,7 @@
 	27   15/09/2026   Kishor Makwana PN-17925 - Create Sales Order Billing then Some Time @InvoiceTypeId is 0.
 	28   17/09/2026   Vishal Suthar  Fixed BillingInvoicing.InvoiceDate always saved as current date (@CreatedDate) instead of the user-selected @InvoiceDate
 	29   08/10/2026   Kishor Makwana [PN-17760] 'Update Shipping ID' UPDATE was not limited to the invoice being saved and overwrote ShippingId on every non-versioned invoice item of the same part/stockline with an arbitrary shipment (so an invoice for shipment 1 could end up pointing at shipment 2). It now only fills a missing ShippingId on the new invoice, using a shipment not already billed.
+	30   12/11/2026   Vishal Suthar  [PN-18543] - Don't link an invoice item to a canceled shipment (revised invoice after Cancel Shipping)
 
 -- EXEC USP_AddBillingInvoicingDetails
 ************************************************************************/  
@@ -530,7 +531,7 @@ BEGIN
 					UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
 					INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
 					INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
-					INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+					INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId AND ISNULL(SOSI.QtyCanceled, 0) = 0 -- [PN-18543]
 					INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
 					WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0
 					AND BII.BillingInvoicingId = @BillingInvoicingIdNew AND ISNULL(BII.ShippingId,0) = 0
@@ -630,7 +631,7 @@ BEGIN
 						UPDATE BII set ShippingId=  SalesOrderShippingId FROM BillingInvoicingItems  BII WITH (NOLOCK)
 						INNER JOIN SalesorderStocklinev1 SSLV  WITH (NOLOCK) ON  SSLV.SalesOrderPartid =BII.SubReferenceId and SSLV.stocklineid = BII.StocklineId
 						INNER JOIN SOPickTicket SPT WITH (NOLOCK) ON SPT.SalesOrderPartStocklineId = SSLV.SalesOrderStocklineId and SPT.SalesOrderPartid =SSLV.SalesOrderPartid
-						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId
+						INNER JOIN SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderPartid =  SPT.SalesOrderPartid AND SOSI.SOPickTicketId =SPT.SOPickTicketId AND ISNULL(SOSI.QtyCanceled, 0) = 0 -- [PN-18543]
 						INNER JOIN #tmprAddBillingInvoicingDetailsTemp TTY  ON TTY.ReferenceId =BII.referenceId AND TTY. SubReferenceId= BII.SubReferenceId AND TTY.StocklineId=BII.StocklineId AND [PKID] = @MinId
 						WHERE BII.referenceId= @ReferenceId and BII.SubReferenceId=@SubReferenceId AND ISNULL(BII.IsVersionIncrease,0) =0
 						AND BII.BillingInvoicingId = @BillingInvoicingIdNew AND ISNULL(BII.ShippingId,0) = 0

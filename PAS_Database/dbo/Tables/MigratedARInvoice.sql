@@ -26,15 +26,17 @@
     [GLAccountId]           BIGINT          NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [Memo]                  NVARCHAR (MAX)  NULL,
-    [CreatedBy]             VARCHAR (256)   CONSTRAINT [DF_MigratedARInvoice_CreatedBy] DEFAULT ('MIGRATION') NOT NULL,
+    [CreatedBy]             VARCHAR (256)   CONSTRAINT [DF_MigratedARInvoice_CreatedBy] DEFAULT ('ARCHIVED') NOT NULL,
     [CreatedDate]           DATETIME2 (7)   CONSTRAINT [DF_MigratedARInvoice_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
-    [UpdatedBy]             VARCHAR (256)   CONSTRAINT [DF_MigratedARInvoice_UpdatedBy] DEFAULT ('MIGRATION') NOT NULL,
+    [UpdatedBy]             VARCHAR (256)   CONSTRAINT [DF_MigratedARInvoice_UpdatedBy] DEFAULT ('ARCHIVED') NOT NULL,
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_MigratedARInvoice_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]              BIT             CONSTRAINT [DF_MigratedARInvoice_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_MigratedARInvoice_IsDeleted] DEFAULT ((0)) NOT NULL,
     [SourceKey]             VARCHAR (100)   NULL,
     CONSTRAINT [PK_MigratedARInvoice] PRIMARY KEY CLUSTERED ([MigratedARInvoiceId] ASC)
 );
+
+
 
 
 GO

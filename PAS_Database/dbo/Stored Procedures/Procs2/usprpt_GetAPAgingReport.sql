@@ -222,7 +222,7 @@ BEGIN
         LEFT JOIN dbo.ManagementStructureLevel MSL9  WITH (NOLOCK) ON MSL9.ID  = ES.Level9Id
         LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSL10.ID = ES.Level10Id
         CROSS APPLY (
-            SELECT Bal   = ISNULL(m.BalanceAmount, 0) - ISNULL(m.PaidAmount, 0),
+            SELECT Bal   = ISNULL(m.InvoiceAmount, 0) - ISNULL(m.PaidAmount, 0),
                    DueDt = COALESCE(m.DueDate, m.InvoiceDate),
                    DPD   = ISNULL(DATEDIFF(DAY, COALESCE(m.DueDate, m.InvoiceDate), GETUTCDATE()), 0)
         ) x

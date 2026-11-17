@@ -20,5 +20,5 @@
     [CertTypeId]               VARCHAR (100)   NULL,
     [TagDate]                  DATETIME2 (7)   NULL,
     [TagTypeId]                BIGINT          NULL,
-    [Memo]                     NVARCHAR (MAX)  NULL
+    [Notes]                    NVARCHAR (MAX)  NULL   -- [PN-18552] was [Memo]: screen Notes -> Stockline.Note
 );

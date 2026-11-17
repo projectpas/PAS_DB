@@ -9,6 +9,7 @@
  ** Description: 3.1 Request log insert + call count per API.
  **                  @ApiName is the route name sent by PAS_PUBLIC_API (token, customers, ...). When it is not
  **                  passed (PAS PublicAPIIntegrationController) it is taken from the request path.
+ **                  The API name is also stored in EmployeeApiRequestLog.ApiName.
  ** Purpose: PAS_PUBLIC_API - request log of every /api call
  ** Date:   09/11/2026
 
@@ -19,6 +20,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
+    2    17/11/2026   Moin Bloch    Store ApiName in EmployeeApiRequestLog
 
   EXEC [dbo].[USP_PublicApi_SaveRequestLog] @EmployeeId = 2, @MasterCompanyId = 1, @ClientId = 'pas_1_af6cc51954e814c2fc9426d6e667f913', @TokenId = '0b6c1d2e3f4a5b6c7d8e9f0a1b2c3d4e', @HttpMethod = 'GET', @RequestPath = '/api/v1/salesorders', @QueryString = '', @StatusCode = 200, @DurationMs = 120, @IpAddress = '', @UserAgent = ''
 ************************************************************************/
@@ -39,17 +41,6 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO [dbo].[EmployeeApiRequestLog]
-        ([EmployeeId], [MasterCompanyId], [ClientId], [TokenId], [HttpMethod], [RequestPath], [QueryString],
-         [StatusCode], [DurationMs], [IpAddress], [UserAgent])
-    VALUES
-        (@EmployeeId, @MasterCompanyId, @ClientId, @TokenId, @HttpMethod, @RequestPath, @QueryString,
-         @StatusCode, @DurationMs, @IpAddress, @UserAgent);
-
-    -- Calls that cannot be tied to an employee (unknown ClientId, invalid token) stay in the log only.
-    IF @EmployeeId IS NULL OR @MasterCompanyId IS NULL
-        RETURN;
-
     IF ISNULL(@ApiName, '') = ''
     BEGIN
         -- First path segment after api/PublicAPIIntegration/ (token, customers, ...).
@@ -61,6 +52,17 @@ BEGIN
             SET @ApiName = '(root)';
     END
     SET @ApiName = LOWER(@ApiName);
+
+    INSERT INTO [dbo].[EmployeeApiRequestLog]
+        ([EmployeeId], [MasterCompanyId], [ClientId], [TokenId], [HttpMethod], [RequestPath], [QueryString],
+         [StatusCode], [DurationMs], [IpAddress], [UserAgent], [ApiName])
+    VALUES
+        (@EmployeeId, @MasterCompanyId, @ClientId, @TokenId, @HttpMethod, @RequestPath, @QueryString,
+         @StatusCode, @DurationMs, @IpAddress, @UserAgent, @ApiName);
+
+    -- Calls that cannot be tied to an employee (unknown ClientId, invalid token) stay in the log only.
+    IF @EmployeeId IS NULL OR @MasterCompanyId IS NULL
+        RETURN;
 
     DECLARE @IsSuccess BIT = CASE WHEN @StatusCode BETWEEN 200 AND 299 THEN 1 ELSE 0 END;
 

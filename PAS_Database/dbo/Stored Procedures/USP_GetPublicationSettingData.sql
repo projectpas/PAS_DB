@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/25/2025   Ayushi Patel		Created
+    2    11/17/2026   Vishal Suthar		[PN-18547] Added IsAutoAssignSBADApplicability
 
 	EXEC USP_GetPublicationSettingData 1
 **************************************************************/ 
@@ -35,7 +36,8 @@ BEGIN
             CreatedDate,
             IsActive,
             IsDeleted,
-            MasterCompanyId
+            MasterCompanyId,
+            IsAutoAssignSBADApplicability
         FROM dbo.PublicationSettings WITH (NOLOCK)
         WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0;
     END TRY

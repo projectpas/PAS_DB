@@ -269,7 +269,7 @@ BEGIN
 							LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
-							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
@@ -340,7 +340,7 @@ BEGIN
 						FROM #tmpReserveIssueWOMaterialsStockline tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 						AND SL.QuantityAvailable >= tblMS.MSQunatityRemaining
 
 						SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
@@ -627,7 +627,7 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 						ORDER BY SL.CreatedDate
 
 						SET @ARcount = 1;
@@ -915,7 +915,7 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 						ORDER BY SL.CreatedDate
 
 						SET @ARcount = 1;
@@ -1199,7 +1199,7 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITEqu tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 						ORDER BY SL.CreatedDate
 
 						SET @ARcount = 1;
@@ -1487,7 +1487,7 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsEqu tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0  
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 						ORDER BY SL.CreatedDate
 
 						SET @ARcount = 1;
@@ -1742,7 +1742,7 @@ BEGIN
 					FROM #tmpAutoReserveIssueWOMaterialsStockline tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tmpC.ConditionGroup = tblMS.ConditionGroupCode) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 					WHERE SL.QuantityAvailable > 0 
 					AND SL.IsParent = 1 
-					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 					ORDER BY SL.CreatedDate
 
 					SET @ARcount = 1;
@@ -2028,7 +2028,7 @@ BEGIN
 					FROM #tmpAutoReserveIssueWOMaterialsStocklineKIT tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tmpC.ConditionGroup = tblMS.ConditionGroupCode) AND ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0
 					WHERE SL.QuantityAvailable > 0 
 					AND SL.IsParent = 1 
-					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL
 					ORDER BY SL.CreatedDate
 
 					SET @ARcount = 1;

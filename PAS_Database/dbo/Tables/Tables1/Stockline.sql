@@ -270,6 +270,8 @@
     [AssetName]                           VARCHAR (50)     NULL,
     [AssetManufacturerPN]                 NVARCHAR (80)    NULL,
     [AssetInventoryNumber]                VARCHAR (100)    NULL,
+    [CustomerSuppliedWorkOrderId]         BIGINT           NULL, -- [PN-18508] Customer Supplied Part: stockline can be used only on this Work Order
+    [CustomerSuppliedWorkOrderMaterialsId] BIGINT          NULL, -- [PN-18508] WO material (CSP) line this stockline was received against
     [AssetStatusId]                       BIGINT           NULL,
     [AssetInventoryStatusId]              BIGINT           NULL,
     [AssetAvailableStatusId]              BIGINT           NULL,
@@ -416,6 +418,10 @@
     [IsEngine]                            BIT             NULL,
     [IsAircraft]                          BIT             NULL,
     [EngineType]                          VARCHAR (100)   NULL,
+    [AssetInventoryItemMasterId]          BIGINT          NULL,
+    [ConvertedToStocklineId]              BIGINT          NULL,
+    [ConvertedFromStocklineId]            BIGINT          NULL,
+    [ConversionDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -432,6 +438,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 
@@ -890,3 +898,8 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Stockline_ItemCond_Perf]
     ON [dbo].[Stockline]([ItemMasterId] ASC, [ConditionId] ASC)
     INCLUDE([QuantityAvailable], [IsParent], [IsCustomerStock], [isDeleted], [isActive], [PurchaseOrderId], [CreatedDate], [PoPartUnitCost], [EntryDate], [SerialNumber]) WITH (FILLFACTOR = 90, DATA_COMPRESSION = PAGE);
+GO
+
+-- [PN-18508] Customer Supplied Part restriction lookups (only rows that are linked to a WO)
+CREATE NONCLUSTERED INDEX [IX_Stockline_CustomerSuppliedWorkOrderId] ON [dbo].[Stockline] ([CustomerSuppliedWorkOrderId] ASC) WHERE [CustomerSuppliedWorkOrderId] IS NOT NULL;
+GO

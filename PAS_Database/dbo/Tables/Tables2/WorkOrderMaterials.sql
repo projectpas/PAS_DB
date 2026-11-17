@@ -54,6 +54,7 @@
     [isfromsubWorkOrder]         BIT             NULL,
     [ExpectedSerialNumber]       VARCHAR (30)    NULL,
     [Notes]                      NVARCHAR (MAX)  NULL,
+    [IsCustomerSuppliedPart]     BIT             CONSTRAINT [DF_WorkOrderMaterials_IsCustomerSuppliedPart] DEFAULT ((0)) NULL, -- [PN-18508]
     CONSTRAINT [PK_WorkOrderMaterials] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_WorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterials_IssuedById] FOREIGN KEY ([IssuedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),

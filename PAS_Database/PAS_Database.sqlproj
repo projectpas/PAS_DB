@@ -4204,6 +4204,8 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteVendorContactByContactId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteCheckPaymentById.sql" />
     <Build Include="dbo\Tables\OpenAIPrompt.sql" />
+    <Build Include="dbo\Tables\AgentConversation.sql" />
+    <Build Include="dbo\Tables\AgentMessage.sql" />
     <Build Include="dbo\Tables\CustomerRfqPartMapping.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveEmailQuote.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetEmailCustomerRFQbyId.sql" />
@@ -5005,6 +5007,12 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolValuationReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertStocklineAssetToInventory.sql" />
     <Build Include="dbo\User Defined Types\POSubComponentDetail.sql" />
+    <Build Include="dbo\Tables\ChatToolAudit.sql" />
+    <Build Include="dbo\Tables\ChatMessages.sql" />
+    <Build Include="dbo\Tables\ChatConversations.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SetWorkOrderMaterialsCustomerSupplied_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedWorkOrders_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedPartsByWorkOrder_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

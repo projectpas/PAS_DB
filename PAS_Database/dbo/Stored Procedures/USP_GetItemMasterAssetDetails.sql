@@ -9,6 +9,7 @@
  ** PR   Date            Author          Change Description
  ** --   --------        -------         --------------------------------
     1    26/October/2026 RAJESH GAMI     Created [PN-18406]
+    2    12/November/2026 Kishor Makwana  [PN-18535] Returns AssetInventoryItemMasterId
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetItemMasterAssetDetails]
 	@ItemMasterId BIGINT
@@ -38,6 +39,7 @@ BEGIN
 		AssetItem.[AssetParentItemMasterId],
 		AssetItem.[AssetControlNumber],
 		AssetItem.[AssetManagementStructureId],
+		AssetItem.[AssetInventoryItemMasterId],
 		AssetItem.[AcquiredGLAccountId],
 		AssetItem.[AcquiredGLAccountName],
 		AssetItem.[DeprExpenseGLAccountId],

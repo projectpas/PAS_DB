@@ -4995,6 +4995,15 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderCharges.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
+    <Build Include="dbo\Tables\StocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Tables\StocklineAssetConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetDepreciation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciableList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetConversionPreview.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolValuationReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertStocklineAssetToInventory.sql" />
+    <Build Include="dbo\User Defined Types\POSubComponentDetail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

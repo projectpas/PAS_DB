@@ -26,6 +26,7 @@
 								an engine's component history indistinguishable from an aircraft's)
  ** 12   23/OCT/2026	  Kishor Makwana	[PN-18118] Installed component = Sub Component of the aircraft / engine stockline (IsSubComponent, SubComponentParentStocklineId,
 								SubComponentQty) via USP_SetAircraftSubComponentLink; stockline replaced on the row is unlinked (and its AircraftInstalledPartDetailsId / AircraftTailNumber cleared)
+ ** 13   16/NOV/2026	  Rajesh Gami		[PN-18542] Block duplicate Item Master on the same aircraft / engine (Result = 0)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -158,6 +159,22 @@ BEGIN
 
 		-- [PN-18118] aircraft (1) / engine (0) of this row, used for the Sub Component link
 		DECLARE @LinkIsFromAircraft BIT = ISNULL(@IsFromAircraft, 0);
+
+		-- [PN-18542] Same Item Master cannot be installed twice on the same aircraft / engine (returns Result = 0 -> API "Record already exists")
+		IF EXISTS (
+			SELECT 1
+			FROM dbo.AircraftInstalledPartDetails DuplicateComponent WITH(NOLOCK)
+			WHERE DuplicateComponent.AircraftRegistryId = @AircraftRegistryId
+			  AND ISNULL(DuplicateComponent.IsFromAircraft, 0) = ISNULL(@IsFromAircraft, 0)
+			  AND DuplicateComponent.ItemMasterId = @ItemMasterId
+			  AND DuplicateComponent.IsDeleted = 0
+			  AND DuplicateComponent.AircraftInstalledPartDetailsId <> ISNULL(@AircraftInstalledPartDetailsId, 0)
+		)
+		BEGIN
+			ROLLBACK TRANSACTION;
+			SELECT CAST(0 AS BIT) AS Result;
+			RETURN;
+		END
 
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (

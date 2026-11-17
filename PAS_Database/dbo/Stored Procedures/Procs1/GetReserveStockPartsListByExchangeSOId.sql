@@ -46,6 +46,7 @@ BEGIN
 			AND SL.QuantityAvailable > 0
 			AND SL.ItemMasterId = sop.ItemMasterId
 			--AND SL.IsCustomerStock = 0
+			AND SL.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508]
 			AND 
 			((sop.MethodType <> 'I' AND sl.StockLineId = sop.StockLineId)
 			OR (sop.MethodType = 'I' AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))

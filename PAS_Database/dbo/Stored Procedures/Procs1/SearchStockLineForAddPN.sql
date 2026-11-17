@@ -241,7 +241,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		WHERE   
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
-			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
+			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND sl.CustomerSuppliedWorkOrderId IS NULL  
 			AND sl.IsParent = 1  
 			AND ISNULL(im.IsService,0) = 0 -- [PN-17782] Non-service parts only
 			AND ISNULL(sl.IsService,0) = 0 -- [PN-17782] Non-service stocklines only

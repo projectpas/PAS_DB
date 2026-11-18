@@ -33,6 +33,7 @@
     8    03/11/2026   Kishor Makwana	[PN-17949 Lease Properties redesign] A Base Rate interval line (Flat Rate line that carries a FlatRate) is always printed as a Flat Rate row, and only the usage period rows are split into Usage Time / Usage Cycle (before, every Flat Rate row of a Usage Based stockline was split, so the Base Rate row disappeared). Usage Time unit price is the converted hourly rate (Usage Per Hour / Day / Month ...).
     9    04/11/2026		Kishor Makwana		[PN-17949] A Base Rate interval line of a Usage Based stockline (Flat Rate line that carries a Base Rate and no Time / Cycle usage amount) is printed as 'Base Rate' instead of 'Flat Rate'
     
+    10   17/11/2026   Kishor Makwana	[PN-18565 follow-up] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the lease stockline) per PN, printed in the PN header row of LeaseBilling_New.rdl / LeaseBillingPreview_New.rdl.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_Lease] 1,72
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_Lease]
@@ -452,8 +453,14 @@ BEGIN
 				LineQty AS Qty,
 				LineUnitPrice AS UnitPrice,
 				LineTotal AS Total,
-				DENSE_RANK() OVER (ORDER BY SubReferenceId) AS PnLineNo
-			FROM AllLines
+				DENSE_RANK() OVER (ORDER BY SubReferenceId) AS PnLineNo,
+				ENG.EngineSerialNumber,
+				ENG.EngineModel
+			FROM AllLines AL
+				OUTER APPLY (SELECT LTRIM(RTRIM(S.[EngineSerialNumber])) AS EngineSerialNumber, LTRIM(RTRIM(S.[EngineModel])) AS EngineModel
+					FROM [dbo].[LeaseStockline] LSE WITH(NOLOCK)
+					INNER JOIN [dbo].[Stockline] S WITH(NOLOCK) ON S.[StockLineId] = LSE.[StockLineId]
+					WHERE LSE.[LeaseStocklineId] = AL.SubReferenceId) ENG
 			ORDER BY SubReferenceId, SortOrder, SortDate, BillingInvoicingItemId;
 		END
 	END TRY    

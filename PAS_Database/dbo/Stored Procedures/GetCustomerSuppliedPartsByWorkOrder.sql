@@ -14,7 +14,7 @@
 -- EXEC dbo.GetCustomerSuppliedPartsByWorkOrder @WorkFlowWorkOrderId = 100, @MasterCompanyId = 1
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GetCustomerSuppliedPartsByWorkOrder]
+CREATE PROCEDURE [dbo].[GetCustomerSuppliedPartsByWorkOrder]
 	@WorkFlowWorkOrderId BIGINT,
 	@MasterCompanyId INT
 AS

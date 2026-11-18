@@ -26,6 +26,7 @@
 	15    03/Aug/2026			 MOIN BLOCH	  					    [PN-17542] - Fix For Non-Stock Non-Service data need to come
 	16	 05/Aug/2026			 Kishor Makwana                     [PN-17439] - Added optional @SalesOrderPartId parameter and restored the missing sop.ConditionId = @ConditionId filter in the single-line popup WHERE clause, so duplicate Part+Condition lines (different SalesOrderPartId) are disambiguated correctly instead of showing each other's stockline data.
 	17    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
+	18    19/Nov/2026     Vishal Suthar       [PN-18613] - Multiple pick ticket popup lists only approved parts
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
@@ -129,6 +130,9 @@ BEGIN
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
+					-- Only approved parts, same as the pick ticket list (sp_GetPickTicketApproveList)
+					AND EXISTS (SELECT 1 FROM [dbo].[SalesOrderApproval] sao WITH(NOLOCK)
+								WHERE sao.SalesOrderId = sop.SalesOrderId AND sao.SalesOrderPartId = sop.SalesOrderPartId AND sao.ApprovalActionId = 5)
 		END
 		ELSE
 		BEGIN

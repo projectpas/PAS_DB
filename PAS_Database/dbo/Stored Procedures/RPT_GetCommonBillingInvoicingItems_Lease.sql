@@ -14,11 +14,11 @@
     1    24/SEP/2026   Kishor Makwana	CREATED [PN-18072]
     2    28/SEP/2026   Kishor Makwana	[PN-17949 follow-up] Time/Cycle billing now persists a base-usage breakdown (TimeUsageQty/Rate/Amount, CycleUsageQty/Rate/Amount) on
 	                                        LeaseBillingInvoicingItemDetails alongside the existing overage-only columns, because TimeBillingAmount/CycleBillingAmount now include
-	                                        BOTH the base (Min-Max range) usage and the overage, so the old 'Time Overrun'/'Cycle Overrun' rows (Qty=TimeOver, Price=OverageRate,
+	                                        BOTH the base (Min-Max range) usage and the overage, so the old 'Time Overage'/'Cycle Overage' rows (Qty=TimeOver, Price=OverageRate,
 	                                        Total=TimeBillingAmount) no longer had Qty*Price=Total. Added new 'Time Usage'/'Cycle Usage' line items reading the new persisted
 	                                        columns, and tightened the Overrun rows to use TimeOver/CycleOver > 0 (with LineTotal recomputed as TimeOver/CycleOver * OverageRate * Qty)
-	                                        so every row's Qty*UnitPrice=Total again. SortOrder renumbered: 1 Flat Rate, 2 Time Usage, 3 Time Overrun, 4 Cycle Usage,
-	                                        5 Cycle Overrun, 6 Maintenance, 7 Insurance, 8 Taxes, 9 Other, 10 Charges, 0 fallback.
+	                                        so every row's Qty*UnitPrice=Total again. SortOrder renumbered: 1 Flat Rate, 2 Time Usage, 3 Time Overage, 4 Cycle Usage,
+	                                        5 Cycle Overage, 6 Maintenance, 7 Insurance, 8 Taxes, 9 Other, 10 Charges, 0 fallback.
     3    05/10/2026   Kishor Makwana	[PN-18072 draft/per-line invoice] Invoices are now stored as one LeaseBillingInvoicingItemDetails row PER LINE (LineType/FromDate/ToDate/LineAmount),
 	                                        so joining every detail row to every synthesized line type printed each line N times (and live Maintenance/Insurance/Charges instead of what was
 	                                        saved on the invoice). Items that have typed detail rows now print exactly one row per detail row (TypedLines, same labels/amounts as the preview).
@@ -129,7 +129,7 @@ BEGIN
 				UNION ALL
 
 				SELECT BillingInvoicingItemId, BillingInvoicingId, SubReferenceId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-					'Time Overrun' AS LineBillingMethod,
+					'Time Overage' AS LineBillingMethod,
 					CAST(TimeOver AS DECIMAL(18,6)) AS LineQty,
 					ISNULL(TimeOverageRate, 0) AS LineUnitPrice,
 					ISNULL(TimeOver, 0) * ISNULL(TimeOverageRate, 0) * Qty AS LineTotal,
@@ -149,7 +149,7 @@ BEGIN
 				UNION ALL
 
 				SELECT BillingInvoicingItemId, BillingInvoicingId, SubReferenceId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-					'Cycle Overrun' AS LineBillingMethod,
+					'Cycle Overage' AS LineBillingMethod,
 					CAST(CycleOver AS DECIMAL(18,6)) AS LineQty,
 					ISNULL(CycleOverageRate, 0) AS LineUnitPrice,
 					ISNULL(CycleOver, 0) * ISNULL(CycleOverageRate, 0) * Qty AS LineTotal,
@@ -211,7 +211,7 @@ BEGIN
 				SELECT BillingInvoicingItemId, BillingInvoicingId, SubReferenceId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
 					CASE BillingMethod
 						WHEN 'FlatRateOnly' THEN 'Flat Rate Only'
-						WHEN 'FlatRatePlusOverrun' THEN 'Flat Rate + Overrun'
+						WHEN 'FlatRatePlusOverrun' THEN 'Flat Rate + Overage'
 						WHEN 'UsageBased' THEN 'Usage Based'
 						ELSE ISNULL(BillingMethod, '')
 					END AS LineBillingMethod,
@@ -376,7 +376,7 @@ BEGIN
 					UPPER(COALESCE(BII.[SerialNumber], STK.[SerialNumber], LSL.[SN], '')) AS SerialNumber,
 					UPPER(ISNULL(LSL.[StocklineNumber], '')) AS StockLineNumber,
 					UPPER(COALESCE(IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], '')) AS UOM,
-					'Overrun - Time' AS LineBillingMethod,
+					'Overage - Time' AS LineBillingMethod,
 					CAST(QX.Q AS DECIMAL(18,6)) AS LineQty,
 					CAST(COALESCE(NULLIF(LBID.[TimeOverageRate], 0), LBID.[TimeBillingAmount] / NULLIF(LBID.[TimeOver] * QX.Q, 0)) AS DECIMAL(18,6)) AS LineUnitPrice,
 					ISNULL(LBID.[TimeBillingAmount], 0) AS LineTotal,
@@ -406,7 +406,7 @@ BEGIN
 					UPPER(COALESCE(BII.[SerialNumber], STK.[SerialNumber], LSL.[SN], '')) AS SerialNumber,
 					UPPER(ISNULL(LSL.[StocklineNumber], '')) AS StockLineNumber,
 					UPPER(COALESCE(IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], '')) AS UOM,
-					'Overrun - Cycle' AS LineBillingMethod,
+					'Overage - Cycle' AS LineBillingMethod,
 					CAST(QX.Q AS DECIMAL(18,6)) AS LineQty,
 					CAST(COALESCE(NULLIF(LBID.[CycleOverageRate], 0), LBID.[CycleBillingAmount] / NULLIF(LBID.[CycleOver] * QX.Q, 0)) AS DECIMAL(18,6)) AS LineUnitPrice,
 					ISNULL(LBID.[CycleBillingAmount], 0) AS LineTotal,

@@ -20,6 +20,7 @@
 	2    22/October/2026    Hemant    [PN-18384] Added WO MPN (woMPN) column after WO Num.
     3    22/October/2026    Hemant    [PN-18384] Column filter / sort on Management Structure level1-10.
     4    22/October/2026    Hemant    [PN-18384] Open / Invoice / Shipped Date column filters use a date picker (yyyy-MM-dd).
+    5    17/November/2026   Bhargav   Added totalQty (grand total of Qty across all filtered rows) for the grid footer.
  **************************************************************
  **************************************************************
  EXEC usprpt_GetWorkOrderBOMByMPNReport @PageNumber=1,@PageSize=100,@mastercompanyid=1,@xmlFilter='<ArrayOfFilter><Filter><FieldName>From Invoice Date</FieldName><FieldValue>9/1/2026</FieldValue></Filter><Filter><FieldName>To Invoice Date</FieldName><FieldValue>10/21/2026</FieldValue></Filter></ArrayOfFilter>'
@@ -206,6 +207,7 @@ BEGIN
       COUNT(1) OVER () AS TotalRecordsCount,
       -- Grand total across all filtered rows (computed before OFFSET/FETCH), shown in the grid footer
       SUM(B.extCost) OVER () AS totalExtCost,
+      SUM(B.qty) OVER () AS totalQty,
       B.woNum,
 	  B.woMPN,
       B.bomPN,

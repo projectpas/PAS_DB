@@ -25,6 +25,7 @@
     7    04/11/2026		Kishor Makwana		[PN-17949] A Base Rate interval line of a Usage Based stockline (Flat Rate line that carries a Base Rate and no Time / Cycle usage amount) is printed as 'Base Rate' instead of 'Flat Rate'
     8    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
     
+    9    17/11/2026   Kishor Makwana	[PN-18565 follow-up] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the lease stockline) per PN, printed in the PN header row of LeaseBilling_New.rdl / LeaseBillingPreview_New.rdl.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3'
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_LeasePreview]
@@ -204,8 +205,14 @@ BEGIN
 				LineQty AS Qty,
 				LineUnitPrice AS UnitPrice,
 				LineTotal AS Total,
-				DENSE_RANK() OVER (ORDER BY LeaseStocklineId) AS PnLineNo
-			FROM Lines
+				DENSE_RANK() OVER (ORDER BY LeaseStocklineId) AS PnLineNo,
+				ENG.EngineSerialNumber,
+				ENG.EngineModel
+			FROM Lines L
+				OUTER APPLY (SELECT LTRIM(RTRIM(S.[EngineSerialNumber])) AS EngineSerialNumber, LTRIM(RTRIM(S.[EngineModel])) AS EngineModel
+					FROM [dbo].[LeaseStockline] LSE WITH(NOLOCK)
+					INNER JOIN [dbo].[Stockline] S WITH(NOLOCK) ON S.[StockLineId] = LSE.[StockLineId]
+					WHERE LSE.[LeaseStocklineId] = L.LeaseStocklineId) ENG
 			ORDER BY LeaseStocklineId, SortOrder, SortDate;
 
 	END TRY

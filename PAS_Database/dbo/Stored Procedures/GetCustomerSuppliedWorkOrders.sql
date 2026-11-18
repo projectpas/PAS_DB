@@ -14,7 +14,7 @@
 -- EXEC dbo.GetCustomerSuppliedWorkOrders @CustomerId = 3, @MasterCompanyId = 1
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[GetCustomerSuppliedWorkOrders]
+CREATE PROCEDURE [dbo].[GetCustomerSuppliedWorkOrders]
 	@CustomerId BIGINT,
 	@MasterCompanyId INT,
 	@SearchText NVARCHAR(100) = NULL

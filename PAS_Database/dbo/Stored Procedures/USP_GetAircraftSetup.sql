@@ -16,6 +16,7 @@
 	5    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
 	6    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
 	7    13/08/2026          Bhargav Saliya     Added field [AllowWorksheets]. [PN-17609]
+	8    17/11/2026          RAJESH GAMI        Return Colour Indicator 1/2/3 (code + value). [PN-18548]
 
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
@@ -51,7 +52,13 @@
 			AR.[SiteId],
 			AR.[WorkScopeId],
 			AR.[ConditionId],
-			AR.[IsAllowWorksheets]
+			AR.[IsAllowWorksheets],
+			AR.[ColorIndicator1Code],
+			AR.[ColorIndicator1Value],
+			AR.[ColorIndicator2Code],
+			AR.[ColorIndicator2Value],
+			AR.[ColorIndicator3Code],
+			AR.[ColorIndicator3Value]
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
 		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
 		LEFT JOIN [dbo].[AircraftStatus] ARS WITH (NOLOCK) ON ARS.AircraftStatusId = AR.AircraftStatusId

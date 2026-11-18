@@ -4664,6 +4664,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTailNumberList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCopyComponentSourceAircraftList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CopyAircraftInstalledComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyAircraftMaintenanceSchedule.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTechnicalRecordList.sql" />
     <Build Include="dbo\Tables\AircraftInfo.sql" />
     <Build Include="dbo\Tables\MaintenanceCategory.sql" />

@@ -16,6 +16,7 @@
 ** --   ----------   -------------      --------------------------------
 ** 1    16/11/2026   RAJESH GAMI        Created [PN-18542]
 ** 2    16/11/2026   RAJESH GAMI        Engine support (@IsFromAircraft = 0, same Engine Model) [PN-18542]
+** 3    18/11/2026   RAJESH GAMI        Stale PO / RO / WO links to the new copied rows are cleared [PN-18542]
 **************************************************************/
 --EXEC [dbo].[USP_CopyAircraftInstalledComponents] @SourceAircraftRegistryId = 1, @TargetAircraftRegistryId = 128, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN'
 CREATE   PROCEDURE [dbo].[USP_CopyAircraftInstalledComponents]
@@ -122,6 +123,8 @@ BEGIN
             FROM [dbo].[AircraftInstalledPartDetails] WITH (NOLOCK)
             WHERE [AircraftRegistryId] = @TargetAircraftRegistryId AND ISNULL([IsFromAircraft], 0) = @IsFromAircraft;
 
+            DECLARE @NewComponentIds TABLE ([AircraftInstalledPartDetailsId] BIGINT PRIMARY KEY);
+
             BEGIN TRAN;
 
             INSERT INTO [dbo].[AircraftInstalledPartDetails]
@@ -133,6 +136,7 @@ BEGIN
                 [ServiceLifeUnitMonthsOrDays], [ServiceLifeLimit],
                 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
             )
+            OUTPUT inserted.[AircraftInstalledPartDetailsId] INTO @NewComponentIds ([AircraftInstalledPartDetailsId])
             SELECT
                 @TargetAircraftRegistryId, CASE WHEN @IsFromAircraft = 1 THEN NULL ELSE @TargetAircraftRegistryId END, @IsFromAircraft, ComponentsToCopy.[ATAChapterId],
                 @NextSequenceNum + ROW_NUMBER() OVER (ORDER BY ISNULL(ComponentsToCopy.[SequenceNum], 2147483647), ComponentsToCopy.[AircraftInstalledPartDetailsId]),
@@ -144,6 +148,20 @@ BEGIN
                 ComponentsToCopy.[ServiceLifeUnitMonthsOrDays], ComponentsToCopy.[ServiceLifeLimit],
                 @MasterCompanyId, @UpdatedBy, @UpdatedBy, @CurrentDate, @CurrentDate, 1, 0
             FROM #ComponentsToCopy ComponentsToCopy;
+
+            -- [PN-18542] The copied rows are brand new : no PO / RO / WO belongs to them. Any PO part / RO part / WO part that already points to one of these new ids
+            -- is a stale link (left from an older installed component that had the same id), so it is cleared and the grid shows no PO / RO / WO number.
+            UPDATE PurchaseOrderPartLink SET [AircraftInstalledPartDetailsId] = NULL
+            FROM [dbo].[PurchaseOrderPart] PurchaseOrderPartLink
+            INNER JOIN @NewComponentIds NewComponentIds ON NewComponentIds.[AircraftInstalledPartDetailsId] = PurchaseOrderPartLink.[AircraftInstalledPartDetailsId];
+
+            UPDATE RepairOrderPartLink SET [AircraftInstalledPartDetailsId] = NULL
+            FROM [dbo].[RepairOrderPart] RepairOrderPartLink
+            INNER JOIN @NewComponentIds NewComponentIds ON NewComponentIds.[AircraftInstalledPartDetailsId] = RepairOrderPartLink.[AircraftInstalledPartDetailsId];
+
+            UPDATE WorkOrderPartLink SET [AircraftInstalledPartDetailsId] = NULL
+            FROM [dbo].[WorkOrderPartNumber] WorkOrderPartLink
+            INNER JOIN @NewComponentIds NewComponentIds ON NewComponentIds.[AircraftInstalledPartDetailsId] = WorkOrderPartLink.[AircraftInstalledPartDetailsId];
 
             -- History (one entry for the whole copy)
             DECLARE @HistoryModuleName VARCHAR(100) = CASE WHEN @IsFromAircraft = 1 THEN 'Aircraft Installed Components' ELSE 'Engine Installed Components' END;

@@ -4,8 +4,9 @@
 **              aircraft / engine into a target aircraft / engine of the same Make and Model
 **              (Engine: same Engine Model). An event that already exists on the target
 **              (same Maintenance Type + Template + Mtce Category) is skipped.
-**              All event fields are copied (template, limits, recorded/remaining, last inspected,
-**              next scheduled, description, scheduled flag ...). Not copied: AircraftPublicationId,
+**              Event fields are copied (template, limits, description, scheduled flag ...). RESET on the copy:
+**              Last Inspected date / By, Next Scheduled Mtce, Recorded Time and Cycles (hours, minutes, cycles,
+**              time, landings, engine starts = 0) and Remaining (= Limit). Not copied: AircraftPublicationId,
 **              WorksheetNumber / WorkOrderNum (they point to the source's own documents).
 **              Tail / Make / Model / Serial are taken from the target; SequenceNo is regenerated.
 ** Date:        17/11/2026
@@ -17,6 +18,8 @@
 ** PR   Date         Author             Change Description
 ** --   ----------   -------------      --------------------------------
 ** 1    17/11/2026   RAJESH GAMI        Created [PN-18545]
+** 3    18/11/2026   RAJESH GAMI        [PN-18545] Stale WO / Worksheet links to the new copied events are cleared
+** 2    18/11/2026   RAJESH GAMI        [PN-18545] Copy resets Last Inspected / By, Next Sch Mtce, Recorded Time & Cycles; Remaining = Limit
 **************************************************************/
 --EXEC [dbo].[USP_CopyAircraftMaintenanceSchedule] @SourceAircraftRegistryId = 1, @TargetAircraftRegistryId = 128, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN'
 --EXEC [dbo].[USP_CopyAircraftMaintenanceSchedule] @SourceAircraftRegistryId = 6, @TargetAircraftRegistryId = 10, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN', @IsFromAircraft = 0
@@ -132,6 +135,8 @@ BEGIN
 
         IF (@CopiedCount > 0)
         BEGIN
+            DECLARE @NewProgramIds TABLE ([ProgramId] BIGINT PRIMARY KEY);
+
             BEGIN TRAN;
 
             SELECT @LastSequenceNo = ISNULL(MAX([SequenceNo]), 0) FROM [dbo].[AircraftMaintenanceProgram] WITH (TABLOCKX, HOLDLOCK);
@@ -150,21 +155,39 @@ BEGIN
                 [AircraftPublicationId], [WorksheetNumber], [WorkOrderNum], [SequenceNo],
                 [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
             )
+            OUTPUT inserted.[ProgramId] INTO @NewProgramIds ([ProgramId])
             SELECT
                 @TargetAircraftRegistryId, CASE WHEN @IsFromAircraft = 1 THEN NULL ELSE @TargetAircraftRegistryId END, @IsFromAircraft,
                 EventsToCopy.[VersionNumber], @TargetDisplayName,
                 @TargetMakeType, @TargetModel, @TargetSerialNum,
                 EventsToCopy.[MaintenanceType], EventsToCopy.[MaintenanceTypeId], EventsToCopy.[MaintenanceClassId], EventsToCopy.[MtcCategoryId],
-                EventsToCopy.[NextScheduledMaintenance], EventsToCopy.[TemplateId], EventsToCopy.[TemplateVersionNumber],
+                NULL, EventsToCopy.[TemplateId], EventsToCopy.[TemplateVersionNumber],   -- Next Sch Mtce reset [PN-18545]
                 EventsToCopy.[FlightHoursLimitHours], EventsToCopy.[FlightHoursLimitMinutes], EventsToCopy.[FlightHoursLimitMonthsOrDays],
                 EventsToCopy.[CyclesLimit], EventsToCopy.[TimeLimit], EventsToCopy.[LandingsLimit], EventsToCopy.[EngineStartsLimit],
-                EventsToCopy.[FlightHoursRecordedHours], EventsToCopy.[FlightHoursRecordedMinutes], EventsToCopy.[CyclesRecorded], EventsToCopy.[TimeRecorded], EventsToCopy.[LandingsRecorded], EventsToCopy.[EngineStartsRecorded],
-                EventsToCopy.[FlightHoursRemainingHours], EventsToCopy.[FlightHoursRemainingMinutes], EventsToCopy.[CyclesRemaining], EventsToCopy.[TimeRemaining], EventsToCopy.[LandingsRemaining], EventsToCopy.[EngineStartsRemaining],
-                EventsToCopy.[IsScheduled], EventsToCopy.[IsMtceRecordUpdated], EventsToCopy.[LastinspectedById], EventsToCopy.[LastInspectedDate], EventsToCopy.[Description],
+                -- Recorded Time / Cycles reset (nothing recorded yet on the target) [PN-18545]
+                0, 0, 0, 0, 0, 0,
+                -- Remaining = Limit (nothing recorded yet)
+                EventsToCopy.[FlightHoursLimitHours], EventsToCopy.[FlightHoursLimitMinutes], EventsToCopy.[CyclesLimit], EventsToCopy.[TimeLimit], EventsToCopy.[LandingsLimit], EventsToCopy.[EngineStartsLimit],
+                -- Last Inspected / Last Inspected By reset [PN-18545]
+                EventsToCopy.[IsScheduled], 0, NULL, NULL, EventsToCopy.[Description],
                 NULL, NULL, NULL,
                 @LastSequenceNo + ROW_NUMBER() OVER (ORDER BY ISNULL(EventsToCopy.[SequenceNo], 9223372036854775807), EventsToCopy.[ProgramId]),
                 @MasterCompanyId, @UpdatedBy, @UpdatedBy, @CurrentDate, @CurrentDate, 1, 0
             FROM #EventsToCopy EventsToCopy;
+
+            -- [PN-18545] The copied events are brand new : no Work Order / Worksheet belongs to them. Any WO part / worksheet that already points to one of these
+            -- new ProgramIds is a stale link (left from an older event with the same id), so it is cleared and the grid shows no WO Num / Worksheet.
+            UPDATE WorkOrderPartLink SET [ProgramId] = NULL
+            FROM [dbo].[WorkOrderPartNumber] WorkOrderPartLink
+            INNER JOIN @NewProgramIds NewProgramIds ON NewProgramIds.[ProgramId] = WorkOrderPartLink.[ProgramId];
+
+            UPDATE WorksheetMappingLink SET [ProgramId] = NULL
+            FROM [dbo].[WorksheetMapping] WorksheetMappingLink
+            INNER JOIN @NewProgramIds NewProgramIds ON NewProgramIds.[ProgramId] = WorksheetMappingLink.[ProgramId];
+
+            UPDATE WorksheetHeaderLink SET [ProgramId] = NULL
+            FROM [dbo].[WorksheetHeader] WorksheetHeaderLink
+            INNER JOIN @NewProgramIds NewProgramIds ON NewProgramIds.[ProgramId] = WorksheetHeaderLink.[ProgramId];
 
             -- History (one entry for the whole copy)
             DECLARE @HistoryModuleName VARCHAR(100) = CASE WHEN @IsFromAircraft = 1 THEN 'Aircraft Maintenance' ELSE 'Engine Maintenance' END;

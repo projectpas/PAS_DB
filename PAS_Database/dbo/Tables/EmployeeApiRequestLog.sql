@@ -12,6 +12,7 @@
     [IpAddress]               VARCHAR (50)   NULL,
     [UserAgent]               NVARCHAR (500) NULL,
     [CreatedDate]             DATETIME2 (7)  CONSTRAINT [DF_EmployeeApiRequestLog_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [ApiName]                 VARCHAR (100)  NULL,
     CONSTRAINT [PK_EmployeeApiRequestLog] PRIMARY KEY CLUSTERED ([EmployeeApiRequestLogId] ASC)
 );
 

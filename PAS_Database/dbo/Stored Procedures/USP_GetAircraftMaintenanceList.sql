@@ -51,7 +51,7 @@
 ** 23	16/11/2026	 Bhargav Saliya	    Added @HeaderTailNumber/@HeaderSerialNumber exact-match header filters [PN-18505]
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
-CREATE or alter PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
+CREATE PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
     @PageSize                INT             = 10,
     @SortColumn              VARCHAR(100)    = 'ProgramId',

@@ -19,6 +19,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/25/2025   Ayushi Patel		Created
+    2    11/17/2026   Vishal Suthar		[PN-18547] Added @IsAutoAssignSBADApplicability
 **************************************************************/ 
 CREATE   PROCEDURE dbo.USP_SavePublicationSettingData
     @Id BIGINT OUTPUT,
@@ -27,7 +28,8 @@ CREATE   PROCEDURE dbo.USP_SavePublicationSettingData
     @GreenIndicator INT,
     @UpdatedBy VARCHAR(100),
     @CreatedBy VARCHAR(100),
-    @MasterCompanyId INT
+    @MasterCompanyId INT,
+    @IsAutoAssignSBADApplicability BIT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -42,6 +44,7 @@ BEGIN
                 RedIndicator = @RedIndicator,
                 YellowIndicator = @YellowIndicator,
                 GreenIndicator = @GreenIndicator,
+                IsAutoAssignSBADApplicability = ISNULL(@IsAutoAssignSBADApplicability, 0),
                 UpdatedBy = @UpdatedBy,
                 UpdatedDate = GETUTCDATE()
             WHERE Id = @Id;
@@ -58,7 +61,8 @@ BEGIN
                 CreatedDate,
                 IsActive,
                 IsDeleted,
-                MasterCompanyId
+                MasterCompanyId,
+                IsAutoAssignSBADApplicability
             )
             VALUES (
                 @RedIndicator,
@@ -70,7 +74,8 @@ BEGIN
                 GETUTCDATE(),
                 1, 
                 0,  
-                @MasterCompanyId
+                @MasterCompanyId,
+                ISNULL(@IsAutoAssignSBADApplicability, 0)
             );
 
             SET @Id = SCOPE_IDENTITY();

@@ -29,6 +29,7 @@
     [ControlNumber]                 VARCHAR (150)   NULL,
     [VendorProformaAmount]          DECIMAL (18, 6) NULL,
     [DueDate]                       DATETIME        NULL,
+    [Notes]                         NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeader] PRIMARY KEY CLUSTERED ([ReceivingReconciliationId] ASC)
 );
 

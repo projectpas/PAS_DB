@@ -51,7 +51,7 @@
 ** 23	16/11/2026	 Bhargav Saliya	    Added @HeaderTailNumber/@HeaderSerialNumber exact-match header filters [PN-18505]
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
-CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
+CREATE or alter PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
     @PageSize                INT             = 10,
     @SortColumn              VARCHAR(100)    = 'ProgramId',
@@ -335,8 +335,9 @@ BEGIN
                 AND (@IsScheduled IS NULL OR AMP.IsScheduled = @IsScheduled)
 				AND (@ApplicableSbAd IS NULL OR CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END = @ApplicableSbAd)
 				AND (ISNULL(@WoStatus, '') = '' OR LWO.WorkOrderStatus LIKE '%' + @WoStatus + '%')
-                AND (ISNULL(@HeaderTailNumber, '')   = '' OR (ISNULL(AMP.IsFromAircraft, 0) = 1 AND REG.TailNumber = @HeaderTailNumber))
-                AND (ISNULL(@HeaderSerialNumber, '') = '' OR REG.SerialNumber = @HeaderSerialNumber)
+                -- Header filters: exact match on the displayed AC Tail Num (aircraft TailNum, or EngineName on engine rows)
+                AND (ISNULL(@HeaderTailNumber, '')   = '' OR LTRIM(RTRIM(REG.TailNumber)) = @HeaderTailNumber)
+                AND (ISNULL(@HeaderSerialNumber, '') = '' OR LTRIM(RTRIM(REG.SerialNumber)) = @HeaderSerialNumber)
         )
 
         SELECT

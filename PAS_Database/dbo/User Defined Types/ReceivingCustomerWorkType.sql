@@ -9,7 +9,7 @@
     [RevisePartId]               BIGINT          NULL,
     [IsSerialized]               BIT             NULL,
     [SerialNumber]               VARCHAR (100)   NULL,
-    [Quantity]                   INT             NULL,
+    [Quantity]                   DECIMAL (18, 6) NULL,
     [UnitCost]                   DECIMAL (18, 2) NULL,
     [ExtendedCost]               DECIMAL (18, 2) NULL,
     [ConditionId]                BIGINT          NULL,

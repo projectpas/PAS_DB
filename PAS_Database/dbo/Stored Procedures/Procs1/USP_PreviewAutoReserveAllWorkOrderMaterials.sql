@@ -24,6 +24,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	14    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	14   22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
+	15   19-Nov-2026  RAJESH GAMI   [PN-18622] Preview Auto Reserve: UOM blank on SHORT rows (no stockline) - fall back to the material line UOM (same as Sub WO preview)
 EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 10289,0,0,2,0
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
@@ -2191,7 +2192,7 @@ BEGIN
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
 						UPPER(wom.[Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
-						UPPER([ControlId]) AS [ControlId],UPPER(uomConsume.ShortCode) AS [UOM],UPPER([Priority]) AS [Priority],
+						UPPER([ControlId]) AS [ControlId],UPPER(COALESCE(NULLIF(uomConsume.ShortCode,''), NULLIF(uomConsume.ShortName,''), NULLIF(womUom.ShortCode,''), NULLIF(womUom.ShortName,''), NULLIF(wom.[UOM],''))) AS [UOM], -- [PN-18622] SHORT rows (no stockline) took the stockline UOM = NULLUPPER([Priority]) AS [Priority],
 						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL([QtyAvail],0) ELSE dbo.fn_ConvertUOM([QtyAvail],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyAvail],
 						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL([QtyOH],0) ELSE dbo.fn_ConvertUOM([QtyOH],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyOH],
 						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin], [IsMaterials]
@@ -2199,6 +2200,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline SL ON wom.StockLineId = SL.StockLineId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN SL.PurchaseUnitOfMeasureId ELSE SL.StockUnitOfMeasureId END)
 					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(SL.IsNonStock,0) = 1 THEN SL.PurchaseUnitOfMeasureId ELSE SL.ConsumeUnitOfMeasureId END)
+					LEFT JOIN [dbo].[UnitOfMeasure] womUom WITH(NOLOCK) ON womUom.UnitOfMeasureId = wom.[UnitOfMeasureId] -- [PN-18622] material line UOM fallback
 					ORDER BY ISNULL(wom.StockLineId,0) DESC
 					
 				END

@@ -40,6 +40,9 @@
 	12   27-Oct-2026   Rajesh Gami      [PN-18407] Asset in Stockline: the normal Manual Stockline accounting batch is skipped
 									 when the Item Master is an Asset (IsAsset = 1). Asset stocklines post the Asset Acquisition
 									 entry (USP_PostManualStocklineAssetBatchDetails) from the API, same as Create Asset Inventory.
+		13   18-Nov-2026   Rajesh Gami      [PN-18594] New params @TotalTSO, @TotalTSOMM, @TotalCSO. TSN / TSO / CSN / CSO of the stockline are written to
+										 StocklineTimeCycleHistory through USP_SaveStocklineTimeCycleValues (create : EntryType 'Stockline', edit : difference rows)
+										 and the latest history row is set on the Stockline (USP_UpdateStocklineTimeCycleFromHistory).
 --   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -300,7 +303,10 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TotalCSNMM DECIMAL(18,6) = NULL,
 @Note NVARCHAR(MAX) = NULL,
 @Model VARCHAR(200) = NULL,
-@IsService BIT = NULL
+@IsService BIT = NULL,
+@TotalTSO DECIMAL(18,6) = NULL,
+@TotalTSOMM DECIMAL(18,6) = NULL,
+@TotalCSO DECIMAL(18,6) = NULL
 AS
 BEGIN
 
@@ -585,6 +591,12 @@ BEGIN
 
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@StockLineModuleID,@StockLineId,NULL,NULL,1,@QuantityOnHand,@UpdatedBy;
 
+				-- [PN-18594] TSN / TSO / CSN / CSO entered on the new stockline -> StocklineTimeCycleHistory (EntryType 'Stockline') + current value on the stockline
+				EXEC [dbo].[USP_SaveStocklineTimeCycleValues] @StocklineId = @StockLineId, @MasterCompanyId = @MasterCompanyId,
+					 @TotalTSN = @TotalTSN, @TotalTSNMM = @TotalTSNMM, @TotalCSN = @TotalCSN,
+					 @TotalTSO = @TotalTSO, @TotalTSOMM = @TotalTSOMM, @TotalCSO = @TotalCSO,
+					 @IsCreate = 1, @UpdatedBy = @UpdatedBy;
+
 			END
 		END		
 	  END
@@ -615,6 +627,13 @@ BEGIN
 		END
 		
 		SELECT @MSLegalEntityId = [LegalEntityId] FROM [dbo].[ManagementStructure] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ManagementStructureId] = @ManagementStructureId;
+
+		-- [PN-18594] changed TSN / TSO / CSN / CSO -> new StocklineTimeCycleHistory row(s) with the difference + current value on the stockline.
+		-- Must run BEFORE the Stockline update below (the old Stockline value is the starting point of a stockline without history).
+		EXEC [dbo].[USP_SaveStocklineTimeCycleValues] @StocklineId = @StockLineId, @MasterCompanyId = @MasterCompanyId,
+			 @TotalTSN = @TotalTSN, @TotalTSNMM = @TotalTSNMM, @TotalCSN = @TotalCSN,
+			 @TotalTSO = @TotalTSO, @TotalTSOMM = @TotalTSOMM, @TotalCSO = @TotalCSO,
+			 @IsCreate = 0, @UpdatedBy = @UpdatedBy;
 
 		UPDATE [dbo].[Stockline]
 		   SET [PartNumber] = @PartNumber,		                     

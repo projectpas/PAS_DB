@@ -9,6 +9,10 @@
  **************************************************************             
  ** S NO   Date         Author           Change Description              
  ** 1      30-SEP-2026  SUMIT KUMAR      Created
+ ** 2      19-NOV-2026  BHARGAV          Filter dropdown fixes: also returns PO lines opened but not yet received (isReceived = 0, receipt metrics NULL)
+                                         so Vendor / Requested By list every vendor & requester with a PO in the period; adds poOpenDate (report date
+                                         filter = PO Open Date, as in usprpt_GetVendorUtilizationReport); vendor taken from the PO; Management Structure
+                                         from PurchaseOrderManagementStructureDetails Level1-4 (+ company level labels) instead of legacy ManagementStructure
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIVendorPerformance]   
     @masterCompanyId INT
@@ -81,7 +85,7 @@ BEGIN
         FROM dbo.Stockline stl WITH (NOLOCK)
         INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
         INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
-        INNER JOIN dbo.Vendor v WITH (NOLOCK) ON stl.VendorId = v.VendorId
+        INNER JOIN dbo.Vendor v WITH (NOLOCK) ON po.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON pop.ItemMasterId = imps.ItemMasterId AND stl.ConditionId = imps.ConditionId AND imps.MasterCompanyId = @masterCompanyId
         LEFT JOIN dbo.ReceivingInspection ri WITH (NOLOCK) ON stl.StockLineId = ri.StockLineId
         LEFT JOIN dbo.VendorRMADetail rmad WITH (NOLOCK) ON stl.StockLineId = rmad.StockLineId
@@ -148,7 +152,48 @@ BEGIN
         FROM #VendorScores s;
 
         ----------------------------------------------------------------------------------
-        -- 4. Main Result Set Selection
+        -- 4. Temp Table: #Rows - one row per received stockline (as before) PLUS one row per
+        --    parent PO line that has no receipt yet (on itself or on any of its split child lines)
+        ----------------------------------------------------------------------------------
+        IF OBJECT_ID(N'tempdb..#Rows') IS NOT NULL
+            DROP TABLE #Rows;
+
+        SELECT stl.StockLineId, stl.PurchaseOrderPartRecordId
+        INTO #Rows
+        FROM dbo.Stockline stl WITH (NOLOCK)
+        INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
+        WHERE stl.MasterCompanyId = @masterCompanyId
+          AND ISNULL(stl.IsDeleted, 0) = 0
+          AND ISNULL(stl.IsParent, 1) = 1
+          AND stl.ReceivedDate IS NOT NULL
+
+        UNION ALL
+
+        SELECT NULL, pop.PurchaseOrderPartRecordId
+        FROM dbo.PurchaseOrderPart pop WITH (NOLOCK)
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
+        WHERE po.MasterCompanyId = @masterCompanyId
+          AND ISNULL(po.IsDeleted, 0) = 0
+          AND ISNULL(pop.IsDeleted, 0) = 0
+          AND ISNULL(pop.isParent, 1) = 1
+          AND NOT EXISTS (
+                SELECT 1
+                FROM dbo.Stockline rs WITH (NOLOCK)
+                INNER JOIN dbo.PurchaseOrderPart rp WITH (NOLOCK) ON rs.PurchaseOrderPartRecordId = rp.PurchaseOrderPartRecordId
+                WHERE (rp.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId OR rp.ParentId = pop.PurchaseOrderPartRecordId)
+                  AND ISNULL(rs.IsDeleted, 0) = 0
+                  AND ISNULL(rs.IsParent, 1) = 1
+                  AND rs.ReceivedDate IS NOT NULL);
+
+        -- Company Management Structure level labels (e.g. LE / BU / DIV / DEPT)
+        DECLARE @MSLabel1 VARCHAR(100) = (SELECT TOP 1 [Description] FROM dbo.ManagementStructureType WITH (NOLOCK) WHERE MasterCompanyId = @masterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND SequenceNo = 1),
+                @MSLabel2 VARCHAR(100) = (SELECT TOP 1 [Description] FROM dbo.ManagementStructureType WITH (NOLOCK) WHERE MasterCompanyId = @masterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND SequenceNo = 2),
+                @MSLabel3 VARCHAR(100) = (SELECT TOP 1 [Description] FROM dbo.ManagementStructureType WITH (NOLOCK) WHERE MasterCompanyId = @masterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND SequenceNo = 3),
+                @MSLabel4 VARCHAR(100) = (SELECT TOP 1 [Description] FROM dbo.ManagementStructureType WITH (NOLOCK) WHERE MasterCompanyId = @masterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND SequenceNo = 4);
+
+        ----------------------------------------------------------------------------------
+        -- 5. Main Result Set Selection
         -- Selects flattened receipt lines mapped directly to PAS_VendorPerformance_API_Schema.md
         -- Fields categorized for Power BI visual consumption:
         --   - period: Dynamic age classification ('Last 45 days', 'Last 90 days', etc.)
@@ -159,10 +204,13 @@ BEGIN
         --   - deliveryDelayStatus: Early, On time, or Late delivery status
         ----------------------------------------------------------------------------------
         SELECT 
-            stl.StockLineId                                            AS [recordId],
-            
+            ISNULL(stl.StockLineId, -pop.PurchaseOrderPartRecordId)   AS [recordId],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN 0 ELSE 1 END AS INT) AS [isReceived],
+            CONVERT(VARCHAR(10), po.OpenDate, 120)                     AS [poOpenDate],
+
             -- Dynamic Period Categorization based on age of receipt
-            CASE 
+            CASE
+                WHEN stl.StockLineId IS NULL THEN 'Not Received'
                 WHEN DATEDIFF(day, stl.ReceivedDate, GETUTCDATE()) <= 45 THEN 'Last 45 days'
                 WHEN DATEDIFF(day, stl.ReceivedDate, GETUTCDATE()) <= 90 THEN 'Last 90 days'
                 WHEN DATEDIFF(day, stl.ReceivedDate, GETUTCDATE()) <= 180 THEN 'Last 180 days'
@@ -172,8 +220,16 @@ BEGIN
             CONVERT(VARCHAR(10), stl.ReceivedDate, 120)                AS [receiptDate],
             FORMAT(stl.ReceivedDate, 'MMM yyyy')                       AS [monthYear],
             ISNULL(v.VendorName, '')                                   AS [vendor],
-            ISNULL(s.Name, ISNULL(stl.Site, ''))                       AS [site],
-            ISNULL(ms.Name, '')                                        AS [managementStructure],
+            COALESCE(s.Name, stl.Site, pop.POPartSplitSiteName, '')    AS [site],
+            CONCAT_WS(' / ', NULLIF(msd.Level1Name, ''), NULLIF(msd.Level2Name, ''), NULLIF(msd.Level3Name, ''), NULLIF(msd.Level4Name, '')) AS [managementStructure],
+            ISNULL(msd.Level1Name, '')                                 AS [msLevel1],
+            ISNULL(msd.Level2Name, '')                                 AS [msLevel2],
+            ISNULL(msd.Level3Name, '')                                 AS [msLevel3],
+            ISNULL(msd.Level4Name, '')                                 AS [msLevel4],
+            ISNULL(@MSLabel1, 'Level 1')                               AS [msLevel1Label],
+            ISNULL(@MSLabel2, 'Level 2')                               AS [msLevel2Label],
+            ISNULL(@MSLabel3, 'Level 3')                               AS [msLevel3Label],
+            ISNULL(@MSLabel4, 'Level 4')                               AS [msLevel4Label],
             ISNULL(po.Requisitioner, '')                               AS [requestedBy],
             ISNULL(ic.Description, ISNULL(im.ItemClassificationName, '')) AS [itemClassification],
             ISNULL(c.Description, ISNULL(stl.Condition, ''))           AS [condition],
@@ -181,20 +237,21 @@ BEGIN
             ISNULL(po.PurchaseOrderNumber, '')                         AS [poNumber],
             
             -- Scorecard Metrics from #VendorScorecard
-            CAST(ISNULL(vsc.DeliveryScore, 40.0) AS DECIMAL(5,2))      AS [deliveryScore],
-            CAST(ISNULL(vsc.QualityScore, 40.0) AS DECIMAL(5,2))       AS [qualityScore],
-            CAST(ISNULL(vsc.CostScore, 20.0) AS DECIMAL(5,2))          AS [costScore],
-            CAST(ISNULL(vsc.CompositeScore, 100.0) AS DECIMAL(5,2))    AS [compositeScore],
-            ISNULL(vsc.RatingTier, 'Preferred')                        AS [ratingTier],
+            -- (NULL on not-yet-received PO lines so they do not move score averages)
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL ELSE ISNULL(vsc.DeliveryScore, 40.0) END AS DECIMAL(5,2))   AS [deliveryScore],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL ELSE ISNULL(vsc.QualityScore, 40.0) END AS DECIMAL(5,2))    AS [qualityScore],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL ELSE ISNULL(vsc.CostScore, 20.0) END AS DECIMAL(5,2))       AS [costScore],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL ELSE ISNULL(vsc.CompositeScore, 100.0) END AS DECIMAL(5,2)) AS [compositeScore],
+            CASE WHEN stl.StockLineId IS NULL THEN ISNULL(vsc.RatingTier, '') ELSE ISNULL(vsc.RatingTier, 'Preferred') END AS [ratingTier],
             
             -- Spend & Delivery Performance Flags
             CAST(ISNULL(stl.QuantityToReceive, stl.QuantityOnHand) * ISNULL(pop.UnitCost, 0) AS DECIMAL(18,2)) AS [spendAmount],
-            CAST(CASE WHEN stl.ReceivedDate <= pop.NeedByDate THEN 1 ELSE 0 END AS INT) AS [isOnTime],
-            CAST(CASE WHEN stl.ReceivedDate <= pop.NeedByDate AND ISNULL(stl.QuantityToReceive, stl.QuantityOnHand) >= pop.QuantityOrdered THEN 1 ELSE 0 END AS INT) AS [isOTIF],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL WHEN stl.ReceivedDate <= pop.NeedByDate THEN 1 ELSE 0 END AS INT) AS [isOnTime],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL WHEN stl.ReceivedDate <= pop.NeedByDate AND ISNULL(stl.QuantityToReceive, stl.QuantityOnHand) >= pop.QuantityOrdered THEN 1 ELSE 0 END AS INT) AS [isOTIF],
             
             -- Lead Times in Days
             CAST(DATEDIFF(day, po.OpenDate, stl.ReceivedDate) AS DECIMAL(10,2)) AS [leadTimeDays],
-            CAST(DATEDIFF(day, po.OpenDate, pop.NeedByDate) AS DECIMAL(10,2)) AS [expectedLeadTimeDays],
+            CAST(CASE WHEN stl.StockLineId IS NULL THEN NULL ELSE DATEDIFF(day, po.OpenDate, pop.NeedByDate) END AS DECIMAL(10,2)) AS [expectedLeadTimeDays],
             
             -- Quantities & RMA Returns
             CAST(ISNULL(stl.QuantityToReceive, stl.QuantityOnHand) AS INT) AS [quantityReceived],
@@ -243,20 +300,22 @@ BEGIN
             ISNULL(rmar.Reason, 'None')                                AS [returnReason],
             
             -- Delivery Timing Classification
-            CASE 
+            CASE
+                WHEN stl.StockLineId IS NULL THEN NULL
                 WHEN DATEDIFF(day, pop.NeedByDate, stl.ReceivedDate) < 0 THEN 'Early'
                 WHEN DATEDIFF(day, pop.NeedByDate, stl.ReceivedDate) = 0 THEN 'On time'
                 ELSE 'Late'
             END                                                        AS [deliveryDelayStatus]
-        FROM dbo.Stockline stl WITH (NOLOCK)
-        INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
-        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
-        INNER JOIN dbo.Vendor v WITH (NOLOCK) ON stl.VendorId = v.VendorId
+        FROM #Rows r
+        INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON r.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
+        LEFT JOIN dbo.Stockline stl WITH (NOLOCK) ON r.StockLineId = stl.StockLineId
+        INNER JOIN dbo.Vendor v WITH (NOLOCK) ON po.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON pop.ItemMasterId = im.ItemMasterId
         LEFT JOIN dbo.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
         LEFT JOIN dbo.Condition c WITH (NOLOCK) ON stl.ConditionId = c.ConditionId
         LEFT JOIN dbo.Site s WITH (NOLOCK) ON stl.SiteId = s.SiteId
-        LEFT JOIN dbo.ManagementStructure ms WITH (NOLOCK) ON po.ManagementStructureId = ms.ManagementStructureId
+        LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK) ON msd.ModuleID = 4 AND msd.ReferenceID = po.PurchaseOrderId
         LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON pop.ItemMasterId = imps.ItemMasterId AND stl.ConditionId = imps.ConditionId AND imps.MasterCompanyId = @masterCompanyId
         LEFT JOIN dbo.ReceivingInspection ri WITH (NOLOCK) ON stl.StockLineId = ri.StockLineId
         LEFT JOIN dbo.VendorRMADetail rmad WITH (NOLOCK) ON stl.StockLineId = rmad.StockLineId
@@ -264,16 +323,13 @@ BEGIN
         LEFT JOIN dbo.ReceivingReconciliationDetails rrd WITH (NOLOCK) ON stl.StockLineId = rrd.StockLineId
         LEFT JOIN dbo.ReceivingReconciliationHeader rrh WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrh.MasterCompanyId = @masterCompanyId
         LEFT JOIN #VendorScorecard vsc ON v.VendorId = vsc.VendorId
-        WHERE stl.MasterCompanyId = @masterCompanyId
-          AND ISNULL(stl.IsDeleted, 0) = 0
-          AND ISNULL(stl.IsParent, 1) = 1
-          AND stl.ReceivedDate IS NOT NULL
-        ORDER BY stl.ReceivedDate DESC, stl.StockLineId DESC;
+        ORDER BY ISNULL(stl.ReceivedDate, po.OpenDate) DESC, ISNULL(stl.StockLineId, -pop.PurchaseOrderPartRecordId) DESC;
 
         -- Clean up temp tables
         IF OBJECT_ID(N'tempdb..#VendorStats') IS NOT NULL DROP TABLE #VendorStats;
         IF OBJECT_ID(N'tempdb..#VendorScores') IS NOT NULL DROP TABLE #VendorScores;
         IF OBJECT_ID(N'tempdb..#VendorScorecard') IS NOT NULL DROP TABLE #VendorScorecard;
+        IF OBJECT_ID(N'tempdb..#Rows') IS NOT NULL DROP TABLE #Rows;
 
     END TRY    
     BEGIN CATCH

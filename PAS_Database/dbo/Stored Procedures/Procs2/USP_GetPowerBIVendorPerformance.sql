@@ -13,6 +13,10 @@
                                          so Vendor / Requested By list every vendor & requester with a PO in the period; adds poOpenDate (report date
                                          filter = PO Open Date, as in usprpt_GetVendorUtilizationReport); vendor taken from the PO; Management Structure
                                          from PurchaseOrderManagementStructureDetails Level1-4 (+ company level labels) instead of legacy ManagementStructure
+ ** 3      19-NOV-2026  BHARGAV          One row per receipt: a stockline reconciled / RMA'd / priced more than once was repeated by the
+                                         ReceivingReconciliationDetails / VendorRMADetail / ItemMasterPurchaseSale / ReceivingInspection joins
+                                         (inflated Spend, OTD and counts) -> aggregated with OUTER APPLY.
+                                         PO header joined via PurchaseOrderPart (receipts with NULL Stockline.PurchaseOrderId were dropped)
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIVendorPerformance]   
     @masterCompanyId INT
@@ -84,7 +88,7 @@ BEGIN
         INTO #VendorStats
         FROM dbo.Stockline stl WITH (NOLOCK)
         INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
-        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
         INNER JOIN dbo.Vendor v WITH (NOLOCK) ON po.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON pop.ItemMasterId = imps.ItemMasterId AND stl.ConditionId = imps.ConditionId AND imps.MasterCompanyId = @masterCompanyId
         LEFT JOIN dbo.ReceivingInspection ri WITH (NOLOCK) ON stl.StockLineId = ri.StockLineId
@@ -162,7 +166,7 @@ BEGIN
         INTO #Rows
         FROM dbo.Stockline stl WITH (NOLOCK)
         INNER JOIN dbo.PurchaseOrderPart pop WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
-        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
+        INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
         WHERE stl.MasterCompanyId = @masterCompanyId
           AND ISNULL(stl.IsDeleted, 0) = 0
           AND ISNULL(stl.IsParent, 1) = 1
@@ -256,8 +260,8 @@ BEGIN
             -- Quantities & RMA Returns
             CAST(ISNULL(stl.QuantityToReceive, stl.QuantityOnHand) AS INT) AS [quantityReceived],
             CAST(ISNULL(stl.QuantityRejected, 0) AS INT)              AS [quantityRejected],
-            CAST(CASE WHEN rmad.VendorRMADetailId IS NOT NULL THEN 1 ELSE 0 END AS INT) AS [rmaLineCount],
-            CAST(ISNULL(rmad.ExtendedCost, 0) AS DECIMAL(18,2))        AS [rmaValue],
+            CAST(ISNULL(rma.RmaLineCount, 0) AS INT)                   AS [rmaLineCount],
+            CAST(ISNULL(rma.RmaValue, 0) AS DECIMAL(18,2))             AS [rmaValue],
             
             -- Inspection Checklist Failure Count (Sum of 12 checklist check failures)
             CAST(CASE WHEN ri.ReceivingInspectionId IS NOT NULL THEN 
@@ -297,7 +301,7 @@ BEGIN
                 END
             ELSE 'None' END                                            AS [inspectionFailureType],
             
-            ISNULL(rmar.Reason, 'None')                                AS [returnReason],
+            ISNULL(rma.Reason, 'None')                                 AS [returnReason],
             
             -- Delivery Timing Classification
             CASE
@@ -316,12 +320,25 @@ BEGIN
         LEFT JOIN dbo.Condition c WITH (NOLOCK) ON stl.ConditionId = c.ConditionId
         LEFT JOIN dbo.Site s WITH (NOLOCK) ON stl.SiteId = s.SiteId
         LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK) ON msd.ModuleID = 4 AND msd.ReferenceID = po.PurchaseOrderId
-        LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON pop.ItemMasterId = imps.ItemMasterId AND stl.ConditionId = imps.ConditionId AND imps.MasterCompanyId = @masterCompanyId
-        LEFT JOIN dbo.ReceivingInspection ri WITH (NOLOCK) ON stl.StockLineId = ri.StockLineId
-        LEFT JOIN dbo.VendorRMADetail rmad WITH (NOLOCK) ON stl.StockLineId = rmad.StockLineId
-        LEFT JOIN dbo.VendorRMAReturnReason rmar WITH (NOLOCK) ON rmad.VendorRMAReturnReasonId = rmar.VendorRMAReturnReasonId
-        LEFT JOIN dbo.ReceivingReconciliationDetails rrd WITH (NOLOCK) ON stl.StockLineId = rrd.StockLineId
-        LEFT JOIN dbo.ReceivingReconciliationHeader rrh WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrh.MasterCompanyId = @masterCompanyId
+        -- one row per receipt: aggregate every child table that can hold several rows per stockline
+        OUTER APPLY (SELECT TOP 1 i.PP_UnitPurchasePrice
+                     FROM dbo.ItemMasterPurchaseSale i WITH (NOLOCK)
+                     WHERE i.ItemMasterId = pop.ItemMasterId AND i.ConditionId = stl.ConditionId AND i.MasterCompanyId = @masterCompanyId
+                     ORDER BY i.ItemMasterPurchaseSaleId DESC) imps
+        OUTER APPLY (SELECT TOP 1 x.*
+                     FROM dbo.ReceivingInspection x WITH (NOLOCK)
+                     WHERE x.StockLineId = stl.StockLineId
+                     ORDER BY x.ReceivingInspectionId DESC) ri
+        OUTER APPLY (SELECT COUNT(d.VendorRMADetailId) AS RmaLineCount,
+                            SUM(ISNULL(d.ExtendedCost, 0)) AS RmaValue,
+                            MAX(rr.Reason) AS Reason
+                     FROM dbo.VendorRMADetail d WITH (NOLOCK)
+                     LEFT JOIN dbo.VendorRMAReturnReason rr WITH (NOLOCK) ON d.VendorRMAReturnReasonId = rr.VendorRMAReturnReasonId
+                     WHERE d.StockLineId = stl.StockLineId) rma
+        OUTER APPLY (SELECT SUM(ISNULL(d.PriceVariance, 0)) AS PriceVariance
+                     FROM dbo.ReceivingReconciliationDetails d WITH (NOLOCK)
+                     INNER JOIN dbo.ReceivingReconciliationHeader h WITH (NOLOCK) ON d.ReceivingReconciliationId = h.ReceivingReconciliationId
+                     WHERE d.StockLineId = stl.StockLineId AND h.MasterCompanyId = @masterCompanyId AND ISNULL(h.IsDeleted, 0) = 0) rrd
         LEFT JOIN #VendorScorecard vsc ON v.VendorId = vsc.VendorId
         ORDER BY ISNULL(stl.ReceivedDate, po.OpenDate) DESC, ISNULL(stl.StockLineId, -pop.PurchaseOrderPartRecordId) DESC;
 

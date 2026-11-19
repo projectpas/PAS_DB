@@ -16,7 +16,7 @@
     1    18/NOV/2026  Rajesh Gami    [PN-18594] Created
  -- EXEC [dbo].[USP_UpdateStocklineTimeCycleFromHistory] @StocklineId = 120120, @MasterCompanyId = 1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_UpdateStocklineTimeCycleFromHistory]
+CREATE PROCEDURE [dbo].[USP_UpdateStocklineTimeCycleFromHistory]
 	@StocklineId BIGINT,
 	@MasterCompanyId INT
 AS

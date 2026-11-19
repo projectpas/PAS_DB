@@ -21,7 +21,7 @@
  ** --   --------     -------        --------------------------------
     1    18/NOV/2026  Rajesh Gami    [PN-18594] Created
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_SaveStocklineTimeCycleValues]
+CREATE PROCEDURE [dbo].[USP_SaveStocklineTimeCycleValues]
 	@StocklineId BIGINT,
 	@MasterCompanyId INT,
 	@TotalTSN DECIMAL(18, 6) = NULL,

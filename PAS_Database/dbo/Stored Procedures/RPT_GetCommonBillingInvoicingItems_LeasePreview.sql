@@ -13,7 +13,7 @@
  ** --   --------     -------			--------------------------------
     1    25/09/2026   Kishor Makwana	CREATED [PN-18072] pre-commit invoice preview
     2    28/09/2026   Kishor Makwana	[PN-17949 follow-up] Added 'Time Usage'/'Cycle Usage' line items (billed at UsagePerUnitTimes/Cycles, base units = MAX(Minimum, MIN(Recorded, Maximum))) -
-										previously only the 'Time Overrun'/'Cycle Overrun' lines existed, so usage inside the Min/Max range never appeared or billed at all. Also tightened the Overrun lines
+										previously only the 'Time Overage'/'Cycle Overage' lines existed, so usage inside the Min/Max range never appeared or billed at all. Also tightened the Overrun lines
 										to only show when there's an actual overage (> 0, not just IS NOT NULL, which included a lot of pointless zero-value rows), and updated the fallback row's
 										exclusion filter to match. Same fix as USP_CreateLeaseBillingInvoice/ USP_GetLeaseBillingListByLeaseHeaderId/RPT_GetCommonBillingInvoicingPdfData_LeasePreview.
     3    05/10/2026   Kishor Makwana	[PN-17949] A Usage Based period line is printed as two lines: 'Usage Time' (hours x Usage per Unit - Times) and 'Usage Cycle' (cycles x Usage per Unit - Cycles).
@@ -167,7 +167,7 @@ BEGIN
 			UNION ALL
 
 			SELECT LeaseStocklineId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-				'Overrun - Time',
+				'Overage - Time',
 				CAST(Q AS DECIMAL(18,6)),
 				CAST(COALESCE(NULLIF(TimeOverageRate, 0), TimeBillingAmount / NULLIF((TimeOver / 60.0) * Q, 0)) AS DECIMAL(18,6)),
 				TimeBillingAmount, 3, FromDate,
@@ -179,7 +179,7 @@ BEGIN
 			UNION ALL
 
 			SELECT LeaseStocklineId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-				'Overrun - Cycle',
+				'Overage - Cycle',
 				CAST(Q AS DECIMAL(18,6)),
 				CAST(COALESCE(NULLIF(CycleOverageRate, 0), CycleBillingAmount / NULLIF(CycleOver * Q, 0)) AS DECIMAL(18,6)),
 				CycleBillingAmount, 4, FromDate,

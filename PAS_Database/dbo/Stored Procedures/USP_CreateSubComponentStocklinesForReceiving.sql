@@ -452,9 +452,9 @@ BEGIN
 
 			-- [PN-18526] Stockline time / cycle fields : TotalTSN (hours), TotalTSNMM (minutes), TotalCSN (cycles), TotalCSNMM (cycles have no minute part, 0).
 			-- Always set (0 when nothing was entered) so the sub component stockline never keeps the Time / Cycle copied from the main stockline row.
-			-- TSO / CSO have no Stockline column, they are kept in StocklineTimeCycleHistory only.
+			-- [PN-18594] TSO / TSOMM / CSO are now Stockline columns too (TotalTSO, TotalTSOMM, TotalCSO) and are set here as well.
 			UPDATE [dbo].[Stockline]
-			SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [TotalCSNMM] = 0, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+			SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [TotalCSNMM] = 0, [TotalTSO] = @TcTsoH, [TotalTSOMM] = @TcTsoM, [TotalCSO] = @TcCso, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [StockLineId] = @NewStocklineId;
 
 			SET @UnitNo = @UnitNo + 1;

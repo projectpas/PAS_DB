@@ -17,6 +17,7 @@
 	5    12/27/2024   AMIT GHEDIYA   Modify(Added ControlNumber Field)
 	6    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO
 	7    02/03/2026   SAHDEV SALIYA  Added DueDate
+	8    11/18/2026   Vishal Suthar  PN-18496 Added Notes
 
 ***********************************************************************     
 -- EXEC GetReceivingReconciliationHeaderById 352
@@ -93,6 +94,7 @@ BEGIN
 			   CASE WHEN ISNULL(RRH.VendorProformaAmount,0) > 0 THEN ISNULL(RRH.VendorProformaAmount,0) ELSE ISNULL(@totalProformaInvoiceAmount,0) END as VendorProformaAmount,
 			   CASE WHEN ISNULL(RRH.VendorProformaAmount,0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(@totalProformaInvoiceAmount,0) > 0 THEN 1 ELSE 0  END) END as IsVendorProforma
 			   ,RRH.[DueDate]
+			   ,RRH.[Notes]
 			   
           FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
 		  

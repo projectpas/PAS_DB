@@ -19,5 +19,11 @@
     [SiteId]               BIGINT        NULL,
     [WorkScopeId]          BIGINT        NULL,
     [ConditionId]          BIGINT        NULL,
-    [IsAllowWorksheets]    BIT           NULL);
+    [IsAllowWorksheets]    BIT           NULL,
+    [ColorIndicator1Code]  VARCHAR (20)  NULL,
+    [ColorIndicator1Value] INT           NULL,
+    [ColorIndicator2Code]  VARCHAR (20)  NULL,
+    [ColorIndicator2Value] INT           NULL,
+    [ColorIndicator3Code]  VARCHAR (20)  NULL,
+    [ColorIndicator3Value] INT           NULL);
 

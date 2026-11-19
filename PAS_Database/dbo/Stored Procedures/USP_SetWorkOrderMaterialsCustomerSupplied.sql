@@ -13,7 +13,7 @@
 -- EXEC dbo.USP_SetWorkOrderMaterialsCustomerSupplied @WorkOrderMaterialsIds = '101,102', @IsCustomerSuppliedPart = 1, @UpdatedBy = 'ADMIN'
 ************************************************************************/
 
-CREATE OR ALTER PROCEDURE [dbo].[USP_SetWorkOrderMaterialsCustomerSupplied]
+CREATE PROCEDURE [dbo].[USP_SetWorkOrderMaterialsCustomerSupplied]
 	@WorkOrderMaterialsIds VARCHAR(MAX),
 	@IsCustomerSuppliedPart BIT,
 	@UpdatedBy VARCHAR(256)

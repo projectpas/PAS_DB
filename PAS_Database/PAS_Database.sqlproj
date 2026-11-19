@@ -4845,6 +4845,7 @@
     <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AutoAssignSBADApplicability.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReallocateSOShipmentAccountingPeriod.sql" />
     <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
@@ -4938,6 +4939,8 @@
     <Build Include="dbo\Stored Procedures\USP_MoveAircraftInstalledSubComponentLink.sql" />
     <Build Include="dbo\Stored Procedures\USP_LinkAircraftInstalledSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineTimeCycleFromHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineTimeCycleValues.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleFromCycleEntry.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />

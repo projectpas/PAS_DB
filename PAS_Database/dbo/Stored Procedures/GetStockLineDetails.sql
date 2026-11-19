@@ -42,6 +42,7 @@
 									 make migrated Non-Stock records return zero rows (BETA hit exactly this bug
 									 and had to revert it - see BETA's PN-17009 bugfix note).
 	23   03-Sep-2026              Moin Bloch		                Added new field 'MiscAdjustment'
+	24   18/NOV/2026  Rajesh Gami       [PN-18594] TotalTSN / TotalTSNMM / TotalCSN come from the latest StocklineTimeCycleHistory row (Stockline value when none); added TotalTSO, TotalTSOMM, TotalCSO
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -367,10 +368,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,im.ItemClassificationName AS Classification
 			,stl.AircraftSN
 			,ES.ExchangeSalesOrderNumber
-			,	stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,stl.Note,stl.IsService
+			,	ISNULL(tch.TotalTSN, stl.TotalTSN) AS TotalTSN, ISNULL(tch.TotalCSN, stl.TotalCSN) AS TotalCSN, ISNULL(tch.TotalTSNMM, stl.TotalTSNMM) AS TotalTSNMM, stl.TotalCSNMM,
+				ISNULL(tch.TotalTSO, stl.TotalTSO) AS TotalTSO, ISNULL(tch.TotalTSOMM, stl.TotalTSOMM) AS TotalTSOMM, ISNULL(tch.TotalCSO, stl.TotalCSO) AS TotalCSO,   -- [PN-18594] latest StocklineTimeCycleHistory row
+				stl.Note,stl.IsService
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
-		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
+		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId
+		OUTER APPLY (
+			SELECT TOP 1 h.[TotalTSN], h.[TotalTSNMM], h.[TotalCSN], h.[TotalTSO], h.[TotalTSOMM], h.[TotalCSO]
+			FROM [dbo].[StocklineTimeCycleHistory] h WITH(NOLOCK)
+			WHERE h.[StocklineId] = stl.[StockLineId] AND h.[MasterCompanyId] = stl.[MasterCompanyId] AND ISNULL(h.[IsDeleted], 0) = 0
+			ORDER BY h.[StocklineTimeCycleHistoryId] DESC
+		) tch
 		OUTER APPLY (
 			SELECT STRING_AGG(ip.[Description], ', ') AS IntegrationPortalDescriptions
 			FROM dbo.SplitString(stl.IntegrationPortal, ',') AS ids

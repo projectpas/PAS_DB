@@ -13,6 +13,7 @@
                                          Added explicit StockType (Stock/Non-Stock) column and Exposed ItemMasterId in result set for correct DISTINCTCOUNT KPI in Power BI (partNumber alone is not unique)
  ** 3      15-OCT-2026  SUMIT KUMAR      Fixed #OpenDemand: calculated remaining unfulfilled demand (Quantity - QuantityIssued) instead of UnIssuedQty (which is only for returns); resolved WorkOrderPartNumber JOIN to prevent fanout and NULLs; included WorkOrderMaterialsKit
  ** 4      02-NOV-2026  BHARGAV          Added poQuantityOrdered / poQuantityReceived (per part, all non-deleted parent PO lines) for the Demand Fill Rate KPI (Received ÷ Ordered)
+ ** 5      18-NOV-2026  BHARGAV          #OpenDemand now includes open Sales Order demand (SalesOrderPartV1: Ordered - Reserved - Shipped); previously only WO materials were counted
  **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_GetPowerBIPartsAvailabilityAndStockout]   
     @masterCompanyId INT
@@ -127,8 +128,43 @@ BEGIN
               AND ISNULL(wo.IsDeleted, 0) = 0
               AND (wopInfo.MinIsClosed IS NULL OR wopInfo.MinIsClosed = 0)
               AND (wos.Id IS NULL OR UPPER(ISNULL(wos.StatusCode, '')) <> 'CLOSED')
+
+            UNION ALL
+
+            -- Sales Order demand: Ordered - Reserved - Shipped (reservation is released on shipment, so no double count)
+            SELECT
+                sop.ItemMasterId,
+                CASE
+                    WHEN ISNULL(sop.QtyOrder, 0) > (soq.ReservedQty + soq.ShippedQty)
+                    THEN ISNULL(sop.QtyOrder, 0) - (soq.ReservedQty + soq.ShippedQty)
+                    ELSE 0
+                END AS OpenDemandQty,
+                CASE WHEN UPPER(ISNULL(p.Description, '')) = 'AOG' THEN 1 ELSE 0 END AS IsAOG
+            FROM dbo.SalesOrderPartV1 sop WITH (NOLOCK)
+            INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON sop.SalesOrderId = so.SalesOrderId
+            LEFT JOIN dbo.Priority p WITH (NOLOCK) ON sop.PriorityId = p.PriorityId
+            OUTER APPLY (
+                SELECT SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped
+                FROM dbo.SalesOrderShippingItem sosi WITH (NOLOCK)
+                INNER JOIN dbo.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+                WHERE sosi.SalesOrderPartId = sop.SalesOrderPartId
+                  AND ISNULL(sosi.IsDeleted, 0) = 0
+                  AND ISNULL(sos.IsDeleted, 0) = 0
+            ) shp
+            -- Guard against corrupt negative quantities (e.g. negative QtyReserved) inflating demand
+            CROSS APPLY (
+                SELECT
+                    CASE WHEN ISNULL(sop.QtyReserved, 0) > 0 THEN sop.QtyReserved ELSE 0 END AS ReservedQty,
+                    CASE WHEN ISNULL(shp.QtyShipped, 0) > 0 THEN shp.QtyShipped ELSE 0 END AS ShippedQty
+            ) soq
+            WHERE sop.MasterCompanyId = @masterCompanyId
+              AND ISNULL(sop.IsDeleted, 0) = 0
+              AND ISNULL(sop.IsActive, 1) = 1
+              AND ISNULL(so.IsDeleted, 0) = 0
+              AND ISNULL(so.StatusId, 0) NOT IN (2, 5, 6, 9)   -- MasterSalesOrderStatus: Closed, Cancelled, Expired, Rejected
+              AND ISNULL(sop.StatusId, 0) <> 6                 -- SOPartStatus: Closed
         )
-        SELECT 
+        SELECT
             ItemMasterId,
             SUM(OpenDemandQty) AS OpenDemandQty,
             MAX(IsAOG) AS IsAOG

@@ -120,8 +120,10 @@ BEGIN
                 stl.CustReqCertType,
                 stl.CSN,
                 stl.TSN,
+                stl.TSNMM,
                 stl.CSO,
-                stl.TSO
+                stl.TSO,
+                stl.TSOMM
             FROM dbo.ReceivingCustomerWorkAudit stl WITH (NOLOCK)
             INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
             LEFT JOIN dbo.CustomerContact cc WITH (NOLOCK) ON stl.CustomerContactId = cc.CustomerContactId

@@ -5015,6 +5015,15 @@
     <Build Include="dbo\Stored Procedures\USP_CreateBatch_DepreciableLeaseStockline.sql" />
     <Build Include="dbo\Stored Procedures\SaveLeaseDepreciationData.sql" />
     <Build Include="dbo\User Defined Types\DepreciableLeaseStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteLabor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerUser.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerAccess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

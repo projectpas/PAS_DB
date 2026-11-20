@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -100,6 +100,14 @@
     <Build Include="dbo\Tables\Tables1\AircraftDashNumberAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftModel.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftModelAudit.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineModel.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineModelAudit.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineDashNumber.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineDashNumberAudit.sql" />
+    <Build Include="dbo\Views\vw_EngineModel.sql" />
+    <Build Include="dbo\Views\vw_EngineModel_Audit.sql" />
+    <Build Include="dbo\Views\vw_EngineDashNumbers.sql" />
+    <Build Include="dbo\Views\vw_EngineDashNumber_Audit.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftType.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftTypeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AllAddress.sql" />

@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [USP_CancelSalesOrderShipping]
  ** Author:  Vishal Suthar
  ** Description: Cancels a Sales Order shipment: returns the shipped qty to the stockline (back to Reserved for the SO),
@@ -14,7 +15,7 @@
  ** --   --------     -------			--------------------------------
     1    05-11-2026   Vishal Suthar		Created
     2    12-11-2026   Vishal Suthar		Reserved qty is returned in stock UOM (was converted to consume UOM)
-
+    3    20-11-2026   RAJESH GAMI		Remove validation related to LOT
  EXEC [dbo].[USP_CancelSalesOrderShipping] @SalesOrderShippingId = 1, @MasterCompanyId = 1, @UpdatedBy = 'ADMIN User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CancelSalesOrderShipping]
@@ -87,10 +88,10 @@ BEGIN
 	END
 
 	-- Lot costing is moved to Sold when shipped; reversing it is not supported here
-	IF EXISTS (SELECT 1 FROM #CancelItems WHERE ISNULL([LotId], 0) > 0)
-	BEGIN
-		SELECT CAST(0 AS BIT) AS IsSuccess, 'Shipping cannot be canceled for a stockline that belongs to a Lot.' AS [Message]; RETURN;
-	END
+	--IF EXISTS (SELECT 1 FROM #CancelItems WHERE ISNULL([LotId], 0) > 0)
+	--BEGIN
+	--	SELECT CAST(0 AS BIT) AS IsSuccess, 'Shipping cannot be canceled for a stockline that belongs to a Lot.' AS [Message]; RETURN;
+	--END
 
 	BEGIN TRY
 		BEGIN TRANSACTION

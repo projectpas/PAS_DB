@@ -43,6 +43,7 @@
 		13   18-Nov-2026   Rajesh Gami      [PN-18594] New params @TotalTSO, @TotalTSOMM, @TotalCSO. TSN / TSO / CSN / CSO of the stockline are written to
 										 StocklineTimeCycleHistory through USP_SaveStocklineTimeCycleValues (create : EntryType 'Stockline', edit : difference rows)
 										 and the latest history row is set on the Stockline (USP_UpdateStocklineTimeCycleFromHistory).
+		14   19-Nov-2026   Rajesh Gami      [PN-18595] WorkOrderPartNumber CSN / TSN / CSO / TSO are numbers + TSNMM / TSOMM now : the TimeLife text is converted when it is copied to the work order part (ufn_SplitTimeText)
 --   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -862,12 +863,17 @@ BEGIN
 				OR @UpdatedCSO IS NOT NULL OR @UpdatedTSO IS NOT NULL)
 			BEGIN
 				UPDATE [dbo].[WorkOrderPartNumber]
-				   SET [CSN]         = @UpdatedCSN,
-					   [TSN]         = @UpdatedTSN,
-					   [CSO]         = @UpdatedCSO,
-					   [TSO]         = @UpdatedTSO,
+				   SET [CSN]         = TRY_CAST(REPLACE(NULLIF(LTRIM(RTRIM(@UpdatedCSN)), ''), ',', '') AS DECIMAL(18,6)),   -- [PN-18595] WorkOrderPartNumber CSN / TSN / CSO / TSO are numbers + minutes now
+					   [TSN]         = CASE WHEN NULLIF(LTRIM(RTRIM(@UpdatedTSN)), '') IS NULL THEN NULL ELSE UpdatedTsnSplit.[Hours] END,
+					   [TSNMM]       = CASE WHEN NULLIF(LTRIM(RTRIM(@UpdatedTSN)), '') IS NULL THEN NULL ELSE UpdatedTsnSplit.[Minutes] END,
+					   [CSO]         = TRY_CAST(REPLACE(NULLIF(LTRIM(RTRIM(@UpdatedCSO)), ''), ',', '') AS DECIMAL(18,6)),
+					   [TSO]         = CASE WHEN NULLIF(LTRIM(RTRIM(@UpdatedTSO)), '') IS NULL THEN NULL ELSE UpdatedTsoSplit.[Hours] END,
+					   [TSOMM]       = CASE WHEN NULLIF(LTRIM(RTRIM(@UpdatedTSO)), '') IS NULL THEN NULL ELSE UpdatedTsoSplit.[Minutes] END,
 					   [UpdatedDate] = @UpdatedDate,
 					   [UpdatedBy]   = @UpdatedBy
+				  FROM [dbo].[WorkOrderPartNumber]
+				 CROSS APPLY [dbo].[ufn_SplitTimeText](@UpdatedTSN) UpdatedTsnSplit
+				 CROSS APPLY [dbo].[ufn_SplitTimeText](@UpdatedTSO) UpdatedTsoSplit
 				 WHERE [StockLineId] = @StockLineId
 				   AND ISNULL([IsDeleted], 0) = 0;
 			END

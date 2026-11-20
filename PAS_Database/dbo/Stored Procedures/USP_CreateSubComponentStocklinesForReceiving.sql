@@ -28,11 +28,11 @@
                    - Qty        = entered Qty Received for the PO part, shared over the received main stocklines of the PO part in proportion to their qty
                                   (0 = no stockline for that sub component), one Qty 1 stockline per unit as before
                    - Unit Cost  = entered unit cost, kept on the sub component stockline (UnitCost / PurchaseOrderUnitCost / InventoryUnitCost,
-                                  PurchaseOrderExtendedCost = Unit Cost x Qty) for inventory / reference only. NO accounting entry is posted for a sub component
-                                  stockline (the main part journal already carries the cost) and RRQty stays NULL so the stockline is never picked by the
-                                  Receiving Reconciliation, i.e. the cost is not counted twice.
-                   - validation : total sub component cost of a PO part (Qty Received x Unit Cost) must not exceed the Main Part Cost
-                                  (Unit Cost x Qty of the received main stocklines), otherwise 'Total Sub Component Cost cannot exceed the Main Part Cost.' is raised
+                                  PurchaseOrderExtendedCost = Unit Cost x Qty). RRQty stays NULL (not picked by the Receiving Reconciliation).
+                 [PN-18605] The Sub Component Unit Cost is independent of the Main Part Unit Cost : the 'total sub component cost cannot exceed the Main Part Cost'
+                 validation is removed. The accounting entry of every created sub component stockline (Qty x Unit Cost, Unit Cost > 0) is posted with the same
+                 procedure as the main stockline (usp_PostCreateStocklineBatchDetails, distribution ReceivingPOStockline : Debit = GL account of the sub component
+                 stockline, ReferenceId / PO / Receiver of the main stockline receiving), in the same transaction.
                  Caller owns the transaction (called from USP_CreateStocklineForReceivingPO). No result set is returned.
  ** Date:   06-NOV-2026
  ** Author:  Kishor Makwana
@@ -55,6 +55,8 @@
     6    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : the sub component stockline took the Item Type of the main stockline (STOCK) - ItemTypeId / itemType are now set from the sub component Item Master
     7    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : PN label (GenerateStocklinePrintPDFContent) failed with SqlNullValueException - Stockline.ShelfLife / QuantityToReceive / RepairOrderExtendedCost / WorkOrderExtendedCost are non nullable in the API model, now saved as 0 instead of NULL
 	8    13-NOV-2026  Kishor Makwana    [PN-18527] IsAsset / IsNonStock of the sub component stockline are set from the sub component Item Master (ProcStockList shows Item Type from them)
+	9    19-NOV-2026  Kishor Makwana    [PN-18605] Removed the 'Total Sub Component Cost cannot exceed the Main Part Cost' validation (independent sub component pricing);
+                                        accounting entry is posted for the received sub component stocklines (usp_PostCreateStocklineBatchDetails)
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
@@ -79,25 +81,7 @@ BEGIN
 			@StockLineModuleId BIGINT = 0, @LinkActionId INT = NULL,
 			@ReceivingPOModuleId BIGINT = 28; -- 28 = Receiving Purchase Order (same as USP_CreateStocklineForReceivingPO)
 
-	/* ---------- [PN-18526] total sub component cost must not exceed the main part cost (per PO part of this receipt) ---------- */
-	IF EXISTS (SELECT 1 FROM @SubComponentDetail)
-	BEGIN
-		IF EXISTS (
-			SELECT 1
-			FROM (SELECT D.[PurchaseOrderPartRecordId], SUM(ISNULL(D.[QtyReceived], 0) * ISNULL(D.[UnitCost], 0)) AS [SubCost]
-				  FROM @SubComponentDetail D GROUP BY D.[PurchaseOrderPartRecordId]) SD
-			INNER JOIN (SELECT S.[PurchaseOrderPartRecordId],
-							   SUM(ISNULL(NULLIF(S.[PurchaseOrderUnitCost], 0), ISNULL(S.[UnitCost], 0)) * ISNULL(S.[QuantityOnHand], ISNULL(S.[Quantity], 0))) AS [MainCost]
-						FROM [dbo].[Stockline] S WITH (NOLOCK)
-						WHERE S.[StockLineId] IN (SELECT TRY_CAST(LTRIM(RTRIM([value])) AS BIGINT) FROM STRING_SPLIT(@StockLineIds, ','))
-						  AND S.[MasterCompanyId] = @MasterCompanyId AND ISNULL(S.[isDeleted], 0) = 0 AND S.[SubComponentParentStocklineId] IS NULL
-						GROUP BY S.[PurchaseOrderPartRecordId]) MC ON MC.[PurchaseOrderPartRecordId] = SD.[PurchaseOrderPartRecordId]
-			WHERE ROUND(SD.[SubCost], 2) > ROUND(MC.[MainCost], 2))
-		BEGIN
-			RAISERROR ('Total Sub Component Cost cannot exceed the Main Part Cost.', 16, 1);
-			RETURN;
-		END
-	END
+	/* [PN-18605] no 'total sub component cost <= main part cost' validation : the Sub Component Unit Cost is independent of the Main Part Unit Cost */
 
 	/* ---------- main stocklines x sub components (same sub component part + resolved condition is summed) ---------- */
 	IF OBJECT_ID(N'tempdb..#SubCompWork') IS NOT NULL DROP TABLE #SubCompWork;
@@ -207,6 +191,9 @@ BEGIN
 
 	SELECT @StockLineModuleId = [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'StockLine';
 	SELECT @LinkActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'SubComponent-Link';
+
+	-- [PN-18605] accounting entry rows of the created sub component stocklines (posted once at the end)
+	DECLARE @PostSubStockline dbo.PostStocklineBatchType;
 
 	-- every column of the main stockline is copied, then the sub component values are set (new Stockline columns are never missed)
 	DECLARE @Cols NVARCHAR(MAX), @Sql NVARCHAR(MAX);
@@ -353,8 +340,8 @@ BEGIN
 				SL.[SubComponentParentStocklineId] = @MainStockLineId,
 				SL.[SubComponentQty] = @RowQty,
 				SL.[IsSubComponent] = 1,
-				-- [PN-18526] entered Unit Cost / total cost are kept on the stockline for inventory / reference only : no accounting entry is posted for a
-				-- sub component stockline (the main part journal carries the cost) and RRQty stays NULL (not picked by Receiving Reconciliation)
+				-- [PN-18526] entered Unit Cost / total cost are kept on the stockline; [PN-18605] the accounting entry is posted for it at the end of this procedure.
+				-- RRQty stays NULL (not picked by Receiving Reconciliation)
 				SL.[UnitCost] = @SubUnitCost,
 				SL.[PurchaseOrderUnitCost] = @SubUnitCost,
 				SL.[PurchaseOrderExtendedCost] = @SubUnitCost * @RowQty,
@@ -457,6 +444,13 @@ BEGIN
 			SET [TotalTSN] = @TcTsnH, [TotalTSNMM] = @TcTsnM, [TotalCSN] = @TcCsn, [TotalCSNMM] = 0, [TotalTSO] = @TcTsoH, [TotalTSOMM] = @TcTsoM, [TotalCSO] = @TcCso, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [StockLineId] = @NewStocklineId;
 
+			-- [PN-18605] accounting entry : Qty x Unit Cost of the sub component stockline (Stock items only, no entry for a zero cost)
+			IF (ISNULL(@SubUnitCost, 0) > 0 AND EXISTS (SELECT 1 FROM [dbo].[Stockline] X WITH (NOLOCK) WHERE X.[StockLineId] = @NewStocklineId AND ISNULL(X.[IsNonStock], 0) = 0))
+			BEGIN
+				INSERT INTO @PostSubStockline ([StocklineId], [Qty], [Amount], [ModuleName], [UpdateBy], [MasterCompanyId], [StockType])
+				VALUES (@NewStocklineId, @RowQty, @SubUnitCost, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'STOCK');
+			END
+
 			SET @UnitNo = @UnitNo + 1;
 		END
 
@@ -464,6 +458,12 @@ BEGIN
 	END
 	CLOSE WorkCursor;
 	DEALLOCATE WorkCursor;
+
+	-- [PN-18605] post the accounting entries of the received sub component stocklines (same posting as the main stockline, same transaction)
+	IF EXISTS (SELECT 1 FROM @PostSubStockline)
+	BEGIN
+		EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @PostSubStockline, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+	END
 
 	DROP TABLE #SubCompWork;
 END

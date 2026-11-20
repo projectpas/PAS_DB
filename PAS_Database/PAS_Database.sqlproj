@@ -4865,6 +4865,8 @@
     <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseBillingListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePostedInvoiceListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddReceivingStocklineTimeCycle.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
@@ -5017,6 +5019,15 @@
     <Build Include="dbo\Stored Procedures\USP_CreateBatch_DepreciableLeaseStockline.sql" />
     <Build Include="dbo\Stored Procedures\SaveLeaseDepreciationData.sql" />
     <Build Include="dbo\User Defined Types\DepreciableLeaseStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteLabor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerUser.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerAccess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

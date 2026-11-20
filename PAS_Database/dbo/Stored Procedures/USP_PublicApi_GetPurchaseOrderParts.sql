@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
+    2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
 
   EXEC [dbo].[USP_PublicApi_GetPurchaseOrderParts] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
 ************************************************************************/
@@ -25,42 +26,63 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT
-        -- Ids are used by the API to group lines per PO and nest split lines; not returned to clients.
-        P.[PurchaseOrderId],
-        P.[PurchaseOrderPartRecordId] AS [PurchaseOrderPartId],
-        CASE WHEN ISNULL(P.[isParent], 0) = 1 THEN NULL ELSE NULLIF(P.[ParentId], 0) END AS [ParentPurchaseOrderPartId],
-        P.[PartNumber],
-        P.[PartDescription],
-        P.[ManufacturerPN] AS [ManufacturerPartNumber],
-        P.[Manufacturer],
-        P.[AltEquiPartNumber],
-        P.[ItemType],
-        P.[StockType],
-        P.[Condition],
-        P.[UnitOfMeasure],
-        P.[Priority],
-        P.[NeedByDate],
-        P.[EstDeliveryDate],
-        ISNULL(P.[QuantityOrdered], 0) AS [QuantityOrdered],
-        ISNULL(P.[QuantityReceived], 0) AS [QuantityReceived],
-        ISNULL(P.[QuantityBackOrdered], 0) AS [QuantityBackOrdered],
-        ISNULL(P.[QuantityRejected], 0) AS [QuantityRejected],
-        P.[VendorListPrice],
-        P.[DiscountPercentValue] AS [DiscountPercent],
-        P.[DiscountPerUnit],
-        P.[DiscountAmount],
-        P.[UnitCost],
-        P.[ExtendedCost],
-        P.[FunctionalCurrency],
-        P.[WorkOrderNo],
-        P.[SubWorkOrderNo],
-        P.[ReapairOrderNo] AS [RepairOrderNo],
-        P.[SalesOrderNo]
-    FROM [dbo].[PurchaseOrderPart] P WITH (NOLOCK)
-    INNER JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
-        ON PO.[PurchaseOrderId] = P.[PurchaseOrderId] AND PO.[MasterCompanyId] = @MasterCompanyId AND PO.[IsDeleted] = 0
-    WHERE P.[PurchaseOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@PurchaseOrderIds, ','))
-      AND ISNULL(P.[IsDeleted], 0) = 0
-    ORDER BY P.[PurchaseOrderId], ISNULL(NULLIF(P.[ParentId], 0), P.[PurchaseOrderPartRecordId]), P.[PurchaseOrderPartRecordId];
+    BEGIN TRY
+        SELECT
+            -- Ids are used by the API to group lines per PO and nest split lines; not returned to clients.
+            P.[PurchaseOrderId],
+            P.[PurchaseOrderPartRecordId] AS [PurchaseOrderPartId],
+            CASE WHEN ISNULL(P.[isParent], 0) = 1 THEN NULL ELSE NULLIF(P.[ParentId], 0) END AS [ParentPurchaseOrderPartId],
+            P.[PartNumber],
+            P.[PartDescription],
+            P.[ManufacturerPN] AS [ManufacturerPartNumber],
+            P.[Manufacturer],
+            P.[AltEquiPartNumber],
+            P.[ItemType],
+            P.[StockType],
+            P.[Condition],
+            P.[UnitOfMeasure],
+            P.[Priority],
+            P.[NeedByDate],
+            P.[EstDeliveryDate],
+            ISNULL(P.[QuantityOrdered], 0) AS [QuantityOrdered],
+            ISNULL(P.[QuantityReceived], 0) AS [QuantityReceived],
+            ISNULL(P.[QuantityBackOrdered], 0) AS [QuantityBackOrdered],
+            ISNULL(P.[QuantityRejected], 0) AS [QuantityRejected],
+            P.[VendorListPrice],
+            P.[DiscountPercentValue] AS [DiscountPercent],
+            P.[DiscountPerUnit],
+            P.[DiscountAmount],
+            P.[UnitCost],
+            P.[ExtendedCost],
+            P.[FunctionalCurrency],
+            P.[WorkOrderNo],
+            P.[SubWorkOrderNo],
+            P.[ReapairOrderNo] AS [RepairOrderNo],
+            P.[SalesOrderNo]
+        FROM [dbo].[PurchaseOrderPart] P WITH (NOLOCK)
+        INNER JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
+            ON PO.[PurchaseOrderId] = P.[PurchaseOrderId] AND PO.[MasterCompanyId] = @MasterCompanyId AND PO.[IsDeleted] = 0
+        WHERE P.[PurchaseOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@PurchaseOrderIds, ','))
+          AND ISNULL(P.[IsDeleted], 0) = 0
+        ORDER BY P.[PurchaseOrderId], ISNULL(NULLIF(P.[ParentId], 0), P.[PurchaseOrderPartRecordId]), P.[PurchaseOrderPartRecordId];
+    END TRY
+    BEGIN CATCH
+        IF @@trancount > 0
+            PRINT 'ROLLBACK'
+        DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'USP_PublicApi_GetPurchaseOrderParts'
+              , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))
+                                                   + '@Parameter2 = ''' + CAST(ISNULL(@PurchaseOrderIds, '') AS VARCHAR(100))
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+    END CATCH
 END

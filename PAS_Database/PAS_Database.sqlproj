@@ -5027,6 +5027,7 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseEngineValuationReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

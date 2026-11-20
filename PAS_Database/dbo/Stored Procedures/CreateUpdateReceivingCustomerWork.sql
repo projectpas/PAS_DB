@@ -28,6 +28,8 @@
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14    13/Aug/2026			 RAJESH GAMI						[PN-17008] - Re-added 2 missing ISNULL(...IsNonStock,0)=0 filters on ItemMaster lookups that were dropped when this proc was ported from BETA.
 	15   13-OCT-2026   Moin Bloch 		    PN-18310 Added DerNum, DerRevDate, CustDer And DerRevNum
+	16   19-NOV-2026   Rajesh Gami         [PN-18595] CSN / TSN / CSO / TSO are DECIMAL now, new TSNMM / TSOMM (minutes). WorkOrderPartNumber gets the same values. The six values are also written to
+	                                        StocklineTimeCycleHistory / Stockline (USP_SaveStocklineTimeCycleValues, EntryType 'Stockline')
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -197,10 +199,12 @@ BEGIN
 				[IsSkipShippingReference] [bit] NULL,
 				[IsBatchStock] [bit] NULL,
 				[BatchNumber] [varchar](50) NULL,
-				[CSN] [varchar](50) NULL,
-				[TSN] [varchar](50) NULL,
-				[CSO] [varchar](50) NULL,
-				[TSO] [varchar](50) NULL,
+				[CSN] [decimal](18, 6) NULL,
+				[TSN] [decimal](18, 6) NULL,
+				[TSNMM] [decimal](18, 6) NULL,
+				[CSO] [decimal](18, 6) NULL,
+				[TSO] [decimal](18, 6) NULL,
+				[TSOMM] [decimal](18, 6) NULL,
 				[OutGoingItemMasterId] [bigint] NULL,
 				[OutGoingPartNumber] [varchar](50) NULL,
 				[StockUnitOfMeasureId] [bigint] NULL,
@@ -222,7 +226,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
+						[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -235,7 +239,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
+						[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
 				   FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = MIN(Quantity), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
@@ -580,7 +584,7 @@ BEGIN
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
 							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart], [IsRepairManagement],[IsSkipShippingReference]
-							   ,[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
+							   ,[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,1 ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -593,12 +597,19 @@ BEGIN
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
 							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0, ISNULL(@IsRepairManagement, 0),[IsSkipShippingReference],
-							   [CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
+							   [CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[OutGoingItemMasterId],[OutGoingPartNumber],[DerNum],[DerRevDate],[CustDer],[DerRevNum]
 							   FROM #tmprReceiveCustomer WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 
 					EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
+
+					-- [PN-18595] TSN / TSNMM / CSN / TSO / TSOMM / CSO of the new customer stockline -> StocklineTimeCycleHistory (EntryType 'Stockline') + Stockline
+					DECLARE @TcTSN DECIMAL(18,6), @TcTSNMM DECIMAL(18,6), @TcCSN DECIMAL(18,6), @TcTSO DECIMAL(18,6), @TcTSOMM DECIMAL(18,6), @TcCSO DECIMAL(18,6);
+					SELECT @TcTSN = [TSN], @TcTSNMM = [TSNMM], @TcCSN = [CSN], @TcTSO = [TSO], @TcTSOMM = [TSOMM], @TcCSO = [CSO] FROM #tmprReceiveCustomer WHERE ID = @MinId;
+					EXEC [dbo].[USP_SaveStocklineTimeCycleValues] @StocklineId = @NewStocklineId, @MasterCompanyId = @MasterCompanyId,
+						 @TotalTSN = @TcTSN, @TotalTSNMM = @TcTSNMM, @TotalCSN = @TcCSN, @TotalTSO = @TcTSO, @TotalTSOMM = @TcTSOMM, @TotalCSO = @TcCSO,
+						 @IsCreate = 1, @UpdatedBy = @UpdatedBy;
 
 					IF(@TotalCount = 1 )
 					BEGIN
@@ -930,8 +941,10 @@ BEGIN
 						  ,RC.[IsExchangeBatchEntry] = 0
 						  ,RC.[CSN] = TR.[CSN]
 						  ,RC.[TSN] = TR.[TSN]
+						  ,RC.[TSNMM] = TR.[TSNMM]
 						  ,RC.[CSO] = TR.[CSO]
 						  ,RC.[TSO] = TR.[TSO]
+						  ,RC.[TSOMM] = TR.[TSOMM]
 						  ,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
 						  ,RC.[CustReqCertTypeId] = TR.[CustReqCertTypeId]
 						  ,RC.[CustReqCertType] = TR.[CustReqCertType]
@@ -946,6 +959,16 @@ BEGIN
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 
 					 EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
+
+					 -- [PN-18595] changed TSN / TSNMM / CSN / TSO / TSOMM / CSO -> new StocklineTimeCycleHistory row(s) (EntryType 'Stockline') + Stockline. Nothing is written when no value changed.
+					 DECLARE @UpdTcStocklineId BIGINT, @UpdTcTSN DECIMAL(18,6), @UpdTcTSNMM DECIMAL(18,6), @UpdTcCSN DECIMAL(18,6), @UpdTcTSO DECIMAL(18,6), @UpdTcTSOMM DECIMAL(18,6), @UpdTcCSO DECIMAL(18,6);
+					 SELECT @UpdTcStocklineId = RC.[StockLineId], @UpdTcTSN = TR.[TSN], @UpdTcTSNMM = TR.[TSNMM], @UpdTcCSN = TR.[CSN], @UpdTcTSO = TR.[TSO], @UpdTcTSOMM = TR.[TSOMM], @UpdTcCSO = TR.[CSO]
+					   FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
+					  WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
+					 IF (ISNULL(@UpdTcStocklineId, 0) > 0)
+						EXEC [dbo].[USP_SaveStocklineTimeCycleValues] @StocklineId = @UpdTcStocklineId, @MasterCompanyId = @MasterCompanyId,
+							 @TotalTSN = @UpdTcTSN, @TotalTSNMM = @UpdTcTSNMM, @TotalCSN = @UpdTcCSN, @TotalTSO = @UpdTcTSO, @TotalTSOMM = @UpdTcTSOMM, @TotalCSO = @UpdTcCSO,
+							 @IsCreate = 0, @UpdatedBy = @UpdatedBy;
 
 					 DECLARE @RCModuleId BIGINT, @WOMPNModuleId BIGINT;
 					
@@ -968,8 +991,10 @@ BEGIN
 							WOMPN.ACTailNum = TR.ACTailNum,
 							WOMPN.CSN = TR.CSN,
 							WOMPN.TSN = TR.TSN,
+							WOMPN.TSNMM = TR.TSNMM,
 							WOMPN.CSO = TR.CSO,
 							WOMPN.TSO = TR.TSO,
+							WOMPN.TSOMM = TR.TSOMM,
 							WOMPN.CurrentSerialNumber = TR.SerialNumber,
 							WOMPN.ManagementStructureId = @ManagementStructureId,
 							WOMPN.[RevisedPartId] = TR.[OutGoingItemMasterId],

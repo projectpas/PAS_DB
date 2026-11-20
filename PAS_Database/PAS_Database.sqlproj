@@ -4921,6 +4921,7 @@
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateSubComponentStocklinesForReceiving.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLife.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPOPartsWithSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubComponentsForReceivingPOPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineSubComponents.sql" />

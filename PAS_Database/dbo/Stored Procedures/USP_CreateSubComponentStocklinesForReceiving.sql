@@ -55,6 +55,7 @@
     6    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : the sub component stockline took the Item Type of the main stockline (STOCK) - ItemTypeId / itemType are now set from the sub component Item Master
     7    13-NOV-2026  Kishor Makwana    [PN-18527] Bug : PN label (GenerateStocklinePrintPDFContent) failed with SqlNullValueException - Stockline.ShelfLife / QuantityToReceive / RepairOrderExtendedCost / WorkOrderExtendedCost are non nullable in the API model, now saved as 0 instead of NULL
 	8    13-NOV-2026  Kishor Makwana    [PN-18527] IsAsset / IsNonStock of the sub component stockline are set from the sub component Item Master (ProcStockList shows Item Type from them)
+	9    20-NOV-2026  RAJESH GAMI       [PN-18624] Asset main stocklines (IsAsset = 1) are no longer excluded - Sub Component stocklines are created for them too (Non-Stock stays excluded)
 
 -- EXEC [dbo].[USP_CreateSubComponentStocklinesForReceiving] @StockLineIds = '101,102', @MasterCompanyId = 1, @UpdatedBy = 'admin'
 ************************************************************************/
@@ -128,7 +129,7 @@ BEGIN
 	  AND S.[MasterCompanyId] = @MasterCompanyId
 	  AND ISNULL(S.[isDeleted], 0) = 0
 	  AND ISNULL(S.[IsNonStock], 0) = 0
-	  AND ISNULL(S.[IsAsset], 0) = 0
+	  -- [PN-18624] IsAsset main stocklines (Item Master Asset part received through a PO Stock line) now get their Sub Components too
 	  AND S.[SubComponentParentStocklineId] IS NULL -- a sub component stockline never has its own sub components
 	  AND ISNULL(S.[QuantityOnHand], ISNULL(S.[Quantity], 0)) > 0
 	GROUP BY S.[StockLineId], SC.[MappingItemMasterId], ISNULL(SC.[ConditionId], S.[ConditionId]);

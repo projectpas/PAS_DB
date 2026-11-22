@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -100,6 +100,14 @@
     <Build Include="dbo\Tables\Tables1\AircraftDashNumberAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftModel.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftModelAudit.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineModel.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineModelAudit.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineDashNumber.sql" />
+    <Build Include="dbo\Tables\Tables1\EngineDashNumberAudit.sql" />
+    <Build Include="dbo\Views\vw_EngineModel.sql" />
+    <Build Include="dbo\Views\vw_EngineModel_Audit.sql" />
+    <Build Include="dbo\Views\vw_EngineDashNumbers.sql" />
+    <Build Include="dbo\Views\vw_EngineDashNumber_Audit.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftType.sql" />
     <Build Include="dbo\Tables\Tables1\AircraftTypeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\AllAddress.sql" />
@@ -2498,6 +2506,8 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_SearchCreditMemoDataForRefund.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SearchCustomerInvoices.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SearchCustomerRMAData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_GetCustomerRMAReceivingData.sql" />
+    <Build Include="dbo\Stored Procedures\Procs2\USP_ReceiveCustomerRMAParts.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SetDefaultReportingStructure.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_SingleScreen_AddUpdateData.sql" />
     <Build Include="dbo\Stored Procedures\Procs2\USP_StandAloneCM_PostCheckBatchDetails.sql" />
@@ -2647,6 +2657,7 @@
     <Build Include="dbo\User Defined Types\WOQMaterialKitMappingType.sql" />
     <Build Include="dbo\User Defined Types\VoidedCheckListType.sql" />
     <Build Include="dbo\User Defined Types\VendorRMADetailType.sql" />
+    <Build Include="dbo\User Defined Types\CustomerRMAReceivePartsType.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQRepairOrderPartType.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQPurchaseOrderPartType.sql" />
     <Build Include="dbo\User Defined Types\VendorCreditMemoMappingType.sql" />
@@ -2671,6 +2682,7 @@
     <Build Include="dbo\User Defined Types\PostStocklineBatchType.sql" />
     <Build Include="dbo\User Defined Types\PostRRBatchType.sql" />
     <Build Include="dbo\User Defined Types\POPartsToReceive.sql" />
+    <Build Include="dbo\User Defined Types\POSubComponentTimeCycle.sql" />
     <Build Include="dbo\User Defined Types\PartRepairStationsDetailsType.sql" />
     <Build Include="dbo\User Defined Types\NonPOInvoicePartDetailsType.sql" />
     <Build Include="dbo\User Defined Types\ManualJournalBatchDetailsType.sql" />
@@ -3622,7 +3634,7 @@
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
@@ -3744,6 +3756,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateTravelerLabourTaskHeader_SubWorkorder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSummarisedQuotationAnalysisData.sql" />
     <Build Include="dbo\Stored Procedures\GetPNTileOEMCrossReferenceList.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTileVendorCapabilityList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRFQPurchaseOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoiceItem_ByWFWOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
@@ -4493,7 +4506,7 @@
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderSettlementDetailsNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsForStageChangeNew.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderSettlementDetailsNew.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_SaveSettlementFinalConditionBulk.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderSettlementDetails.sql" />
@@ -4658,6 +4671,9 @@
     <Build Include="dbo\User Defined Types\WorksheetPartTableType.sql" />
     <Build Include="dbo\User Defined Types\WorksheetHeaderTableType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTailNumberList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCopyComponentSourceAircraftList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyAircraftInstalledComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyAircraftMaintenanceSchedule.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftTechnicalRecordList.sql" />
     <Build Include="dbo\Tables\AircraftInfo.sql" />
     <Build Include="dbo\Tables\MaintenanceCategory.sql" />
@@ -4691,6 +4707,12 @@
     <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedWorkOrders.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerSuppliedPartsByWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SetWorkOrderMaterialsCustomerSupplied.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStocklineForNonStockSubWorkOrderMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\WOQAddPNPartSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
     <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPOFromEmail.sql" />
     <Build Include="dbo\User Defined Types\tbl_EmailVendorRFQPartType.sql" />
@@ -4719,6 +4741,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctWorksheetDefects.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDistinctAircraftMaintenanceTypes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceTailSerialList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
@@ -4731,6 +4754,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CancelSalesOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddSOShippingStatusAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
@@ -4777,6 +4802,14 @@
     <Build Include="dbo\User Defined Types\LeaseChargesType.sql" />
     <Build Include="dbo\Tables\LeaseHeaderAudit.sql" />
     <Build Include="dbo\Tables\LeaseHeader.sql" />
+    <Build Include="dbo\Tables\LeaseAgreementAudit.sql" />
+    <Build Include="dbo\Tables\LeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseAgreement.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeaseAgreementPDF.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementPDFData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementTerms.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseAgreementData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStocklineWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLeaseStockLineServiceComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveLeaseStocklineServiceComponents.sql" />
@@ -4808,7 +4841,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetReservedLeaseStockPartsListByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeasePartsByLeaseHeaderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseNumberByLeaseStocklineId.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLeaseStockLine.sql" />
@@ -4821,6 +4854,7 @@
     <Build Include="dbo\Stored Procedures\GetWorkOrderMPNInternalItemMasterList.sql" />
     <Build Include="dbo\User Defined Types\WOSettlementKitListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AutoAssignSBADApplicability.sql" />
     <Build Include="dbo\Functions\fn_GetDaysForMonths.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReallocateSOShipmentAccountingPeriod.sql" />
     <Build Include="dbo\Functions\fnGetSalesOrderSoAmount.sql" />
@@ -4840,6 +4874,8 @@
     <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseBillingListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeasePostedInvoiceListByLeaseHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddReceivingStocklineTimeCycle.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderLaborCommonHistory_1.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteLaborCommonHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_WorkOrderQuoteFreightCommonHistory.sql" />
@@ -4865,7 +4901,7 @@
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingParentList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingLabel.sql">
-      <QuotedIdentifier>Off</QuotedIdentifier>
+      <QuotedIdentifier>On</QuotedIdentifier>
     </Build>
     <Build Include="dbo\Stored Procedures\USP_GetLeaseShippingForEdit.sql">
       <QuotedIdentifier>On</QuotedIdentifier>
@@ -4895,6 +4931,11 @@
     <Build Include="dbo\Stored Procedures\USP_SplitStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchStocklineForSubComponent.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateSubComponentStocklinesForReceiving.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLife.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOPartsWithSubComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentsForReceivingPOPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStocklineSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineSubComponentList.sql" />
     <Build Include="dbo\User Defined Types\StocklineSubComponentType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineUnitCostHistory.sql" />
@@ -4910,6 +4951,9 @@
     <Build Include="dbo\Stored Procedures\USP_MoveAircraftInstalledSubComponentLink.sql" />
     <Build Include="dbo\Stored Procedures\USP_LinkAircraftInstalledSubComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineTimeCycleFromHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineTimeCycleValues.sql" />
+    <Build Include="dbo\Functions\ufn_SplitTimeText.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineTimeCycleFromCycleEntry.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseReportDrillDown.sql" />
@@ -4919,6 +4963,81 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolMaintenanceReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolLeaseRentalReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolGeneralInfoReport.sql" />
+    <Build Include="dbo\Tables\LeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Functions\FN_LeasePerHours.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveLeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseStockLineNoteHistory.sql" />
+    <Build Include="dbo\Tables\LeaseStockLineNoteHistoryAudit.sql" />
+    <Build Include="dbo\Tables\SubComponentAudit.sql" />
+    <Build Include="dbo\Tables\SubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentDetailsByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubComponentAuditDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSubComponent.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubComponent.sql" />
+    <Build Include="dbo\Tables\EmployeeApiUsage.sql" />
+    <Build Include="dbo\Tables\EmployeeApiToken.sql" />
+    <Build Include="dbo\Tables\EmployeeApiRequestLog.sql" />
+    <Build Include="dbo\Tables\EmployeeApiCredential.sql" />
+    <Build Include="dbo\Functions\fn_PublicApi_ConvertUOM.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_ValidateEmployeeApiAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SetEmployeeApiAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveToken.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_SaveEmployeeApiCredential.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_HasEmployeePermission.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetTenantConnections.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetStocklineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSigningKey.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetReceivingStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetReceivingPurchaseOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeApiCredential.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCredentialByClientId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetApiUsage.sql" />
+    <Build Include="dbo\Tables\MigratedAPInvoice.sql" />
+    <Build Include="dbo\Tables\MigratedARInvoice.sql" />
+    <Build Include="dbo\Tables\BAG_AR_Upload.sql" />
+    <Build Include="dbo\Tables\BAG_AP_Uploads.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderMaterialStocklines.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderLabor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeApiRequestLog.sql" />
+    <Build Include="dbo\Tables\StocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Tables\StocklineAssetConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetDepreciation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetDepreciableList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineAssetConversionPreview.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseEnginePoolValuationReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertStocklineAssetToInventory.sql" />
+    <Build Include="dbo\User Defined Types\POSubComponentDetail.sql" />
+    <Build Include="dbo\Tables\LeaseDepreciationHistory.sql" />
+    <Build Include="dbo\Functions\fn_GetLeaseDepreciationAmount.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateBatch_DepreciableLeaseStockline.sql" />
+    <Build Include="dbo\Stored Procedures\SaveLeaseDepreciationData.sql" />
+    <Build Include="dbo\User Defined Types\DepreciableLeaseStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteLabor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetWorkOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetRepairOrderList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerUser.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerAccess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeaseEngineValuationReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

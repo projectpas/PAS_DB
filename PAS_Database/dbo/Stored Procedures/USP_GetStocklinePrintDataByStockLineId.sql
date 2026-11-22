@@ -21,6 +21,7 @@
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	9    23/July/2026			 RAJESH GAMI						[PN-17350] - Per updated business direction (Non-Stock now allowed everywhere), removed the 4 remaining itm.IsNonStock=0 exclusions on the WorkOrderPartNumber MPN-reference lookup that were deliberately left in place during the prior PN-17009 bugfix pass.
 	10    10/07/2026     Ayushi Patel	[PN-17211] revert the UOM covertion changes for stockline print
+	11    22/Oct/2026			 RAJESH GAMI						[PN-17782] - Non-Stock: bind Purchase UOM (Stock/Consume UOM not available for Non-Stock) for stockline label
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -76,7 +77,7 @@ BEGIN
 			stl.UpdatedDate,
 			stl.IsSerialized,
 			stl.TraceableToName,
-			stl.StockUnitOfMeasure AS UnitOfMeasureName,
+			(CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN ISNULL(NULLIF(stl.UnitOfMeasure,''),uomPurchase.ShortName) ELSE stl.StockUnitOfMeasure END) AS UnitOfMeasureName,
 			--uomConsume.ShortName AS UnitOfMeasureName,
 			'' AS MPNNum,
 			wo.WorkOrderNum AS WoNum,
@@ -92,6 +93,7 @@ BEGIN
 			LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
 			LEFT JOIN [dbo].[WorkOrderMaterials] womst WITH(NOLOCK) ON stl.WorkOrderMaterialsId = womst.WorkOrderMaterialsId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomPurchase WITH(NOLOCK) ON uomPurchase.UnitOfMeasureId = stl.PurchaseUnitOfMeasureId -- [PN-17782]
 		WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId;
 	END
 	ELSE IF(@SubWorkOrderMaterialId > 0)
@@ -144,8 +146,8 @@ BEGIN
 			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLIneId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
 			LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
 			LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.StockUnitOfMeasureId END)
+			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.ConsumeUnitOfMeasureId END)
         WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 	END
 	ELSE IF(@PickTicketId > 0)
@@ -204,8 +206,8 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.StockUnitOfMeasureId END)
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.ConsumeUnitOfMeasureId END)
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StockLineId
 		END 
 		ELSE
@@ -262,8 +264,8 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.StockUnitOfMeasureId END)
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.ConsumeUnitOfMeasureId END)
 			WHERE ISNULL(stl.IsDeleted, 0) = 0
 			  AND stl.StockLineId = @StockLineId;
 		END
@@ -323,8 +325,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.StockUnitOfMeasureId END)
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.ConsumeUnitOfMeasureId END)
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 		ELSE
@@ -379,8 +381,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.StockUnitOfMeasureId END)
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = (CASE WHEN ISNULL(stl.IsNonStock,0) = 1 THEN stl.PurchaseUnitOfMeasureId ELSE stl.ConsumeUnitOfMeasureId END)
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 	END

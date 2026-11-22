@@ -23,6 +23,8 @@
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	7    20/July/2026			 RAJESH GAMI						[PN-17350] - Removed IsNonStock=0 filter so Non-Stock ItemMaster/Stockline fields populate correctly on the shipping list.
 	8    24/Aug/2026     Kishor Makwana      [PN-17439] - Stopped hardcoding ItemNo to 0 (now uses sop.SequenceNumber) so duplicate Part+Condition lines are distinguishable on the shipping list, matching the real per-line SalesOrderPartId (SOPartId) that this SP already groups by.
+	9    05/Nov/2026     Vishal Suthar       [PN-18475] - Canceled shipping lines are not counted (pick ticket can be shipped again)
+	10   18/Nov/2026     Vishal Suthar       One row per part: UOM converted per stockline, no GROUP BY on stockline UOM (part listed twice got shipped twice)
  -- EXEC [dbo].[sp_GetSOShippingParentList] 10861
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
@@ -36,13 +38,13 @@ BEGIN
 	--BEGIN TRANSACTION
 	--BEGIN
 		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, sop.SequenceNumber AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
-		--SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
-		ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyToShip,
-		--SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
-		ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyShipped,
+		-- UOM is converted per stockline inside the SUM, so a part picked from stocklines with different UOMs stays ONE row
+		-- (grouping by the stockline UOM split it into two rows with the same pick tickets, which were then shipped twice)
+		ISNULL(SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopt.[QtyToShip],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyToShip,
+		ISNULL(SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sosi.[QtyShipped],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.[QtyShipped],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyShipped,
 		sop.SalesOrderId,
-		--SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
-		(ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)	- ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)) AS QtyRemaining,		
+		ISNULL(SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopt.[QtyToShip],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)
+		- ISNULL(SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sosi.[QtyShipped],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.[QtyShipped],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyRemaining,		
 		CASE WHEN ISNULL(SUM(sopt.[QtyToShip]), 0) = ISNULL(SUM(sosi.[QtyShipped]), 0) THEN 'Shipped'
 		ELSE 'Shipping' END AS [Status]
 		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
@@ -52,11 +54,11 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
-					AND sosi.SOPickTicketId = sopt.SOPickTicketId
+					AND sosi.SOPickTicketId = sopt.SOPickTicketId AND ISNULL(sosi.QtyCanceled, 0) = 0
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
 					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
-		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],so.[MasterCompanyId],sop.SequenceNumber
+		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId,so.[MasterCompanyId],sop.SequenceNumber
 	--END
 	--COMMIT  TRANSACTION
 

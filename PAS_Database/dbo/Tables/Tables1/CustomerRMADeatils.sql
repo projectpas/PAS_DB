@@ -35,6 +35,7 @@
     [ReturnDate]             DATETIME2 (7)   NULL,
     [WorkOrderNum]           VARCHAR (50)    NULL,
     [ReceiverNum]            VARCHAR (50)    NULL,
+    [QtyReceived]            DECIMAL (18, 6) CONSTRAINT [DF_CustomerRMADeatils_QtyReceived] DEFAULT ((0)) NOT NULL, -- [PN-18254] Receiving Customer RMA
     CONSTRAINT [PK_CustomerRMADeatils] PRIMARY KEY CLUSTERED ([RMADeatilsId] ASC),
     CONSTRAINT [FK_CustomerRMADeatils_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_CustomerRMADeatils_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),

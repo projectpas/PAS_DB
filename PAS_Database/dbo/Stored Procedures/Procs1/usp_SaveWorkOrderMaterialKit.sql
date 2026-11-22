@@ -24,6 +24,7 @@
 	7    29/06/2026	  Ayuhi Patel			Added type decimal to qty [PN-17004]
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(IM.IsNonStock,0) = 0 filter to the @ItemClassificationId ItemMaster lookup
+	10    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
@@ -191,7 +192,7 @@ BEGIN
 					END
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
-					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
+					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId ;
 					
 					SELECT @ProvisionId = PROV.ProvisionId
 					FROM [DBO].[KitMaster] PROV

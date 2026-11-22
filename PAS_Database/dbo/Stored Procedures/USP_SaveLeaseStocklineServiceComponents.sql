@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_SaveLeaseStocklineServiceComponents]
  ** Description: Saves the full set of dynamic/custom-named Service Component
  **              rows (Name/Amount/Per) for a single LeaseStockline in one call -
@@ -16,13 +16,14 @@
  ** --   --------       -------                 --------------------------------
     1    14/09/2026     Amit Ghediya            Created
     2    05-Oct-2026    Divyesh Kathriya        [PN-18188] - Added GL Account, Start Date, and End Date.
+    3    03-Nov-2026    Kishor Makwana          Added UOM (optional) - [UOMId].
 
 DECLARE @Components dbo.LeaseStocklineServiceComponentType;
-INSERT INTO @Components (LeaseStocklineServiceComponentId, ComponentName, GLAccountId, StartDate, EndDate, Amount, Per, IsDeleted)
-VALUES (0, N'Storage Fee', 2, '2026-09-08', '2026-10-08', 500, N'Monthly', 0);
+INSERT INTO @Components (LeaseStocklineServiceComponentId, ComponentName, GLAccountId, StartDate, EndDate, Amount, Per, IsDeleted, UOMId)
+VALUES (0, N'Storage Fee', 2, '2026-09-08', '2026-10-08', 500, N'Monthly', 0, NULL);
 exec USP_SaveLeaseStocklineServiceComponents @LeaseStocklineId=1, @Components=@Components, @MasterCompanyId=1, @UpdatedBy='test'
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_SaveLeaseStocklineServiceComponents]
+CREATE   PROCEDURE [dbo].[USP_SaveLeaseStocklineServiceComponents]
 	@LeaseStocklineId BIGINT,
 	@Components [dbo].[LeaseStocklineServiceComponentType] READONLY,
 	@MasterCompanyId INT,
@@ -40,7 +41,7 @@ BEGIN
 		MERGE [dbo].[LeaseStocklineServiceComponent] AS TARGET		
 		USING (
 			SELECT [LeaseStocklineServiceComponentId], [ComponentName], [GLAccountId],
-				[StartDate], [EndDate], [Amount], [Per], [IsDeleted]
+				[StartDate], [EndDate], [Amount], [Per], [IsDeleted], [UOMId]
 			FROM @Components
 			WHERE ISNULL([IsDeleted], 0) = 0
 		) AS SOURCE
@@ -54,13 +55,14 @@ BEGIN
 				[EndDate]       = CONVERT(DATE, SOURCE.[EndDate]),
 				[Amount]        = SOURCE.[Amount],
 				[Per]           = SOURCE.[Per],
+				[UOMId]         = SOURCE.[UOMId],
 				[UpdatedBy]     = @UpdatedBy,
 				[UpdatedDate]   = GETUTCDATE()
 		WHEN NOT MATCHED BY TARGET THEN			
-			INSERT ([LeaseStocklineId], [ComponentName], [GLAccountId], [StartDate], [EndDate], [Amount], [Per],
+			INSERT ([LeaseStocklineId], [ComponentName], [GLAccountId], [StartDate], [EndDate], [Amount], [Per], [UOMId],
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 			VALUES (@LeaseStocklineId, SOURCE.[ComponentName], SOURCE.[GLAccountId],
-				CONVERT(DATE, SOURCE.[StartDate]), CONVERT(DATE, SOURCE.[EndDate]), SOURCE.[Amount], SOURCE.[Per],
+				CONVERT(DATE, SOURCE.[StartDate]), CONVERT(DATE, SOURCE.[EndDate]), SOURCE.[Amount], SOURCE.[Per], SOURCE.[UOMId],
 				@MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
 
 		UPDATE T
@@ -72,7 +74,7 @@ BEGIN
 		WHERE T.[LeaseStocklineId] = @LeaseStocklineId AND ISNULL(S.[IsDeleted], 0) = 1;
 
 		SELECT [LeaseStocklineServiceComponentId], [LeaseStocklineId], [ComponentName],
-			[GLAccountId], [StartDate], [EndDate], [Amount], [Per]
+			[GLAccountId], [StartDate], [EndDate], [Amount], [Per], [UOMId]
 		FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 		WHERE [LeaseStocklineId] = @LeaseStocklineId AND [IsDeleted] = 0
 		ORDER BY [LeaseStocklineServiceComponentId];

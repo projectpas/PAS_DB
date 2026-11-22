@@ -4,9 +4,10 @@
  **
  **              PO Cost     = from the Stockline table only (no PO tables): for each leased stockline Stockline.PurchaseOrderUnitCost x quantity on the lease.
  **              RO Cost     = from the Stockline table only (no RO tables): for each leased stockline Stockline.RepairOrderUnitCost x quantity on the lease.
+ **              Adjustment Cost = Stockline.Adjustment (Adjustment Cost (EA), negative = deduction) x quantity on the lease [PN-18517].
  **              Other Cost  = the billed Maintenance + Insurance + Taxes + Others + Charges lines of the lease invoices (generated draft + posted, voided excluded),
  **                            the same lines as the Billing tab, so Revenue + Other Cost = Total Billing of the Billing tab.
- **              Total Cost  = PO Cost + RO Cost + Other Cost
+ **              Total Cost  = PO Cost + RO Cost + Adjustment Cost + Other Cost
  **              Revenue     = generated (draft) and posted lease invoices, voided invoices excluded, Flat Rate + Overrun lines only (Maintenance / Insurance / Taxes / Charges / Others are costs); each invoice line counted once
  **                            (Line Amount of LeaseBillingInvoicingItemDetails, version-increase rows ignored).
  **              Profit/Loss = Revenue - Total Cost  (positive = profit, negative = loss, 0 = break-even)
@@ -27,6 +28,7 @@
     5    28/10/2026     Kishor Makwana          [PN-18360] Charges invoice lines are added to Other Cost; Charges / Others lines are no longer part of Revenue
     6    28/10/2026     Kishor Makwana          [PN-18360] Revenue = Flat Rate + Overrun lines only (same as the Billing tab)
     7    28/10/2026     Kishor Makwana          [PN-18360] Other Cost = billed Maintenance / Insurance / Taxes / Others / Charges invoice lines (same lines as the Billing tab), no service component month split
+    8    09/11/2026     Kishor Makwana          [PN-18517] Adjustment Cost (Stockline.Adjustment x lease qty, negative = deduction) is added to Total Cost and Profit/Loss and returned as AdjustmentCost
 
 EXEC USP_GetLeaseSummaryByLeaseHeaderId @LeaseHeaderId = 22
 ************************************************************************/
@@ -39,12 +41,13 @@ BEGIN
 	BEGIN TRY
 
 		DECLARE @LeaseModuleId INT = (SELECT TOP 1 [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'Leasing');
-		DECLARE @PoCost DECIMAL(18, 6) = 0, @RoCost DECIMAL(18, 6) = 0, @OtherCost DECIMAL(18, 6) = 0, @Revenue DECIMAL(18, 6) = 0;
+		DECLARE @PoCost DECIMAL(18, 6) = 0, @RoCost DECIMAL(18, 6) = 0, @AdjustmentCost DECIMAL(18, 6) = 0, @OtherCost DECIMAL(18, 6) = 0, @Revenue DECIMAL(18, 6) = 0;
 
 		-- PO Cost / RO Cost: taken from the Stockline table only (no PO / RO table joins) - for every leased stockline
 		-- Stockline.PurchaseOrderUnitCost / Stockline.RepairOrderUnitCost x quantity on the lease
 		SELECT @PoCost = ISNULL(SUM(ISNULL(STK.[PurchaseOrderUnitCost], 0) * LSL.[QtyOrder]), 0),
-			   @RoCost = ISNULL(SUM(ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder]), 0)
+			   @RoCost = ISNULL(SUM(ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder]), 0),
+			   @AdjustmentCost = ISNULL(SUM(ISNULL(STK.[Adjustment], 0) * LSL.[QtyOrder]), 0) -- [PN-18517]
 		FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
 		WHERE LSL.[LeaseHeaderId] = @LeaseHeaderId AND LSL.[IsDeleted] = 0;
@@ -74,10 +77,11 @@ BEGIN
 
 		SELECT CAST(@PoCost AS DECIMAL(18, 2)) AS PoCost,
 			   CAST(@RoCost AS DECIMAL(18, 2)) AS RoCost,
+			   CAST(@AdjustmentCost AS DECIMAL(18, 2)) AS AdjustmentCost,
 			   CAST(@OtherCost AS DECIMAL(18, 2)) AS OtherCost,
-			   CAST(@PoCost + @RoCost + @OtherCost AS DECIMAL(18, 2)) AS TotalCost,
+			   CAST(@PoCost + @RoCost + @AdjustmentCost + @OtherCost AS DECIMAL(18, 2)) AS TotalCost,
 			   CAST(@Revenue AS DECIMAL(18, 2)) AS Revenue,
-			   CAST(@Revenue - (@PoCost + @RoCost + @OtherCost) AS DECIMAL(18, 2)) AS ProfitLoss;
+			   CAST(@Revenue - (@PoCost + @RoCost + @AdjustmentCost + @OtherCost) AS DECIMAL(18, 2)) AS ProfitLoss;
 
 	END TRY
 	BEGIN CATCH

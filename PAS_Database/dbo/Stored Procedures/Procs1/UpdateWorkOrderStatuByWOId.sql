@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateWorkOrderStatuByWOId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used update WO status by WO Id.    
@@ -18,7 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Hemant Saliya Created
-     
+    2    11/03/2026   Rajesh Gami   PN-18484 Added WorkorderId condition while update the WO
 --EXEC [UpdateWorkOrderStatuByWOId] 249
 **************************************************************/
 
@@ -62,14 +61,14 @@ BEGIN
 					BEGIN
 						IF (@StatusCount <> (SELECT COUNT(*) FROM #TempResult))
 						BEGIN
-							UPDATE WorkOrder SET  WorkOrderStatusId  = (SELECT TOP 1 WorkOrderStatusId FROM  #TempResult)
+							UPDATE WorkOrder SET  WorkOrderStatusId  = (SELECT TOP 1 WorkOrderStatusId FROM  #TempResult) Where WorkOrderId =@WorkOrderId
 						END
 					END
 					ELSE
 					BEGIN
 						IF ((SELECT COUNT(*) FROM #TempResult) > 0)
 						BEGIN
-							UPDATE WorkOrder SET  WorkOrderStatusId  = (SELECT TOP 1 WorkOrderStatusId FROM  #TempResult)
+							UPDATE WorkOrder SET  WorkOrderStatusId  = (SELECT TOP 1 WorkOrderStatusId FROM  #TempResult) Where WorkOrderId =@WorkOrderId
 						END
 					END
 

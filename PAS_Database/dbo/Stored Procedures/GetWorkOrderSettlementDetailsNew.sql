@@ -17,6 +17,7 @@
 	4    27/07/2026   Moin Bloch 	    Fixed For Labor Confirm If [IsLaborTrackingTurnedOff] is True then no need to check Labor Entry PN-17434
 	5    06/08/2026   Moin Bloch 	    Added MaterialOrKitAvailFlagAgg Flag For Check Material Or Kit Avail Or Not
 	6    24/08/2026   Moin Bloch 	    Added IsInternalKitAssembly Flag [PN-17373]
+	7    05/11/2026   Moin Bloch 	    Fall back to WO MPN Outgoing PN (RevisedItemmasterid) when settlement RevisedPartId is not set yet
 
   EXEC [GetWorkOrderSettlementDetailsNew] 4437,2
 **************************************************************/
@@ -277,6 +278,8 @@ BEGIN
 						wosd.[Isvalue_NA],
 						wosd.[RevisedPartId],						
 						IM.[partnumber] AS [RevisedPartNumber],
+						IMR.[ItemMasterId] AS [WOPRevisedPartId],
+						IMR.[partnumber] AS [WOPRevisedPartNumber],
 						WOP.[ItemMasterId],
 						CASE WHEN WOP.[RevisedPartNumber] IS NOT NULL AND WOP.[RevisedPartNumber] <> '' THEN WOP.[RevisedPartNumber] ELSE WOP.[PartNumber] END AS [PartNumber],
 						CASE WHEN WOP.[RevisedSerialNumber] IS NOT NULL AND WOP.[RevisedSerialNumber] <> '' THEN WOP.[RevisedSerialNumber] ELSE WOP.[CurrentSerialNumber] END AS [SerialNumber],
@@ -303,6 +306,7 @@ BEGIN
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = wosd.[RevisedPartId] AND ISNULL(IM.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId]
 					LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON ITM.[ItemMasterId] = WOP.[ItemMasterId]
+					LEFT JOIN [dbo].[ItemMaster] IMR WITH(NOLOCK) ON IMR.[ItemMasterId] = WOP.[RevisedItemmasterid] AND ISNULL(IMR.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[Condition] WOC WITH(NOLOCK) ON WOC.[ConditionId] = WOP.[ConditionId]
 					LEFT JOIN [dbo].[Condition] WORC WITH(NOLOCK) ON WORC.[ConditionId] = WOP.[RevisedConditionId]	
@@ -336,8 +340,9 @@ BEGIN
 					[WorkOrderId],
 					[WorkFlowWorkOrderId],
 					[workOrderPartNoId],
-					MAX([RevisedPartId]) AS [RevisedPartId],
-					MAX([RevisedPartNumber]) AS [RevisedPartNumber],
+					-- Settlement value wins; until it is saved, use the WO MPN Outgoing PN so Id and PartNumber always match
+					CASE WHEN MAX([RevisedPartId]) > 0 THEN MAX([RevisedPartId]) ELSE MAX([WOPRevisedPartId]) END AS [RevisedPartId],
+					CASE WHEN MAX([RevisedPartId]) > 0 THEN MAX([RevisedPartNumber]) ELSE MAX([WOPRevisedPartNumber]) END AS [RevisedPartNumber],
 					MAX([ItemMasterId]) AS [ItemMasterId],
 					MAX([PartNumber]) AS [PartNumber],
 					MAX([SerialNumber]) AS [SerialNumber],

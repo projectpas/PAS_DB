@@ -58,6 +58,8 @@
 	                                      the full invoice total - on every single Stockline row). Confirmed against live data: BillingInvoicingItems had the correct distinct per-Stockline GrandTotal rows all along.
 	                                      Changed to ISNULL(sobii.GrandTotal, 0) (matching the pattern already used correctly in the Non-Stock Service arm just below), and updated the GROUP BY to reference sobii.GrandTotal instead of sobi.GrandTotal to match.
 	28   09/Oct/2026   Kishor Makwana     [PN-18238] - SO billing: (1) @AllowBillingBeforeShipping = 0: an invoice is matched to its own shipment (a later shipment of the same stockline shows its own Qty To Bill instead of inheriting the first invoice) and shipment x pick-ticket rows without a shipped item are dropped once the part has shipped; (2) Shipment Num shows the real SmentNum; (3) @AllowBillingBeforeShipping = 1, no-shipment arm: reserve qty is cumulative, so it returns one row per invoice item (Qty To Bill 0) plus one unbilled row for reserved qty minus qty on live invoices.
+	29   05/Nov/2026   Vishal Suthar      [PN-18475] - Canceled SO shipments are not listed for billing
+	30   12/Nov/2026   Vishal Suthar      [PN-18531] - Billing Before Shipping: canceled shipments are ignored, so the part is billed as not shipped again
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
 CREATE   PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
@@ -75,6 +77,7 @@ BEGIN
 		BEGIN TRY
 			DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
 			DECLARE @AllowBillingBeforeShipping BIT,@DefaultInvoiceTypeId INT =0;
+			DECLARE @CanceledShippingStatusId BIGINT = ISNULL((SELECT TOP 1 [ShippingStatusId] FROM [dbo].[ShippingStatus] WITH(NOLOCK) WHERE [Status] = 'CANCELED'), 0); -- [PN-18475]
 			DECLARE @FlateBilingMethodId INT = (SELECT BillingMethodId FROM dbo.BillingMethod WITH(NOLOCK) WHERE Description ='Flate Rate');
 
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -702,7 +705,8 @@ BEGIN
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId 
 					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					WHERE sos.SalesOrderId = @ReferenceId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId AND sop.SalesOrderPartId = @SubReferenceId
-					AND (sosi.SalesOrderShippingItemId IS NOT NULL OR NOT EXISTS (SELECT 1 FROM DBO.SalesOrderShippingItem sosx WITH (NOLOCK) WHERE sosx.SalesOrderPartId = sop.SalesOrderPartId AND sosx.IsActive = 1 AND ISNULL(sosx.IsDeleted,0) = 0)) -- [PN-18238] drop shipment x pick-ticket combinations with no shipped item once the part has shipped
+					AND sos.SOShippingStatusId <> @CanceledShippingStatusId
+					AND (sosi.SalesOrderShippingItemId IS NOT NULL OR NOT EXISTS (SELECT 1 FROM DBO.SalesOrderShippingItem sosx WITH (NOLOCK) WHERE sosx.SalesOrderPartId = sop.SalesOrderPartId AND sosx.IsActive = 1 AND ISNULL(sosx.IsDeleted,0) = 0 AND ISNULL(sosx.QtyCanceled,0) = 0)) -- [PN-18238] drop shipment x pick-ticket combinations with no shipped item once the part has shipped
 					GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
@@ -807,9 +811,10 @@ BEGIN
 				BEGIN
 					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
-						WHERE SOS.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId  AND SOP.SalesOrderPartId = @SubReferenceId)
-				
-					BEGIN  
+						WHERE SOS.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId  AND SOP.SalesOrderPartId = @SubReferenceId
+						AND ISNULL(SOSI.QtyCanceled, 0) = 0) -- [PN-18531]
+
+					BEGIN
 						PRINT 'Main --Exist '
 
 						INSERT INTO #InvoiceMainDetails(IndexColumn,
@@ -825,7 +830,7 @@ BEGIN
 							else (SELECT TOP 1 SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 							WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId  AND SOSI.SalesOrderPartId =@SubReferenceId
 							INNER JOIN DBO.SOPickTicket SO_PICK WITH (NOLOCK) on SO_PICK.SOPickTicketId = SOSI.SOPickTicketId
-							WHERE SOS.SalesOrderId = @ReferenceId AND SO_PICK.SOPickTicketId = SOPPick.SOPickTicketId) end) AS SalesOrderShippingId,  
+							WHERE SOS.SalesOrderId = @ReferenceId AND SO_PICK.SOPickTicketId = SOPPick.SOPickTicketId AND ISNULL(SOSI.QtyCanceled, 0) = 0) end) AS SalesOrderShippingId,
 							SOSI.SalesOrderShippingItemId,
 							sobi.BillingInvoicingId,
 							case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
@@ -841,8 +846,8 @@ BEGIN
 								INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) on SOPICK.SOPickTicketId = SOSI.SOPickTicketId
 								INNER JOIN DBO.SalesOrderStocklineV1 SOSB WITH (NOLOCK) on SOSB.SalesOrderStocklineId = SOPICK.SalesOrderPartStocklineId
 								WHERE SOS.SalesOrderId = @ReferenceId AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId
-								AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) end)
-							AS SOShippingNum, 
+								AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId AND ISNULL(SOSI.QtyCanceled, 0) = 0) end)
+							AS SOShippingNum,
 				
 							CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 
 							     ELSE (SELECT SUM((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]) END)) 
@@ -946,6 +951,7 @@ BEGIN
 									MAX(SOSI_G.SalesOrderShippingItemId) AS SalesOrderShippingItemId
 								FROM DBO.SOPickTicket SOPT_G WITH (NOLOCK)
 								INNER JOIN DBO.SalesOrderShippingItem SOSI_G WITH (NOLOCK) ON SOSI_G.SOPickTicketId = SOPT_G.SOPickTicketId AND SOSI_G.SalesOrderPartId = @SubReferenceId
+									AND ISNULL(SOSI_G.QtyCanceled, 0) = 0 -- [PN-18531] canceled shipments are not billed
 								GROUP BY SOSI_G.SalesOrderShippingId, SOPT_G.SalesOrderId, SOPT_G.SalesOrderPartId, SOPT_G.SalesOrderPartStocklineId
 							) SOPPick ON SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 							LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SalesOrderShippingItemId = SOPPick.SalesOrderShippingItemId AND SOSI.SalesOrderPartId =@SubReferenceId
@@ -1028,6 +1034,7 @@ BEGIN
 								LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = Stk.StockLineId AND SOR.SalesOrderId = @ReferenceId
 								LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 								LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SOPickTicketId = SOPPick.SOPickTicketId  AND SOSI.SalesOrderPartId =@SubReferenceId
+									AND ISNULL(SOSI.QtyCanceled, 0) = 0 -- [PN-18531] pick ticket of a canceled shipment counts as not shipped
 								LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId
 								LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId  AND sobii.SubReferenceId =@SubReferenceId  AND SOBI.ModuleId = @SOModuleId
 								LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  

@@ -15,6 +15,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    07/10/2026     Kishor Makwana          [Lease Accounting] Created
+    2    06/11/2026     Kishor Makwana          [PN-18509] Line Type 'Flat Rate' is shown as 'Base Rate' (stored value unchanged)
 
 EXEC USP_GetLeaseAccountingDetailsViewById @LeaseHeaderId = 1, @EmployeeId = 1
 ************************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 			,LBD.[LeaseStocklineId]
 			,LBD.[DocumentId]
 			,LBD.[DocumentNumber]
-			,LBD.[LineType]
+			,CASE WHEN LBD.[LineType] = 'Flat Rate' THEN 'Base Rate' ELSE LBD.[LineType] END AS [LineType]
 			,LBD.[PartId]
 			,LBD.[PartNumber]
 			,JBD.[JournalTypeId]

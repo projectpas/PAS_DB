@@ -19,6 +19,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4    13/Aug/2026			 Rajesh Gami						[PN-17009] - Applied missing ISNULL(sl.IsNonStock,0) = 0 filter on final WHERE clause
+	5    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 -- EXEC [SearchPickTicketForSubWO] 15,4,92,122
 **************************************************************/
 CREATE PROCEDURE [dbo].[SearchPickTicketForSubWO]
@@ -89,9 +90,9 @@ ELSE sl.ConditionId END
 					LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 					LEFT JOIN DBO.WorkorderPickTicket Pick WITH (NOLOCK) ON Pick.WorkOrderMaterialsId = wom.WorkOrderMaterialsId
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
-					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId 
+					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
-				WHERE im.ItemMasterId = @ItemMasterId AND wo.WorkOrderId=@WorkOrderId AND sl.StockLineId = @StocklineId AND ISNULL(sl.IsNonStock,0) = 0
+				WHERE im.ItemMasterId = @ItemMasterId AND wo.WorkOrderId=@WorkOrderId AND sl.StockLineId = @StocklineId
 			END
 		COMMIT  TRANSACTION
 

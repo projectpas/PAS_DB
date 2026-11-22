@@ -14,6 +14,7 @@
 	2    24/AUG/2026  Kishor Makwana [PN-17763] - Update BillingInvoicingItems based on SalesorderPart + Stockline: replaced the old SubReferenceId=SalesOrderPartId join (which updated every BillingInvoicingItems row for the part, regardless of which stockline/pick-ticket it came from) with a scoped join through SalesOrderStocklineV1 + SOPickTicket + SalesOrderShippingItem, keyed by the two new parameters below.
 
 	3    08/Oct/2026  Kishor Makwana [PN-18238] - [PN-17760] - UPDATE re-pointed ALL invoice items of the part/stockline to the shipment being performed (an invoice for shipment 1 became shipment 2). Now only items without a ShippingId are linked, and not to a shipment that already has its own invoice item.
+	4    12/Nov/2026  Vishal Suthar  [PN-18543] - Items still linked to a canceled shipment are linked to the new shipment (posted revised invoice was dropped from Billing)
 
 	EXEC [dbo].[USP_UpdateShippinIdInBillingInvoice] 295,1
 **************************************************************/
@@ -51,7 +52,10 @@ BEGIN
 			AND ISNULL(SOSI.IsDeleted, 0) = 0 AND BII.ModuleId = @SOModuleId  AND BII.MasterCompanyId = @MasterCompanyId AND SOSI.MasterCompanyId = @MasterCompanyId
 			-- [PN-18238] only link an invoice item that has no shipment yet (invoiced before shipping), and never to a shipment that already has its own invoice item for this stockline.
 			-- Previously every item of the part/stockline was re-pointed to the newest shipment, so an invoice for shipment 1 jumped to shipment 2 when shipment 2 was performed.
-			AND ISNULL(BII.ShippingId, 0) = 0
+			AND (ISNULL(BII.ShippingId, 0) = 0
+				-- [PN-18543] an item still linked to a canceled shipment is free to link again
+				OR EXISTS (SELECT 1 FROM SalesOrderShipping SOSC WITH (NOLOCK) INNER JOIN ShippingStatus SST WITH (NOLOCK) ON SST.ShippingStatusId = SOSC.SOShippingStatusId
+							WHERE SOSC.SalesOrderShippingId = BII.ShippingId AND SST.[Status] = 'CANCELED'))
 			AND NOT EXISTS (SELECT 1 FROM BillingInvoicingItems BIX WITH (NOLOCK) WHERE BIX.ReferenceId = BII.ReferenceId AND BIX.SubReferenceId = BII.SubReferenceId AND BIX.StocklineId = BII.StocklineId
 								AND BIX.ShippingId = @SalesorderShippingId AND BIX.BillingInvoicingItemId <> BII.BillingInvoicingItemId AND ISNULL(BIX.IsVersionIncrease,0) = 0 AND ISNULL(BIX.IsPerformaInvoice,0) = 0 AND BIX.ModuleId = @SOModuleId)
 		   END

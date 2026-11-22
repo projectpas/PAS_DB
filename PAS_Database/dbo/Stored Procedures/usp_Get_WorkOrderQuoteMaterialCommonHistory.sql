@@ -23,9 +23,10 @@
  **********************
  ** Change History
  **********************
- ** S NO   Date          Author          Change Description
- ** --     --------      -------------   --------------------------------
- ** 1      02-OCT-2026   Ayushi Patel    Created
+ ** S NO   Date          Author             Change Description
+ ** --     --------      -------------      --------------------------------
+ ** 1      02-OCT-2026   Ayushi Patel       Created
+ ** 2      02-NOV-2026   Divyesh Kathiriya  Display material history quantities and unit rates in the consumption UOM [PN-18473]
  **
  ** exec usp_Get_WorkOrderQuoteMaterialCommonHistory @WorkOrderQuoteDetailsId=8396, @EmployeeId=2
  **********************/
@@ -99,21 +100,22 @@ BEGIN
                 COALESCE(IM.PartDescription, NULLIF(A.PartDescription, ''), '') AS PartDescription,
                 COALESCE(IM.ManufacturerName, '') AS ManufacturerName,
                 COALESCE(PO.[Description], NULLIF(A.Provision, ''), '') AS Provision,
-                CAST(ISNULL(A.Quantity, 0) AS DECIMAL(18, 2)) AS Quantity,
-                COALESCE(Uo.ShortName, NULLIF(A.UomName, ''), '') AS UOM,
+                CAST(CASE WHEN UomDisplay.[FromUOM] = UomDisplay.[ToUOM] THEN ISNULL(A.[Quantity], 0)
+                          ELSE [DBO].[fn_ConvertUOM](ISNULL(A.[Quantity], 0), UomDisplay.[FromUOM], UomDisplay.[ToUOM], 0, A.[MasterCompanyId]) END AS DECIMAL(18, 6)) AS Quantity,
+                UomDisplay.[ToUOM] AS UOM,
                 COALESCE(Co.[Description], NULLIF(A.Conditiontype, ''), '') AS Condition,
                 COALESCE(CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
                               WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
                               WHEN IM.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'
                               ELSE 'OEM' END, NULLIF(A.Stocktype, ''), '') AS StockType,
-                CAST(ISNULL(A.UnitCost, 0) AS DECIMAL(20, 2)) AS UnitCost,
+                CAST(CASE WHEN UomDisplay.[FromUOM] = UomDisplay.[ToUOM] THEN ISNULL(A.[UnitCost], 0)
+                          ELSE [DBO].[fn_ConvertUOM](ISNULL(A.[UnitCost], 0), UomDisplay.[FromUOM], UomDisplay.[ToUOM], 1, A.[MasterCompanyId]) END AS DECIMAL(20, 2)) AS UnitCost,
                 CAST(ISNULL(A.ExtendedCost, 0) AS DECIMAL(20, 2)) AS ExtendedCost,
                 CASE WHEN A.BillingMethodId = 1 THEN 'T&M'
                      WHEN A.BillingMethodId = 2 THEN 'Actual'
                      WHEN A.BillingMethodId = 3 THEN 'Flat Rate'
                      ELSE ISNULL(A.BillingName, '') END AS BillingMethodName,
                 COALESCE(CAST(P.PercentValue AS VARCHAR(50)), NULLIF(A.MarkUp, ''), '') AS Markup,
-                CAST(ISNULL(A.BillingRate, 0) AS DECIMAL(20, 2)) AS BillingRate,
                 CAST(ISNULL(A.BillingAmount, 0) AS DECIMAL(20, 2)) AS BillingAmount,
                 ISNULL(A.Memo, '') AS Memo,
                 CAST(ISNULL(A.IsDeleted, 0) AS BIT) AS IsDeleted
@@ -125,6 +127,12 @@ BEGIN
             LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = A.TaskId
             LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WT.WorkOrderTaskId = A.TaskId
             LEFT JOIN dbo.[Percent] P WITH (NOLOCK) ON P.PercentId = A.MarkupPercentageId
+            LEFT JOIN [DBO].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.[UnitOfMeasureId] = IM.[ConsumeUnitOfMeasureId]
+            CROSS APPLY
+            (
+                SELECT COALESCE(Uo.[ShortName], NULLIF(A.[UomName], ''), '') AS [FromUOM],
+                       COALESCE(uomConsume.[ShortName], Uo.[ShortName], NULLIF(A.[UomName], ''), '') AS [ToUOM]
+            ) UomDisplay
             WHERE A.WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId
 
             UNION ALL
@@ -153,7 +161,6 @@ BEGIN
                      WHEN KA.BillingMethodId = 3 THEN 'Flat Rate'
                      ELSE ISNULL(KA.BillingName, '') END AS BillingMethodName,
                 COALESCE(CAST(P.PercentValue AS VARCHAR(50)), NULLIF(KA.MarkUp, ''), '') AS Markup,
-                CAST(ISNULL(KA.BillingRate, 0) AS DECIMAL(20, 2)) AS BillingRate,
                 CAST(ISNULL(KA.BillingAmount, 0) AS DECIMAL(20, 2)) AS BillingAmount,
                 ISNULL(KA.Memo, '') AS Memo,
                 CAST(ISNULL(KA.IsDeleted, 0) AS BIT) AS IsDeleted
@@ -174,8 +181,8 @@ BEGIN
             SELECT
                 *,
                 CHECKSUM(
-                    Task, PartNumber, PartDescription, ManufacturerName, Provision, Quantity, UOM, Condition, StockType,
-                    UnitCost, ExtendedCost, BillingMethodName, Markup, BillingRate, BillingAmount, Memo, IsDeleted
+                    Task, PartNumber, PartDescription, ManufacturerName, Provision, Quantity, UOM, Condition, StockType,                   
+                    UnitCost, ExtendedCost, BillingMethodName, Markup, BillingAmount, Memo, IsDeleted
                 ) AS RowHash
             FROM Raw
         ),
@@ -197,7 +204,6 @@ BEGIN
                 LAG(ExtendedCost) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevExtendedCost,
                 LAG(BillingMethodName) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevBillingMethodName,
                 LAG(Markup) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevMarkup,
-                LAG(BillingRate) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevBillingRate,
                 LAG(BillingAmount) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevBillingAmount,
                 LAG(Memo) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevMemo,
                 LAG(IsDeleted) OVER (PARTITION BY RowType, RowId ORDER BY AuditSeq) AS PrevIsDeleted
@@ -219,7 +225,6 @@ BEGIN
                 ExtendedCost,
                 BillingMethodName,
                 Markup,
-                BillingRate,
                 BillingAmount,
                 Memo,
                 CASE
@@ -241,7 +246,6 @@ BEGIN
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(ExtendedCost, -1) <> ISNULL(PrevExtendedCost, -1) THEN ',extendedCost' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(BillingMethodName, '') <> ISNULL(PrevBillingMethodName, '') THEN ',billingMethodName' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(Markup, '') <> ISNULL(PrevMarkup, '') THEN ',markup' ELSE '' END +
-                    CASE WHEN PrevHash IS NOT NULL AND ISNULL(BillingRate, -1) <> ISNULL(PrevBillingRate, -1) THEN ',billingRate' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(BillingAmount, -1) <> ISNULL(PrevBillingAmount, -1) THEN ',billingAmount' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(Memo, '') <> ISNULL(PrevMemo, '') THEN ',memo' ELSE '' END +
                     CASE WHEN PrevHash IS NOT NULL AND ISNULL(CAST(IsDeleted AS INT), -1) <> ISNULL(CAST(PrevIsDeleted AS INT), -1) THEN ',isDeleted' ELSE '' END
@@ -262,7 +266,7 @@ BEGIN
         )
         SELECT
             Task, PartNumber, PartDescription, ManufacturerName, Provision, Quantity, UOM, Condition, StockType,
-            UnitCost, ExtendedCost, BillingMethodName, Markup, BillingRate, BillingAmount, Memo,
+            UnitCost, ExtendedCost, BillingMethodName, Markup, BillingAmount, Memo,
             Action, ChangedFields, EventDate, ChangedBy
         FROM Rows
         WHERE PrevHash IS NULL OR RowHash <> PrevHash

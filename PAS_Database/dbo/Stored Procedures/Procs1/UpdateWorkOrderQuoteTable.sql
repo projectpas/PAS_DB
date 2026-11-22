@@ -20,6 +20,7 @@
     1    03/16/2021    Subhash Saliya Created
 	2	 01/20/2024	   Moin Bloch	  Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	     
 --EXEC [UpdateWorkOrderQuoteTable] 'WorkOrderQuoteMaterial', 284
 **************************************************************/
@@ -71,7 +72,6 @@ BEGIN
 							 INNER JOIN dbo.Provision PO WITH(NOLOCK) ON PO.ProvisionId = WOQM.ProvisionId
 							 LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = WOQM.MarkupPercentageId 
 						 WHERE WOQM.WorkOrderQuoteMaterialId = @TableprimaryId
-				  AND ISNULL(Im.IsNonStock,0) = 0
 				 END
 				 ELSE IF(LOWER(@TableName) ='workorderquotelabor')
 				 BEGIN

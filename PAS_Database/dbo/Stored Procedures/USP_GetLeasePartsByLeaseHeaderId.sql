@@ -39,10 +39,15 @@
     15   25/SEP/2026    Kishor Makwana          [PN-18072 follow-up 13] PricingMethod replaced with
                                                  IsOutrightSale/IsFlatRate (see USP_CreateUpdateLeaseStockLine).
     16   06/10/2026     Kishor Makwana          [PN-17949 service component] Maintenance/Insurance/Taxes are now read from the LeaseStocklineServiceComponent rows named Maintenance/Insurance/Taxes (new storage of the Edit Service Component popup); the LeaseStockline columns are only a fallback when no such row exists. 'Other' is the sum of the remaining custom rows only - it used to sum every row, so Maintenance/Insurance/Taxes were counted twice.
+    17   04/11/2026     Kishor Makwana          Added Memo - the latest note (LeaseStockLineNoteHistory) of the line, shown in the Add Item grid Memo column (eye icon opens the Add/Edit Note popup)
+    18   09/11/2026     Kishor Makwana          [PN-18499] Added HasSubComponents - true when the main stockline of the lease item has linked Sub Component stocklines (shows Actions > View Sub Components)
+    19   18/11/2026     Kishor Makwana          [PN-18591] MaintenancePer / InsurancePer / TaxesPer now come from the LeaseStocklineServiceComponent rows (Per saved by the Service Component popup, blank = Month) and new OtherPer ('Mixed' when the other components have different Per) - shown beside each charge in the Service Component grid
+    20   18/11/2026     Kishor Makwana          Added TotalTSN / TotalTSNMM / TotalTSO / TotalTSOMM / TotalCSN / TotalCSO - the latest (not deleted) StocklineTimeCycleHistory row of the stockline, shown in the Add Item grid after Base Rate (TSN, TSO, CSN, CSO)
+    21   19/11/2026     Kishor Makwana          [PN-18606] Added EngineSerialNumber / EngineModel of the stockline - the Engine Valuation action of the Actions menu is shown for engine lines
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
+CREATE   PROCEDURE [dbo].[USP_GetLeasePartsByLeaseHeaderId]
 	@LeaseHeaderId BIGINT,
 	@LeaseStocklineId BIGINT = 0
 AS
@@ -72,6 +77,12 @@ BEGIN
 			SLIVE.ControlNumber,
 			SLIVE.IdNumber,
 			SLIVE.UnitCost,
+			TCH.TotalTSN,
+			TCH.TotalTSNMM,
+			TCH.TotalTSO,
+			TCH.TotalTSOMM,
+			TCH.TotalCSN,
+			TCH.TotalCSO,
 			LSL.StocklineNumber,
 			LSL.OutrightPrice,
 			LSL.FlatRate,
@@ -88,13 +99,21 @@ BEGIN
 			LSL.UsagePerUnitTimes,
 			LSL.OverrunPerUnitCycles,
 			LSL.OverrunPerUnitTimes,
+			LSL.UsageTimesPer,
+			LSL.UsageCyclesPer,
+			LSL.MaximumTimesPer,
+			LSL.MaximumCyclesPer,
+			LSL.OverrunTimesPer,
+			LSL.OverrunCyclesPer,
+			LSL.IsOveruseApplicable,
 			COALESCE(SC_SUM.MaintenanceAmount, LSL.Maintenance) AS Maintenance,
-			LSL.MaintenancePer,
+			COALESCE(SC_SUM.MaintenancePer, LSL.MaintenancePer) AS MaintenancePer,
 			COALESCE(SC_SUM.InsuranceAmount, LSL.Insurance) AS Insurance,
-			LSL.InsurancePer,
+			COALESCE(SC_SUM.InsurancePer, LSL.InsurancePer) AS InsurancePer,
 			COALESCE(SC_SUM.TaxesAmount, LSL.Taxes) AS Taxes,
-			LSL.TaxesPer,
+			COALESCE(SC_SUM.TaxesPer, LSL.TaxesPer) AS TaxesPer,
 			SC_SUM.OtherComponentAmount,
+			CASE WHEN SC_SUM.OtherPerMin IS NULL THEN NULL WHEN SC_SUM.OtherPerMin = SC_SUM.OtherPerMax THEN SC_SUM.OtherPerMin ELSE 'Mixed' END AS OtherPer,
 			LSL.RepairOrderId,
 			LSL.RONumber,
 			RO.StatusId AS RepairOrderStatusId,
@@ -102,6 +121,7 @@ BEGIN
 			LSL.WorkOrderNo,
 			WO.WorkOrderStatusId,
 			LSL.Notes,
+			LN.[Description] AS Memo,
 			LSL.ReservedBy,
 			LSL.UnReservedBy,
 			LSL.LeaseStatusId,
@@ -109,6 +129,11 @@ BEGIN
 				OR EXISTS (SELECT 1 FROM [dbo].[LeaseStocklineServiceComponent] SC WITH (NOLOCK)
 					WHERE SC.LeaseStocklineId = LSL.LeaseStocklineId AND SC.IsDeleted = 0)
 				THEN 1 ELSE 0 END AS HasServiceComponent,
+			CASE WHEN LSL.StockLineId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[Stockline] SUBSL WITH (NOLOCK)
+					WHERE SUBSL.SubComponentParentStocklineId = LSL.StockLineId AND ISNULL(SUBSL.IsSubComponent, 0) = 1 AND ISNULL(SUBSL.isDeleted, 0) = 0)
+				THEN 1 ELSE 0 END AS HasSubComponents,
+			SLIVE.EngineSerialNumber AS EngineSerialNumber,
+			SLIVE.EngineModel AS EngineModel,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,
@@ -122,15 +147,37 @@ BEGIN
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = LSL.RepairOrderId
 		LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = LSL.WorkOrderId
+		OUTER APPLY (
+			SELECT TOP 1 N.[Description]
+			FROM [dbo].[LeaseStockLineNoteHistory] N WITH (NOLOCK)
+			WHERE N.LeaseStocklineId = LSL.LeaseStocklineId AND N.IsDeleted = 0
+			ORDER BY N.LeaseStockLineNoteHistoryId DESC
+		) LN
+		OUTER APPLY (
+			SELECT TOP 1 H.TotalTSN, H.TotalTSNMM, H.TotalTSO, H.TotalTSOMM, H.TotalCSN, H.TotalCSO
+			FROM [dbo].[StocklineTimeCycleHistory] H WITH (NOLOCK)
+			WHERE H.StocklineId = LSL.StockLineId AND ISNULL(H.IsDeleted, 0) = 0
+			ORDER BY H.StocklineTimeCycleHistoryId DESC
+		) TCH
 		LEFT JOIN (
-			SELECT LeaseStocklineId,
-			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'MAINTENANCE' THEN ISNULL(Amount, 0) END) AS MaintenanceAmount,
-			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'INSURANCE' THEN ISNULL(Amount, 0) END) AS InsuranceAmount,
-			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) = 'TAXES' THEN ISNULL(Amount, 0) END) AS TaxesAmount,
-			SUM(CASE WHEN UPPER(LTRIM(RTRIM(ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(Amount, 0) END) AS OtherComponentAmount
-			FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
-			WHERE IsDeleted = 0
-			GROUP BY LeaseStocklineId
+			SELECT SCX.LeaseStocklineId,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'MAINTENANCE' THEN ISNULL(SCX.Amount, 0) END) AS MaintenanceAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'INSURANCE' THEN ISNULL(SCX.Amount, 0) END) AS InsuranceAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'TAXES' THEN ISNULL(SCX.Amount, 0) END) AS TaxesAmount,
+			SUM(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN 0 ELSE ISNULL(SCX.Amount, 0) END) AS OtherComponentAmount,
+			-- [PN-18591] Per (billing frequency) of each charge; blank / legacy 'Monthly' = Month. 'Other' = the Per shared by all other components ('Mixed' is set in the select when they differ)
+			MAX(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'MAINTENANCE' THEN NP.PerName END) AS MaintenancePer,
+			MAX(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'INSURANCE' THEN NP.PerName END) AS InsurancePer,
+			MAX(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) = 'TAXES' THEN NP.PerName END) AS TaxesPer,
+			MIN(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN NP.PerName END) AS OtherPerMin,
+			MAX(CASE WHEN UPPER(LTRIM(RTRIM(SCX.ComponentName))) NOT IN ('MAINTENANCE', 'INSURANCE', 'TAXES') THEN NP.PerName END) AS OtherPerMax
+			FROM [dbo].[LeaseStocklineServiceComponent] SCX WITH (NOLOCK)
+			CROSS APPLY (SELECT CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(SCX.Per, '')))) IN ('', 'month', 'monthly') THEN 'Month'
+									 WHEN LOWER(LTRIM(RTRIM(SCX.Per))) IN ('qtr', 'qtr.', 'quarter', 'quarterly') THEN 'Qtr.'
+									 WHEN LOWER(LTRIM(RTRIM(SCX.Per))) IN ('year', 'yearly', 'annual', 'annually') THEN 'Year'
+									 ELSE LTRIM(RTRIM(SCX.Per)) END AS PerName) NP
+			WHERE SCX.IsDeleted = 0
+			GROUP BY SCX.LeaseStocklineId
 		) SC_SUM ON SC_SUM.LeaseStocklineId = LSL.LeaseStocklineId
 		WHERE LSL.LeaseHeaderId = @LeaseHeaderId
 		  AND LSL.IsDeleted = 0

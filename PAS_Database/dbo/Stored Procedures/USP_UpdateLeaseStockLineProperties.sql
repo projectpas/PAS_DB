@@ -22,13 +22,16 @@
                                                  'FlatRate') replaced with @IsOutrightSale/@IsFlatRate (BIT),
                                                  matching the Lease Properties popup's two independent
                                                  checkboxes (see USP_CreateUpdateLeaseStockLine).
+    5    29/OCT/2026    Kishor Makwana          Lease Properties redesign: added @UsageTimesPer/@UsageCyclesPer/@MaximumTimesPer/
+                                                 @MaximumCyclesPer/@OverrunTimesPer/@OverrunCyclesPer (Per of each amount) and
+                                                 @IsOveruseApplicable (Overuse Applicable tick)
 
 exec USP_UpdateLeaseStockLineProperties @LeaseStocklineId=1,@IsOutrightSale=0,@IsFlatRate=1,@OutrightPrice=NULL,
 @FlatRate=500,@RateUnit=N'Cycle',@BillingMethod=N'FlatRatePlusOverrun',@BillingInterval=N'Monthly',
 @MinimumCycles=100,@MinimumTimes=50,@MaximumCycles=400,@MaximumTimes=200,
 @UsagePerUnitCycles=12,@UsagePerUnitTimes=NULL,@OverrunPerUnitCycles=18,@OverrunPerUnitTimes=NULL,@UpdatedBy=''
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
+CREATE   PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@LeaseStocklineId BIGINT,
 	@IsOutrightSale BIT = NULL,
 	@IsFlatRate BIT = NULL,
@@ -45,6 +48,13 @@ CREATE     PROCEDURE [dbo].[USP_UpdateLeaseStockLineProperties]
 	@UsagePerUnitTimes DECIMAL(18,6) = NULL,
 	@OverrunPerUnitCycles DECIMAL(18,6) = NULL,
 	@OverrunPerUnitTimes DECIMAL(18,6) = NULL,
+	@UsageTimesPer NVARCHAR(50) = NULL,
+	@UsageCyclesPer NVARCHAR(50) = NULL,
+	@MaximumTimesPer NVARCHAR(50) = NULL,
+	@MaximumCyclesPer NVARCHAR(50) = NULL,
+	@OverrunTimesPer NVARCHAR(50) = NULL,
+	@OverrunCyclesPer NVARCHAR(50) = NULL,
+	@IsOveruseApplicable BIT = NULL,
 	@UpdatedBy VARCHAR(256)
 AS
 BEGIN
@@ -70,6 +80,13 @@ BEGIN
 			UsagePerUnitTimes     = @UsagePerUnitTimes,
 			OverrunPerUnitCycles  = @OverrunPerUnitCycles,
 			OverrunPerUnitTimes   = @OverrunPerUnitTimes,
+			UsageTimesPer         = @UsageTimesPer,
+			UsageCyclesPer        = @UsageCyclesPer,
+			MaximumTimesPer       = @MaximumTimesPer,
+			MaximumCyclesPer      = @MaximumCyclesPer,
+			OverrunTimesPer       = @OverrunTimesPer,
+			OverrunCyclesPer      = @OverrunCyclesPer,
+			IsOveruseApplicable   = @IsOveruseApplicable,
 			UpdatedBy             = @UpdatedBy,
 			UpdatedDate           = GETUTCDATE()
 		WHERE LeaseStocklineId = @LeaseStocklineId;

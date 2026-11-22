@@ -29,6 +29,7 @@
     13   22/Aug/2026  Kishor Makwana   [PN-17732] - Skip Pick Ticket removal for a ticket that already has a SalesOrderShippingItem against it
     14   08/Oct/2026  Vishal Suthar    [PN-16682] Exclude deleted Freight and Charges from part Freight/MiscCharges totals
     15    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
+    16   11/Nov/2026  Vishal Suthar    [PN-18530] Un-Reserve also releases pick tickets of canceled shipments
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -366,7 +367,7 @@ SET NOCOUNT ON
 					BEGIN
 						SELECT @PickTicketId = PickTicketId, @QtyRemove = QtyPtickTicketRemove, @QtyAvilable = PickTicketQtyToShip FROM #tmpremovePT WHERE ID = @LoopID;
 
-					IF EXISTS (SELECT 1 FROM dbo.SalesOrderShippingItem SSI WHERE SSI.SOPickTicketId = @PickTicketId)
+					IF EXISTS (SELECT 1 FROM dbo.SalesOrderShippingItem SSI WHERE SSI.SOPickTicketId = @PickTicketId AND ISNULL(SSI.QtyCanceled, 0) = 0)
 					BEGIN
 						SET @LoopID = @LoopID - 1;
 						CONTINUE;
@@ -392,7 +393,9 @@ SET NOCOUNT ON
 								
 						UPDATE dbo.SOPickTicket SET QtyToShip = (QtyToShip - @PTQtytoShip) WHERE SOPickTicketId = @PickTicketId;
 
-						DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+						-- Pick ticket of a canceled shipment stays (with 0 qty) as the shipping item refers to it
+						DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId
+							AND NOT EXISTS (SELECT 1 FROM dbo.SalesOrderShippingItem SSI WHERE SSI.SOPickTicketId = @PickTicketId);
 				
 						SET @LoopID = @LoopID - 1;
 					END

@@ -250,6 +250,9 @@
     [TotalCSN]                            DECIMAL (18, 6) NULL,
     [TotalTSNMM]                          DECIMAL (18, 6) NULL,
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
+    [TotalTSO]                            DECIMAL (18, 6) NULL,
+    [TotalTSOMM]                          DECIMAL (18, 6) NULL,
+    [TotalCSO]                            DECIMAL (18, 6) NULL,
     [Model]                               VARCHAR (200)   NULL,
     [IsNonStock]                          BIT             NULL,
     [Currency]                            VARCHAR (100)   NULL,
@@ -407,6 +410,14 @@
     [WarrantyEndDate]                     DATETIME2 (7)    NULL,
     [WarrantyStatusId]                    BIGINT           NULL,
     [WarrantyMemo]                        NVARCHAR (MAX)   NULL,
+    [AC_ManufacturerId]                   BIGINT           NULL,
+    [AC_Manufacturer]                     VARCHAR (100)    NULL,
+    [AC_Type]                             VARCHAR (100)    NULL,
+    [AC_Registration]                     VARCHAR (100)    NULL,
+    [EngineType]                          VARCHAR (100)   NULL,
+    [EngineModel]                         VARCHAR (100)   NULL,
+    [IsEngine]                            BIT             NULL,
+    [IsAircraft]                          BIT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

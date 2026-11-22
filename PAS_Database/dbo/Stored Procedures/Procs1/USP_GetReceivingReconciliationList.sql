@@ -15,6 +15,7 @@
 	3    27-12-2024    AMIT GHEDIYA added COntrolNumber
 	4    01-Dec-2025   RAJESH GAMI  Add the logic for invoice total,(If vendor proforma is there then add the amount with invoice total)
 	5    17-March-2026  Amit Ghediya  update for get isactive records only
+	6    19-Nov-2026    RAJESH GAMI   [PN-18622] Management Structure / PO-RO Num / Date blank when Misc, Freight or Tax lines (IsManual, Type NULL) were added: [Type] now taken from the first PO/RO line (ignores NULL Type)
 **************************************************************/  
 -- =============================================
 -- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL
@@ -103,11 +104,11 @@ BEGIN
 							,RRH.[UpdatedDate]
 							,RRH.[IsActive]
 							,RRH.[IsDeleted]						
-							,CASE WHEN (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.LastMSLevel
+							,CASE WHEN (SELECT TOP 1 R.[Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId AND R.[Type] IS NOT NULL ORDER BY ISNULL(R.IsManual, 0), R.ReceivingReconciliationDetailId)  = 1 THEN P.LastMSLevel
 							ELSE R.LastMSLevel END as 'LastMSLevel' 
-							,CASE WHEN (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.AllMSlevels
+							,CASE WHEN (SELECT TOP 1 R.[Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId AND R.[Type] IS NOT NULL ORDER BY ISNULL(R.IsManual, 0), R.ReceivingReconciliationDetailId)  = 1 THEN P.AllMSlevels
 							ELSE R.AllMSlevels END as 'AllMSlevels',
-							[Type] = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId),
+							[Type] = (SELECT TOP 1 R.[Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId AND R.[Type] IS NOT NULL ORDER BY ISNULL(R.IsManual, 0), R.ReceivingReconciliationDetailId),
 							[ControlNumber] = RRH.ControlNumber
 						FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK)  
 						LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH(NOLOCK) ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId

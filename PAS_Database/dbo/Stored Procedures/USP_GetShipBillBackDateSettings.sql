@@ -1,22 +1,24 @@
 /*************************************************************
  ** File:   [USP_GetShipBillBackDateSettings]
  ** Author:   Vishal Suthar
- ** Description: Returns the Allow Back Date Shipping / Billing flags of the Legal Entity of a Sales Order or Work Order
- **              (Legal Entity of the management structure: Sales Order header / Work Order part number)
+ ** Description: Returns the Allow Back Date Shipping / Billing flags of the Legal Entity of a Sales Order, Work Order or Lease
+ **              (Legal Entity of the management structure: Sales Order header / Work Order part number / Lease header)
  ** Date:   19/Oct/2026
 
  ** PARAMETERS:
- **   @ModuleName         - 'SalesOrder' or 'WorkOrder'
- **   @ReferenceId        - SalesOrderId / WorkOrderId
+ **   @ModuleName         - 'SalesOrder', 'WorkOrder' or 'Lease'
+ **   @ReferenceId        - SalesOrderId / WorkOrderId / LeaseHeaderId
  **************************************************************
   ** Change History
  **************************************************************
  ** PR   Date         Author          Change Description
  ** --   --------     -------         --------------------------------
     1    19/Oct/2026  Vishal Suthar   Created
+    2    11/Nov/2026  Kishor Makwana  [PN-18520] Added 'Lease' module (Lease Header management structure) for the Lease Shipping Ship Date lock
 
  EXEC [dbo].[USP_GetShipBillBackDateSettings] 'SalesOrder', 1283
  EXEC [dbo].[USP_GetShipBillBackDateSettings] 'WorkOrder', 4120
+ EXEC [dbo].[USP_GetShipBillBackDateSettings] 'Lease', 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetShipBillBackDateSettings]
 	@ModuleName VARCHAR(50),
@@ -42,6 +44,12 @@ BEGIN
 			WHERE WOP.[WorkOrderId] = @ReferenceId
 			  AND ISNULL(WOP.[IsDeleted], 0) = 0
 			ORDER BY WOP.[ID];
+		END
+		ELSE IF (@ModuleName = 'Lease')
+		BEGIN
+			SELECT @ManagementStructureId = LH.[ManagementStructureId]
+			FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
+			WHERE LH.[LeaseHeaderId] = @ReferenceId;
 		END
 
 		SELECT

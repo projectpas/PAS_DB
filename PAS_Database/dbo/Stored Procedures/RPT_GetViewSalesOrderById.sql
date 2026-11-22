@@ -15,6 +15,7 @@ EXEC [RPT_GetViewSalesOrderById]
    4    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
    5    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
    6    12/05/2026  Ayushi Patel    [PN-16030]Updated ShipToUser casing logic for A2Z Company user type.
+   7    09/11/2026  Vishal Suthar   Get ShippingTerms from the Ship To user's Ship Via setup (Customer/Vendor/Company), fallback to AllShipVia.ShippingTerms
 EXEC RPT_GetViewSalesOrderById 782
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
@@ -31,6 +32,10 @@ BEGIN
 
 		DECLARE @CompanyId BIGINT;
 		SELECT @CompanyId = ModuleId FROM Module WHERE ModuleName = 'Company';
+
+		DECLARE @CustomerModuleId BIGINT, @VendorModuleId BIGINT;
+		SELECT @CustomerModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'Customer';
+		SELECT @VendorModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'Vendor';
 
 		DECLARE @A2ZMasterCompanyCode VARCHAR(50);
 		SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
@@ -160,7 +165,7 @@ BEGIN
 			msd.EntityMSID AS EntityStructureId,
 			ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
 			ISNULL(msd.AllMSlevels, '') AS AllMSlevelsr,
-			ShippingTerms = posv.ShippingTerms
+			ShippingTerms = COALESCE(shipTerm.[Name], NULLIF(posv.ShippingTerms, ''), '')
 		FROM dbo.SalesOrder soq WITH(NOLOCK)
 		LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON soq.MasterCompanyId = MS.MasterCompanyId
 		LEFT JOIN dbo.SalesOrderQuote soqt WITH(NOLOCK) ON soq.SalesOrderQuoteId = soqt.SalesOrderQuoteId
@@ -173,6 +178,10 @@ BEGIN
 		LEFT JOIN dbo.AllAddress posadd WITH(NOLOCK) ON soq.SalesOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @moduleId
 		LEFT JOIN dbo.AllAddress pobadd WITH(NOLOCK) ON soq.SalesOrderId = pobadd.ReffranceId AND pobadd.IsShippingAdd = 0 AND pobadd.ModuleId = @moduleId
 		LEFT JOIN dbo.AllShipVia posv WITH(NOLOCK) ON soq.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @moduleId
+		LEFT JOIN dbo.CustomerDomensticShippingShipVia custSV WITH(NOLOCK) ON posadd.UserType = @CustomerModuleId AND custSV.CustomerDomensticShippingShipViaId = posv.ShippingViaId
+		LEFT JOIN dbo.VendorShipping vendSV WITH(NOLOCK) ON posadd.UserType = @VendorModuleId AND vendSV.VendorShippingId = posv.ShippingViaId
+		LEFT JOIN dbo.LegalEntityShipping leSV WITH(NOLOCK) ON posadd.UserType = @CompanyId AND leSV.LegalEntityShippingId = posv.ShippingViaId
+		LEFT JOIN dbo.ShippingTerms shipTerm WITH(NOLOCK) ON shipTerm.ShippingTermsId = COALESCE(custSV.ShippingTermsId, vendSV.ShippingTermsId, leSV.ShippingTermsId)
 		LEFT JOIN dbo.CustomerContact cust_cont WITH(NOLOCK) ON soq.CustomerContactId = cust_cont.CustomerContactId
 		LEFT JOIN dbo.Contact cont WITH(NOLOCK) ON cust_cont.ContactId = cont.ContactId
 		LEFT JOIN dbo.Employee saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId

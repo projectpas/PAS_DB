@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    28 Mar 2025   RAJESH GAMI			CREATED
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 **************************************************************/
 
 CREATE     PROC [dbo].[USP_DeleteSubWorkOrderMaterialKitStocklineById]
@@ -54,7 +55,7 @@ BEGIN
 		FROM [dbo].SubWorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
-		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId AND ISNULL(IM.IsNonStock,0) = 0 ;
+		WHERE WMK.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsKitId;
 
 		SELECT @BodyTemplate = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE UPPER(TemplateCode) = 'DELETEKITPART';
 		

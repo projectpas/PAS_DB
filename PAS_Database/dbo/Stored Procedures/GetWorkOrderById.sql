@@ -35,6 +35,8 @@
 	23    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(im.IsNonStock,0) = 0 / ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filters to the RestrictedParts/StockLine customer PN lookups, the Workflow lookup, and the @RevisedPartId lookup, to match the other ItemMaster lookups in this proc
 	24   27/08/2026   Amit Ghediya    Get LeaseNumber [PN-17597]
 	25   18/08/2026   Moin Bloch	   Added [IsInternalKitAssembly] on WorkOrder and [KitsToPrepare] on WorkOrderPartNumber PN-17372
+	26   05/11/2026   RAJESH GAMI     [PN-18254] Opr 2 (WO from Customer RMA): Workflow and RMA MS details picked with TOP 1 (active, not deleted)
+	                                 - a part with more than one workflow row for the same work scope returned the same stockline twice
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -446,8 +448,16 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON wobi.[SubReferenceId] = wopn.[ID]
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
-				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
-				 LEFT JOIN [dbo].[Workflow] wf WITH(NOLOCK) ON wf.[ItemMasterId] = rc.[ItemMasterId] AND wf.[WorkScopeId] = wopn.WorkOrderScopeId AND ISNULL(wf.IsVersionIncrease,0) = 0 AND rc.[IsActive] = 1 AND rc.[IsDeleted] = 0				 				 				
+				OUTER APPLY (SELECT TOP 1 RMAMSDetails.[LastMSLevel], RMAMSDetails.[AllMSlevels]
+							 FROM [dbo].[RMACreditMemoManagementStructureDetails] RMAMSDetails WITH(NOLOCK)
+							 WHERE RMAMSDetails.[ReferenceID] = CRM.[RMAHeaderId] AND RMAMSDetails.[ModuleID] = @CustomerRMAHeaderModuleId
+							 ORDER BY RMAMSDetails.[MSDetailsId] DESC) msd
+				OUTER APPLY (SELECT TOP 1 PartWorkflow.[WorkflowId], PartWorkflow.[WorkOrderNumber], PartWorkflow.[Version], PartWorkflow.[WorkflowExpirationDate]
+							 FROM [dbo].[Workflow] PartWorkflow WITH(NOLOCK)
+							 WHERE PartWorkflow.[ItemMasterId] = rc.[ItemMasterId] AND PartWorkflow.[WorkScopeId] = wopn.[WorkOrderScopeId]
+							   AND PartWorkflow.[IsDeleted] = 0 AND PartWorkflow.[IsActive] = 1 AND ISNULL(PartWorkflow.[IsVersionIncrease], 0) = 0
+							   AND (PartWorkflow.[CustomerId] IS NULL OR PartWorkflow.[CustomerId] = CRM.[CustomerId])
+							 ORDER BY CASE WHEN PartWorkflow.[CustomerId] = CRM.[CustomerId] THEN 0 ELSE 1 END, PartWorkflow.[WorkflowId] DESC) wf
 				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId AND ISNULL(im.IsNonStock,0) = 0 ;
 			END
 			ELSE
@@ -475,7 +485,10 @@ BEGIN
 				INNER JOIN [dbo].[SalesOrderPartV1] wopn WITH(NOLOCK) ON wobi.[SubReferenceId] = wopn.[SalesOrderPartId]
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
-				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
+				OUTER APPLY (SELECT TOP 1 RMAMSDetails.[LastMSLevel], RMAMSDetails.[AllMSlevels]
+							 FROM [dbo].[RMACreditMemoManagementStructureDetails] RMAMSDetails WITH(NOLOCK)
+							 WHERE RMAMSDetails.[ReferenceID] = CRM.[RMAHeaderId] AND RMAMSDetails.[ModuleID] = @CustomerRMAHeaderModuleId
+							 ORDER BY RMAMSDetails.[MSDetailsId] DESC) msd
 				WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rc.[RMADeatilsId] = @RMADeatilsId ;	
 			END
 			

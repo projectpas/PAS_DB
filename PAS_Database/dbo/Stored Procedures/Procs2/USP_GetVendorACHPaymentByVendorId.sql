@@ -14,6 +14,7 @@
  ** PR   Date         Author				Change Description
  ** --   --------     -------				--------------------------------
     1    21/10/2026   Nakul					Created (PN-18294)
+    2    16/11/2026   Moin					Added VendorCode (used as ID in Generate ACH file)
 
  -- EXEC USP_GetVendorACHPaymentByVendorId 5526
 **************************************************************/
@@ -44,8 +45,10 @@ BEGIN
             ach.UpdatedBy,
             ach.UpdatedDate,
             ach.IsActive,
-            ach.IsDeleted
+            ach.IsDeleted,
+            ISNULL(v.VendorCode, '') AS VendorCode
         FROM dbo.VendorACHPayment ach WITH (NOLOCK)
+        LEFT JOIN dbo.Vendor v WITH (NOLOCK) ON v.VendorId = ach.VendorId
         LEFT JOIN dbo.GLAccount gl WITH (NOLOCK) ON gl.GLAccountId = ach.GLAccountId
         LEFT JOIN dbo.VendorBankAccountType bat WITH (NOLOCK) ON bat.VendorBankAccountTypeId = ach.VendorBankAccountTypeId
         WHERE ach.VendorId = @VendorId

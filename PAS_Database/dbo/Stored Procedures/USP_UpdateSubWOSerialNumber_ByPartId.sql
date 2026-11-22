@@ -15,6 +15,7 @@
 	2		05/29/2024		Devendra Shekh			CREATED
 	3		09/July/2026		RAJESH GAMI			    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	4		13/08/2026		Rajesh Gami			    [PN-17009] - Added missing ISNULL(STK.IsNonStock,0) = 0 filter to the non-revised Stockline serial number UPDATE to match the revised-stockline branch
+	5    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 	EXEC [USP_UpdateSubWOSerialNumber_ByPartId] 'testSr44',238,'Admin User'
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[USP_UpdateSubWOSerialNumber_ByPartId]
@@ -37,13 +38,13 @@ BEGIN
 				BEGIN
 					UPDATE RSTK
 					SET RSTK.SerialNumber = @NewSerialNumber, RSTK.isSerialized = 1, RSTK.UpdatedBy = @UserName, RSTK.UpdatedDate = GETUTCDATE()
-					FROM [DBO].[Stockline] RSTK WHERE RSTK.StockLineId = @RevisedStkId AND ISNULL(RSTK.IsNonStock,0) = 0
+					FROM [DBO].[Stockline] RSTK WHERE RSTK.StockLineId = @RevisedStkId
 				END
 				ELSE
 				BEGIN
 					UPDATE STK
 					SET STK.SerialNumber = @NewSerialNumber, STK.isSerialized = 1, STK.UpdatedBy = @UserName, STK.UpdatedDate = GETUTCDATE()
-					FROM [DBO].[Stockline] STK WHERE STK.StockLineId = @StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+					FROM [DBO].[Stockline] STK WHERE STK.StockLineId = @StockLineId
 				END
 
 				UPDATE SWOP 

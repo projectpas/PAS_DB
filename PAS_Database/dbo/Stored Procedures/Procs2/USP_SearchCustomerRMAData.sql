@@ -20,6 +20,9 @@
 	7    02-Apr-2026  Priyansh Patel	UOM Conversion Changes [PN-15882]
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	9   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	10  05-Nov-2026   RAJESH GAMI       [PN-18254] Default view also returns RMAStatusId (UI checks status by Id, not by name)
+	11  05-Nov-2026   RAJESH GAMI       [PN-18254] One credit memo per RMA: latest active (IsActive = 1, not deleted) credit memo of the RMA, one row per RMA in
+	                                    default view, IsCreditMemoCreated flag (deleted / inactive credit memo = RMA can get a credit memo again)
  -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SearchCustomerRMAData]
@@ -160,6 +163,7 @@ BEGIN
 		CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 			CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 		ELSE (CAST(CM.CreatedDate AS DATETIME)) END CreditMemoDate,
+        CAST(CASE WHEN CM.CreditMemoHeaderId IS NULL THEN 0 ELSE 1 END AS BIT) AS IsCreditMemoCreated,
         UPPER(IM.ManufacturerName) AS 'ManufacturerName'
       FROM [dbo].[CustomerRMAHeader] CRH WITH (NOLOCK)
       LEFT JOIN [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK)
@@ -174,8 +178,11 @@ BEGIN
       INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK)
         ON EUR.RoleId = RMS.RoleId
         AND EUR.EmployeeId = @EmployeeId
-      LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK)
-        ON CM.RMAHeaderId = CRH.RMAHeaderId
+      -- one credit memo per RMA: latest active credit memo of the RMA
+      OUTER APPLY (SELECT TOP 1 CMHeader.CreditMemoHeaderId, CMHeader.CreditMemoNumber, CMHeader.CreatedDate
+                   FROM [dbo].[CreditMemo] CMHeader WITH (NOLOCK)
+                   WHERE CMHeader.RMAHeaderId = CRH.RMAHeaderId AND CMHeader.IsActive = 1 AND CMHeader.IsDeleted = 0
+                   ORDER BY CMHeader.CreditMemoHeaderId DESC) CM
       LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)
         ON CRD.ItemMasterId = IM.ItemMasterId
        AND ISNULL(IM.IsNonStock,0) = 0
@@ -435,6 +442,7 @@ BEGIN
         UPPER(CRH.[CustomerCode]) AS 'CustomerCode',
         UPPER(CRH.[ContactInfo]) AS 'ContactInfo',
         CRH.[OpenDate],
+        CRH.[RMAStatusId],
         UPPER(CRH.[RMAStatus]) AS 'RMAStatus',
         CRH.[ValidDate],
         UPPER(CRH.Requestedby) AS 'Requestedby',
@@ -454,6 +462,7 @@ BEGIN
 		CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 			CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 		ELSE (CAST(CM.CreatedDate AS DATETIME)) END CreditMemoDate,
+        CAST(CASE WHEN CM.CreditMemoHeaderId IS NULL THEN 0 ELSE 1 END AS BIT) AS IsCreditMemoCreated,
         CRH.[Iswarranty],
         UPPER(CRH.[ReceiverNum]) AS 'ReceiverNum',
         UPPER(CRH.[WorkorderNum]) AS 'WorkorderNum',
@@ -464,7 +473,11 @@ BEGIN
       INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = CRH.RMAHeaderId
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON CRH.ManagementStructureId = RMS.EntityStructureId
       INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-      LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.RMAHeaderId = CRH.RMAHeaderId
+      -- one credit memo per RMA: latest active credit memo of the RMA
+      OUTER APPLY (SELECT TOP 1 CMHeader.CreditMemoHeaderId, CMHeader.CreditMemoNumber, CMHeader.CreatedDate
+                   FROM [dbo].[CreditMemo] CMHeader WITH (NOLOCK)
+                   WHERE CMHeader.RMAHeaderId = CRH.RMAHeaderId AND CMHeader.IsActive = 1 AND CMHeader.IsDeleted = 0
+                   ORDER BY CMHeader.CreditMemoHeaderId DESC) CM
       WHERE ((CRH.MasterCompanyId = @MasterCompanyId)
       AND (CRH.IsDeleted = @IsDeleted) AND (@StatusID = 0 OR CRH.RMAStatusId = @StatusID))),
       PartCTE
@@ -620,6 +633,7 @@ BEGIN
         M.[CustomerCode],
         M.[ContactInfo],
         M.[OpenDate],
+        M.[RMAStatusId],
         M.[RMAStatus],
         M.[ValidDate],
         M.Requestedby,
@@ -652,7 +666,8 @@ BEGIN
         MF.ManufacturerName,
        -- MF.ManufacturerNameType,
         M.CreditMemoRef,
-        M.CreditMemoDate
+        M.CreditMemoDate,
+        M.IsCreditMemoCreated
       FROM Result M
       LEFT JOIN PartCTE PT ON M.RMAHeaderId = PT.RMAHeaderId
       LEFT JOIN PartDescCTE PD ON PD.RMAHeaderId = M.RMAHeaderId
@@ -668,6 +683,7 @@ BEGIN
                M.[CustomerCode],
                M.[ContactInfo],
                M.[OpenDate],
+               M.[RMAStatusId],
                M.[RMAStatus],
                M.[ValidDate],
                M.Requestedby,
@@ -700,7 +716,8 @@ BEGIN
                MF.ManufacturerName,
             --   MF.ManufacturerNameType,
                M.CreditMemoRef,
-               M.CreditMemoDate),
+               M.CreditMemoDate,
+               M.IsCreditMemoCreated),
       ResultCount
       AS (SELECT COUNT(RMAHeaderId) AS totalItems FROM Results)
       SELECT * INTO #TempResult

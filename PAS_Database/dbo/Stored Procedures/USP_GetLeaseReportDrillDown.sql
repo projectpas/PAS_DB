@@ -4,8 +4,8 @@
  **              @DrillType = 'Revenue' : the invoices of the part inside the date range
  **                           (InvoiceDate, BillingInvoicingId, InvoiceNo, BaseAmount (Flat Rate), TimeOverage, CycleOverage, TotalRevenue = Flat Rate + Overrun; the other line types are costs)
  **              @DrillType = 'Expense' : the cost activities that make the Expenses of the Summary row (same rules as USP_GetLeaseReportByLeaseHeaderId)
- **                           PO Cost, RO Cost and the billed Maintenance / Insurance / Taxes / Others / Charges invoice lines of the date range (Description, StartDate, EndDate, ComponentAmount, Amount)
- **              @DrillType = 'Capitalized' : the costs that make the Capitalized Cost of the Summary row (Description, Quantity, Amount): PO Cost and RO Cost of the stockline
+ **                           PO Cost, RO Cost, Unit Cost Adjustment (Stockline.Adjustment x lease qty) and the billed Maintenance / Insurance / Taxes / Others / Charges invoice lines of the date range (Description, StartDate, EndDate, ComponentAmount, Amount)
+ **              @DrillType = 'Capitalized' : the costs that make the Capitalized Cost of the Summary row (Description, Quantity, Amount): PO Cost, RO Cost and Unit Cost Adjustment of the stockline
  ** PARAMETERS: @LeaseHeaderId BIGINT, @LeaseStocklineId BIGINT, @DrillType VARCHAR(20), @FromDate DATE (NULL = first lease part start date), @ToDate DATE (NULL = today)
  **************************************************************
  ** Change History
@@ -17,6 +17,8 @@
     3    28/10/2026     Kishor Makwana          [PN-18360] Charges / Others are not revenue: removed from the Revenue drill down, Charges added to the Expense drill down
     4    28/10/2026     Kishor Makwana          [PN-18360] Revenue drill down = Flat Rate + Overrun only (Maintenance / Insurance / Taxes columns removed)
     5    28/10/2026     Kishor Makwana          [PN-18360] Expense drill down: Other Cost rows = billed Maintenance / Insurance / Taxes / Others / Charges invoice lines (no service component split)
+    6    09/11/2026     Kishor Makwana          [PN-18517] Expense drill down: added the 'Unit Cost Adjustment' row (Stockline.Adjustment = Adjustment Cost (EA) x lease qty) in addition to PO Cost and RO Cost, so the total = PO Cost + RO Cost + Unit Cost Adjustment + Other Cost
+    7    09/11/2026     Kishor Makwana          [PN-18517] Unit Cost Adjustment now uses Stockline.Adjustment (Adjustment Cost (EA); negative = deduction, e.g. 150 + 50 + (-178) = 22) instead of Unit Cost (EA)
 
 EXEC USP_GetLeaseReportDrillDown @LeaseHeaderId = 22, @LeaseStocklineId = 52, @DrillType = 'Revenue'
 EXEC USP_GetLeaseReportDrillDown @LeaseHeaderId = 22, @LeaseStocklineId = 52, @DrillType = 'Capitalized'
@@ -88,9 +90,16 @@ BEGIN
 				LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
 				WHERE LSL.[LeaseStocklineId] = @LeaseStocklineId
 				UNION ALL
+				-- [PN-18517] Unit Cost Adjustment = Stockline.Adjustment (Adjustment Cost (EA), negative = deduction) x lease qty
+				SELECT N'Unit Cost Adjustment', NULL, NULL,
+					   ISNULL(STK.[Adjustment], 0) * LSL.[QtyOrder], ISNULL(STK.[Adjustment], 0) * LSL.[QtyOrder], 3, NULL
+				FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
+				LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
+				WHERE LSL.[LeaseStocklineId] = @LeaseStocklineId
+				UNION ALL
 				-- billed Maintenance / Insurance / Taxes / Others / Charges lines (one row per invoice line type)
 				SELECT CONCAT(D.[LineType], N' - ', BI.[InvoiceNo]), CAST(D.[FromDate] AS DATE), CAST(D.[ToDate] AS DATE),
-					   SUM(ISNULL(D.[LineAmount], 0)), SUM(ISNULL(D.[LineAmount], 0)), 3, BI.[BillingInvoicingId]
+					   SUM(ISNULL(D.[LineAmount], 0)), SUM(ISNULL(D.[LineAmount], 0)), 4, BI.[BillingInvoicingId]
 				FROM [dbo].[LeaseBillingInvoicingItemDetails] D WITH (NOLOCK)
 				INNER JOIN [dbo].[BillingInvoicingItems] BX WITH (NOLOCK)
 					ON BX.[BillingInvoicingItemId] = D.[BillingInvoicingItemId] AND BX.[IsDeleted] = 0 AND ISNULL(BX.[IsVersionIncrease], 0) = 0
@@ -107,7 +116,7 @@ BEGIN
 		END
 		ELSE IF (@DrillType = 'Capitalized')
 		BEGIN
-			-- Capitalized Cost = PO Cost + RO Cost of the stockline (not affected by the date range)
+			-- Capitalized Cost = PO Cost + RO Cost + Unit Cost Adjustment of the stockline (not affected by the date range) [PN-18517]
 			SELECT T.[Description], T.[Quantity], CAST(T.[Amount] AS DECIMAL(18, 2)) AS Amount
 			FROM (
 				SELECT N'PO Cost' AS [Description], CAST(ISNULL(LSL.[QtyOrder], 0) AS DECIMAL(18, 2)) AS [Quantity],
@@ -118,6 +127,13 @@ BEGIN
 				UNION ALL
 				SELECT N'RO Cost', CAST(ISNULL(LSL.[QtyOrder], 0) AS DECIMAL(18, 2)),
 					   ISNULL(STK.[RepairOrderUnitCost], 0) * LSL.[QtyOrder], 2
+				FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
+				LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
+				WHERE LSL.[LeaseStocklineId] = @LeaseStocklineId
+				UNION ALL
+				-- [PN-18517] Unit Cost Adjustment = Stockline.Adjustment x lease qty
+				SELECT N'Unit Cost Adjustment', CAST(ISNULL(LSL.[QtyOrder], 0) AS DECIMAL(18, 2)),
+					   ISNULL(STK.[Adjustment], 0) * LSL.[QtyOrder], 3
 				FROM [dbo].[LeaseStockline] LSL WITH (NOLOCK)
 				LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSL.[StockLineId]
 				WHERE LSL.[LeaseStocklineId] = @LeaseStocklineId

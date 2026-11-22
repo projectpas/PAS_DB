@@ -28,6 +28,7 @@
 	11    16/July/2026			 RAJESH GAMI						[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters (both UNION branches) so Non-Stock stocklines are included.
 	12    22/OCT/2026			 Kishor Makwana   [PN-18321] - Added this Condition in Stockline Join (ISNULL(sl.IsSubComponent,0) =0 AND ISNULL(sl.SubComponentParentStocklineId,0) =0)
 	13    28-Oct-2026   Rajesh Gami      [PN-18407] Asset parts (IsAsset = 1 in ItemMaster / Stockline) are excluded from the search (selected-Id reload branch unchanged).
+	14    07-Nov-2026   Vishal Suthar    [PN-18460] Added PartUnitCost (Item Master purchase cost) for the SOQ price popup
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
@@ -100,6 +101,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
 					,imps.PP_FXRatePerc AS FixRate
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS PartUnitCost
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ISNULL(ime.ExportWeight,0) AS [Weight]
@@ -141,7 +143,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
 				--AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-				AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
+				AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)) AND sl.CustomerSuppliedWorkOrderId IS NULL -- [PN-18508]
 				AND sl.IsParent = 1
 			
 			UNION
@@ -215,6 +217,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
 					,imps.PP_FXRatePerc AS FixRate
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS PartUnitCost
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ISNULL(ime.ExportWeight,0) AS [Weight]

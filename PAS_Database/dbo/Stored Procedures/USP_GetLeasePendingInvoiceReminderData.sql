@@ -23,10 +23,13 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    09/10/2026     Kishor Makwana          [Lease] Created - pending invoice reminder    
+    2    03/11/2026   Kishor Makwana	[PN-17949 Lease Properties redesign] A Base Rate interval line (Flat Rate line that carries a FlatRate) is always printed as a Flat Rate row, and only the usage period rows are split into Usage Time / Usage Cycle (before, every Flat Rate row of a Usage Based stockline was split, so the Base Rate row disappeared). Usage Time unit price is the converted hourly rate (Usage Per Hour / Day / Month ...).
+    3    04/11/2026		Kishor Makwana		[PN-17949] A Base Rate interval line of a Usage Based stockline (Flat Rate line that carries a Base Rate and no Time / Cycle usage amount) is printed as 'Base Rate' instead of 'Flat Rate'
+    4    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
 
 EXEC USP_GetLeasePendingInvoiceReminderData @MasterCompanyId = 1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetLeasePendingInvoiceReminderData]
+CREATE   PROCEDURE [dbo].[USP_GetLeasePendingInvoiceReminderData]
 	@MasterCompanyId INT
 AS
 BEGIN
@@ -49,7 +52,7 @@ BEGIN
 
 		-- columns of USP_GetLeaseBillingListByLeaseHeaderId (same order); only the ones used below are typed strictly
 		CREATE TABLE #LeaseBillingRows (
-			LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
+			LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), EngineType NVARCHAR(100), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
 			BillingMethod NVARCHAR(100), BillingFrequency NVARCHAR(100), FlatRate DECIMAL(28,6), LineType NVARCHAR(100), FromDate DATETIME2(7), ToDate DATETIME2(7),
 			LineAmount DECIMAL(28,6), TimeRecorded DECIMAL(28,6), TimeLimit DECIMAL(28,6), TimeOver DECIMAL(28,6), TimeOverageRate DECIMAL(28,6), TimeBillingAmount DECIMAL(28,6),
 			CycleRecorded DECIMAL(28,6), CycleLimit DECIMAL(28,6), CycleOver DECIMAL(28,6), CycleOverageRate DECIMAL(28,6), CycleBillingAmount DECIMAL(28,6),
@@ -118,7 +121,7 @@ BEGIN
 							UPPER(COALESCE(IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], '')) AS UOM,
 							G.LineType, G.BillingMethod, G.FromDate,
 							ISNULL(LSL.[QtyReserved], 0) AS LQty,
-							LSL.[UsagePerUnitTimes] AS TimeRate, LSL.[UsagePerUnitCycles] AS CycleRate,
+							CASE WHEN LSL.[IsOveruseApplicable] IS NOT NULL AND dbo.FN_LeasePerHours(LSL.[UsageTimesPer]) IS NOT NULL THEN CAST(LSL.[UsagePerUnitTimes] AS DECIMAL(18,6)) / dbo.FN_LeasePerHours(LSL.[UsageTimesPer]) ELSE LSL.[UsagePerUnitTimes] END AS TimeRate, LSL.[UsagePerUnitCycles] AS CycleRate, G.FlatRate AS BaseFlatRate,
 							G.TimeBillingAmount, G.CycleBillingAmount, G.TimeRecorded, G.CycleRecorded,
 							QX.Q, TX.Total
 						FROM #LeaseBillingRows G
@@ -132,7 +135,7 @@ BEGIN
 					),
 					Lines AS (
 						SELECT LeaseStocklineId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-							CASE LineType WHEN 'Others' THEN 'Other' ELSE LineType END AS LineBillingMethod,
+							CASE WHEN LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND ISNULL(BaseFlatRate, 0) > 0 AND ISNULL(TimeBillingAmount, 0) = 0 AND ISNULL(CycleBillingAmount, 0) = 0 THEN 'Base Rate' WHEN LineType = 'Others' THEN 'Other' ELSE LineType END AS LineBillingMethod,
 							CAST(Q AS DECIMAL(18,6)) AS LineQty,
 							CAST(Total / Q AS DECIMAL(18,6)) AS LineUnitPrice,
 							Total AS LineTotal,
@@ -140,19 +143,19 @@ BEGIN
 								WHEN 'Taxes' THEN 8 WHEN 'Others' THEN 9 WHEN 'Charges' THEN 10 ELSE 11 END AS SortOrder,
 							FromDate AS SortDate
 						FROM Src
-						WHERE NOT (LineType = 'Flat Rate' AND BillingMethod = 'UsageBased')
+						WHERE NOT (LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND BaseFlatRate IS NULL)
 						UNION ALL
 						SELECT LeaseStocklineId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM, 'Usage Time',
 							CAST(H.Hours AS DECIMAL(18,6)), CAST(TimeBillingAmount / NULLIF(H.Hours, 0) AS DECIMAL(18,6)), TimeBillingAmount, 1, FromDate
 						FROM Src
 						CROSS APPLY (SELECT COALESCE(TimeBillingAmount / NULLIF(TimeRate * LQty, 0), TimeRecorded / 60.0, 1) AS Hours) H
-						WHERE LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND ISNULL(TimeBillingAmount, 0) <> 0
+						WHERE LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND BaseFlatRate IS NULL AND ISNULL(TimeBillingAmount, 0) <> 0
 						UNION ALL
 						SELECT LeaseStocklineId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM, 'Usage Cycle',
 							CAST(H.Cycles AS DECIMAL(18,6)), CAST(CycleBillingAmount / NULLIF(H.Cycles, 0) AS DECIMAL(18,6)), CycleBillingAmount, 2, FromDate
 						FROM Src
 						CROSS APPLY (SELECT COALESCE(CycleBillingAmount / NULLIF(CycleRate * LQty, 0), CycleRecorded, 1) AS Cycles) H
-						WHERE LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND ISNULL(CycleBillingAmount, 0) <> 0
+						WHERE LineType = 'Flat Rate' AND BillingMethod = 'UsageBased' AND BaseFlatRate IS NULL AND ISNULL(CycleBillingAmount, 0) <> 0
 					)
 					INSERT INTO #ItemLines (LeaseHeaderId, LeaseStocklineId, PartNumber, PartDescription, SerialNumber, StockLineNumber, BillingMethod, UOM, Qty, UnitPrice, Total, SortOrder, SortDate)
 					SELECT @LeaseHeaderId, LeaseStocklineId, PNumber, PNDescription, SerialNumber, StockLineNumber, LineBillingMethod, UOM, LineQty, LineUnitPrice, LineTotal, SortOrder, SortDate

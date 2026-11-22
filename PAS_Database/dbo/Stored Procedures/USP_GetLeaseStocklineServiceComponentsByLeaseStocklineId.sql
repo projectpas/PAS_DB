@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId]
  ** Description: Returns the dynamic/custom-named Service Component rows
  **              (Name/Amount/Per) saved for a single LeaseStockline.
@@ -10,10 +10,11 @@
  ** --   --------       -------                 --------------------------------
     1    14/09/2026     Amit Ghediya            Created
     2    05-Oct-2026    Divyesh Kathriya        [PN-18188] - Added GL Account, Start Date, and End Date.
+    3    03-Nov-2026    Kishor Makwana          Added UOM (optional) - [UOMId].
 
 exec USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId @LeaseStocklineId=1
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId]
+CREATE   PROCEDURE [dbo].[USP_GetLeaseStocklineServiceComponentsByLeaseStocklineId]
 	@LeaseStocklineId BIGINT
 AS
 BEGIN
@@ -22,7 +23,7 @@ BEGIN
 	BEGIN TRY
 
 		SELECT [LeaseStocklineServiceComponentId], [LeaseStocklineId], [ComponentName],
-			[GLAccountId], [StartDate], [EndDate], [Amount], [Per]
+			[GLAccountId], [StartDate], [EndDate], [Amount], [Per], [UOMId]
 		FROM [dbo].[LeaseStocklineServiceComponent] WITH (NOLOCK)
 		WHERE [LeaseStocklineId] = @LeaseStocklineId AND [IsDeleted] = 0
 		ORDER BY [LeaseStocklineServiceComponentId];

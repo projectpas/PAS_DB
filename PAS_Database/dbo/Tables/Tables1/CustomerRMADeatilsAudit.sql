@@ -36,6 +36,7 @@
     [ReturnDate]             DATETIME2 (7)   NULL,
     [WorkOrderNum]           VARCHAR (50)    NULL,
     [ReceiverNum]            VARCHAR (50)    NULL,
+    [QtyReceived]            DECIMAL (18, 6) NULL, -- [PN-18254] keep same column order as CustomerRMADeatils (trigger uses SELECT *)
     CONSTRAINT [PK_CustomerRMADeatilsAudit] PRIMARY KEY CLUSTERED ([RMADeatilsAuditId] ASC)
 );
 

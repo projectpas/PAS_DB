@@ -22,6 +22,8 @@
                                      selected stocklines. They were returned blank before.
                                      New @SoldToCustomerId parameter (Bill To customer picked in the popup) drives CreditTerms (Customer > Financial);
                                      falls back to the lease's customer when not supplied.
+    5    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
+    6    16/11/2026   Kishor Makwana [PN-18565] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the selected stocklines, comma separated when more than one) for LeaseBillingPreview_New.rdl
     
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3', @MasterCompanyId = 1
 **************************************************************/
@@ -123,7 +125,7 @@ BEGIN
 
 	-- ================= Live SubTotal/GrandTotal from the selected stocklines =================
 	CREATE TABLE #G (
-		LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
+		LeaseStocklineId BIGINT, PartNumber NVARCHAR(MAX), EngineType NVARCHAR(100), PartDescription NVARCHAR(MAX), SerialNumber NVARCHAR(MAX), Qty DECIMAL(28,6),
 		BillingMethod NVARCHAR(100), BillingFrequency NVARCHAR(100), FlatRate DECIMAL(28,6), LineType NVARCHAR(100), FromDate DATETIME2(7), ToDate DATETIME2(7),
 		LineAmount DECIMAL(28,6), TimeRecorded DECIMAL(28,6), TimeLimit DECIMAL(28,6), TimeOver DECIMAL(28,6), TimeOverageRate DECIMAL(28,6), TimeBillingAmount DECIMAL(28,6),
 		CycleRecorded DECIMAL(28,6), CycleLimit DECIMAL(28,6), CycleOver DECIMAL(28,6), CycleOverageRate DECIMAL(28,6), CycleBillingAmount DECIMAL(28,6),
@@ -131,6 +133,21 @@ BEGIN
 		HasUsageInfo BIT, IsActive BIT, LeaseStatusId INT);
 	-- The preview shows exactly what Create Invoice will save: the same lines the Billing grid computes (one source of truth).
 	INSERT INTO #G EXEC [dbo].[USP_GetLeaseBillingListByLeaseHeaderId] @LeaseHeaderId = @LeaseHeaderId;
+
+	-- [New invoice layout] Engine S/N and Engine Model of the selected stocklines (distinct, comma separated)
+	DECLARE @EngineSerialNumber NVARCHAR(MAX) = '', @EngineModel NVARCHAR(MAX) = '';
+	SELECT @EngineSerialNumber = ISNULL(STRING_AGG(E.[EngineSerialNumber], ', '), '')
+	FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineSerialNumber])) AS [EngineSerialNumber]
+		FROM [dbo].[LeaseStockline] LSE WITH (NOLOCK)
+		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+		WHERE LSE.[LeaseStocklineId] IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+			AND ISNULL(LTRIM(RTRIM(STK.[EngineSerialNumber])), '') <> '') E;
+	SELECT @EngineModel = ISNULL(STRING_AGG(E.[EngineModel], ', '), '')
+	FROM (SELECT DISTINCT LTRIM(RTRIM(STK.[EngineModel])) AS [EngineModel]
+		FROM [dbo].[LeaseStockline] LSE WITH (NOLOCK)
+		INNER JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = LSE.[StockLineId]
+		WHERE LSE.[LeaseStocklineId] IN (SELECT CAST(Item AS BIGINT) FROM [dbo].[SplitString](@LeaseStocklineIds, ',') WHERE ISNUMERIC(Item) = 1)
+			AND ISNULL(LTRIM(RTRIM(STK.[EngineModel])), '') <> '') E;
 
 	-- AWB of the latest shipment (Lease > Shipping) that carried the selected stocklines.
 	DECLARE @Awb VARCHAR(50) = '';
@@ -237,7 +254,9 @@ BEGIN
 			UPPER(inv.[Description]) InvoiceType,
 			NULL OriginCountry,
 			NULL DestinationCountry,
-			ISNULL(CUST.ResaleNumber,'') ResaleNumber
+			ISNULL(CUST.ResaleNumber,'') ResaleNumber,
+			@EngineSerialNumber [EngineSerialNumber],
+			@EngineModel [EngineModel]
 		FROM [dbo].[LeaseHeader] LH WITH(NOLOCK)
 		INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON LH.[CustomerId] = CUST.[CustomerId]
 		INNER JOIN [dbo].[Address] CUSTADDRESS WITH(NOLOCK) ON CUST.[AddressId] = CUSTADDRESS.[AddressId]

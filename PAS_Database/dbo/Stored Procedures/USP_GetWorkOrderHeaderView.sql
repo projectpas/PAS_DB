@@ -14,6 +14,7 @@
  ** --   --------         -------		      ----------------------------       
     1    26/03/2025      Ayushi Patel           Created
 	2    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+	3    12/11/2026      Moin Bloch	            Always return part ManagementStructureId (WO Shipping Origin address)
 
 	exec [USP_GetWorkOrderHeaderView] 8511
 **************************************************************/
@@ -33,17 +34,14 @@ BEGIN
         DECLARE @InternalTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal Repair' );
         DECLARE @TeardownTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal Teardown' );
 
-        IF EXISTS (SELECT 1 FROM dbo.WorkOrder WITH (NOLOCK) WHERE ISNULL(IsSinglePN, 0) = 1)
-        BEGIN
-            SELECT TOP 1 
-                @ReferenceNo = wop.CustomerReference,
-                @WorkScope = wos.Description,
-                @ManagementStructureId = wop.ManagementStructureId
-            FROM dbo.WorkOrder wo WITH (NOLOCK)
-            JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
-            JOIN dbo.WorkScope wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
-            WHERE wo.WorkOrderId = @WorkOrderId AND ISNULL(wop.IsDeleted,0) = 0;
-        END;
+        SELECT TOP 1
+            @ReferenceNo = wop.CustomerReference,
+            @WorkScope = wos.Description,
+            @ManagementStructureId = ISNULL(wop.ManagementStructureId, 0)
+        FROM dbo.WorkOrderPartNumber wop WITH (NOLOCK)
+        LEFT JOIN dbo.WorkScope wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
+        WHERE wop.WorkOrderId = @WorkOrderId AND ISNULL(wop.IsDeleted,0) = 0
+        ORDER BY wop.ID;
 
         BEGIN TRANSACTION;
         

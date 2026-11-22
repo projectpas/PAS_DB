@@ -24,6 +24,7 @@
 	12  12-Jan-2026     Rajesh Gami         UOM Conversion Changes
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	14	 19/06/2026		Moin Bloch   		Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	15    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
 (
@@ -317,7 +318,6 @@ BEGIN
 
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0),@IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 					FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
@@ -3110,12 +3110,14 @@ BEGIN
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
+		BEGIN
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
+		END
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerForInternalWOBasedonDistribution' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CONVERT(VARCHAR(20), @DistributionMasterId), '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

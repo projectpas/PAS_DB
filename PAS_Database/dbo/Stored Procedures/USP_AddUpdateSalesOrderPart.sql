@@ -29,6 +29,7 @@
 	18   21/Aug/2026	  KISHOR MAKWANA    [PN-17734] - Updated Condition
 	14   06/Oct/2026	  KISHOR MAKWANA    [PN-18238] - Guard: a save can no longer lower QtyOrder/QtyRequested below reserved+shipped qty (reserved line was being set to 0 by a stale/blank row); attempts are logged to Appl_ErrorLog (ModuleName SO_QTY_GUARD)
 	19    09/Oct/2026  Bhargav Saliya   [UOM] Use UnitOfMeasure ShortName instead of ShortCode for UOM conversion/compare (ShortCode mismatched ItemMaster & fn_ConvertUOM which use ShortName).
+	20    03/Nov/2026  Vishal Suthar    [PN-18480] Existing unit price compared at full precision so unchanged parts keep their approval
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -305,7 +306,7 @@ BEGIN
 		ELSE
 		BEGIN		
 			DECLARE @IsQtyRequestedModified BIT, @IsPriorityModified BIT, @IsUnitSalesModified BIT;
-			DECLARE @ExistingQtyReq DECIMAL(18, 6), @ExistingPriority INT, @ExistingUnitSales DECIMAL;
+			DECLARE @ExistingQtyReq DECIMAL(18, 6), @ExistingPriority INT, @ExistingUnitSales DECIMAL(18, 6); -- [PN-18480] was DECIMAL(18,0): rounded price looked changed and reset approval
 
 			SELECT @ExistingQtyReq = SOP.QtyRequested, @ExistingPriority = PriorityId FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			IF (@SalesOrderStocklineId > 0)

@@ -21,6 +21,7 @@
 	10    09/July/2026	  RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	11    20/July/2026	  RAJESH GAMI		[PN-17350] - Allow Non-Stock Inventory Parts in Sales Order Quote and Sales Order: removed IsNonStock=0 filters that excluded Non-Stock Stockline when creating a SOQ part stockline.
 	12    23/Aug/2026	  Kishor Makwana	[PN-17723] - Persist PriorityId on the update path so a changed Priority on an existing SOQ part is actually saved.
+	13    05/Nov/2026	  Vishal Suthar		[PN-18480] Existing unit price compared at full precision so unchanged parts keep their approval
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -256,7 +257,7 @@ BEGIN
 
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
 			SET @IsPriorityModified = CASE WHEN @ExistingPriority <> @PriorityId THEN 1 ELSE 0 END;
-			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> CAST(ROUND(@UnitSalesPrice, 0) AS INT) THEN 1 ELSE 0 END;
+			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> @UnitSalesPrice THEN 1 ELSE 0 END; -- [PN-18480] was rounded to INT: unchanged price with cents looked changed and reset approval
 			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderQuotePartId) FROM #SOQPartDetails WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(StocklineId,0) > 0), 0)
 
 			UPDATE [DBO].[SalesOrderQuotePartV1]

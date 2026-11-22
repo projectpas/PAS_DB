@@ -13,6 +13,7 @@
     1    27-03-2025   HEMANT SALIYA			Created
 	2    04/14/2025   HEMANT SALIYA			Added Work Order Work Flow Id for UpdateWOMaterialsCost
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    20-Oct-2026  RAJESH GAMI	[PN-17782] Allow Non-Stock items in WO/WOQ/Sub WO: removed IsNonStock=0 exclusion on material lines (IsService=0 for search SPs); UOM conversion and decimal(18,6) logic unchanged
 
 	EXEC USP_DeleteWorkOrderMaterialkitStocklineById 18573, 188319, 'Brandon  Taylor'
 **************************************************************/
@@ -60,7 +61,7 @@ BEGIN
 		FROM [dbo].WorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
-		WHERE WMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsKitId AND ISNULL(IM.IsNonStock,0) = 0 ;
+		WHERE WMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsKitId;
 
 		SELECT TOP 1 @historyModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WORKORDER'
 

@@ -14,6 +14,7 @@
     1    04/18/2022   Subhash Saliya 		Created
     2	 19/06/2023   Ayesha Sultana  		Altered - Added ReceiverNum to the DB and SP
 	3	 25/12/2023   AMIT GHEDIYA 		    Altered - Added ReturnDate when create from WO.
+	4	 04/11/2026   RAJESH GAMI 		    [PN-18254] Commented the 'Fulfilled -> CreateStocklineForCustomerRMADeatils' block; stockline is created only from the Receive RMA screen.
 	
  -- exec CreateUpdateCustomerRMAHeader 92,1    
 **************************************************************/ 
@@ -126,6 +127,9 @@ BEGIN
 				 set @Result= @RMAHeaderId
 				 EXEC [DBO].[UpdateCUstomerRMADetails] @RMAHeaderId;
 
+				 /* [PN-18254] Stockline is no longer created when the RMA is saved as Fulfilled.
+				    It is created ONLY from Receiving > Receive RMA > Customer RMA Fulfilling List > Receive RMA (Create Stockline).
+				    Old code kept below as comment.
 				 -----------------------------------------------------------------
 						--for add new Stockline
 				 -----------------------------------------------------------------
@@ -168,6 +172,7 @@ BEGIN
 
 
 				 end
+				 [PN-18254] end of commented block */
 
 			END
 		END

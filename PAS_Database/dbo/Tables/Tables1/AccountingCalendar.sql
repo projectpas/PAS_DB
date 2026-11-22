@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[AccountingCalendar] (
     [AccountingCalendarId]  BIGINT         IDENTITY (1, 1) NOT NULL,
-    [Name]                  VARCHAR (100)   NULL,
+    [Name]                  VARCHAR (100)  NULL,
     [Description]           VARCHAR (200)  NULL,
     [FiscalName]            VARCHAR (30)   NOT NULL,
     [FiscalYear]            INT            NULL,
@@ -40,6 +40,8 @@
 );
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_AccountingCalendarAudit] ON [dbo].[AccountingCalendar]
@@ -63,3 +65,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_AccountingCalendar_MC_LE_ToDate]
+    ON [dbo].[AccountingCalendar]([MasterCompanyId] ASC, [LegalEntityId] ASC, [ToDate] ASC)
+    INCLUDE([AccountingCalendarId], [FiscalYear], [Period], [FromDate], [IsDeleted], [IsAdjustPeriod], [PeriodName]);
+

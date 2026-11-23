@@ -5038,6 +5038,13 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerUser.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetExplorerAccess.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeaseEngineValuationReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveXeroInboundPayment.sql" />
+    <Build Include="dbo\Stored Procedures\usp_PopulateCustomerAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroSyncedBillingInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrailBalanceReportDataAll.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetStocklineAsofNowJobDetailsForCleanUp_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetKnownXeroPaymentIds.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetInventoryDataForPowerBIReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -1,10 +1,10 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetWorkOrderQuoteList]
  ** Author: Moin Bloch
  ** Description: 4.23 Quote headers of the company, oldest first. Same quotes as the PAS Work Order Quote list (GetWorkOrderQuoteList).
  **              @Status is the quote status (Open, Closed, Cancelled, Delayed, Approved, Pending).
  **              @OpenDateFrom / @OpenDateTo: open date range, both inclusive (dates only).
+ **              QuoteDate = when the quote was entered in PAS; management structure = the first quoted part's.
  ** Purpose: PAS_PUBLIC_API - GET /api/v1/workorderquotes (headers)
  ** Date:   18/11/2026
 
@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------
     1    18/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    23/11/2026   Moin Bloch    Fields as requested (quote date, customer type, created by, management structure)
 
   EXEC [dbo].[USP_PublicApi_GetWorkOrderQuoteList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -33,6 +34,8 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+        DECLARE @WOMSModuleId INT = 12; -- WorkOrderMPN (WorkOrderManagementStructureDetails.ModuleID)
+
         ;WITH PagedQuote AS
         (
             SELECT Q.[WorkOrderQuoteId], COUNT(1) OVER () AS [TotalRecords]
@@ -61,51 +64,39 @@ BEGIN
             Q.[WorkOrderQuoteId],   -- used by the API to attach the quoted parts; not returned to clients
             Q.[QuoteNumber],
             Q.[VersionNo] AS [VersionNumber],
-            QS.[Description] AS [Status],
-            WO.[WorkOrderNum] AS [WorkOrderNumber],
+            Q.[CreatedDate] AS [QuoteDate],   -- when the quote was entered in PAS
             Q.[OpenDate],
-            CASE WHEN Q.[QuoteDueDate] < '19000101' THEN NULL ELSE Q.[QuoteDueDate] END AS [QuoteDueDate],   -- 0001-01-01 = not set
-            Q.[ValidForDays],
-            CASE WHEN Q.[ExpirationDate] < '19000101' THEN NULL ELSE Q.[ExpirationDate] END AS [ExpirationDate],
-            Q.[SentDate],
-            Q.[ApprovedDate],
+            QS.[Description] AS [Status],
+            CT.[CustomerTypeName] AS [CustomerType],
+            ISNULL(C.[Name], NULLIF(LTRIM(RTRIM(Q.[CustomerName])), '')) AS [CustomerName],   -- the customer's name, as the PAS list and print
             C.[CustomerCode],
-            ISNULL(NULLIF(LTRIM(RTRIM(Q.[CustomerName])), ''), C.[Name]) AS [CustomerName],
-            ISNULL(NULLIF(LTRIM(RTRIM(Q.[CustomerContact])), ''), DC.[ContactName]) AS [CustomerContact],
-            NULLIF(LTRIM(RTRIM(C.[Email])), '') AS [CustomerEmail],
-            NULLIF(LTRIM(RTRIM(C.[CustomerPhone])), '') AS [CustomerPhone],
             NULLIF(LTRIM(RTRIM(C.[ContractReference])), '') AS [CustomerReference],
-            NULLIF(LTRIM(RTRIM(Q.[CreditTerms])), '') AS [CreditTerms],
-            Q.[CreditLimit],
-            CUR.[Code] AS [Currency],
-            RCUR.[Code] AS [ReportCurrency],
-            CASE WHEN Q.[ForeignExchangeRate] > 0 THEN Q.[ForeignExchangeRate] ELSE NULL END AS [ForeignExchangeRate],
+            WO.[WorkOrderNum] AS [WorkOrderNumber],
+            Q.[ApprovedDate],
             CONCAT_WS(' ', NULLIF(LTRIM(RTRIM(SP.[FirstName])), ''), NULLIF(LTRIM(RTRIM(SP.[LastName])), '')) AS [SalesPerson],
-            CONCAT_WS(' ', NULLIF(LTRIM(RTRIM(CSR.[FirstName])), ''), NULLIF(LTRIM(RTRIM(CSR.[LastName])), '')) AS [CustomerServiceRep],
-            CONCAT_WS(' ', NULLIF(LTRIM(RTRIM(EMP.[FirstName])), ''), NULLIF(LTRIM(RTRIM(EMP.[LastName])), '')) AS [Employee],
+            NULLIF(LTRIM(RTRIM(Q.[CreatedBy])), '') AS [CreatedBy],
+            MS.[Level1Name] AS [LegalEntity],
+            MS.[Level2Name] AS [BusinessUnit],
+            MS.[Level3Name] AS [Division],
+            MS.[Level4Name] AS [Department],
             (SELECT COUNT(1) FROM [dbo].[WorkOrderQuoteDetails] D WITH (NOLOCK)
              WHERE D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND ISNULL(D.[IsDeleted], 0) = 0 AND ISNULL(D.[IsActive], 1) = 1) AS [MPNCount],
-            Q.[CreatedDate],
-            Q.[UpdatedDate],
             P.[TotalRecords]
         FROM PagedQuote P
         INNER JOIN [dbo].[WorkOrderQuote] Q WITH (NOLOCK) ON Q.[WorkOrderQuoteId] = P.[WorkOrderQuoteId]
         INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.[WorkOrderId] = Q.[WorkOrderId]
         INNER JOIN [dbo].[WorkOrderQuoteStatus] QS WITH (NOLOCK) ON QS.[WorkOrderQuoteStatusId] = Q.[QuoteStatusId]
         LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.[CustomerId] = Q.[CustomerId]
-        -- Default customer contact and the customer's primary sales person (PAS shows it as CSR).
-        OUTER APPLY (SELECT TOP (1) CONCAT_WS(' ', NULLIF(LTRIM(RTRIM(CN.[FirstName])), ''), NULLIF(LTRIM(RTRIM(CN.[LastName])), '')) AS [ContactName]
-                     FROM [dbo].[CustomerContact] CC WITH (NOLOCK)
-                     INNER JOIN [dbo].[Contact] CN WITH (NOLOCK) ON CN.[ContactId] = CC.[ContactId]
-                     WHERE CC.[CustomerId] = Q.[CustomerId] AND CC.[IsDefaultContact] = 1
-                     ORDER BY CC.[CustomerContactId]) DC
-        OUTER APPLY (SELECT TOP (1) CS.[PrimarySalesPersonId] FROM [dbo].[CustomerSales] CS WITH (NOLOCK)
-                     WHERE CS.[CustomerId] = Q.[CustomerId] ORDER BY CS.[CustomerSalesId]) CSX
-        LEFT JOIN [dbo].[Currency] CUR WITH (NOLOCK) ON CUR.[CurrencyId] = Q.[CurrencyId]
-        LEFT JOIN [dbo].[Currency] RCUR WITH (NOLOCK) ON RCUR.[CurrencyId] = Q.[ReportCurrencyId]
+        LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON CT.[CustomerTypeId] = C.[CustomerTypeId]
         LEFT JOIN [dbo].[Employee] SP WITH (NOLOCK) ON SP.[EmployeeId] = COALESCE(Q.[SalesPersonId], WO.[SalesPersonId])
-        LEFT JOIN [dbo].[Employee] CSR WITH (NOLOCK) ON CSR.[EmployeeId] = CSX.[PrimarySalesPersonId]
-        LEFT JOIN [dbo].[Employee] EMP WITH (NOLOCK) ON EMP.[EmployeeId] = COALESCE(Q.[EmployeeId], WO.[EmployeeId])
+        -- Management structure of the first quoted part (the WO part's structure).
+        OUTER APPLY (SELECT TOP (1) M.[Level1Name], M.[Level2Name], M.[Level3Name], M.[Level4Name]
+                     FROM [dbo].[WorkOrderQuoteDetails] D WITH (NOLOCK)
+                     LEFT JOIN [dbo].[WorkOrderWorkFlow] WF WITH (NOLOCK) ON WF.[WorkFlowWorkOrderId] = D.[WorkflowWorkOrderId]
+                     INNER JOIN [dbo].[WorkOrderManagementStructureDetails] M WITH (NOLOCK)
+                         ON M.[ModuleID] = @WOMSModuleId AND M.[ReferenceID] = COALESCE(NULLIF(D.[WOPartNoId], 0), WF.[WorkOrderPartNoId])
+                     WHERE D.[WorkOrderQuoteId] = Q.[WorkOrderQuoteId] AND ISNULL(D.[IsDeleted], 0) = 0 AND ISNULL(D.[IsActive], 1) = 1
+                     ORDER BY D.[WorkOrderQuoteDetailsId], M.[MSDetailsId]) MS
         ORDER BY Q.[WorkOrderQuoteId]
         OPTION (RECOMPILE);
     END TRY

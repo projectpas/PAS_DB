@@ -60,6 +60,7 @@
 	28   09/Oct/2026   Kishor Makwana     [PN-18238] - SO billing: (1) @AllowBillingBeforeShipping = 0: an invoice is matched to its own shipment (a later shipment of the same stockline shows its own Qty To Bill instead of inheriting the first invoice) and shipment x pick-ticket rows without a shipped item are dropped once the part has shipped; (2) Shipment Num shows the real SmentNum; (3) @AllowBillingBeforeShipping = 1, no-shipment arm: reserve qty is cumulative, so it returns one row per invoice item (Qty To Bill 0) plus one unbilled row for reserved qty minus qty on live invoices.
 	29   05/Nov/2026   Vishal Suthar      [PN-18475] - Canceled SO shipments are not listed for billing
 	30   12/Nov/2026   Vishal Suthar      [PN-18531] - Billing Before Shipping: canceled shipments are ignored, so the part is billed as not shipped again
+	31   21/Nov/2026   Vishal Suthar      [PN-18612] - Closed proforma: Invoice No. and date of the standard invoice that closed it
 **************************************************************/
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
 CREATE   PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
@@ -175,6 +176,8 @@ BEGIN
 				IsLastInserted BIT DEFAULT 0,
 				IsSerialized BIT DEFAULT 0,
 				[CreditMemoHeaderId] BIGINT NULL,
+				[ClosedByInvoiceNo] VARCHAR(256) NULL,
+				[ClosedDate] DATETIME2(7) NULL,
 			)
 			DECLARE @IsTearDownWO BIT = 0,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
 			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -1693,9 +1696,13 @@ BEGIN
 
 			DROP TABLE #BilledLineGroups;
 			-- [PN-18268] Standard-invoice-posted flag on Proforma rows (drives the Re-Open action on the UI)
-			UPDATE IMD SET IMD.[IsStandardInvoicePosted] = ISNULL(BI.[IsStandardInvoicePosted], 0)
+			-- [PN-18612] Closed proforma: the standard invoice that closed it
+			UPDATE IMD SET IMD.[IsStandardInvoicePosted] = ISNULL(BI.[IsStandardInvoicePosted], 0),
+			               IMD.[ClosedByInvoiceNo] = CB.[InvoiceNo],
+			               IMD.[ClosedDate] = BI.[ClosedDate]
 			FROM #InvoiceMainDetails IMD
 			INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BI.[BillingInvoicingId] = IMD.[BillingInvoicingId]
+			LEFT JOIN [dbo].[BillingInvoicing] CB WITH(NOLOCK) ON CB.[BillingInvoicingId] = BI.[ClosedByBillingInvoicingId]
 			WHERE ISNULL(IMD.[IsProformaInvoice], 0) = 1
 			SELECT * FROM #InvoiceMainDetails ORDER BY IsProformaInvoice ASC, BillingInvoicingId DESC,InvoiceNo DESC, VersionNo DESC;	
 		END TRY    

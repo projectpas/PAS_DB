@@ -41,6 +41,9 @@
 										the SP was found out of sync with dbo.Stored Procedures.Procs3 copy - missing
 										changes #5 and #6 entirely - brought back to parity as part of this change.)
 										And change the word can't to can not in the message to match the payment guard message.
+    7    23-Nov-2026  Vishal Suthar		[PN-18612] Re-Opening a standard invoice also re-opens the proforma invoice(s) it closed,
+										back to the status they had before, and gives their deposit used by it back to them
+										(so it is carried over again when the standard invoice is posted again)
 
     EXEC [dbo].[USP_ReOpenSalesOrderInvoice] 8998,'ADMIN User'
 
@@ -144,6 +147,45 @@ BEGIN
 			WHERE	[ReferenceId] = @ReferenceId
 			AND		[ModuleId] = @ModuleId
 			AND		[IsPerformaInvoice] = 1
+
+			-- [PN-18612] Deposit of the proforma invoice(s) carried over to this standard invoice is given back to them,
+			-- newest proforma first (it was used oldest first), so posting the standard invoice again carries it over again
+			DECLARE @ReleaseDeposit DECIMAL(18,6) = (SELECT ISNULL([DepositAmount], 0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId)
+
+			IF (@ReleaseDeposit > 0)
+			BEGIN
+				;WITH PF AS (
+					SELECT	[BillingInvoicingId], ISNULL([UsedDeposit], 0) AS [Used],
+							SUM(ISNULL([UsedDeposit], 0)) OVER (ORDER BY [BillingInvoicingId] DESC ROWS UNBOUNDED PRECEDING) AS [RunningUsed]
+					FROM	[dbo].[BillingInvoicing] WITH(NOLOCK)
+					WHERE	[ReferenceId] = @ReferenceId
+					AND		[ModuleId] = @ModuleId
+					AND		[IsPerformaInvoice] = 1
+					AND		ISNULL([IsVersionIncrease], 0) = 0
+					AND		ISNULL([UsedDeposit], 0) > 0
+				)
+				UPDATE BI
+				SET		BI.[UsedDeposit] = PF.[Used] - CASE WHEN PF.[RunningUsed] <= @ReleaseDeposit THEN PF.[Used]
+															ELSE @ReleaseDeposit - (PF.[RunningUsed] - PF.[Used]) END
+				FROM	[dbo].[BillingInvoicing] BI
+				INNER JOIN PF ON PF.[BillingInvoicingId] = BI.[BillingInvoicingId]
+				WHERE	PF.[RunningUsed] - PF.[Used] < @ReleaseDeposit
+			END
+
+			-- [PN-18612] Proforma invoice(s) closed by this standard invoice get back the status they had before
+			-- (kept in ClosedFromInvoiceStatusId when it was posted)
+			UPDATE BI
+			SET		BI.[InvoiceStatusId] = IST.[InvoiceStatusId],
+					BI.[InvoiceStatus] = IST.[Status],
+					BI.[ClosedByBillingInvoicingId] = NULL,
+					BI.[ClosedDate] = NULL,
+					BI.[ClosedFromInvoiceStatusId] = NULL,
+					BI.[UpdatedBy] = 'System',
+					BI.[UpdatedDate] = GETUTCDATE()
+			FROM	[dbo].[BillingInvoicing] BI
+			INNER JOIN [dbo].[InvoiceStatus] IST WITH(NOLOCK) ON IST.[InvoiceStatusId] = BI.[ClosedFromInvoiceStatusId]
+			WHERE	BI.[ClosedByBillingInvoicingId] = @BillingInvoicingId
+			AND		BI.[InvoiceStatus] = 'Closed'
 		END
 
 		-- Accounting reversal: only when the company uses PAS accounting (IsAccountByPass = 0).

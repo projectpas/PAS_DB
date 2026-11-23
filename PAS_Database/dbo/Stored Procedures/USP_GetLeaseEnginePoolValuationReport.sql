@@ -10,6 +10,8 @@
  ** PR   Date			Author				Change Description
  ** -----------------------------------------------------------
     1    13/11/2026		Kishor Makwana		[PN-18534] - Created
+    2    19/11/2026		Kishor Makwana		Added PN, PN Description, Ser Num and SL Num columns (after Lease Num)
+    3    20/11/2026		Kishor Makwana		[PN-18606] Retail / Wholesale stay NULL : the Engine Valuation is a report (calculated on demand), nothing is stored
 
 -- EXEC [dbo].[USP_GetLeaseEnginePoolValuationReport] @MasterCompanyId = 1, @IncludeActive = 1, @IncludeInactive = 1
 ************************************************************************/
@@ -33,6 +35,10 @@ BEGIN
 		SELECT
 			STK.[StockLineId]								AS [StockLineId],
 			LH.[LeaseNumber]								AS [LeaseNumber],
+			STK.[PartNumber]								AS [PartNumber],
+			STK.[PNDescription]							AS [PartDescription],
+			STK.[SerialNumber]								AS [SerialNumber],
+			STK.[StockLineNumber]							AS [StockLineNumber],
 			STK.[EngineSerialNumber]						AS [EngineSn],
 			STK.[EngineModel]								AS [BaseModel],
 			STK.[EngineType]								AS [EngineType],
@@ -83,6 +89,10 @@ BEGIN
 		DECLARE @Skip INT = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 0 ELSE (ISNULL(NULLIF(@PageNumber, 0), 1) - 1) * @PageSize END;
 		-- column filters of the grid (JSON : {"engineSn":"text", ...}) - a column contains the text; dates match the usual date formats, amounts the number
 		DECLARE @f_LeaseNumber NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.leaseNumber'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
+		DECLARE @f_PartNumber NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.partNumber'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
+		DECLARE @f_PartDescription NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.partDescription'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
+		DECLARE @f_SerialNumber NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.serialNumber'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
+		DECLARE @f_StockLineNumber NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.stockLineNumber'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_EngineSn NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.engineSn'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_BaseModel NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.baseModel'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
 		DECLARE @f_EngineType NVARCHAR(400) = NULLIF(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(JSON_VALUE(@Filters, '$.engineType'))), '[', '[[]'), '%', '[%]'), '_', '[_]'), '');
@@ -103,6 +113,10 @@ BEGIN
 		SELECT
 			R.[StockLineId],
 			R.[LeaseNumber],
+			R.[PartNumber],
+			R.[PartDescription],
+			R.[SerialNumber],
+			R.[StockLineNumber],
 			R.[EngineSn],
 			R.[BaseModel],
 			R.[EngineType],
@@ -126,6 +140,10 @@ BEGIN
 		FROM #ValuationRows R
 		WHERE 1 = 1
 			AND (@f_LeaseNumber IS NULL OR R.[LeaseNumber] LIKE '%' + @f_LeaseNumber + '%')
+			AND (@f_PartNumber IS NULL OR R.[PartNumber] LIKE '%' + @f_PartNumber + '%')
+			AND (@f_PartDescription IS NULL OR R.[PartDescription] LIKE '%' + @f_PartDescription + '%')
+			AND (@f_SerialNumber IS NULL OR R.[SerialNumber] LIKE '%' + @f_SerialNumber + '%')
+			AND (@f_StockLineNumber IS NULL OR R.[StockLineNumber] LIKE '%' + @f_StockLineNumber + '%')
 			AND (@f_EngineSn IS NULL OR R.[EngineSn] LIKE '%' + @f_EngineSn + '%')
 			AND (@f_BaseModel IS NULL OR R.[BaseModel] LIKE '%' + @f_BaseModel + '%')
 			AND (@f_EngineType IS NULL OR R.[EngineType] LIKE '%' + @f_EngineType + '%')
@@ -147,6 +165,14 @@ BEGIN
 		ORDER BY
 			CASE WHEN @SortColumn = 'leaseNumber' AND @SortOrder = 'ASC' THEN R.[LeaseNumber] END ASC,
 			CASE WHEN @SortColumn = 'leaseNumber' AND @SortOrder = 'DESC' THEN R.[LeaseNumber] END DESC,
+			CASE WHEN @SortColumn = 'partNumber' AND @SortOrder = 'ASC' THEN R.[PartNumber] END ASC,
+			CASE WHEN @SortColumn = 'partNumber' AND @SortOrder = 'DESC' THEN R.[PartNumber] END DESC,
+			CASE WHEN @SortColumn = 'partDescription' AND @SortOrder = 'ASC' THEN R.[PartDescription] END ASC,
+			CASE WHEN @SortColumn = 'partDescription' AND @SortOrder = 'DESC' THEN R.[PartDescription] END DESC,
+			CASE WHEN @SortColumn = 'serialNumber' AND @SortOrder = 'ASC' THEN R.[SerialNumber] END ASC,
+			CASE WHEN @SortColumn = 'serialNumber' AND @SortOrder = 'DESC' THEN R.[SerialNumber] END DESC,
+			CASE WHEN @SortColumn = 'stockLineNumber' AND @SortOrder = 'ASC' THEN R.[StockLineNumber] END ASC,
+			CASE WHEN @SortColumn = 'stockLineNumber' AND @SortOrder = 'DESC' THEN R.[StockLineNumber] END DESC,
 			CASE WHEN @SortColumn = 'engineSn' AND @SortOrder = 'ASC' THEN R.[EngineSn] END ASC,
 			CASE WHEN @SortColumn = 'engineSn' AND @SortOrder = 'DESC' THEN R.[EngineSn] END DESC,
 			CASE WHEN @SortColumn = 'baseModel' AND @SortOrder = 'ASC' THEN R.[BaseModel] END ASC,

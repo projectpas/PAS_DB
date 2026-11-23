@@ -24,3 +24,15 @@
     CONSTRAINT [FK_AircraftHistory_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AircraftHistory_RefferenceId_ModuleId]
+    ON [dbo].[AircraftHistory]([RefferenceId] ASC, [ModuleId] ASC)
+    INCLUDE([SubRefferenceId], [FieldsName], [Activity], [CreatedDate]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_AircraftHistory_AcTailNum]
+    ON [dbo].[AircraftHistory]([AcTailNum] ASC)
+    INCLUDE([ModuleId], [Activity], [CreatedDate]);
+

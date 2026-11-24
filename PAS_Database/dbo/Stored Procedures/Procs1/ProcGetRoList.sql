@@ -34,6 +34,7 @@
 	17	 16/07/2026		Abhishek Jirawla	Added @StrictVendorId parameter to filter RO list strictly by a single VendorId, independent of the existing @VendorId condition disabled per PN-16416 (PN-16786)
 	18	 22/07/2026		Bhargav Saliya		Changed qtyShipped/qtyRemaining temp columns to DECIMAL(18,6) so they match the decimal type expected by the API (PN-17353)
 	19   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	20   24-11-2026     Moin Bloch          CreatedDate/UpdatedDate fall back to stored date when employee has no time zone
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@PageNumber int = null,
@@ -158,9 +159,9 @@ BEGIN
 				   RO.RepairOrderNumber AS RepairOrderNo,
 			       RO.OpenDate,
 				   RO.ClosedDate,
-				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
+				   CASE WHEN CAST(RO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(ISNULL(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc), RO.CreatedDate) AS DATETIME))END CreatedDate,
 				   RO.CreatedBy,
-				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
+				   CASE WHEN CAST(RO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(ISNULL(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc), RO.UpdatedDate) AS DATETIME))END UpdatedDate,
 				   RO.UpdatedBy,
 				   RO.IsActive,
 				   RO.IsDeleted,
@@ -335,9 +336,9 @@ BEGIN
 				   RO.RepairOrderNumber AS RepairOrderNo,
 			       RO.OpenDate,
 				   RO.ClosedDate,
-				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+				   CASE WHEN CAST(RO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(ISNULL(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc), RO.CreatedDate) AS DATE))END CreatedDate,
 				   RO.CreatedBy,
-				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+				   CASE WHEN CAST(RO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(ISNULL(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc), RO.UpdatedDate) AS DATE))END UpdatedDate,
 				   RO.UpdatedBy,
 				   RO.IsActive,
 				   RO.IsDeleted,

@@ -36,6 +36,8 @@
 	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
 	21  28-05-2026      Ayushi Patel        [PN-16427]Fixed bigint casting issue for quantity sorting columns
 	22   10-Sep-2026   Bhargav Saliya    [PN-17849] Part Number filter: normalize dashes(-)/slashes("\","/")/underscore(_)
+	23  24-11-2026     Moin Bloch          Modified NVARCHAR(10) to NVARCHAR(100)
+	24  24-11-2026     Moin Bloch          CreatedDate/UpdatedDate fall back to stored date when employee has no time zone
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
@@ -193,9 +195,9 @@ BEGIN
 					PO.PurchaseOrderNumber AS PurchaseOrderNo,
 					PO.OpenDate,
 					PO.ClosedDate,
-					(Cast(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+					(Cast(ISNULL(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc), PO.CreatedDate) as Date)) CreatedDate,
 					PO.CreatedBy,
-					(Cast(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+					(Cast(ISNULL(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc), PO.UpdatedDate) as Date)) UpdatedDate,
 					PO.UpdatedBy,
 					PO.IsActive,
 					PO.IsDeleted,
@@ -405,9 +407,9 @@ BEGIN
 			PO.PurchaseOrderNumber AS PurchaseOrderNo,
 			PO.OpenDate,
 			PO.ClosedDate,
-			(Cast(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+			(Cast(ISNULL(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc), PO.CreatedDate) as Date)) CreatedDate,
 			PO.CreatedBy,
-			(Cast(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+			(Cast(ISNULL(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc), PO.UpdatedDate) as Date)) UpdatedDate,
 			PO.UpdatedBy,
 			PO.IsActive,
 			PO.IsDeleted,
@@ -471,9 +473,9 @@ BEGIN
 				(SalesOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
 				(WorkOrderNumType LIKE '%' +@GlobalFilter+'%') OR      
 				(RepairOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
-				(CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR      
-				(CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
-				(CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
+				(CAST(QuantityOrdered AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%') OR      
+				(CAST(QuantityBackOrdered AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%') OR       
+				(CAST(QuantityReceived AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%') OR
 				([Priority]  LIKE '%' +@GlobalFilter+'%') OR
 				(VendorRFQPurchaseOrderNumber  LIKE '%' +@GlobalFilter+'%')))      
 			OR         
@@ -495,9 +497,9 @@ BEGIN
 				(ISNULL(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND      
 				(ISNULL(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%') AND      
 				(ISNULL(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') AND      
-				(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND       
-				(ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND       
-				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%') AND
+				(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(100)) like '%'+ @QuantityOrdered+'%') AND       
+				(ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(100)) like '%'+@QuantityBackOrdered+'%') AND       
+				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(100)) like '%'+@QuantityReceived+'%') AND
 				(ISNULL(@Priority,'') ='' OR Priority LIKE '%' + @Priority + '%') AND				
 				(ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber + '%')))  
       

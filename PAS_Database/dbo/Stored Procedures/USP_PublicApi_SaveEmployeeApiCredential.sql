@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    23/11/2026   Bhargav       Added @ClientSecret (shown on the Employee screen)
 
   EXEC [dbo].[USP_PublicApi_SaveEmployeeApiCredential] @EmployeeId = 2, @MasterCompanyId = 1, @ClientId = 'pas_1_af6cc51954e814c2fc9426d6e667f913', @ClientSecretHash = 'PBKDF2-SHA256$100000$...', @UpdatedBy = 'ADMIN User'
 ************************************************************************/
@@ -23,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_PublicApi_SaveEmployeeApiCredential]
     @MasterCompanyId  INT,
     @ClientId         VARCHAR(100),
     @ClientSecretHash VARCHAR(256),
-    @UpdatedBy        VARCHAR(256)
+    @UpdatedBy        VARCHAR(256),
+    @ClientSecret     VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -39,6 +41,7 @@ BEGIN
             UPDATE [dbo].[EmployeeApiCredential]
             SET [ClientId]           = @ClientId,
                 [ClientSecretHash]   = @ClientSecretHash,
+                [ClientSecret]       = @ClientSecret,
                 [IsApiAccessEnabled] = 1,
                 [CredentialVersion]  = [CredentialVersion] + 1,
                 [SecretRotatedDate]  = GETUTCDATE(),
@@ -49,9 +52,9 @@ BEGIN
         ELSE
         BEGIN
             INSERT INTO [dbo].[EmployeeApiCredential]
-                ([EmployeeId], [MasterCompanyId], [ClientId], [ClientSecretHash], [IsApiAccessEnabled], [CreatedBy], [UpdatedBy])
+                ([EmployeeId], [MasterCompanyId], [ClientId], [ClientSecretHash], [ClientSecret], [IsApiAccessEnabled], [CreatedBy], [UpdatedBy])
             VALUES
-                (@EmployeeId, @MasterCompanyId, @ClientId, @ClientSecretHash, 1, @UpdatedBy, @UpdatedBy);
+                (@EmployeeId, @MasterCompanyId, @ClientId, @ClientSecretHash, @ClientSecret, 1, @UpdatedBy, @UpdatedBy);
         END
 
         UPDATE [dbo].[EmployeeApiToken]
@@ -68,7 +71,7 @@ BEGIN
         DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_PublicApi_SaveEmployeeApiCredential'
-              -- @ClientSecretHash is never logged
+              -- @ClientSecretHash / @ClientSecret are never logged
               , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@EmployeeId, '') AS VARCHAR(100))
                                                    + '@Parameter2 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))
                                                    + '@Parameter3 = ''' + CAST(ISNULL(@ClientId, '') AS VARCHAR(100))

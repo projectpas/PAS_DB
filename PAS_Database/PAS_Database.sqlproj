@@ -4745,6 +4745,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftComponentMaintenanceDashboardList.sql" />
     <Build Include="dbo\Stored Procedures\USP_Agent_SearchInstalledComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_Agent_GetAircraftMaintenanceHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Agent_SearchStock.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetACAirworthinessComplianceTrackingReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderFromAircraft.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReverseSOInvoiceAccountingEntry_1.sql" />

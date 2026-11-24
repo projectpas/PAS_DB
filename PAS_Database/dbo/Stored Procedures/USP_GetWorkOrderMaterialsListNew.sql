@@ -49,6 +49,7 @@
 	38 19/AUG/2026       SUMIT KUMAR			[PN-17684] Select appropriate Notes field separately from WO material and Stockline for Material List
 	39 21/AUG/2026      Moin Bloch              [PN-17716] - Append sequence number to task name
 	40 16/Nov/2026      RAJESH GAMI             [PN-18508] Return IsCustomerSuppliedPart (Customer Supplied Part) for the Material List
+	41 24/Nov/2026      Moin Bloch              Return IsPiecePart = 1 when the Stockline was created from a Receiving Customer Work piece part
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -340,6 +341,7 @@ SET NOCOUNT ON
 					[KitQty] [decimal](18,6) NULL,
 					[ExpectedSerialNumber] [varchar](250) NULL,
 					[IsCustomerSuppliedPart] [bit] NULL,
+					[IsPiecePart] [bit] NULL,
 					[IsExchangeTender] [bit] NULL,
 					[IsKitItem] [varchar](10) NULL,
 					[IssuedStkExtendedCost] [decimal](18, 6) NULL,
@@ -616,7 +618,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [StocklineNotes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart], [IsPiecePart],
 								[IsExchangeTender],[IsKitItem], [IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -822,6 +824,7 @@ SET NOCOUNT ON
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
 						,CAST(ISNULL(WOM.IsCustomerSuppliedPart, 0) AS BIT) AS IsCustomerSuppliedPart
+						,CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ReceivingCustomerWork RCW WITH (NOLOCK) WHERE RCW.StockLineId = SL.StockLineId AND ISNULL(RCW.IsPiecePart, 0) = 1) THEN 1 ELSE 0 END AS BIT) AS IsPiecePart
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
 					    ,'No' [IsKitItem]
 						,(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS [IssuedStkExtendedCost]
@@ -875,7 +878,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart], [IsPiecePart],
 								[IsExchangeTender],[IsKitItem], [IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1069,6 +1072,7 @@ SET NOCOUNT ON
 						,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,CAST(0 AS BIT) AS IsCustomerSuppliedPart
+						,CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ReceivingCustomerWork RCW WITH (NOLOCK) WHERE RCW.StockLineId = SL.StockLineId AND ISNULL(RCW.IsPiecePart, 0) = 1) THEN 1 ELSE 0 END AS BIT) AS IsPiecePart
 						,0  AS IsExchangeTender
 						,'Yes' [IsKitItem]
 						,(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS [IssuedStkExtendedCost]
@@ -1126,7 +1130,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [Notes], [StocklineNotes], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart], [IsPiecePart],
 								[IsExchangeTender],[IsKitItem], [IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1331,6 +1335,7 @@ SET NOCOUNT ON
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
 						,CAST(ISNULL(WOM.IsCustomerSuppliedPart, 0) AS BIT) AS IsCustomerSuppliedPart
+						,CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ReceivingCustomerWork RCW WITH (NOLOCK) WHERE RCW.StockLineId = SL.StockLineId AND ISNULL(RCW.IsPiecePart, 0) = 1) THEN 1 ELSE 0 END AS BIT) AS IsPiecePart
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
 					    ,'No' [IsKitItem]
 						,(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS [IssuedStkExtendedCost]
@@ -1384,7 +1389,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber], [IsCustomerSuppliedPart], [IsPiecePart],
 								[IsExchangeTender],[IsKitItem], [IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1585,6 +1590,7 @@ SET NOCOUNT ON
 						), 0) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,CAST(0 AS BIT) AS IsCustomerSuppliedPart
+						,CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ReceivingCustomerWork RCW WITH (NOLOCK) WHERE RCW.StockLineId = SL.StockLineId AND ISNULL(RCW.IsPiecePart, 0) = 1) THEN 1 ELSE 0 END AS BIT) AS IsPiecePart
 						,0  AS IsExchangeTender
 						,'Yes' [IsKitItem]
 						,(ISNULL(MSTL.QtyIssued,0) * ISNULL(MSTL.UnitCost,0)) AS [IssuedStkExtendedCost]

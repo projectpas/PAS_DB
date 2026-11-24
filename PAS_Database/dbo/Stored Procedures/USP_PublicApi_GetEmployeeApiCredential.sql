@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    23/11/2026   Bhargav       Returns ClientSecret so the screen can show it
 
   EXEC [dbo].[USP_PublicApi_GetEmployeeApiCredential] @EmployeeId = 2, @MasterCompanyId = 1
 ************************************************************************/
@@ -29,7 +30,7 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        SELECT [EmployeeId], [ClientId], [IsApiAccessEnabled], [SecretRotatedDate], [UpdatedBy], [UpdatedDate]
+        SELECT [EmployeeId], [ClientId], [ClientSecret], [IsApiAccessEnabled], [SecretRotatedDate], [UpdatedBy], [UpdatedDate]
         FROM [dbo].[EmployeeApiCredential] WITH (NOLOCK)
         WHERE [EmployeeId] = @EmployeeId
           AND [MasterCompanyId] = @MasterCompanyId;

@@ -30,6 +30,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 19   01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ** 20   09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 21   29-09-2026   Moin Bloch			Added for 'SAR' MasterCompany
+** 22   19-11-2026   Rajesh Gami        [PN-18595] CSN / TSN / CSO / TSO are numbers now : TSN and TSO print as HH:MM (hours + minutes columns), CSN and CSO as whole numbers
 ** 22   13-10-2026   Moin Bloch			PN-18310 Added for 'SAR DER,SAR DER Rev Date, Cust DER' for SAR MasterCompany
 ** 23   22/OCT/2026	 Kishor Makwana     [PN-18321] - Added this Condition in Stockline Join (ISNULL(SL.IsSubComponent,0) =0 AND ISNULL(SL.SubComponentParentStocklineId,0) =0)
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
@@ -136,10 +137,10 @@ BEGIN
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
-			wop.TSN as TSN,              
-			CASE WHEN CHARINDEX(':', ISNULL(wop.CSN, '')) > 0 THEN LEFT(wop.CSN, CHARINDEX(':', wop.CSN) - 1) ELSE wop.CSN END AS CSN,
-			wop.TSO as TSO,              
-			CASE WHEN CHARINDEX(':', ISNULL(wop.CSO, '')) > 0 THEN LEFT(wop.CSO, CHARINDEX(':', wop.CSO) - 1) ELSE wop.CSO END AS CSO,
+			CASE WHEN wop.TSN IS NULL AND wop.TSNMM IS NULL THEN NULL ELSE CAST(CAST(ISNULL(wop.TSN,0) AS BIGINT) AS VARCHAR(20)) + ':' + RIGHT('0' + CAST(CAST(ISNULL(wop.TSNMM,0) AS INT) AS VARCHAR(10)), 2) END as TSN,              
+			CASE WHEN wop.CSN IS NULL THEN NULL WHEN wop.CSN = FLOOR(wop.CSN) THEN CAST(CAST(wop.CSN AS BIGINT) AS VARCHAR(20)) ELSE CAST(CAST(wop.CSN AS DECIMAL(18,2)) AS VARCHAR(20)) END AS CSN,
+			CASE WHEN wop.TSO IS NULL AND wop.TSOMM IS NULL THEN NULL ELSE CAST(CAST(ISNULL(wop.TSO,0) AS BIGINT) AS VARCHAR(20)) + ':' + RIGHT('0' + CAST(CAST(ISNULL(wop.TSOMM,0) AS INT) AS VARCHAR(10)), 2) END as TSO,              
+			CASE WHEN wop.CSO IS NULL THEN NULL WHEN wop.CSO = FLOOR(wop.CSO) THEN CAST(CAST(wop.CSO AS BIGINT) AS VARCHAR(20)) ELSE CAST(CAST(wop.CSO AS DECIMAL(18,2)) AS VARCHAR(20)) END AS CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              

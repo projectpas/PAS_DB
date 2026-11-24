@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
+    2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
 
   EXEC [dbo].[USP_PublicApi_GetReceivingStocklines] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
 ************************************************************************/
@@ -28,54 +29,75 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT
-        -- Ids are used by the API to attach stocklines to their PO line; not returned to clients.
-        S.[PurchaseOrderId],
-        S.[PurchaseOrderPartRecordId] AS [PurchaseOrderPartId],
-        S.[StockLineNumber],
-        S.[ControlNumber],
-        S.[IdNumber],
-        S.[SerialNumber],
-        S.[Condition],
-        S.[Quantity],
-        S.[QuantityOnHand],
-        S.[QuantityAvailable],
-        U.[StockUOM] AS [UnitOfMeasure],
-        S.[UnitCost],
-        U.[POUOM] AS [PoUnitOfMeasure],
-        [dbo].[fn_PublicApi_ConvertUOM](S.[Quantity], U.[StockUOM], U.[POUOM], 0, PO.[MasterCompanyId]) AS [PoQuantity],
-        [dbo].[fn_PublicApi_ConvertUOM](S.[UnitCost], U.[StockUOM], U.[POUOM], 1, PO.[MasterCompanyId]) AS [PoUnitCost],
-        S.[ReceiverNumber],
-        S.[ReceivedDate],
-        S.[Site],
-        S.[Warehouse],
-        S.[Location],
-        S.[Shelf],
-        S.[Bin],
-        S.[TagDate],
-        S.[TagType],
-        S.[TraceableToName],
-        S.[OwnerName],
-        S.[ObtainFromName],
-        S.[ManufacturerLotNumber],
-        S.[ManufacturingDate],
-        S.[ExpirationDate],
-        S.[CertifiedBy],
-        S.[CertifiedDate],
-        S.[ShippingReference]
-    FROM [dbo].[Stockline] S WITH (NOLOCK)
-    INNER JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
-        ON PO.[PurchaseOrderId] = S.[PurchaseOrderId] AND PO.[MasterCompanyId] = @MasterCompanyId AND PO.[IsDeleted] = 0
-    LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK)
-        ON POP.[PurchaseOrderPartRecordId] = S.[PurchaseOrderPartRecordId] AND POP.[PurchaseOrderId] = S.[PurchaseOrderId]
-    LEFT JOIN [dbo].[UnitOfMeasure] SU WITH (NOLOCK) ON SU.[UnitOfMeasureId] = S.[StockUnitOfMeasureId]
-    LEFT JOIN [dbo].[UnitOfMeasure] PU WITH (NOLOCK) ON PU.[UnitOfMeasureId] = POP.[UOMId]
-    -- Older stocklines have no stock UOM yet; their quantity is in Stockline.UnitOfMeasure.
-    CROSS APPLY (SELECT ISNULL(SU.[ShortName], NULLIF(S.[UnitOfMeasure], '')) AS [StockUOM],
-                        ISNULL(PU.[ShortName], NULLIF(POP.[UnitOfMeasure], '')) AS [POUOM]) U
-    WHERE S.[PurchaseOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@PurchaseOrderIds, ','))
-      AND S.[IsDeleted] = 0
-      AND ISNULL(S.[IsFinishGood], 0) = 0
-      AND S.[IsParent] = 1
-    ORDER BY S.[PurchaseOrderId], S.[PurchaseOrderPartRecordId], S.[StockLineId];
+    BEGIN TRY
+        SELECT
+            -- Ids are used by the API to attach stocklines to their PO line; not returned to clients.
+            S.[PurchaseOrderId],
+            S.[PurchaseOrderPartRecordId] AS [PurchaseOrderPartId],
+            S.[StockLineNumber],
+            S.[ControlNumber],
+            S.[IdNumber],
+            S.[SerialNumber],
+            S.[Condition],
+            S.[Quantity],
+            S.[QuantityOnHand],
+            S.[QuantityAvailable],
+            U.[StockUOM] AS [UnitOfMeasure],
+            S.[UnitCost],
+            U.[POUOM] AS [PoUnitOfMeasure],
+            [dbo].[fn_PublicApi_ConvertUOM](S.[Quantity], U.[StockUOM], U.[POUOM], 0, PO.[MasterCompanyId]) AS [PoQuantity],
+            [dbo].[fn_PublicApi_ConvertUOM](S.[UnitCost], U.[StockUOM], U.[POUOM], 1, PO.[MasterCompanyId]) AS [PoUnitCost],
+            S.[ReceiverNumber],
+            S.[ReceivedDate],
+            S.[Site],
+            S.[Warehouse],
+            S.[Location],
+            S.[Shelf],
+            S.[Bin],
+            S.[TagDate],
+            S.[TagType],
+            S.[TraceableToName],
+            S.[OwnerName],
+            S.[ObtainFromName],
+            S.[ManufacturerLotNumber],
+            S.[ManufacturingDate],
+            S.[ExpirationDate],
+            S.[CertifiedBy],
+            S.[CertifiedDate],
+            S.[ShippingReference]
+        FROM [dbo].[Stockline] S WITH (NOLOCK)
+        INNER JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
+            ON PO.[PurchaseOrderId] = S.[PurchaseOrderId] AND PO.[MasterCompanyId] = @MasterCompanyId AND PO.[IsDeleted] = 0
+        LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK)
+            ON POP.[PurchaseOrderPartRecordId] = S.[PurchaseOrderPartRecordId] AND POP.[PurchaseOrderId] = S.[PurchaseOrderId]
+        LEFT JOIN [dbo].[UnitOfMeasure] SU WITH (NOLOCK) ON SU.[UnitOfMeasureId] = S.[StockUnitOfMeasureId]
+        LEFT JOIN [dbo].[UnitOfMeasure] PU WITH (NOLOCK) ON PU.[UnitOfMeasureId] = POP.[UOMId]
+        -- Older stocklines have no stock UOM yet; their quantity is in Stockline.UnitOfMeasure.
+        CROSS APPLY (SELECT ISNULL(SU.[ShortName], NULLIF(S.[UnitOfMeasure], '')) AS [StockUOM],
+                            ISNULL(PU.[ShortName], NULLIF(POP.[UnitOfMeasure], '')) AS [POUOM]) U
+        WHERE S.[PurchaseOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@PurchaseOrderIds, ','))
+          AND S.[IsDeleted] = 0
+          AND ISNULL(S.[IsFinishGood], 0) = 0
+          AND S.[IsParent] = 1
+        ORDER BY S.[PurchaseOrderId], S.[PurchaseOrderPartRecordId], S.[StockLineId];
+    END TRY
+    BEGIN CATCH
+        IF @@trancount > 0
+            PRINT 'ROLLBACK'
+        DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'USP_PublicApi_GetReceivingStocklines'
+              , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))
+                                                   + '@Parameter2 = ''' + CAST(ISNULL(@PurchaseOrderIds, '') AS VARCHAR(100))
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+    END CATCH
 END

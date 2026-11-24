@@ -13,7 +13,7 @@
  ** --   --------     -------			--------------------------------
     1    25/09/2026   Kishor Makwana	CREATED [PN-18072] pre-commit invoice preview
     2    28/09/2026   Kishor Makwana	[PN-17949 follow-up] Added 'Time Usage'/'Cycle Usage' line items (billed at UsagePerUnitTimes/Cycles, base units = MAX(Minimum, MIN(Recorded, Maximum))) -
-										previously only the 'Time Overrun'/'Cycle Overrun' lines existed, so usage inside the Min/Max range never appeared or billed at all. Also tightened the Overrun lines
+										previously only the 'Time Overage'/'Cycle Overage' lines existed, so usage inside the Min/Max range never appeared or billed at all. Also tightened the Overrun lines
 										to only show when there's an actual overage (> 0, not just IS NOT NULL, which included a lot of pointless zero-value rows), and updated the fallback row's
 										exclusion filter to match. Same fix as USP_CreateLeaseBillingInvoice/ USP_GetLeaseBillingListByLeaseHeaderId/RPT_GetCommonBillingInvoicingPdfData_LeasePreview.
     3    05/10/2026   Kishor Makwana	[PN-17949] A Usage Based period line is printed as two lines: 'Usage Time' (hours x Usage per Unit - Times) and 'Usage Cycle' (cycles x Usage per Unit - Cycles).
@@ -25,6 +25,7 @@
     7    04/11/2026		Kishor Makwana		[PN-17949] A Base Rate interval line of a Usage Based stockline (Flat Rate line that carries a Base Rate and no Time / Cycle usage amount) is printed as 'Base Rate' instead of 'Flat Rate'
     8    04/11/2026		Kishor Makwana		[PN-17949] The temp table that reads USP_GetLeaseBillingListByLeaseHeaderId has the new EngineType column (after PartNumber), so the INSERT ... EXEC column count matches again
     
+    9    17/11/2026   Kishor Makwana	[PN-18565 follow-up] New EngineSerialNumber / EngineModel columns (Engine S/N and Engine Model of the lease stockline) per PN, printed in the PN header row of LeaseBilling_New.rdl / LeaseBillingPreview_New.rdl.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_LeasePreview] @LeaseHeaderId = 1, @LeaseStocklineIds = '1,2,3'
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_LeasePreview]
@@ -166,7 +167,7 @@ BEGIN
 			UNION ALL
 
 			SELECT LeaseStocklineId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-				'Overrun - Time',
+				'Overage - Time',
 				CAST(Q AS DECIMAL(18,6)),
 				CAST(COALESCE(NULLIF(TimeOverageRate, 0), TimeBillingAmount / NULLIF((TimeOver / 60.0) * Q, 0)) AS DECIMAL(18,6)),
 				TimeBillingAmount, 3, FromDate,
@@ -178,7 +179,7 @@ BEGIN
 			UNION ALL
 
 			SELECT LeaseStocklineId, ItemMasterId, PNumber, PNDescription, SerialNumber, StockLineNumber, UOM,
-				'Overrun - Cycle',
+				'Overage - Cycle',
 				CAST(Q AS DECIMAL(18,6)),
 				CAST(COALESCE(NULLIF(CycleOverageRate, 0), CycleBillingAmount / NULLIF(CycleOver * Q, 0)) AS DECIMAL(18,6)),
 				CycleBillingAmount, 4, FromDate,
@@ -204,8 +205,14 @@ BEGIN
 				LineQty AS Qty,
 				LineUnitPrice AS UnitPrice,
 				LineTotal AS Total,
-				DENSE_RANK() OVER (ORDER BY LeaseStocklineId) AS PnLineNo
-			FROM Lines
+				DENSE_RANK() OVER (ORDER BY LeaseStocklineId) AS PnLineNo,
+				ENG.EngineSerialNumber,
+				ENG.EngineModel
+			FROM Lines L
+				OUTER APPLY (SELECT LTRIM(RTRIM(S.[EngineSerialNumber])) AS EngineSerialNumber, LTRIM(RTRIM(S.[EngineModel])) AS EngineModel
+					FROM [dbo].[LeaseStockline] LSE WITH(NOLOCK)
+					INNER JOIN [dbo].[Stockline] S WITH(NOLOCK) ON S.[StockLineId] = LSE.[StockLineId]
+					WHERE LSE.[LeaseStocklineId] = L.LeaseStocklineId) ENG
 			ORDER BY LeaseStocklineId, SortOrder, SortDate;
 
 	END TRY

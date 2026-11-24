@@ -30,10 +30,15 @@
 	                                     InstalledCost/DepreciationAmount/AccumlatedDepr/NetBookValue/NBVAfterDepreciation/
 	                                     DepreciableLife are DECIMAL(18,6) and their string form can exceed 10 chars;
 	                                     widened the CAST(... AS VARCHAR(10)) filter comparisons to VARCHAR(30).
+	14   17-Nov-2026   Kishor Makwana   Process Depreciation for Lease: UNION ALL of Active lease stocklines having a Capitalized Cost
+	                                     (Stockline Unit Cost x lease qty). In Service Date = lease stockline Start Date;
+	                                     Depreciable Life / Frequency / Method / Residual % come from the Item Master Asset setup
+	                                     (ItemMaster.AssetDeprNonDeprTangibleAssetsId -> vw_DeprNonDeprTangibleAssets, as on the Item Master Asset screen). Added Source (Asset / Lease)
+	                                     and LeaseStocklineId columns Lease history is read from LeaseDepreciationHistory.
 
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
+CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 -- Add the parameters for the stored procedure here	
 @PageSize int,
 @PageNumber int,
@@ -173,7 +178,7 @@ BEGIN
 			--BEGIN TRANSACTION
 				BEGIN
 				
-					;With Result AS(
+					;With AssetResult AS(
 						SELECT DISTINCT	asm.AssetRecordId AS AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								UPPER(asm.[Name]) as Name, 
@@ -238,7 +243,9 @@ BEGIN
 								--B.DepreciationStartDate as LastDeprDate
 								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 									CASE WHEN CAST(B.DepreciationStartDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(B.DepreciationStartDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(B.DepreciationStartDate AS DATETIME)) END LastDeprDate
+								ELSE (CAST(B.DepreciationStartDate AS DATETIME)) END LastDeprDate,
+								CAST('Asset' AS VARCHAR(10)) AS Source,
+								CAST(NULL AS BIGINT) AS LeaseStocklineId
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
@@ -299,7 +306,135 @@ BEGIN
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 																AND (LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,',')))
 																AND ( ASM.DepreciationStartDate <= CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE) )
-					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
+
+					), LeaseResult AS(
+						-- [Lease] Active lease stocklines with a Capitalized Cost. Same column order as AssetResult (UNION ALL).
+						SELECT	CAST(NULL AS BIGINT) AS AssetRecordId,
+								CAST(NULL AS BIGINT) AS AssetInventoryId,
+								UPPER(LEFT(ISNULL(LSL.PNDescription, ''), 50)) AS Name,
+								UPPER(LSL.PN) AS AssetId,
+								CAST(NULL AS VARCHAR(30)) AS AlternateAssetId,
+								UPPER(maf.[Name]) AS ManufacturerName,
+								SerialNumber = UPPER(LSL.SN),
+								UPPER(CASE WHEN ISNULL(LSL.SN, '') <> '' THEN 'Yes' ELSE 'No' END) AS IsSerializedNew,
+								UPPER('No') AS CalibrationRequiredNew,
+								UPPER('Tangible') AS AssetClass,
+								UPPER('Yes') AS deprAmort,
+								AssetType = UPPER(ISNULL(dnd.TangibleClassName, '')),
+								InventoryNumber = UPPER(LH.LeaseNumber),
+								EntryDate = UPPER(CAST(ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) AS DATETIME2(7))),
+								AssetStatus = UPPER('Depreciating'),
+								InventoryStatus = UPPER('Active'),
+								CAST(NULL AS VARCHAR(30)) AS InventoryStatusId,
+								UPPER(MSL1.Code) AS CompanyName,
+								UPPER(MSL2.Code) AS BuName,
+								UPPER(MSL3.Code) AS DivName,
+								UPPER(MSL4.Code) AS DeptName,
+								LSL.MasterCompanyId AS MasterCompanyId,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(LSL.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LSL.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(LSL.CreatedDate AS DATETIME)) END CreatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(LSL.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LSL.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(LSL.UpdatedDate AS DATETIME)) END UpdatedDate,
+								UPPER(LSL.CreatedBy) AS CreatedBy,
+								UPPER(LSL.UpdatedBy) AS UpdatedBy,
+								LSL.IsActive AS IsActive,
+								LSL.IsDeleted AS IsDeleted,
+								UPPER(LSL.PN) AS ManufacturerPN,
+								CAST(NULL AS VARCHAR(30)) AS Model,
+								UPPER(ISNULL(LSL.StocklineNumber, STK.StockLineNumber)) AS StklineNumber,
+								UPPER(STK.ControlNumber) AS ControlNumber,
+								CAST(0 AS BIGINT) AS VendorId,
+								CAST(NULL AS VARCHAR(100)) AS VendorName,
+								UPPER(MSF.LastMSName) AS LastMSLevel,
+								UPPER(MSF.AllMSlevels) AS AllMSlevels,
+								UPPER(LH.ManagementStructureId) AS EntityMSID,
+								CAST(NULL AS VARCHAR(500)) AS statusNote,
+
+								X.CapitalizedCost AS InstalledCost,
+								ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) AS InServiceDate,
+								'DEPRECIATING' AS DepreciableStatus,
+
+								dnd.AssetLife AS DepreciableLife,
+								UPPER(dnd.DepreciationFrequencyName) AS DepreciationFrequencyName,
+								UPPER(CURR.Code) AS Currency,
+								UPPER(dnd.DepreciationMethodName) AS DepreciationMethod,
+								CAST(ISNULL(dnd.ResidualPercentageName, 0) AS DECIMAL(18, 6)) AS ResidualPercentage,
+
+								A.AccountingCalenderId,
+								B.DepreciationAmount,
+								B.AccumlatedDepr,
+								B.NetBookValue,
+								B.NBVAfterDepreciation,
+								B.LastDeprRunPeriod,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(B.DepreciationStartDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(B.DepreciationStartDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(B.DepreciationStartDate AS DATETIME)) END LastDeprDate,
+								CAST('Lease' AS VARCHAR(10)) AS Source,
+								LSL.LeaseStocklineId AS LeaseStocklineId
+
+							FROM [dbo].[LeaseStockline] LSL WITH(NOLOCK)
+								INNER JOIN [dbo].[LeaseHeader] LH WITH(NOLOCK) ON LH.LeaseHeaderId = LSL.LeaseHeaderId
+								INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = LSL.StockLineId
+								INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = LSL.ItemMasterId
+								-- Depreciation settings = the Item Master (Asset) setup: Asset Class/Attribute -> Method, Residual %, Asset Life, Frequency
+								-- (same view the Item Master Asset screen reads, USP_GetItemMasterAssetDetails)
+								INNER JOIN [dbo].[vw_DeprNonDeprTangibleAssets] dnd WITH(NOLOCK) ON dnd.DeprNonDeprTangibleAssetsId = IM.AssetDeprNonDeprTangibleAssetsId
+								LEFT JOIN [dbo].[Manufacturer] maf WITH(NOLOCK) ON maf.ManufacturerId = IM.ManufacturerId
+								LEFT JOIN [dbo].[Currency] CURR WITH(NOLOCK) ON CURR.CurrencyId = LH.LocalCurrencyId
+								LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON LH.ManagementStructureId = RMS.EntityStructureId
+								LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId
+								LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH(NOLOCK) ON ESS.EntityStructureId = LH.ManagementStructureId
+								LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH(NOLOCK) ON MSL1.ID = ESS.Level1Id
+								LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH(NOLOCK) ON MSL2.ID = ESS.Level2Id
+								LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH(NOLOCK) ON MSL3.ID = ESS.Level3Id
+								LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH(NOLOCK) ON MSL4.ID = ESS.Level4Id
+								OUTER APPLY [dbo].[udfGetAllEntityMSLevelString](LH.ManagementStructureId) MSF
+								CROSS APPLY (
+									-- Capitalized Cost = Unit Cost of the stockline x lease qty
+									SELECT (ISNULL(STK.[UnitCost], 0) * LSL.[QtyOrder]) AS CapitalizedCost
+								) X
+								OUTER APPLY
+								(
+									SELECT DISTINCT STRING_AGG(ISNULL(LDH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
+									FROM [dbo].[LeaseDepreciationHistory] LDH WITH (NOLOCK)
+									WHERE LDH.LeaseStocklineId = LSL.LeaseStocklineId AND LDH.IsDelete = 0
+								) A
+								OUTER APPLY
+								(
+									SELECT TOP 1 LDH.DepreciationAmount,
+													LDH.AccumlatedDepr,
+													LDH.NetBookValue,
+													LDH.NBVAfterDepreciation,
+													LDH.LastDeprRunPeriod,
+													LDH.DepreciationStartDate
+									FROM [dbo].[LeaseDepreciationHistory] LDH WITH (NOLOCK)
+									WHERE LDH.LeaseStocklineId = LSL.LeaseStocklineId AND LDH.IsDelete = 0
+									ORDER BY LDH.ID DESC
+								) B
+
+							WHERE (((dnd.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()), 112) != CONVERT(VARCHAR(6), ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)), 112)) ) OR
+									(dnd.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE)))  AS INT)) % 3 =0))  OR
+									(dnd.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE)))  AS INT)) % 12 =0)))
+									AND ((DATEDIFF(MONTH, CAST(ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE))) <= dnd.AssetLife)
+									AND (LSL.IsDeleted = @IsDeleted)
+									AND (ISNULL(LSL.LeaseStatusId, LH.LeaseStatusId) = 2)			-- Active leases only
+									AND (ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) IS NOT NULL)
+									AND (ISNULL(dnd.AssetLife, 0) > 0)
+									AND (X.CapitalizedCost > 0)
+									AND (LSL.MasterCompanyId = @MasterCompanyId)
+									AND (@IsActive IS NULL OR ISNULL(LSL.IsActive,1) = @IsActive))
+									-- not fully depreciated (depreciable amount = cost less residual %)
+									AND (B.AccumlatedDepr IS NULL OR B.AccumlatedDepr < (X.CapitalizedCost - (X.CapitalizedCost * ISNULL(dnd.ResidualPercentageName, 0) / 100.0)))
+									AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
+									AND (MSL1.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,',')))
+									AND ( ISNULL(LSL.StartDate, CAST(LH.CreatedDate AS DATE)) <= CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE) )
+					), Result AS(
+						SELECT * FROM AssetResult
+						UNION ALL
+						SELECT * FROM LeaseResult
+					)
 					SELECT * INTO #TempResult FROM  Result
 					WHERE (
 						(@GlobalFilter <> '' AND (
@@ -378,7 +513,7 @@ BEGIN
 				
 						
 						
-					SELECT @Count = COUNT(AssetInventoryId) FROM #TempResult			
+					SELECT @Count = COUNT(*) FROM #TempResult			
 
 					SELECT *, @Count AS NumberOfItems FROM #TempResult
 					ORDER BY  			
@@ -443,7 +578,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprRunPeriod')  THEN LastDeprRunPeriod END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprDate')  THEN LastDeprDate END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprDate')  THEN LastDeprDate END DESC,
+					[Source], AssetInventoryId, LeaseStocklineId
 
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

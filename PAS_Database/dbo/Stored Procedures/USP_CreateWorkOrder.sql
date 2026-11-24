@@ -33,6 +33,7 @@
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
+	PN18595 19/11/2026 Rajesh Gami      [PN-18595] CSN / TSN / CSO / TSO are numbers + TSNMM / TSOMM (minutes) in WorkOrderPartNumber; TimeLife text converted (ufn_SplitTimeText)
 	23   07/06/2026   Priyansh Patel    Fixed Available Stock Quantity Loses Decimal Precision After Work Order Reservation from LOT Module [PN-17281]
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	25   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
@@ -113,10 +114,10 @@ BEGIN
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
 	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL, @StocklineHistoryReserveActionEnum INT = 0, @StocklineHistoryIssueActionEnum INT = 0
 	DECLARE @IsFromAircraft BIT = 0
-	DECLARE @CSN VARCHAR(50) = NULL,@TSN VARCHAR(50) = NULL,@CSO VARCHAR(50) = NULL, @TSO VARCHAR(50) = NULL;
+	DECLARE @CSN DECIMAL(18,6) = NULL,@TSN DECIMAL(18,6) = NULL,@TSNMM DECIMAL(18,6) = NULL,@CSO DECIMAL(18,6) = NULL, @TSO DECIMAL(18,6) = NULL, @TSOMM DECIMAL(18,6) = NULL;  -- [PN-18595] numbers + minutes
 
 	-- From Receiving Customer 
-	SELECT @CSN = [CSN], @TSN = [TSN], @CSO = [CSO], @TSO = [TSO] FROM [dbo].[ReceivingCustomerWork] WITH (NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
+	SELECT @CSN = [CSN], @TSN = [TSN], @TSNMM = [TSNMM], @CSO = [CSO], @TSO = [TSO], @TSOMM = [TSOMM] FROM [dbo].[ReceivingCustomerWork] WITH (NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 	
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
@@ -258,10 +259,12 @@ BEGIN
 		[SerialNumber] [VARCHAR](100) NULL,
 		[MasterPartId] [BIGINT] NULL,
 		[Notes] [nvarchar](MAX) NULL,
-		[CSN] [varchar](50) NULL,
-		[TSN] [varchar](50) NULL,
-		[CSO] [varchar](50) NULL,
-		[TSO] [varchar](50) NULL,
+		[CSN] [decimal](18, 6) NULL,
+		[TSN] [decimal](18, 6) NULL,
+		[TSNMM] [decimal](18, 6) NULL,
+		[CSO] [decimal](18, 6) NULL,
+		[TSO] [decimal](18, 6) NULL,
+		[TSOMM] [decimal](18, 6) NULL,
 		[AircraftRegistryNumber] [VARCHAR](30) NULL,
 		[IsFromAircraft] [BIT] NULL,
 		[AircraftInstalledPartDetailsId] [BIGINT] NULL,
@@ -528,7 +531,7 @@ BEGIN
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,[AircraftRegistryNumber],
-		   [IsFromAircraft],[AircraftInstalledPartDetailsId],[CSN],[TSN],[CSO],[TSO],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare])
+		   [IsFromAircraft],[AircraftInstalledPartDetailsId],[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare])
 	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
 		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
@@ -537,7 +540,7 @@ BEGIN
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,[AircraftRegistryNumber],
 		   [IsFromAircraft],[AircraftInstalledPartDetailsId],
-		   @CSN,@TSN,@CSO,@TSO,[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare] FROM @tbl_WorkOrderPartNumberType
+		   @CSN,@TSN,@TSNMM,@CSO,@TSO,@TSOMM,[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare] FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -589,20 +592,36 @@ BEGIN
 		SELECT @StocklineCost = [UnitCost] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 		IF @WorkOrderTypeId = @Internal AND ISNULL(@StockLineId, 0) > 0
 		BEGIN
-			SELECT 
-				@CSN = [CyclesSinceNew],
-				@CSO = [CyclesSinceOVH],
-				@TSN = [TimeSinceNew],
-				@TSO = [TimeSinceOVH]
+			-- [PN-18595] TimeLife keeps text : cycles -> number, time ('HH:MM' or decimal hours) -> hours + minutes
+			DECLARE @TlFound BIT = 0, @TlCSN VARCHAR(50), @TlCSO VARCHAR(50), @TlTSN VARCHAR(50), @TlTSO VARCHAR(50);
+			SELECT @TlFound = 1,
+				@TlCSN = [CyclesSinceNew],
+				@TlCSO = [CyclesSinceOVH],
+				@TlTSN = [TimeSinceNew],
+				@TlTSO = [TimeSinceOVH]
 			FROM [dbo].[TimeLife] WITH (NOLOCK)
 			WHERE [StockLineId] = @StockLineId
 			  AND ISNULL([IsActive], 0) = 1
 
+			IF (@TlFound = 1)
+			BEGIN
+				SET @CSN = TRY_CAST(REPLACE(NULLIF(LTRIM(RTRIM(@TlCSN)), ''), ',', '') AS DECIMAL(18,6));
+				SET @CSO = TRY_CAST(REPLACE(NULLIF(LTRIM(RTRIM(@TlCSO)), ''), ',', '') AS DECIMAL(18,6));
+				SELECT @TSN = CASE WHEN NULLIF(LTRIM(RTRIM(@TlTSN)), '') IS NULL THEN NULL ELSE S.[Hours] END,
+					   @TSNMM = CASE WHEN NULLIF(LTRIM(RTRIM(@TlTSN)), '') IS NULL THEN NULL ELSE S.[Minutes] END
+				FROM [dbo].[ufn_SplitTimeText](@TlTSN) S;
+				SELECT @TSO = CASE WHEN NULLIF(LTRIM(RTRIM(@TlTSO)), '') IS NULL THEN NULL ELSE S.[Hours] END,
+					   @TSOMM = CASE WHEN NULLIF(LTRIM(RTRIM(@TlTSO)), '') IS NULL THEN NULL ELSE S.[Minutes] END
+				FROM [dbo].[ufn_SplitTimeText](@TlTSO) S;
+			END
+
 			UPDATE #tmprCreateWorkOrderPartNumber
 			SET [CSN] = @CSN,
 				[TSN] = @TSN,
+				[TSNMM] = @TSNMM,
 				[CSO] = @CSO,
-				[TSO] = @TSO
+				[TSO] = @TSO,
+				[TSOMM] = @TSOMM
 			WHERE [PKID] = @MinId;
 		END
 		IF(@ReceivingCustomerWorkId > 0)
@@ -688,7 +707,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,
-				[CSN],[TSN],[CSO],[TSO],[IncomingPartNumber],[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare])
+				[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],[IncomingPartNumber],[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare])
 		 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 				[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
@@ -696,7 +715,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,
-				[CSN],[TSN],[CSO],[TSO],CASE WHEN @IncomingPartNumber IS NOT NULL THEN @IncomingPartNumber ELSE [PartNumber] END,[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare]
+				[CSN],[TSN],[TSNMM],[CSO],[TSO],[TSOMM],CASE WHEN @IncomingPartNumber IS NOT NULL THEN @IncomingPartNumber ELSE [PartNumber] END,[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId],[IsFromLease],[LeaseStocklineId],[KitsToPrepare]
 		   FROM #tmprCreateWorkOrderPartNumber 
 		  WHERE [PKID] = @MinId
 

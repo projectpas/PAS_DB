@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    09-NOV-2026  Kishor Makwana    [PN-18498] Created
+    2    20-NOV-2026  RAJESH GAMI       [PN-18624] Item Master Asset parts (IsAsset = 1) are no longer excluded - Sub Components now show / are created for Asset parts too (Non-Stock stays excluded)
 
 -- EXEC [dbo].[USP_GetPOPartsWithSubComponents] @PurchaseOrderId = 2371, @MasterCompanyId = 1
 ************************************************************************/
@@ -30,7 +31,7 @@ BEGIN
 		SELECT DISTINCT POP.[PurchaseOrderPartRecordId]
 		FROM [dbo].[PurchaseOrderPart] POP WITH (NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] MIM WITH (NOLOCK) ON MIM.[ItemMasterId] = POP.[ItemMasterId]
-			AND ISNULL(MIM.[IsNonStock], 0) = 0 AND ISNULL(MIM.[IsAsset], 0) = 0
+			AND ISNULL(MIM.[IsNonStock], 0) = 0 -- [PN-18624] IsAsset parts are allowed
 		INNER JOIN [dbo].[SubComponent] SC WITH (NOLOCK) ON SC.[ItemMasterId] = POP.[ItemMasterId]
 			AND SC.[MasterCompanyId] = @MasterCompanyId AND ISNULL(SC.[IsActive], 0) = 1 AND ISNULL(SC.[IsDeleted], 0) = 0
 			AND ISNULL(SC.[IsAutoCreateStockline], 0) = 1 AND ISNULL(SC.[Quantity], 0) > 0

@@ -39,6 +39,10 @@
     4    22/10/2026     Kishor Makwana          [PN-18396] Accounting By Pass: a distribution row with IsBypassAccounting = 1 writes no journal line (same as Sales Order); when every needed row is bypassed no journal is created. AR debit excludes bypassed lines so the journal stays balanced.
     5    03/11/2026     Kishor Makwana          Accounting Entry Date = Invoice Date and Accounting Period = period of the Invoice Date (was today / current period), so an invoice
                                                  created with a back-dated Invoice Date posts into that date's batch and period
+    6    18/11/2026     Kishor Makwana          ERP standard batch header (same as Sales Order / Work Order): before a BatchHeader is inserted, look for an OPEN batch (StatusId = Open) of the same Journal Type / Module / Customer Type with EntryDate = TODAY;
+                                                 found -> no new BatchHeader, only BatchDetails + CommonBatchDetails + LeaseBatchDetails are inserted and the header TotalDebit / TotalCredit / TotalBalance are updated;
+                                                 not found -> new BatchHeader with EntryDate = today. Back-date rule same as Work Order: Accounting Period = period of the Invoice Date (error when no period is defined or the period is closed);
+                                                 BatchDetails / CommonBatchDetails TransactionDate = Invoice Date, Entry Date = today. (replaces version 5 where the Invoice Date was also the batch date)
 
 EXEC USP_BatchTriggerLeaseInvoice @BillingInvoicingId = 1, @MasterCompanyId = 1, @UpdateBy = 'ADMIN User'
 ************************************************************************/
@@ -226,10 +230,24 @@ BEGIN
 		INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON MSL.ID = ESS.Level1Id
 		WHERE ESS.EntityStructureId = @ManagementStructureId;
 
-		SELECT TOP 1 @AccountingPeriodId = AccountingCalendarId, @AccountingPeriod = PeriodName
+		-- Accounting Period = the period of the Invoice Date (Sales Order / Work Order rule): a back-dated invoice posts into its own period, which must exist and be open
+		DECLARE @IsPeriodClosed BIT = 0;
+		SELECT TOP 1 @AccountingPeriodId = AccountingCalendarId, @AccountingPeriod = PeriodName,
+			   @IsPeriodClosed = CASE WHEN UPPER(ISNULL([Status], '')) = 'CLOSED' THEN 1 ELSE 0 END
 		FROM [dbo].[AccountingCalendar] WITH (NOLOCK)
 		WHERE IsDeleted = 0 AND LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId
 		  AND CAST(@InvoiceDate AS DATE) >= CAST(FromDate AS DATE) AND CAST(@InvoiceDate AS DATE) <= CAST(ToDate AS DATE);
+
+		IF (ISNULL(@AccountingPeriodId, 0) = 0)
+		BEGIN
+			RAISERROR('No accounting period is defined for the selected Invoice Date. Please contact your administrator.', 16, 1);
+			RETURN (1);
+		END
+		IF (@IsPeriodClosed = 1)
+		BEGIN
+			RAISERROR('The accounting period covering the selected Invoice Date is closed. The invoice accounting entry cannot be posted to a closed period.', 16, 1);
+			RETURN (1);
+		END
 
 		SELECT @StatusId = Id, @StatusName = [Name] FROM [dbo].[BatchStatus] WITH (NOLOCK) WHERE [Name] = 'Open';
 		SELECT @AccountMSModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE ModuleName = 'Accounting';
@@ -242,12 +260,12 @@ BEGIN
 		WHERE CodeTypeId = @JournalCodeTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 		IF (@JournalTypeNumber IS NULL) BEGIN DROP TABLE #LeaseJournalLines; RETURN (0); END
 
-		-- ---- batch header: reuse the open batch of the invoice date for this journal type / customer type, else create one ----
+		-- ---- batch header (ERP standard): reuse today's OPEN batch of this journal type / module / customer type, else create one ----
 		DECLARE @JournalBatchHeaderId BIGINT, @IsBatchGenerated BIT = 0, @CurrentPeriodId BIGINT = 0;
 		SELECT TOP 1 @JournalBatchHeaderId = JournalBatchHeaderId, @CurrentPeriodId = ISNULL(AccountingPeriodId, 0)
 		FROM [dbo].[BatchHeader] WITH (NOLOCK)
-		WHERE JournalTypeId = @JournalTypeId AND MasterCompanyId = @MasterCompanyId AND CAST(EntryDate AS DATE) = CAST(@InvoiceDate AS DATE)
-		  AND StatusId = @StatusId AND ISNULL(CustomerTypeId, 0) = ISNULL(@CustomerTypeId, 0) AND IsDeleted = 0
+		WHERE JournalTypeId = @JournalTypeId AND MasterCompanyId = @MasterCompanyId AND CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)
+		  AND StatusId = @StatusId AND [Module] = @JournalTypeCode AND ISNULL(CustomerTypeId, 0) = ISNULL(@CustomerTypeId, 0) AND IsDeleted = 0
 		ORDER BY JournalBatchHeaderId DESC;
 
 		IF (@JournalBatchHeaderId IS NULL)
@@ -261,7 +279,7 @@ BEGIN
 				([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],[AccountingPeriodId],[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],
 				 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module],[CustomerTypeId])
 			VALUES
-				(@BatchName,@BatchNo,@InvoiceDate,@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,
+				(@BatchName,@BatchNo,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypeName,0,0,0,
 				 @MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode,@CustomerTypeId);
 			SET @JournalBatchHeaderId = SCOPE_IDENTITY();
 		END
@@ -284,7 +302,7 @@ BEGIN
 			 [JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],[ModuleName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
 			 [IsActive],[IsDeleted],[AccountingPeriodId],[AccountingPeriod],[LastMSLevel],[AllMSlevels])
 		VALUES
-			(@JournalTypeNumber,@currentNo,0,NULL,@JournalBatchHeaderId,1,0,NULL,NULL,@InvoiceDate,@InvoiceDate,
+			(@JournalTypeNumber,@currentNo,0,NULL,@JournalBatchHeaderId,1,0,NULL,NULL,@InvoiceDate,GETUTCDATE(),
 			 @JournalTypeId,@JournalTypeName,1,0,0,0,@ModuleName,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),
 			 1,0,@AccountingPeriodId,@AccountingPeriod,@LastMSLevel,@AllMSlevels);
 		SET @JournalBatchDetailId = SCOPE_IDENTITY();
@@ -331,7 +349,7 @@ BEGIN
 					 [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,@LineNo,@GlAccountId,@GlAccountNumber,@GlAccountName,
-					 @InvoiceDate,@InvoiceDate,@JournalTypeId,@JournalTypeName,
+					 @InvoiceDate,GETUTCDATE(),@JournalTypeId,@JournalTypeName,
 					 CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					 CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 					 CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -385,6 +403,13 @@ BEGIN
 		IF OBJECT_ID(N'tempdb..#LeaseJournalLines') IS NOT NULL DROP TABLE #LeaseJournalLines;
 		IF OBJECT_ID(N'tempdb..#RawJournalLines') IS NOT NULL DROP TABLE #RawJournalLines;
 		IF OBJECT_ID(N'tempdb..#InvLines') IS NOT NULL DROP TABLE #InvLines;
+		-- accounting period validation messages are shown to the user as they are (not logged as an unexpected error)
+		DECLARE @PeriodErrMsg NVARCHAR(2000) = ERROR_MESSAGE();
+		IF (@PeriodErrMsg LIKE 'No accounting period is defined%' OR @PeriodErrMsg LIKE 'The accounting period covering%')
+		BEGIN
+			RAISERROR(@PeriodErrMsg, 16, 1);
+			RETURN (1);
+		END
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = DB_NAME()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			, @AdhocComments VARCHAR(150) = 'USP_BatchTriggerLeaseInvoice'

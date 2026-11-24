@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetStocklineList]
  ** Author: Moin Bloch
- ** Description: 4.7 GET /api/v1/stocklines. Rows of the PAS Stockline List, limited to the credential employee's management structures.
+ ** Description: GET /api/v1/stocklines. Rows of the PAS Stockline List, limited to the credential employee's management structures.
  **              @OnHandOnly = 1 is the PAS "Qty OH" view (QuantityOnHand > 0, the screen default), 0 is "All".
  **              @PartNumber / @SerialNumber match anywhere in the value; @StockLineNumber / @Condition are exact;
  **              Stock and Non-Stock stocklines only (no Assets); @ItemType is Stock or Non-Stock (as shown in PAS).
@@ -21,6 +21,7 @@
     2    19/11/2026   Moin Bloch    Added received date filter (@ReceivedDateFrom / @ReceivedDateTo)
     3    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
     4    23/11/2026   Moin Bloch    Stock and Non-Stock only; fields as requested (classification, order date, ordered by,
+    5    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
                                     quantity, vendor, received by, GL account, certificate type)
 
   EXEC [dbo].[USP_PublicApi_GetStocklineList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
@@ -43,7 +44,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @MSModuleId INT = 2; -- Stockline (StocklineManagementStructureDetails.ModuleID), as in ProcStockList
+        -- Stockline management structure module (StocklineManagementStructureDetails.ModuleID), as in ProcStockList.
+        DECLARE @MSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                  WHERE [ModuleName] = 'Stockline');
 
         ;WITH Filtered AS
         (

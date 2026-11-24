@@ -1,8 +1,7 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetRepairOrderList]
  ** Author: Moin Bloch
- ** Description: 4.21 RO headers, oldest first. Limited to the management structures of the employee's roles, like
+ ** Description: RO headers, oldest first. Limited to the management structures of the employee's roles, like
  **              ProcGetRoList. @Status is the RO status (Open, Pending, Fulfilling, Closed, Canceled).
  **              @OpenDateFrom / @OpenDateTo: open date range, both inclusive (dates only).
  **              PartsCount / TotalPartsCost count main lines only (split lines repeat the quantity).
@@ -17,6 +16,7 @@
  ** --   --------     -------		--------------------------------
     1    18/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetRepairOrderList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -34,7 +34,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @MSModuleId INT = 24; -- Repair Order (RepairOrderManagementStructureDetails.ModuleID), as in ProcGetRoList
+        -- Repair Order management structure module (RepairOrderManagementStructureDetails.ModuleID), as in ProcGetRoList.
+        DECLARE @MSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                  WHERE [ModuleName] = 'ROHeader');
         DECLARE @ShipViaModuleId BIGINT = (SELECT TOP (1) [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'RepairOrder' AND [CodePrefix] = 'RO');
 
         ;WITH PagedRO AS

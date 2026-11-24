@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetEmployeeList]
  ** Author: Moin Bloch
- ** Description: 4.28 Employees like the PAS Employee List, oldest first. @EmployeeId is the credential employee (its roles'
+ ** Description: Employees like the PAS Employee List, oldest first. @EmployeeId is the credential employee (its roles'
  **              management structures). @EmployeeCode is exact; @IsActive NULL = active and inactive.
  **              Expertise is the employee's expertise list (EmployeeExpertiseMapping), as PAS shows it.
  **              SUPERADMIN credential employee: same rules as the PAS screen for a SUPERADMIN user (IsSuperAdmin = 1).
@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    23/11/2026   Moin Bloch    Created
+    2    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetEmployeeList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -30,7 +31,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @MSModuleId INT = 47; -- Employee (EmployeeManagementStructureDetails.ModuleID), as in ProceEmployeeList
+        -- Employee management structure module (EmployeeManagementStructureDetails.ModuleID), as in ProceEmployeeList.
+        DECLARE @MSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                  WHERE [ModuleName] = 'EmployeeGeneralInfo');
 
         -- Same check as the PAS Employee List screen: the user's roles (as PAS puts them in the login token) include SUPERADMIN.
         DECLARE @IsSuperAdmin BIT = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[EmployeeUserRole] R WITH (NOLOCK)

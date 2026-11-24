@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetWorkOrderQuoteList]
  ** Author: Moin Bloch
- ** Description: 4.23 Quote headers of the company, oldest first. Same quotes as the PAS Work Order Quote list (GetWorkOrderQuoteList).
+ ** Description: Quote headers of the company, oldest first. Same quotes as the PAS Work Order Quote list (GetWorkOrderQuoteList).
  **              @Status is the quote status (Open, Closed, Cancelled, Delayed, Approved, Pending).
  **              @OpenDateFrom / @OpenDateTo: open date range, both inclusive (dates only).
  **              QuoteDate = when the quote was entered in PAS; management structure = the first quoted part's.
@@ -17,6 +17,7 @@
     1    18/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
     3    23/11/2026   Moin Bloch    Fields as requested (quote date, customer type, created by, management structure)
+    4    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetWorkOrderQuoteList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -34,7 +35,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @WOMSModuleId INT = 12; -- WorkOrderMPN (WorkOrderManagementStructureDetails.ModuleID)
+        -- WorkOrderMPN management structure module (WorkOrderManagementStructureDetails.ModuleID).
+        DECLARE @WOMSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                    WHERE [ModuleName] = 'WorkOrderMPN');
 
         ;WITH PagedQuote AS
         (

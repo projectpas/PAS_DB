@@ -1,8 +1,7 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetSalesOrderList]
  ** Author: Moin Bloch
- ** Description: 4.8 GET /api/v1/salesorders. SO headers the employee can see (same rules as the PAS Sales Order list). SalesOrderAmount = sum of the part lines' net sale amount
+ ** Description: SO headers the employee can see. SalesOrderAmount = sum of the part lines' net sale amount
  **              (the PAS list "SO Amount").
  **              @OpenDateFrom / @OpenDateTo: open date range, both inclusive (dates only).
  ** Purpose: PAS_PUBLIC_API - GET /api/v1/salesorders (headers)
@@ -17,6 +16,7 @@
     1    09/11/2026   Moin Bloch    Created
     2    18/11/2026   Moin Bloch    Added open date filter (@OpenDateFrom / @OpenDateTo)
     3    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    4    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetSalesOrderList] @MasterCompanyId = 1, @EmployeeId = 2, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -34,7 +34,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @MSModuleId INT = 17; -- Sales Order (SalesOrderManagementStructureDetails.ModuleID), as in SearchSOViewData
+        -- Sales Order management structure module (SalesOrderManagementStructureDetails.ModuleID), as in SearchSOViewData; the name is stored with a trailing space.
+        DECLARE @MSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                  WHERE LTRIM(RTRIM([ModuleName])) = 'SalesOrder');
 
         ;WITH PagedSO AS
         (

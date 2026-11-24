@@ -3925,6 +3925,7 @@
     <Build Include="dbo\Tables\BillingInvoicingItems.sql" />
     <Build Include="dbo\Tables\BillingInvoicingDetails.sql" />
     <Build Include="dbo\Tables\BillingInvoicing.sql" />
+    <Build Include="dbo\Tables\BillingInvoicingAudit.sql" />
     <Build Include="dbo\Functions\FN_ValidatePDFAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingPdfPath.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonTermsConditionDescriptionById.sql" />

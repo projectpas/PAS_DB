@@ -4757,6 +4757,8 @@
     <Build Include="dbo\Stored Procedures\USP_CancelSalesOrderShipping.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddSOShippingStatusAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSalesOrderInvoice_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenVendorProformaInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReverseVendorProformaInvoiceAccountingEntry.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportCashPosted.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetLotCommissionReportInvoiceDate.sql" />
@@ -5014,6 +5016,9 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeApiRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetBillingInvoicingParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetBillingInvoicingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeList.sql" />
     <Build Include="dbo\Tables\StocklineAssetDepreciationHistory.sql" />
     <Build Include="dbo\Tables\StocklineAssetConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveStocklineAssetDepreciation.sql" />

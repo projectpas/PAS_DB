@@ -13,7 +13,8 @@
  **********************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------		--------------------------------            
- 1    23-Dec-2024   Rajesh Gami		 Created  
+ 1    23-Dec-2024   Rajesh Gami		 Created
+ 2    19-Nov-2026   Moin Bloch		 Added IsReversedJE (Re-Open reversal entries)
 
   exec [GetVendorProformaAccountintDetailsById] 1
 ************************/  
@@ -67,6 +68,7 @@ BEGIN
           ,le.CompanyName AS LegalEntityName  
 		  ,BD.AccountingPeriod AS 'AccountingPeriod'
 		  ,BS.Name AS 'Status'
+		  ,ISNULL(BD.[IsReversedJE], 0) AS IsReversedJE
 		  ,UPPER(@DocNum) AS 'ReferenceName'
 		  ,UPPER(NPD.[VendorName]) AS [VendorName]
 		  ,UPPER(CU.[Code]) AS 'Currency'

@@ -10,6 +10,7 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_PublicationSettings_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]        BIT           CONSTRAINT [DF_PublicationSettings_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [DF_PublicationSettings_IsDelete] DEFAULT ((0)) NOT NULL,
+    [IsAutoAssignSBADApplicability] BIT CONSTRAINT [DF_PublicationSettings_IsAutoAssignSBADApplicability] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_PublicationSettings] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [FK_PublicationSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

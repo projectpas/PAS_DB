@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    12/11/2026   Moin Bloch    Created
+    2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
 
   EXEC [dbo].[USP_PublicApi_GetWorkOrderMaterials] @MasterCompanyId = 1, @WorkOrderIds = '690'
 ************************************************************************/
@@ -25,61 +26,82 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    ;WITH Materials AS
-    (
-        SELECT CAST(0 AS BIT) AS [IsKit], M.[WorkOrderMaterialsId] AS [MaterialId], NULL AS [KitNumber],
-               M.[WorkOrderId], M.[WorkFlowWorkOrderId], M.[ItemMasterId], M.[ConditionCodeId], M.[TaskId], M.[ProvisionId],
-               M.[MaterialMandatoriesId], M.[ItemClassificationId], M.[Quantity], M.[QuantityReserved], M.[QuantityIssued],
-               M.[UnitCost], M.[ExtendedCost], M.[IsDeferred], M.[IsAltPart], M.[IsEquPart], M.[PONum], M.[QtyOnOrder]
-        FROM [dbo].[WorkOrderMaterials] M WITH (NOLOCK)
-        WHERE M.[WorkOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@WorkOrderIds, ',')) AND M.[IsDeleted] = 0
-        UNION ALL
-        SELECT CAST(1 AS BIT), K.[WorkOrderMaterialsKitId], KM.[KitNumber],
-               K.[WorkOrderId], K.[WorkFlowWorkOrderId], K.[ItemMasterId], K.[ConditionCodeId], K.[TaskId], K.[ProvisionId],
-               K.[MaterialMandatoriesId], K.[ItemClassificationId], K.[Quantity], K.[QuantityReserved], K.[QuantityIssued],
-               K.[UnitCost], K.[ExtendedCost], K.[IsDeferred], K.[IsAltPart], K.[IsEquPart], K.[PONum], K.[QtyOnOrder]
-        FROM [dbo].[WorkOrderMaterialsKit] K WITH (NOLOCK)
-        LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] KM WITH (NOLOCK) ON KM.[WorkOrderMaterialsKitMappingId] = K.[WorkOrderMaterialsKitMappingId]
-        WHERE K.[WorkOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@WorkOrderIds, ',')) AND K.[IsDeleted] = 0
-    )
-    SELECT
-        -- Ids are used by the API to attach materials to their part and stocklines to their material; not returned to clients.
-        WF.[WorkOrderPartNoId] AS [WorkOrderPartNumberId],
-        M.[IsKit],
-        M.[MaterialId],
-        M.[KitNumber],
-        IM.[partnumber] AS [PartNumber],
-        IM.[PartDescription],
-        IM.[ManufacturerName] AS [Manufacturer],
-        IC.[Description] AS [ItemClassification],
-        CD.[Description] AS [Condition],
-        CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS [Task],
-        PR.[Description] AS [Provision],
-        MM.[Name] AS [MandatoryOrSupplemental],
-        CAST(ISNULL(M.[IsDeferred], 0) AS BIT) AS [IsDeferred],
-        CAST(ISNULL(M.[IsAltPart], 0) AS BIT) AS [IsAltPart],
-        CAST(ISNULL(M.[IsEquPart], 0) AS BIT) AS [IsEquPart],
-        U.[ToUOM] AS [UnitOfMeasure],
-        [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[Quantity], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityRequired],
-        [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QuantityReserved], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityReserved],
-        [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QuantityIssued], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityIssued],
-        [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QtyOnOrder], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityOnOrder],
-        [dbo].[fn_PublicApi_ConvertUOM](M.[UnitCost], U.[FromUOM], U.[ToUOM], 1, WO.[MasterCompanyId]) AS [UnitCost],
-        M.[ExtendedCost],
-        M.[PONum] AS [PurchaseOrderNumber]
-    FROM Materials M
-    INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK)
-        ON WO.[WorkOrderId] = M.[WorkOrderId] AND WO.[MasterCompanyId] = @MasterCompanyId AND WO.[IsDeleted] = 0
-    INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH (NOLOCK) ON WF.[WorkFlowWorkOrderId] = M.[WorkFlowWorkOrderId]
-    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = M.[ItemMasterId]
-    LEFT JOIN [dbo].[ItemClassification] IC WITH (NOLOCK) ON IC.[ItemClassificationId] = M.[ItemClassificationId]
-    LEFT JOIN [dbo].[Condition] CD WITH (NOLOCK) ON CD.[ConditionId] = M.[ConditionCodeId]
-    LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.[TaskId] = M.[TaskId]
-    LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = M.[TaskId]
-    LEFT JOIN [dbo].[Provision] PR WITH (NOLOCK) ON PR.[ProvisionId] = M.[ProvisionId]
-    LEFT JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = M.[MaterialMandatoriesId]
-    -- Same UOMs as the PAS material list: non-stock items use the purchase UOM.
-    CROSS APPLY (SELECT CASE WHEN ISNULL(IM.[IsNonStock], 0) = 1 THEN IM.[PurchaseUnitOfMeasure] ELSE IM.[StockUnitOfMeasure] END AS [FromUOM],
-                        CASE WHEN ISNULL(IM.[IsNonStock], 0) = 1 THEN IM.[PurchaseUnitOfMeasure] ELSE IM.[ConsumeUnitOfMeasure] END AS [ToUOM]) U
-    ORDER BY WF.[WorkOrderPartNoId], M.[IsKit], M.[KitNumber], M.[MaterialId];
+    BEGIN TRY
+        ;WITH Materials AS
+        (
+            SELECT CAST(0 AS BIT) AS [IsKit], M.[WorkOrderMaterialsId] AS [MaterialId], NULL AS [KitNumber],
+                   M.[WorkOrderId], M.[WorkFlowWorkOrderId], M.[ItemMasterId], M.[ConditionCodeId], M.[TaskId], M.[ProvisionId],
+                   M.[MaterialMandatoriesId], M.[ItemClassificationId], M.[Quantity], M.[QuantityReserved], M.[QuantityIssued],
+                   M.[UnitCost], M.[ExtendedCost], M.[IsDeferred], M.[IsAltPart], M.[IsEquPart], M.[PONum], M.[QtyOnOrder]
+            FROM [dbo].[WorkOrderMaterials] M WITH (NOLOCK)
+            WHERE M.[WorkOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@WorkOrderIds, ',')) AND M.[IsDeleted] = 0
+            UNION ALL
+            SELECT CAST(1 AS BIT), K.[WorkOrderMaterialsKitId], KM.[KitNumber],
+                   K.[WorkOrderId], K.[WorkFlowWorkOrderId], K.[ItemMasterId], K.[ConditionCodeId], K.[TaskId], K.[ProvisionId],
+                   K.[MaterialMandatoriesId], K.[ItemClassificationId], K.[Quantity], K.[QuantityReserved], K.[QuantityIssued],
+                   K.[UnitCost], K.[ExtendedCost], K.[IsDeferred], K.[IsAltPart], K.[IsEquPart], K.[PONum], K.[QtyOnOrder]
+            FROM [dbo].[WorkOrderMaterialsKit] K WITH (NOLOCK)
+            LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] KM WITH (NOLOCK) ON KM.[WorkOrderMaterialsKitMappingId] = K.[WorkOrderMaterialsKitMappingId]
+            WHERE K.[WorkOrderId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@WorkOrderIds, ',')) AND K.[IsDeleted] = 0
+        )
+        SELECT
+            -- Ids are used by the API to attach materials to their part and stocklines to their material; not returned to clients.
+            WF.[WorkOrderPartNoId] AS [WorkOrderPartNumberId],
+            M.[IsKit],
+            M.[MaterialId],
+            M.[KitNumber],
+            IM.[partnumber] AS [PartNumber],
+            IM.[PartDescription],
+            IM.[ManufacturerName] AS [Manufacturer],
+            IC.[Description] AS [ItemClassification],
+            CD.[Description] AS [Condition],
+            CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS [Task],
+            PR.[Description] AS [Provision],
+            MM.[Name] AS [MandatoryOrSupplemental],
+            CAST(ISNULL(M.[IsDeferred], 0) AS BIT) AS [IsDeferred],
+            CAST(ISNULL(M.[IsAltPart], 0) AS BIT) AS [IsAltPart],
+            CAST(ISNULL(M.[IsEquPart], 0) AS BIT) AS [IsEquPart],
+            U.[ToUOM] AS [UnitOfMeasure],
+            [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[Quantity], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityRequired],
+            [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QuantityReserved], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityReserved],
+            [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QuantityIssued], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityIssued],
+            [dbo].[fn_PublicApi_ConvertUOM](ISNULL(M.[QtyOnOrder], 0), U.[FromUOM], U.[ToUOM], 0, WO.[MasterCompanyId]) AS [QuantityOnOrder],
+            [dbo].[fn_PublicApi_ConvertUOM](M.[UnitCost], U.[FromUOM], U.[ToUOM], 1, WO.[MasterCompanyId]) AS [UnitCost],
+            M.[ExtendedCost],
+            M.[PONum] AS [PurchaseOrderNumber]
+        FROM Materials M
+        INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK)
+            ON WO.[WorkOrderId] = M.[WorkOrderId] AND WO.[MasterCompanyId] = @MasterCompanyId AND WO.[IsDeleted] = 0
+        INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH (NOLOCK) ON WF.[WorkFlowWorkOrderId] = M.[WorkFlowWorkOrderId]
+        LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = M.[ItemMasterId]
+        LEFT JOIN [dbo].[ItemClassification] IC WITH (NOLOCK) ON IC.[ItemClassificationId] = M.[ItemClassificationId]
+        LEFT JOIN [dbo].[Condition] CD WITH (NOLOCK) ON CD.[ConditionId] = M.[ConditionCodeId]
+        LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.[TaskId] = M.[TaskId]
+        LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = M.[TaskId]
+        LEFT JOIN [dbo].[Provision] PR WITH (NOLOCK) ON PR.[ProvisionId] = M.[ProvisionId]
+        LEFT JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = M.[MaterialMandatoriesId]
+        -- Same UOMs as the PAS material list: non-stock items use the purchase UOM.
+        CROSS APPLY (SELECT CASE WHEN ISNULL(IM.[IsNonStock], 0) = 1 THEN IM.[PurchaseUnitOfMeasure] ELSE IM.[StockUnitOfMeasure] END AS [FromUOM],
+                            CASE WHEN ISNULL(IM.[IsNonStock], 0) = 1 THEN IM.[PurchaseUnitOfMeasure] ELSE IM.[ConsumeUnitOfMeasure] END AS [ToUOM]) U
+        ORDER BY WF.[WorkOrderPartNoId], M.[IsKit], M.[KitNumber], M.[MaterialId];
+    END TRY
+    BEGIN CATCH
+        IF @@trancount > 0
+            PRINT 'ROLLBACK'
+        DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'USP_PublicApi_GetWorkOrderMaterials'
+              , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))
+                                                   + '@Parameter2 = ''' + CAST(ISNULL(@WorkOrderIds, '') AS VARCHAR(100))
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+    END CATCH
 END

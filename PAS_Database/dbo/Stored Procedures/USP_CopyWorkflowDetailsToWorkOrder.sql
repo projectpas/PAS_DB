@@ -29,6 +29,7 @@
 	13    13/08/2026   Rajesh Gami    [PN-17008] - Added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter to the @IsIgnorePartExist ItemMaster EXISTS checks (DER/PMA cases)
 	14   21/08/2026   SUMIT KUMAR		Append the sequence of task just after existing task seq [PN-17753].
 	15   04-Sep-2026   SUMIT KUMAR		Copy images from WorkFlowDirectionImage to WorkOrderTaskInstructionImage [PN-17814].
+	16   17-Nov-2026    RAJESH GAMI    Fixed NULL UnitCost and ExtendedCost values while copying workflow materials to WorkOrderMaterials.
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -677,7 +678,7 @@ SET NOCOUNT ON;
 									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
-							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, Notes, IsDeferred, WorkflowMaterialListId
+							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity,ISNULL(WM.UnitCost, 0) AS UnitCost,ISNULL(WM.ExtendedCost, 0) ExtendedCost, WM.MaterialMandatoriesName, Memo, Notes, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
 							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
 							WHERE WM.WorkflowId = @WorkflowId AND ISNULL(WM.IsDeleted, 0) = 0

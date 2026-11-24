@@ -20,6 +20,7 @@
 	8    13/Aug/2026   RAJESH GAMI    [PN-17008] - Re-added missing ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 filter on the ItemMaster lookup that was dropped when this proc was ported from BETA.
 	9    25/09/2026   Ayushi Patel    [PN-18075] Set ConsumeUnitOfMeasureId from ItemMaster (was always 0) and refresh Stockline columns on update
 	10   12/11/2026   RAJESH GAMI    [PN-18508] Receive Customer Supplied Materials against a Work Order: new optional @CustomerSuppliedWorkOrderId / @CSPMapJson. When passed, each created stockline is flagged Customer Stock and linked to that WO (Stockline.CustomerSuppliedWorkOrderId / ...MaterialsId) and a 2nd result set returns the created stocklines. Without them nothing changes.
+	11   17/11/2026   RAJESH GAMI    [PN-18508] Qty Received allows decimals: Quantity INT -> DECIMAL(18,6) (table type + temp table + variable)
  ** -----------------------------------------------------------          
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -76,7 +77,7 @@ BEGIN
 				[RevisePartId] [bigint] NULL,
 				[IsSerialized] [bit] NULL,
 				[SerialNumber] [varchar](100) NULL,
-				[Quantity] [int] NULL,
+				[Quantity] [decimal](18,6) NULL,
 				[UnitCost] [decimal](18,2) NULL,
 				[ExtendedCost] [decimal](18,2) NULL,
 				[ConditionId] [bigint] NULL,
@@ -239,7 +240,7 @@ BEGIN
 				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT
 				DECLARE @PreviousStockLineNumber VARCHAR(50);
-				DECLARE @Quantity INT = 0;
+				DECLARE @Quantity DECIMAL(18,6) = 0;
 				DECLARE @ShelfLife BIT,@IsHazardousMaterial BIT,@IsPMA BIT,@IsDER BIT,@OEM BIT,@IsTimeLIfe BIT,@TimeLifeDetailsNotProvided BIT
 				DECLARE @ConsumeUnitOfMeasureId BIGINT = 0;
 

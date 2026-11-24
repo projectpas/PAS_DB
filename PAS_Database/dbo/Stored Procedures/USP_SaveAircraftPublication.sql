@@ -12,6 +12,7 @@ Exec [USP_SaveAircraftPublication]
    1    01/05/2026  Amit Ghediya		Created
    2    27/05/2026  Code Review			Removed READ UNCOMMITTED isolation; atomic code number generation via UPDATE OUTPUT
    3    08/07/2026  Amit Ghediya		Added Applicability,MEL [PN-17157]
+   4    17/11/2026  Vishal Suthar		[PN-18547] Keep Applicability once set (it can be set automatically)
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftPublication]
@@ -52,7 +53,7 @@ BEGIN
 				AP.VerifiedBy = T.VerifiedBy,
 				AP.UpdatedBy = T.UpdatedBy,
 				AP.UpdatedDate = GETUTCDATE(),
-				AP.Applicability = T.Applicability,
+				AP.Applicability = CASE WHEN ISNULL(AP.Applicability, 0) = 1 THEN 1 ELSE T.Applicability END,
 				AP.MEL = T.MEL
 			FROM [dbo].[AircraftPublication] AP
 			INNER JOIN @tbl_AircraftPublicationType T

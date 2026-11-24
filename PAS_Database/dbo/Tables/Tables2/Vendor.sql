@@ -15,7 +15,7 @@
     [IsVendorAlsoCustomer]    BIT             CONSTRAINT [Vendor_DC_IsVendorAlsoCustomer] DEFAULT ((0)) NOT NULL,
     [RelatedCustomerId]       BIGINT          NULL,
     [IsAllowNettingAPAR]      BIT             CONSTRAINT [DF__Vendor__IsAllowN__54AC64D5] DEFAULT ((0)) NOT NULL,
-    [VendorContractReference] VARCHAR (30)    NULL,
+    [VendorContractReference] VARCHAR (100)   NULL,
     [IsPreferredVendor]       BIT             CONSTRAINT [Vendor_DC_IsPreferredVendor] DEFAULT ((0)) NOT NULL,
     [LicenseNumber]           VARCHAR (30)    NULL,
     [VendorURL]               VARCHAR (100)   NULL,

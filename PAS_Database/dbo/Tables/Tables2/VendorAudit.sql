@@ -16,7 +16,7 @@
     [IsVendorAlsoCustomer]    BIT             NOT NULL,
     [RelatedCustomerId]       BIGINT          NULL,
     [IsAllowNettingAPAR]      BIT             NOT NULL,
-    [VendorContractReference] VARCHAR (30)    NULL,
+    [VendorContractReference] VARCHAR (100)   NULL,
     [IsPreferredVendor]       BIT             NOT NULL,
     [LicenseNumber]           VARCHAR (30)    NULL,
     [VendorURL]               VARCHAR (50)    NULL,

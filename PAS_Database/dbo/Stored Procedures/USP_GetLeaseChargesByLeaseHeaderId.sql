@@ -12,6 +12,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    17/09/2026     Amit Ghediya            Created
+    2    19/11/2026     Vishal Suthar           [PN-18597] - GL Account saved on the lease charge (Charge setup for older rows), shown as Code - Name
 
 exec USP_GetLeaseChargesByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -32,7 +33,7 @@ BEGIN
 			LC.ReportedDate,
 			LC.ChargesTypeId,
 			CH.ChargeType,
-			ISNULL(GL.AccountName, '') AS GLAccountName,
+			ISNULL(GL.AccountCode + ' - ' + GL.AccountName, '') AS GLAccountName,
 			LC.Description,
 			LC.UOMId,
 			ISNULL(UOM.ShortName, '') AS UOM,
@@ -45,7 +46,7 @@ BEGIN
 		JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = LC.LeaseStocklineId
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		JOIN [dbo].[Charge] CH WITH (NOLOCK) ON CH.ChargeId = LC.ChargesTypeId
-		LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON GL.GLAccountId = CH.GLAccountId
+		LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON GL.GLAccountId = ISNULL(LC.GLAccountId, CH.GLAccountId)
 		LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = LC.UOMId
 		LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = LC.VendorId
 		WHERE LC.LeaseHeaderId = @LeaseHeaderId

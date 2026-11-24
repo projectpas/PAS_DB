@@ -17,6 +17,7 @@
 	7    27-July-2026      SUMIT                    Added notes field in material list [PN-16818]
 	8    29-JUN-2026	   Moin Bloch		        Added MaintenanceType PN-17043
 	9    02-Sep-2026       SUMIT KUMAR              [PN-17813] Copy direction images (WorkFlowDirectionImage) when creating a new workflow version
+	10   21-Nov-2026       Vishal Suthar            Charges / Directions: duplicate rows sent for the same workflow line are merged once (MERGE failed on them)
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
 	@tbl_WorkFlowType WorkFlowType READONLY,
@@ -226,7 +227,12 @@ BEGIN
 				IF EXISTS(SELECT 1 FROM [dbo].[WorkflowChargesList] WITH(NOLOCK) WHERE [WorkflowId] = @workFlowMainId AND ISNULL([IsVersionIncrease],0) = 0)
 				BEGIN				
 					MERGE INTO [DBO].[WorkflowChargesList] AS [Target]
-					USING @tbl_WorkflowChargesListType AS [Source] ON (TARGET.WorkflowId = SOURCE.WorkflowId AND TARGET.WorkflowChargesListId = SOURCE.WorkflowChargesListId)
+					
+					--USING @tbl_WorkflowChargesListType AS [Source] ON (TARGET.WorkflowId = SOURCE.WorkflowId AND TARGET.WorkflowChargesListId = SOURCE.WorkflowChargesListId)
+					USING (SELECT * FROM (SELECT S.*, ROW_NUMBER() OVER (PARTITION BY S.[WorkflowId], S.[WorkflowChargesListId] ORDER BY ISNULL(S.[IsDeleted],0)) AS RN
+							FROM @tbl_WorkflowChargesListType S) X WHERE X.RN = 1 OR ISNULL(X.[WorkflowChargesListId],0) = 0) AS [Source]
+						ON (TARGET.WorkflowId = SOURCE.WorkflowId AND TARGET.WorkflowChargesListId = SOURCE.WorkflowChargesListId)
+
 					WHEN MATCHED THEN
 						UPDATE SET
 							[Target].[WorkflowChargeTypeId] = [Source].[WorkflowChargeTypeId],
@@ -335,7 +341,13 @@ BEGIN
 				IF EXISTS(SELECT 1 FROM [dbo].[WorkFlowDirection] WITH(NOLOCK) WHERE [WorkflowId] = @workFlowMainId AND ISNULL([IsVersionIncrease],0) = 0)
 				BEGIN
 					MERGE INTO [DBO].[WorkFlowDirection] AS [Target]
-					USING @tbl_WorkflowDirectionType AS [Source] ON (TARGET.[WorkflowId] = SOURCE.[WorkflowId] AND TARGET.[WorkflowDirectionId] = SOURCE.[WorkflowDirectionId]) 
+					
+					--USING @tbl_WorkflowDirectionType AS [Source] ON (TARGET.[WorkflowId] = SOURCE.[WorkflowId] AND TARGET.[WorkflowDirectionId] = SOURCE.[WorkflowDirectionId]) 
+
+					USING (SELECT * FROM (SELECT S.*, ROW_NUMBER() OVER (PARTITION BY S.[WorkflowId], S.[WorkflowDirectionId] ORDER BY ISNULL(S.[IsDeleted],0)) AS RN
+							FROM @tbl_WorkflowDirectionType S) X WHERE X.RN = 1 OR ISNULL(X.[WorkflowDirectionId],0) = 0) AS [Source]
+						  ON (TARGET.[WorkflowId] = SOURCE.[WorkflowId] AND TARGET.[WorkflowDirectionId] = SOURCE.[WorkflowDirectionId])
+
 
 					WHEN MATCHED THEN
 						UPDATE SET

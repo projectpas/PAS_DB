@@ -11,6 +11,7 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 **  1    27/07/2026  Amit Ghediya		Created
+**  2    18/11/2026  Vishal Suthar		PN-18571 Added @TailNum filter (AC Tail Num)
 
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetACAirworthinessComplianceTrackingReport]
@@ -52,7 +53,8 @@ CREATE   PROCEDURE [dbo].[USP_GetACAirworthinessComplianceTrackingReport]
 	@WorkOrderStatus      VARCHAR(100) = NULL,
 	@MakeType               VARCHAR(100) = NULL,
 	@AircraftRegistryNumber VARCHAR(100) = NULL,
-	@SerialNum              VARCHAR(100) = NULL
+	@SerialNum              VARCHAR(100) = NULL,
+	@TailNum                VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -122,7 +124,8 @@ BEGIN
 					   AMP.AircraftRegistryId,
 					   ARH.MakeType,
 					   ARH.AircraftRegistryNumber,
-					   ARH.SerialNum
+					   ARH.SerialNum,
+					   ARH.TailNum
 				FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
 				INNER JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AMP.AircraftRegistryId
 				WHERE ISNULL(AMP.IsDeleted, 0) = 0
@@ -198,6 +201,7 @@ BEGIN
 					OR ISNULL(AR.MakeType, '')               LIKE '%' + @GlobalFilter + '%'
 					OR ISNULL(AR.AircraftRegistryNumber, '') LIKE '%' + @GlobalFilter + '%'
 					OR ISNULL(AR.SerialNum, '')              LIKE '%' + @GlobalFilter + '%'
+					OR ISNULL(AR.TailNum, '')                LIKE '%' + @GlobalFilter + '%'
 					OR ISNULL(WS.WorksheetNumber, '')       LIKE '%' + @GlobalFilter + '%'
 					OR ISNULL(WOX.WorkOrderNum, '')       LIKE '%' + @GlobalFilter + '%'
 					OR ISNULL(WOX.WorkOrderStatus, '')    LIKE '%' + @GlobalFilter + '%'
@@ -229,6 +233,7 @@ BEGIN
 				AND (NULLIF(@MakeType, '')               IS NULL OR ISNULL(AR.MakeType, '')               LIKE '%' + @MakeType + '%')
 				AND (NULLIF(@AircraftRegistryNumber, '') IS NULL OR ISNULL(AR.AircraftRegistryNumber, '') LIKE '%' + @AircraftRegistryNumber + '%')
 				AND (NULLIF(@SerialNum, '')              IS NULL OR ISNULL(AR.SerialNum, '')              LIKE '%' + @SerialNum + '%')
+				AND (NULLIF(@TailNum, '')                IS NULL OR ISNULL(AR.TailNum, '')                LIKE '%' + @TailNum + '%')
 				AND (NULLIF(@WorksheetNumber, '')   IS NULL OR ISNULL(WS.WorksheetNumber, '')        LIKE '%' + @WorksheetNumber + '%')
 				AND (@WorksheetDate IS NULL OR CAST(WS.CreatedDate AS DATE) = CAST(@WorksheetDate AS DATE))
 				AND (NULLIF(@WorkSheetStatus, '')     IS NULL OR ISNULL(WSS.WorkSheetStatus, '')     LIKE '%' + @WorkSheetStatus + '%')

@@ -19,6 +19,7 @@
     [IsDeleted]        BIT             CONSTRAINT [DF_LeaseCharges_IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsInvoiced]       BIT             CONSTRAINT [DF_LeaseCharges_IsInvoiced] DEFAULT ((0)) NOT NULL,
     [BillingInvoicingItemId] BIGINT    NULL,
+    [GLAccountId]      BIGINT          NULL,
     CONSTRAINT [PK_LeaseCharges] PRIMARY KEY CLUSTERED ([LeaseChargesId] ASC),
     CONSTRAINT [FK_LeaseCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_LeaseCharges_LeaseHeader] FOREIGN KEY ([LeaseHeaderId]) REFERENCES [dbo].[LeaseHeader] ([LeaseHeaderId]),

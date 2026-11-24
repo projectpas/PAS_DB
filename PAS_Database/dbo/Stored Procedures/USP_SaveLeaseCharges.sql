@@ -13,6 +13,7 @@
  ** PR   Date           Author                  Change Description
  ** --   --------       -------                 --------------------------------
     1    17/09/2026     Amit Ghediya            Created
+    2    20/11/2026     Vishal Suthar           [PN-18597] - Save the Charge's GL Account on the lease charge (kept unless the Charge Type changes)
 
 DECLARE @Charges dbo.LeaseChargesType;
 INSERT INTO @Charges (LeaseChargesId, LeaseStocklineId, ReportedDate, ChargesTypeId, Description, UOMId, Quantity, UnitCost, ExtendedCost, VendorId, IsDeleted)
@@ -34,12 +35,19 @@ BEGIN
 		-- SQL Server's MERGE only allows a second WHEN MATCHED clause if it's a DELETE,
 		-- so the soft-delete (an UPDATE) can't share this MERGE with the normal-field
 		-- UPDATE - handled as a separate UPDATE statement below instead.
+		-- GL Account comes from the Charge setup and is kept on the lease charge,
+		-- it is only taken again when the Charge Type of the row is changed
 		MERGE [dbo].[LeaseCharges] AS TARGET
-		USING (SELECT * FROM @Charges WHERE ISNULL(IsDeleted, 0) = 0) AS SOURCE
+		USING (SELECT C.*, CH.GLAccountId AS ChargeGLAccountId
+			   FROM @Charges C
+			   LEFT JOIN [dbo].[Charge] CH WITH (NOLOCK) ON CH.ChargeId = C.ChargesTypeId
+			   WHERE ISNULL(C.IsDeleted, 0) = 0) AS SOURCE
 			ON TARGET.LeaseChargesId = SOURCE.LeaseChargesId
 			AND TARGET.LeaseHeaderId = @LeaseHeaderId
 		WHEN MATCHED THEN
 			UPDATE SET
+				GLAccountId      = CASE WHEN TARGET.ChargesTypeId = SOURCE.ChargesTypeId AND TARGET.GLAccountId IS NOT NULL
+										THEN TARGET.GLAccountId ELSE SOURCE.ChargeGLAccountId END,
 				LeaseStocklineId = SOURCE.LeaseStocklineId,
 				ReportedDate     = SOURCE.ReportedDate,
 				ChargesTypeId    = SOURCE.ChargesTypeId,
@@ -52,8 +60,8 @@ BEGIN
 				UpdatedBy        = @UpdatedBy,
 				UpdatedDate      = GETUTCDATE()
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT (LeaseHeaderId, LeaseStocklineId, ReportedDate, ChargesTypeId, Description, UOMId, Quantity, UnitCost, ExtendedCost, VendorId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
-			VALUES (@LeaseHeaderId, SOURCE.LeaseStocklineId, SOURCE.ReportedDate, SOURCE.ChargesTypeId, SOURCE.Description, SOURCE.UOMId, SOURCE.Quantity, SOURCE.UnitCost, SOURCE.ExtendedCost, SOURCE.VendorId, @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+			INSERT (LeaseHeaderId, LeaseStocklineId, ReportedDate, ChargesTypeId, GLAccountId, Description, UOMId, Quantity, UnitCost, ExtendedCost, VendorId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
+			VALUES (@LeaseHeaderId, SOURCE.LeaseStocklineId, SOURCE.ReportedDate, SOURCE.ChargesTypeId, SOURCE.ChargeGLAccountId, SOURCE.Description, SOURCE.UOMId, SOURCE.Quantity, SOURCE.UnitCost, SOURCE.ExtendedCost, SOURCE.VendorId, @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
 
 		UPDATE T
 			SET T.IsDeleted   = 1,
@@ -71,7 +79,7 @@ BEGIN
 			LC.ReportedDate,
 			LC.ChargesTypeId,
 			CH.ChargeType,
-			ISNULL(GL.AccountName, '') AS GLAccountName,
+			ISNULL(GL.AccountCode + ' - ' + GL.AccountName, '') AS GLAccountName,
 			LC.Description,
 			LC.UOMId,
 			ISNULL(UOM.ShortName, '') AS UOM,
@@ -84,7 +92,7 @@ BEGIN
 		JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = LC.LeaseStocklineId
 		LEFT JOIN [dbo].[Stockline] SLIVE WITH (NOLOCK) ON SLIVE.StockLineId = LSL.StockLineId
 		JOIN [dbo].[Charge] CH WITH (NOLOCK) ON CH.ChargeId = LC.ChargesTypeId
-		LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON GL.GLAccountId = CH.GLAccountId
+		LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON GL.GLAccountId = ISNULL(LC.GLAccountId, CH.GLAccountId)
 		LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = LC.UOMId
 		LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = LC.VendorId
 		WHERE LC.LeaseHeaderId = @LeaseHeaderId AND LC.IsDeleted = 0

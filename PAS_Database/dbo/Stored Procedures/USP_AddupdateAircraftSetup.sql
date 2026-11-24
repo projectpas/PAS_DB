@@ -15,6 +15,7 @@
     4    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
     5    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
     6    13/08/2026          Bhargav Saliya     Added field [AllowWorksheets]. [PN-17630]
+    7    17/11/2026          RAJESH GAMI        Added user-selectable Colour Indicator 1/2/3 (colour code + value). Red/Yellow/Green columns kept. [PN-18548]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
@@ -48,7 +49,13 @@ BEGIN
                 T.SiteId = S.SiteId,
                 T.[WorkScopeId] = S.[WorkScopeId],
                 T.[ConditionId] = S.[ConditionId],
-                T.[IsAllowWorksheets] = S.[IsAllowWorksheets]
+                T.[IsAllowWorksheets] = S.[IsAllowWorksheets],
+                T.[ColorIndicator1Code]  = S.[ColorIndicator1Code],
+                T.[ColorIndicator1Value] = S.[ColorIndicator1Value],
+                T.[ColorIndicator2Code]  = S.[ColorIndicator2Code],
+                T.[ColorIndicator2Value] = S.[ColorIndicator2Value],
+                T.[ColorIndicator3Code]  = S.[ColorIndicator3Code],
+                T.[ColorIndicator3Value] = S.[ColorIndicator3Value]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -67,7 +74,13 @@ BEGIN
                     SiteId,
                     [WorkScopeId],
                     [ConditionId],
-                    [IsAllowWorksheets]
+                    [IsAllowWorksheets],
+                    [ColorIndicator1Code],
+                    [ColorIndicator1Value],
+                    [ColorIndicator2Code],
+                    [ColorIndicator2Value],
+                    [ColorIndicator3Code],
+                    [ColorIndicator3Value]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -96,7 +109,13 @@ BEGIN
                 SiteId,
                 [WorkScopeId],
                 [ConditionId],
-                [IsAllowWorksheets]
+                [IsAllowWorksheets],
+                [ColorIndicator1Code],
+                [ColorIndicator1Value],
+                [ColorIndicator2Code],
+                [ColorIndicator2Value],
+                [ColorIndicator3Code],
+                [ColorIndicator3Value]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -119,7 +138,13 @@ BEGIN
                 SiteId,
                 [WorkScopeId],
                 [ConditionId],
-                [IsAllowWorksheets]
+                [IsAllowWorksheets],
+                [ColorIndicator1Code],
+                [ColorIndicator1Value],
+                [ColorIndicator2Code],
+                [ColorIndicator2Value],
+                [ColorIndicator3Code],
+                [ColorIndicator3Value]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

@@ -11,8 +11,8 @@
 **              TailNumber / SerialNumber are resolved exactly like
 **              USP_GetAircraftMaintenanceList's REG apply: aircraft rows
 **              use AircraftRegistryHeader, engine rows use
-**              EngineRegistryHeader (TailNumber = NULL for engine rows,
-**              since that column shows the Engine Name, not a tail).
+**              EngineRegistryHeader (TailNumber = Engine Name for engine
+**              rows, matching what the AC Tail Num column shows).
 **
 ** Change History
 ************************************************************
@@ -43,7 +43,8 @@ BEGIN
               AND ERH.MasterCompanyId  = @MasterCompanyId
         CROSS APPLY (
             SELECT
-                CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN NULLIF(LTRIM(RTRIM(ARH.TailNum)), '') ELSE NULL END AS TailNumber,
+                CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN NULLIF(LTRIM(RTRIM(ARH.TailNum)), '')
+                     ELSE NULLIF(LTRIM(RTRIM(ERH.EngineName)), '') END AS TailNumber,
                 CASE WHEN ISNULL(AMP.IsFromAircraft, 0) = 1 THEN NULLIF(LTRIM(RTRIM(ARH.SerialNum)), '')
                      ELSE NULLIF(LTRIM(RTRIM(ERH.SerialNum)), '') END AS SerialNumber,
                 CAST(ISNULL(AMP.IsFromAircraft, 0) AS BIT) AS IsFromAircraft

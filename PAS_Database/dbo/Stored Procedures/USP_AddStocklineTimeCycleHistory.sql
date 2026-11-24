@@ -31,6 +31,7 @@
     1    23/OCT/2026  Kishor Makwana   Created
     2    23/OCT/2026  Kishor Makwana   TotalTSO / TotalTSOMM / TotalCSO stay 0 for now (@AddToOverhaul = 0 by default)
     3    26/OCT/2026  Kishor Makwana   Same time / cycles are written on all sub components of the stockline (new @CascadeToSubComponents, @ParentStocklineId)
+    4    18/NOV/2026  Rajesh Gami      [PN-18594] The current value written to the Stockline now also includes TotalTSO / TotalTSOMM / TotalCSO
 -- DECLARE @Id BIGINT;
 -- EXEC [dbo].[USP_AddStocklineTimeCycleHistory] @StocklineId = 1, @ModuleId = 1, @ReferenceId = 1, @ReferenceNumber = 'LSE-000028', @EntryType = 'Usage',
 --      @Hours = 10, @Minutes = 30, @Cycles = 5, @CreatedBy = 'admin', @StocklineTimeCycleHistoryId = @Id OUTPUT;
@@ -139,7 +140,7 @@ BEGIN
 		/* ---------- current value on the stockline ---------- */
 		IF (ISNULL(@UpdateStockline, 1) = 1)
 			UPDATE [dbo].[Stockline]
-			SET [TotalTSN] = @NTSN, [TotalTSNMM] = @NTSNMM, [TotalCSN] = @NCSN,
+			SET [TotalTSN] = @NTSN, [TotalTSNMM] = @NTSNMM, [TotalCSN] = @NCSN, [TotalTSO] = @NTSO, [TotalTSOMM] = @NTSOMM, [TotalCSO] = @NCSO,  -- [PN-18594]
 				[UpdatedBy] = ISNULL(@CreatedBy, [UpdatedBy]), [UpdatedDate] = GETUTCDATE()
 			WHERE [StockLineId] = @StocklineId;
 

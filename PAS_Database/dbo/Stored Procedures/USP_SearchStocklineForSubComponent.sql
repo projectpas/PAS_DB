@@ -19,6 +19,7 @@
  ** --   --------     -------		--------------------------------
     1    10/15/2026  Kishor Makwana     [PN-18321] Created
     2    23/OCT/2026  Kishor Makwana    [PN-18118] Stockline installed on an aircraft / engine is not listed
+    3    19/NOV/2026  Kishor Makwana    [PN-18604] UnitCost returned (shown in the Sub Component list)
 
 -- EXEC USP_SearchStocklineForSubComponent
 ************************************************************************/
@@ -73,7 +74,8 @@ BEGIN
 				ISNULL(s.[QuantityAvailable], 0) AS [QuantityAvailable],
 				s.[Site],
 				s.[Warehouse],
-				s.[Location]
+				s.[Location],
+				CAST(ISNULL(s.[UnitCost], 0) AS DECIMAL(18, 2)) AS [UnitCost]
 			FROM [dbo].[Stockline] s WITH (NOLOCK)
 			WHERE s.[MasterCompanyId] = @MasterCompanyId
 				AND s.[IsParent] = 1
@@ -108,7 +110,7 @@ BEGIN
 		)
 		SELECT
 			StockLineId, PartNumber, PartDescription, StockLineNumber, ControlNumber, IdNumber, Manufacturer,
-			Condition, SerialNumber, IsSerialized, QuantityOnHand, QuantityAvailable, Site, Warehouse, Location,
+			Condition, SerialNumber, IsSerialized, QuantityOnHand, QuantityAvailable, Site, Warehouse, Location, UnitCost,
 			NumberOfItems
 		FROM FinalResult, ResultCount
 		ORDER BY

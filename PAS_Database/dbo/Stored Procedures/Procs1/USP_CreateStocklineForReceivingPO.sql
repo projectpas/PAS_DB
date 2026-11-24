@@ -61,6 +61,7 @@
 	44   29-OCT-2026  RAJESH GAMI       [PN-18407] Asset stockline received from PO: also default Acquisition Type (Item Master Asset Acquisition Type, if none chosen) and Curr (PO line functional currency, fallback Item Master currency) - both are required on the Asset stockline form.
     45   06-NOV-2026  Kishor Makwana    [PN-18498] Sub Component stocklines (Item Master > Sub Assembly > Sub Component, Auto Create Stockline = Yes) are created and linked to the received main stocklines (USP_CreateSubComponentStocklinesForReceiving)
     48   12-NOV-2026  Kishor Makwana    [PN-18526] New optional @tbl_SubComponentDetail (POSubComponentDetail) : Condition / Qty Received / Unit Cost entered on the Receiving PO Sub Component grid are passed to USP_CreateSubComponentStocklinesForReceiving. No accounting entry for sub component stocklines (unchanged)
+    49   19-NOV-2026  Kishor Makwana    [PN-18605] Time / Cycles (Since New / Since Ovh) of the received main stockline are stored in StocklineTimeCycleHistory and on the Stockline (USP_AddReceivingStocklineTimeCycle)
     46   09-NOV-2026  Kishor Makwana    [PN-18498] New optional @tbl_SubComponentTimeCycle (POSubComponentTimeCycle) : Time / Cycle entered on the Receiving PO Sub Component grid is stored in StocklineTimeCycleHistory for the created sub component stocklines
     47   12-NOV-2026  RAJESH GAMI       [PN-18525] Stock branch, Item Master Asset part (IsAsset = 1, not serialized): receiving Qty N now creates N stocklines of Qty 1 each (before: one stockline of Qty N) and every one gets its own Asset Inventory Number (CodePrefixes CodeTypeId 37, same generator the legacy Asset branch uses).
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)
@@ -851,6 +852,9 @@ BEGIN
                                    NULL
                             FROM DBO.TimeLifeDraft WITH (NOLOCK)
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
+
+                            -- [PN-18605] Time / Cycles of the main part (Since New / Since Ovh) also go to StocklineTimeCycleHistory and the Stockline
+                            EXEC DBO.USP_AddReceivingStocklineTimeCycle @StocklineId = @NewStocklineId, @StockLineDraftId = @SelectedStockLineDraftId, @PurchaseOrderId = @PurchaseOrderId, @MasterCompanyId = @MasterCompanyId, @UpdatedBy = @UpdatedBy;
                         END
 
                         /* Accounting Entry */

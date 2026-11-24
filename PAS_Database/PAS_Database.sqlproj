@@ -5016,6 +5016,8 @@
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetVendorContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeApiRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetSalesOrderQuoteList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetBillingInvoicingParts.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetBillingInvoicingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_PublicApi_GetEmployeeList.sql" />

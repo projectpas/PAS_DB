@@ -56,8 +56,23 @@
     [CreditMemoHeaderId]          BIGINT          NULL,
     [IntegrationTypeId]           INT             NULL,
     [IsReOpened]                  BIT             CONSTRAINT [DF_BillingInvoicing_IsReOpened] DEFAULT ((0)) NULL,
+    [ClosedByBillingInvoicingId]  BIGINT          NULL,
+    [ClosedDate]                  DATETIME2 (7)   NULL,
+    [ClosedFromInvoiceStatusId]   INT             NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+GO
+-- [PN-18612] Audit of every insert / update (same columns as BillingInvoicing, in the same order)
+CREATE TRIGGER [dbo].[Trg_BillingInvoicingAudit]
+   ON  [dbo].[BillingInvoicing]
+   AFTER INSERT, UPDATE
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	INSERT INTO [dbo].[BillingInvoicingAudit]
+	SELECT * FROM INSERTED
+END
 GO
 -- [PN-18450] 30-Oct-2026 - Performance: dbo.USP_SearchCustomerInvoices / USP_SearchCustomerInvoicesQBExtract join key
 CREATE NONCLUSTERED INDEX [IX_BillingInvoicing_MC_Module_Cover_Perf]

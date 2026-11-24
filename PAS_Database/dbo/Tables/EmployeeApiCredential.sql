@@ -4,6 +4,7 @@
     [MasterCompanyId]         INT           NOT NULL,
     [ClientId]                VARCHAR (100) NOT NULL,
     [ClientSecretHash]        VARCHAR (256) NOT NULL,
+    [ClientSecret]            VARCHAR (100) NULL,
     [IsApiAccessEnabled]      BIT           CONSTRAINT [DF_EmployeeApiCredential_IsApiAccessEnabled] DEFAULT ((0)) NOT NULL,
     [CredentialVersion]       INT           CONSTRAINT [DF_EmployeeApiCredential_CredentialVersion] DEFAULT ((1)) NOT NULL,
     [SecretRotatedDate]       DATETIME2 (7) CONSTRAINT [DF_EmployeeApiCredential_SecretRotatedDate] DEFAULT (getutcdate()) NOT NULL,

@@ -2,8 +2,8 @@
  ** File:   [USP_PublicApi_GetJournalLines]
  ** Author: Moin Bloch
  ** Description: Lines (CommonBatchDetails) of the journal entries on one page (@JournalBatchDetailIds: comma separated).
- **              Management structure as saved on the line when the entry was made (AllMSlevels: LE / BU / DIV / DEPT);
- **              lines without it: the line's management structure (EntityStructureSetup).
+ **              ManagementStructure = the line's AllMSlevels (saved when the entry was made) as plain text: the <p> tags
+ **              removed, one level after the other separated by ", " (the level names are the company's own).
  ** Purpose: PAS_PUBLIC_API - GET /api/v1/journals (lines)
  ** Date:   24/11/2026
 
@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    24/11/2026   Moin Bloch    Created
+    2    24/11/2026   Moin Bloch    Management structure as one text (AllMSlevels without <p>), no fixed level labels
 
   EXEC [dbo].[USP_PublicApi_GetJournalLines] @MasterCompanyId = 1, @JournalBatchDetailIds = '5640'
 ************************************************************************/
@@ -26,6 +27,7 @@ BEGIN
 
     BEGIN TRY
         DECLARE @NL CHAR(1) = CHAR(10);
+        DECLARE @Edge CHAR(1) = CHAR(1);
 
         SELECT
             -- Ids are used by the API to group lines per journal entry; not returned to clients.
@@ -37,29 +39,15 @@ BEGIN
             ISNULL(C.[DebitAmount], 0) AS [DebitAmount],
             ISNULL(C.[CreditAmount], 0) AS [CreditAmount],
             C.[TransactionDate],
-            CASE WHEN MS.[Found] = 1 THEN MS.[LE] ELSE ESL.[LE] END AS [LegalEntity],
-            CASE WHEN MS.[Found] = 1 THEN MS.[BU] ELSE ESL.[BU] END AS [BusinessUnit],
-            CASE WHEN MS.[Found] = 1 THEN MS.[DIV] ELSE ESL.[DIV] END AS [Division],
-            CASE WHEN MS.[Found] = 1 THEN MS.[DEPT] ELSE ESL.[DEPT] END AS [Department]
+            -- Levels joined with ", "; a separator at the start or end is dropped (@Edge marks both ends).
+            NULLIF(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(@Edge + REPLACE(T.[Text], @NL, ', ') + @Edge, @Edge + ', ', ''), ', ' + @Edge, ''), @Edge, ''))), '') AS [ManagementStructure]
         FROM [dbo].[CommonBatchDetails] C WITH (NOLOCK)
-        -- AllMSlevels holds one "LE : ..." / "BU : ..." / "DIV : ..." / "DEPT : ..." per <p> or per line: one level per text line.
-        CROSS APPLY (SELECT REPLACE(@NL + REPLACE(REPLACE(REPLACE(ISNULL(C.[AllMSlevels], ''), CHAR(13), ''), '<p>', ''), '</p>', @NL) + @NL,
-                                    @NL + ' ', @NL) AS [Text]) X
-        CROSS APPLY (SELECT CHARINDEX(@NL + 'LE :', X.[Text]) AS [P1], CHARINDEX(@NL + 'BU :', X.[Text]) AS [P2],
-                            CHARINDEX(@NL + 'DIV :', X.[Text]) AS [P3], CHARINDEX(@NL + 'DEPT :', X.[Text]) AS [P4]) P
-        CROSS APPLY (SELECT
-            CASE WHEN P.[P1] > 0 OR P.[P2] > 0 OR P.[P3] > 0 OR P.[P4] > 0 THEN 1 ELSE 0 END AS [Found],
-            CASE WHEN P.[P1] > 0 THEN NULLIF(LTRIM(RTRIM(SUBSTRING(X.[Text], P.[P1] + 5, CHARINDEX(@NL, X.[Text], P.[P1] + 1) - P.[P1] - 5))), '') END AS [LE],
-            CASE WHEN P.[P2] > 0 THEN NULLIF(LTRIM(RTRIM(SUBSTRING(X.[Text], P.[P2] + 5, CHARINDEX(@NL, X.[Text], P.[P2] + 1) - P.[P2] - 5))), '') END AS [BU],
-            CASE WHEN P.[P3] > 0 THEN NULLIF(LTRIM(RTRIM(SUBSTRING(X.[Text], P.[P3] + 6, CHARINDEX(@NL, X.[Text], P.[P3] + 1) - P.[P3] - 6))), '') END AS [DIV],
-            CASE WHEN P.[P4] > 0 THEN NULLIF(LTRIM(RTRIM(SUBSTRING(X.[Text], P.[P4] + 7, CHARINDEX(@NL, X.[Text], P.[P4] + 1) - P.[P4] - 7))), '') END AS [DEPT]) MS
-        -- Lines without saved levels: the line's management structure.
-        LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.[EntityStructureId] = C.[ManagementStructureId]
-        OUTER APPLY (SELECT
-            (SELECT L.[Code] + ' - ' + L.[Description] FROM [dbo].[ManagementStructureLevel] L WITH (NOLOCK) WHERE L.[ID] = ES.[Level1Id]) AS [LE],
-            (SELECT L.[Code] + ' - ' + L.[Description] FROM [dbo].[ManagementStructureLevel] L WITH (NOLOCK) WHERE L.[ID] = ES.[Level2Id]) AS [BU],
-            (SELECT L.[Code] + ' - ' + L.[Description] FROM [dbo].[ManagementStructureLevel] L WITH (NOLOCK) WHERE L.[ID] = ES.[Level3Id]) AS [DIV],
-            (SELECT L.[Code] + ' - ' + L.[Description] FROM [dbo].[ManagementStructureLevel] L WITH (NOLOCK) WHERE L.[ID] = ES.[Level4Id]) AS [DEPT]) ESL
+        -- AllMSlevels is HTML (<p>level</p><p>level</p>) or one level per text line: one level per line, spaces tidied.
+        -- Each step uses the previous text once (SQL Server repeats an expression for every reference).
+        CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(C.[AllMSlevels], ''), CHAR(13), ''), '</p><p>', @NL), '<p>', ''), '</p>', ''),
+                                    CHAR(9), ' ') AS [Text]) A
+        CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(A.[Text], ' ', '<>'), '><', ''), '<>', ' ') AS [Text]) B   -- runs of spaces -> one space
+        CROSS APPLY (SELECT REPLACE(REPLACE(REPLACE(REPLACE(B.[Text], @NL + ' ', @NL), ' ' + @NL, @NL), @NL + @NL, @NL), @NL + @NL, @NL) AS [Text]) T
         WHERE C.[JournalBatchDetailId] IN (SELECT TRY_CAST([value] AS BIGINT) FROM STRING_SPLIT(@JournalBatchDetailIds, ','))
           AND C.[MasterCompanyId] = @MasterCompanyId
           AND C.[IsDeleted] = 0

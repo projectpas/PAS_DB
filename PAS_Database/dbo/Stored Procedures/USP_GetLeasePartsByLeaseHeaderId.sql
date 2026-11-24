@@ -43,6 +43,7 @@
     18   09/11/2026     Kishor Makwana          [PN-18499] Added HasSubComponents - true when the main stockline of the lease item has linked Sub Component stocklines (shows Actions > View Sub Components)
     19   18/11/2026     Kishor Makwana          [PN-18591] MaintenancePer / InsurancePer / TaxesPer now come from the LeaseStocklineServiceComponent rows (Per saved by the Service Component popup, blank = Month) and new OtherPer ('Mixed' when the other components have different Per) - shown beside each charge in the Service Component grid
     20   18/11/2026     Kishor Makwana          Added TotalTSN / TotalTSNMM / TotalTSO / TotalTSOMM / TotalCSN / TotalCSO - the latest (not deleted) StocklineTimeCycleHistory row of the stockline, shown in the Add Item grid after Base Rate (TSN, TSO, CSN, CSO)
+    21   19/11/2026     Kishor Makwana          [PN-18606] Added EngineSerialNumber / EngineModel of the stockline - the Engine Valuation action of the Actions menu is shown for engine lines
 
 exec USP_GetLeasePartsByLeaseHeaderId @LeaseHeaderId=1
 ************************************************************************/
@@ -131,6 +132,8 @@ BEGIN
 			CASE WHEN LSL.StockLineId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[Stockline] SUBSL WITH (NOLOCK)
 					WHERE SUBSL.SubComponentParentStocklineId = LSL.StockLineId AND ISNULL(SUBSL.IsSubComponent, 0) = 1 AND ISNULL(SUBSL.isDeleted, 0) = 0)
 				THEN 1 ELSE 0 END AS HasSubComponents,
+			SLIVE.EngineSerialNumber AS EngineSerialNumber,
+			SLIVE.EngineModel AS EngineModel,
 			LSL.MasterCompanyId,
 			LSL.CreatedBy,
 			LSL.UpdatedBy,

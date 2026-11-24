@@ -23,3 +23,9 @@
     CONSTRAINT [PK_AccountingBatchManagementStructureDetails] PRIMARY KEY CLUSTERED ([CommonBatchMSId] ASC)
 );
 
+
+GO
+CREATE NONCLUSTERED INDEX [IX_ABMSD_Module_Ref]
+    ON [dbo].[AccountingBatchManagementStructureDetails]([ModuleId] ASC, [ReferenceId] ASC)
+    INCLUDE([EntityMSID], [Level1Id], [Level2Id], [Level3Id], [Level4Id], [Level5Id], [Level6Id], [Level7Id], [Level8Id], [Level9Id], [Level10Id]);
+

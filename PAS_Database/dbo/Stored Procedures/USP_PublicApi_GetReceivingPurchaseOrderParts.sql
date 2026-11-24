@@ -1,8 +1,7 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetReceivingPurchaseOrderParts]
  ** Author: Moin Bloch
- ** Description: 4.5 GET /api/v1/receivingpurchaseorders (lines). Receivable lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
+ ** Description: Receivable lines of the POs on one page (@PurchaseOrderIds = comma separated ids, max one page).
  **              Like the PAS receiving screen: a line split into separate deliveries is received per delivery,
  **              so the split lines are returned and their main line is not.
  **              QuantityReceived follows PAS: stock / non-stock = PurchaseOrderPart.QuantityReceived,
@@ -18,6 +17,7 @@
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetReceivingPurchaseOrderParts] @MasterCompanyId = 1, @PurchaseOrderIds = '18885'
 ************************************************************************/
@@ -29,6 +29,11 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+        -- PO line item types (ItemType).
+        DECLARE @StockItemType INT = (SELECT TOP (1) [ItemTypeId] FROM [dbo].[ItemType] WITH (NOLOCK) WHERE [Name] = 'Stock');
+        DECLARE @NonStockItemType INT = (SELECT TOP (1) [ItemTypeId] FROM [dbo].[ItemType] WITH (NOLOCK) WHERE [Name] = 'Non-Stock');
+        DECLARE @AssetItemType INT = (SELECT TOP (1) [ItemTypeId] FROM [dbo].[ItemType] WITH (NOLOCK) WHERE [Name] = 'Asset');
+
         SELECT
             -- Ids are used by the API to group lines per PO and attach stocklines; not returned to clients.
             P.[PurchaseOrderId],
@@ -40,11 +45,11 @@ BEGIN
             P.[ManufacturerPN] AS [ManufacturerPartNumber],
             P.[Manufacturer],
             P.[AltEquiPartNumber],
-            CASE WHEN P.[ItemTypeId] = 1 AND ISNULL(ITM.[IsAsset], 0) = 1 THEN 'Asset' ELSE P.[ItemType] END AS [ItemType],
+            CASE WHEN P.[ItemTypeId] = @StockItemType AND ISNULL(ITM.[IsAsset], 0) = 1 THEN 'Asset' ELSE P.[ItemType] END AS [ItemType],
             P.[StockType],
             P.[Condition],
             P.[UnitOfMeasure],
-            CAST(ISNULL(CASE WHEN P.[ItemTypeId] = 1 THEN ITM.[isSerialized] WHEN P.[ItemTypeId] = 2 THEN NSI.[IsSerialized] ELSE ASI.[IsSerialized] END, 0) AS BIT) AS [IsSerialized],
+            CAST(ISNULL(CASE WHEN P.[ItemTypeId] = @StockItemType THEN ITM.[isSerialized] WHEN P.[ItemTypeId] = @NonStockItemType THEN NSI.[IsSerialized] ELSE ASI.[IsSerialized] END, 0) AS BIT) AS [IsSerialized],
             P.[NeedByDate],
             P.[EstDeliveryDate],
             ISNULL(P.[QuantityOrdered], 0) AS [QuantityOrdered],
@@ -62,8 +67,8 @@ BEGIN
         LEFT JOIN [dbo].[Asset] ASI WITH (NOLOCK) ON ASI.[AssetRecordId] = P.[ItemMasterId]
         CROSS APPLY (
             SELECT CASE
-                WHEN P.[ItemTypeId] IN (1, 2) THEN ISNULL(P.[QuantityReceived], 0)
-                WHEN P.[ItemTypeId] = 11 THEN (
+                WHEN P.[ItemTypeId] IN (@StockItemType, @NonStockItemType) THEN ISNULL(P.[QuantityReceived], 0)
+                WHEN P.[ItemTypeId] = @AssetItemType THEN (
                     SELECT ISNULL(SUM(D.[Qty]), 0) FROM [dbo].[AssetInventoryDraft] D WITH (NOLOCK)
                     WHERE D.[AssetInventoryId] > 0 AND ISNULL(D.[IsParent], 0) = 0 AND D.[isDeleted] = 0
                       AND D.[PurchaseOrderPartRecordId] = P.[PurchaseOrderPartRecordId] AND D.[PurchaseOrderId] = P.[PurchaseOrderId])

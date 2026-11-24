@@ -6,6 +6,7 @@
  **              (Employee screen > Public API tab). Also returns the name shown on the Explorer page.
  **              HasTwoFactor: two-factor authentication on, same rule as the PAS login (SMS, Microsoft / Google
  **              Authenticator or Email); the Explorer does not support two-factor, so these employees are refused.
+ **              IsEmployeeActive: active and not deleted, so the caller can tell a missing / switched-off key apart.
  ** Purpose: PAS_PUBLIC_API - API Explorer login
  ** Date:   19/11/2026
 
@@ -17,6 +18,7 @@
  ** --   --------     -------		--------------------------------
     1    19/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    20/11/2026   Moin Bloch    Added IsEmployeeActive (message for a missing API key)
 
   EXEC [dbo].[USP_PublicApi_GetExplorerAccess] @MasterCompanyId = 1, @EmployeeId = 2
 ************************************************************************/
@@ -30,6 +32,7 @@ BEGIN
     BEGIN TRY
         SELECT TOP (1)
             CONCAT_WS(' ', NULLIF(LTRIM(RTRIM(E.[FirstName])), ''), NULLIF(LTRIM(RTRIM(E.[LastName])), '')) AS [EmployeeName],
+            CAST(CASE WHEN E.[IsActive] = 1 AND ISNULL(E.[IsDeleted], 0) = 0 THEN 1 ELSE 0 END AS BIT) AS [IsEmployeeActive],
             CAST(CASE WHEN E.[IsActive] = 1 AND ISNULL(E.[IsDeleted], 0) = 0 AND C.[IsApiAccessEnabled] = 1 THEN 1 ELSE 0 END AS BIT) AS [HasAccess],
             CAST(CASE WHEN E.[TwoFactorAuthentication] = 1 AND E.[TwoFactorAuthenticationType] IN (1, 2, 3, 4) THEN 1 ELSE 0 END AS BIT) AS [HasTwoFactor]
         FROM [dbo].[Employee] E WITH (NOLOCK)

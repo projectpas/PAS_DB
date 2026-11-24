@@ -30,6 +30,7 @@
 	16   02/Sept/2026	Vishal Suthar	Fixed ShipVia to get it from address tab instead of customer record for SO
 	17   10/Sept/2026	Vishal Suthar	PN-17824: When editing an already-generated WO bill (@BillingInvoicingId > 0), return the invoice's actual stored InvoiceDate instead of always GETUTCDATE()
 	18   16/Sept/2026	Vishal Suthar	PN-17824: When editing an already-generated bill, return the invoice's actual stored SoldTo/ShipTo/ShipVia/Notes (from BillingInvoicingDetails/BillingInvoicing) instead of always deriving them fresh from the live SO/WO/Customer records
+	19   25/Nov/2026	Vishal Suthar	SO: Skip CANCELED shipping (SOShippingStatusId = 5) when taking the latest SO shipping for the invoice
 
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
@@ -425,7 +426,7 @@ BEGIN
 		END /*********END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN
-			SET @ShippingId = (SELECT TOP 1 SalesOrderShippingId FROM dbo.SalesOrderShipping sos WITH(NOLOCK) WHERE sos.SalesOrderId = @ReferenceId AND IsActive = 1 AND ISNULL(IsDeleted,0) = 0 ORDER BY SalesOrderShippingId DESC)
+			SET @ShippingId = (SELECT TOP 1 SalesOrderShippingId FROM dbo.SalesOrderShipping sos WITH(NOLOCK) WHERE sos.SalesOrderId = @ReferenceId AND IsActive = 1 AND ISNULL(IsDeleted,0) = 0 AND sos.SOShippingStatusId <> 5 ORDER BY SalesOrderShippingId DESC)
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
 			IF EXISTS (SELECT 1 FROM [dbo].[SalesOrder] so WITH(NOLOCK)
 			               INNER JOIN [dbo].[CustomerDomensticShipping] cust_ship WITH(NOLOCK) ON so.[CustomerId] = cust_ship.[CustomerId]

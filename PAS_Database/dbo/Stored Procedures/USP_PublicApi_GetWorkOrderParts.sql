@@ -1,8 +1,7 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetWorkOrderParts]
  ** Author: Moin Bloch
- ** Description: 4.14 Part lines (MPNs being worked on) of the WOs on one page (@WorkOrderIds = comma separated ids,
+ ** Description: Part lines (MPNs being worked on) of the WOs on one page (@WorkOrderIds = comma separated ids,
  **              max one page). Management structure is per part (WorkOrderManagementStructureDetails ModuleID 12).
  ** Purpose: PAS_PUBLIC_API - GET /api/v1/workorders (parts)
  ** Date:   12/11/2026
@@ -15,6 +14,7 @@
  ** --   --------     -------		--------------------------------
     1    12/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetWorkOrderParts] @MasterCompanyId = 1, @WorkOrderIds = '690'
 ************************************************************************/
@@ -26,7 +26,9 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @MSModuleId INT = 12; -- WorkOrderMPN (ManagementStructureModuleEnum)
+        -- WorkOrderMPN management structure module (WorkOrderManagementStructureDetails.ModuleID).
+        DECLARE @MSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK)
+                                  WHERE [ModuleName] = 'WorkOrderMPN');
 
         SELECT
             -- Ids are used by the API to group parts per WO and attach materials, labor and charges; not returned to clients.

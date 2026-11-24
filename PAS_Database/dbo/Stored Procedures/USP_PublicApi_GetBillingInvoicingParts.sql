@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetBillingInvoicingParts]
  ** Author: Moin Bloch
- ** Description: 4.30 Invoice lines (MPN) of the invoices on one page. @BillingInvoicingIds: WO and SO invoices,
+ ** Description: Invoice lines (MPN) of the invoices on one page. @BillingInvoicingIds: WO and SO invoices,
  **              @ExchangeInvoicingIds: exchange invoices (both comma separated).
  **              Revenue per line as on the PAS billing screen:
  **                WO: material / labor / charges / freight billed amounts (all 0 when the part is billed as one total);
@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    23/11/2026   Moin Bloch    Created
+    2    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetBillingInvoicingParts] @MasterCompanyId = 1, @BillingInvoicingIds = '1', @ExchangeInvoicingIds = '1'
 ************************************************************************/
@@ -32,8 +33,9 @@ BEGIN
     BEGIN TRY
         DECLARE @WOModuleId INT = (SELECT TOP (1) [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'WorkOrder');
         DECLARE @SOModuleId INT = (SELECT TOP (1) [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'SalesOrder');
-        DECLARE @ChargesBillingType INT = 2;   -- ExchangeBillingType: 1 EXCH FEE, 2 Charges, 3 FREIGHT, 4 Outright Price, 5 Overhaul Cost, 6 Core Price
-        DECLARE @FreightBillingType INT = 3;
+        -- ExchangeBillingType of exchange billing lines that are charges / freight.
+        DECLARE @ChargesBillingType INT = (SELECT TOP (1) [ExchangeBillingTypeId] FROM [dbo].[ExchangeBillingType] WITH (NOLOCK) WHERE [Description] = 'Charges');
+        DECLARE @FreightBillingType INT = (SELECT TOP (1) [ExchangeBillingTypeId] FROM [dbo].[ExchangeBillingType] WITH (NOLOCK) WHERE [Description] = 'FREIGHT');
 
         -- Work order lines: the billed (revised) part, as on the printed invoice.
         SELECT

@@ -1,8 +1,7 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetVendorList]
  ** Author: Moin Bloch
- ** Description: 4.19 Vendors of the company, oldest first. Classification and Contact (default contact) follow
+ ** Description: Vendors of the company, oldest first. Classification and Contact (default contact) follow
  **              the same logic as dbo.ProcVendorList (PAS Vendor List).
  ** Purpose: PAS_PUBLIC_API - GET /api/v1/vendors
  ** Date:   12/11/2026
@@ -15,6 +14,7 @@
  ** --   --------     -------		--------------------------------
     1    12/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetVendorList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -29,7 +29,8 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @VendorModule INT = 3;
+        -- Vendor module of ClassificationMapping (AttachmentModule), as PAS saves the vendor classifications.
+        DECLARE @VendorModule INT = (SELECT TOP (1) [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH (NOLOCK) WHERE [Name] = 'Vendor');
 
         ;WITH PagedVendor AS
         (

@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetBillingInvoicingList]
  ** Author: Moin Bloch
- ** Description: 4.29 Customer invoices like the PAS Customer Invoice List, oldest first.
+ ** Description: Customer invoices like the PAS Customer Invoice List, oldest first.
  **              @DocumentType is WorkOrder, SalesOrder or Exchange. @DocumentNumber is the WO / SO / exchange SO number.
  **              @InvoiceNumber, @CustomerCode and @InvoiceStatus (Billed, Invoiced, Reviewed, Pending) are exact.
  **              @InvoiceDateFrom / @InvoiceDateTo: invoice date range, both inclusive (dates only).
@@ -17,6 +17,7 @@
  ** PR   Date         Author		Change Description
  ** --   --------     -------		--------------------------------
     1    23/11/2026   Moin Bloch    Created
+    2    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetBillingInvoicingList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -38,9 +39,11 @@ BEGIN
     BEGIN TRY
         DECLARE @WOModuleId INT = (SELECT TOP (1) [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'WorkOrder');
         DECLARE @SOModuleId INT = (SELECT TOP (1) [ModuleId] FROM [dbo].[Module] WITH (NOLOCK) WHERE [ModuleName] = 'SalesOrder');
-        DECLARE @WOMSModuleId INT = 12;   -- WorkOrderMPN (WorkOrderManagementStructureDetails.ModuleID)
-        DECLARE @SOMSModuleId INT = 17;   -- SalesOrder (SalesOrderManagementStructureDetails.ModuleID)
-        DECLARE @EXMSModuleId INT = 19;   -- ExchangeSalesOrder (ExchangeManagementStructureDetails.ModuleID)
+        -- Management structure modules: WorkOrderMPN, SalesOrder (name stored with a trailing space) and ExchangeSOHeader
+        -- (WorkOrder / SalesOrder / ExchangeManagementStructureDetails.ModuleID).
+        DECLARE @WOMSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+        DECLARE @SOMSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE LTRIM(RTRIM([ModuleName])) = 'SalesOrder');
+        DECLARE @EXMSModuleId INT = (SELECT TOP (1) [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'ExchangeSOHeader');
 
         DECLARE @Page TABLE ([RowNo] INT, [IsExchange] BIT, [InvoicingId] BIGINT, [DocumentType] VARCHAR(20), [TotalRecords] INT);
 

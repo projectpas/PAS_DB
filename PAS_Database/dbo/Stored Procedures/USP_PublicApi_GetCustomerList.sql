@@ -1,9 +1,4 @@
-﻿
-/*=========================================================================================
-  4. STORED PROCEDURES - DATA ENDPOINTS
-=========================================================================================*/
-
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_PublicApi_GetCustomerList]
  ** Author: Moin Bloch
  ** Description: 4.1 GET /api/v1/customers. TEMPLATE for data endpoints: always filter by the token's
@@ -20,6 +15,7 @@
  ** --   --------     -------		--------------------------------
     1    09/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
+    3    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetCustomerList] @MasterCompanyId = 1, @PageNumber = 1, @PageSize = 50
 ************************************************************************/
@@ -32,7 +28,8 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @CustomerModule INT = 1;
+        -- Customer module of ClassificationMapping (AttachmentModule), as PAS saves the customer classifications.
+        DECLARE @CustomerModule INT = (SELECT TOP (1) [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH (NOLOCK) WHERE [Name] = 'Customer');
 
         SELECT
             C.[CustomerId],

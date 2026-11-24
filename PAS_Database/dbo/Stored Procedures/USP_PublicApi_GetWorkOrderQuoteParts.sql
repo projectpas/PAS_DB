@@ -1,7 +1,7 @@
 ﻿/*************************************************************
  ** File:   [USP_PublicApi_GetWorkOrderQuoteParts]
  ** Author: Moin Bloch
- ** Description: 4.24 Quoted parts (WorkOrderQuoteDetails) of the quotes on one page (@WorkOrderQuoteIds: comma separated).
+ ** Description: Quoted parts (WorkOrderQuoteDetails) of the quotes on one page (@WorkOrderQuoteIds: comma separated).
  **              Amounts as on the printed quote (RPT_GetWorkOrderQuotePrintPdfData, USP_GetCustomerTax_Information_Repair_WOQ):
  **                revenue per category = the flat amount for Flat Rate, otherwise the revenue; a part quoted at one common
  **                flat rate (QuoteMethod) shows the flat rate as material and 0 for labor, charges and freight;
@@ -22,6 +22,7 @@
     1    18/11/2026   Moin Bloch    Created
     2    19/11/2026   Moin Bloch    Added TRY/CATCH (errors logged with spLogException)
     3    23/11/2026   Moin Bloch    Fields as requested (priority, unit cost, revenues, taxes and quote amount as printed, approvers)
+    4    24/11/2026   Moin Bloch    Module / lookup ids selected by name instead of hardcoded
 
   EXEC [dbo].[USP_PublicApi_GetWorkOrderQuoteParts] @MasterCompanyId = 1, @WorkOrderQuoteIds = '1'
 ************************************************************************/
@@ -33,7 +34,8 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        DECLARE @FlatRate INT = 3; -- BillingMethod: 1 T&M, 2 Actual, 3 Flat Rate
+        -- BillingMethod Flat Rate (stored as 'Flate Rate'); the others are T&M and Actual.
+        DECLARE @FlatRate INT = (SELECT TOP (1) [BillingMethodId] FROM [dbo].[BillingMethod] WITH (NOLOCK) WHERE [Description] = 'Flate Rate');
 
         SELECT
             -- Ids are used by the API to group parts per quote; not returned to clients.

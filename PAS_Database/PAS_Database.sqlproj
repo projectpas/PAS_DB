@@ -5054,6 +5054,23 @@
     <Build Include="dbo\Stored Procedures\usp_GetStocklineAsofNowJobDetailsForCleanUp_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKnownXeroPaymentIds.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetInventoryDataForPowerBIReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetReceivableList.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderFreight.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPurchaseOrderCharges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPublicationParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPublicationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetPayableList.sql">
+      <QuotedIdentifier>Off</QuotedIdentifier>
+    </Build>
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerShipVias.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerShippingAddresses.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerContacts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetCustomerBillingAddresses.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetAssetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetAssetInventoryList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicApi_GetAssetCapes.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

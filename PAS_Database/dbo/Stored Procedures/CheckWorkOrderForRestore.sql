@@ -12,8 +12,9 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------               
 	1    08/22/2025   Vishal Suthar		Created
-    
--- EXEC [dbo].[CheckWorkOrderForRestore] 4724,15,'Jim Roberts'  
+	2    11/25/2026   Vishal Suthar		Blank serial number is not a duplicate, check all part lines, return a single result
+
+-- EXEC [dbo].[CheckWorkOrderForRestore] 4724
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[CheckWorkOrderForRestore]
 	@ReferenceId BIGINT
@@ -23,35 +24,28 @@ BEGIN
 	SET NOCOUNT ON   
 	BEGIN TRY
 		
-	DECLARE @MasterCompanyId BIGINT;
 	DECLARE @ClosedWorkOrderStatusId BIGINT;
-	DECLARE @CurrentSerialNumber VARCHAR(100);
-	DECLARE @RevisedSerialNumber VARCHAR(100);
-
-	SELECT @MasterCompanyId = MasterCompanyId, @CurrentSerialNumber = CurrentSerialNumber, @RevisedSerialNumber = RevisedSerialNumber 
-	FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE WorkOrderId = @ReferenceId;
 
 	SELECT @ClosedWorkOrderStatusId = Id FROM DBO.WorkOrderStatus WITH (NOLOCK) WHERE StatusCode = 'CLOSED';
 
-	IF @RevisedSerialNumber IS NOT NULL
+	-- Revised SN is checked when it has a value, otherwise Current SN. A blank serial number is never a duplicate.
+	IF EXISTS (SELECT 1
+			   FROM DBO.WorkOrderPartNumber CUR WITH (NOLOCK)
+			   INNER JOIN DBO.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.MasterCompanyId = CUR.MasterCompanyId
+					AND WOP.WorkOrderId <> CUR.WorkOrderId AND WOP.IsDeleted = 0 AND WOP.WorkOrderStatusId <> @ClosedWorkOrderStatusId
+			   WHERE CUR.WorkOrderId = @ReferenceId
+				 AND ((NULLIF(LTRIM(RTRIM(CUR.RevisedSerialNumber)), '') IS NOT NULL
+						AND UPPER(LTRIM(RTRIM(WOP.RevisedSerialNumber))) = UPPER(LTRIM(RTRIM(CUR.RevisedSerialNumber))))
+				   OR (NULLIF(LTRIM(RTRIM(CUR.RevisedSerialNumber)), '') IS NULL
+						AND NULLIF(LTRIM(RTRIM(CUR.CurrentSerialNumber)), '') IS NOT NULL
+						AND UPPER(LTRIM(RTRIM(WOP.CurrentSerialNumber))) = UPPER(LTRIM(RTRIM(CUR.CurrentSerialNumber))))))
 	BEGIN
-		IF EXISTS (SELECT 1 FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-				AND UPPER(RevisedSerialNumber) = UPPER(@RevisedSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0 AND WorkOrderStatusId <> @ClosedWorkOrderStatusId)
-		BEGIN
-			SELECT 1 AS ReferenceId; -- Duplicate found
-		END
+		SELECT 1 AS ReferenceId; -- Duplicate found
 	END
 	ELSE
 	BEGIN
-		IF EXISTS (SELECT 1 FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-				AND UPPER(CurrentSerialNumber) = UPPER(@CurrentSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0 AND WorkOrderStatusId <> @ClosedWorkOrderStatusId)
-		BEGIN
-			SELECT 1 AS ReferenceId; -- Duplicate found
-		END
+		SELECT 0 AS ReferenceId; -- No duplicates found
 	END
-
-	-- No duplicates found
-    SELECT 0 AS ReferenceId;
 
 	END TRY    
 	BEGIN CATCH      

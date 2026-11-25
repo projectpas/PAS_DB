@@ -23,6 +23,7 @@
 	10   09/06/2026   Rajesh Gami	    [IsStandardInvoicePosted] = 1 Update for the proforma invoice while Standard Invoice being INVOICED   PN-16775
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	12   23/06/2026   Moin Bloch	    Moved TO Common SP PN-16871
+	13   21/11/2026   Vishal Suthar	    [PN-18612] - Standard invoice posted: close the open proformas of the WO / SO, a closed invoice can't be changed
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
 **********************/ 
@@ -38,6 +39,14 @@ AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;   
+
+ -- A closed (proforma) invoice can't be posted or changed
+ IF EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId AND [InvoiceStatus] = 'Closed')
+ BEGIN
+	RAISERROR ('This invoice is closed and can not be changed.', 16, 1);
+	RETURN (1);
+ END
+
  BEGIN TRY  
  --BEGIN TRANSACTION  
  BEGIN
@@ -429,6 +438,28 @@ BEGIN
 			END
 			
 		END/****END: SALES ORDER ***/
+
+		-- Standard invoice posted: every open proforma of the WO / SO is closed by it (deposits were carried over above)
+		IF((@ModuleId = @WOModuleId OR @ModuleId = @SOModuleId) AND ISNULL(@IsPerformaInvoice, 0) = 0 AND @InvoiceStatusId = @InvoicedStatusId)
+		BEGIN
+			DECLARE @ClosedStatusId INT = (SELECT [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Closed');
+
+			-- The status it had is kept, it gets it back when the standard invoice is Re-Opened
+			UPDATE [dbo].[BillingInvoicing]
+			   SET [ClosedFromInvoiceStatusId] = ISNULL([InvoiceStatusId], (SELECT IST.[InvoiceStatusId] FROM [dbo].[InvoiceStatus] IST WITH(NOLOCK) WHERE IST.[Status] = [BillingInvoicing].[InvoiceStatus])),
+				   [InvoiceStatusId] = @ClosedStatusId,
+				   [InvoiceStatus] = 'Closed',
+				   [ClosedByBillingInvoicingId] = @BillingInvoicingId,
+				   [ClosedDate] = GETUTCDATE(),
+				   [UpdatedBy] = 'System',
+				   [UpdatedDate] = GETUTCDATE()
+			 WHERE [ReferenceId] = @ReferenceId
+			   AND [ModuleId] = @ModuleId
+			   AND [IsPerformaInvoice] = 1
+			   AND ISNULL([IsVersionIncrease], 0) = 0
+			   AND ISNULL([InvoiceStatus], '') <> 'Closed'
+			   AND @ClosedStatusId IS NOT NULL;
+		END
  END   
  --COMMIT  TRANSACTION  
  END TRY           

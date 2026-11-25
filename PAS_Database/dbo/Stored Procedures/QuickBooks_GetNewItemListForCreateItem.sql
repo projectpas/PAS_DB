@@ -14,7 +14,8 @@
     1    10-FEB-2025   Abhishek Jirawla Created
 	2    05-MAY-2026   Moin Bloch       Added Xero PN-16014
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+	4    25/Nov/2026   Moin Bloch       Return MasterCompany.IsQuickBookNonInventoryItem (QuickBooks: create items as Non-Inventory)
+
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetNewItemListForCreateItem]
@@ -60,11 +61,13 @@ BEGIN
 				@InvModuleId AS ModuleId,
 				IM.MasterCompanyId,
 				IM.UpdatedBy,
-				IM.CreatedDate
+				IM.CreatedDate,
+				ISNULL(MC.IsQuickBookNonInventoryItem, 0) AS IsQuickBookNonInventoryItem
 			FROM DBO.ItemMaster IM WITH(NOLOCK)
 				INNER JOIN DBO.GLAccount GLIncome WITH(NOLOCK) ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
 				INNER JOIN DBO.GLAccount GLAsset WITH(NOLOCK) ON IM.GLAccountId = GLAsset.GLAccountId
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
+				LEFT JOIN DBO.MasterCompany MC WITH(NOLOCK) ON MC.MasterCompanyId = IM.MasterCompanyId
 			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, '') = '' AND ISNULL(IM.IsUpdated, 0) = 1
 		 AND ISNULL(IM.IsNonStock,0) = 0
 		END

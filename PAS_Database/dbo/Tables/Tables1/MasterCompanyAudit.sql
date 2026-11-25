@@ -31,6 +31,7 @@
     [TokenPassword]            VARCHAR (100)  NULL,
     [IsXeroAccountingEnabled]  BIT            NULL,
     [DBName]                   VARCHAR (255)  NULL,
+    [IsQuickBookNonInventoryItem] BIT         NULL,
     CONSTRAINT [PK_MasterCompanyAudit] PRIMARY KEY CLUSTERED ([MasterCompanyAuditId] ASC)
 );
 

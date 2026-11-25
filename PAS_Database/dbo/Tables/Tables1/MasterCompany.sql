@@ -30,6 +30,7 @@
     [TokenPassword]            VARCHAR (100)  NULL,
     [IsXeroAccountingEnabled]  BIT            NULL,
     [DBName]                   VARCHAR (255)  NULL,
+    [IsQuickBookNonInventoryItem] BIT         CONSTRAINT [DF_MasterCompany_IsQuickBookNonInventoryItem] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
 

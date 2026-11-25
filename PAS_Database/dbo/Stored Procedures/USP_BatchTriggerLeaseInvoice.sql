@@ -43,6 +43,7 @@
                                                  found -> no new BatchHeader, only BatchDetails + CommonBatchDetails + LeaseBatchDetails are inserted and the header TotalDebit / TotalCredit / TotalBalance are updated;
                                                  not found -> new BatchHeader with EntryDate = today. Back-date rule same as Work Order: Accounting Period = period of the Invoice Date (error when no period is defined or the period is closed);
                                                  BatchDetails / CommonBatchDetails TransactionDate = Invoice Date, Entry Date = today. (replaces version 5 where the Invoice Date was also the batch date)
+    7    26/11/2026     Vishal Suthar           [PN-18597] Charges with a GL Account on the lease charge are credited to that GL Account (Finance and Operating); charges without one stay on the lease revenue distribution
 
 EXEC USP_BatchTriggerLeaseInvoice @BillingInvoicingId = 1, @MasterCompanyId = 1, @UpdateBy = 'ADMIN User'
 ************************************************************************/
@@ -120,9 +121,9 @@ BEGIN
 			Seq INT IDENTITY(1,1) NOT NULL,
 			LeaseStocklineId BIGINT NULL, StocklineId BIGINT NULL, StocklineNumber VARCHAR(100) NULL,
 			ItemMasterId BIGINT NULL, PartNumber NVARCHAR(100) NULL,
-			LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL
+			LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL, GlAccountId BIGINT NULL
 		);
-		CREATE TABLE #RawJournalLines (LeaseStocklineId BIGINT NULL, LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL);
+		CREATE TABLE #RawJournalLines (LeaseStocklineId BIGINT NULL, LineType VARCHAR(50) NULL, SetupCode VARCHAR(100) NOT NULL, Amount DECIMAL(18,6) NOT NULL, GlAccountId BIGINT NULL);
 
 		SELECT LBID.LeaseStocklineId, LBID.LineType, SUM(ISNULL(LBID.LineAmount, 0)) AS Amount, SUM(ISNULL(LBID.TimeBillingAmount, 0)) AS TimeAmount, SUM(ISNULL(LBID.CycleBillingAmount, 0)) AS CycleAmount,
 			   MIN(LBID.FromDate) AS FromDate, MAX(LBID.ToDate) AS ToDate
@@ -177,11 +178,41 @@ BEGIN
 			FROM #InvLines WHERE ISNULL(LineType, '') NOT IN ('Flat Rate', 'Overrun');
 		END
 
+		-- [PN-18597] Charges billed on this invoice whose lease charge has a GL Account are credited to that GL Account
+		-- (moved out of the revenue line they are part of; charges without a GL Account stay on the revenue distribution)
+		DECLARE @ChargeRevenueCode VARCHAR(100) = CASE WHEN @IsOperating = 1 THEN 'OLIREVENUEOPERATINGLEASE' ELSE 'FLIREVENUEFINANCINGLEASE' END;
+		DECLARE @ChargeRevenueLineType VARCHAR(50) = CASE WHEN @IsOperating = 1 THEN 'Operating Lease' ELSE 'Charges' END;
+
+		SELECT LC.LeaseStocklineId, LC.GLAccountId, SUM(ISNULL(LC.ExtendedCost, 0)) AS Amount
+		INTO #ChargeGL
+		FROM [dbo].[LeaseCharges] LC WITH (NOLOCK)
+		INNER JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.BillingInvoicingItemId = LC.BillingInvoicingItemId
+		INNER JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON GL.GLAccountId = LC.GLAccountId
+		WHERE BII.BillingInvoicingId = @BillingInvoicingId AND ISNULL(BII.IsDeleted, 0) = 0 AND ISNULL(BII.IsVersionIncrease, 0) = 0
+		  AND ISNULL(LC.IsDeleted, 0) = 0
+		GROUP BY LC.LeaseStocklineId, LC.GLAccountId
+		HAVING SUM(ISNULL(LC.ExtendedCost, 0)) > 0;
+
+		-- only when the invoice Charges line of the stockline covers them, so the journal stays equal to the invoice
+		DELETE CG FROM #ChargeGL CG
+		WHERE (SELECT SUM(C.Amount) FROM #ChargeGL C WHERE C.LeaseStocklineId = CG.LeaseStocklineId)
+			  > ISNULL((SELECT SUM(I.Amount) FROM #InvLines I WHERE I.LeaseStocklineId = CG.LeaseStocklineId AND I.LineType = 'Charges'), 0) + 0.005;
+
+		UPDATE R SET R.Amount = R.Amount - CG.Amount
+		FROM #RawJournalLines R
+		INNER JOIN (SELECT LeaseStocklineId, SUM(Amount) AS Amount FROM #ChargeGL GROUP BY LeaseStocklineId) CG ON CG.LeaseStocklineId = R.LeaseStocklineId
+		WHERE R.SetupCode = @ChargeRevenueCode AND R.LineType = @ChargeRevenueLineType AND R.GlAccountId IS NULL;
+
+		INSERT INTO #RawJournalLines (LeaseStocklineId, LineType, SetupCode, Amount, GlAccountId)
+		SELECT LeaseStocklineId, 'Charges', @ChargeRevenueCode, Amount, GLAccountId FROM #ChargeGL;
+
+		DROP TABLE #ChargeGL;
+
 		DELETE FROM #RawJournalLines WHERE Amount <= 0;
 
 		-- lines in the order of the distribution setup (Seq / DisplayNumber), then per stockline
-		INSERT INTO #LeaseJournalLines (LeaseStocklineId, StocklineId, StocklineNumber, ItemMasterId, PartNumber, LineType, SetupCode, Amount)
-		SELECT R.LeaseStocklineId, LSL.StockLineId, LSL.StocklineNumber, LSL.ItemMasterId, LSL.PN, R.LineType, R.SetupCode, R.Amount
+		INSERT INTO #LeaseJournalLines (LeaseStocklineId, StocklineId, StocklineNumber, ItemMasterId, PartNumber, LineType, SetupCode, Amount, GlAccountId)
+		SELECT R.LeaseStocklineId, LSL.StockLineId, LSL.StocklineNumber, LSL.ItemMasterId, LSL.PN, R.LineType, R.SetupCode, R.Amount, R.GlAccountId
 		FROM #RawJournalLines R
 		LEFT JOIN [dbo].[LeaseStockline] LSL WITH (NOLOCK) ON LSL.LeaseStocklineId = R.LeaseStocklineId
 		LEFT JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.DistributionMasterId = @DistributionMasterId AND DS.MasterCompanyId = @MasterCompanyId
@@ -316,12 +347,12 @@ BEGIN
 															AND ISNULL(DS.IsDeleted, 0) = 0 AND UPPER(DS.DistributionSetupCode) = L.SetupCode AND ISNULL(DS.IsBypassAccounting, 0) = 1));
 		DECLARE @Seq INT = 0, @MaxSeq INT = (SELECT MAX(Seq) FROM #LeaseJournalLines);
 		DECLARE @SetupCode VARCHAR(100), @Amount DECIMAL(18,6), @DistributionSetupId INT, @DistributionName VARCHAR(200), @GlAccountId BIGINT, @GlAccountNumber VARCHAR(200), @GlAccountName VARCHAR(200), @CrDrType INT;
-		DECLARE @LeaseStocklineId BIGINT, @StocklineId BIGINT, @StocklineNumber VARCHAR(100), @ItemMasterId BIGINT, @PartNumber NVARCHAR(100), @LineType VARCHAR(50);
+		DECLARE @LeaseStocklineId BIGINT, @StocklineId BIGINT, @StocklineNumber VARCHAR(100), @ItemMasterId BIGINT, @PartNumber NVARCHAR(100), @LineType VARCHAR(50), @LineGlAccountId BIGINT;
 		DECLARE @CommonJournalBatchDetailId BIGINT, @IsAutoPost INT = 0, @IsBypassAccounting BIT = 0;
 
 		WHILE (@Seq <= @MaxSeq)
 		BEGIN
-			SELECT @SetupCode = NULL, @LeaseStocklineId = NULL, @StocklineId = NULL, @StocklineNumber = NULL, @ItemMasterId = NULL, @PartNumber = NULL, @LineType = NULL;
+			SELECT @SetupCode = NULL, @LeaseStocklineId = NULL, @StocklineId = NULL, @StocklineNumber = NULL, @ItemMasterId = NULL, @PartNumber = NULL, @LineType = NULL, @LineGlAccountId = NULL;
 			IF (@Seq = 0)
 			BEGIN
 				SET @SetupCode = @ARCode; SET @Amount = @Total;
@@ -329,7 +360,7 @@ BEGIN
 			ELSE
 			BEGIN
 				SELECT @SetupCode = SetupCode, @Amount = Amount, @LeaseStocklineId = LeaseStocklineId, @StocklineId = StocklineId, @StocklineNumber = StocklineNumber,
-					   @ItemMasterId = ItemMasterId, @PartNumber = PartNumber, @LineType = LineType
+					   @ItemMasterId = ItemMasterId, @PartNumber = PartNumber, @LineType = LineType, @LineGlAccountId = GlAccountId
 				FROM #LeaseJournalLines WHERE Seq = @Seq;
 			END
 
@@ -338,6 +369,10 @@ BEGIN
 						 @IsBypassAccounting = ISNULL(IsBypassAccounting, 0)
 			FROM [dbo].[DistributionSetup] WITH (NOLOCK)
 			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND UPPER(DistributionSetupCode) = @SetupCode;
+
+			-- [PN-18597] charge line: GL Account of the lease charge
+			IF (@LineGlAccountId IS NOT NULL)
+				SELECT @GlAccountId = GLAccountId, @GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM [dbo].[GLAccount] WITH (NOLOCK) WHERE GLAccountId = @LineGlAccountId;
 
 			-- Accounting By Pass on this distribution row: no journal line / lease link is written (Sales Order does the same)
 			IF (@IsBypassAccounting = 0)
@@ -403,6 +438,7 @@ BEGIN
 		IF OBJECT_ID(N'tempdb..#LeaseJournalLines') IS NOT NULL DROP TABLE #LeaseJournalLines;
 		IF OBJECT_ID(N'tempdb..#RawJournalLines') IS NOT NULL DROP TABLE #RawJournalLines;
 		IF OBJECT_ID(N'tempdb..#InvLines') IS NOT NULL DROP TABLE #InvLines;
+		IF OBJECT_ID(N'tempdb..#ChargeGL') IS NOT NULL DROP TABLE #ChargeGL;
 		-- accounting period validation messages are shown to the user as they are (not logged as an unexpected error)
 		DECLARE @PeriodErrMsg NVARCHAR(2000) = ERROR_MESSAGE();
 		IF (@PeriodErrMsg LIKE 'No accounting period is defined%' OR @PeriodErrMsg LIKE 'The accounting period covering%')

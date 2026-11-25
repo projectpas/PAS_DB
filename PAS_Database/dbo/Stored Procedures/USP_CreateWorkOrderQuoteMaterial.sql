@@ -19,6 +19,7 @@
 											MaterialFlatBillingAmount was being passed through as-is from the client (always 0.00 in this mode) instead of being derived from WorkOrderQuoteMaterial.BillingAmount like UpdateWorkOrderQuoteDetails does & code review Changes.
 	8    23-Oct-2026   Divyesh Kathriya     [PN-18341] - Record added material parts against the selected quote MPN.	
 	10   28-Oct-2026   Divyesh Kathiriya    Record material entries, updates and removals with old and new values [PN-18341].
+	11   26-Nov-2026   Vishal Suthar        [PN-18641] Actual billing method: keep the Billing Amount entered in the grid (it was always recalculated from Unit Cost)
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
@@ -71,9 +72,12 @@ BEGIN
 							tb.UomName = uomStock.ShortName,
 							tb.MarkUp = p.PercentValue,
 							tb.ExtendedCost = ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0),
-							tb.BillingAmount = ((ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)) * ISNULL(p.PercentValue,0)) / 100
-												+ (ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)),
-							tb.BillingRate = ((ISNULL(calc.ConvUnitCost,0) * ISNULL(p.PercentValue,0)) / 100) + ISNULL(calc.ConvUnitCost,0)
+							-- [PN-18641] Actual: the Billing Amount entered in the grid is kept
+							tb.BillingAmount = CASE WHEN tb.BillingMethodId = 2 AND tb.BillingAmount IS NOT NULL THEN tb.BillingAmount
+												ELSE ((ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)) * ISNULL(p.PercentValue,0)) / 100
+												+ (ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)) END,
+							tb.BillingRate = CASE WHEN tb.BillingMethodId = 2 AND tb.BillingAmount IS NOT NULL AND ISNULL(calc.ConvQty,0) <> 0 THEN tb.BillingAmount / calc.ConvQty
+												ELSE ((ISNULL(calc.ConvUnitCost,0) * ISNULL(p.PercentValue,0)) / 100) + ISNULL(calc.ConvUnitCost,0) END
 						FROM #tmpWorkOrderQuoteMaterialIntial tb
 						INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON tb.ItemMasterId = im.ItemMasterId
 						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId

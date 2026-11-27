@@ -20,6 +20,15 @@
 	7    23/July/2026			 RAJESH GAMI						[PN-17350] - Removed 6 leftover IsNonStock=0 exclusion filters.
 	8    05-Nov-2026   HEMANT SALIYA     Xero logic moved to [Xero_UpdateModuleCountDetails]. Every UPDATE is now
 	                                    limited to QuickBooks settings rows (ACI.IntegrationTypeId = QuickBooks).
+	9    26-Nov-2026   Moin Bloch        QuickBooks blocks run only when MasterCompany.IsQuickBookEnabled = 1 and the Xero
+	                                    block only when IsXeroAccountingEnabled = 1; each UPDATE limited to this Master Company
+	                                    and its own integration's settings rows (ACI.MasterCompanyId, ACI.IntegrationId).
+	10   27-Nov-2026   Moin Bloch        Xero sections enabled for every module (Vendor, Bill, GLAccount, CreditMemo, ItemMaster,
+	                                    PurchaseOrder, CustomerPayment, Invoice, BillPayment, VendorCreditMemo; added for Stockline
+	                                    and CreditTerms) - same logic as [Xero_UpdateModuleCountDetails], run only when
+	                                    IsXeroAccountingEnabled = 1 and limited to this company's Xero settings rows.
+	11   27-Nov-2026   Moin Bloch        Invoice: WorkOrder / SalesOrder / Leasing counts each limited to their own BillingInvoicing ModuleId
+	                                    (each invoice was counted twice); Leasing invoices (ModuleId 72) added.
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 28,4
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
@@ -34,7 +43,7 @@ BEGIN
 
 		DECLARE @CustomerModuleId INT, @VendorModuleId INT, @StocklineModuleId INT, @InvModuleId INT, @CPModuleId INT, @CreditTermsModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @BillPaymentModuleId INT, @ItemMasterModuleId INT, @CreditMemoModuleId INT, @PurchaseOrderModuleId INT,@VendorCreditMemoModuleId INT;		
 		DECLARE @QBIntegrationTypeId INT=1,@NSIntegrationTypeId INT=2,@XeroIntegrationTypeId INT=3
-		DECLARE @WOModuleId BIGINT, @SOModuleId BIGINT, @ExchModuleId BIGINT;
+		DECLARE @WOModuleId BIGINT, @SOModuleId BIGINT, @ExchModuleId BIGINT, @LeasingModuleId BIGINT;
 
 		SELECT @CustomerModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'CUSTOMER';
 		SELECT @VendorModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'VENDOR';
@@ -53,77 +62,91 @@ BEGIN
 		SELECT @WOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
 		SELECT @ExchModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'EXCHANGESALESORDER';
+		SELECT @LeasingModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'LEASING';
 
 		SELECT @QBIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'QuickBooks';
 		SELECT @NSIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'NetSuite';
 		SELECT @XeroIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'Xero';
 
+		-- Only the integrations enabled for this Master Company are counted
+		DECLARE @IsQuickBookEnabled BIT = 0, @IsXeroAccountingEnabled BIT = 0;
+		SELECT @IsQuickBookEnabled = ISNULL([IsQuickBookEnabled], 0),
+		       @IsXeroAccountingEnabled = ISNULL([IsXeroAccountingEnabled], 0)
+		  FROM [dbo].[MasterCompany] WITH(NOLOCK)
+		 WHERE [MasterCompanyId] = @MasterCompanyId;
+
 		IF @ModuleId = @CustomerModuleId
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(CustomerData.CustomerCount, 0),
-				PendingSyncRecords = ISNULL(PendingCustomerData.CustomerCount, 0),
-				TotalRecords = ISNULL(AllCustomerData.CustomerCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
-			-- Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerCount
-				FROM dbo.Customer  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS CustomerData ON CustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CustomerData.CustomerCount, 0),
+					PendingSyncRecords = ISNULL(PendingCustomerData.CustomerCount, 0),
+					TotalRecords = ISNULL(AllCustomerData.CustomerCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
+				-- Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerCount
+					FROM dbo.Customer  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CustomerData ON CustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
 
-			-- Pending Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerCount
-				FROM dbo.Customer WITH(NOLOCK) 
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingCustomerData ON PendingCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+				-- Pending Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerCount
+					FROM dbo.Customer WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCustomerData ON PendingCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
 
-			-- All Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(CustomerId) AS CustomerCount
-				FROM dbo.Customer  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllCustomerData ON AllCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
-			WHERE ACI.ModuleId = @CustomerModuleId
+				-- All Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CustomerId) AS CustomerCount
+					FROM dbo.Customer  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCustomerData ON AllCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+				WHERE ACI.ModuleId = @CustomerModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(CustomerData.CustomerCount, 0),
-				PendingSyncRecords = ISNULL(PendingCustomerData.CustomerCount, 0),
-				TotalRecords = ISNULL(AllCustomerData.CustomerCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
-			-- Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerCount
-				FROM dbo.Customer  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS CustomerData ON CustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CustomerData.CustomerCount, 0),
+					PendingSyncRecords = ISNULL(PendingCustomerData.CustomerCount, 0),
+					TotalRecords = ISNULL(AllCustomerData.CustomerCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
+				-- Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerCount
+					FROM dbo.Customer  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CustomerData ON CustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
 
-			-- Pending Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerCount
-				FROM dbo.Customer WITH(NOLOCK) 
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingCustomerData ON PendingCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+				-- Pending Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerCount
+					FROM dbo.Customer WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCustomerData ON PendingCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
 
-			-- All Customer Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(CustomerId) AS CustomerCount
-				FROM dbo.Customer  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllCustomerData ON AllCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
-			WHERE ACI.ModuleId = @CustomerModuleId
+				-- All Customer Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CustomerId) AS CustomerCount
+					FROM dbo.Customer  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCustomerData ON AllCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+				WHERE ACI.ModuleId = @CustomerModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -133,71 +156,77 @@ BEGIN
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
 			
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(VendorData.VendorCount, 0),
-				PendingSyncRecords = ISNULL(PendingVendorData.VendorCount, 0),
-				TotalRecords = ISNULL(AllVendorData.VendorCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(VendorData.VendorCount, 0),
+					PendingSyncRecords = ISNULL(PendingVendorData.VendorCount, 0),
+					TotalRecords = ISNULL(AllVendorData.VendorCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- Vendor Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(ISNULL(QuickBooksReferenceId, 0)) AS VendorCount
-				FROM dbo.Vendor WITH(NOLOCK) 
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([QuickBooksReferenceId], '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS VendorData ON VendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				-- Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ISNULL(QuickBooksReferenceId, 0)) AS VendorCount
+					FROM dbo.Vendor WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([QuickBooksReferenceId], '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS VendorData ON VendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
 
-			-- Pending Vendor Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(ISNULL(IsUpdated, 0)) AS VendorCount
-				FROM dbo.Vendor  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingVendorData ON PendingVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				-- Pending Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ISNULL(IsUpdated, 0)) AS VendorCount
+					FROM dbo.Vendor  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingVendorData ON PendingVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
 
-			-- All Vendor Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(VendorId) AS VendorCount
-				FROM dbo.Vendor  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllVendorData ON AllVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
-			WHERE ACI.ModuleId = @VendorModuleId
+				-- All Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(VendorId) AS VendorCount
+					FROM dbo.Vendor  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllVendorData ON AllVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				WHERE ACI.ModuleId = @VendorModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(VendorData.VendorCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingVendorData.VendorCount, 0),
-			--	TotalRecords = ISNULL(AllVendorData.VendorCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(VendorData.VendorCount, 0),
+					PendingSyncRecords = ISNULL(PendingVendorData.VendorCount, 0),
+					TotalRecords = ISNULL(AllVendorData.VendorCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- Vendor Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCount
-			--	FROM dbo.Vendor WITH(NOLOCK) 
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([QuickBooksReferenceId], '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS VendorData ON VendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				-- Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCount
+					FROM dbo.Vendor WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([QuickBooksReferenceId], '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS VendorData ON VendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
 
-			---- Pending Vendor Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCount
-			--	FROM dbo.Vendor  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingVendorData ON PendingVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				-- Pending Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCount
+					FROM dbo.Vendor  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingVendorData ON PendingVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
 
-			---- All Vendor Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(VendorId) AS VendorCount
-			--	FROM dbo.Vendor  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllVendorData ON AllVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
-			--WHERE ACI.ModuleId = @VendorModuleId
+				-- All Vendor Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(VendorId) AS VendorCount
+					FROM dbo.Vendor  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllVendorData ON AllVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				WHERE ACI.ModuleId = @VendorModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -205,37 +234,78 @@ BEGIN
 
 		IF @ModuleId = @StocklineModuleId
 		BEGIN
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(StocklineData.StocklineCount, 0),
-				PendingSyncRecords = ISNULL(PendingStocklineData.StocklineCount, 0),
-				TotalRecords = ISNULL(AllStocklineData.StocklineCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			--------------------------------- QuickBooks ---------------------------------
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(StocklineData.StocklineCount, 0),
+					PendingSyncRecords = ISNULL(PendingStocklineData.StocklineCount, 0),
+					TotalRecords = ISNULL(AllStocklineData.StocklineCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- Stockline Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS StocklineCount
-				FROM dbo.Stockline  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
-				GROUP BY MasterCompanyId
-			) AS StocklineData ON StocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+				-- Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+					GROUP BY MasterCompanyId
+				) AS StocklineData ON StocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
 
-			-- Pending Stockline Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS StocklineCount
-				FROM dbo.Stockline  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
-				GROUP BY MasterCompanyId
-			) AS PendingStocklineData ON PendingStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+				-- Pending Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+					GROUP BY MasterCompanyId
+				) AS PendingStocklineData ON PendingStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
 
-			-- All Stockline Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(StocklineId) AS StocklineCount
-				FROM dbo.Stockline  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
-				GROUP BY MasterCompanyId
-			) AS AllStocklineData ON AllStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
-			WHERE ACI.ModuleId = @StocklineModuleId
+				-- All Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(StocklineId) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+					GROUP BY MasterCompanyId
+				) AS AllStocklineData ON AllStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+				WHERE ACI.ModuleId = @StocklineModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
+
+			--------------------------------- Xero Accounting ---------------------------------
+
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(StocklineData.StocklineCount, 0),
+					PendingSyncRecords = ISNULL(PendingStocklineData.StocklineCount, 0),
+					TotalRecords = ISNULL(AllStocklineData.StocklineCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
+
+				-- Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+					GROUP BY MasterCompanyId
+				) AS StocklineData ON StocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+
+				-- Pending Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+					GROUP BY MasterCompanyId
+				) AS PendingStocklineData ON PendingStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+
+				-- All Stockline Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(StocklineId) AS StocklineCount
+					FROM dbo.Stockline  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+					GROUP BY MasterCompanyId
+				) AS AllStocklineData ON AllStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+				WHERE ACI.ModuleId = @StocklineModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 		END
 
 		---------------NonPOInvoice Insert
@@ -243,70 +313,76 @@ BEGIN
 		IF @ModuleId = @BillModuleId
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
-				PendingSyncRecords = ISNULL(PendingNonPOInvoiceData.NonPOInvoiceCount, 0),
-				TotalRecords = ISNULL(AllNonPOInvoiceData.NonPOInvoiceCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
+					PendingSyncRecords = ISNULL(PendingNonPOInvoiceData.NonPOInvoiceCount, 0),
+					TotalRecords = ISNULL(AllNonPOInvoiceData.NonPOInvoiceCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- NonPOInvoice Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				-- NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
-			-- Pending NonPOInvoice Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				-- Pending NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
-			-- All NonPOInvoice Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
-			WHERE ACI.ModuleId = @BillModuleId
+				-- All NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				WHERE ACI.ModuleId = @BillModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 			
 			--------------------------------- Xero Accounting ---------------------------------
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingNonPOInvoiceData.NonPOInvoiceCount, 0),
-			--	TotalRecords = ISNULL(AllNonPOInvoiceData.NonPOInvoiceCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
+					PendingSyncRecords = ISNULL(PendingNonPOInvoiceData.NonPOInvoiceCount, 0),
+					TotalRecords = ISNULL(AllNonPOInvoiceData.NonPOInvoiceCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- NonPOInvoice Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
-			--	FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				-- NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
-			---- Pending NonPOInvoice Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
-			--	FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				-- Pending NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
-			---- All NonPOInvoice Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
-			--	FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
-			--WHERE ACI.ModuleId = @BillModuleId
+				-- All NonPOInvoice Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
+					FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+				WHERE ACI.ModuleId = @BillModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -314,37 +390,78 @@ BEGIN
 
 		IF @ModuleId = @CreditTermsModuleId
 		BEGIN
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(CreditTermsData.CreditTermsCount, 0),
-				PendingSyncRecords = ISNULL(PendingCreditTermsData.CreditTermsCount, 0),
-				TotalRecords = ISNULL(AllCreditTermsData.CreditTermsCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			--------------------------------- QuickBooks ---------------------------------
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CreditTermsData.CreditTermsCount, 0),
+					PendingSyncRecords = ISNULL(PendingCreditTermsData.CreditTermsCount, 0),
+					TotalRecords = ISNULL(AllCreditTermsData.CreditTermsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- CreditTerms Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditTermsCount
-				FROM dbo.CreditTerms  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
-				GROUP BY MasterCompanyId
-			) AS CreditTermsData ON CreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+				-- CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+					GROUP BY MasterCompanyId
+				) AS CreditTermsData ON CreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
 
-			-- Pending CreditTerms Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditTermsCount
-				FROM dbo.CreditTerms  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
-				GROUP BY MasterCompanyId
-			) AS PendingCreditTermsData ON PendingCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+				-- Pending CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+					GROUP BY MasterCompanyId
+				) AS PendingCreditTermsData ON PendingCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
 
-			-- All CreditTerms Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(CreditTermsId) AS CreditTermsCount
-				FROM dbo.CreditTerms  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
-				GROUP BY MasterCompanyId
-			) AS AllCreditTermsData ON AllCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
-			WHERE ACI.ModuleId = @CreditTermsModuleId
+				-- All CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CreditTermsId) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+					GROUP BY MasterCompanyId
+				) AS AllCreditTermsData ON AllCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+				WHERE ACI.ModuleId = @CreditTermsModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
+
+			--------------------------------- Xero Accounting ---------------------------------
+
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CreditTermsData.CreditTermsCount, 0),
+					PendingSyncRecords = ISNULL(PendingCreditTermsData.CreditTermsCount, 0),
+					TotalRecords = ISNULL(AllCreditTermsData.CreditTermsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
+
+				-- CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+					GROUP BY MasterCompanyId
+				) AS CreditTermsData ON CreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+
+				-- Pending CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+					GROUP BY MasterCompanyId
+				) AS PendingCreditTermsData ON PendingCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+
+				-- All CreditTerms Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CreditTermsId) AS CreditTermsCount
+					FROM dbo.CreditTerms  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+					GROUP BY MasterCompanyId
+				) AS AllCreditTermsData ON AllCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
+				WHERE ACI.ModuleId = @CreditTermsModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 		END
 
 		---------------GLAccount Insert
@@ -352,71 +469,77 @@ BEGIN
 		IF @ModuleId = @GLAccountModuleId
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(GLAccountData.GLAccountCount, 0),
-				PendingSyncRecords = ISNULL(PendingGLAccountData.GLAccountCount, 0),
-				TotalRecords = ISNULL(AllGLAccountData.GLAccountCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(GLAccountData.GLAccountCount, 0),
+					PendingSyncRecords = ISNULL(PendingGLAccountData.GLAccountCount, 0),
+					TotalRecords = ISNULL(AllGLAccountData.GLAccountCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- GLAccount Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS GLAccountCount
-				FROM dbo.GLAccount  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS GLAccountData ON GLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				-- GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS GLAccountData ON GLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
 
-			-- Pending GLAccount Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS GLAccountCount
-				FROM dbo.GLAccount  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingGLAccountData ON PendingGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				-- Pending GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingGLAccountData ON PendingGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
 
-			-- All GLAccount Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(GLAccountId) AS GLAccountCount
-				FROM dbo.GLAccount  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllGLAccountData ON AllGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
-			WHERE ACI.ModuleId = @GLAccountModuleId
+				-- All GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(GLAccountId) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllGLAccountData ON AllGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				WHERE ACI.ModuleId = @GLAccountModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(GLAccountData.GLAccountCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingGLAccountData.GLAccountCount, 0),
-			--	TotalRecords = ISNULL(AllGLAccountData.GLAccountCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(GLAccountData.GLAccountCount, 0),
+					PendingSyncRecords = ISNULL(PendingGLAccountData.GLAccountCount, 0),
+					TotalRecords = ISNULL(AllGLAccountData.GLAccountCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- GLAccount Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS GLAccountCount
-			--	FROM dbo.GLAccount  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS GLAccountData ON GLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				-- GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS GLAccountData ON GLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
 
-			---- Pending GLAccount Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS GLAccountCount
-			--	FROM dbo.GLAccount  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingGLAccountData ON PendingGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				-- Pending GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingGLAccountData ON PendingGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
 
-			---- All GLAccount Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(GLAccountId) AS GLAccountCount
-			--	FROM dbo.GLAccount  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllGLAccountData ON AllGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
-			--WHERE ACI.ModuleId = @GLAccountModuleId
+				-- All GLAccount Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(GLAccountId) AS GLAccountCount
+					FROM dbo.GLAccount  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllGLAccountData ON AllGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
+				WHERE ACI.ModuleId = @GLAccountModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -424,82 +547,88 @@ BEGIN
 
 		IF @ModuleId = @CreditMemoModuleId
 		BEGIN
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(CreditMemoData.CreditMemoCount, 0),
-				PendingSyncRecords = ISNULL(PendingCreditMemoData.CreditMemoCount, 0),
-				TotalRecords = ISNULL(AllCreditMemoData.CreditMemoCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CreditMemoData.CreditMemoCount, 0),
+					PendingSyncRecords = ISNULL(PendingCreditMemoData.CreditMemoCount, 0),
+					TotalRecords = ISNULL(AllCreditMemoData.CreditMemoCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- CreditMemo Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
-				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
+				-- CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
+					FROM dbo.CreditMemo  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
 
-			-- Pending CreditMemo Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
-				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
+				-- Pending CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
+					FROM dbo.CreditMemo  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
 
-			-- All CreditMemo Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
-				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
-			WHERE ACI.ModuleId = @CreditMemoModuleId
+				-- All CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
+					FROM dbo.CreditMemo  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
+				WHERE ACI.ModuleId = @CreditMemoModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords        = ISNULL(CreditMemoData.CreditMemoCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingCreditMemoData.CreditMemoCount, 0),
-			--	TotalRecords       = ISNULL(AllCreditMemoData.CreditMemoCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords        = ISNULL(CreditMemoData.CreditMemoCount, 0),
+					PendingSyncRecords = ISNULL(PendingCreditMemoData.CreditMemoCount, 0),
+					TotalRecords       = ISNULL(AllCreditMemoData.CreditMemoCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- Synced CreditMemo Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
-			--	FROM dbo.CreditMemo WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 
-			--	  AND ISNULL(IsDeleted, 0) = 0 
-			--	  AND ISNULL(QuickBooksReferenceId, '') <> ''
-			--	  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-			--	AND ACI.ModuleId = @CreditMemoModuleId
+				-- Synced CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
+					FROM dbo.CreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0 
+					  AND ISNULL(QuickBooksReferenceId, '') <> ''
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @CreditMemoModuleId
 
-			---- Pending CreditMemo Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
-			--	FROM dbo.CreditMemo WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 
-			--	  AND ISNULL(IsDeleted, 0) = 0 
-			--	  AND ISNULL(IsUpdated, 0) = 1
-			--	  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-			--	AND ACI.ModuleId = @CreditMemoModuleId
+				-- Pending CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
+					FROM dbo.CreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0 
+					  AND ISNULL(IsUpdated, 0) = 1
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @CreditMemoModuleId
 
-			---- All CreditMemo Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
-			--	FROM dbo.CreditMemo WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 
-			--	  AND ISNULL(IsDeleted, 0) = 0
-			--	  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-			--	AND ACI.ModuleId = @CreditMemoModuleId
+				-- All CreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
+					FROM dbo.CreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @CreditMemoModuleId
 
-			--WHERE ACI.ModuleId = @CreditMemoModuleId
+				WHERE ACI.ModuleId = @CreditMemoModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 		END
 
 		---------------ItemMaster Insert
@@ -507,71 +636,77 @@ BEGIN
 		IF @ModuleId = @ItemMasterModuleId
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(ItemMasterData.ItemMasterCount, 0),
-				PendingSyncRecords = ISNULL(PendingItemMasterData.ItemMasterCount, 0),
-				TotalRecords = ISNULL(AllItemMasterData.ItemMasterCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(ItemMasterData.ItemMasterCount, 0),
+					PendingSyncRecords = ISNULL(PendingItemMasterData.ItemMasterCount, 0),
+					TotalRecords = ISNULL(AllItemMasterData.ItemMasterCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- ItemMaster Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
-				FROM dbo.ItemMaster  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				-- ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
-			-- Pending ItemMaster Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
-				FROM dbo.ItemMaster  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				-- Pending ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
-			-- All ItemMaster Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
-				FROM dbo.ItemMaster  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
-			WHERE ACI.ModuleId = @ItemMasterModuleId
+				-- All ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				WHERE ACI.ModuleId = @ItemMasterModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(ItemMasterData.ItemMasterCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingItemMasterData.ItemMasterCount, 0),
-			--	TotalRecords = ISNULL(AllItemMasterData.ItemMasterCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(ItemMasterData.ItemMasterCount, 0),
+					PendingSyncRecords = ISNULL(PendingItemMasterData.ItemMasterCount, 0),
+					TotalRecords = ISNULL(AllItemMasterData.ItemMasterCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- ItemMaster Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
-			--	FROM dbo.ItemMaster  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				-- ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
-			---- Pending ItemMaster Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
-			--	FROM dbo.ItemMaster  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				-- Pending ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
-			---- All ItemMaster Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
-			--	FROM dbo.ItemMaster  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
-			--WHERE ACI.ModuleId = @ItemMasterModuleId
+				-- All ItemMaster Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
+					FROM dbo.ItemMaster  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
+				WHERE ACI.ModuleId = @ItemMasterModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -579,120 +714,126 @@ BEGIN
 
 		IF @ModuleId = @PurchaseOrderModuleId
 		BEGIN
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(PurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(RepairOrderData.RepairOrderCount, 0),
-				PendingSyncRecords = ISNULL(PendingPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(PendingRepairOrderData.RepairOrderCount, 0),
-				TotalRecords = ISNULL(AllPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(AllRepairOrderData.RepairOrderCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(PurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(RepairOrderData.RepairOrderCount, 0),
+					PendingSyncRecords = ISNULL(PendingPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(PendingRepairOrderData.RepairOrderCount, 0),
+					TotalRecords = ISNULL(AllPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(AllRepairOrderData.RepairOrderCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- PurchaseOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PurchaseOrderData ON PurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PurchaseOrderData ON PurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			-- Pending PurchaseOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingPurchaseOrderData ON PendingPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- Pending PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingPurchaseOrderData ON PendingPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			-- All PurchaseOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(PurchaseOrderId) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllPurchaseOrderData ON AllPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- All PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(PurchaseOrderId) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllPurchaseOrderData ON AllPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			-- RepairOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS RepairOrderCount
-				FROM dbo.RepairOrder  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS RepairOrderData ON RepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS RepairOrderData ON RepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			-- Pending RepairOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS RepairOrderCount
-				FROM dbo.RepairOrder  WITH(NOLOCK) 
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingRepairOrderData ON PendingRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- Pending RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingRepairOrderData ON PendingRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			-- All RepairOrder Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(RepairOrderId) AS RepairOrderCount
-				FROM dbo.RepairOrder  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllRepairOrderData ON AllRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- All RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(RepairOrderId) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllRepairOrderData ON AllRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			WHERE ACI.ModuleId = @PurchaseOrderModuleId
+				WHERE ACI.ModuleId = @PurchaseOrderModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting Purchase Order---------------------------------
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(PurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(RepairOrderData.RepairOrderCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(PendingRepairOrderData.RepairOrderCount, 0),
-			--	TotalRecords = ISNULL(AllPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(AllRepairOrderData.RepairOrderCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(PurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(RepairOrderData.RepairOrderCount, 0),
+					PendingSyncRecords = ISNULL(PendingPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(PendingRepairOrderData.RepairOrderCount, 0),
+					TotalRecords = ISNULL(AllPurchaseOrderData.PurchaseOrderCount, 0) + ISNULL(AllRepairOrderData.RepairOrderCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- PurchaseOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS PurchaseOrderCount
-			--	FROM dbo.PurchaseOrder  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PurchaseOrderData ON PurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PurchaseOrderData ON PurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			---- Pending PurchaseOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS PurchaseOrderCount
-			--	FROM dbo.PurchaseOrder  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingPurchaseOrderData ON PendingPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- Pending PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingPurchaseOrderData ON PendingPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			---- All PurchaseOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(PurchaseOrderId) AS PurchaseOrderCount
-			--	FROM dbo.PurchaseOrder  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllPurchaseOrderData ON AllPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- All PurchaseOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(PurchaseOrderId) AS PurchaseOrderCount
+					FROM dbo.PurchaseOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllPurchaseOrderData ON AllPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			---- RepairOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS RepairOrderCount
-			--	FROM dbo.RepairOrder  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS RepairOrderData ON RepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS RepairOrderData ON RepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			---- Pending RepairOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS RepairOrderCount
-			--	FROM dbo.RepairOrder  WITH(NOLOCK) 
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingRepairOrderData ON PendingRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- Pending RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK) 
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingRepairOrderData ON PendingRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			---- All RepairOrder Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(RepairOrderId) AS RepairOrderCount
-			--	FROM dbo.RepairOrder  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllRepairOrderData ON AllRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
+				-- All RepairOrder Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(RepairOrderId) AS RepairOrderCount
+					FROM dbo.RepairOrder  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllRepairOrderData ON AllRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
 
-			--WHERE ACI.ModuleId = @PurchaseOrderModuleId
+				WHERE ACI.ModuleId = @PurchaseOrderModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
@@ -700,72 +841,78 @@ BEGIN
 
 		IF @ModuleId = @CPModuleId
 		BEGIN
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(CustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
-				PendingSyncRecords = ISNULL(PendingCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
-				TotalRecords = ISNULL(AllCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+					PendingSyncRecords = ISNULL(PendingCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+					TotalRecords = ISNULL(AllCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- CustomerPaymentDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			-- Pending CustomerPaymentDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- Pending CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			-- All CustomerPaymentDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- All CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			WHERE ACI.ModuleId = @CPModuleId
+				WHERE ACI.ModuleId = @CPModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(CustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
-			--	TotalRecords = ISNULL(AllCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(CustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+					PendingSyncRecords = ISNULL(PendingCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+					TotalRecords = ISNULL(AllCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- CustomerPaymentDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
-			--	FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			---- Pending CustomerPaymentDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
-			--	FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- Pending CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			---- All CustomerPaymentDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
-			--	FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+				-- All CustomerPaymentDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
+					FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
-			--WHERE ACI.ModuleId = @CPModuleId
+				WHERE ACI.ModuleId = @CPModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 		END
 
 		---------------Invoice Insert
@@ -774,169 +921,225 @@ BEGIN
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
 
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(WorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(SalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(ExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
-				PendingSyncRecords = ISNULL(PendingWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(PendingSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(PendingExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
-				TotalRecords = ISNULL(AllWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(AllSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + 	ISNULL(AllExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI			
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(WorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(SalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(LeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + ISNULL(ExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
+					PendingSyncRecords = ISNULL(PendingWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(PendingSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(PendingLeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + ISNULL(PendingExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
+					TotalRecords = ISNULL(AllWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(AllSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(AllLeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + 	ISNULL(AllExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI			
 
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @QBIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0
-				GROUP BY MasterCompanyId
-			) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @QBIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0
-				GROUP BY MasterCompanyId
-			) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 			
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			-- New Table
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS SalesOrderBillingInvoicingCount
-				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- Leasing invoices (ModuleId 72)
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS LeasingBillingInvoicingData ON LeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingLeasingBillingInvoicingData ON PendingLeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS AllLeasingBillingInvoicingData ON AllLeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 			
-			-- ExchangeSalesOrderBillingInvoicing Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS ExchangeSalesOrderBillingInvoicingData ON ExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS ExchangeSalesOrderBillingInvoicingData ON ExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			-- Pending ExchangeSalesOrderBillingInvoicing Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingExchangeSalesOrderBillingInvoicingData ON PendingExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- Pending ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingExchangeSalesOrderBillingInvoicingData ON PendingExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			-- All ExchangeSalesOrderBillingInvoicing Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllExchangeSalesOrderBillingInvoicingData ON AllExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- All ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllExchangeSalesOrderBillingInvoicingData ON AllExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			WHERE ACI.ModuleId = @InvModuleId
+				WHERE ACI.ModuleId = @InvModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(WorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(SalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(ExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(PendingSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(PendingExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
-			--	TotalRecords = ISNULL(AllWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(AllSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + 	ISNULL(AllExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI			
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(WorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(SalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(LeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + ISNULL(ExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
+					PendingSyncRecords = ISNULL(PendingWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(PendingSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(PendingLeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + ISNULL(PendingExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0),
+					TotalRecords = ISNULL(AllWorkOrderBillingInvoicingData.WorkOrderBillingInvoicingCount, 0) + ISNULL(AllSalesOrderBillingInvoicingData.SalesOrderBillingInvoicingCount, 0) + ISNULL(AllLeasingBillingInvoicingData.LeasingBillingInvoicingCount, 0) + 	ISNULL(AllExchangeSalesOrderBillingInvoicingData.ExchangeSalesOrderBillingInvoicingCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI			
 
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @XeroIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0
-			--	GROUP BY MasterCompanyId
-			--) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> ''  AND [IntegrationTypeId] = @XeroIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId 
-			--	GROUP BY MasterCompanyId
-			--) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsPerformaInvoice, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @WOModuleId
+					GROUP BY MasterCompanyId
+				) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0
-			--	GROUP BY MasterCompanyId
-			--) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 			
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 						
-			---- New Table
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS SalesOrderBillingInvoicingCount
-			--	FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
-			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS SalesOrderBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @SOModuleId
+					GROUP BY MasterCompanyId
+				) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- Leasing invoices (ModuleId 72)
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId AND ISNULL(IsPerformaInvoice, 0) = 0 AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS LeasingBillingInvoicingData ON LeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS PendingLeasingBillingInvoicingData ON PendingLeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+				-- New Table
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS LeasingBillingInvoicingCount
+					FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+					WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId AND [ModuleId] = @LeasingModuleId
+					GROUP BY MasterCompanyId
+				) AS AllLeasingBillingInvoicingData ON AllLeasingBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 			
-			---- ExchangeSalesOrderBillingInvoicing Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount
-			--	FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS ExchangeSalesOrderBillingInvoicingData ON ExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS ExchangeSalesOrderBillingInvoicingData ON ExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			---- Pending ExchangeSalesOrderBillingInvoicing Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS ExchangeSalesOrderBillingInvoicingCount
-			--	FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingExchangeSalesOrderBillingInvoicingData ON PendingExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- Pending ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingExchangeSalesOrderBillingInvoicingData ON PendingExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			---- All ExchangeSalesOrderBillingInvoicing Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS ExchangeSalesOrderBillingInvoicingCount
-			--	FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllExchangeSalesOrderBillingInvoicingData ON AllExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+				-- All ExchangeSalesOrderBillingInvoicing Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS ExchangeSalesOrderBillingInvoicingCount
+					FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllExchangeSalesOrderBillingInvoicingData ON AllExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
-			--WHERE ACI.ModuleId = @InvModuleId
+				WHERE ACI.ModuleId = @InvModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 		END
 
 		---------------VendorReadyToPayDetails Insert
@@ -945,123 +1148,132 @@ BEGIN
 		BEGIN
 			--------------------------------- QuickBooks ---------------------------------
 
-			UPDATE ACI
-			SET 
-				SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
-				PendingSyncRecords = ISNULL(PendingVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
-				TotalRecords = ISNULL(AllVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0)
-			FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsQuickBookEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+					PendingSyncRecords = ISNULL(PendingVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+					TotalRecords = ISNULL(AllVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			-- VendorReadyToPayDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				-- VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
-			-- Pending VendorReadyToPayDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				-- Pending VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
-			-- All VendorReadyToPayDetails Data
-			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				GROUP BY MasterCompanyId
-			) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
-			WHERE ACI.ModuleId = @BillPaymentModuleId
+				-- All VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				WHERE ACI.ModuleId = @BillPaymentModuleId AND ACI.[IntegrationId] = @QBIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 			--------------------------------- Xero Accounting ---------------------------------
 
-			--UPDATE ACI
-			--SET 
-			--	SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
-			--	PendingSyncRecords = ISNULL(PendingVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
-			--	TotalRecords = ISNULL(AllVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0)
-			--FROM dbo.AccountingIntegrationSettings ACI
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+					PendingSyncRecords = ISNULL(PendingVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+					TotalRecords = ISNULL(AllVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-			---- VendorReadyToPayDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
-			--	FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				-- VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
-			---- Pending VendorReadyToPayDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
-			--	FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				-- Pending VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
-			---- All VendorReadyToPayDetails Data
-			--LEFT JOIN (
-			--	SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
-			--	FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-			--	WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-			--	GROUP BY MasterCompanyId
-			--) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
-			--WHERE ACI.ModuleId = @BillPaymentModuleId
+				-- All VendorReadyToPayDetails Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
+					FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+				WHERE ACI.ModuleId = @BillPaymentModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
 
 		END
 
 		--------------- VendorCreditMemo Insert
 
-		--IF @ModuleId = @VendorCreditMemoModuleId
-		--BEGIN
-		--	--------------------------------- Xero Accounting ---------------------------------
-		--	UPDATE ACI
-		--	SET 
-		--		SyncRecords        = ISNULL(VendorCreditMemoData.VendorCreditMemoCount, 0),
-		--		PendingSyncRecords = ISNULL(PendingVendorCreditMemoData.VendorCreditMemoCount, 0),
-		--		TotalRecords       = ISNULL(AllVendorCreditMemoData.VendorCreditMemoCount, 0)
-		--	FROM dbo.AccountingIntegrationSettings ACI
+		IF @ModuleId = @VendorCreditMemoModuleId
+		BEGIN
+			--------------------------------- Xero Accounting ---------------------------------
+			IF @IsXeroAccountingEnabled = 1
+			BEGIN
+				UPDATE ACI
+				SET 
+					SyncRecords        = ISNULL(VendorCreditMemoData.VendorCreditMemoCount, 0),
+					PendingSyncRecords = ISNULL(PendingVendorCreditMemoData.VendorCreditMemoCount, 0),
+					TotalRecords       = ISNULL(AllVendorCreditMemoData.VendorCreditMemoCount, 0)
+				FROM dbo.AccountingIntegrationSettings ACI
 
-		--	-- Synced VendorCreditMemo Data
-		--	LEFT JOIN (
-		--		SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCreditMemoCount
-		--		FROM dbo.VendorCreditMemo WITH(NOLOCK)
-		--		WHERE ISNULL(IsActive, 0) = 1 
-		--		  AND ISNULL(IsDeleted, 0) = 0 
-		--		  AND ISNULL(QuickBooksReferenceId, '') <> ''
-		--		  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-		--		GROUP BY MasterCompanyId
-		--	) AS VendorCreditMemoData ON VendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-		--		AND ACI.ModuleId = @VendorCreditMemoModuleId
+				-- Synced VendorCreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCreditMemoCount
+					FROM dbo.VendorCreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0 
+					  AND ISNULL(QuickBooksReferenceId, '') <> ''
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS VendorCreditMemoData ON VendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @VendorCreditMemoModuleId
 
-		--	-- Pending VendorCreditMemo Data
-		--	LEFT JOIN (
-		--		SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCreditMemoCount
-		--		FROM dbo.VendorCreditMemo WITH(NOLOCK)
-		--		WHERE ISNULL(IsActive, 0) = 1 
-		--		  AND ISNULL(IsDeleted, 0) = 0 
-		--		  AND ISNULL(IsUpdated, 0) = 1
-		--		  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-		--		GROUP BY MasterCompanyId
-		--	) AS PendingVendorCreditMemoData ON PendingVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-		--		AND ACI.ModuleId = @VendorCreditMemoModuleId
+				-- Pending VendorCreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCreditMemoCount
+					FROM dbo.VendorCreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0 
+					  AND ISNULL(IsUpdated, 0) = 1
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS PendingVendorCreditMemoData ON PendingVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @VendorCreditMemoModuleId
 
-		--	-- All VendorCreditMemo Data
-		--	LEFT JOIN (
-		--		SELECT MasterCompanyId, COUNT(VendorCreditMemoId) AS VendorCreditMemoCount
-		--		FROM dbo.VendorCreditMemo WITH(NOLOCK)
-		--		WHERE ISNULL(IsActive, 0) = 1 
-		--		  AND ISNULL(IsDeleted, 0) = 0
-		--		  AND [IntegrationTypeId] = @XeroIntegrationTypeId
-		--		GROUP BY MasterCompanyId
-		--	) AS AllVendorCreditMemoData ON AllVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
-		--		AND ACI.ModuleId = @VendorCreditMemoModuleId
+				-- All VendorCreditMemo Data
+				LEFT JOIN (
+					SELECT MasterCompanyId, COUNT(VendorCreditMemoId) AS VendorCreditMemoCount
+					FROM dbo.VendorCreditMemo WITH(NOLOCK)
+					WHERE ISNULL(IsActive, 0) = 1 
+					  AND ISNULL(IsDeleted, 0) = 0
+					  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+					GROUP BY MasterCompanyId
+				) AS AllVendorCreditMemoData ON AllVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+					AND ACI.ModuleId = @VendorCreditMemoModuleId
 
-		--	WHERE ACI.ModuleId = @VendorCreditMemoModuleId
-		--END
+				WHERE ACI.ModuleId = @VendorCreditMemoModuleId AND ACI.[IntegrationId] = @XeroIntegrationTypeId AND ACI.[MasterCompanyId] = @MasterCompanyId
+			END
+		END
 
 	END TRY    
 	BEGIN CATCH      

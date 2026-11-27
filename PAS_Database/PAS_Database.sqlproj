@@ -3252,6 +3252,7 @@
     <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateInvoicePayment.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSetup_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSyncFailureReasons.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderAwaitingPartsReport.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReportByStocklineId.sql" />

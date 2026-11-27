@@ -15,6 +15,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------  
 	1    08/06/2020   HEMANT SALIYA	     CREATED
+	2    11/25/2026   Moin Bloch	     Filter by MasterCompanyId (was "@MasterCompanyId = @MasterCompanyId", which returned every company)
 
 
 EXEC USP_GetQuickBooksSettingsByMasterCompany 1 , 1
@@ -45,7 +46,7 @@ BEGIN
 			IsActive,
 			IsDeleted 
 		FROM dbo.AccountingIntegrationSetup WITH(NOLOCK) 
-		WHERE @MasterCompanyId = @MasterCompanyId AND IntegrationId = @IntegrationTypeId 
+		WHERE MasterCompanyId = @MasterCompanyId AND IntegrationId = @IntegrationTypeId
 			
 	END TRY    
 	BEGIN CATCH      

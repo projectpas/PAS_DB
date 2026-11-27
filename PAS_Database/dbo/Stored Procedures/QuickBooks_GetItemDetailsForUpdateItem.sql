@@ -13,7 +13,8 @@
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+	3    25/Nov/2026   Moin Bloch       Return MasterCompany.IsQuickBookNonInventoryItem (QuickBooks: update items as Non-Inventory)
+
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[QuickBooks_GetItemDetailsForUpdateItem]
@@ -57,11 +58,13 @@ BEGIN
 				IM.UpdatedBy,
 				IM.CreatedDate,
 				IM.QuickBooksReferenceId AS ItemQuickBooksReferenceId,
-				IM.SyncToken
+				IM.SyncToken,
+				ISNULL(MC.IsQuickBookNonInventoryItem, 0) AS IsQuickBookNonInventoryItem
 			FROM DBO.ItemMaster IM WITH(NOLOCK)
 				INNER JOIN DBO.GLAccount GLIncome WITH(NOLOCK) ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
 				INNER JOIN DBO.GLAccount GLAsset WITH(NOLOCK) ON IM.GLAccountId = GLAsset.GLAccountId
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
+				LEFT JOIN DBO.MasterCompany MC WITH(NOLOCK) ON MC.MasterCompanyId = IM.MasterCompanyId
 			WHERE ISNULL(IM.QuickBooksReferenceId, '') != '' AND IM.ItemMasterId = @ReferenceId AND IM.MasterCompanyId = @MasterCompanyId
 		
 		 AND ISNULL(IM.IsNonStock,0) = 0

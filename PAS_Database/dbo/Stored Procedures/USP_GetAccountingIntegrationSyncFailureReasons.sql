@@ -13,6 +13,8 @@
  ** PR   Date			Author			Change Description
  ** --   --------		-------			--------------------------------
 	1    11/02/2026     Moin Bloch	     CREATED
+	2    11/25/2026     Moin Bloch	     Ignore a Fault when the same record got a successful QuickBooks response later
+	                                     (e.g. duplicate name retried and saved as "Name (V)" / "Name (C)")
 
  EXEC [dbo].[USP_GetAccountingIntegrationSyncFailureReasons] 1, 2, 1, '2026-11-02 16:44:00'
 **************************************************************/
@@ -36,12 +38,22 @@ BEGIN
 						THEN SUBSTRING([Payload], CHARINDEX('"Message":"', [Payload]) + 11,
 									   CHARINDEX('"', [Payload], CHARINDEX('"Message":"', [Payload]) + 11) - CHARINDEX('"Message":"', [Payload]) - 11)
 				   END AS [Reason]
-			  FROM [dbo].[AccountingIntegrationLogs] WITH (NOLOCK)
+			  FROM [dbo].[AccountingIntegrationLogs] AIL WITH (NOLOCK)
 			 WHERE [IntegrationId]   = @IntegrationId
 			   AND [ModuleId]        = @ModuleId
 			   AND [MasterCompanyId] = @MasterCompanyId
 			   AND [CreatedDate]    >= @FromDate
 			   AND ([Payload] LIKE '%<Fault%' OR [Payload] LIKE '%"Fault"%')
+			   -- Record was saved by a later retry (duplicate name saved as "Name (V)" / "Name (C)"): not a failure
+			   AND NOT EXISTS (SELECT 1
+								 FROM [dbo].[AccountingIntegrationLogs] OK WITH (NOLOCK)
+								WHERE OK.[IntegrationId]   = AIL.[IntegrationId]
+								  AND OK.[ModuleId]        = AIL.[ModuleId]
+								  AND OK.[MasterCompanyId] = AIL.[MasterCompanyId]
+								  AND OK.[ReferenceId]     = AIL.[ReferenceId]
+								  AND OK.[AccountingIntegrationLogsId] > AIL.[AccountingIntegrationLogsId]
+								  AND OK.[Payload] LIKE '%<IntuitResponse%'
+								  AND OK.[Payload] NOT LIKE '%<Fault%')
 		)
 		SELECT LTRIM(RTRIM([Reason])) AS [Reason],
 			   COUNT(DISTINCT [ReferenceId]) AS [FailedCount]
